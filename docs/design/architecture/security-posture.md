@@ -56,7 +56,7 @@ SSH access to office2 passes through **two gates** in sequence:
 
 ## Privacy Boundaries
 
-**Absolute rule**: `~/second-brain/notes/04-Growth/_private/` is never read, written, referenced, or logged by any agent or script under any circumstance. No exceptions. (Path renumbered from `02-Growth/_private/` in mission 026 / #152.)
+**Physical exclusion**: Kent's sensitive growth-work content (formerly the `04-Growth/_private` vault folder) lives in a separate Obsidian vault synced only to Kent's laptop and phone. office2 never joins that vault, and the old folder was deleted and verified absent from office2. The privacy boundary is enforced by **physical exclusion** — the content is never present on the machine Felix runs on — which supersedes the retired in-repo "never touch `_private`" apparatus (#848). Agents and scripts still never read, write, or log content outside the resolved inbox / permitted vault paths.
 
 **Agent context ceiling**: Agents may read `03-Constitution/` docs only from the second brain. All other vault content is off-limits unless explicitly required by a skill definition.
 

@@ -176,9 +176,9 @@ numbers are verified to exist (`gh issue view`), with a null/missing number a
 finalize failure — then writes that block's routing-log entry **before** the note
 is marked. Only after **every** block is routed and logged
 does the helper mark the note `processed` — **once**, by invoking
-`mark_processed` as a subprocess (the `_private` refusal exit 3, inbox-root
-validation, and symlink guard all live in `mark_processed.main()`; finalize never
-calls it in-process).
+`mark_processed` as a subprocess (the outside-inbox-root validation and symlink
+`.resolve()` guard live in `mark_processed.main()`; finalize never calls it
+in-process).
 
 - **Log-before-mark + per-block keys** make it retry-safe: routing-log entries
   are keyed on `filename + block_index + block_hash`. On a re-run an
@@ -406,13 +406,15 @@ is NOT git-tracked.
 
 ## Privacy boundary
 
-**Absolute rule**: `04-Growth/_private/` is never read, processed, routed to,
-referenced, or logged. This is enforced in SOUL.md, AGENTS.md, and TOOLS.md.
-There are no exceptions.
+**Physical exclusion (#848)**: Kent's private growth content (formerly
+`04-Growth/_private/`) is not present on office2 — it lives in a separate
+laptop/phone-only Obsidian vault office2 never joins, and the old folder was
+deleted and verified absent from office2. The inbox flow therefore never
+encounters it. `mark_processed` still refuses any path outside the resolved
+inbox root (a folder-independent guard), so nothing is stamped outside the inbox.
 
-> Path renumbered from `02-Growth/_private/` in mission 026 (#152). The
-> constitutional boundary itself is unchanged — only the parent folder
-> ordinal moved.
+> The boundary is now the content's physical absence rather than an in-repo
+> "never touch `_private`" rule the agent must carry.
 
 ## Inbox-Processed destination
 

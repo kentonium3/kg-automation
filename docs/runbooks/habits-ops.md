@@ -641,10 +641,12 @@ documenting which task_ids changed and the old/new due_dates.
 
 ## Privacy boundary
 
-**Absolute rule**: `04-Growth/_private/` is never read, processed,
-routed to, referenced, or logged. Habits originating from private
-context appear only as habit names. This is enforced in SOUL.md,
-AGENTS.md, and TOOLS.md. There are no exceptions.
+**Physical exclusion (#848)**: Kent's private growth content (formerly
+`04-Growth/_private/`) is not present on office2 — it lives in a separate
+laptop/phone-only vault office2 never joins — so the habits flow never
+encounters it. Habits originating from private context appear only as habit
+names. The boundary is the content's physical absence, not an in-repo rule
+the agent must carry.
 
 ## Cross-references
 

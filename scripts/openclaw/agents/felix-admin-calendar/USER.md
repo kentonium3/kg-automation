@@ -37,9 +37,3 @@ round-trip.
 - RRULE: only populate when the source explicitly states recurrence
   ("every Tuesday", "weekly", "biweekly", etc.). Do NOT invent recurrence
   from a single-occurrence event.
-
-## Privacy
-
-Kent's private journal at `04-Growth/_private/` is off-limits. Event
-metadata that originated there reaches you only as a sanitized payload
-from capture; never follow `source_inbox_path` back into that directory.

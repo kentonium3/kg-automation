@@ -17,7 +17,7 @@ a workflow on `main`. The former **pre-push** `make test` gate was removed
 
 | Hook | Runs | Catches | Cost |
 |---|---|---|---|
-| `.githooks/pre-commit` | the three Docs CI validators (whole-tree, every commit) | `docs-ci.yml` failures | ~4s every commit |
+| `.githooks/pre-commit` | the two Docs CI validators (whole-tree, every commit) | `docs-ci.yml` failures | ~4s every commit |
 | `.githooks/pre-push` | **nothing (no-op)** — removed #719 | — (code is checked post-push by `test-ci.yml`) | ~0s |
 
 ## One-time setup (per clone)
@@ -44,9 +44,9 @@ Runs the same validators as the Docs CI workflow, so a doc-frontmatter problem
 (an unknown `doc_type`/`status` enum value, a broken required key, etc.) is
 caught at commit time — closest to authoring — and never enters a commit.
 
-All three validators run **unconditionally on every commit** (~4s total):
-`validate_privacy_boundary.py` (~0.2s), `validate_architecture_data.py --strict`
-(~0.1s), and `validate_docs.py` (~3.9s, a whole-tree frontmatter + secret scan).
+Both validators run **unconditionally on every commit** (~4s total):
+`validate_architecture_data.py --strict` (~0.1s) and `validate_docs.py`
+(~3.9s, a whole-tree frontmatter + secret scan).
 
 `validate_docs.py` used to run **only when the commit staged docs/markdown** (a
 code-only commit paid ~0.3s). That was dropped: because the check is whole-tree
@@ -104,9 +104,8 @@ pushed. We have the test locally and can know in advance if it will fail CI."
 Two CI workflows run on every push to `main`:
 
 - `test-ci.yml` — runs `make test` (the full pytest suite).
-- `docs-ci.yml` — runs **three** validators: `validate_docs.py` (frontmatter +
-  enum membership), `validate_privacy_boundary.py`, and
-  `validate_architecture_data.py --strict`.
+- `docs-ci.yml` — runs **two** validators: `validate_docs.py` (frontmatter +
+  enum membership) and `validate_architecture_data.py --strict`.
 
 `.githooks/pre-push` closed the gap for `test-ci` in #571. The `docs-ci` gap
 stayed open: an earlier version of this runbook assumed "the pre-commit hook

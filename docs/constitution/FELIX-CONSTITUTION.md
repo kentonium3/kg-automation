@@ -160,7 +160,7 @@ This section defines boundaries that no agent may cross. It is designed to expan
 
 **Current boundaries:**
 
-1. The directory `~/second-brain/notes/04-Growth/_private/` is never read, written, referenced, or logged by any agent or script under any circumstance. There are no exceptions to this rule. (Path renumbered from `02-Growth/_private/` in mission 026 / #152; the constitutional boundary itself is unchanged — only the parent folder ordinal moved.)
+1. Kent's private content is protected by **physical exclusion**: it lives in a separate laptop/phone-only vault that office2 never syncs, so it is absent from every surface an agent or script can reach. The boundary is enforced by that architecture rather than by a folder-name guard embedded in prompts. The general boundary still holds — `~/second-brain/` is a separate repo; agents do not write to second-brain paths from kg-automation unless a skill explicitly requires it.
 
 **Future boundaries:**
 

@@ -194,10 +194,10 @@ def test_render_body_no_second_brain_paths():
     """C-006: well-behaved caller -> body has zero second-brain substrings.
 
     Happy-path pin: when callers pass clean inputs, the rendered body
-    contains no ``~/second-brain``, ``/second-brain``, or ``_private``
-    substrings. The data-model Entity 5 template itself has zero
-    second-brain references, so this test guards against accidental
-    template additions in future refactors.
+    contains no ``~/second-brain`` or ``/second-brain`` substrings. The
+    data-model Entity 5 template itself has zero second-brain references, so
+    this test guards against accidental template additions in future
+    refactors.
     """
     _, body = render_bug_body(
         task_id=1234,
@@ -211,23 +211,22 @@ def test_render_body_no_second_brain_paths():
     )
     assert "~/second-brain" not in body
     assert "second-brain" not in body
-    assert "_private" not in body
 
 
 def test_render_body_redacts_second_brain_in_jsonl_path():
     """Adversarial C-006: a tainted ``jsonl_path`` MUST be redacted.
 
     Enforcement is at the render boundary via ``_sanitize_for_body``.
-    Even if a caller passes a path under ``~/second-brain/_private``,
+    Even if a caller passes a path under ``~/second-brain``,
     the body must replace the forbidden substrings with the
     ``[REDACTED:second-brain-path]`` placeholder.
 
     Note: ``"second-brain"`` appears inside the placeholder itself, so we
     assert on the forbidden path *fragments* (``~/second-brain``,
-    ``/second-brain``, ``_private``) rather than the bare word.
+    ``/second-brain``) rather than the bare word.
     """
     tainted_path = (
-        "/Users/kent/second-brain/notes/04-Growth/_private/escalation.jsonl"
+        "/Users/kent/second-brain/notes/04-Growth/journal/escalation.jsonl"
     )
     _, body = render_bug_body(
         task_id=1234,
@@ -238,13 +237,9 @@ def test_render_body_redacts_second_brain_in_jsonl_path():
         detection_snippet="snippet",
         vikunja_state=_default_vikunja_state(),
     )
-    # The tainted path fragments must NOT appear in the rendered body.
+    # The tainted vault-path fragments must NOT appear in the rendered body.
     assert "~/second-brain" not in body
     assert "/second-brain" not in body
-    assert "_private" not in body
-    # The original raw filename suffix that depends on the redacted root
-    # must not appear either -- a successful redaction breaks the path.
-    assert "04-Growth/_private/escalation.jsonl" not in body
     # The placeholder MUST appear in the JSONL file line.
     assert "[REDACTED:second-brain-path]" in body
 
@@ -274,9 +269,10 @@ def test_render_body_redacts_second_brain_in_task_title():
 
     The task title appears in both the title literal AND the body
     (``vikunja_link`` line in the Hard-fail context block). Both must be
-    sanitized so a malicious or accidentally-tainted title cannot leak.
+    sanitized so a malicious or accidentally-tainted title cannot leak a
+    vault path.
     """
-    tainted_title = "Review _private notes for Q3 plan"
+    tainted_title = "Review ~/second-brain/notes/journal.md for Q3 plan"
     title, body = render_bug_body(
         task_id=1234,
         project_id=4,
@@ -286,9 +282,9 @@ def test_render_body_redacts_second_brain_in_task_title():
         detection_snippet="snippet",
         vikunja_state=_default_vikunja_state(),
     )
-    # _private must not survive in either output.
-    assert "_private" not in title
-    assert "_private" not in body
+    # The vault path must not survive in either output.
+    assert "~/second-brain" not in title
+    assert "~/second-brain" not in body
     # Placeholder must appear in both (title and body include the task title).
     assert "[REDACTED:second-brain-path]" in title
     assert "[REDACTED:second-brain-path]" in body
@@ -298,7 +294,7 @@ def test_render_body_redacts_second_brain_in_derive_state_error():
     """Adversarial C-006: a tainted ``derive_state_error_message`` MUST be redacted."""
     tainted_error = (
         "EscalationStateError: malformed level_sent at "
-        "/Users/kent/second-brain/notes/04-Growth/_private/escalation.jsonl line 42"
+        "/Users/kent/second-brain/notes/04-Growth/journal/escalation.jsonl line 42"
     )
     _, body = render_bug_body(
         task_id=1234,
@@ -312,7 +308,6 @@ def test_render_body_redacts_second_brain_in_derive_state_error():
     )
     assert "~/second-brain" not in body
     assert "/second-brain" not in body
-    assert "_private" not in body
     assert "[REDACTED:second-brain-path]" in body
 
 
@@ -321,7 +316,7 @@ def test_render_body_redacts_second_brain_in_vikunja_url():
 
     ``vikunja_url`` is a caller-provided string interpolated into the
     Markdown link target in the Hard-fail context block. An adversarial
-    caller smuggling ``~/second-brain``, ``/second-brain``, or ``_private``
+    caller smuggling ``~/second-brain`` or ``/second-brain``
     through this field must be redacted to ``[REDACTED:second-brain-path]``
     before the body is rendered.
 
@@ -329,7 +324,7 @@ def test_render_body_redacts_second_brain_in_vikunja_url():
     contain none of the forbidden substrings, so well-behaved callers see
     no change in behaviour -- this test only guards the adversarial path.
     """
-    tainted_url = "file:///Users/kent/second-brain/notes/04-Growth/_private/leak.md"
+    tainted_url = "file:///Users/kent/second-brain/notes/04-Growth/journal/leak.md"
     _, body = render_bug_body(
         task_id=1234,
         project_id=4,
@@ -342,9 +337,8 @@ def test_render_body_redacts_second_brain_in_vikunja_url():
     )
     assert "~/second-brain" not in body
     assert "/second-brain" not in body
-    assert "_private" not in body
-    # The forbidden literal path fragment must not survive in the link target.
-    assert "second-brain/notes/04-Growth/_private/leak.md" not in body
+    # The forbidden vault-root fragment must not survive in the link target.
+    assert "second-brain/notes/04-Growth/journal/leak.md" not in body
     assert "[REDACTED:second-brain-path]" in body
 
 
@@ -375,12 +369,12 @@ def test_render_body_redacts_second_brain_in_detected_at():
     ``detected_at`` is typed as ``Optional[str]`` and interpolated raw into
     the body's Hard-fail context block. In normal usage it is a UTC ISO-8601
     timestamp (no forbidden substrings), but the function accepts any string,
-    so an adversarial caller could smuggle ``~/second-brain``, ``/second-brain``,
-    or ``_private`` through this field. Both forbidden fragments and the
+    so an adversarial caller could smuggle ``~/second-brain`` or
+    ``/second-brain`` through this field. Both forbidden fragments and the
     redaction placeholder must be detectable in the rendered body.
     """
     tainted_detected_at = (
-        "2026-05-19T13:00:00Z (from ~/second-brain/notes/04-Growth/_private/log.md)"
+        "2026-05-19T13:00:00Z (from ~/second-brain/notes/04-Growth/journal/log.md)"
     )
     _, body = render_bug_body(
         task_id=1234,
@@ -394,7 +388,6 @@ def test_render_body_redacts_second_brain_in_detected_at():
     )
     assert "~/second-brain" not in body
     assert "/second-brain" not in body
-    assert "_private" not in body
     assert "[REDACTED:second-brain-path]" in body
 
 

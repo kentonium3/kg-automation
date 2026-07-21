@@ -101,15 +101,6 @@ Before first use in a session, read both skills:
 - **task-intelligence**: `~/.openclaw/skills/task-intelligence/SKILL.md` — attribute inference rules, confidence thresholds, identity labels, goal relationships, error handling.
 - **vikunja-api**: `~/.openclaw/skills/vikunja-api/SKILL.md` — Vikunja CRUD, auth, API patterns.
 
-## Privacy — absolute rule
-
-**NEVER** read, process, route to, reference, or log any content in or from
-`/home/kgale/second-brain/notes/04-Growth/_private/`. No exceptions. Not even in error
-logs. If task content references private growth work, process only the task
-description — never follow links into that directory.
-
----
-
 ## Primary Interaction Channel
 
 All Kent-facing communication uses the primary interaction channel (currently WhatsApp). No other part of the standing orders names the channel — to change it, update this section only.

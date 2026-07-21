@@ -55,7 +55,8 @@ python3 scripts/inbox/prescan.py --self-check # preflight: verify paths only
 
 ## Guardrails
 
-- Never reads or writes inside any `_private/` subdirectory (C-001).
+- Reads and writes only within the resolved inbox root; never touches paths
+  outside it.
 - Never modifies file contents including frontmatter (C-002).
 - Never imports from `anthropic`, `openclaw`, or any LLM SDK (NFR-002).
 - Uses `yaml.safe_load` exclusively; never `yaml.load` (NFR-004).

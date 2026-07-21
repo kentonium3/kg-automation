@@ -496,9 +496,7 @@ def classify_file(path: Path, now_utc: datetime) -> InboxFile:
 def scan_directory(inbox_dir: Path, now_utc: datetime) -> list[InboxFile]:
     """List ``.md`` files directly under ``inbox_dir`` and classify them.
 
-    Non-recursive. Skips any path containing ``_private`` as a path component
-    (defense-in-depth for C-001 privacy boundary; the inbox should never
-    contain such a subdirectory but this is belt-and-suspenders).
+    Non-recursive.
     """
     results: list[InboxFile] = []
     try:
@@ -507,19 +505,9 @@ def scan_directory(inbox_dir: Path, now_utc: datetime) -> list[InboxFile]:
         raise PrescanError(f"Unable to list inbox directory {inbox_dir}: {e}") from e
 
     for entry in entries:
-        # Defense-in-depth: never walk a _private subdirectory.
-        if "_private" in entry.parts:
-            continue
         if not entry.is_file():
             continue
         if entry.suffix.lower() != ".md":
-            continue
-        # Extra guard: resolve symlinks and verify they don't land in _private.
-        try:
-            resolved = entry.resolve()
-            if "_private" in resolved.parts:
-                continue
-        except OSError:
             continue
         results.append(classify_file(entry, now_utc))
 

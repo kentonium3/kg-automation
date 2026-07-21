@@ -23,11 +23,10 @@ supplies only what is specific to this repo.
 ```
 make test                                   # non-live pytest suite (ignores docs/archive)
 python3 tooling/scripts/validate_docs.py
-python3 tooling/scripts/validate_privacy_boundary.py
 python3 tooling/scripts/validate_architecture_data.py
 ```
 
-- The pre-commit hook (`.githooks/`) runs the three validators whole-tree on
+- The pre-commit hook (`.githooks/`) runs the two validators whole-tree on
   every commit; `make test` is what CI (`test-ci.yml`) runs. CI checks on a PR:
   `pytest`, `pr-validate`, `remind` — wait for all green.
 - Helpers importing `scripts.common.*` must be invoked `python3 -m scripts.X.Y`

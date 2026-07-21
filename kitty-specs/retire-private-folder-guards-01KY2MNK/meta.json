@@ -17,7 +17,7 @@
   "flattened": false,
   "friendly_name": "Retire _private folder guard apparatus",
   "mission_id": "01KY2MNKPQ3PQ0BDTVA4S8H218",
-  "mission_number": null,
+  "mission_number": 110,
   "mission_slug": "retire-private-folder-guards-01KY2MNK",
   "mission_type": "software-dev",
   "purpose_context": "Kent moved his private growth-work folder to a separate Obsidian vault that office2 never joins, so the in-repo 'never touch _private' apparatus (a lint validator + CI step + workspace-validator invariants + a red-line in every agent prompt + governance/design/runbook docs) now protects a directory that is not present. This mission removes that folder-specific apparatus, generalizes the general privacy hygiene (redact vault paths from alerts; refuse writes to arbitrary vault paths), and reframes the graph-ingest privacy model to 'verify not present'.",

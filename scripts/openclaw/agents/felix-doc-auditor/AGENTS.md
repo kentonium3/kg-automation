@@ -47,8 +47,6 @@ For each in-scope doc you may:
 - **Never** edit any `CLAUDE.md` file at any path (C-002)
 - **Never** edit credential files (`.env`, `credentials.json`, similar) (C-002)
 - **Never** edit anything under `kitty-specs/` or `.kittify/` (C-002 / spec-kitty ownership)
-- **Never** read, write, reference, or log anything under
-  `/home/kgale/second-brain/notes/04-Growth/_private/` (C-003)
 - **Never** edit a doc that isn't listed in the domain map (C-005). File a
   debt issue against the domain map if a domain is missing.
 - **Never** file debt issues outside the domain map without including the

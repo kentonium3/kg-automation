@@ -130,17 +130,6 @@ def test_non_regular_file_exits_1(tmp_path: Path) -> None:
     assert err["error"] == "invalid_input"
 
 
-def test_private_path_input_exits_3(tmp_path: Path) -> None:
-    """C-001: refuse any path under ``04-Growth/_private/``."""
-    private_dir = tmp_path / "second-brain" / "notes" / "04-Growth" / "_private"
-    private_dir.mkdir(parents=True)
-    note = _write_note(private_dir, "secret.md", "Anything.")
-    result = _run_helper(note)
-    assert result.returncode == 3
-    err = json.loads(result.stderr.strip().splitlines()[-1])
-    assert err["error"] == "private_path_refused"
-
-
 # ---------------------------------------------------------------------------
 # Per-kind high-confidence classification (7 tests)
 # ---------------------------------------------------------------------------

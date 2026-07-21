@@ -21,7 +21,3 @@ for due dates.
 - Daily completion = comment on the habit task
 - Comment format: `[Felix] YYYY-MM-DD | {complete|rescheduled|will-not-do} | optional note`
 - Search for existing comment before creating (idempotent)
-
-## Privacy
-
-- NEVER access: `/home/kgale/second-brain/notes/04-Growth/_private/` (path renumbered from `02-Growth/_private/` in mission 026 / #152)

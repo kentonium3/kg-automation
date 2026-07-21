@@ -61,8 +61,8 @@ established Felix practice.
 | **IDENTITY.md** | Agent name, emoji/creature, one-line vibe. What `openclaw agents` displays. | Personality, voice, role. If it exceeds ~10 lines, personality content has leaked in — move it to SOUL. | Rare |
 | **SOUL.md** | Voice, tone, stance, brevity, bluntness, boundaries **as behavioral stance**. "Write as Kent." | Role/purpose (→ AGENTS), enforceable policy (→ AGENTS/TOOLS), biography/changelog, operational mechanics. | Rare (most stable) |
 | **USER.md** | The human, filtered to what *this* agent needs: name, address, pronouns, timezone, notes, and a `Context` section scoped to the agent's responsibility. | A full dossier. Operational mechanics (date/timezone handling → TOOLS). Content identical across agents — each view is filtered. | Slow |
-| **TOOLS.md** | Environment/tool surface: paths, endpoints, SSH hosts, API skills, operational mechanics (e.g. date handling), operating constraints, failure behavior. The enforceable privacy path. | Behavioral rules ("always be concise" is behavioral → SOUL/AGENTS). Inlined lists that go stale (e.g. label taxonomies — keep a pointer, not a copy). | Medium |
-| **AGENTS.md** | Operating rules / SOP: role & authority, processing workflow, routing logic, enforceable policy (privacy rule, Output Discipline), and routing-adjacent reference (e.g. the label taxonomy beside the issue-routing step). | Voice/personality (→ SOUL). Becoming a catch-all "ball of mud" dump. | Frequent |
+| **TOOLS.md** | Environment/tool surface: paths, endpoints, SSH hosts, API skills, operational mechanics (e.g. date handling), operating constraints, failure behavior. | Behavioral rules ("always be concise" is behavioral → SOUL/AGENTS). Inlined lists that go stale (e.g. label taxonomies — keep a pointer, not a copy). | Medium |
+| **AGENTS.md** | Operating rules / SOP: role & authority, processing workflow, routing logic, enforceable policy (Output Discipline), and routing-adjacent reference (e.g. the label taxonomy beside the issue-routing step). | Voice/personality (→ SOUL). Becoming a catch-all "ball of mud" dump. | Frequent |
 
 **Anti-patterns this contract bans:**
 
@@ -80,24 +80,6 @@ These truths must appear in **every applicable workspace**, in their owner file.
 They are intentionally repeated per workspace (Principle 1) and checked mechanically
 so drift is loud, not silent.
 
-### Invariant A — Privacy boundary
-
-The `04-Growth/_private/` never-touch rule. Its **enforceable form** lives in
-`AGENTS.md` (and may also appear in `TOOLS.md` as the environment path) — this is the
-mechanically-checked home. `SOUL.md` may carry only a one-line behavioral **stance**
-("I work only where I'm invited"); the stance never substitutes for the enforceable
-rule. A workspace with the stance but no enforceable rule fails validation.
-
-**Path-representation convention (#732 / #801).** In agent prompts the enforceable
-privacy path is written as the **physical absolute path** `/home/kgale/second-brain/notes/04-Growth/_private/`
-— because agents run as the `claude` user on office2, where `~` resolves to
-`/home/claude` (no vault; the clone was retired by #659) and the vault is reachable
-only under `/home/kgale` via the `secondbrain` group. This is enforced by
-`validate_workspace` **Invariant D**. **Docs and governance files deliberately use
-the `~/second-brain/...` form instead** — that is correct for the human/Mac authoring
-context, not a drift. The two forms are context-correct by design; do not "unify"
-them (a `~/` path in a prompt is the #732 nonexistent-path bug the guard now rejects).
-
 ### Invariant B — Output Discipline
 
 Any agent that emits **user-facing WhatsApp** must carry the Output Discipline
@@ -111,13 +93,19 @@ AGENTS.md)* in the report so a canonical relocation can be tracked per-agent (e.
 `felix-admin-calendar`'s block lives in `SOUL.md` today; relocation is owned by
 #635's workspace-authoring mission). `TOOLS.md` is **not** accepted — it is a
 tool-reference file, not a home for a behavioral output rule. The check matches the
-`## Output discipline` heading (not a bare phrase in prose), and this Invariant B
-acceptance of `SOUL.md` is deliberately more permissive than Invariant A, which
-holds the privacy red-line to a higher bar (enforceable home only). An agent that does **not** emit user-facing
+`## Output discipline` heading (not a bare phrase in prose). An agent that does **not** emit user-facing
 WhatsApp must instead carry an explicit annotation — the literal marker
 **`no user-facing WhatsApp`** — so the absence is a deliberate, declared choice
 rather than an oversight. The validation check is **presence-or-annotation**: block
 present (in any prompt file) *or* annotation present passes; neither fails.
+
+> **Privacy note (physical-exclusion model).** Earlier versions of this standard
+> required every agent prompt to carry an enforceable `04-Growth/_private/`
+> never-touch red-line (validator "Invariant A" plus a canonical-path "Invariant D").
+> Those invariants were retired: the private content now lives only on devices Felix
+> cannot reach, so it is never present on office2 in the first place. Prompts are no
+> longer required to carry the red-line, and `validate_workspace` no longer checks
+> for it.
 
 ## Principle 4 — Filtered, not identical (USER.md)
 
@@ -155,9 +143,9 @@ taxonomy).
 ## Validation
 
 `scripts/openclaw/agents/validate_workspace.py` is the deterministic checker. It
-reports, per active workspace, pass/fail for Invariant A (privacy boundary) and
-Invariant B (Output Discipline presence-or-annotation), and exits non-zero if any
-active workspace fails. Run:
+reports, per active workspace, pass/fail for Invariant B (Output Discipline
+presence-or-annotation) and Invariant C (runtime-env assumptions), and exits
+non-zero if any active workspace fails. Run:
 
 ```bash
 python3 -m scripts.openclaw.agents.validate_workspace --json

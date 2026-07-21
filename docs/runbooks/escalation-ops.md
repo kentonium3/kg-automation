@@ -336,13 +336,13 @@ ssh office2-claude 'grep -c "JSONL\|derive_state" /data/services/openclaw/escala
 
 ## Privacy boundary
 
-**Absolute rule**: `04-Growth/_private/` is never read, processed, routed
-to, referenced, or logged. Tasks from private context appear as task
-names only in alerts and JSONL records. This is enforced in SOUL.md,
-AGENTS.md, TOOLS.md, and in the `_sanitize_for_body` redaction layer in
-`scripts/escalation/hard_fail.py` (every hard-fail bug body strips
-`~/second-brain`, `/second-brain`, and `_private` substrings before
-filing). No exceptions.
+**Physical exclusion (#848)**: Kent's private growth content (formerly
+`04-Growth/_private/`) is not present on office2 — it lives in a separate
+laptop/phone-only vault office2 never joins — so the escalation flow never
+encounters it. As defence-in-depth, the `_sanitize_for_body` redaction layer
+in `scripts/escalation/hard_fail.py` still strips vault-path fragments
+(`~/second-brain`, `/second-brain`) from every hard-fail bug title/body/url
+before filing, so no vault path leaks into an alert.
 
 ## Cross-references
 

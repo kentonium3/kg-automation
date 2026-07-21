@@ -43,7 +43,7 @@ Claude Code handles execution. This Claude handles:
 
 **Second brain**: `~/second-brain/notes/` (Obsidian Sync, always-on daemon on office2)
 **Agent context ceiling**: `03-Constitution/` docs only
-**Absolute privacy rule**: `04-Growth/_private/` — never accessed by any agent
+**Private content**: physically excluded from office2 (separate laptop/phone-only vault that never syncs)
 
 ## What Is Deprecated (Do Not Reference)
 

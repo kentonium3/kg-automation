@@ -139,11 +139,12 @@ calendar-only. Journal is create-once.
 7. **Distinct routing-log marker `kind="journal"`, destination = file path
    (`capture-atomic-finalize-01KXRM7J`).** `journal` is a first-class member of
    `routing_log.KNOWN_KINDS`.
-8. **Privacy absolute — `04-Growth/_private/` is never read/written/referenced
-   (C-001; AGENTS.md §Privacy).** The journal write target is a wholly separate
-   tree (`08-Journal/`, registry key `"journal"`); the flow never resolves, reads,
-   or writes anything under `04-Growth/_private/`, and `classify_content.main`
-   refuses (exit 3) any input path containing it.
+8. **Privacy by physical exclusion (#848).** Kent's private growth content (formerly
+   `04-Growth/_private/`) is not present on office2 — it lives in a separate
+   laptop/phone-only vault office2 never joins. The journal write target is a wholly
+   separate tree (`08-Journal/`, registry key `"journal"`); the flow resolves and writes
+   only within that registered path, and `mark_processed` refuses any path outside the
+   resolved inbox root (folder-independent guard).
 9. **`-m` invocation form mandatory (NFR-004,
    `capture-d6-helpers-extraction-01KTMS5Q`; [[feedback_helper_m_invocation_form]]).**
    `python3 -m scripts.inbox.route_journal_entry …`; the script-path form is

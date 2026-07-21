@@ -101,7 +101,8 @@ while still flowing the identifier through the registry so renames propagate.
 
 ## Privacy boundary
 
-The `_private/` path is intentionally NOT in the registry. Autonomous agents
-discover paths only through the registry, so keeping `_private` out means they
-cannot reference it even accidentally. The policy boundary in standing orders
-remains hardcoded for defense in depth.
+Private content is kept off office2 entirely (physical exclusion): it lives
+only on devices Felix cannot reach, so it is never present for any agent or
+script to read. The registry reinforces this — autonomous agents discover paths
+only through it, and only curated, non-private vault paths are registered, so
+agents cannot reference private content even accidentally.

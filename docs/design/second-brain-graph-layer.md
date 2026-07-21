@@ -384,9 +384,12 @@ full #693→#698 build:
      content isn't sensitive, so this test runs without waiting on the extraction decision.
 3. **Privacy / extraction posture (hard gate)** — vault ingest uses an LLM to extract
    entities from sensitive life-planning content; the Lattice will hold it. Which LLM, and
-   does anything cross the Tailscale boundary? Must be resolved before any vault ingest, and
-   is bound by the absolute `~/second-brain/notes/04-Growth/_private/` rule. May force the
-   local-LLM question early.
+   does anything cross the Tailscale boundary? Must be resolved before any vault ingest. The
+   truly-private content is handled by **physical exclusion** — it lives only on devices
+   Felix cannot reach, so it is never present on office2 to ingest; the #696 gate is therefore
+   a **verification that the excluded content is not present** in the episodes crossing the
+   membrane, not an in-repo rule that enforces the exclusion. May force the local-LLM question
+   early.
 4. **Ontology fit** — does hand-seeding reveal friction in the tier model? (empirical answer
    to the #367 hierarchy-research question, on a slice rather than by exhaustive survey).
 

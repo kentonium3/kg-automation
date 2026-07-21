@@ -101,23 +101,26 @@ the thinking; nothing here calls an LLM.
   violates INV-004 (see DEC-001).
 - *Provenance:* #553 → DEC-001; honored by the #167 per-agent authoring family.
 
-## INV-005 — The private growth area is never touched
+## INV-005 — Kent's private growth content stays physically excluded
 
-- **Intent:** Felix's hardest red line. The private area of the second brain is never read,
-  written, referenced, or logged by any agent or script, under any circumstance. Listed here so
-  the canonical invariant index is complete — enforcement lives elsewhere (see *Check*); this
-  stanza is the statement, not the enforcer.
-- **When:** any file access, search, ingestion, logging, or backup path that could traverse the
-  second brain; any new agent or script granted filesystem or vault access.
+- **Intent:** Felix's hardest red line. Kent's sensitive growth-work content (formerly the
+  `04-Growth/_private` vault folder) is never present on the machine Felix runs on. The boundary
+  is now enforced by **physical exclusion** rather than an in-repo "never touch" rule (#848). Listed
+  here so the canonical invariant index is complete; this stanza is the statement, not the enforcer.
+- **When:** any change to how the second brain is synced to office2; any new agent or script
+  granted filesystem or vault access.
 - **Rules:**
-  - `~/second-brain/notes/04-Growth/_private/` is never read, written, referenced, or logged by
-    any agent or script under any circumstance.
-  - No exception for debugging, indexing, backup manifests, or error messages.
-  - New capabilities that traverse the vault must exclude this path *by construction*.
-- **Check:** does any code path, log line, or capability enumerate/traverse the vault without
-  excluding the private area? That violates INV-005. Enforced deterministically by the
-  `tooling/scripts/validate_privacy_boundary.py` CI lint and restated in every agent workspace.
-- *Provenance:* Felix Constitution (absolute rule); CLAUDE.md § "Second Brain Boundary".
+  - The private growth content lives in a separate Obsidian vault synced only to Kent's laptop and
+    phone; office2 never joins that vault, and the old folder was deleted and verified absent from
+    office2.
+  - office2's sync configuration must never join a vault carrying that private content.
+  - Capabilities that traverse the vault still operate only within the resolved inbox / permitted
+    vault paths (the general out-of-inbox-root and vault-path guards), so nothing reads outside its
+    granted scope.
+- **Check:** does a change cause the private content to become present on office2 (e.g. joining the
+  private vault, or a sync/backup that pulls it in)? That violates INV-005. Ordering safety: the
+  folder's absence from office2 is verified before any legacy guard is retired (NFR-002).
+- *Provenance:* #848 (physical-exclusion migration); CLAUDE.md § "Second Brain Boundary".
 
 ## INV-006 — A fix is not "done" until behaviorally verified end-to-end
 

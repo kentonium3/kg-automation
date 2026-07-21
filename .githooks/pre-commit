@@ -9,7 +9,7 @@
 # catch to commit time removes that churn: the bad frontmatter never enters a
 # commit.
 #
-# All three validators run on EVERY commit (~4s total, measured 2026-07-08).
+# Both validators run on EVERY commit (~4s total, measured 2026-07-08).
 # validate_docs.py used to run ONLY when the commit staged docs/markdown, but
 # because it is a WHOLE-TREE scan while its trigger was per-commit, a frontmatter
 # issue already sitting in the tree (introduced via --no-verify, an inactive
@@ -37,7 +37,6 @@ echo ">>> pre-commit: doc validation (see #678; skip with --no-verify)"
 # All whole-tree + repo-wide — run on EVERY commit (unconditional). Running
 # validate_docs every commit (not only when docs are staged) closes the gap
 # where a frontmatter issue already in the tree slips past a code-only commit.
-"$PY" tooling/scripts/validate_privacy_boundary.py || fail=1
 "$PY" tooling/scripts/validate_architecture_data.py --strict || fail=1
 "$PY" tooling/scripts/validate_docs.py || fail=1
 

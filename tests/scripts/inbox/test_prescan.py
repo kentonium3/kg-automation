@@ -376,21 +376,6 @@ def test_scan_directory_ignores_non_markdown(tmp_path):
     assert results[0].path.name == "unprocessed.md"
 
 
-def test_private_subdirectory_is_never_walked(tmp_path):
-    """Defense-in-depth: _private/ subtrees must be skipped (C-001)."""
-    private = tmp_path / "_private"
-    private.mkdir()
-    shutil.copy(FIXTURES_DIR / "unprocessed.md", private / "secret.md")
-    _copy_fixture("unprocessed.md", tmp_path, "public.md")
-    _set_age(tmp_path / "public.md", 1)
-    results = scan_directory(tmp_path, datetime.now(timezone.utc))
-    names = [r.path.name for r in results]
-    assert "public.md" in names
-    assert "secret.md" not in names
-    for r in results:
-        assert "_private" not in r.path.parts
-
-
 # ---------------------------------------------------------------------------
 # archive_stale
 # ---------------------------------------------------------------------------

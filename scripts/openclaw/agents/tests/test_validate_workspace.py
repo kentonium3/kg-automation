@@ -31,111 +31,6 @@ def _check(report, name: str):
     return next(c for c in report.checks if c.name == name)
 
 
-# --- Invariant A: privacy boundary --------------------------------------------
-
-
-def test_privacy_present_in_agents_passes(tmp_path: Path) -> None:
-    ws = _write(
-        tmp_path / "agent",
-        AGENTS_md="never touch 04-Growth/_private/\n## Output discipline\n",
-    )
-    report = validate_workspace(ws)
-    assert _check(report, "privacy_boundary").ok
-
-
-def test_privacy_present_in_tools_passes(tmp_path: Path) -> None:
-    ws = _write(
-        tmp_path / "agent",
-        AGENTS_md="## Output discipline\n",
-        TOOLS_md="NEVER access: 04-Growth/_private/\n",
-    )
-    assert _check(validate_workspace(ws), "privacy_boundary").ok
-
-
-def test_privacy_only_in_soul_fails_with_stance_detail(tmp_path: Path) -> None:
-    ws = _write(
-        tmp_path / "agent",
-        AGENTS_md="## Output discipline\n",
-        SOUL_md="I never touch 04-Growth/_private/\n",
-    )
-    result = _check(validate_workspace(ws), "privacy_boundary")
-    assert not result.ok
-    assert "only in SOUL.md" in result.detail
-
-
-def test_privacy_missing_entirely_fails(tmp_path: Path) -> None:
-    ws = _write(tmp_path / "agent", AGENTS_md="## Output discipline\n")
-    result = _check(validate_workspace(ws), "privacy_boundary")
-    assert not result.ok
-    assert "missing" in result.detail
-
-
-# --- Invariant D: privacy path canonical form (#732) --------------------------
-
-
-def test_privacy_path_canonical_form_passes(tmp_path: Path) -> None:
-    ws = _write(
-        tmp_path / "agent",
-        AGENTS_md="NEVER access `/home/kgale/second-brain/notes/04-Growth/_private/`\n## Output discipline\n",
-    )
-    assert _check(validate_workspace(ws), "privacy_path_canonical").ok
-
-
-def test_privacy_path_bare_form_passes(tmp_path: Path) -> None:
-    # A bare, HOME-prefix-free conceptual reference is not the ambiguous ``~`` form.
-    ws = _write(
-        tmp_path / "agent",
-        AGENTS_md="Absolute rule: `04-Growth/_private/` is never read.\n## Output discipline\n",
-    )
-    assert _check(validate_workspace(ws), "privacy_path_canonical").ok
-
-
-def test_privacy_path_tilde_form_fails(tmp_path: Path) -> None:
-    ws = _write(
-        tmp_path / "agent",
-        AGENTS_md="NEVER access `~/second-brain/notes/04-Growth/_private/`\n## Output discipline\n",
-    )
-    result = _check(validate_workspace(ws), "privacy_path_canonical")
-    assert not result.ok
-    assert "non-canonical" in result.detail
-    assert "AGENTS.md" in result.detail
-
-
-def test_privacy_path_tilde_in_any_md_fails(tmp_path: Path) -> None:
-    # Invariant D scans all *.md, not only the Invariant-A owner files.
-    ws = _write(
-        tmp_path / "agent",
-        AGENTS_md="04-Growth/_private/ never touch\n## Output discipline\n",
-        USER_md="`~/second-brain/notes/04-Growth/_private/` is NEVER read.\n",
-    )
-    result = _check(validate_workspace(ws), "privacy_path_canonical")
-    assert not result.ok
-    assert "USER.md" in result.detail
-
-
-def test_privacy_path_tilde_fails_whole_workspace(tmp_path: Path) -> None:
-    ws = _write(
-        tmp_path / "agent",
-        AGENTS_md="`~/second-brain/notes/04-Growth/_private/`\n## Output discipline\n",
-    )
-    assert not validate_workspace(ws).ok
-
-
-def test_privacy_path_unrelated_tilde_paths_not_flagged(tmp_path: Path) -> None:
-    # Invariant D targets only the _private privacy token, not every ``~`` path.
-    # Config/skill paths like ``~/.openclaw/...`` are correct for the claude runtime
-    # (``/home/claude/.openclaw`` exists) and must NOT be flagged.
-    ws = _write(
-        tmp_path / "agent",
-        AGENTS_md=(
-            "NEVER access `/home/kgale/second-brain/notes/04-Growth/_private/`\n"
-            "Skills live at `~/.openclaw/skills/`; config at `~/.config/felix/`.\n"
-            "## Output discipline\n"
-        ),
-    )
-    assert _check(validate_workspace(ws), "privacy_path_canonical").ok
-
-
 # --- Invariant B: output discipline (presence-or-annotation) ------------------
 
 
@@ -293,17 +188,15 @@ def test_discover_excludes_suspended_and_non_workspaces(tmp_path: Path) -> None:
 
 
 def test_live_capture_workspace_passes(repo_root: Path) -> None:
-    """felix-admin-capture is the canonical Output Discipline + privacy source, and
+    """felix-admin-capture is the canonical Output Discipline source, and
     (post-fleet-migration, #662) also a clean ``runtime_env_assumptions`` corpus.
 
-    All three per-workspace invariants are asserted now that WP02/WP03 have swapped
-    the fleet to the self-contained checkout-``cd`` form. The whole-fleet migration
-    gate additionally lives in ``test_env_assumptions_guard.py``.
+    The remaining per-workspace invariants are asserted now that WP02/WP03 have
+    swapped the fleet to the self-contained checkout-``cd`` form. The whole-fleet
+    migration gate additionally lives in ``test_env_assumptions_guard.py``.
     """
     root = repo_root / "scripts/openclaw/agents"
     report = next(r for r in validate_all(root) if r.workspace == "felix-admin-capture")
-    assert _check(report, "privacy_boundary").ok, _check(report, "privacy_boundary").detail
-    assert _check(report, "privacy_path_canonical").ok, _check(report, "privacy_path_canonical").detail
     assert _check(report, "output_discipline").ok, _check(report, "output_discipline").detail
     assert _check(report, "runtime_env_assumptions").ok, _check(report, "runtime_env_assumptions").detail
 
@@ -313,16 +206,3 @@ def test_live_doc_auditor_excluded(repo_root: Path) -> None:
     root = repo_root / "scripts/openclaw/agents"
     names = {r.workspace for r in validate_all(root)}
     assert "felix-doc-auditor" not in names
-
-
-def test_live_fleet_privacy_path_canonical(repo_root: Path) -> None:
-    """Whole-fleet Invariant D (#732): no active workspace may carry the ambiguous
-    ``~/second-brain/...04-Growth/_private`` privacy form. This is the regression
-    guard that keeps the canonicalization permanent."""
-    root = repo_root / "scripts/openclaw/agents"
-    offenders = {
-        r.workspace: _check(r, "privacy_path_canonical").detail
-        for r in validate_all(root)
-        if not _check(r, "privacy_path_canonical").ok
-    }
-    assert not offenders, f"non-canonical privacy paths: {offenders}"
