@@ -75,7 +75,9 @@ kitty-specs/life-lattice-viability-spike-01KY37JY/
 - **Relevant requirements**: FR-001, NFR-001, NFR-002, C-003
 - **Affected surfaces**: `sandbox/docker-compose.yml`; office2 Docker (throwaway network/volume/ports)
 - **Sequencing/depends-on**: none (first)
-- **Risks**: Port/network collision with the existing stack; privileged steps need Kent (no sudo for `claude`). Teardown must leave zero residue.
+- **Pre-standup gates**: (a) R-06a provider-path gate — confirm+document the all-Claude/non-OpenAI LLM+embedder+outbound-hosts config, else mark Q3/Q2-arch-fit blocked; (b) R-06b spike-scoped key hygiene; (c) R-06c headroom check.
+- **Isolation definition (Codex HIGH-5)**: "zero production contact" = no reads, writes, mounts, shared Docker networks, env reuse, prod credentials, or service discovery against production — not merely zero writes. A **preflight+teardown evidence checklist** records the sandbox's Docker networks, volumes, mounts, env vars, listening ports, and outbound hosts, and re-checks them empty after teardown.
+- **Risks**: Port/network collision with the existing stack; privileged steps need Kent (no sudo for `claude`). Teardown must leave zero residue (verified, not assumed).
 
 ### IC-02 — Manufactured seed chain
 
@@ -87,35 +89,35 @@ kitty-specs/life-lattice-viability-spike-01KY37JY/
 
 ### IC-03 — A/B reasoning harness
 
-- **Purpose**: Run upward traversal ("why this task?") and conflict/trade-off surfacing two ways — Graphiti graph/temporal retrieval vs flat full-context dump — on identical data.
-- **Relevant requirements**: FR-003, FR-004; decision `graph_value_isolation`
-- **Affected surfaces**: `harness/reason_ab.py`
+- **Purpose**: Run upward traversal ("why this task?") and conflict/trade-off surfacing two ways — Graphiti graph/temporal retrieval vs flat full-context dump — on identical data, **with validity controls** (research R-01b): fixed prompts (only context differs), temperature 0 and/or N repeated runs, captured raw contexts per arm, randomized arm order. Scores surfaced conflicts against the hidden `data/oracle.yaml` (research R-01c), never against pre-loaded tension edges (there are none — data-model hidden-oracle rule).
+- **Relevant requirements**: FR-003, FR-004; decision `graph_value_isolation`; research R-01a/b/c
+- **Affected surfaces**: `harness/reason_ab.py`, `data/oracle.yaml`
 - **Sequencing/depends-on**: IC-01, IC-02
-- **Risks**: Ensuring the graph path genuinely uses temporal/graph structure (not silently degenerating to a dump); fair, comparable prompts across both arms.
+- **Risks**: Graph path silently degenerating to a dump (assert it actually issues graph/temporal queries — see the required chronic-defer retrieval query); prompt asymmetry; LLM nondeterminism swamping the signal (mitigated by temp 0 + repeats).
 
 ### IC-04 — Q2 usefulness evaluation (the gate)
 
-- **Purpose**: Present the traversal answer + surfaced conflict to Kent and capture his explicit usefulness judgment (go/no-go on Q2).
-- **Relevant requirements**: FR-005; SC-002
-- **Affected surfaces**: `findings.md` (Q2 section)
+- **Purpose**: Present the two arms' traversal answers + surfaced conflicts to Kent **blinded** (arm labels hidden/randomized), and capture his explicit usefulness judgment scored against the **pre-registered rubric** (research R-01a): a GO requires the graph arm to be materially better/more reliable on ≥1 temporal stress case AND judged genuinely useful; indistinguishable arms → `inconclusive`/no-go-for-Q2, a valid outcome. De-blind after scoring.
+- **Relevant requirements**: FR-005; SC-002; research R-01a/R-01b
+- **Affected surfaces**: `findings.md` (Q2 section — rubric written BEFORE the runs)
 - **Sequencing/depends-on**: IC-03
-- **Risks**: This is the make-or-break; a NO-GO here stops the spike before IC-05/06 deepen.
+- **Risks**: This is the make-or-break; a NO-GO/inconclusive here stops the spike before IC-05/06 deepen. Evaluator bias (mitigated by blinding).
 
 ### IC-05 — Footprint measurement (Q1)
 
-- **Purpose**: Record sandbox peak mem/CPU/disk alongside the existing office2 stack and judge acceptability vs headroom.
+- **Purpose**: Record the sandbox's footprint across its full lifecycle (Codex MED-8): office2 **baseline** (before stand-up), **cold start**, **post-seed indexing**, **A/B run peak**, **idle-after-run**, and **post-teardown residue** — reported as deltas against baseline, with explicit headroom thresholds for the acceptability judgment.
 - **Relevant requirements**: FR-006, NFR-004; SC-003
 - **Affected surfaces**: `harness/measure_footprint.py`, `findings.md` (Q1 section)
-- **Sequencing/depends-on**: IC-01 (measured during IC-03 runs)
-- **Risks**: Attribution of usage to the sandbox vs the stack; sample during representative load.
+- **Sequencing/depends-on**: IC-01 (baseline before; samples across IC-02/IC-03; residue after teardown)
+- **Risks**: Attribution of usage to the sandbox vs the stack (baseline delta addresses this); missing cold-start/indexing spikes if only peak-during-A/B is sampled.
 
 ### IC-06 — Privacy/extraction posture (Q3) + ontology fit (Q4)
 
-- **Purpose**: Document the extraction LLM + data-boundary path and confirm the post-#848 "verify not present" posture; record any ontology-tier friction observed while seeding.
-- **Relevant requirements**: FR-007, FR-008; C-004
+- **Purpose**: Q3 — document the actual extraction LLM + embedder + every outbound host + data-boundary path (fed by the R-06a gate) and confirm the post-#848 "verify not present" posture. Q4 — record ontology-tier friction, **separated into three buckets (Codex MED-10)**: (i) genuine *ontology* friction (the tier model doesn't fit), (ii) *engine/API* friction (Graphiti/FalkorDB import or query limitations), (iii) *seed-authoring* friction (author bias / modeling mistakes) — with a concrete example for each, so engine workaround pain is never misreported as an ontology failure.
+- **Relevant requirements**: FR-007, FR-008; C-004; research R-06a
 - **Affected surfaces**: `findings.md` (Q3/Q4 sections)
 - **Sequencing/depends-on**: IC-02 (Q4 observed during seeding), IC-03 (Q3 observed during extraction/reasoning)
-- **Risks**: Q3 must confirm no synthetic-to-real leakage assumptions; Q4 stays a slice observation, not a survey.
+- **Risks**: Q3 silently green on a fallback (OpenAI) embedder → the R-06a gate prevents this; Q4 conflating ontology vs engine vs authoring → the three-bucket split prevents it. Q4 stays a slice observation, not a survey.
 
 ### IC-07 — Findings synthesis & go/no-go
 

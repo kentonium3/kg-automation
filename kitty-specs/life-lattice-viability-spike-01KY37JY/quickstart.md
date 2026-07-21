@@ -4,9 +4,10 @@ Operational runbook for the throwaway spike. All office2 actions run as the `cla
 
 ## 0. Pre-flight (before stand-up)
 
-- Confirm office2 headroom for the extra containers (R-06c) — brief mem/disk check against current stack usage.
-- Confirm an Anthropic API key is available to the sandbox, isolated from prod credentials (R-06b).
-- Confirm Graphiti can be configured for an all-Claude / non-OpenAI extraction + embedder path (R-06a).
+- **R-06a provider-path GATE (must pass):** confirm + document Graphiti's actual LLM + embedder + every outbound host for an all-Claude / non-OpenAI path, and the failure mode if unavailable. If the intended path can't be achieved (e.g. silent OpenAI-embedding fallback), mark Q3/Q2-architecture-fit `blocked`/`inconclusive` — do NOT proceed on default embeddings and report Q3 green.
+- **R-06b credential hygiene:** use a spike-specific, narrowly-scoped Anthropic key (not a prod credential); inject via env only; keep it out of compose files + shell history; disable secret logging.
+- **R-06c headroom + baseline:** record office2 **baseline** mem/CPU/disk against the current stack before anything starts (also the NFR-004 baseline).
+- **Isolation preflight checklist:** note the sandbox's intended dedicated Docker network, volume, non-default ports, and confirm no shared mounts / env reuse / prod service discovery.
 
 ## 1. Stand up the isolated sandbox (IC-01)
 
@@ -47,5 +48,7 @@ Operational runbook for the throwaway spike. All office2 actions run as the `cla
 ## 7. Teardown (IC-01) — mandatory
 
 - Tear down the compose project: containers + volume + network removed.
+- **Isolation/teardown evidence checklist (operator-verifiable):** confirm the sandbox's Docker network, volume(s), and non-default ports are **gone**; no sandbox mounts remain; and the spike-specific Anthropic key is removed from env, containers, compose files, and shell history (R-06b).
+- Record **post-teardown footprint residue** (should be ~baseline) as the final NFR-004 sample.
 - Verify **zero residual** sandbox services/volumes remain on office2 (NFR-002, SC-005).
 - The reproducible harness + seed data + `findings.md` remain as the research record; the running sandbox does not.

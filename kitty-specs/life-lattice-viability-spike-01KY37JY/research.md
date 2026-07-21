@@ -4,9 +4,31 @@ Consolidated decisions resolving the plan's open unknowns. Format: Decision / Ra
 
 ## R-01 — Q2 reasoning methodology: A/B (graph-retrieval vs flat-dump)
 
-- **Decision**: Reason over the seeded data twice on identical content — (A) Graphiti graph/temporal retrieval feeds Claude a structured subgraph; (B) a flat full-context dump of the same nodes feeds Claude directly. Compare the traversal answer and surfaced conflict across both arms. "Go" evidence = the graph arm at least matches the flat arm's quality (no signal lost) AND offers the scale path the flat arm cannot sustain.
+- **Decision**: Reason over the seeded data twice on identical content — (A) Graphiti graph/temporal retrieval feeds Claude a structured subgraph; (B) a flat full-context dump of the same nodes feeds Claude directly. Compare the traversal answer and surfaced conflict across both arms.
 - **Rationale**: At spike scale everything fits in context, so a flat dump *will* work; without the A/B, a "go" would only prove Claude can read structured text, not that the temporal substrate adds value. The A/B isolates the substrate's contribution and forces honesty about the scale caveat. (Decision `graph_value_isolation`, resolved with Kent.)
 - **Alternatives considered**: Graph-retrieval only (no baseline → can't attribute value); flat-dump only (fastest but proves nothing about the graph). Both rejected.
+
+### R-01a — Pre-registered Q2 go-rubric (Codex HIGH-1 — the bar was too weak)
+
+"Graph arm matches flat + offers a scale path" is NOT sufficient to approve — it can pass without temporal reasoning ever paying off. **Before running the A/B, we pre-register this rubric:**
+
+- **GO for Q2** requires the graph/temporal arm to produce a **materially better or more reliable** answer than the flat baseline on **at least one temporal stress case** (chronic-defer or week-conflict) — i.e., the graph surfaces something the flat arm misses, gets wrong, or answers less reliably — AND Kent judges that difference genuinely useful.
+- If the two arms are indistinguishable in quality (flat does just as well), the honest verdict is **`inconclusive` / no-go-for-Q2 at this scale**, NOT a go. That is a valid, first-class outcome.
+- The rubric and the per-case scoring dimensions are written into `findings.md` **before** the runs, not reverse-engineered after.
+
+### R-01b — A/B validity controls (Codex HIGH-2 — remove confounds)
+
+The make-or-break judgment is worthless if the comparison is confounded. Controls, applied to both arms:
+
+- **Fixed prompts** — identical task instruction across arms; only the *context* (graph-retrieved subgraph vs flat dump) differs.
+- **Nondeterminism** — temperature 0, and/or N repeated runs per arm to expose variance; record all runs.
+- **Blinding** — arm labels are randomized/hidden when results are presented to Kent for the FR-005 judgment; he scores against the rubric without knowing which arm is graph-backed. De-blind only after scoring.
+- **Captured raw contexts** — the exact context handed to each arm is saved as evidence (so a reviewer can see what the graph retrieval actually pulled vs the flat dump).
+- **Order/position effects** — randomize arm presentation order; don't always show graph first.
+
+### R-01c — Hidden oracle (Codex HIGH-3)
+
+Expected conflicts/trade-offs live in `data/oracle.yaml`, never loaded into the graph and never shown to the reasoner (see data-model.md). Scoring compares each arm's surfaced conflicts against the oracle; a "hand-fed" surface (from a pre-loaded tension edge) does not count.
 
 ## R-02 — Graph engine: Graphiti + FalkorDB (as designed)
 
@@ -32,10 +54,10 @@ Consolidated decisions resolving the plan's open unknowns. Format: Decision / Ra
 - **Rationale**: Repo standing rule; `claude` has no sudo. Container ops via the docker group do not need sudo.
 - **Alternatives considered**: none — this is fixed policy.
 
-## R-06 — Open research tasks to resolve during the mission (not blockers)
+## R-06 — Pre-standup gates and research tasks
 
-- **R-06a**: Confirm Graphiti's LLM/embedder config supports an all-Claude/non-OpenAI path; pick the embedder. (Feeds IC-01/IC-03.)
-- **R-06b**: Confirm an Anthropic API key is available to the sandbox on office2 (env/secret), isolated from prod credentials. (Feeds IC-01.)
+- **R-06a (PRE-STANDUP GATE — Codex HIGH-4)**: Confirm and **document** Graphiti's actual LLM + embedder + outbound-host configuration for an all-Claude / non-OpenAI path, and the failure mode if the intended provider path is unavailable. This is central to Q3 (privacy) and to whether the spike tests the *intended* architecture. **If the intended provider path cannot be achieved (e.g. Graphiti silently falls back to OpenAI embeddings), Q3 and the Q2 architecture-fit are marked `blocked` / `inconclusive` — we do NOT quietly run on default embeddings and report a green Q3.** Record actual LLM, embedder, and every outbound host. (Feeds IC-01/IC-03/IC-06.)
+- **R-06b (credential hygiene — Codex LOW-13)**: Use a **spike-specific, narrowly-scoped** Anthropic key (not a prod credential); inject via env only; keep it out of compose files and shell history; disable secret logging; and **verify it is removed** from env, containers, compose, and history after teardown. (Feeds IC-01/teardown.)
 - **R-06c**: Confirm office2 headroom for the added containers before stand-up (Tier-1 connectivity / Tier-2 snapshot posture check, even though throwaway). (Feeds IC-01/IC-05.)
 
-These are surfaced as mission tasks; none blocks planning.
+R-06a is a gate that must pass before stand-up; R-06b/R-06c are pre-flight checks. None blocks *planning*.
