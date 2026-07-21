@@ -3,7 +3,7 @@ title: "Executive Assistant Architecture — Design Brief"
 doc_type: design
 status: draft
 owners: ["@kentonium3"]
-last_updated: '2026-07-20'
+last_updated: '2026-07-21'
 audience: agents_and_humans
 ---
 
@@ -168,6 +168,23 @@ Long-term framing (not a near-term goal): Felix as an **opinionated OpenClaw add
 **Design the channel port first.** A channel is the cleanest port — the *same* intent contract in, a different transport out. Kent is already contemplating replacing WhatsApp with **Signal** (not now). If the channel port is designed first, that swap is an adapter change, not a refactor — the lowest-risk place to prove the whole pattern before tackling the harder task/calendar/mailbox ports.
 
 **Value even with zero product intent:** clean separation of Felix-judgment from tool-specifics (mock the adapter → testable), and insulation from tool churn (swap Vikunja without touching reasoning). **Discipline:** *design the ports now, build exactly one adapter each (channel, task=Vikunja, calendar=Google), defer additional adapters* — the same cross-cutting-and-near-term filter as everywhere else. Realizing advanced capabilities on different tools *will* require this refactoring quest; the boundary design is what makes it incremental rather than a rewrite.
+
+### 11a. The same shape, turned inward — the Lattice and the cognition mesh (Kent, 2026-07-21)
+
+§11 applies ports-and-adapters at the *external* boundary. The same discipline turns **inward**, in two places.
+
+**(a) The Lattice's storage seam.** The **Life Lattice** — the world-model; see [`second-brain-graph-layer.md`](second-brain-graph-layer.md) — is the core domain; **Graphiti + FalkorDB are an *adapter* behind it**, not the thing itself. Graphiti already gives half of this for free (FalkorDB↔Neo4j is a pluggable backend). The seam that matters is between Felix's *reasoning* and Graphiti's API — a thin **Lattice-access port** (`traverse_upward`, `detect_conflicts`, `record_decision`, `ingest_episode`) so graph-engine specifics never leak into cognition logic. **Discipline: seam-in-mind now, formal port when a second implementation justifies it.** Don't build elaborate port abstractions around an unproven core (the #844 spike isn't done). Separation-of-concern is a *design habit* immediately; hard ports are *artifacts* later.
+
+**(b) The cognition mesh.** Cognitive capabilities (escalation, schedule-conflict resolution, commitment management, coaching) attach to the shared Lattice, each reasoning over its own **scoped view** — not the raw graph. Two consequences:
+
+- **It's a mesh, not a stack.** Cognitions compose three ways, all first-class: **vertically** (commitment-management consumes task-escalation's priorities + calendar-conflict's schedule rather than re-deriving them), as **peers** (two capabilities over the same substrate, neither above the other), and **cross-cutting** (Principle-compliance checks *every* proposed action against applicable Principles — the `GOVERNED_BY`/`VIOLATES` edges — orthogonal to all domains). A layer-cake can express none of the last two; a shared-substrate-with-scoped-ports expresses all three. **Do not pre-draw the layer stack.**
+- **Scoped ports are what keep it separated.** A shared substrate every cognition reads and writes freely is the *opposite* of separation of concern — it turns the Lattice into one giant coupling point. The fix is the **charter-injection pattern** (§6/§7; and spec-kitty's doctrine hierarchy): each cognition receives *only the applicable slice* — escalation sees priorities + deferral-history; schedule-conflict sees commitments + capacity; neither sees the whole graph. Narrow, capability-specific views are the single most important seam to get right.
+
+**Seams emerge; don't legislate them.** The real layer boundaries reveal themselves as the first 2–3 cognitions get built; codify the seams *after* the dependency shape is visible (rule-of-three, for architecture). "I don't know where all the seams should fall" is the correct posture, not an apology.
+
+**Product/OSS lens = smell-test, not driver.** "Would this seam survive someone plugging in their own vault / adapter / cognition?" is a good boundary check — but single-user-done-well yields the boundaries that generalize. Use the lens to *check* seams; never to *drive* premature generalization.
+
+**Unification with the privacy boundary.** The private-domain boundary is the *same* principle: a domain Felix deliberately **does not wire a port into** — or wires only an opaque-handle port (public outcome/commitment handles in; private psychological content out). "Some domains are ports you don't build" is the same doctrine as "cognitions talk through scoped ports." That the privacy boundary falls out of the general architecture rather than needing a special mechanism is the tell that the shape is sound.
 
 ## 12. When is substrate-hardening "enough"?
 
