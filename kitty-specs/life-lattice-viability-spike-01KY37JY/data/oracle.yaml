@@ -1,0 +1,72 @@
+# Life Lattice Viability Spike — HIDDEN ORACLE
+#
+# Ground truth for scoring the A/B arms. This file is NEVER loaded into the graph and NEVER
+# shown to either reasoning arm (data-model.md hidden-oracle rule; FR-004). Every entry below is
+# DERIVABLE from primitives in seed_chain.yaml alone — no answer is asserted as an edge in the seed.
+#
+# Scoring: an arm "surfaces" an item only if it infers it from the primitives. A hand-fed surface
+# (had it existed) would not count. Partial credit per the `must_identify` sub-points.
+
+expected_inferences:
+
+  - id: ORA_WEEK_CONFLICT
+    kind: conflict
+    summary: >
+      TASK_PH (10h, PointerHealth, hard client deadline) and TASK_DEMO (8h, Felix demo) are BOTH
+      planned for the same week ending Fri 2026-07-24. Combined 18h exceeds the ~15h/week capacity
+      (C_CAP). They serve DIFFERENT purposes (PU_CONSULT vs PU_FELIX), so this is a cross-purpose
+      collision, not a within-project sequencing issue.
+    must_identify:
+      - "Both land in the same week / same Friday 2026-07-24."
+      - "Combined effort (18h) exceeds the 15h/week capacity constraint."
+      - "They serve two DIFFERENT purposes (consulting vs Felix)."
+      - "PR_DEADLINE (hard) governs TASK_PH → if one must give, the demo (TASK_DEMO) is the reversible one."
+    derivable_from: [TASK_PH, TASK_DEMO, C_CAP, C_DL_CLIENT, C_DL_DEMO, PR_DEADLINE]
+    temporal_signal: false   # a capacity+deadline collision (graph should still win via cross-purpose structure)
+
+  - id: ORA_TRADEOFF_ROUTER_OBS
+    kind: trade_off
+    summary: >
+      PRJ_ROUTER and PRJ_OBSERVABILITY both advance the SAME outcome (OUT_RELIABILITY) and each needs
+      ~12h this month, but capacity forces choosing one this cycle. PR_CAPABILITY (soft, scoping
+      OBJ_ADVISORY) tips it toward the router because the reliability floor is already stable.
+    must_identify:
+      - "Both projects advance the same outcome (OUT_RELIABILITY / advisory-grade reliability)."
+      - "They compete for the same scarce monthly capacity — advancing one defers the other."
+      - "PR_CAPABILITY (soft) is the governing principle that breaks the tie toward the router."
+    derivable_from: [PRJ_ROUTER, PRJ_OBSERVABILITY, OBJ_ADVISORY, PR_CAPABILITY, C_CAP]
+    temporal_signal: false
+
+  - id: ORA_CHRONIC_DEFER
+    kind: temporal_pattern
+    summary: >
+      TASK_POSITIONING has been deferred 4 times since March (defer_history) and is now overdue, yet
+      it is the ONLY node advancing a HIGH-priority outcome (OUT_PIPELINE). Its own_priority reads
+      'medium' with no hard deadline — the MISLEADING surface answer. The temporal pattern (repeated
+      deferral of the sole driver of a high-priority outcome) is the real risk.
+    must_identify:
+      - "It has been deferred 4 distinct times since March (temporal history, not just current state)."
+      - "It is overdue (planned 2026-07-15, now past)."
+      - "It is the sole path advancing a HIGH-priority outcome (OUT_PIPELINE) despite its 'medium' self-priority."
+      - "The naive single-node read ('medium, no deadline') UNDERrates it; the temporal+structural read surfaces it."
+    derivable_from: [TASK_POSITIONING, PRJ_POSITIONING, OBJ_RETAINERS, OUT_PIPELINE]
+    temporal_signal: true    # THIS is where the temporal substrate should most clearly beat a flat read
+
+  # Upward-traversal ground truth (FR-003 "why this task?")
+  - id: ORA_WHY_POSITIONING
+    kind: upward_traversal
+    summary: >
+      "Why this task?" for TASK_POSITIONING: it publishes the positioning page → advances landing 2
+      retainers (OBJ_RETAINERS) → keeps the consulting pipeline full (OUT_PIPELINE) → serves running a
+      sustainable consulting practice (PU_CONSULT).
+    must_identify:
+      - "TASK_POSITIONING -> PRJ_POSITIONING -> OBJ_RETAINERS -> OUT_PIPELINE -> DO_DELIVERY -> PU_CONSULT"
+    derivable_from: [TASK_POSITIONING, PRJ_POSITIONING, OBJ_RETAINERS, OUT_PIPELINE, DO_DELIVERY, PU_CONSULT]
+    temporal_signal: false
+
+# --- Q2 scoring guidance (used by reason_ab.py + findings) ---
+# The make-or-break temporal case is ORA_CHRONIC_DEFER: a flat dump can read the current state but
+# should struggle to surface the *pattern* (4 defers) and the misleading-surface reversal as reliably
+# as a temporal-graph retrieval. If the graph arm does NOT do better here, Q2 trends inconclusive/no-go
+# per the pre-registered rubric (research R-01a).
+q2_focus_case: ORA_CHRONIC_DEFER

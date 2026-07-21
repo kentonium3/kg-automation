@@ -1,0 +1,35 @@
+# Life Lattice Viability Spike — isolated, THROWAWAY sandbox.
+# FalkorDB only; graphiti-core runs as a Python lib in a throwaway venv on the office2 host,
+# connecting to this container. Dedicated network + named volume + NON-DEFAULT host ports so
+# nothing is shared with the production stack (NFR-001). Torn down with `docker compose down -v`.
+#
+# Project name is pinned so teardown + isolation-check target exactly this sandbox:
+#   docker compose -p lattice-spike -f docker-compose.yml up -d
+name: lattice-spike
+
+services:
+  falkordb:
+    image: falkordb/falkordb:v4.2.2        # pinned; not :latest
+    container_name: lattice-spike-falkordb
+    restart: "no"                            # throwaway — never auto-restart
+    ports:
+      # host:container — non-default host ports to avoid collision with the prod stack
+      - "127.0.0.1:16379:6379"               # DB (redis protocol) — bound to loopback only
+      - "127.0.0.1:13000:3000"               # FalkorDB browser UI — loopback only
+    networks:
+      - lattice-spike-net
+    volumes:
+      - lattice-spike-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-p", "6379", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+networks:
+  lattice-spike-net:
+    name: lattice-spike-net                  # dedicated; not the default bridge, not any prod network
+
+volumes:
+  lattice-spike-data:
+    name: lattice-spike-data                 # named + throwaway; removed by `down -v`
