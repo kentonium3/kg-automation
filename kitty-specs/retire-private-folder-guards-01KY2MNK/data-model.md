@@ -97,23 +97,23 @@ migration runbook allowlist) are **out of scope by C-001** and are not listed fo
 
 | Surface | Action | Notes |
 |---|---|---|
-| `scripts/escalation/hard_fail.py` | KEEP+GEN | Redaction MUST keep stripping ALL current fragments — `~/second-brain`, `/second-brain`, AND bare `_private` — from alert title/body/url (post-plan Codex: these are the exact current coverage). Generalize the *framing* (folder-independent), NOT the matched set: do not drop any fragment it currently redacts. |
-| `tests/escalation/test_hard_fail.py` | KEEP+GEN | Keep ≥ prior leak assertions; the `_private`, `~/second-brain`, `/second-brain` redaction assertions all stay. Reframe wording only. |
-| `scripts/inbox/mark_processed.py` | KEEP+GEN | **Precise semantics (post-plan Codex MED-1):** keep the inbox-root ALLOW semantics — a note under the resolved inbox root is allowed even though the inbox lives *inside* the vault. Generalize the pre-read refusal to "refuse a path OUTSIDE the resolved inbox root" (NOT "any vault/second-brain path" — that would reject the legitimate `01-Inbox`). Retain the current `04-Growth/_private` pre-read refusal coverage as a subset. |
-| `tests/inbox/test_mark_processed.py` | KEEP+GEN | Keep the refusal semantics + a case proving a legitimate inbox-root path is still ALLOWED. |
-| `scripts/inbox/classify_content.py` | KEEP+GEN | **Live behavior (post-plan Codex MED-2):** exits 3 (pre-read refusal) when the path contains a private marker. KEEP as general "never classify private-marked content" hygiene, generalized to a `_private` path *component* (folder-agnostic), decoupled from the `04-Growth` folder. |
-| `tests/inbox/test_classify_content.py` | KEEP+GEN | Retain/adjust the refusal test to the generalized component check; keep coverage. |
-| `scripts/inbox/prescan.py` | KEEP+GEN | **Live behavior (post-plan Codex MED-2):** `scan_directory` skips any entry/symlink-target with `_private` as a path component. Already folder-agnostic → KEEP as general hygiene (never scan private-marked content); confirm it is decoupled from the specific folder. |
-| `tests/scripts/inbox/test_prescan.py` | KEEP+GEN | Retain the skip test; keep coverage. |
-| `scripts/inbox/route_and_finalize.py` | TRIAGE | Per-file at implement: reframe doc/comment mentions; if it delegates to the above guards, no behavior change. |
-| `scripts/office2/gitignore-additions.txt` | KEEP | Gitignoring vault content is still valid; keep (generalize wording if folder-specific). |
+| `scripts/escalation/hard_fail.py` | KEEP+GEN | Redaction: KEEP stripping the vault fragments `~/second-brain` and `/second-brain` from alert title/body/url (real leak prevention). DROP the bare `_private` fragment (clean sweep) — a vault path is already caught by the `second-brain` fragments. Net: still redacts every current vault-path leak; `_private` literal gone. |
+| `tests/escalation/test_hard_fail.py` | KEEP+GEN | Keep the `~/second-brain` + `/second-brain` redaction assertions; drop/adjust the bare-`_private` assertion. Overall leak coverage unchanged (vault paths still redacted). |
+| `scripts/inbox/mark_processed.py` | KEEP+GEN | **MED-1 semantics:** keep inbox-root ALLOW (a note under the resolved inbox root is allowed even though the inbox lives inside the vault). Replace the `04-Growth/_private` pre-read refusal with "refuse a path OUTSIDE the resolved inbox root" — a strictly-better folder-independent guard, and `_private` literal removed. |
+| `tests/inbox/test_mark_processed.py` | KEEP+GEN | Refusal test → the generalized out-of-inbox refusal; add/keep a case proving a legitimate inbox-root path is ALLOWED. `_private` literal dropped. |
+| `scripts/inbox/classify_content.py` | REMOVE-behavior | **Kent decision (clean sweep):** delete the `_private` pre-read exit-3 refusal entirely. Physical exclusion means `_private` content is never present; scrub the literal from operational code. |
+| `tests/inbox/test_classify_content.py` | STRIP | Remove the `_private` refusal test case; keep the rest. |
+| `scripts/inbox/prescan.py` | REMOVE-behavior | **Kent decision (clean sweep):** delete the `_private` path-component skip in `scan_directory`. Scrub the literal. |
+| `tests/scripts/inbox/test_prescan.py` | STRIP | Remove the `_private` skip test case; keep the rest. |
+| `scripts/inbox/route_and_finalize.py` | STRIP | Remove any `_private` doc/comment/handling; if it delegates to the above, no behavior beyond the delete. |
+| `scripts/office2/gitignore-additions.txt` | STRIP | Remove the `_private` line (clean sweep). Gitignoring the vault broadly, if present, stays; the folder-specific line goes. |
 
-> **DECISION (post-plan Codex, surfaced to Kent):** `prescan` + `classify_content` refuse/skip any
-> `_private`-marked content as *general* hygiene ("never process private-marked content"), which is
-> folder-agnostic and independent of the removed folder guard → **KEEP+GENERALIZE**, not remove. This
-> means a `_private` *component* check intentionally survives in the codebase (allowlisted in SC-001).
-> Alternative (delete these too for a cleaner sweep) is available if Kent prefers; the safe/consistent
-> default is to keep the general-hygiene protection.
+> **DECISION (post-plan Codex → Kent, resolved):** Kent chose **DELETE for a clean sweep**. The
+> `prescan`/`classify_content` "never process private-marked content" checks are removed (not kept),
+> so the `_private` literal is fully scrubbed from operational code; protection now rests on physical
+> exclusion. The retained general hygiene is expressed in vault/inbox terms, NOT `_private`:
+> `hard_fail` redacts `second-brain` vault paths; `mark_processed` refuses writes outside the inbox
+> root. Only the unrelated Vikunja `is_private` token (different concept) remains.
 
 ## IC-08 — Verify / LEAVE
 

@@ -196,22 +196,25 @@ edits to existing files, plus a deploy of already-existing prompt files.
 - **Sequencing/depends-on**: none.
 - **Risks**: keep the #696 gate description forward-consistent (a verification, not an in-repo rule).
 
-### IC-07 — Keep + generalize general vault hygiene
-- **Purpose**: Retain vault-path redaction and refuse-out-of-inbox-writes, decoupled from the defunct
-  folder. **Post-plan Codex reclassification:** `classify_content` (exit-3 pre-read refusal) and
-  `prescan` (skip `_private` path components) are LIVE general hygiene, not doc-triage → KEEP+GEN
-  (never process private-marked content, folder-agnostic).
+### IC-07 — Retain general hygiene (vault/inbox terms) + clean-sweep the `_private` literal
+- **Purpose**: Keep the real leak/mis-write protection but express it in vault/inbox terms, and — per
+  **Kent's clean-sweep decision** — DELETE the `_private` literal from operational code entirely.
 - **Relevant requirements**: FR-007, NFR-003, FR-008 (leave the unrelated Vikunja `is_private`).
-- **Affected surfaces**: `hard_fail.py` (redaction — MED-1: keep the exact fragment set
-  `~/second-brain`,`/second-brain`,`_private`), `mark_processed.py` (MED-1: refuse OUTSIDE the
-  resolved inbox root — NOT "any vault path", or the legitimate `01-Inbox` would be rejected;
-  inbox-root allow semantics preserved), `classify_content.py` + `prescan.py` (KEEP+GEN),
-  `route_and_finalize.py` (doc triage) + their tests. Do NOT touch `tests/common/test_sync_cache.py`
-  (`is_private` = Vikunja, unrelated).
+- **Affected surfaces**:
+  - `hard_fail.py`: KEEP `~/second-brain` + `/second-brain` redaction; DROP the bare `_private`
+    fragment (vault paths still fully redacted).
+  - `mark_processed.py`: replace the `04-Growth/_private` pre-read refusal with "refuse OUTSIDE the
+    resolved inbox root" (inbox-root ALLOW semantics preserved — MED-1); `_private` literal removed.
+  - `classify_content.py` + `prescan.py`: **DELETE** the `_private` refusal/skip behavior (clean
+    sweep — Kent). Update their tests to drop the `_private` cases.
+  - `route_and_finalize.py`, `scripts/office2/gitignore-additions.txt`: strip `_private` mentions.
+  - Do NOT touch `tests/common/test_sync_cache.py` (`is_private` = Vikunja, unrelated).
 - **Sequencing/depends-on**: none.
-- **Risks**: (a) over-generalizing `mark_processed` into rejecting the inbox root (MED-1); (b)
-  dropping a redaction fragment `hard_fail` currently catches (MED-1); (c) leaving literal
-  `04-Growth` coupling behind. Keep ≥ prior coverage (NFR-003, INV-4).
+- **Risks**: (a) over-generalizing `mark_processed` into rejecting the inbox root (MED-1 — guard
+  against); (b) dropping a `second-brain` redaction fragment `hard_fail` still needs (keep those);
+  (c) removing `_private` behavior must be behavior-preserving in practice (physical exclusion means
+  no `_private` content is present). Keep ≥ prior leak/refusal coverage on the retained guards
+  (NFR-003, INV-4).
 
 ### IC-08 — Verification, ordering-safety & rebaseline confirmation
 - **Purpose**: Prove the safety invariant and green gates; confirm rebaseline disposition.

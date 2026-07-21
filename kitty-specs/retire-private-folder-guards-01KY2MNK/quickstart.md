@@ -12,10 +12,10 @@ ssh office2-claude 'ls -d /home/kgale/second-brain/notes/04-Growth/_private 2>&1
 
 ## SC-001 — no residual REMOVED-apparatus enforcement remains
 
-The success criterion is "the *removed* folder-guard apparatus leaves no enforcement behind." It is
-NOT "zero `_private` strings" — the mission deliberately RETAINS general hygiene that still references
-`_private` (prescan/classify_content component skips, hard_fail redaction, mark_processed refusal).
-Those, plus the unrelated Vikunja `is_private`, are allowlisted.
+Kent chose the CLEAN SWEEP: the `_private` literal is scrubbed from operational code. After this
+mission the only legitimate remaining hits are the unrelated Vikunja `is_private` token (a different
+concept) and intentional physical-exclusion narrative. The retained general hygiene is expressed in
+vault/inbox terms (`second-brain` redaction, inbox-root refusal), NOT `_private`.
 
 ```bash
 # (a) The full renumbered path must be gone from live enforcement surfaces.
@@ -29,13 +29,13 @@ grep -rn "PRIVACY_TOKEN\|CANONICAL_PRIVATE_PATH\|NONCANONICAL_PRIVATE_TOKEN\|che
   scripts/ tools/ tooling/ .githooks/ .github/ Makefile .agents/ 2>/dev/null
 # Expect: zero hits (the validator, the workspace invariants, and their constants are deleted).
 
-# (c) Bare `_private` audit — every remaining live hit must be an ALLOWLISTED retained guard or the
-#     unrelated Vikunja feature, NOT removed-apparatus enforcement.
+# (c) Bare `_private` audit (clean sweep) — after scrubbing, the only allowed hits are the unrelated
+#     Vikunja `is_private` token and intentional physical-exclusion narrative.
 grep -rn "_private" scripts/ tests/ docs/ ai-agents/ CLAUDE.md CODEX.md \
   | grep -vE "\.git/|kitty-specs/|\.kittify/|docs/archive/|docs/research/" \
-  | grep -vE "hard_fail|test_hard_fail|mark_processed|test_mark_processed|classify_content|test_classify_content|prescan|test_prescan|is_private|sync_cache|gitignore-additions|physical exclusion|verify not present"
-# Manually confirm each remaining hit is intentional narrative; there must be no enforced red-line
-# or "must reference _private" authoring requirement left.
+  | grep -vE "is_private|sync_cache|physical exclusion|verify not present"
+# Expect: effectively empty. Any remaining hit must be intentional narrative — no operational
+# `_private` handling, no enforced red-line, no "must reference _private" authoring requirement.
 ```
 
 ## SC-002 — gates green without the privacy-boundary lint
