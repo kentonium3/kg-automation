@@ -1,7 +1,7 @@
 {
-  "event_count": 7,
-  "last_event_id": "01KY2QQ2JA4A79KF93WX593911",
-  "materialized_at": "2026-07-21T16:21:33.898175+00:00",
+  "event_count": 9,
+  "last_event_id": "01KY2QXT5RXBXMWFX2MZAKHSTA",
+  "materialized_at": "2026-07-21T16:25:14.679372+00:00",
   "mission_number": "",
   "mission_slug": "retire-private-folder-guards-01KY2MNK",
   "mission_type": "software-dev",
@@ -12,17 +12,17 @@
     "claimed": 0,
     "done": 0,
     "for_review": 0,
-    "in_progress": 0,
+    "in_progress": 1,
     "in_review": 0,
-    "planned": 7
+    "planned": 6
   },
   "work_packages": {
     "WP01": {
-      "actor": "finalize-tasks",
+      "actor": "claude:sonnet:implementer:implementer",
       "force_count": 0,
-      "lane": "planned",
-      "last_event_id": "01KY2QNXV2B19TPFN5GEN1DEF5",
-      "last_transition_at": "2026-07-21T16:20:56.290911+00:00"
+      "lane": "in_progress",
+      "last_event_id": "01KY2QXT5RXBXMWFX2MZAKHSTA",
+      "last_transition_at": "2026-07-21T16:25:14.679372+00:00"
     },
     "WP02": {
       "actor": "finalize-tasks",
