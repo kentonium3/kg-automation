@@ -12,7 +12,7 @@ subtasks:
 - T020
 - T021
 - T022
-agent: "claude:sonnet:implementer:implementer"
+agent: "claude:sonnet:reviewer-renata:reviewer"
 history: []
 agent_profile: curator-carla
 authoritative_surface: docs/design/architecture/
@@ -34,8 +34,8 @@ owned_files:
 - docs/runbooks/tasker-ops.md
 role: implementer
 tags: []
-shell_pid: "22263"
-shell_pid_created_at: "1784651109.595756"
+shell_pid: "40719"
+shell_pid_created_at: "1784652217.539403"
 ---
 
 ## ⚡ Do This First: Load Agent Profile
@@ -80,3 +80,4 @@ Authoritative detail: `data-model.md` IC-05 rows; FR-005; SC-001.
 
 - 2026-07-21T16:26:56Z – claude:sonnet:implementer:implementer – shell_pid=22263 – Assigned agent via action command
 - 2026-07-21T16:40:06Z – claude:sonnet:implementer:implementer – shell_pid=22263 – WP06 in lane (e35efa29); 13 docs reframed to physical exclusion, validators green, no stale deleted-behavior claims. From primary per #710.
+- 2026-07-21T16:44:09Z – claude:sonnet:reviewer-renata:reviewer – shell_pid=40719 – Started review via action command
