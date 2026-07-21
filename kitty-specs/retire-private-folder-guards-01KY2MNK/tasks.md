@@ -25,8 +25,8 @@ Every WP's authoritative detail is the shared [data-model.md](./data-model.md) s
 | T012 | classify_content + prescan: delete _private refusal/skip | WP03 | | [D] |
 | T013 | route_and_finalize + gitignore-additions + inbox/vault READMEs: strip _private | WP03 | [D] |
 | T014 | Update hygiene tests (hard_fail, mark_processed, classify_content, prescan) | WP03 | | [D] |
-| T015 | Strip red-line from 6 deployed agents' prompts | WP04 | |
-| T016 | Strip red-line from felix-doc-auditor prompts (repo-only) | WP04 | [P] |
+| T015 | Strip red-line from 6 deployed agents' prompts | WP04 | | [D] |
+| T016 | Strip red-line from felix-doc-auditor prompts (repo-only) | WP04 | [D] |
 | T017 | CLAUDE.md + CODEX.md: remove absolute rule, keep repo boundary | WP05 | | [D] |
 | T018 | ai-agents/{claude,claude-code,gemini}-instructions.md: same | WP05 | [D] |
 | T019 | FELIX-CONSTITUTION.md: reframe folder rule to physical exclusion | WP05 | [D] |
