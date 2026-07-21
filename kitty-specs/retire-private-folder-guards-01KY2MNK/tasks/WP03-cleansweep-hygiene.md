@@ -99,3 +99,4 @@ findings are folded into the guidance below. Preserve behavior everywhere except
 - 2026-07-21T16:26:06Z – claude:sonnet:implementer:implementer – shell_pid=22263 – Assigned agent via action command
 - 2026-07-21T16:39:52Z – claude:sonnet:implementer:implementer – shell_pid=22263 – WP03 in lane (d742a032); clean-sweep done, MED-1 guardrails verified (inbox-root allowed + vault redaction retained), 148/755 tests pass. From primary per #710.
 - 2026-07-21T16:43:49Z – claude:sonnet:reviewer-renata:reviewer – shell_pid=40719 – Started review via action command
+- 2026-07-21T16:44:29Z – user – shell_pid=40719 – Review passed: clean-sweep verified — hard_fail keeps ~/second-brain + /second-brain redaction (dropped only bare _private), mark_processed keeps inbox-root ALLOW + refuse-outside-inbox, classify_content/prescan refusals cleanly deleted, 148/755 tests pass, is_private untouched. FR-007/008/NFR-003 met.

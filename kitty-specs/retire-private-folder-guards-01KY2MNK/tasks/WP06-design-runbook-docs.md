@@ -81,3 +81,4 @@ Authoritative detail: `data-model.md` IC-05 rows; FR-005; SC-001.
 - 2026-07-21T16:26:56Z – claude:sonnet:implementer:implementer – shell_pid=22263 – Assigned agent via action command
 - 2026-07-21T16:40:06Z – claude:sonnet:implementer:implementer – shell_pid=22263 – WP06 in lane (e35efa29); 13 docs reframed to physical exclusion, validators green, no stale deleted-behavior claims. From primary per #710.
 - 2026-07-21T16:44:09Z – claude:sonnet:reviewer-renata:reviewer – shell_pid=40719 – Started review via action command
+- 2026-07-21T16:44:40Z – user – shell_pid=40719 – Review passed: 13 docs reframed to physical exclusion, service-inventory.json well-formed (arch-data OK), validate_docs OK, no stale claims of deleted classify_content/prescan behavior (cross-WP consistent with WP03). FR-005 met.
