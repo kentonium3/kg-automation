@@ -4,7 +4,7 @@ artifact_type: spec-kitty.analysis-report
 command: /spec-kitty.analyze
 mission_slug: retire-private-folder-guards-01KY2MNK
 mission_id: 01KY2MNKPQ3PQ0BDTVA4S8H218
-generated_at: '2026-07-21T16:24:48.964555+00:00'
+generated_at: '2026-07-21T16:41:58.434780+00:00'
 analyzer_agent: unknown
 input_artifacts:
   spec.md:
@@ -15,16 +15,16 @@ input_artifacts:
     sha256: 2633fa0058b7173761ecb904c4bdf2ced465c0cc6c7dbd992d26c1feecac31fc
   tasks.md:
     path: /Users/kentgale/repos/kg-automation/kitty-specs/retire-private-folder-guards-01KY2MNK/tasks.md
-    sha256: add6a05990bec6eab5bd1fbd9580d058a63e5a3ba009e873e69a927e0cafb286
+    sha256: 3dfc9369bb43fb198dc6fcd1a1bd3077a3bb2da8e51b87440d6dc5277093bcbb
   charter:
     path: /Users/kentgale/repos/kg-automation/.kittify/charter/charter.md
     sha256: 4891223a0c3fc0dc96917475523586e8f3147a3ccaa113ecb7ff19da646e82e2
 verdict: ready
 issue_counts:
   high: 0
+  critical: 0
   low: 1
   medium: 1
-  critical: 0
   info: 0
 findings:
 - id: E1
