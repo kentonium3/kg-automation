@@ -163,7 +163,7 @@ def _atomic_write(path: Path, content: str) -> None:
 def mark_processed(path: Path) -> int:
     """Atomically set `status: processed` + `processed_at` on `path`.
 
-    Returns the exit code per the CLI contract (0/1/2/3).
+    Returns the exit code per the CLI contract (0/1/2).
 
     Exit 2 is returned on a write-phase OSError (permission denied, write
     race); the original note is guaranteed uncorrupted because _atomic_write

@@ -37,7 +37,7 @@ def _check(report, name: str):
 def test_output_discipline_block_passes(tmp_path: Path) -> None:
     ws = _write(
         tmp_path / "agent",
-        AGENTS_md="04-Growth/_private/\n## Output Discipline (Hard Rules)\n",
+        AGENTS_md="## Output Discipline (Hard Rules)\n",
     )
     assert _check(validate_workspace(ws), "output_discipline").ok
 
@@ -47,7 +47,7 @@ def test_output_discipline_block_in_soul_passes(tmp_path: Path) -> None:
     but the detail flags AGENTS.md as the preferred home for discoverability."""
     ws = _write(
         tmp_path / "agent",
-        AGENTS_md="04-Growth/_private/\nSome routing rules.\n",
+        AGENTS_md="Some routing rules.\n",
         SOUL_md="## Output discipline\nHard rule #1 ...\n",
     )
     result = _check(validate_workspace(ws), "output_discipline")
@@ -61,7 +61,7 @@ def test_output_discipline_block_in_tools_not_accepted(tmp_path: Path) -> None:
     rule — a block there does NOT satisfy Invariant B (#805 scoped to AGENTS/SOUL)."""
     ws = _write(
         tmp_path / "agent",
-        AGENTS_md="04-Growth/_private/\nSome routing rules.\n",
+        AGENTS_md="Some routing rules.\n",
         TOOLS_md="## Output discipline\nHard rule #1 ...\n",
     )
     result = _check(validate_workspace(ws), "output_discipline")
@@ -73,7 +73,7 @@ def test_output_discipline_prose_mention_does_not_false_pass(tmp_path: Path) -> 
     """Anchored to the ## heading: a bare phrase in prose must not satisfy it."""
     ws = _write(
         tmp_path / "agent",
-        AGENTS_md="04-Growth/_private/\nThis agent controls its output discipline tightly.\n",
+        AGENTS_md="This agent controls its output discipline tightly.\n",
     )
     assert not _check(validate_workspace(ws), "output_discipline").ok
 
@@ -83,7 +83,7 @@ def test_output_discipline_agents_md_preferred_when_in_both(tmp_path: Path) -> N
     no 'preferred home' note when it is already in AGENTS.md."""
     ws = _write(
         tmp_path / "agent",
-        AGENTS_md="04-Growth/_private/\n## Output discipline\nrules\n",
+        AGENTS_md="## Output discipline\nrules\n",
         SOUL_md="## Output discipline\ncopy\n",
     )
     result = _check(validate_workspace(ws), "output_discipline")
@@ -95,7 +95,7 @@ def test_output_discipline_agents_md_preferred_when_in_both(tmp_path: Path) -> N
 def test_no_whatsapp_annotation_passes(tmp_path: Path) -> None:
     ws = _write(
         tmp_path / "agent",
-        AGENTS_md="04-Growth/_private/\nThis agent has no user-facing WhatsApp.\n",
+        AGENTS_md="This agent has no user-facing WhatsApp.\n",
     )
     result = _check(validate_workspace(ws), "output_discipline")
     assert result.ok
@@ -105,7 +105,7 @@ def test_no_whatsapp_annotation_passes(tmp_path: Path) -> None:
 def test_output_discipline_missing_without_annotation_fails(tmp_path: Path) -> None:
     ws = _write(
         tmp_path / "agent",
-        AGENTS_md="04-Growth/_private/\nSome routing rules.\n",
+        AGENTS_md="Some routing rules.\n",
     )
     result = _check(validate_workspace(ws), "output_discipline")
     assert not result.ok
@@ -115,7 +115,7 @@ def test_output_discipline_missing_without_annotation_fails(tmp_path: Path) -> N
 def test_fully_compliant_workspace_is_ok(tmp_path: Path) -> None:
     ws = _write(
         tmp_path / "agent",
-        AGENTS_md="04-Growth/_private/ never touch\n## Output discipline\nrules\n",
+        AGENTS_md="## Output discipline\nrules\n",
     )
     assert validate_workspace(ws).ok
 
@@ -127,7 +127,7 @@ def test_runtime_env_assumptions_clean_passes(tmp_path: Path) -> None:
     ws = _write(
         tmp_path / "agent",
         AGENTS_md=(
-            "04-Growth/_private/\n## Output discipline\n"
+            "## Output discipline\n"
             "Invoke `cd /home/claude/kg-automation && python3 -m scripts.inbox.prescan`.\n"
         ),
     )
@@ -140,7 +140,7 @@ def test_runtime_env_assumptions_bare_invocation_fails(tmp_path: Path) -> None:
     ws = _write(
         tmp_path / "agent",
         AGENTS_md=(
-            "04-Growth/_private/\n## Output discipline\n"
+            "## Output discipline\n"
             "Invoke `python3 -m scripts.inbox.prescan`.\n"  # bare — unanchored
         ),
     )
@@ -154,7 +154,7 @@ def test_runtime_env_assumptions_pythonpath_anchor_fails(tmp_path: Path) -> None
     ws = _write(
         tmp_path / "agent",
         AGENTS_md=(
-            "04-Growth/_private/\n## Output discipline\n"
+            "## Output discipline\n"
             '```bash\ncd "${PYTHONPATH:?msg}" && python3 -m scripts.habits.x\n```\n'
         ),
     )
@@ -166,7 +166,7 @@ def test_runtime_env_assumptions_pythonpath_anchor_fails(tmp_path: Path) -> None
 def test_runtime_env_assumptions_failure_bubbles_to_workspace_ok(tmp_path: Path) -> None:
     ws = _write(
         tmp_path / "agent",
-        AGENTS_md="04-Growth/_private/\n## Output discipline\npython3 -m scripts.inbox.prescan\n",
+        AGENTS_md="## Output discipline\npython3 -m scripts.inbox.prescan\n",
     )
     assert not validate_workspace(ws).ok  # a runtime-env violation fails the whole workspace
 

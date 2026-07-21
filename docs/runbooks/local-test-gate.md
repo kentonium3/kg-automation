@@ -117,7 +117,7 @@ legitimate `doc_type` tripping the `enum_membership` blocker — reddened `main`
 until hand-patched (**#560**: ~2 days red; **#678**: 7 red runs over 5 hours).
 `.githooks/pre-commit` closes that gap for real, mirroring what `docs-ci` runs.
 
-`make docs-check` runs the full trio on demand (mirrors the workflow).
+`make docs-check` runs both validators on demand (mirrors the workflow).
 
 ## Maintenance
 

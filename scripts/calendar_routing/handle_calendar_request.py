@@ -316,7 +316,7 @@ def _invoke_mark_processed(source_path: str) -> bool:
     """Flip the source note to processed via mark_processed (subprocess seam).
 
     Subprocess (``python3 -m scripts.inbox.mark_processed --path <source_path>``)
-    not an in-process import: the private-path refusal, inbox-root validation, and
+    not an in-process import: the inbox-root validation and
     symlink ``.resolve()`` guard all live in ``mark_processed.main()``. stdlib-only,
     so ``sys.executable`` is correct. Returns True on a clean exit; best-effort,
     never raises (the event already exists).
