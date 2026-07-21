@@ -131,26 +131,37 @@ def _write_manifest(tmp_path: Path, cred: dict) -> str:
     return str(path)
 
 
+_VALID_PROBE = {
+    "enabled": True,
+    "command": ["/usr/bin/true", "--self-check"],
+    "dead_exit_codes": [3],
+    "recovery_command": "re-mint the token on the Mac",
+    "timeout_seconds": 20,
+}
+
+
 def test_credential_parses_with_full_liveness_probe_block(tmp_path):
-    """A credential with all four liveness_probe fields parses cleanly."""
-    cred_dict = {
-        **_BASE_CRED,
-        "liveness_probe": {
-            "enabled": True,
-            "gog_account": "test@example.com",
-            "keyring_file": "/tmp/key",
-            "recovery_command": "echo test",
-        },
-    }
+    """A credential with a full generic liveness_probe block parses cleanly."""
+    cred_dict = {**_BASE_CRED, "liveness_probe": dict(_VALID_PROBE)}
     well_formed, malformed = read_manifest(_write_manifest(tmp_path, cred_dict))
     assert malformed == []
     assert len(well_formed) == 1
     cred = well_formed[0]
     assert cred.liveness_probe is not None
     assert cred.liveness_probe.enabled is True
-    assert cred.liveness_probe.gog_account == "test@example.com"
-    assert cred.liveness_probe.keyring_file == "/tmp/key"
-    assert cred.liveness_probe.recovery_command == "echo test"
+    assert cred.liveness_probe.command == ("/usr/bin/true", "--self-check")
+    assert cred.liveness_probe.dead_exit_codes == (3,)
+    assert cred.liveness_probe.recovery_command == "re-mint the token on the Mac"
+    assert cred.liveness_probe.timeout_seconds == 20
+
+
+def test_timeout_seconds_defaults_to_20(tmp_path):
+    """timeout_seconds is optional and defaults to 20."""
+    probe = {k: v for k, v in _VALID_PROBE.items() if k != "timeout_seconds"}
+    cred_dict = {**_BASE_CRED, "liveness_probe": probe}
+    well_formed, malformed = read_manifest(_write_manifest(tmp_path, cred_dict))
+    assert malformed == []
+    assert well_formed[0].liveness_probe.timeout_seconds == 20
 
 
 def test_credential_parses_without_liveness_probe_block(tmp_path):
@@ -161,73 +172,120 @@ def test_credential_parses_without_liveness_probe_block(tmp_path):
     assert well_formed[0].liveness_probe is None
 
 
+def test_liveness_probe_removed_breadcrumb_survives(tmp_path):
+    """The `liveness_probe_removed` breadcrumb (a sibling string key, not a
+    liveness_probe block) parses cleanly and leaves liveness_probe None. This is
+    the gog credential's post-#819 shape — guard it against future tightening."""
+    cred_dict = {**_BASE_CRED, "liveness_probe_removed": "2026-07-20 (#819): ..."}
+    well_formed, malformed = read_manifest(_write_manifest(tmp_path, cred_dict))
+    assert malformed == []
+    assert len(well_formed) == 1
+    assert well_formed[0].liveness_probe is None
+
+
 def test_credential_parses_with_disabled_liveness_probe(tmp_path):
-    """enabled=false with no other fields parses cleanly; optional fields are None."""
-    cred_dict = {
-        **_BASE_CRED,
-        "liveness_probe": {
-            "enabled": False,
-        },
-    }
+    """enabled=false with no other fields parses cleanly; optional fields empty."""
+    cred_dict = {**_BASE_CRED, "liveness_probe": {"enabled": False}}
     well_formed, malformed = read_manifest(_write_manifest(tmp_path, cred_dict))
     assert malformed == []
     cred = well_formed[0]
     assert cred.liveness_probe is not None
     assert cred.liveness_probe.enabled is False
-    assert cred.liveness_probe.gog_account is None
-    assert cred.liveness_probe.keyring_file is None
+    assert cred.liveness_probe.command == ()
+    assert cred.liveness_probe.dead_exit_codes == ()
     assert cred.liveness_probe.recovery_command is None
 
 
-def test_liveness_probe_enabled_without_gog_account_raises(tmp_path):
-    """enabled=true without gog_account raises ManifestQualityError."""
-    cred_dict = {
-        **_BASE_CRED,
-        "liveness_probe": {
-            "enabled": True,
-            "keyring_file": "/tmp/key",
-            "recovery_command": "echo test",
-        },
-    }
-    with pytest.raises(ManifestQualityError, match="gog_account"):
+def _probe_without(key: str) -> dict:
+    return {k: v for k, v in _VALID_PROBE.items() if k != key}
+
+
+def test_liveness_probe_enabled_without_command_raises(tmp_path):
+    cred_dict = {**_BASE_CRED, "liveness_probe": _probe_without("command")}
+    with pytest.raises(ManifestQualityError, match="command"):
         read_manifest(_write_manifest(tmp_path, cred_dict))
 
 
-def test_liveness_probe_enabled_without_keyring_file_raises(tmp_path):
-    """enabled=true without keyring_file raises ManifestQualityError."""
-    cred_dict = {
-        **_BASE_CRED,
-        "liveness_probe": {
-            "enabled": True,
-            "gog_account": "test@example.com",
-            "recovery_command": "echo test",
-        },
-    }
-    with pytest.raises(ManifestQualityError, match="keyring_file"):
+def test_liveness_probe_empty_command_raises(tmp_path):
+    probe = {**_VALID_PROBE, "command": []}
+    cred_dict = {**_BASE_CRED, "liveness_probe": probe}
+    with pytest.raises(ManifestQualityError, match="command"):
+        read_manifest(_write_manifest(tmp_path, cred_dict))
+
+
+def test_liveness_probe_relative_command_path_raises(tmp_path):
+    """command[0] must be an absolute path."""
+    probe = {**_VALID_PROBE, "command": ["python3", "-m", "x"]}
+    cred_dict = {**_BASE_CRED, "liveness_probe": probe}
+    with pytest.raises(ManifestQualityError, match="absolute"):
+        read_manifest(_write_manifest(tmp_path, cred_dict))
+
+
+def test_liveness_probe_command_non_string_element_raises(tmp_path):
+    probe = {**_VALID_PROBE, "command": ["/usr/bin/true", 3]}
+    cred_dict = {**_BASE_CRED, "liveness_probe": probe}
+    with pytest.raises(ManifestQualityError, match="command"):
+        read_manifest(_write_manifest(tmp_path, cred_dict))
+
+
+def test_liveness_probe_enabled_without_dead_exit_codes_raises(tmp_path):
+    cred_dict = {**_BASE_CRED, "liveness_probe": _probe_without("dead_exit_codes")}
+    with pytest.raises(ManifestQualityError, match="dead_exit_codes"):
+        read_manifest(_write_manifest(tmp_path, cred_dict))
+
+
+def test_liveness_probe_empty_dead_exit_codes_raises(tmp_path):
+    probe = {**_VALID_PROBE, "dead_exit_codes": []}
+    cred_dict = {**_BASE_CRED, "liveness_probe": probe}
+    with pytest.raises(ManifestQualityError, match="dead_exit_codes"):
+        read_manifest(_write_manifest(tmp_path, cred_dict))
+
+
+def test_liveness_probe_bool_in_dead_exit_codes_raises(tmp_path):
+    """bool is an int subclass in Python — must be rejected explicitly."""
+    probe = {**_VALID_PROBE, "dead_exit_codes": [True]}
+    cred_dict = {**_BASE_CRED, "liveness_probe": probe}
+    with pytest.raises(ManifestQualityError, match="dead_exit_codes"):
         read_manifest(_write_manifest(tmp_path, cred_dict))
 
 
 def test_liveness_probe_enabled_without_recovery_command_raises(tmp_path):
-    """enabled=true without recovery_command raises ManifestQualityError."""
-    cred_dict = {
-        **_BASE_CRED,
-        "liveness_probe": {
-            "enabled": True,
-            "gog_account": "test@example.com",
-            "keyring_file": "/tmp/key",
-        },
-    }
+    cred_dict = {**_BASE_CRED, "liveness_probe": _probe_without("recovery_command")}
     with pytest.raises(ManifestQualityError, match="recovery_command"):
+        read_manifest(_write_manifest(tmp_path, cred_dict))
+
+
+def test_liveness_probe_non_bool_enabled_raises(tmp_path):
+    probe = {**_VALID_PROBE, "enabled": "true"}
+    cred_dict = {**_BASE_CRED, "liveness_probe": probe}
+    with pytest.raises(ManifestQualityError, match="enabled"):
+        read_manifest(_write_manifest(tmp_path, cred_dict))
+
+
+def test_liveness_probe_non_int_timeout_raises(tmp_path):
+    probe = {**_VALID_PROBE, "timeout_seconds": "20"}
+    cred_dict = {**_BASE_CRED, "liveness_probe": probe}
+    with pytest.raises(ManifestQualityError, match="timeout_seconds"):
+        read_manifest(_write_manifest(tmp_path, cred_dict))
+
+
+def test_liveness_probe_nonpositive_timeout_raises(tmp_path):
+    probe = {**_VALID_PROBE, "timeout_seconds": 0}
+    cred_dict = {**_BASE_CRED, "liveness_probe": probe}
+    with pytest.raises(ManifestQualityError, match="timeout_seconds"):
         read_manifest(_write_manifest(tmp_path, cred_dict))
 
 
 def test_liveness_probe_unknown_subkey_raises(tmp_path):
     """liveness_probe block with unknown keys raises ManifestQualityError."""
-    cred_dict = {
-        **_BASE_CRED,
-        "liveness_probe": {
-            "foo": "bar",
-        },
-    }
+    cred_dict = {**_BASE_CRED, "liveness_probe": {"foo": "bar"}}
     with pytest.raises(ManifestQualityError, match="unknown keys"):
+        read_manifest(_write_manifest(tmp_path, cred_dict))
+
+
+@pytest.mark.parametrize("bad", [[], "disabled", 3, True])
+def test_liveness_probe_non_object_raises(tmp_path, bad):
+    """A non-object liveness_probe raises ManifestQualityError, not AttributeError."""
+    cred_dict = {**_BASE_CRED, "liveness_probe": bad}
+    with pytest.raises(ManifestQualityError, match="must be an object"):
         read_manifest(_write_manifest(tmp_path, cred_dict))

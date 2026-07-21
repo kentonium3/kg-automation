@@ -10,8 +10,7 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass
-from datetime import date, datetime, timezone
-from pathlib import Path
+from datetime import date
 from typing import IO, Iterable, Optional
 
 from .cadence import WARNING_WINDOW_DAYS, compute_boundary, is_fixed_interval_cadence
@@ -104,67 +103,37 @@ def render_malformed(malformed: list[ManifestQualityIssue]) -> str:
     return "\n".join(lines)
 
 
-def _format_age(seconds: float) -> str:
-    """Format a duration in seconds as 'Xd Yh'."""
-    total_hours = int(seconds // 3600)
-    days = total_hours // 24
-    hours = total_hours % 24
-    return f"{days}d {hours}h"
-
-
 @dataclass(frozen=True)
 class LivenessListing:
     """One row in the --list --liveness table."""
 
     name: str
     enabled: str
-    gog_account: str
-    keyring_mtime_age: str
+    command: str
+    dead_exit_codes: str
     recovery_command: str
 
 
 def build_liveness_listings(
     credentials: Iterable[Credential],
 ) -> list[LivenessListing]:
-    """Build LivenessListing entries for oauth2 credentials."""
-    now = datetime.now(timezone.utc)
+    """Build LivenessListing entries for every credential that declares a
+    liveness_probe block (any credential type — the probe is generic)."""
     rows: list[LivenessListing] = []
     for cred in credentials:
-        if cred.type != "oauth2":
-            continue
         lp = cred.liveness_probe
         if lp is None:
-            rows.append(LivenessListing(
-                name=cred.name,
-                enabled="—",
-                gog_account="—",
-                keyring_mtime_age="—",
-                recovery_command="—",
-            ))
             continue
-
-        enabled_str = "yes" if lp.enabled else "no"
-        gog_account = lp.gog_account or "—"
-        recovery_command = lp.recovery_command or "—"
-
-        # Compute keyring mtime age.
-        keyring_mtime_age = "—"
-        if lp.keyring_file:
-            keyring_path = Path(lp.keyring_file)
-            try:
-                mtime_ts = keyring_path.stat().st_mtime
-                mtime = datetime.fromtimestamp(mtime_ts, tz=timezone.utc)
-                age_seconds = (now - mtime).total_seconds()
-                keyring_mtime_age = _format_age(age_seconds)
-            except (FileNotFoundError, OSError):
-                keyring_mtime_age = "—"
 
         rows.append(LivenessListing(
             name=cred.name,
-            enabled=enabled_str,
-            gog_account=gog_account,
-            keyring_mtime_age=keyring_mtime_age,
-            recovery_command=recovery_command,
+            enabled="yes" if lp.enabled else "no",
+            command=" ".join(lp.command) if lp.command else "—",
+            dead_exit_codes=(
+                ",".join(str(c) for c in lp.dead_exit_codes)
+                if lp.dead_exit_codes else "—"
+            ),
+            recovery_command=lp.recovery_command or "—",
         ))
     return rows
 
@@ -172,14 +141,14 @@ def build_liveness_listings(
 def render_liveness_table(listings: list[LivenessListing]) -> str:
     """Render liveness listings as aligned plain text."""
     headers = [
-        "Name", "Enabled", "gog_account",
-        "keyring_mtime_age", "recovery_command",
+        "Name", "Enabled", "command",
+        "dead_exit_codes", "recovery_command",
     ]
 
     def _row(r: LivenessListing) -> list[str]:
         return [
-            r.name, r.enabled, r.gog_account,
-            r.keyring_mtime_age, r.recovery_command,
+            r.name, r.enabled, r.command,
+            r.dead_exit_codes, r.recovery_command,
         ]
 
     data_rows = [_row(r) for r in listings]
@@ -206,7 +175,7 @@ def list_credentials(
     """Read the manifest and write the table to stream.
 
     Returns 0 on success, propagates ManifestUnreadableError to the caller.
-    When ``liveness`` is True, also prints the per-oauth2-credential liveness
+    When ``liveness`` is True, also prints the per-credential liveness_probe
     summary table (read-only; no probes issued).
     """
     well_formed, malformed = read_manifest(manifest_path)
@@ -219,9 +188,9 @@ def list_credentials(
         liveness_listings = build_liveness_listings(well_formed)
         if liveness_listings:
             print("", file=stream)
-            print("OAuth2 liveness state (read-only; run --dry-run --liveness-only for fresh classification):", file=stream)
+            print("Liveness-probe state (read-only; run --dry-run --liveness-only for fresh classification):", file=stream)
             print(render_liveness_table(liveness_listings), file=stream)
         else:
             print("", file=stream)
-            print("No oauth2 credentials with liveness_probe configuration found.", file=stream)
+            print("No credentials with a liveness_probe configuration found.", file=stream)
     return 0

@@ -37,6 +37,7 @@ from scripts.google.calendar_auth import (
     DEFAULT_ACCOUNT,
     SCOPES_DEFAULT,
     CalendarAuthError,
+    CalendarDependencyError,
     load_credentials,
 )
 
@@ -769,6 +770,17 @@ def main(argv: "Sequence[str] | None" = None) -> int:
 
     try:
         return _dispatch(args)
+    except CalendarDependencyError as exc:
+        # Google libraries missing = wrong interpreter / broken venv. Operational
+        # (exit 1), NOT auth (exit 3): a healthy token is not implicated, and a
+        # generic liveness probe keyed on exit 3 must not read this as a dead
+        # credential (kentonium3/kg-automation#845). Mirrors the
+        # googleapiclient-missing path in _build_service.
+        _emit_error(str(exc))
+        account = getattr(args, "account", DEFAULT_ACCOUNT)
+        op = "self-check" if getattr(args, "self_check", False) else (args.command or "unknown")
+        _emit_summary({"op": op, "status": "error", "account": account})
+        return EXIT_OPERATIONAL
     except CalendarAuthError as exc:
         # Auth failure: never mutated (auth resolved before any insert/patch/
         # delete). Distinct exit 3 so callers can tell "re-stage credentials"

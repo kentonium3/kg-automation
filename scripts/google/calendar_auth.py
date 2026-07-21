@@ -34,6 +34,7 @@ if TYPE_CHECKING:  # pragma: no cover - typing only, no runtime import
 
 __all__ = [
     "CalendarAuthError",
+    "CalendarDependencyError",
     "SCOPES_DEFAULT",
     "DEFAULT_ACCOUNT",
     "credential_dir",
@@ -57,6 +58,20 @@ DEFAULT_ACCOUNT = "personal"
 # Account selector charset. Anchored, no path separators, no leading dot —
 # blocks `../`, absolute paths, and other traversal attempts.
 _ACCOUNT_RE = re.compile(r"^[a-z0-9][a-z0-9_-]*$")
+
+
+class CalendarDependencyError(Exception):
+    """Raised when the google client libraries are unavailable in the running
+    interpreter (i.e. the helper was invoked outside its dedicated venv).
+
+    This is an ENVIRONMENT/operational fault, not an auth failure — a healthy
+    token is not implicated. The consuming helper maps this to exit code 1
+    (operational), matching the googleapiclient-missing path in
+    ``calendar_helper._build_service`` and its documented contract. Keeping it
+    distinct from :class:`CalendarAuthError` (exit 3) is what lets a generic
+    liveness probe using ``dead_exit_codes=[3]`` avoid misreporting a broken
+    venv as a dead credential (kentonium3/kg-automation#845).
+    """
 
 
 class CalendarAuthError(Exception):
@@ -172,7 +187,10 @@ def load_credentials(
         from google.auth.transport.requests import Request
         from google.oauth2.credentials import Credentials
     except ImportError as exc:  # pragma: no cover - env-specific import guard
-        raise CalendarAuthError(
+        # Missing google libraries = the helper is running outside its venv.
+        # This is operational (exit 1), NOT an auth failure (exit 3): a healthy
+        # token must never be reported dead because of a broken interpreter.
+        raise CalendarDependencyError(
             "google auth libraries are not installed in this interpreter; "
             "run the calendar helper under its dedicated venv "
             "(/data/services/openclaw/felix-calendar/venv on office2)"

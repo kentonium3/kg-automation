@@ -48,16 +48,16 @@ def main(argv: list[str] | None = None) -> int:
         "--liveness",
         action="store_true",
         help=(
-            "With --list: print an additional table of OAuth liveness state "
-            "per oauth2-typed credential. Read-only; no probes issued. "
-            "For fresh classification, run with --dry-run --liveness-only."
+            "With --list: print an additional table of liveness-probe state "
+            "per credential that declares a liveness_probe. Read-only; no probes "
+            "issued. For fresh classification, run with --dry-run --liveness-only."
         ),
     )
     parser.add_argument(
         "--liveness-only",
         action="store_true",
         help=(
-            "Run only the OAuth liveness probe pass for credentials with "
+            "Run only the liveness probe pass for credentials with "
             "liveness_probe.enabled. Skips cadence, staleness, and "
             "manifest-quality passes. Used by credential-liveness-probe.timer (6h cadence)."
         ),
