@@ -116,7 +116,7 @@ Sibling to the Agent Prompt Deploy Pipeline (#567); closes the same silent-drift
 gap (#563 class) for the skills surface. **Scope**: deploy/sync MECHANISM only —
 skill CONTENT refresh is [#714].
 
-**Architecture** (pull-based; see [agent-skill-sync-ops.md](../../runbooks/agent-skill-sync-ops.md)):
+**Architecture** (pull-based; see [agent-skill-sync-ops.md](<../../runbooks/agent-skill-sync-ops.md>)):
 
 1. User-level systemd timer (`agent-skill-sync.timer`) fires every 5 minutes
    after the previous tick exits (`OnUnitInactiveSec=300s`), plus `OnBootSec=120s`
@@ -137,7 +137,7 @@ skill CONTENT refresh is [#714].
 and `agent-prompt-sync` on the single office2 checkout, reusing the same
 race-immune advance + advisory `deploylock` (a lock-unavailable tick defers
 cleanly to the next interval — a benign, non-failing event). See
-[`deployment.md` §Shared-checkout lock](../../runbooks/deployment.md).
+[`deployment.md` §Shared-checkout lock](<../../runbooks/deployment.md>).
 
 **Skills synced** (six today):
 
@@ -170,7 +170,7 @@ remediating tick.
   and `agent-skill-sync-copy-health.json` (copy failures) — streak-deduped
   escalation via the felix-alert bus
 
-**Operator surface**: see [`docs/runbooks/agent-skill-sync-ops.md`](../../runbooks/agent-skill-sync-ops.md)
+**Operator surface**: see [`docs/runbooks/agent-skill-sync-ops.md`](<../../runbooks/agent-skill-sync-ops.md>)
 for the manifest-pipeline deploy + hard verify-before-enable gate, manual
 enable/validation, the independent drift check, and rollback.
 
@@ -236,7 +236,7 @@ The helper does NOT trigger an openclaw restart.
 ### OpenClaw Gateway (F002)
 - **Deployed by**: F002
 - **Version**: OpenClaw 2026.7.1-2 (core + `@openclaw/whatsapp` 2026.7.1, lockstep-upgraded 2026-07-19)
-- **Installation**: `npm install -g openclaw@<version>` into the **claude user-space** npm prefix `/home/claude/.local` (**no sudo** — per #653 the core was relocated out of the root-owned `/usr/lib/node_modules/openclaw` into claude space; the root-global was removed 2026-07-19). Channel plugins upgrade in lockstep via `openclaw plugins update @openclaw/<plugin>@latest`. See [`openclaw-ecosystem-upgrade.md`](../../runbooks/openclaw-ecosystem-upgrade.md).
+- **Installation**: `npm install -g openclaw@<version>` into the **claude user-space** npm prefix `/home/claude/.local` (**no sudo** — per #653 the core was relocated out of the root-owned `/usr/lib/node_modules/openclaw` into claude space; the root-global was removed 2026-07-19). Channel plugins upgrade in lockstep via `openclaw plugins update @openclaw/<plugin>@latest`. See [`openclaw-ecosystem-upgrade.md`](<../../runbooks/openclaw-ecosystem-upgrade.md>).
 - **Binary**: `/home/claude/.local/bin/openclaw` (sole install; bare `openclaw` resolves here only on a **login** shell — systemd-user units, cron, and non-login ssh must use the absolute path). Code resolves this via the seam [`scripts/common/openclaw_bin.py`](../../../scripts/common/openclaw_bin.py) — the single source of truth for the binary path (#811).
 - **Config**: `/home/claude/.openclaw/openclaw.json`
 - **Service level**: User-level systemd with lingering (not system-level)
@@ -404,7 +404,7 @@ changed). Runbook: [`docs/runbooks/intake-ops.md`](<../../runbooks/intake-ops.md
 - **Agent name**: `felix-admin-habits`
 - **Workspace**: `/data/services/openclaw/habits-agent/`
 - **Source in repo**: `scripts/openclaw/agents/felix-admin-habits/`
-- **Model**: `anthropic/claude-haiku-4-5`
+- **Model**: `anthropic/claude-sonnet-4-6` (swapped from `anthropic/claude-haiku-4-5` by #842, 2026-07-20 — on haiku this agent confabulated a nonexistent delivery script instead of trusting the announce-delivery "your final reply IS the message" contract, erroring the morning-checkin cron and blocking delivery). This markdown line was corrected to sonnet under #843 after being missed in the #842 pass; the JSON inventory was already sonnet.
 - **Skills**: vikunja_api
 - **Purpose**: Daily habit check-in delivery, completion tracking, on-demand track record queries, habit management (add/pause/remove). (Weekly pattern reporting is NOT this agent's responsibility — it was migrated off the LLM-agent cron path to the deterministic `felix-habits-weekly` systemd user timer, `deterministic-cron-hardening-01KXA4PX` / #723.) **Post-#371**: thin orchestrator for the morning + reply ticks. The morning tick invokes `scripts/habits/morning_checkin_list.py` (script writes the canonical morning-list artifact + emits the formatted WhatsApp message verbatim); the reply tick invokes `scripts/habits/parse_morning_reply.py` (deterministic mapping of Kent's reply against the persisted morning list) and routes the resulting `(task_id, state)` tuples to the existing `scripts/habits/record_completion.py`. The narrow LLM judgment surface `scripts/habits/judgment/disambiguate_reply.py` is invoked ONLY for ambiguous reply tokens (mirrors the #343 doc-audit judgment pattern). **Post mission `trustworthy-weekly-habit-report-01KV4GZ7` (#605)** (weekly-report read-path history — the weekly report itself now runs on the deterministic `felix-habits-weekly` systemd timer via `scripts/habits/weekly_report_driver.py`, #723, NOT on this agent): the weekly Monday-06:00 driver invokes `scripts/habits/query_active_habits_weekly.py --output text` which reads completion history from the canonical `habits-history.jsonl` via `scripts/habits/history.py` (built on `scripts/common/state_log.py`) and queries Vikunja project-13 only for current-state habit metadata (titles + `repeat_after` for classification, via `scripts/common/vikunja_client.py`); it emits the pre-rendered WhatsApp message body on stdout, which the driver delivers verbatim. Vikunja `done_at` is NOT read for history because `repeat_after` recurrence resets that field on each cycle (collapsing daily-habit history to 0% — the original #605 bug). The earlier deterministic-helper introduction (mission `vikunja-client-and-habits-weekly-report-01KTKSFT` #542 + #562) replaced the pre-existing LLM-improvised path; #605 corrected the read source and moved the schedule to Monday so the report fires after the week has closed (that Monday 06:00 ET schedule carried over to the #723 timer).
 - **Schedule**: Morning check-in at 7:05 AM ET daily. (The weekly report is no longer on this agent's schedule — it runs on the `felix-habits-weekly` systemd timer, Monday 6 AM ET, #723. Historical: previously an OpenClaw cron on this agent, moved Sunday 22:00 ET → Monday 06:00 ET per #605; introduced Sunday 22:00 ET per #542 + #562.)
@@ -467,7 +467,7 @@ Per-helper metadata mirrors `docs/design/architecture/data/service-inventory.jso
 - **Agent name**: `felix-admin-tasker`
 - **Workspace**: `/data/services/openclaw/tasker-agent/`
 - **Source in repo**: `scripts/openclaw/agents/felix-admin-tasker/`
-- **Model**: `anthropic/claude-haiku-4-5`
+- **Model**: `anthropic/claude-sonnet-4-6` (swapped from `anthropic/claude-haiku-4-5` by #843, 2026-07-21 — one of the last two haiku holdouts among the openclaw agents; pre-emptive, to buy down the announce-delivery confabulation class fixed for habits in #842/#743 before any announce-delivery path is wired onto this agent)
 - **Purpose**: Task intelligence — transforms raw tasks into structured Vikunja entries. **Post-#310**: enrichment state migration complete. AGENTS.md cut from 19,391 to ~13,800 chars; canonical state lives in the JSONL ledger at `/data/services/openclaw/state/enrichment/enrichment-history.jsonl`; `[Felix] enrichment` Vikunja comments are written through during the post-cutover soak (C-002) for rollback safety but are NO LONGER the source of truth — `derive_state` reads ONLY the JSONL. The agent delegates state transitions to `scripts/enrichment/record_completion.py` rather than writing comments directly.
 - **Skills**: task_intelligence, vikunja_api
 - **Autonomy**: Assisted (Level 1)
@@ -577,7 +577,7 @@ Per-helper metadata mirrors `docs/design/architecture/data/service-inventory.jso
 - **Workspace**: `/data/services/openclaw/calendar-agent/`
 - **agentDir**: `/home/claude/.openclaw/agents/felix-admin-calendar/agent`
 - **Source in repo**: `scripts/openclaw/agents/felix-admin-calendar/` (IDENTITY.md, SOUL.md, AGENTS.md, TOOLS.md, USER.md per `docs/runbooks/openclaw-agent-setup.md`)
-- **Model**: `anthropic/claude-haiku-4-5` (optimizable) — Routine deterministic-validator-driven workflow; matches capture / habits / tasker shape. Re-evaluate if accuracy is poor in production.
+- **Model**: `anthropic/claude-sonnet-4-6` (swapped from `anthropic/claude-haiku-4-5` by #843, 2026-07-21 — the other of the last two haiku holdouts; pre-emptive, same rationale as tasker: the announce-delivery confabulation class fixed for habits in #842/#743). Originally chosen as haiku per the F-06 "routine deterministic-validator-driven workflow" decision (matched the capture / habits / tasker shape).
 - **Purpose**: Calendar **judgment layer** (reshaped by #699, RFC #681 calendar phase — was: gog-executing substrate). Handles only the work that needs an LLM: the conversational calendar path and clarification round-trips (interpreting Kent's natural-language date/time/intent, at most one clarification round on ambiguity). Its terminal action is a call to the **Felix calendar helper** (`scripts/google/calendar_helper.py`), **not** `gog calendar create`. On inbound WhatsApp clarification reply, reads the pending-calendar-clarifications state file, merges Kent's reply into the deferred event payload, re-validates, and issues the create via the helper. Surfaces a helper exit 3 (auth) / 1 (operational) verbatim and never fakes success (#683); it must not fall back to gog.
 - **Skills**: `[]` (none) — `calendar` was never a real OpenClaw skill and the `gog` skill was **removed** by #699; the helper is invoked via `exec`, not a gog skill (that #699 skill removal was the only `openclaw.json` rebaseline-triggering change in the calendar migration)
 - **Autonomy**: Assisted (Level 1)
