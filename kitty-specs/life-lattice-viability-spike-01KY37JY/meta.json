@@ -1,0 +1,14 @@
+{
+  "created_at": "2026-07-21T20:58:55.713978+00:00",
+  "flattened": false,
+  "friendly_name": "Life Lattice Viability Spike",
+  "mission_id": "01KY37JYB0K4DS5D1TF1YH80BK",
+  "mission_number": null,
+  "mission_slug": "life-lattice-viability-spike-01KY37JY",
+  "mission_type": "research",
+  "purpose_context": "Before building the #692/#833 Life Lattice (the temporal graph that is the Executive Assistant's cognitive substrate), we run an isolated, zero-production-contact spike answering four make-or-break questions — chiefly whether temporal reasoning over a hand-seeded, life-shaped chain is genuinely useful. The go/no-go verdict gates the full #693-#698 build.",
+  "purpose_tldr": "Throwaway, isolated spike to prove the Life Lattice's temporal reasoning genuinely pays off before committing to the graph build.",
+  "slug": "life-lattice-viability-spike-01KY37JY",
+  "target_branch": "feat/life-lattice-viability-spike",
+  "topology": "single_branch"
+}
