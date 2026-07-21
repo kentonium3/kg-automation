@@ -155,11 +155,15 @@ edits to existing files, plus a deploy of already-existing prompt files.
   cleaned prompts to the running fleet.
 - **Relevant requirements**: FR-003, NFR-004, SC-003.
 - **Affected surfaces**: the 7 agent workspaces under `scripts/openclaw/agents/`; deploy via
-  agent-prompt-sync; office2 `/data/services/openclaw/`.
+  agent-prompt-sync; office2 `/data/services/openclaw/`. **Post-plan Codex LOW-1:** only the **6
+  deployed** agents (main, capture, escalation, habits, tasker, calendar) get parity + smoke;
+  **felix-doc-auditor is repo-only** (suspended #539; not in the agent-prompt-sync roster).
 - **Sequencing/depends-on**: IC-02 (validation must accept a prompt without the line first).
 - **Risks**: byte-budget floors on `main/AGENTS.md` (removing text only frees budget — safe);
-  main's deploy dir is `/data/services/openclaw/data/` (slug≠dir); agent-prompt-sync copies IN but
-  never deletes — a pure edit is fine. Post-deploy prompt parity + per-agent smoke required.
+  main's deploy dir is `/data/services/openclaw/data/` (slug≠dir); agent-prompt-sync copies IN
+  (overwrites file content, so a stripped line IS removed on office2) but never deletes a whole file
+  — a pure edit is fine. Post-deploy prompt parity + per-agent smoke + `drift_check.py report`
+  (post-plan Codex LOW-2) required.
 
 ### IC-04 — Governance/instruction docs (partial edits)
 - **Purpose**: Remove the `_private` "absolute rule" from CLAUDE.md/CODEX.md/ai-agents/constitution
@@ -193,16 +197,21 @@ edits to existing files, plus a deploy of already-existing prompt files.
 - **Risks**: keep the #696 gate description forward-consistent (a verification, not an in-repo rule).
 
 ### IC-07 — Keep + generalize general vault hygiene
-- **Purpose**: Retain vault-path redaction from alerts and refuse-write-to-vault, decoupled from the
-  defunct folder (generalized to "arbitrary vault path"). Triage the inbox scripts that mention
-  `_private` per-file (some are behavior, some are docs).
+- **Purpose**: Retain vault-path redaction and refuse-out-of-inbox-writes, decoupled from the defunct
+  folder. **Post-plan Codex reclassification:** `classify_content` (exit-3 pre-read refusal) and
+  `prescan` (skip `_private` path components) are LIVE general hygiene, not doc-triage → KEEP+GEN
+  (never process private-marked content, folder-agnostic).
 - **Relevant requirements**: FR-007, NFR-003, FR-008 (leave the unrelated Vikunja `is_private`).
-- **Affected surfaces**: `scripts/escalation/hard_fail.py` + `tests/escalation/test_hard_fail.py`,
-  `scripts/inbox/mark_processed.py` + `tests/inbox/test_mark_processed.py`,
-  `scripts/inbox/{classify_content,prescan,route_and_finalize}.py` (+ READMEs) triage. Do NOT touch
-  `tests/common/test_sync_cache.py` (`is_private` = Vikunja private-project, unrelated).
+- **Affected surfaces**: `hard_fail.py` (redaction — MED-1: keep the exact fragment set
+  `~/second-brain`,`/second-brain`,`_private`), `mark_processed.py` (MED-1: refuse OUTSIDE the
+  resolved inbox root — NOT "any vault path", or the legitimate `01-Inbox` would be rejected;
+  inbox-root allow semantics preserved), `classify_content.py` + `prescan.py` (KEEP+GEN),
+  `route_and_finalize.py` (doc triage) + their tests. Do NOT touch `tests/common/test_sync_cache.py`
+  (`is_private` = Vikunja, unrelated).
 - **Sequencing/depends-on**: none.
-- **Risks**: over-generalizing could drop a real leak assertion; keep ≥ prior coverage (NFR-003).
+- **Risks**: (a) over-generalizing `mark_processed` into rejecting the inbox root (MED-1); (b)
+  dropping a redaction fragment `hard_fail` currently catches (MED-1); (c) leaving literal
+  `04-Growth` coupling behind. Keep ≥ prior coverage (NFR-003, INV-4).
 
 ### IC-08 — Verification, ordering-safety & rebaseline confirmation
 - **Purpose**: Prove the safety invariant and green gates; confirm rebaseline disposition.

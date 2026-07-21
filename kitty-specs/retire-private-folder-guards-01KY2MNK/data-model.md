@@ -55,10 +55,11 @@ migration runbook allowlist) are **out of scope by C-001** and are not listed fo
 | `scripts/openclaw/agents/felix-admin-habits/{AGENTS,TOOLS}.md` | STRIP | " |
 | `scripts/openclaw/agents/felix-admin-tasker/{AGENTS,TOOLS}.md` | STRIP | " |
 | `scripts/openclaw/agents/felix-admin-calendar/{SOUL,TOOLS,USER}.md` | STRIP | calendar carries its block in SOUL.md (#805). |
-| `scripts/openclaw/agents/felix-doc-auditor/{AGENTS,SOUL,TOOLS}.md` | STRIP | felix-doc-auditor is paused (#539) but keep repo↔deploy parity. |
+| `scripts/openclaw/agents/felix-doc-auditor/{AGENTS,SOUL,TOOLS}.md` | STRIP (repo-only) | **Post-plan Codex LOW-1:** felix-doc-auditor is suspended (#539), excluded from the workspace validator + drift roster, and is NOT in the OpenClaw agents map — agent-prompt-sync does NOT deploy it. Strip the red-line for repo consistency, but expect **no deployed parity and no smoke** for this agent. |
 
 > Exact owner file(s) per agent are confirmed during implement by grepping each workspace; only the
-> file(s) that actually carry the red-line are edited.
+> file(s) that actually carry the red-line are edited. The 6 deployed agents (main, capture,
+> escalation, habits, tasker, calendar) get parity + smoke; felix-doc-auditor is repo-only.
 
 ## IC-04 — Governance/instruction docs (partial edits — keep the repo boundary)
 
@@ -96,12 +97,23 @@ migration runbook allowlist) are **out of scope by C-001** and are not listed fo
 
 | Surface | Action | Notes |
 |---|---|---|
-| `scripts/escalation/hard_fail.py` | KEEP+GEN | Redaction: keep stripping `~/second-brain` / `/second-brain` vault fragments from alert title/body/url; the `_private` fragment stays covered but is no longer the load-bearing key. |
-| `tests/escalation/test_hard_fail.py` | KEEP+GEN | Keep ≥ prior leak assertions; reframe wording from folder-specific to vault-path-general. |
-| `scripts/inbox/mark_processed.py` | KEEP+GEN | C-001 refusal generalized from "under `_private`" to "outside the allowed inbox area / arbitrary vault path". |
-| `tests/inbox/test_mark_processed.py` | KEEP+GEN | Update the refusal test to the generalized guard; keep the refusal semantics. |
-| `scripts/inbox/{classify_content,prescan,route_and_finalize}.py` | TRIAGE | Per-file at implement: if `_private` is behavior (special-case routing), generalize/keep; if doc/comment, reframe. |
+| `scripts/escalation/hard_fail.py` | KEEP+GEN | Redaction MUST keep stripping ALL current fragments — `~/second-brain`, `/second-brain`, AND bare `_private` — from alert title/body/url (post-plan Codex: these are the exact current coverage). Generalize the *framing* (folder-independent), NOT the matched set: do not drop any fragment it currently redacts. |
+| `tests/escalation/test_hard_fail.py` | KEEP+GEN | Keep ≥ prior leak assertions; the `_private`, `~/second-brain`, `/second-brain` redaction assertions all stay. Reframe wording only. |
+| `scripts/inbox/mark_processed.py` | KEEP+GEN | **Precise semantics (post-plan Codex MED-1):** keep the inbox-root ALLOW semantics — a note under the resolved inbox root is allowed even though the inbox lives *inside* the vault. Generalize the pre-read refusal to "refuse a path OUTSIDE the resolved inbox root" (NOT "any vault/second-brain path" — that would reject the legitimate `01-Inbox`). Retain the current `04-Growth/_private` pre-read refusal coverage as a subset. |
+| `tests/inbox/test_mark_processed.py` | KEEP+GEN | Keep the refusal semantics + a case proving a legitimate inbox-root path is still ALLOWED. |
+| `scripts/inbox/classify_content.py` | KEEP+GEN | **Live behavior (post-plan Codex MED-2):** exits 3 (pre-read refusal) when the path contains a private marker. KEEP as general "never classify private-marked content" hygiene, generalized to a `_private` path *component* (folder-agnostic), decoupled from the `04-Growth` folder. |
+| `tests/inbox/test_classify_content.py` | KEEP+GEN | Retain/adjust the refusal test to the generalized component check; keep coverage. |
+| `scripts/inbox/prescan.py` | KEEP+GEN | **Live behavior (post-plan Codex MED-2):** `scan_directory` skips any entry/symlink-target with `_private` as a path component. Already folder-agnostic → KEEP as general hygiene (never scan private-marked content); confirm it is decoupled from the specific folder. |
+| `tests/scripts/inbox/test_prescan.py` | KEEP+GEN | Retain the skip test; keep coverage. |
+| `scripts/inbox/route_and_finalize.py` | TRIAGE | Per-file at implement: reframe doc/comment mentions; if it delegates to the above guards, no behavior change. |
 | `scripts/office2/gitignore-additions.txt` | KEEP | Gitignoring vault content is still valid; keep (generalize wording if folder-specific). |
+
+> **DECISION (post-plan Codex, surfaced to Kent):** `prescan` + `classify_content` refuse/skip any
+> `_private`-marked content as *general* hygiene ("never process private-marked content"), which is
+> folder-agnostic and independent of the removed folder guard → **KEEP+GENERALIZE**, not remove. This
+> means a `_private` *component* check intentionally survives in the codebase (allowlisted in SC-001).
+> Alternative (delete these too for a cleaner sweep) is available if Kent prefers; the safe/consistent
+> default is to keep the general-hygiene protection.
 
 ## IC-08 — Verify / LEAVE
 
