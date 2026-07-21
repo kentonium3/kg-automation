@@ -16,7 +16,7 @@ subtasks:
 - T012
 - T013
 - T014
-agent: claude
+agent: "claude:sonnet:implementer:implementer"
 history: []
 agent_profile: implementer-ivan
 authoritative_surface: scripts/inbox/
@@ -37,6 +37,8 @@ owned_files:
 - scripts/office2/gitignore-additions.txt
 role: implementer
 tags: []
+shell_pid: "22263"
+shell_pid_created_at: "1784651109.595756"
 ---
 
 ## ⚡ Do This First: Load Agent Profile
@@ -91,3 +93,7 @@ findings are folded into the guidance below. Preserve behavior everywhere except
 - MED-1: guard against `hard_fail` dropping a `second-brain` fragment it must still redact.
 - Reviewer: confirm the clean-sweep is behavior-preserving (only the `_private` literal removed) and
   the retained guards keep coverage.
+
+## Activity Log
+
+- 2026-07-21T16:26:06Z – claude:sonnet:implementer:implementer – shell_pid=22263 – Assigned agent via action command
