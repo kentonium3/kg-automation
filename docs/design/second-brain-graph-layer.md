@@ -370,11 +370,18 @@ full #693→#698 build:
 
 1. **office2 fit** — does Graphiti + FalkorDB run acceptably alongside the existing stack?
    (de-risks #693)
-2. **Temporal-reasoning payoff on real data (the make-or-break)** — hand-seed 5–10 *real*
-   nodes (an actual Purpose → Outcome → Project → Task chain) and test the target questions:
-   upward traversal ("why this task?") and conflict/trade-off detection. If the temporal
-   reasoning does not pay off on Kent's real data shape, nothing built above it matters — so
-   prove this **first**.
+2. **Temporal-reasoning payoff (the make-or-break)** — hand-seed a small
+   Purpose → Outcome → Project → Task chain and test the target questions: upward traversal
+   ("why this task?") and conflict/trade-off detection. If the temporal reasoning does not
+   pay off, nothing built above it matters — so prove this **first**.
+   - **Content is manufactured but realistic.** No real lattice content exists yet (the
+     ontology is newly formalized), and none is needed to prove the reasoning. Fabricate a
+     chain *shaped like Kent's actual life* and **deliberately construct** the stress
+     scenarios (a real week-conflict, a trade-off, a "deferred 4× since March" pattern)
+     rather than hoping real data contains them. Real data substitutes in as the structure
+     firms up — and the later shadow-mode proof rungs (ladder 2–3) genuinely require it.
+   - This **decouples reasoning validation from the privacy gate (spike item 3)**: synthetic
+     content isn't sensitive, so this test runs without waiting on the extraction decision.
 3. **Privacy / extraction posture (hard gate)** — vault ingest uses an LLM to extract
    entities from sensitive life-planning content; the Lattice will hold it. Which LLM, and
    does anything cross the Tailscale boundary? Must be resolved before any vault ingest, and
