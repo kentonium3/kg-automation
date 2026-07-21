@@ -4,27 +4,34 @@ doc_type: runbook
 audience: agents_and_humans
 status: approved
 created: 2026-06-16
-last_validated: 2026-06-16
-last_updated: '2026-06-16'
-version: v1.0
+last_validated: 2026-07-21
+last_updated: '2026-07-21'
+version: v2.0
 owners: [kgale]
 ---
 
 # Credential Liveness Probe Operations
 
 The `credential-liveness-probe` is one of two periodic configuration-integrity
-sweeps on office2. Every 6 hours it probes each OAuth credential in the
-manifest with a live API call; when a credential dies, it auto-files a
-GitHub issue with the recovery command in the body. The sister sweep is
-the daily [Security Baseline Audit](<./security-baseline-ops.md>) at 3 AM,
-which detects unexpected drift in the system's configuration surface.
+sweeps on office2. Every 6 hours it runs each credential's declared **probe
+command** and classifies the result by exit code; when a credential dies, it
+auto-files a GitHub issue with the recovery command in the body. The sister
+sweep is the daily [Security Baseline Audit](<./security-baseline-ops.md>) at
+3 AM, which detects unexpected drift in the system's configuration surface.
+
+The probe is **generic** (as of #845): it is credential-agnostic. Any credential
+— a Google OAuth token, a Vikunja API token, a GitHub PAT — opts in by declaring
+a `command` to run plus the `dead_exit_codes` that mean "this credential is
+dead". The runner runs the command and interprets the exit code; it holds no
+per-credential-type logic. This replaced the original gog-specific probe (#572),
+whose only subject was removed when gog was decommissioned (#819/#629), which
+had orphaned the canary (perpetual `unknown`, paging every 6h — #845).
 
 This runbook is the canonical surface for the probe. Service-specific
-runbooks (e.g. [google-workspace-ops](<./google-workspace-ops.md>)) link here
+runbooks (e.g. [calendar-helper-ops](<./calendar-helper-ops.md>)) link here
 for the probe's behavior and only document service-specific recovery details.
 
-Tracking issues: original implementation #572; today's classification-baseline
-fix #616.
+Tracking issues: original implementation #572; generic re-point #845.
 
 ---
 
@@ -48,8 +55,8 @@ Spec authority:
 ## Cadence
 
 `OnCalendar=*-*-* 00,06,12,18:00:00 UTC` — four times per day at UTC midnight,
-06:00, 12:00, 18:00. The probe completes per-credential in well under a
-second (the live API call timeout is 15 s; a real network round-trip is
+06:00, 12:00, 18:00. Each probe completes in well under a second (the per-block
+`timeout_seconds` bound defaults to 20 s; a real network round-trip is
 ~500–900 ms).
 
 ---
@@ -58,56 +65,60 @@ second (the live API call timeout is 15 s; a real network round-trip is
 
 For each manifest entry whose `liveness_probe.enabled` is `true`:
 
-1. Runs `gog --account <gog_account> calendar list -j --max 1` — a
-   minimal live Google Calendar API call. The call either succeeds
-   (token alive) or returns a typed OAuth error.
-2. Classifies the result:
+1. Runs the block's `command` (an argv list, executed with `shell=False`)
+   with a `timeout_seconds` bound. The command is expected to make a cheap
+   authenticated call and exit with a meaningful code — e.g. the Google
+   calendar credential runs `calendar_helper --self-check`, which
+   authenticates and issues a bounded `events.list(primary, max=1)`.
+2. Classifies by **exit code**:
 
    | Outcome | Classification | What the probe does |
    |---|---|---|
-   | `rc=0` (alive) | — | Returns `None`; no issue filed. |
-   | `rc≠0` + stderr contains `invalid_grant` | `dead` | Files a GitHub issue tagged `P1-bug`, `area/infrastructure`, titled `credential-liveness-dead: <name>`. |
-   | Subprocess timeout, `gog` binary missing, other non-`invalid_grant` failure | `probe-error` | Files an issue tagged the same way; recovery command is `None`. |
+   | exit `0` | alive | Logs `credential_alive`; returns `None`; no issue filed. |
+   | exit ∈ `dead_exit_codes` | `dead` | Logs `credential_dead`; files a GitHub issue titled `credential-liveness-dead: <name>` with the block's `recovery_command` in the body. |
+   | any other non-zero exit, timeout, or a failure to execute the command | `probe-error` | Logs `credential_probe_error`; files an issue; recovery command is `None`. |
 
-3. Since the gog OAuth app was published (#731), a dead token is no longer a
-   routine weekly event — every `dead` result is genuinely unexpected and
-   actionable. See the next section.
+Only an exit code the credential explicitly lists in `dead_exit_codes` is a
+death. Every other non-zero outcome is a probe-error — so an environment fault
+(broken venv, missing dependency, transient network error) never masquerades as
+a dead credential. (This is why `calendar_helper` maps a missing-google-libs
+fault to exit 1, not its auth-dead exit 3 — #845 HIGH-2.)
 
 ---
 
-## Classification: a single `dead` state (post-#731)
+## Canary heartbeat — why the probe can't silently go `unknown`
 
-The gog OAuth app is now **published** ('In production'), so its refresh tokens
-no longer expire on the External+Testing 7-day cycle. There is therefore no
-"routine" token death to distinguish from an "unexpected" one: **every
-`invalid_grant` is classified `dead`** and is genuinely actionable (a password
-change, manual revoke, Google security review, or 6+ months inactivity). The
-alert body always advises investigating at myaccount.google.com/permissions
-before re-auth.
-
-> **History (#616, retired by #731):** while the app was in Testing, the probe
-> tried to distinguish routine 7-day expiries from mid-week deaths using a
-> `reauth_marker_glob` / keyring-mtime baseline. That machinery was removed once
-> the app was published — the baseline no longer maps to anything real, and the
-> probe no longer reads the keyring mtime for classification.
+The `credential-liveness-probe` canary (in `service-inventory.json`) greps this
+service's journal over a 7h window for
+`credential_alive|credential_dead|credential_probe_error|credential_liveness_cycle_complete`.
+The last token is a **heartbeat** (#845): the runner emits
+`credential_liveness_cycle_complete` on **every** completed cycle, even when zero
+credentials have an enabled `liveness_probe`. So a running service always leaves
+a marker and the canary can never fall back to `unknown` just because probes were
+removed (the exact failure #819 caused). If the canary *does* read `unknown`, the
+service genuinely failed to run (systemd failure, or an unreadable manifest that
+aborts the cycle before the heartbeat) — a real "the check is broken" signal, not
+a false alarm.
 
 ---
 
 ## Manifest entry shape
 
-For an OAuth credential to be probed, its
+For a credential to be probed, its
 [`credential-manifest.json`](<../design/architecture/data/credential-manifest.json>)
-entry must declare a `liveness_probe` block:
+entry must declare a `liveness_probe` block. Example — the Google personal
+calendar credential (the first re-pointed subject, #845):
 
 ```json
 {
-  "name": "gog-credentials-keyring",
+  "name": "felix-google-personal-calendar",
   …
   "liveness_probe": {
     "enabled": true,
-    "gog_account": "kentgale@gmail.com",
-    "keyring_file": "/home/claude/.config/gogcli/keyring/_gogcli_key_v1_…",
-    "recovery_command": "ssh -t office2-claude /home/claude/kg-automation/scripts/security/gog-reauth.sh"
+    "command": ["/data/services/openclaw/felix-calendar/venv/bin/python", "-m", "scripts.google.calendar_helper", "--self-check", "--account", "personal"],
+    "dead_exit_codes": [3],
+    "recovery_command": "Re-mint the token on the Mac and re-stage token.json to office2 (0600). See docs/runbooks/calendar-helper-ops.md.",
+    "timeout_seconds": 20
   }
 }
 ```
@@ -115,31 +126,37 @@ entry must declare a `liveness_probe` block:
 | Field | Required when `enabled: true`? | Purpose |
 |---|---|---|
 | `enabled` | always | Set to `false` to keep the entry in the manifest but suppress probing. |
-| `gog_account` | yes | Google account email. Passed to `gog --account`. |
-| `keyring_file` | yes | Absolute path to the gogcli-managed keyring file. Retained as a descriptive pointer to the keyring location; the probe no longer reads it for classification (post-#731). |
-| `recovery_command` | yes | Verbatim command embedded in any filed GitHub issue. For gog: `ssh -t office2-claude /home/claude/kg-automation/scripts/security/gog-reauth.sh`. |
+| `command` | yes | argv list to run (`shell=False`). `command[0]` MUST be an absolute path (probes run in a systemd context with a minimal PATH — for a venv-backed helper, point at the venv's `bin/python`). |
+| `dead_exit_codes` | yes | Non-empty list of integer exit codes that mean the credential is dead / needs re-auth. Everything else non-zero is a probe-error. |
+| `recovery_command` | yes | Verbatim recovery guidance embedded in any filed GitHub issue. |
+| `timeout_seconds` | no (default 20) | Positive integer; the probe subprocess is killed and reported `probe-error` if it exceeds this. |
 
-The manifest parser rejects unknown keys in the `liveness_probe` block —
-see [manifest-liveness-probe-block.md](<../../kitty-specs/credential-liveness-probe-01KTP9M8/contracts/manifest-liveness-probe-block.md>) for the
-validation rules.
+The manifest parser rejects unknown keys and type-invalid values (non-bool
+`enabled`, non-absolute `command[0]`, non-int/`bool` `dead_exit_codes`, etc.) as
+`ManifestQualityError`.
 
 ---
 
 ## Adding a new credential to the probe
 
-1. Confirm the credential is an OAuth bearer with a refresh-token cycle
-   (i.e. expected death). Static API keys aren't a fit for liveness
-   probing — they fail "expired" only on rotation.
-2. Identify the gog account that owns the credential and the path to the
-   keyring or canonical file.
-3. Identify a re-auth marker path. If the credential is gogcli-managed,
-   the `oauth-manual-state-*.json` glob works as shown above. If it's
-   another OAuth stack, find a file that is touched only by the manual
-   re-auth flow — NOT by routine token refreshes.
-4. Add the `liveness_probe` block to the credential's manifest entry.
-5. Run the probe manually (see below) and confirm the new credential
-   appears in the cycle log; expect either `credential_alive` or, if
-   it died, a `credential_dead` line with the correct classification.
+The probe is generic, so adding a credential is usually a **manifest-only**
+change — no code change to the runner:
+
+1. Identify (or author) a cheap, non-interactive probe command that
+   authenticates the credential and exits with a distinct, documented code on a
+   genuine auth failure (distinct from environment/setup failures). Examples:
+   - **Google OAuth (calendar)** — `calendar_helper --self-check` (exit 0 ok,
+     3 = auth-dead). Ready today.
+   - **Vikunja token** — a `curl -fsS` to a cheap authenticated endpoint (e.g.
+     `/api/v1/user`); curl exits 22 on an HTTP 4xx, so `dead_exit_codes: [22]`.
+   - **GitHub PAT** — `gh api user` (or a `curl` to `api.github.com`); pick the
+     exit code the tool returns on a 401.
+2. Ensure `command[0]` is an absolute path and, for a venv-backed probe, points
+   at the venv python so its dependencies resolve in the systemd context.
+3. Add the `liveness_probe` block to the credential's manifest entry.
+4. Run the probe manually (see below) and confirm the credential appears in the
+   cycle log with `credential_alive` (or `credential_dead` / `credential_probe_error`
+   as appropriate).
 
 ---
 
@@ -162,27 +179,24 @@ security event. Common causes:
 - Manual revocation at myaccount.google.com/permissions.
 - Google security review (rare; emails the account first).
 
-After investigating, re-auth via the verbatim recovery command in the
-issue body. For `gog-credentials-keyring`, that's:
-
-```bash
-ssh -t office2-claude /home/claude/kg-automation/scripts/security/gog-reauth.sh
-```
-
-It wraps the gog two-step OAuth flow (~3 min including browser consent).
-See [google-workspace-ops.md](<./google-workspace-ops.md>) for the
-underlying procedure if you need to step through it manually. After
-re-auth, the next 6-hour probe confirms liveness; close the GitHub issue
-manually (auto-close is a future-work item per
+After investigating, recover via the verbatim `recovery_command` in the issue
+body (each credential declares its own). For `felix-google-personal-calendar`,
+that means re-minting the token on the Mac and re-staging `token.json` to office2
+— see [calendar-helper-ops.md](<./calendar-helper-ops.md>). After recovery, the
+next 6-hour probe confirms liveness; close the GitHub issue manually (auto-close
+is a future-work item per
 `kitty-specs/credential-liveness-probe-01KTP9M8/spec.md` §Future Work).
 
 ### `credential-liveness-error: <name> (<date>)`
 
-Subprocess timeout, `gog` binary missing, or the underlying API
-returned an error that isn't `invalid_grant`. The body carries the
-probe's stderr excerpt; usually a one-shot transient (DNS, network)
-that the next 6-hour tick resolves on its own. If it persists, check
-the binary path (`GOG_BINARY` in `liveness.py`) and run a manual probe.
+The probe subprocess timed out, could not be executed (missing interpreter/
+binary), or exited non-zero with a code that is NOT in the credential's
+`dead_exit_codes` (an environment or transient fault, deliberately distinct from
+a real death). The body carries the probe's stderr excerpt. Usually a one-shot
+transient (DNS, network) that the next tick resolves. If it persists, run the
+probe command manually and check the probe's own health — for the calendar
+credential, confirm the venv exists and `calendar_helper --self-check` runs
+under it.
 
 ---
 
@@ -199,37 +213,42 @@ Or, when you want to capture per-credential output without going
 through systemd:
 
 ```bash
-ssh office2-claude 'cd /home/claude/kg-automation && set -a && \
-  . /data/services/openclaw/secrets/openclaw-gateway.env && set +a && \
-  /usr/bin/python3 -m scripts.security.credential_health_check \
-    --manifest /home/claude/kg-automation/docs/design/architecture/data/credential-manifest.json \
-    --liveness-only'
+ssh office2-claude 'cd /home/claude/kg-automation && /usr/bin/python3 -m scripts.security.credential_health_check --manifest /home/claude/kg-automation/docs/design/architecture/data/credential-manifest.json --liveness-only'
 ```
 
-The `/data/services/openclaw/secrets/openclaw-gateway.env` `set -a`
-load is required because the probe needs `GOG_KEYRING_PASSWORD` to
-decrypt the keyring; without it, you'll see
-`no TTY available for keyring file backend password prompt; set GOG_KEYRING_PASSWORD`
-instead of the actual token state.
+You can also run a credential's probe command directly to see its raw exit code
+— e.g. the calendar self-check under its venv:
+
+```bash
+ssh office2-claude 'cd /home/claude/kg-automation && /data/services/openclaw/felix-calendar/venv/bin/python -m scripts.google.calendar_helper --self-check --account personal; echo "exit=$?"'
+```
 
 ---
 
 ## Troubleshooting
 
-### Probe reports `probe-error` with `no TTY available for keyring file backend password prompt`
+### The canary reports `credential-liveness-probe: unknown`
 
-The probe ran without `GOG_KEYRING_PASSWORD`. Check that the systemd
-service unit's `EnvironmentFile=/data/services/openclaw/secrets/openclaw-gateway.env`
-line is present and the env file contains `GOG_KEYRING_PASSWORD=`. The
-manual-probe command in this runbook explicitly sources that file —
-copy-paste it as-is.
+Since #845 a running service always emits the `credential_liveness_cycle_complete`
+heartbeat, so `unknown` means the **service did not complete a cycle** — not that
+a probe was missing. Check that the timer fired and the service didn't crash:
 
-### Probe reports `probe-error: gog binary not found`
+```bash
+ssh office2-claude 'systemctl --user status credential-liveness-probe.service --no-pager'
+ssh office2-claude 'journalctl --user -u credential-liveness-probe.service --since "7 hours ago" --no-pager | tail'
+```
 
-The `gog` binary lives at `/home/linuxbrew/.linuxbrew/bin/gog` (Linuxbrew
-install). If the install path moves, `GOG_BINARY` in
-`scripts/security/credential_health_check/liveness.py` must be
-updated in lockstep.
+A `ManifestUnreadableError` (bad JSON / missing manifest) aborts the cycle before
+the heartbeat and is the most likely cause of a genuine `unknown`.
+
+### Probe reports `probe-error` for a Google credential
+
+The `calendar_helper --self-check` exited non-zero with a code other than its
+auth-dead 3 (e.g. 1 = operational: the venv is broken or a dependency is
+missing). Run the direct probe command above to see the stderr; confirm the venv
+at `/data/services/openclaw/felix-calendar/venv` exists and is provisioned (see
+[calendar-helper-ops.md](<./calendar-helper-ops.md>)). A broken venv is an
+environment fault, deliberately NOT reported as a dead credential.
 
 ### Probe never runs even though the timer is enabled
 

@@ -44,17 +44,28 @@ class ManifestQualityError(Exception):
 
 @dataclass(frozen=True)
 class LivenessProbeConfig:
-    """Per-credential liveness probe configuration.
+    """Per-credential liveness probe configuration (generic, command-based).
 
-    When `enabled is True`, all of `gog_account`, `keyring_file`, and
-    `recovery_command` MUST be set. See
-    kitty-specs/credential-liveness-probe-01KTP9M8/contracts/manifest-liveness-probe-block.md.
+    A credential opts into liveness probing by declaring the argv `command` to
+    run and the `dead_exit_codes` that mean "this credential is dead / needs
+    re-auth". Any exit code 0 = alive; a code in `dead_exit_codes` = dead;
+    anything else (or a failure to execute) = probe-error. This lets any
+    credential type (Google OAuth, Vikunja token, GitHub PAT, …) supply its own
+    cheap authenticated probe — e.g. `calendar_helper --self-check` for the
+    Google calendar credential (exit 0 = ok, 3 = auth-dead).
+
+    When `enabled is True`, `command` (non-empty argv, absolute `command[0]`),
+    `dead_exit_codes` (non-empty list of ints), and `recovery_command` MUST be
+    set. `timeout_seconds` defaults to 20. Introduced generic in #845 (replacing
+    the gog-specific gog_account/keyring_file shape, which had no live subject
+    after #819).
     """
 
     enabled: bool
-    gog_account: Optional[str] = None
-    keyring_file: Optional[str] = None
+    command: tuple[str, ...] = ()
+    dead_exit_codes: tuple[int, ...] = ()
     recovery_command: Optional[str] = None
+    timeout_seconds: int = 20
 
 
 @dataclass(frozen=True)
@@ -159,12 +170,20 @@ def _validate_and_construct(
     if liveness_probe_raw is None:
         liveness_probe = None
     else:
-        # Validate unknown subkeys.
+        if not isinstance(liveness_probe_raw, dict):
+            raise ManifestQualityError(
+                f"credential {name!r}: liveness_probe must be an object "
+                f"(got {type(liveness_probe_raw).__name__})"
+            )
+        # Validate unknown subkeys. (The `liveness_probe_removed` breadcrumb is a
+        # SIBLING key on the credential entry, not inside this block, so it is
+        # untouched here.)
         allowed_keys = {
             "enabled",
-            "gog_account",
-            "keyring_file",
+            "command",
+            "dead_exit_codes",
             "recovery_command",
+            "timeout_seconds",
         }
         unknown = set(liveness_probe_raw.keys()) - allowed_keys
         if unknown:
@@ -173,18 +192,73 @@ def _validate_and_construct(
                 f"unknown keys: {sorted(unknown)}"
             )
         enabled = liveness_probe_raw.get("enabled", False)
+        if not isinstance(enabled, bool):
+            raise ManifestQualityError(
+                f"credential {name!r}: liveness_probe.enabled must be a "
+                f"boolean (got {type(enabled).__name__})"
+            )
+        command_raw = liveness_probe_raw.get("command")
+        dead_codes_raw = liveness_probe_raw.get("dead_exit_codes")
+        recovery_command = liveness_probe_raw.get("recovery_command")
+        timeout_raw = liveness_probe_raw.get("timeout_seconds", 20)
         if enabled:
-            for required in ("gog_account", "keyring_file", "recovery_command"):
-                if not liveness_probe_raw.get(required):
-                    raise ManifestQualityError(
-                        f"credential {name!r}: liveness_probe.enabled "
-                        f"is true but {required!r} is missing or empty"
-                    )
+            # command: non-empty list of non-empty strings; command[0] absolute
+            # (the probe runs argv with shell=False — an absolute executable
+            # avoids PATH ambiguity in the systemd service context).
+            if (
+                not isinstance(command_raw, list)
+                or not command_raw
+                or not all(isinstance(x, str) and x for x in command_raw)
+            ):
+                raise ManifestQualityError(
+                    f"credential {name!r}: liveness_probe.command must be a "
+                    f"non-empty list of non-empty strings"
+                )
+            if not command_raw[0].startswith("/"):
+                raise ManifestQualityError(
+                    f"credential {name!r}: liveness_probe.command[0] must be an "
+                    f"absolute executable path (got {command_raw[0]!r})"
+                )
+            # dead_exit_codes: non-empty list of ints. bool is an int subclass,
+            # so reject True/False explicitly.
+            if (
+                not isinstance(dead_codes_raw, list)
+                or not dead_codes_raw
+                or not all(
+                    isinstance(x, int) and not isinstance(x, bool)
+                    for x in dead_codes_raw
+                )
+            ):
+                raise ManifestQualityError(
+                    f"credential {name!r}: liveness_probe.dead_exit_codes must "
+                    f"be a non-empty list of integers"
+                )
+            if not recovery_command:
+                raise ManifestQualityError(
+                    f"credential {name!r}: liveness_probe.enabled is true but "
+                    f"'recovery_command' is missing or empty"
+                )
+            if (
+                not isinstance(timeout_raw, int)
+                or isinstance(timeout_raw, bool)
+                or timeout_raw <= 0
+            ):
+                raise ManifestQualityError(
+                    f"credential {name!r}: liveness_probe.timeout_seconds must "
+                    f"be a positive integer (got {timeout_raw!r})"
+                )
         liveness_probe = LivenessProbeConfig(
             enabled=enabled,
-            gog_account=liveness_probe_raw.get("gog_account"),
-            keyring_file=liveness_probe_raw.get("keyring_file"),
-            recovery_command=liveness_probe_raw.get("recovery_command"),
+            command=tuple(command_raw) if isinstance(command_raw, list) else (),
+            dead_exit_codes=(
+                tuple(dead_codes_raw) if isinstance(dead_codes_raw, list) else ()
+            ),
+            recovery_command=recovery_command,
+            timeout_seconds=(
+                timeout_raw
+                if isinstance(timeout_raw, int) and not isinstance(timeout_raw, bool)
+                else 20
+            ),
         )
 
     cred = Credential(

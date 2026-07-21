@@ -1,15 +1,15 @@
 """Tests for credential_health_check.liveness.probe_oauth_liveness.
 
-Post-#731: the probe classifies any ``invalid_grant`` as a single ``dead`` state.
-The routine/unexpected 7-day split and the #616 reauth-marker baseline are gone,
-so the probe no longer consults the keyring mtime for classification.
+#845: the probe is generic/command-based. It runs the credential's configured
+``command`` and classifies by exit code — 0 = alive, a code in
+``dead_exit_codes`` = dead, anything else (or a failure to execute the command)
+= probe-error. Every terminal path emits exactly one marker token.
 """
 from __future__ import annotations
 
 import subprocess
 from dataclasses import dataclass
 from datetime import timezone
-from pathlib import Path
 from typing import Optional
 
 import pytest
@@ -30,29 +30,35 @@ class _CredentialStub:
     name: str
     review_cadence: str = "monitor-activity"
     storage: str = "keyring"
-    expiry_notes: str = "oauth2 gog token"
+    expiry_notes: str = "credential with a liveness probe"
     liveness_probe: Optional[LivenessProbeConfig] = None
 
 
 # ---------- Fixtures ----------
 
-RECOVERY_CMD = (
-    "ssh -t office2-claude "
-    "/home/claude/kg-automation/scripts/security/gog-reauth.sh"
+RECOVERY_CMD = "Re-mint the token on the Mac. See docs/runbooks/calendar-helper-ops.md."
+PROBE_COMMAND = (
+    "/data/services/openclaw/felix-calendar/venv/bin/python",
+    "-m",
+    "scripts.google.calendar_helper",
+    "--self-check",
+    "--account",
+    "personal",
 )
 
 
-def make_credential(tmp_path: Path, *, enabled: bool = True) -> _CredentialStub:
-    """Build a test credential with a keyring file present on disk."""
-    keyring = tmp_path / "keyring_file"
-    keyring.write_bytes(b"")
+def make_credential(
+    *, enabled: bool = True, dead_exit_codes=(3,), timeout_seconds: int = 20
+) -> _CredentialStub:
+    """Build a test credential with a generic command-based liveness probe."""
     return _CredentialStub(
-        name="gog-credentials-keyring",
+        name="felix-google-personal-calendar",
         liveness_probe=LivenessProbeConfig(
             enabled=enabled,
-            gog_account="kentgale@gmail.com",
-            keyring_file=str(keyring),
+            command=PROBE_COMMAND,
+            dead_exit_codes=tuple(dead_exit_codes),
             recovery_command=RECOVERY_CMD,
+            timeout_seconds=timeout_seconds,
         ),
     )
 
@@ -80,37 +86,19 @@ def make_subprocess_run(
 
 # ---------- Contract tests ----------
 
-def test_alive_returns_none(tmp_path, monkeypatch):
-    """rc=0, empty stderr → None (alive)."""
-    cred = make_credential(tmp_path)
+def test_alive_returns_none(monkeypatch):
+    """rc=0 → None (alive)."""
+    cred = make_credential()
     monkeypatch.setattr(subprocess, "run", make_subprocess_run(returncode=0))
     assert probe_oauth_liveness(cred) is None
 
 
-def test_invalid_grant_is_dead(tmp_path, monkeypatch):
-    """invalid_grant → single `dead` classification; reason names no 7-day/Testing concept."""
-    cred = make_credential(tmp_path)
+def test_dead_exit_code_is_dead(monkeypatch):
+    """rc in dead_exit_codes → `dead`, carrying the recovery_command."""
+    cred = make_credential(dead_exit_codes=(3,))
     monkeypatch.setattr(
         subprocess, "run",
-        make_subprocess_run(returncode=1, stderr="invalid_grant"),
-    )
-    result = probe_oauth_liveness(cred)
-    assert isinstance(result, LivenessResult)
-    assert result.classification == "dead"
-    assert result.recovery_command == cred.liveness_probe.recovery_command
-    lowered = result.reason.lower()
-    for forbidden in ("7-day", "testing", "reauth", "keyring+", "cycle boundary"):
-        assert forbidden not in lowered
-
-
-def test_invalid_grant_keyring_missing_is_dead(tmp_path, monkeypatch):
-    """Post-#731 the keyring is not consulted: invalid_grant is `dead` even if the file is gone."""
-    cred = make_credential(tmp_path)
-    # Remove the keyring file — it must no longer affect classification.
-    Path(cred.liveness_probe.keyring_file).unlink()
-    monkeypatch.setattr(
-        subprocess, "run",
-        make_subprocess_run(returncode=1, stderr="invalid_grant"),
+        make_subprocess_run(returncode=3, stderr="ERROR: auth_failed no token.json"),
     )
     result = probe_oauth_liveness(cred)
     assert isinstance(result, LivenessResult)
@@ -118,84 +106,120 @@ def test_invalid_grant_keyring_missing_is_dead(tmp_path, monkeypatch):
     assert result.recovery_command == cred.liveness_probe.recovery_command
 
 
-def test_probe_timeout(tmp_path, monkeypatch):
-    """TimeoutExpired → probe-error with 15s in reason."""
-    cred = make_credential(tmp_path)
-    monkeypatch.setattr(
-        subprocess, "run",
-        make_subprocess_run(side_effect=subprocess.TimeoutExpired(cmd=[], timeout=15)),
-    )
-    result = probe_oauth_liveness(cred)
-    assert isinstance(result, LivenessResult)
-    assert result.classification == "probe-error"
-    assert "15s" in result.reason
-
-
-def test_probe_missing_binary(tmp_path, monkeypatch):
-    """FileNotFoundError → probe-error with 'gog binary not found' in reason."""
-    cred = make_credential(tmp_path)
-    monkeypatch.setattr(
-        subprocess, "run",
-        make_subprocess_run(side_effect=FileNotFoundError()),
-    )
-    result = probe_oauth_liveness(cred)
-    assert isinstance(result, LivenessResult)
-    assert result.classification == "probe-error"
-    assert "gog binary not found" in result.reason
-
-
-def test_probe_other_failure(tmp_path, monkeypatch):
-    """rc=2, stderr without invalid_grant → probe-error with the exit code in reason."""
-    cred = make_credential(tmp_path)
-    monkeypatch.setattr(
-        subprocess, "run",
-        make_subprocess_run(returncode=2, stderr="boom"),
-    )
-    result = probe_oauth_liveness(cred)
-    assert isinstance(result, LivenessResult)
-    assert result.classification == "probe-error"
-    assert "2" in result.reason
-
-
-def test_recovery_command_in_dead_result(tmp_path, monkeypatch):
-    """A dead result carries the configured recovery_command."""
-    cred = make_credential(tmp_path)
-    monkeypatch.setattr(
-        subprocess, "run",
-        make_subprocess_run(returncode=1, stderr="invalid_grant"),
-    )
+def test_multiple_dead_exit_codes(monkeypatch):
+    """Any code in dead_exit_codes counts as dead."""
+    cred = make_credential(dead_exit_codes=(3, 4))
+    monkeypatch.setattr(subprocess, "run", make_subprocess_run(returncode=4))
     result = probe_oauth_liveness(cred)
     assert isinstance(result, LivenessResult)
     assert result.classification == "dead"
-    assert result.recovery_command == cred.liveness_probe.recovery_command
 
 
-def test_recovery_command_none_in_probe_error(tmp_path, monkeypatch):
+def test_nonzero_not_in_dead_is_probe_error(monkeypatch):
+    """A non-zero exit NOT in dead_exit_codes → probe-error, never dead.
+
+    This is the HIGH-2 guard: an operational/dependency fault (e.g. the calendar
+    helper exiting 1 because its venv is broken) must NOT be reported as a dead
+    credential.
+    """
+    cred = make_credential(dead_exit_codes=(3,))
+    monkeypatch.setattr(
+        subprocess, "run",
+        make_subprocess_run(returncode=1, stderr="ERROR: googleapiclient is not installed"),
+    )
+    result = probe_oauth_liveness(cred)
+    assert isinstance(result, LivenessResult)
+    assert result.classification == "probe-error"
+    assert "1" in result.reason
+
+
+def test_probe_timeout(monkeypatch):
+    """TimeoutExpired → probe-error naming the configured timeout."""
+    cred = make_credential(timeout_seconds=20)
+    monkeypatch.setattr(
+        subprocess, "run",
+        make_subprocess_run(side_effect=subprocess.TimeoutExpired(cmd=[], timeout=20)),
+    )
+    result = probe_oauth_liveness(cred)
+    assert isinstance(result, LivenessResult)
+    assert result.classification == "probe-error"
+    assert "20s" in result.reason
+
+
+def test_probe_command_not_found_is_probe_error(monkeypatch):
+    """FileNotFoundError (missing interpreter) → probe-error, NOT dead."""
+    cred = make_credential()
+    monkeypatch.setattr(
+        subprocess, "run",
+        make_subprocess_run(side_effect=FileNotFoundError("no such file")),
+    )
+    result = probe_oauth_liveness(cred)
+    assert isinstance(result, LivenessResult)
+    assert result.classification == "probe-error"
+    assert "could not be executed" in result.reason
+
+
+def test_probe_permission_error_is_probe_error(monkeypatch):
+    """PermissionError (an OSError subclass) → probe-error."""
+    cred = make_credential()
+    monkeypatch.setattr(
+        subprocess, "run",
+        make_subprocess_run(side_effect=PermissionError("denied")),
+    )
+    result = probe_oauth_liveness(cred)
+    assert isinstance(result, LivenessResult)
+    assert result.classification == "probe-error"
+
+
+def test_probe_unexpected_exception_is_probe_error(monkeypatch):
+    """A defensive catch: any unexpected exception → probe-error, never dead."""
+    cred = make_credential()
+    monkeypatch.setattr(
+        subprocess, "run",
+        make_subprocess_run(side_effect=RuntimeError("kaboom")),
+    )
+    result = probe_oauth_liveness(cred)
+    assert isinstance(result, LivenessResult)
+    assert result.classification == "probe-error"
+    assert "kaboom" in result.reason
+
+
+def test_recovery_command_none_in_probe_error(monkeypatch):
     """probe-error result has recovery_command=None."""
-    cred = make_credential(tmp_path)
-    monkeypatch.setattr(
-        subprocess, "run",
-        make_subprocess_run(returncode=2, stderr="boom"),
-    )
+    cred = make_credential(dead_exit_codes=(3,))
+    monkeypatch.setattr(subprocess, "run", make_subprocess_run(returncode=2, stderr="boom"))
     result = probe_oauth_liveness(cred)
     assert isinstance(result, LivenessResult)
     assert result.recovery_command is None
 
 
-def test_raises_if_liveness_probe_disabled(tmp_path):
+def test_uses_configured_command_and_timeout(monkeypatch):
+    """The runner executes exactly the configured argv with the configured timeout."""
+    captured = {}
+
+    def fake_run(*args, **kwargs):
+        captured["argv"] = args[0]
+        captured["timeout"] = kwargs.get("timeout")
+        return subprocess.CompletedProcess(args=args[0], returncode=0, stdout="", stderr="")
+
+    cred = make_credential(timeout_seconds=17)
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    probe_oauth_liveness(cred)
+    assert captured["argv"] == list(PROBE_COMMAND)
+    assert captured["timeout"] == 17
+
+
+def test_raises_if_liveness_probe_disabled():
     """enabled=False → ValueError (caller filtered incorrectly)."""
-    cred = make_credential(tmp_path, enabled=False)
+    cred = make_credential(enabled=False)
     with pytest.raises(ValueError, match="no enabled liveness_probe block"):
         probe_oauth_liveness(cred)
 
 
-def test_probed_at_is_utc(tmp_path, monkeypatch):
+def test_probed_at_is_utc(monkeypatch):
     """Any result → result.probed_at.tzinfo == timezone.utc."""
-    cred = make_credential(tmp_path)
-    monkeypatch.setattr(
-        subprocess, "run",
-        make_subprocess_run(returncode=2, stderr="boom"),
-    )
+    cred = make_credential(dead_exit_codes=(3,))
+    monkeypatch.setattr(subprocess, "run", make_subprocess_run(returncode=2, stderr="boom"))
     result = probe_oauth_liveness(cred)
     assert isinstance(result, LivenessResult)
     assert result.probed_at.tzinfo == timezone.utc

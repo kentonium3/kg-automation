@@ -795,6 +795,30 @@ def test_self_check_auth_failure_exit_3_no_mutation(helper, recorder, monkeypatc
     assert "status=auth_failed" in summary
 
 
+def test_self_check_dependency_failure_exit_1_not_3(helper, recorder, monkeypatch, capsys):
+    """kentonium3/kg-automation#845 HIGH-2: a missing-google-libraries fault
+    (wrong interpreter / broken venv) must map to exit 1 (operational), NOT exit
+    3 (auth). A generic liveness probe keyed on dead_exit_codes=[3] would
+    otherwise misreport a healthy token as dead when the venv is broken."""
+    from scripts.google.calendar_auth import CalendarDependencyError
+
+    def _raise(*a: Any, **k: Any):
+        raise CalendarDependencyError(
+            "google auth libraries are not installed in this interpreter"
+        )
+
+    monkeypatch.setattr(helper, "load_credentials", _raise)
+    code = run(helper, ["--self-check"])
+    assert code == 1
+    assert recorder.calls == []
+    out = capsys.readouterr()
+    # Operational error path: NOT auth_failed.
+    assert "auth_failed" not in out.err
+    summary = out.out.strip().splitlines()[-1]
+    assert summary.startswith("SUMMARY:")
+    assert "status=error" in summary
+
+
 def test_auth_failure_on_create_exit_3_never_inserts(
     helper, recorder, monkeypatch, capsys
 ):

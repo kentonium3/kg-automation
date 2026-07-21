@@ -266,22 +266,22 @@ def test_cycle_activity_signal_healthy_does_not_alert():
 # ---------- Helpers for liveness tests ----------
 
 
-def _make_cred_with_liveness(name: str = "gog-credentials-keyring") -> Credential:
-    """Build an in-memory Credential with liveness_probe.enabled=True."""
+def _make_cred_with_liveness(name: str = "felix-google-personal-calendar") -> Credential:
+    """Build an in-memory Credential with a generic liveness_probe.enabled=True."""
     return Credential(
         name=name,
         review_cadence="on-revocation",
-        storage="/home/claude/.local/share/gog/keyring",
-        expiry_notes="OAuth2 gog token; re-auth via gog-reauth.sh",
-        type="oauth2",
+        storage="~/.config/felix/google/personal/token.json",
+        expiry_notes="OAuth2 authorized-user token; re-mint on the Mac",
+        type="oauth2-authorized-user",
         liveness_probe=LivenessProbeConfig(
             enabled=True,
-            gog_account="kentgale@gmail.com",
-            keyring_file="/home/claude/.local/share/gog/keyring",
-            recovery_command=(
-                "ssh -t office2-claude "
-                "/home/claude/kg-automation/scripts/security/gog-reauth.sh"
+            command=(
+                "/data/services/openclaw/felix-calendar/venv/bin/python",
+                "-m", "scripts.google.calendar_helper", "--self-check", "--account", "personal",
             ),
+            dead_exit_codes=(3,),
+            recovery_command="re-mint the token on the Mac; see docs/runbooks/calendar-helper-ops.md",
         ),
     )
 
@@ -459,17 +459,34 @@ def test_orchestrator_dry_run_does_not_file():
 
 
 def test_orchestrator_probe_error_no_issue():
-    """Probe returns probe-error → result.errors populated; no issue filed."""
+    """Probe returns probe-error → result.errors populated; no issue filed.
+
+    #845 MED-1: probe_oauth_liveness already logs the credential_probe_error
+    marker on this path, so the orchestrator must NOT re-emit it (that would
+    double-count in the journal the canary greps). The orchestrator records a
+    distinct `liveness_probe_error_recorded` line instead.
+    """
     cred = _make_cred_with_liveness()
 
     def fake_probe(c):
         return LivenessResult(
             credential_name=c.name,
             classification="probe-error",
-            reason="gog binary not found",
+            reason="probe exited 1: boom",
             recovery_command=None,
             probed_at=datetime.now(timezone.utc),
         )
+
+    log_records: list[str] = []
+
+    class _Capture(logging.Handler):
+        def emit(self, record):
+            log_records.append(record.getMessage())
+
+    logger = logging.getLogger("test_probe_error_no_double_marker")
+    logger.handlers.clear()
+    logger.addHandler(_Capture())
+    logger.setLevel(logging.DEBUG)
 
     with (
         patch(_LIVENESS_PATCH, side_effect=fake_probe),
@@ -479,11 +496,15 @@ def test_orchestrator_probe_error_no_issue():
         patch("credential_health_check.orchestrator.MONITOR_ACTIVITY_READERS", new={}),
         patch("credential_health_check.orchestrator.is_fixed_interval_cadence", return_value=False),
     ):
-        result = run_cycle("/fake/manifest.json", today=date(2026, 6, 9))
+        result = run_cycle("/fake/manifest.json", today=date(2026, 6, 9), logger=logger)
 
     mock_issue.assert_not_called()
     assert result.liveness_alerts_filed == 0
-    assert any("probe_error" in e or "gog binary" in e for e in result.errors)
+    assert any("probe_error" in e for e in result.errors)
+    # The orchestrator does NOT re-emit the marker (probe already did); it logs
+    # the distinct recorded-line token instead.
+    assert not any("credential_probe_error" in m for m in log_records)
+    assert any("liveness_probe_error_recorded" in m for m in log_records)
 
 
 def test_liveness_only_skips_cadence_and_staleness():
@@ -545,3 +566,49 @@ def test_dead_title_prefix_is_single_value():
     prefix = "credential-liveness-dead: gog-credentials-keyring"
     assert prefix.startswith("credential-liveness-dead:")
     assert "gog-credentials-keyring" in prefix
+
+
+def _run_and_capture(creds, *, liveness_only=True) -> list[str]:
+    """Run a cycle capturing log messages (probe patched to alive)."""
+    log_records: list[str] = []
+
+    class _Capture(logging.Handler):
+        def emit(self, record):
+            log_records.append(record.getMessage())
+
+    handler = _Capture()
+    logger = logging.getLogger(f"test_heartbeat_{len(creds)}_{liveness_only}")
+    logger.handlers.clear()
+    logger.addHandler(handler)
+    logger.setLevel(logging.DEBUG)
+
+    with (
+        patch(_LIVENESS_PATCH, side_effect=lambda c: None),
+        patch(_DEDUP_PATCH, return_value=[]),
+        patch(_CREATE_ISSUE_PATCH),
+        patch("credential_health_check.orchestrator.read_manifest", return_value=(creds, [])),
+        patch("credential_health_check.orchestrator.MONITOR_ACTIVITY_READERS", new={}),
+        patch("credential_health_check.orchestrator.is_fixed_interval_cadence", return_value=False),
+    ):
+        run_cycle("/fake/manifest.json", today=date(2026, 6, 9), logger=logger, liveness_only=liveness_only)
+    return log_records
+
+
+def test_cycle_emits_liveness_heartbeat_with_probe_configured():
+    """#845 HIGH-1: a completed cycle emits the credential_liveness_cycle_complete
+    heartbeat marker (with probes_configured>=1) so the canary never reads unknown."""
+    msgs = _run_and_capture([_make_cred_with_liveness()], liveness_only=True)
+    hb = [m for m in msgs if "credential_liveness_cycle_complete" in m]
+    assert len(hb) == 1
+    assert "probes_configured=1" in hb[0]
+
+
+def test_cycle_emits_liveness_heartbeat_with_zero_probes():
+    """#845 HIGH-1 (the regression guard): even with ZERO enabled liveness_probe
+    blocks — the exact state #819 created — the heartbeat marker is still emitted,
+    so the canary stays healthy instead of falling to 'unknown' and paging."""
+    cred = _make_cred_no_liveness()
+    msgs = _run_and_capture([cred], liveness_only=True)
+    hb = [m for m in msgs if "credential_liveness_cycle_complete" in m]
+    assert len(hb) == 1
+    assert "probes_configured=0" in hb[0]

@@ -1,8 +1,16 @@
-"""Liveness probe for oauth2 credentials via the gog binary.
+"""Generic, command-based liveness probe for credentials.
 
-Implements probe_oauth_liveness() + LivenessResult for GitHub issue #572.
-See kitty-specs/credential-liveness-probe-01KTP9M8/contracts/liveness-probe-function.md
-for the authoritative contract.
+Implements probe_oauth_liveness() + LivenessResult. Introduced for GitHub issue
+#572 (gog-specific), made generic in #845: a credential's liveness_probe block
+declares an argv `command` + `dead_exit_codes`, and this runner classifies the
+outcome by exit code — 0 = alive, code in `dead_exit_codes` = dead, anything
+else (or a failure to execute) = probe-error. The runner is credential-agnostic:
+the specificity (what to run, which codes mean dead) lives entirely in the
+manifest block, so Google/Vikunja/GitHub/etc. probes need no code change here.
+
+Every terminal path emits exactly one of the marker tokens
+`credential_alive` / `credential_dead` / `credential_probe_error` at INFO, which
+the credential-liveness-probe canary greps for over its 7h window.
 """
 from __future__ import annotations
 
@@ -40,15 +48,29 @@ class LivenessResult:
     probed_at: datetime  # MUST be timezone-aware UTC
 
 
-# ---------- Module constants ----------
-
-GOG_BINARY = "/home/linuxbrew/.linuxbrew/bin/gog"
-PROBE_TIMEOUT_SECONDS = 15
-
-
 # ---------- Logger ----------
 
 _logger = logging.getLogger("credential_health_check.liveness")
+
+
+# ---------- Internal helper ----------
+
+def _probe_error(
+    credential_name: str, now: datetime, duration_ms: int, reason: str
+) -> LivenessResult:
+    """Log a credential_probe_error marker and build the result."""
+    _logger.info(
+        "credential_probe_error credential_name=%s probed_at=%s "
+        "duration_ms=%d error_detail=%s",
+        credential_name, now.isoformat(), duration_ms, reason,
+    )
+    return LivenessResult(
+        credential_name=credential_name,
+        classification="probe-error",
+        reason=reason,
+        recovery_command=None,
+        probed_at=now,
+    )
 
 
 # ---------- Probe function ----------
@@ -58,12 +80,11 @@ def probe_oauth_liveness(
     *,
     now_utc: Optional[datetime] = None,
 ) -> Optional[LivenessResult]:
-    """Probe a single oauth2 credential for liveness.
+    """Probe a single credential for liveness by running its configured command.
 
-    See kitty-specs/credential-liveness-probe-01KTP9M8/contracts/liveness-probe-function.md
-    for the full contract.
-
-    Returns None when alive; returns LivenessResult on any failure or error.
+    Returns None when alive (exit 0); returns a LivenessResult on dead (exit in
+    `dead_exit_codes`) or probe-error (any other non-zero exit, timeout, or a
+    failure to execute the command). Exactly one marker token is logged per call.
     """
     if credential.liveness_probe is None or not credential.liveness_probe.enabled:
         raise ValueError(
@@ -80,51 +101,35 @@ def probe_oauth_liveness(
 
     try:
         result = subprocess.run(
-            [
-                GOG_BINARY,
-                "--account", cfg.gog_account,
-                "calendar", "list",
-                "-j",
-                "--max", "1",
-            ],
+            list(cfg.command),
             capture_output=True,
             text=True,
-            timeout=PROBE_TIMEOUT_SECONDS,
+            timeout=cfg.timeout_seconds,
         )
     except subprocess.TimeoutExpired:
         duration_ms = int((time.monotonic() - t0) * 1000)
-        reason = f"liveness probe exceeded {PROBE_TIMEOUT_SECONDS}s timeout"
-        _logger.info(
-            "credential_probe_error credential_name=%s probed_at=%s "
-            "duration_ms=%d error_detail=%s",
-            credential.name, now.isoformat(), duration_ms, reason,
+        return _probe_error(
+            credential.name, now, duration_ms,
+            f"liveness probe exceeded {cfg.timeout_seconds}s timeout",
         )
-        return LivenessResult(
-            credential_name=credential.name,
-            classification="probe-error",
-            reason=reason,
-            recovery_command=None,
-            probed_at=now,
-        )
-    except FileNotFoundError:
+    except OSError as exc:
+        # FileNotFoundError / PermissionError / NotADirectoryError / other OS
+        # failures to launch the probe argv — never a credential-dead signal.
         duration_ms = int((time.monotonic() - t0) * 1000)
-        reason = f"gog binary not found at {GOG_BINARY}"
-        _logger.info(
-            "credential_probe_error credential_name=%s probed_at=%s "
-            "duration_ms=%d error_detail=%s",
-            credential.name, now.isoformat(), duration_ms, reason,
+        return _probe_error(
+            credential.name, now, duration_ms,
+            f"probe command could not be executed: {type(exc).__name__}: {exc}",
         )
-        return LivenessResult(
-            credential_name=credential.name,
-            classification="probe-error",
-            reason=reason,
-            recovery_command=None,
-            probed_at=now,
+    except Exception as exc:  # noqa: BLE001 — defensive: any unexpected failure is a probe-error, not a death
+        duration_ms = int((time.monotonic() - t0) * 1000)
+        return _probe_error(
+            credential.name, now, duration_ms,
+            f"probe raised unexpectedly: {type(exc).__name__}: {exc}",
         )
 
     duration_ms = int((time.monotonic() - t0) * 1000)
 
-    # Happy path: probe succeeded.
+    # Alive: exit 0.
     if result.returncode == 0:
         _logger.info(
             "credential_alive credential_name=%s probed_at=%s duration_ms=%d",
@@ -134,13 +139,12 @@ def probe_oauth_liveness(
         )
         return None
 
-    # Dead path: the refresh token is no longer valid (invalid_grant from gog).
-    # Post-publish (kentonium3/kg-automation#731) there is no longer a routine
-    # expiry cycle — every invalid_grant is a genuine, actionable death.
-    if "invalid_grant" in (result.stderr or ""):
+    # Dead: exit code the probe declares as "credential needs re-auth".
+    if result.returncode in cfg.dead_exit_codes:
         reason = (
-            "Refresh token is no longer valid (gog reported invalid_grant). "
-            "Run the recovery command to re-mint."
+            f"probe reported credential dead (exit {result.returncode}: "
+            f"{(result.stderr or '').strip()[:200]}). "
+            f"Run the recovery command to re-mint."
         )
         _logger.info(
             "credential_dead credential_name=%s classification=%s "
@@ -160,20 +164,9 @@ def probe_oauth_liveness(
             probed_at=now,
         )
 
-    # Fallthrough: non-zero exit, not invalid_grant — probe environment error.
-    reason = (
-        f"gog exited {result.returncode}: "
-        f"{(result.stderr or '').strip()[:200]}"
-    )
-    _logger.info(
-        "credential_probe_error credential_name=%s probed_at=%s "
-        "duration_ms=%d error_detail=%s",
-        credential.name, now.isoformat(), duration_ms, reason,
-    )
-    return LivenessResult(
-        credential_name=credential.name,
-        classification="probe-error",
-        reason=reason,
-        recovery_command=None,
-        probed_at=now,
+    # Any other non-zero exit is an environment/probe error, NOT a credential
+    # death (e.g. a broken probe interpreter, missing deps, transient failure).
+    return _probe_error(
+        credential.name, now, duration_ms,
+        f"probe exited {result.returncode}: {(result.stderr or '').strip()[:200]}",
     )

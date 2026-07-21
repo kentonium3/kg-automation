@@ -234,66 +234,67 @@ def test_list_credentials_propagates_unreadable_error():
 # ---------- WP03 liveness listing test ----------
 
 
-def _cred_oauth2_with_liveness(tmp_path, name: str = "gog-credentials-keyring") -> Credential:
-    """Build an oauth2 credential with a real keyring file for liveness listing."""
-    keyring = tmp_path / "keyring_file"
-    keyring.write_bytes(b"")
+def _cred_with_liveness(name: str = "felix-google-personal-calendar") -> Credential:
+    """Build a credential with a generic command-based liveness_probe."""
     return Credential(
         name=name,
         review_cadence="on-revocation",
-        storage=str(keyring),
-        expiry_notes="oauth2 gog token",
-        type="oauth2",
+        storage="~/.config/felix/google/personal/token.json",
+        expiry_notes="oauth2 authorized-user token",
+        type="oauth2-authorized-user",
         liveness_probe=LivenessProbeConfig(
             enabled=True,
-            gog_account="kentgale@gmail.com",
-            keyring_file=str(keyring),
-            recovery_command=(
-                "ssh -t office2-claude "
-                "/home/claude/kg-automation/scripts/security/gog-reauth.sh"
+            command=(
+                "/data/services/openclaw/felix-calendar/venv/bin/python",
+                "-m", "scripts.google.calendar_helper", "--self-check",
             ),
+            dead_exit_codes=(3,),
+            recovery_command="re-mint the token on the Mac",
         ),
     )
 
 
-def test_list_liveness_includes_credential_table(tmp_path):
-    """--list --liveness: oauth2 credential with liveness_probe appears in output."""
-    cred = _cred_oauth2_with_liveness(tmp_path)
+def test_list_liveness_includes_credential_table():
+    """--list --liveness: a credential with a liveness_probe appears in output."""
+    cred = _cred_with_liveness()
     listings = build_liveness_listings([cred])
     assert len(listings) == 1
     row = listings[0]
     assert row.name == cred.name
-    assert row.gog_account == "kentgale@gmail.com"
     assert row.enabled == "yes"
-    # The keyring exists, so the mtime age is non-dash.
-    assert row.keyring_mtime_age != "—"
+    assert row.dead_exit_codes == "3"
+    assert "calendar_helper" in row.command
 
-    # Also verify the render doesn't crash and includes expected columns.
     output = render_liveness_table(listings)
     assert cred.name in output
-    assert "kentgale@gmail.com" in output
-    assert "gog_account" in output
-    assert "keyring_mtime_age" in output
-    # Deliberately NOT checking for "current_classification" — it's intentionally absent.
+    assert "command" in output
+    assert "dead_exit_codes" in output
     assert "current_classification" not in output
 
 
-def test_list_liveness_skips_non_oauth2_credentials():
-    """build_liveness_listings only includes oauth2 credentials."""
+def test_list_liveness_includes_non_oauth2_credential_with_probe():
+    """The probe is generic: a NON-oauth2 credential (e.g. an API token) that
+    declares a liveness_probe is included — proving the runner isn't gated on type."""
     api_cred = Credential(
-        name="some-api-key",
-        review_cadence="annual",
-        storage="/path/to/key",
-        expiry_notes="api key",
+        name="vikunja-api-token",
+        review_cadence="on-revocation",
+        storage="/path/to/token",
+        expiry_notes="api token",
         type="api-token",
-        last_reviewed=date(2026, 5, 11),
+        liveness_probe=LivenessProbeConfig(
+            enabled=True,
+            command=("/usr/bin/curl", "-fsS", "https://example/api/v1/user"),
+            dead_exit_codes=(22,),
+            recovery_command="rotate the token",
+        ),
     )
     listings = build_liveness_listings([api_cred])
-    assert listings == []
+    assert len(listings) == 1
+    assert listings[0].name == "vikunja-api-token"
 
 
-def test_list_liveness_oauth2_no_probe_block_shows_dashes():
-    """oauth2 credential with no liveness_probe block shows — placeholders."""
+def test_list_liveness_skips_credentials_without_probe():
+    """A credential with no liveness_probe block is excluded from the table."""
     cred = Credential(
         name="personal-google",
         review_cadence="on-revocation",
@@ -303,25 +304,18 @@ def test_list_liveness_oauth2_no_probe_block_shows_dashes():
         liveness_probe=None,
     )
     listings = build_liveness_listings([cred])
-    assert len(listings) == 1
-    row = listings[0]
-    assert row.enabled == "—"
-    assert row.gog_account == "—"
-    assert row.keyring_mtime_age == "—"
+    assert listings == []
 
 
-def test_list_credentials_liveness_flag_prints_extra_table(tmp_path):
+def test_list_credentials_liveness_flag_prints_extra_table():
     """list_credentials(..., liveness=True) prints liveness table header in output."""
-    cred = _cred_oauth2_with_liveness(tmp_path)
-    # Verify the liveness table renders correctly.
+    cred = _cred_with_liveness()
     listings = build_liveness_listings([cred])
     output = render_liveness_table(listings)
     assert cred.name in output
-    assert "gog_account" in output
-    # The header must have the expected columns.
     first_line = output.split("\n")[0]
     assert "Name" in first_line
     assert "Enabled" in first_line
-    assert "gog_account" in first_line
-    assert "keyring_mtime_age" in first_line
+    assert "command" in first_line
+    assert "dead_exit_codes" in first_line
     assert "recovery_command" in first_line

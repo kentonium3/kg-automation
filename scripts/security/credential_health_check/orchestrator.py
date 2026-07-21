@@ -181,6 +181,28 @@ def run_cycle(
     if malformed and not liveness_only:
         _process_manifest_quality(malformed, today, cycle_id, result, logger, dry_run)
 
+    # Liveness heartbeat (#845): emit a marker on EVERY completed cycle — even
+    # when zero credentials have an enabled liveness_probe — so the
+    # credential-liveness-probe canary (which greps this journal for
+    # credential_alive|credential_dead|credential_probe_error|
+    # credential_liveness_cycle_complete over a 7h window) can never fall back to
+    # `unknown` while the service actually runs. Without this, removing the last
+    # probe subject (as #819 did) silently orphaned the canary. A cycle that
+    # never reaches here (systemd failure / unreadable manifest) still reads
+    # `unknown`, which correctly signals a broken check rather than a healthy one.
+    liveness_probes_configured = sum(
+        1 for c in well_formed if c.liveness_probe is not None and c.liveness_probe.enabled
+    )
+    _log(
+        logger,
+        logging.INFO,
+        "credential_liveness_cycle_complete",
+        cycle_id=cycle_id,
+        liveness_only=liveness_only,
+        probes_configured=liveness_probes_configured,
+        liveness_filed=result.liveness_alerts_filed,
+    )
+
     _log(
         logger,
         logging.INFO,
@@ -462,14 +484,18 @@ def _process_liveness_alert(
     try:
         liveness_result = probe_oauth_liveness(cred)
     except Exception as e:  # noqa: BLE001
+        # probe_oauth_liveness is defensively wrapped and should not raise for a
+        # probe failure, but if it ever does, still emit a credential_probe_error
+        # marker (not a bare 'error') so the canary sees a determinate token and
+        # never falls to `unknown` on this path (#845).
         _log(
             logger,
-            logging.ERROR,
-            "error",
+            logging.INFO,
+            "credential_probe_error",
             cycle_id=cycle_id,
             name=cred.name,
             stage="probe_oauth_liveness",
-            message=str(e),
+            error_detail=str(e),
         )
         result.errors.append(f"{cred.name}: probe raised: {e}")
         return
@@ -479,10 +505,13 @@ def _process_liveness_alert(
         return
 
     if liveness_result.classification == "probe-error":
+        # probe_oauth_liveness ALREADY logged the credential_probe_error marker on
+        # this path — re-emitting it here would double-count in the journal (the
+        # canary greps for the token). Record a distinct non-marker line only.
         _log(
             logger,
             logging.INFO,
-            "credential_probe_error",
+            "liveness_probe_error_recorded",
             cycle_id=cycle_id,
             name=cred.name,
             reason=liveness_result.reason,
