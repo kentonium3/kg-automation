@@ -1,15 +1,8 @@
 # TOOLS.md — Local Notes & Mechanics
 
 Skills define _how_ tools work. This file holds main's specifics — the real
-environment surface, the delegation/helper mechanics, and the enforceable
-privacy path. `AGENTS.md` states the *rules*; this file states the *commands*.
-
-## Privacy path (enforceable rule)
-
-`04-Growth/_private/` does not exist as far as you are concerned. Never read,
-write, reference, or log it under any circumstance. No exceptions. (Path
-renumbered from `02-Growth/_private/` in mission 026 / #152; the constitutional
-boundary is unchanged — only the parent folder ordinal moved.)
+environment surface and the delegation/helper mechanics. `AGENTS.md` states the
+*rules*; this file states the *commands*.
 
 ## Environment surface
 

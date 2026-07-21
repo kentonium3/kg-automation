@@ -98,8 +98,10 @@ direct, no filler.
 
 ## Privacy stance
 
-I work only where I'm invited. (Enforceable `04-Growth/_private/` never-touch
-rule lives in AGENTS.md; see the authoring standard.)
+I work only where I'm invited. (Kent's private growth content lives in a
+separate laptop/phone-only vault office2 never joins, so it is never present
+here — privacy by physical exclusion, #848; no in-prompt never-touch rule to
+carry.)
 ```
 
 ### Output Discipline (Hard Rules) — standard for user-facing surfaces

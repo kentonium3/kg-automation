@@ -36,8 +36,8 @@ Load-bearing invariants (do NOT violate)
 ----------------------------------------
 - ``mark_processed`` MUST be a **subprocess** (``sys.executable -m
   scripts.inbox.mark_processed --path <p>``), never an in-process call: the
-  ``_private`` refusal (exit 3), inbox-root validation, and symlink
-  ``.resolve()`` guard live in ``mark_processed.main()``.
+  inbox-root validation and symlink ``.resolve()`` guard live in
+  ``mark_processed.main()``.
 - Exit code derives from the **note-level outcome**, never from an always-0
   route step.
 - No note is marked processed except through a successful all-blocks finalize
@@ -109,9 +109,9 @@ def _invoke_mark_processed(source_path: str) -> "subprocess.CompletedProcess[str
     """Run ``mark_processed`` as a subprocess and return the completed process.
 
     Deliberately a subprocess, not an in-process import of ``mark_processed()``:
-    the C-001 ``_private`` refusal (exit 3), inbox-root validation, and — most
-    critically — the symlink ``.resolve()`` guard all live in
-    ``mark_processed.main()``. Calling the bare function would let a symlinked
+    the inbox-root validation and — most critically — the symlink
+    ``.resolve()`` guard all live in ``mark_processed.main()``. Calling the
+    bare function would let a symlinked
     vault note "mark" the symlink while the real target stays ``unprocessed``,
     re-introducing the silent-loss class this mission closes. The subprocess also
     isolates ``mark_processed``'s stdout JSON from this helper's single-result

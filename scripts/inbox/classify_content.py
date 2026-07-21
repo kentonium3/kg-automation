@@ -41,9 +41,6 @@ from pathlib import Path
 # Classification heuristics — documented per FR-014
 # ---------------------------------------------------------------------------
 
-# Refusal: C-001 — never read notes under 04-Growth/_private/
-PRIVATE_PATH_FRAGMENT = "04-Growth/_private"
-
 # parse_failure: the felix-capture parse-error callout the inject helper
 # writes when frontmatter is malformed. Strongest single signal — present
 # only when capture has already failed to parse the note.
@@ -358,11 +355,6 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     path = Path(args.content_file)
-
-    # C-001 refusal: never read notes under 04-Growth/_private/.
-    if PRIVATE_PATH_FRAGMENT in str(path):
-        _emit_error("private_path_refused", str(path))
-        return 3
 
     if not path.exists():
         _emit_error("file_not_found", str(path))

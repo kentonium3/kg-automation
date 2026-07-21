@@ -70,8 +70,9 @@ deployment, or Spec Kitty work.
   relevant docs in the same mission.
 - If work deploys, modifies, or registers an OpenClaw agent, read
   `docs/runbooks/openclaw-agent-setup.md` before planning deployment.
-- Never read, write, reference, or log
-  `~/second-brain/notes/04-Growth/_private/`.
+- `~/second-brain/` is a separate repo; do not write to it unless a skill
+  explicitly requires it. Kent's private content is physically excluded from
+  office2 (separate laptop/phone-only vault that never syncs).
 
 ## Validation
 

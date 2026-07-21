@@ -70,7 +70,3 @@ DST offset (-04:00 for EDT, -05:00 for EST) — never the `Z` (UTC) suffix,
 which lands in the prior ET day and mis-dates the task. Reschedules go
 through `record_completion`, which enforces this; do not write `due_date`
 directly.
-
-## Privacy
-
-- NEVER access: `/home/kgale/second-brain/notes/04-Growth/_private/` (path renumbered from `02-Growth/_private/` in mission 026 / #152)

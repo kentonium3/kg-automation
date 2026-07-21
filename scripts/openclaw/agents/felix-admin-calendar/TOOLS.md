@@ -18,10 +18,3 @@
   - `{"status":"error","exit_code":<n>,"error":"<verbatim>"}` — the calendar helper failed and the calendar was NOT mutated; surface `error` VERBATIM (never fake a create, #683; no `gog` fallback).
 
 - What it owns internally (so you never do): matching a reply to a live pending clarification (`/data/services/openclaw/state/pending-calendar-clarifications.json`), merging the reply onto the record, deterministic date/time parsing + timezone (America/New_York) → RFC3339, all-day handling, the `calendar_helper create` call with an idempotency key, removing the resolved record, flipping the source note (`mark_processed`), and `log_action` (`calendar_event_created` / `calendar_event_failed` / `calendar_event_clarification_resolved`).
-
-## Privacy
-
-NEVER access `/home/kgale/second-brain/notes/04-Growth/_private/`. The
-pending-clarifications state file holds `source_inbox_path` values — if any
-ever resolve into `_private/`, treat it as a misrouted payload and abort
-without reading the source note.

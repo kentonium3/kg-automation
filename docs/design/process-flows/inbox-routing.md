@@ -195,9 +195,11 @@ any `error` ⇒ note errored; else any `needs_clarification` ⇒ note
     `route_and_finalize`/the routing log. There is no `aspiration` route *kind* in
     code; "aspiration" is an AGENTS.md judgment concept mapping to `journal` (or
     `someday`). See [journal.md](./journal.md) and [someday.md](./someday.md).
-13. **Privacy absolute (C-001 / C-005).** `classify_content.main`,
-    `prescan.scan_directory`, and `mark_processed` all refuse anything containing
-    `04-Growth/_private` (exit 3 / skip). No read/route/log of `_private`, ever.
+13. **Inbox-scope guard.** `mark_processed` refuses any path outside the resolved
+    inbox root (folder-independent guard). Kent's private growth content is not present
+    on office2 at all — it lives in a separate laptop/phone-only vault office2 never
+    joins — so privacy rests on physical exclusion, not a `_private`-literal refusal in
+    the pipeline (#848).
 14. **`-m` invocation form mandatory
     ([[feedback_helper_m_invocation_form]]).** Every helper CLI is
     `python3 -m scripts.inbox.<helper>`; the script-path form is forbidden (it
@@ -215,7 +217,7 @@ any `error` ⇒ note errored; else any `needs_clarification` ⇒ note
 | `_adapt_journal`, `_adapt_github_issue`, `_parse_filed_issue_number` | `scripts/inbox/route_and_finalize.py` | Journal sentinel append+verify (FR-010); github_issue file/verify (FR-012). |
 | `route_someday`, `_attach_someday_label`, `_resolve_destination_project_id` | `scripts/inbox/route_someday.py` | Durable-landing task creator (see [someday.md](./someday.md)). |
 | `resolve_journal_dir`, `target_filename`, `append_section`, `ensure_journal_file`, `_atomic_write` | `scripts/inbox/route_journal_entry.py` | Journal write primitives (see [journal.md](./journal.md)). |
-| `main`, `_is_private_path` | `scripts/inbox/mark_processed.py` | The ONLY processed-stamper; subprocess-only; `_private` refusal (exit 3); symlink `.resolve()` guard. |
+| `main` | `scripts/inbox/mark_processed.py` | The ONLY processed-stamper; subprocess-only; outside-inbox-root refusal; symlink `.resolve()` guard. |
 | `RoutingLogReader.has_block` / `has_kind`, `RoutingLogWriter.append`, `block_hash`, `KNOWN_KINDS` | `scripts/inbox/routing_log.py` | Append-only dedup substrate + per-block idempotency key. |
 | `pending_filenames`, `_is_live`, `SWEEP_MAX_AGE`, `subcommand_add`/`remove` | `scripts/inbox/handle_clarification_state.py` | Pending-clarification store: WITHHOLD read contract + record add/remove; 8h window. |
 | `is_eligible`, `build_all_day_plan`, `sweep_finalize`, `FALLBACK_MARKER_KIND` | `scripts/inbox/clarification_sweep_finalize.py` | Step 1a child-flow boundary (see [calendar-clarification.md](./calendar-clarification.md)). |

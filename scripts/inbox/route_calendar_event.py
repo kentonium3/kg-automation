@@ -477,7 +477,7 @@ def _invoke_mark_processed(source_path: str) -> "subprocess.CompletedProcess[str
     """Run ``mark_processed`` as a subprocess and return the completed process.
 
     Deliberately a subprocess, not an in-process import of ``mark_processed()``:
-    the C-001 private-path refusal, inbox-root validation, and — critically —
+    the C-001 inbox-root validation and — critically —
     the symlink ``.resolve()`` guard all live in ``mark_processed.main()``, not
     in the bare function. Calling the function directly would let a symlinked
     vault note "mark" the symlink while the real target stays ``unprocessed``,

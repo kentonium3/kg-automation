@@ -243,12 +243,6 @@ Log significant operational actions via `cd /home/claude/kg-automation && python
 
 ---
 
-## Privacy — absolute rule
-
-NEVER read, process, route to, or reference `/home/kgale/second-brain/notes/04-Growth/_private/`. Habits that originate from private context appear only as habit names — never with references to their source. This rule has no exceptions.
-
----
-
 ## Reference
 
 - Morning + reply: `kitty-specs/habits-checkin-reply-scripts-first-01KS86ZQ/` (#371).

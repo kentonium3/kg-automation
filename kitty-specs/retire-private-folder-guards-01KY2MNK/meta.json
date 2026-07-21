@@ -1,0 +1,31 @@
+{
+  "accept_commit": "16d2fb2df29079386ffef28219cda12a2b0c0b37",
+  "acceptance_history": [
+    {
+      "accept_commit": "16d2fb2df29079386ffef28219cda12a2b0c0b37",
+      "acceptance_mode": "pr",
+      "accepted_at": "2026-07-21T16:51:59.455298+00:00",
+      "accepted_by": "kentgale",
+      "accepted_from_commit": "7a9899d0cfb922a008cf3c0a9a5dfc375a1379fd"
+    }
+  ],
+  "acceptance_mode": "pr",
+  "accepted_at": "2026-07-21T16:51:59.455298+00:00",
+  "accepted_by": "kentgale",
+  "accepted_from_commit": "7a9899d0cfb922a008cf3c0a9a5dfc375a1379fd",
+  "baseline_merge_commit": "062284b9a56ddff42d27ad4f2dbb1f07932f8cd4",
+  "created_at": "2026-07-21T15:28:20.186344+00:00",
+  "flattened": false,
+  "friendly_name": "Retire _private folder guard apparatus",
+  "mission_id": "01KY2MNKPQ3PQ0BDTVA4S8H218",
+  "mission_number": 110,
+  "mission_slug": "retire-private-folder-guards-01KY2MNK",
+  "mission_type": "software-dev",
+  "purpose_context": "Kent moved his private growth-work folder to a separate Obsidian vault that office2 never joins, so the in-repo 'never touch _private' apparatus (a lint validator + CI step + workspace-validator invariants + a red-line in every agent prompt + governance/design/runbook docs) now protects a directory that is not present. This mission removes that folder-specific apparatus, generalizes the general privacy hygiene (redact vault paths from alerts; refuse writes to arbitrary vault paths), and reframes the graph-ingest privacy model to 'verify not present'.",
+  "purpose_tldr": "Retire the obsolete in-repo guards for the _private folder (now a laptop/phone-only vault office2 never syncs), keeping and generalizing the still-valuable vault-path hygiene.",
+  "slug": "retire-private-folder-guards-01KY2MNK",
+  "target_branch": "feat/retire-private-folder-guards",
+  "topology": "single_branch",
+  "vcs": "git",
+  "vcs_locked_at": "2026-07-21T16:25:12.745090+00:00"
+}

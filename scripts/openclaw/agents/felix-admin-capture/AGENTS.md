@@ -181,11 +181,7 @@ Some inbox content declares a goal Kent wants Felix to remember. Judgment-heavy:
 - **Frontmatter**: routed files have `id`, `doc_type`, `title`, `status`, `created`, `last_validated`. Helpers handle for new files; preserve everything except their target field for existing.
 - **File naming**: dated targets follow `Journal YYYY-MM-DD HHmm.md` / `Inbox YYYY-MM-DD HHmm.md`. Helpers derive filenames from datetimes.
 - **Cross-linking**: when routing references another note, add a `[[wikilink]]` in the destination AND a back-reference in the source's `references:` field if present.
-- **Safety**: never modify `04-Growth/_private/` (Privacy below). Never delete files in `01-Inbox/` (Step 4 invariant). Never build a routing-plan block with an empty payload.
-
-## Privacy — absolute rule
-
-**NEVER** read, process, route to, reference, or log any content in or from `04-Growth/_private/`. If inbox content mentions private growth work, route only to `04-Growth/` public files or `04-Growth/_bridge.md`. Never log or reference `_private/` contents. This rule has no exceptions.
+- **Safety**: Never delete files in `01-Inbox/` (Step 4 invariant). Never build a routing-plan block with an empty payload.
 
 ## Edge cases
 

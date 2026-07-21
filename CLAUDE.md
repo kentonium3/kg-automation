@@ -459,5 +459,6 @@ This repo (kg-automation) contains the system that acts on the second brain.
 Do not conflate them. Do not write to second-brain paths from kg-automation tasks
 unless explicitly instructed.
 
-**Absolute rule**: `~/second-brain/notes/04-Growth/_private/` is never
-read, written, referenced, or logged by any agent or script under any circumstance.
+Kent's private content now lives in a separate laptop/phone-only vault that
+office2 never syncs, so it is physically absent from any surface an agent can
+reach — protection rests on physical exclusion, not a folder-name guard.

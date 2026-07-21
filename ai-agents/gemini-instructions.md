@@ -49,7 +49,7 @@ These instructions provide Gemini-specific (including Antigravity CLI) guidance 
 
 5. **Second Brain Boundary:**
    - `~/second-brain/` is a separate repository. We may read files when explicitly required, but do not write to it unless a specific skill requires it.
-   - **Absolute Rule**: `~/second-brain/notes/04-Growth/_private/` is never read, written, referenced, or logged under any circumstance.
+   - Kent's private content is physically excluded from office2 (a separate laptop/phone-only vault that never syncs), so it is absent from any surface an agent can reach.
 
 6. **Architecture & Documentation Sync:**
    - Any implementation that deploys, modifies, or removes a service, credential, port, or data flow **must** update the corresponding JSON file under `docs/design/architecture/data/` (e.g., `service-inventory.json`) and its narrative markdown view in the same commit.

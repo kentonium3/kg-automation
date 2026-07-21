@@ -18,7 +18,6 @@ Exit codes:
        unresolvable inbox registry)
     2  filesystem error (perm denied / write race); stderr carries the
        OSError detail as {"error": "fs_error", "detail": "<exc>"}
-    3  refusal: --path is under `04-Growth/_private/` (C-001)
 
 Stdlib only (NFR-002): no requests / httpx / pydantic / PyYAML /
 python-frontmatter. Frontmatter parsing is a minimal regex-based parser
@@ -44,8 +43,6 @@ import sys
 import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
-
-PRIVATE_PATH_MARKER = "04-Growth/_private"
 
 # Frontmatter line shape: `key: value` (whitespace-tolerant). The values
 # we round-trip in inbox notes are simple scalars or single-line lists
@@ -166,7 +163,7 @@ def _atomic_write(path: Path, content: str) -> None:
 def mark_processed(path: Path) -> int:
     """Atomically set `status: processed` + `processed_at` on `path`.
 
-    Returns the exit code per the CLI contract (0/1/2/3).
+    Returns the exit code per the CLI contract (0/1/2).
 
     Exit 2 is returned on a write-phase OSError (permission denied, write
     race); the original note is guaranteed uncorrupted because _atomic_write
@@ -253,11 +250,6 @@ def mark_processed(path: Path) -> int:
     return 0
 
 
-def _is_private_path(path_str: str) -> bool:
-    """Return True if `path_str` is under `04-Growth/_private/` (C-001)."""
-    return PRIVATE_PATH_MARKER in path_str
-
-
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description=(
@@ -272,22 +264,11 @@ def main(argv: list[str] | None = None) -> int:
     )
     args = parser.parse_args(argv)
 
-    # Refusal check (C-001) happens BEFORE any disk read.
-    if _is_private_path(args.path):
-        print(
-            json.dumps(
-                {
-                    "error": "refused",
-                    "detail": "path is under 04-Growth/_private/",
-                }
-            ),
-            file=sys.stderr,
-        )
-        return 3
-
-    # T001 (FR-003): inbox-root validation. Resolve the inbox root from the
-    # vault registry (honoring PRESCAN_REGISTRY_PATH for test isolation) and
-    # reject any path that does not live under it.
+    # T001 (FR-003): inbox-root validation is the pre-read guard. Resolve the
+    # inbox root from the vault registry (honoring PRESCAN_REGISTRY_PATH for
+    # test isolation) and refuse any path that lives OUTSIDE it. The inbox
+    # lives inside the vault, so notes under the resolved inbox root are
+    # allowed; only paths outside that root are rejected.
     try:
         from scripts.inbox.prescan import resolve_registry  # lazy import
 

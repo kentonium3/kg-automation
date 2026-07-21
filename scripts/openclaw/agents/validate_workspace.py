@@ -2,31 +2,15 @@
 
 Deterministic checker for the OpenClaw Workspace Authoring Standard
 (``docs/design/openclaw-workspace-authoring-standard.md``, #587). For each active
-agent workspace it verifies the two shared invariants that must be present per
+agent workspace it verifies the shared invariants that must be present per
 workspace (they are intentionally per-agent, not inherited — see #553):
 
-* **Invariant A — Privacy boundary**: the enforceable ``04-Growth/_private/``
-  never-touch rule is present in the workspace's enforceable home (``AGENTS.md`` or
-  ``TOOLS.md``). A SOUL-only stance does not satisfy it.
 * **Invariant B — Output Discipline**: an agent that emits user-facing WhatsApp
   carries the Output Discipline block in a deployed prompt file (``AGENTS.md``
   preferred, ``SOUL.md`` accepted — #805); an agent that does not carries the
   explicit ``no user-facing WhatsApp`` annotation. Presence-or-annotation.
-* **Invariant D — Privacy path canonical form** (#732): when the enforceable
-  privacy path is written with a HOME prefix, it must use the physical
-  ``/home/kgale/second-brain/notes/04-Growth/_private/`` — never the ambiguous
-  ``~/second-brain/...`` form. Agents run as the ``claude`` user on office2, where
-  ``~`` is ``/home/claude`` and there is no ``/home/claude/second-brain``; the vault
-  lives only at ``/home/kgale/second-brain`` (claude reaches it via the
-  ``secondbrain`` group). *In the office2 ``claude`` agent runtime* a ``~``-form
-  prohibition therefore names a nonexistent path and leaves the real private folder
-  uncovered. Bare ``04-Growth/_private`` conceptual references (no HOME prefix) are
-  unaffected — only the ``~`` HOME-relative form is non-canonical. This invariant is
-  scoped to agent-prompt files (``scripts/openclaw/agents/*``) ONLY; governance /
-  human-facing docs (the Constitution's C-003, ``CLAUDE.md``) intentionally retain the
-  ``~/second-brain/...`` conceptual form — correct for the Mac Claude Code runtime,
-  where ``~`` is the human's home and the vault is at ``~/second-brain``. Reconciling
-  that governance-vs-prompt representation split is tracked in #801.
+* **Invariant C — Runtime-env assumptions** (#662): the workspace prompts carry no
+  unstated runtime-env assumptions (checked via the shared env-assumption scanner).
 
 This is a repo/CI artifact — read-only, no deploy, no side effects.
 
@@ -48,18 +32,6 @@ from pathlib import Path
 
 # --- Contract constants (source of truth: the authoring standard) --------------
 
-#: Substring identifying the enforceable privacy boundary rule.
-PRIVACY_TOKEN = "04-Growth/_private"
-
-#: Canonical physical form of the enforceable privacy path in the office2 agent
-#: runtime (#732). ``~`` for the ``claude`` user is ``/home/claude`` (no vault); the
-#: vault lives only at ``/home/kgale/second-brain``.
-CANONICAL_PRIVATE_PATH = "/home/kgale/second-brain/notes/04-Growth/_private"
-
-#: The ambiguous HOME-relative form that resolves to a nonexistent path for the
-#: ``claude`` runtime and thus misprotects the boundary (Invariant D, #732).
-NONCANONICAL_PRIVATE_TOKEN = "~/second-brain/notes/04-Growth/_private"
-
 #: Case-insensitive marker for the Output Discipline block. Anchored to the ``##``
 #: heading form (every real block is authored as ``## Output discipline``) so a
 #: stray mention of the phrase in prose cannot false-pass the invariant.
@@ -69,16 +41,12 @@ OUTPUT_DISCIPLINE_TOKEN = "## output discipline"
 #: AGENTS.md is the fleet-canonical home; SOUL.md is accepted because OpenClaw
 #: loads it into the agent context too, so a block there enforces the discipline
 #: on the live agent (#805, Invariant B — felix-admin-calendar's block lives in
-#: SOUL.md today, canonical relocation owned by #635). Deliberately narrower than
-#: Invariant A's privacy owner set: TOOLS.md is a tool-reference file, not a home
-#: for a behavioral output rule, so it is not scanned here.
+#: SOUL.md today, canonical relocation owned by #635). TOOLS.md is a tool-reference
+#: file, not a home for a behavioral output rule, so it is not scanned here.
 OUTPUT_DISCIPLINE_OWNER_FILES = ("AGENTS.md", "SOUL.md")
 
 #: Case-insensitive annotation an agent uses to declare it emits no user-facing WhatsApp.
 NO_WHATSAPP_ANNOTATION = "no user-facing whatsapp"
-
-#: Files that carry the enforceable privacy rule (Invariant A owner set).
-PRIVACY_OWNER_FILES = ("AGENTS.md", "TOOLS.md")
 
 #: Workspaces retained on disk but not active — excluded from validation.
 #: felix-doc-auditor was refactored to a scripts-first driver (#343); no live agent.
@@ -116,49 +84,6 @@ def _read(path: Path) -> str:
         return ""
 
 
-def check_privacy_boundary(workspace_dir: Path) -> CheckResult:
-    """Invariant A: enforceable privacy rule present in an owner file."""
-    hits = [f for f in PRIVACY_OWNER_FILES if PRIVACY_TOKEN in _read(workspace_dir / f)]
-    if hits:
-        return CheckResult("privacy_boundary", True, f"present in {', '.join(hits)}")
-    # Distinguish a SOUL-only stance (authoring mistake) from total absence.
-    if PRIVACY_TOKEN in _read(workspace_dir / "SOUL.md"):
-        return CheckResult(
-            "privacy_boundary",
-            False,
-            f"only in SOUL.md — enforceable rule must live in {' or '.join(PRIVACY_OWNER_FILES)}",
-        )
-    return CheckResult(
-        "privacy_boundary",
-        False,
-        f"missing — no '{PRIVACY_TOKEN}' rule in {' or '.join(PRIVACY_OWNER_FILES)}",
-    )
-
-
-def check_privacy_path_canonical(workspace_dir: Path) -> CheckResult:
-    """Invariant D (#732): HOME-prefixed privacy paths use the physical /home/kgale form.
-
-    Scans every ``*.md`` in the workspace and fails if any carries the ambiguous
-    ``~/second-brain/notes/04-Growth/_private`` form. Bare ``04-Growth/_private``
-    conceptual references (no HOME prefix) and the canonical ``/home/kgale/...`` form
-    both pass — only the ``~`` HOME-relative form, which resolves to the nonexistent
-    ``/home/claude/second-brain`` for the ``claude`` runtime, is non-canonical.
-    """
-    offenders = [
-        md.name
-        for md in sorted(workspace_dir.glob("*.md"))
-        if NONCANONICAL_PRIVATE_TOKEN in _read(md)
-    ]
-    if offenders:
-        return CheckResult(
-            "privacy_path_canonical",
-            False,
-            f"non-canonical '~/second-brain/...' privacy path in {', '.join(offenders)} "
-            f"— use '{CANONICAL_PRIVATE_PATH}/'",
-        )
-    return CheckResult("privacy_path_canonical", True, "canonical or bare (no ~ HOME-relative form)")
-
-
 def check_output_discipline(workspace_dir: Path) -> CheckResult:
     """Invariant B: Output Discipline block present, or no-WhatsApp annotation present.
 
@@ -167,9 +92,7 @@ def check_output_discipline(workspace_dir: Path) -> CheckResult:
     the running agent wherever the block sits (#805). A block found in SOUL.md
     passes but is annotated so it stays discoverable and a canonical relocation
     can be tracked per-agent (e.g. felix-admin-calendar → SOUL.md today, relocation
-    owned by #635). This is intentionally more permissive than Invariant A (privacy),
-    which rejects a SOUL-only stance: a privacy red-line is held to a higher bar
-    (must live in an enforceable-rule home), whereas output formatting is softer.
+    owned by #635).
     """
     for fname in OUTPUT_DISCIPLINE_OWNER_FILES:
         if OUTPUT_DISCIPLINE_TOKEN in _read(workspace_dir / fname).lower():
@@ -208,8 +131,6 @@ def check_runtime_env_assumptions(workspace_dir: Path) -> CheckResult:
 def validate_workspace(workspace_dir: Path) -> WorkspaceReport:
     """Run all invariant checks against one workspace directory."""
     checks = [
-        check_privacy_boundary(workspace_dir),
-        check_privacy_path_canonical(workspace_dir),
         check_output_discipline(workspace_dir),
         check_runtime_env_assumptions(workspace_dir),
     ]

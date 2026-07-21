@@ -240,19 +240,6 @@ def test_mark_processed_atomic_no_destination_corruption_on_failure(
     assert _stray_tmp_files(tmp_path) == []
 
 
-def test_mark_processed_refuses_private_path(tmp_path: Path, capsys):
-    """--path under 04-Growth/_private/ → exit 3 (C-001 refusal)."""
-    # We don't actually create the file — the refusal MUST happen before
-    # any disk read (per WP01 spec: refusal check BEFORE any read).
-    private = tmp_path / "04-Growth" / "_private" / "secret.md"
-
-    rc = mark_processed.main(["--path", str(private)])
-    assert rc == 3
-
-    err = capsys.readouterr().err
-    assert "refus" in err.lower() or "private" in err.lower()
-
-
 def test_mark_processed_processed_at_iso_8601_utc(tmp_path: Path):
     """processed_at ends with `Z` and is fromisoformat-parseable."""
     from datetime import datetime

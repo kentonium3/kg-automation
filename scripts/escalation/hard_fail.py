@@ -177,17 +177,16 @@ def dedup_existing_open(task_id: int) -> Optional[str]:
 
 
 #: Forbidden substrings that must never appear in a rendered hard-fail body
-#: per spec C-006 (no second-brain path leakage). Order matters: longer
-#: prefixes (``~/second-brain``, ``/second-brain``) are matched before the
-#: bare ``_private`` suffix so the redaction placeholder is applied to the
-#: most specific form first. Match is plain ASCII substring (case-sensitive)
-#: -- the second-brain path is canonically lower-case, and an adversarial
-#: caller cannot smuggle the path through a casing trick because the
-#: filesystem itself is case-sensitive on Linux.
+#: per spec C-006 (no second-brain path leakage). Order matters: the longer
+#: prefix (``~/second-brain``) is matched before the bare ``/second-brain``
+#: so the redaction placeholder is applied to the most specific form first.
+#: Match is plain ASCII substring (case-sensitive) -- the second-brain path
+#: is canonically lower-case, and an adversarial caller cannot smuggle the
+#: path through a casing trick because the filesystem itself is
+#: case-sensitive on Linux.
 _FORBIDDEN_BODY_SUBSTRINGS: tuple[str, ...] = (
     "~/second-brain",
     "/second-brain",
-    "_private",
 )
 
 #: Placeholder substituted into the body in place of any forbidden substring.
@@ -202,8 +201,8 @@ def _sanitize_for_body(text: str) -> str:
     Implements the C-006 invariant at the render boundary: every
     caller-provided string that flows into the hard-fail bug body (title
     OR body) is passed through this function first, so an adversarial or
-    accidentally-tainted input cannot leak ``~/second-brain``,
-    ``/second-brain``, or ``_private`` substrings into the filed issue.
+    accidentally-tainted input cannot leak ``~/second-brain`` or
+    ``/second-brain`` substrings into the filed issue.
 
     The match is plain substring (case-sensitive). Any occurrence of any
     forbidden substring is replaced with ``_REDACTION_PLACEHOLDER``.
@@ -252,9 +251,9 @@ def render_bug_body(
     placeholders substituted in. C-006 (no second-brain path leakage) is
     enforced at the render boundary: every caller-provided string is passed
     through ``_sanitize_for_body`` before interpolation. An adversarial
-    input containing ``~/second-brain``, ``/second-brain``, or ``_private``
-    is replaced with ``[REDACTED:second-brain-path]`` rather than relying
-    on caller hygiene.
+    input containing ``~/second-brain`` or ``/second-brain`` is replaced
+    with ``[REDACTED:second-brain-path]`` rather than relying on caller
+    hygiene.
 
     Args:
         task_id: Immutable Vikunja ``id`` of the affected task.
@@ -299,10 +298,9 @@ def render_bug_body(
 
     # Sanitize every caller-provided string up front. Anything that flows
     # into the title or body must go through _sanitize_for_body so an
-    # adversarial input (e.g., a task title containing "_private", a JSONL
-    # path under ~/second-brain, a detection snippet with leaked filesystem
-    # context) is redacted before interpolation. C-006 is enforced HERE,
-    # not at the caller boundary.
+    # adversarial input (e.g., a JSONL path under ~/second-brain, a
+    # detection snippet with leaked filesystem context) is redacted before
+    # interpolation. C-006 is enforced HERE, not at the caller boundary.
     safe_task_title = _sanitize_for_body(task_title)
     safe_jsonl_path = _sanitize_for_body(jsonl_path)
     safe_detection_snippet = _sanitize_for_body(detection_snippet)
@@ -338,8 +336,8 @@ def render_bug_body(
     # ``_sanitize_for_body`` to enforce C-006. Real Vikunja URLs (e.g.,
     # ``https://office2.tail0f5f56.ts.net/tasks/1234``) and ISO-8601
     # timestamps contain none of the forbidden substrings and pass through
-    # unchanged; an adversarial caller smuggling ``~/second-brain``,
-    # ``/second-brain``, or ``_private`` into either field is redacted to
+    # unchanged; an adversarial caller smuggling ``~/second-brain`` or
+    # ``/second-brain`` into either field is redacted to
     # ``[REDACTED:second-brain-path]`` before interpolation.
     safe_vikunja_url = (
         _sanitize_for_body(vikunja_url) if vikunja_url else None
