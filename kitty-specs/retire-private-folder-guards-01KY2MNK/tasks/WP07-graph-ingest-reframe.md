@@ -14,9 +14,9 @@ created_at: '2026-07-21T16:27:09.719463+00:00'
 subtasks:
 - T023
 - T024
-agent: "claude:sonnet:architect-alphonso:implementer"
-shell_pid: "24119"
-shell_pid_created_at: "1784651349.979873"
+agent: "claude:sonnet:reviewer-renata:reviewer"
+shell_pid: "38015"
+shell_pid_created_at: "1784651857.325672"
 history: []
 agent_profile: architect-alphonso
 authoritative_surface: docs/design/
@@ -70,3 +70,5 @@ out of scope** (the pipeline is not built yet; #696 implements the check).
 ## Activity Log
 
 - 2026-07-21T16:29:28Z – claude:sonnet:architect-alphonso:implementer – shell_pid=24119 – Started implementation via action command
+- 2026-07-21T16:36:46Z – claude:sonnet:architect-alphonso:implementer – shell_pid=24119 – WP07 implemented in lane (commit c2a68e55); graph-ingest model reframed to verify-not-present; validate_docs OK. From primary per #710.
+- 2026-07-21T16:38:30Z – claude:sonnet:reviewer-renata:reviewer – shell_pid=38015 – Started review via action command
