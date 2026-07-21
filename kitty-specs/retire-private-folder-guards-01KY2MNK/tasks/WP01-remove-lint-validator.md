@@ -14,7 +14,7 @@ subtasks:
 - T003
 - T004
 - T005
-agent: claude
+agent: "claude:sonnet:implementer:implementer"
 history: []
 agent_profile: implementer-ivan
 authoritative_surface: tooling/scripts/
@@ -29,6 +29,8 @@ owned_files:
 - docs/runbooks/local-test-gate.md
 role: implementer
 tags: []
+shell_pid: "22263"
+shell_pid_created_at: "1784651109.595756"
 ---
 
 ## ⚡ Do This First: Load Agent Profile
@@ -81,3 +83,7 @@ merge the lane.
   callers, not just the script.
 - Reviewer: confirm the docs-ci comment block (the #560 meta-reference trap) is removed with the
   step, and that no aggregate Makefile target still references the removed recipe.
+
+## Activity Log
+
+- 2026-07-21T16:25:22Z – claude:sonnet:implementer:implementer – shell_pid=22263 – Assigned agent via action command
