@@ -8,10 +8,15 @@ tracker_refs: []
 planning_base_branch: feat/retire-private-folder-guards
 merge_target_branch: feat/retire-private-folder-guards
 branch_strategy: Planning artifacts for this mission were generated on feat/retire-private-folder-guards. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into feat/retire-private-folder-guards unless the human explicitly redirects the landing branch.
+base_branch: kitty/mission-retire-private-folder-guards-01KY2MNK
+base_commit: 812e4eb09436c2e1eb1a95bc5e0bc8e5f585fd55
+created_at: '2026-07-21T16:27:09.719463+00:00'
 subtasks:
 - T023
 - T024
-agent: claude
+agent: "claude:sonnet:architect-alphonso:implementer"
+shell_pid: "24119"
+shell_pid_created_at: "1784651349.979873"
 history: []
 agent_profile: architect-alphonso
 authoritative_surface: docs/design/
@@ -61,3 +66,7 @@ out of scope** (the pipeline is not built yet; #696 implements the check).
   vanished concept — the privacy requirement still exists, its *mechanism* changed.
 - Reviewer: confirm the reframe reads as intentional design (not a half-deleted section) and stays
   consistent with the Life Lattice vocabulary.
+
+## Activity Log
+
+- 2026-07-21T16:29:28Z – claude:sonnet:architect-alphonso:implementer – shell_pid=24119 – Started implementation via action command
