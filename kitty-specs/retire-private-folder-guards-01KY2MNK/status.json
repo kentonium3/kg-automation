@@ -1,16 +1,16 @@
 {
-  "event_count": 42,
-  "last_event_id": "01KY2SAJRRFVHAXZ1EQR3CN7WJ",
-  "materialized_at": "2026-07-21T16:49:41.656500+00:00",
-  "mission_number": "",
+  "event_count": 43,
+  "last_event_id": "01KY2SGETMESGQMGC2Y72WJ65Z",
+  "materialized_at": "2026-07-21T16:52:54.228826+00:00",
+  "mission_number": "110",
   "mission_slug": "retire-private-folder-guards-01KY2MNK",
   "mission_type": "software-dev",
   "summary": {
-    "approved": 7,
+    "approved": 6,
     "blocked": 0,
     "canceled": 0,
     "claimed": 0,
-    "done": 0,
+    "done": 1,
     "for_review": 0,
     "in_progress": 0,
     "in_review": 0,
@@ -18,11 +18,11 @@
   },
   "work_packages": {
     "WP01": {
-      "actor": "user",
+      "actor": "merge",
       "force_count": 0,
-      "lane": "approved",
-      "last_event_id": "01KY2RK1RXEFDNQDK35KQWDRRQ",
-      "last_transition_at": "2026-07-21T16:36:50.589280+00:00"
+      "lane": "done",
+      "last_event_id": "01KY2SGETMESGQMGC2Y72WJ65Z",
+      "last_transition_at": "2026-07-21T16:52:54.228826+00:00"
     },
     "WP02": {
       "actor": "user",
