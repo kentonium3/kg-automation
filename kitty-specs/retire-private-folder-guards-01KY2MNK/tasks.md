@@ -11,15 +11,15 @@ Every WP's authoritative detail is the shared [data-model.md](./data-model.md) s
 
 | ID | Description | WP | Parallel |
 |----|-------------|----|----------|
-| T001 | Delete validate_privacy_boundary.py | WP01 | |
-| T002 | Remove validator call from .githooks/pre-commit | WP01 | [P] |
-| T003 | Remove "Validate privacy boundary lint" step from docs-ci.yml | WP01 | [P] |
-| T004 | Remove validator target from Makefile | WP01 | [P] |
-| T005 | Remove validator refs from autopilot adapter + local-test-gate runbook | WP01 | [P] |
-| T006 | Remove Invariants A+D + constants from validate_workspace.py | WP02 | |
-| T007 | Trim privacy tests in test_validate_workspace.py | WP02 | |
-| T008 | Delete tests/openclaw/test_privacy_pointer.py | WP02 | [P] |
-| T009 | Drop "prompts must carry privacy red-line" from openclaw-workspace-authoring-standard.md | WP02 | [P] |
+| T001 | Delete validate_privacy_boundary.py | WP01 | | [D] |
+| T002 | Remove validator call from .githooks/pre-commit | WP01 | [D] |
+| T003 | Remove "Validate privacy boundary lint" step from docs-ci.yml | WP01 | [D] |
+| T004 | Remove validator target from Makefile | WP01 | [D] |
+| T005 | Remove validator refs from autopilot adapter + local-test-gate runbook | WP01 | [D] |
+| T006 | Remove Invariants A+D + constants from validate_workspace.py | WP02 | | [D] |
+| T007 | Trim privacy tests in test_validate_workspace.py | WP02 | | [D] |
+| T008 | Delete tests/openclaw/test_privacy_pointer.py | WP02 | [D] |
+| T009 | Drop "prompts must carry privacy red-line" from openclaw-workspace-authoring-standard.md | WP02 | [D] |
 | T010 | hard_fail: keep second-brain redaction, drop bare _private fragment | WP03 | |
 | T011 | mark_processed: refuse-outside-inbox-root (drop _private literal) | WP03 | |
 | T012 | classify_content + prescan: delete _private refusal/skip | WP03 | |
@@ -27,14 +27,14 @@ Every WP's authoritative detail is the shared [data-model.md](./data-model.md) s
 | T014 | Update hygiene tests (hard_fail, mark_processed, classify_content, prescan) | WP03 | |
 | T015 | Strip red-line from 6 deployed agents' prompts | WP04 | |
 | T016 | Strip red-line from felix-doc-auditor prompts (repo-only) | WP04 | [P] |
-| T017 | CLAUDE.md + CODEX.md: remove absolute rule, keep repo boundary | WP05 | |
-| T018 | ai-agents/{claude,claude-code,gemini}-instructions.md: same | WP05 | [P] |
-| T019 | FELIX-CONSTITUTION.md: reframe folder rule to physical exclusion | WP05 | [P] |
+| T017 | CLAUDE.md + CODEX.md: remove absolute rule, keep repo boundary | WP05 | | [D] |
+| T018 | ai-agents/{claude,claude-code,gemini}-instructions.md: same | WP05 | [D] |
+| T019 | FELIX-CONSTITUTION.md: reframe folder rule to physical exclusion | WP05 | [D] |
 | T020 | architecture docs (glossary, security-posture, service-inventory.{md,json}): reframe | WP06 | |
 | T021 | coherence/doctrine + roadmap + process-flows: reframe | WP06 | [P] |
 | T022 | runbooks (escalation/habits/inbox/openclaw-agent-setup/tasker-ops): reframe | WP06 | [P] |
-| T023 | second-brain-graph-layer.md: reframe #692/#696 gate to "verify not present" | WP07 | |
-| T024 | executive-assistant-architecture.md: same model reframe | WP07 | [P] |
+| T023 | second-brain-graph-layer.md: reframe #692/#696 gate to "verify not present" | WP07 | | [D] |
+| T024 | executive-assistant-architecture.md: same model reframe | WP07 | [D] |
 
 ## Work Packages
 
