@@ -30,6 +30,41 @@ The goal of this layer is to give Felix (and a dedicated life-coach agent) the a
 
 ---
 
+## Vocabulary & role in the program (#833)
+
+This layer is not an enrichment bolted onto the task tracker. In the #833 program frame
+it is the **cognitive substrate** — Felix's model of Kent's world — and the EA
+intelligence (router, escalation, coaching, agentic action) is built *on top of it*.
+Vikunja, calendar, email, and drive are **I/O adapters**: how the substrate senses and
+acts. They are peripheral tracking surfaces, in principle interchangeable; the substrate
+is not. The real power is the **reasoning functions over the temporal dimension** —
+conflict prediction before it happens, trade-off surfacing, decision memory ("you've
+deferred this 4× since March"). Task CRUD is plumbing.
+
+### Named things
+
+| Term | What it is | Metaphor |
+|---|---|---|
+| **Life Lattice** (short: **Lattice**) | The structured, vectorized, **temporal** graph — the P→O→P→T hierarchy + Commitments + Principles + ingested content, woven with Graphiti's bi-temporal edges. Structured to *predetermined patterns* (the ontology). Authoritative and canon-like. | **Canon** |
+| **Second brain** | Kent's curated Obsidian vault — a categorized corpus of narrative knowledge. Structured, but general-purpose reference, not pattern-conformant. | **Data warehouse** / reference pool |
+| **Episode** | One unit of raw, unstructured lived input — a capture, note, message, event, or decision — before it is woven into structure. Graphiti's native ingest primitive (`add_episode`). | **Data lake** |
+| **Membrane** | The selective admit/promote gate an episode crosses to become structure (the EA-brief promotion gate: `propose → human-approve → structure grows`). | Cell membrane |
+
+The name **Life Lattice** is deliberate: it binds the **why** (Purpose), the **what**
+(Outcome→Project→Task), and the **when** (temporal edges) into one queryable whole — the
+connection goal apps, task trackers, and calendars each hold only a third of.
+
+### Open membrane-topology question
+
+When an episode arrives already **lattice-shaped** (e.g. *"add these three tasks to this
+project, due end of week"*), must it first be recorded in the second brain (warehouse)
+before being woven into the Lattice (canon), or can it flow **directly** to the Lattice?
+I.e. does the second brain and the Lattice share one membrane, or does each have its own?
+This is a real ingest-topology decision for the vault-ingest work (#696) and is called out
+in Open Questions below; it is **not** yet decided.
+
+---
+
 ## Tool Selection
 
 ### Graphiti (by Zep AI)
@@ -299,6 +334,83 @@ Consistent with Felix security posture: bind to Tailscale IP only, not 0.0.0.0. 
 
 ### Backup
 Graph data directory included in restic backup scope. This is a gap risk until off-site backup is resolved.
+
+---
+
+## Rollout & validation
+
+We are building the cognitive core of the system **live on production, with no staging
+environment.** The strategy that makes that safe is that the Lattice is **additive and
+side-car isolated** by construction: it ships as separate services (FalkorDB + Graphiti
+MCP, Tailscale-bound), nothing in the existing inbox/habits/calendar/escalation pipelines
+imports it, consumption is via opt-in MCP tools, and sync is one-way (adapters → Lattice).
+**The Lattice service *is* the staging analog** — a parallel observer that can be built,
+seeded, and queried with zero production blast radius until a consumer is explicitly wired.
+
+### Where the risk actually is
+
+Standing up the DB, defining the ontology (#694), seeding (#695), ingesting (#696), and
+querying (#697) are isolated and reversible — near-zero prod risk. Risk concentrates in two
+places, and both stay gated for a long time:
+
+1. **Write-back** — the Lattice writing *into* Vikunja or the vault. Start and stay
+   **one-way** (adapters canonical) until a specific write path is proven.
+2. **Decision-influence** — Lattice output silently changing what Felix *does* (escalation
+   order, router importance, auto-surfacing). A wrong or stale Lattice then produces wrong
+   behavior. Every influence path is opt-in, reversible, and human-gated until earned.
+
+Governing rule: **the Lattice stays advisory and derived; the adapters stay source of truth
+for their own domain; promote one proof point at a time.** This is shadow-mode /
+strangler-fig adoption — the mature pattern for iterating safely on production.
+
+### Design spike (do first, throwaway, zero prod contact)
+
+Time-boxed investigation to kill the four make-or-break unknowns *before* committing to the
+full #693→#698 build:
+
+1. **office2 fit** — does Graphiti + FalkorDB run acceptably alongside the existing stack?
+   (de-risks #693)
+2. **Temporal-reasoning payoff on real data (the make-or-break)** — hand-seed 5–10 *real*
+   nodes (an actual Purpose → Outcome → Project → Task chain) and test the target questions:
+   upward traversal ("why this task?") and conflict/trade-off detection. If the temporal
+   reasoning does not pay off on Kent's real data shape, nothing built above it matters — so
+   prove this **first**.
+3. **Privacy / extraction posture (hard gate)** — vault ingest uses an LLM to extract
+   entities from sensitive life-planning content; the Lattice will hold it. Which LLM, and
+   does anything cross the Tailscale boundary? Must be resolved before any vault ingest, and
+   is bound by the absolute `~/second-brain/notes/04-Growth/_private/` rule. May force the
+   local-LLM question early.
+4. **Ontology fit** — does hand-seeding reveal friction in the tier model? (empirical answer
+   to the #367 hierarchy-research question, on a slice rather than by exhaustive survey).
+
+### Proof-feature ladder (each rung: parallel on prod, additive, reversible, one proof point)
+
+1. **Read-only, hand-seeded, queried only by Kent** via MCP in Claude Desktop — zero Felix
+   involvement. *Proof: can it answer "why this task?"*
+2. **One-way adapter → Lattice shadow sync** (Vikunja/calendar events) — Lattice auto-mirrors
+   reality. *Proof: it stays consistent without manual upkeep.*
+3. **Life-coach reasoning in advisory shadow mode** — on a new task it produces a trade-off
+   analysis that is **logged / sent to Kent as FYI, never acted on**. *Proof: does its
+   conflict detection match Kent's judgment? Measure hit-rate over weeks.* **This rung is the
+   real target; rungs 1–2 are scaffolding to reach it.**
+4. **Promote proven advisories to human-gated surfacing** — Kent gets the trade-off question
+   and decides.
+5. **Only much later** — the router (#820) consults the Lattice for the "importance" axis,
+   under #820's own promotion-gate discipline.
+
+**End state:** substrate reasons, router dispatches, adapters execute.
+**Path:** substrate reasons in shadow, Kent executes — until it earns the wheel.
+
+### Named risks to hold
+
+- **Privacy / exposure** (LLM extraction of sensitive episodes) — hard gate; spike item 3.
+- **Lattice becoming a silent load-bearing dependency** — mitigated by advisory/derived +
+  adapters canonical.
+- **Backup gap** — graph-data backup is unresolved (see Infrastructure → Backup); resolve
+  before real data accrues.
+- **Ontology churn** — mitigated by Graphiti's migration-free custom types + early
+  slice validation, so getting the tiers slightly wrong at first is cheap to correct.
+- **Analysis paralysis on the hierarchy survey (#367)** — time-box; validate on a real slice.
 
 ---
 
