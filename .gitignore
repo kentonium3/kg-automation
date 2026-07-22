@@ -74,3 +74,10 @@ kitty-ops/ops-index.jsonl
 
 # spec-kitty 3.2.6 plugin-projection artifact (emitted by 'doctor tool-surfaces --fix'); see spec-kitty tracking issue
 /dist/
+
+# Repo-relative runtime state/output dirs (#855). Canonical runtime state lives
+# in /data/services/openclaw/state/ on office2, never in the checkout. A stray
+# relative write under scripts/<domain>/state/ must not dirty the working tree
+# or erode felix-deployer's clean-tree invariant. No scripts/**/state/ dir is
+# intentionally tracked (audited 2026-07-22).
+scripts/**/state/
