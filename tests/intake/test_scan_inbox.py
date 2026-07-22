@@ -67,6 +67,29 @@ class _FakeClient:
         self._tasks = tasks
         self.calls: list[tuple[str, dict | None]] = []
 
+    def list_all_tasks(self, *, updated_since=None, per_page=50, max_pages_per_project=200):
+        """Reproduce the real client's flat, done-inclusive enumeration.
+
+        Production ``VikunjaClient.list_all_tasks`` enumerates project-scoped
+        (rigor covered in ``tests/common/test_vikunja_client``). This double
+        pages the canned task fixtures so the consumer's ``per_page`` handling
+        and call-recording assertions keep working.
+        """
+        tasks: list[dict] = []
+        page = 1
+        while True:
+            batch = self.get(
+                "/tasks/all",
+                params={"per_page": str(per_page), "page": str(page)},
+            )
+            if not batch:
+                break
+            tasks.extend(batch)
+            if len(batch) < per_page:
+                break
+            page += 1
+        return tasks
+
     def get(self, path, *, params=None, timeout=None):
         self.calls.append((path, params))
         if path == "/tasks/all":
@@ -419,6 +442,9 @@ def test_infra_failure_exits_nonzero_and_writes_failure_tick(tmp_path):
     from scripts.common.vikunja_client import VikunjaServerError
 
     class _BoomClient:
+        def list_all_tasks(self, **_kwargs):
+            raise VikunjaServerError(path="/projects", status=500)
+
         def get(self, path, *, params=None, timeout=None):
             raise VikunjaServerError(path=path, status=500)
 

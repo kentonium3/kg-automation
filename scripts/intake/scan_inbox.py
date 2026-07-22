@@ -7,8 +7,9 @@ This module rides the inbox-processing crons (FR-003). On each tick it:
 1. **Enumerates** the not-done Vikunja **Inbox** tasks — the Inbox project id is
    resolved via the #748 ``vikunja_refs`` seam (never hardcoded), and the read
    uses the **felix-bot** token (the default :class:`~scripts.common.vikunja_client.VikunjaClient`,
-   NOT the kent write token). ``GET /tasks/all`` is paged done-inclusive and
-   filtered client-side to ``project_id == inbox && done == false`` (FR-001).
+   NOT the kent write token). Tasks are enumerated project-scoped
+   (done-inclusive) via ``VikunjaClient.list_all_tasks`` and filtered
+   client-side to ``project_id == inbox && done == false`` (FR-001).
 2. **Classifies** each task's Tier-1 completeness deterministically (FR-002):
    Tier-1-complete iff ``project != Inbox`` AND a schedulable friction label
    (``f:1-flow``/``f:2-growth``/``f:3-edge``) AND exactly one Eisenhower quadrant
@@ -100,10 +101,6 @@ DEFAULT_STATE_DIR = Path("/data/services/openclaw/state/intake")
 
 #: Retention window for immutable digest records (48h == habits parity, FR-016).
 DEFAULT_WINDOW_HOURS = 48
-
-#: Vikunja caps ``per_page`` at 50 on this instance; a ``len < 100`` stop
-#: condition would be wrong (mirrors ``migrate_tasks._PAGE_SIZE``).
-_PAGE_SIZE = 50
 
 #: Bound every external Vikunja call (seconds). The client also has its own
 #: default, but the scan states its budget explicitly (Directive: idempotent,
@@ -237,53 +234,41 @@ def classify_task(task: dict[str, Any], inbox_id: int) -> Classification:
 
 
 def list_inbox_tasks(client: Any, inbox_id: int) -> list[dict[str, Any]]:
-    """Return every **not-done** task in the Inbox via paginated ``GET /tasks/all``.
+    """Return every **not-done** task in the Inbox via project-scoped enumeration.
 
-    Pages ``per_page=50`` from page 1 (done-inclusive at the API, then filtered
-    client-side to ``project_id == inbox_id && done == false``) until a short
-    page. Mirrors ``migrate_tasks.list_all_tasks``: a ``null`` body → stop; a
-    non-list, non-null 200 body → :class:`VikunjaError`; a malformed task element
-    (non-dict, non-int id, non-int project_id) → :class:`IntakeError` (a dropped
-    task must never make the Inbox look emptier than it is).
+    Sources the full task list from :meth:`VikunjaClient.list_all_tasks` (which
+    pages ``GET /projects`` then ``GET /projects/{id}/tasks`` — the v1
+    ``GET /tasks/all`` endpoint returns HTTP 400 code 2004 on Vikunja 2.4.0+,
+    see #853). The enumeration is done-inclusive; this function then filters
+    client-side to ``project_id == inbox_id && done == false``. A malformed task
+    element (non-dict, non-int id, non-int project_id) → :class:`IntakeError`
+    (a dropped task must never make the Inbox look emptier than it is).
     """
+    all_tasks = client.list_all_tasks()
     tasks: list[dict[str, Any]] = []
-    page = 1
-    while True:
-        batch = client.get(
-            "/tasks/all",
-            params={"per_page": str(_PAGE_SIZE), "page": str(page)},
-            timeout=_HTTP_TIMEOUT,
-        )
-        if batch is None:
-            break
-        if not isinstance(batch, list):
-            raise VikunjaError(path="/tasks/all", status=200)
-        for element in batch:
-            if not isinstance(element, dict):
-                raise IntakeError(
-                    f"GET /tasks/all returned a non-dict task element "
-                    f"{element!r}; refusing to trust the enumeration."
-                )
-            tid = element.get("id")
-            if not isinstance(tid, int) or isinstance(tid, bool):
-                raise IntakeError(
-                    f"GET /tasks/all returned a task with a non-integer id "
-                    f"{tid!r}; refusing to trust the enumeration."
-                )
-            pid = element.get("project_id")
-            if not isinstance(pid, int) or isinstance(pid, bool):
-                raise IntakeError(
-                    f"GET /tasks/all task {tid} has a non-integer project_id "
-                    f"{pid!r}; refusing to trust the enumeration."
-                )
-            if pid != inbox_id:
-                continue
-            if element.get("done") is True:
-                continue
-            tasks.append(element)
-        if len(batch) < _PAGE_SIZE:
-            break
-        page += 1
+    for element in all_tasks:
+        if not isinstance(element, dict):
+            raise IntakeError(
+                f"task enumeration returned a non-dict task element "
+                f"{element!r}; refusing to trust the enumeration."
+            )
+        tid = element.get("id")
+        if not isinstance(tid, int) or isinstance(tid, bool):
+            raise IntakeError(
+                f"task enumeration returned a task with a non-integer id "
+                f"{tid!r}; refusing to trust the enumeration."
+            )
+        pid = element.get("project_id")
+        if not isinstance(pid, int) or isinstance(pid, bool):
+            raise IntakeError(
+                f"task {tid} has a non-integer project_id "
+                f"{pid!r}; refusing to trust the enumeration."
+            )
+        if pid != inbox_id:
+            continue
+        if element.get("done") is True:
+            continue
+        tasks.append(element)
     return tasks
 
 

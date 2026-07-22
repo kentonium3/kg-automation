@@ -17,7 +17,7 @@ global state, no caching. Driven by the committed routing manifest
 - **deletes** six emptied legacy projects (Someday 4, Everyday 2, Personal
   Growth 5, Household 15, Goals 11, Research 12), children before parents, each
   re-listed for emptiness *immediately* before its delete off a fresh, done-
-  inclusive ``/tasks/all`` enumeration (FR-004/FR-006/NFR-004).
+  inclusive project-scoped enumeration (FR-004/FR-006/NFR-004).
 
 Ownership is enforced without a whoami endpoint (``GET /user`` is 401 for API
 tokens): the token is read ONLY from an explicit ``--token-file`` that defaults
@@ -327,51 +327,41 @@ def load_manifest(path: str | os.PathLike[str]) -> Manifest:
 
 
 def list_all_tasks(client: Any) -> list[dict]:
-    """Return every task via a paginated, done-inclusive ``GET /tasks/all``.
+    """Return every task via done-inclusive, project-scoped enumeration.
 
-    Pages ``per_page=50`` from page 1, accumulating until a page returns fewer
-    than 50 items. **No ``done`` filter** — done tasks are included (NFR-004),
-    so this is the single source for both the move plan and the project empty-
-    check. A ``null`` body (Vikunja's empty-collection quirk) is normalised to
-    ``[]``; any non-list, non-null 200 body is a contract violation → raised.
+    Sources the full task list from :meth:`VikunjaClient.list_all_tasks` (which
+    pages ``GET /projects`` then ``GET /projects/{id}/tasks`` — the v1
+    ``GET /tasks/all`` endpoint returns HTTP 400 code 2004 on Vikunja 2.4.0+,
+    see #853). **No ``done`` filter** — done tasks are included (NFR-004), so
+    this is the single source for both the move plan and the project empty-
+    check. Each element is then validated: a malformed task element must NEVER
+    be silently dropped (a dropped task can make a doomed project look empty and
+    green-light a delete of a project that still holds data → fail loud).
     """
     tasks: list[dict] = []
-    page = 1
-    while True:
-        batch = client.get(
-            "/tasks/all",
-            params={"per_page": str(_PAGE_SIZE), "page": str(page)},
-        )
-        if batch is None:
-            break
-        if not isinstance(batch, list):
-            raise VikunjaError(path="/tasks/all", status=200)
-        for element in batch:
-            # A malformed task element must NEVER be silently dropped: a dropped
-            # task can make a doomed project look empty and green-light a delete
-            # of a project that still holds data. Fail loud (NFR-004).
-            if not isinstance(element, dict):
-                raise ReconcileError(
-                    f"GET /tasks/all returned a non-dict task element "
-                    f"{element!r}; refusing to trust the enumeration."
-                )
-            tid = element.get("id")
-            if not isinstance(tid, int) or isinstance(tid, bool):
-                raise ReconcileError(
-                    f"GET /tasks/all returned a task with a non-integer id "
-                    f"{tid!r}; refusing to trust the enumeration."
-                )
-            pid = element.get("project_id")
-            if not isinstance(pid, int) or isinstance(pid, bool):
-                raise ReconcileError(
-                    f"GET /tasks/all task {tid} has a non-integer project_id "
-                    f"{pid!r}; a malformed task must never let a doomed project "
-                    f"look empty — refusing to trust the enumeration."
-                )
-            tasks.append(element)
-        if len(batch) < _PAGE_SIZE:
-            break
-        page += 1
+    for element in client.list_all_tasks():
+        # A malformed task element must NEVER be silently dropped: a dropped
+        # task can make a doomed project look empty and green-light a delete
+        # of a project that still holds data. Fail loud (NFR-004).
+        if not isinstance(element, dict):
+            raise ReconcileError(
+                f"task enumeration returned a non-dict task element "
+                f"{element!r}; refusing to trust the enumeration."
+            )
+        tid = element.get("id")
+        if not isinstance(tid, int) or isinstance(tid, bool):
+            raise ReconcileError(
+                f"task enumeration returned a task with a non-integer id "
+                f"{tid!r}; refusing to trust the enumeration."
+            )
+        pid = element.get("project_id")
+        if not isinstance(pid, int) or isinstance(pid, bool):
+            raise ReconcileError(
+                f"task {tid} has a non-integer project_id "
+                f"{pid!r}; a malformed task must never let a doomed project "
+                f"look empty — refusing to trust the enumeration."
+            )
+        tasks.append(element)
     return tasks
 
 
@@ -901,7 +891,8 @@ def _delete_task(client: Any, task_id: int) -> None:
 def _delete_project_if_empty(client: Any, pid: int, title: str) -> None:
     """Delete project ``pid`` only after an immediate, fresh empty-check.
 
-    Re-lists all tasks off a fresh done-inclusive ``/tasks/all`` *immediately*
+    Re-lists all tasks off a fresh done-inclusive project-scoped enumeration
+    *immediately*
     before deleting (not the plan-time snapshot), refuses (raises) if any task
     remains in ``pid``, else ``DELETE /projects/{id}`` (FR-004/FR-006).
     """

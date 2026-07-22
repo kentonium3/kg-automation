@@ -274,6 +274,24 @@ class FakeVikunjaClient:
         self._error = error
         self.calls: list[dict] = []
 
+    def list_all_tasks(self, *, updated_since=None, per_page=50, max_pages_per_project=200):
+        """Reproduce the real client's flat, done-inclusive task enumeration.
+
+        Production ``VikunjaClient.list_all_tasks`` enumerates project-scoped
+        (rigor covered in ``tests/common/test_vikunja_client``). This double
+        pages its scripted fixtures so the consumer's delegation and the
+        empty-batch termination intents keep being exercised.
+        """
+        tasks: list[dict] = []
+        page = 1
+        while True:
+            batch = self.get("/tasks/all", params={"page": str(page), "per_page": str(per_page)})
+            if not batch:
+                break
+            tasks.extend(batch)
+            page += 1
+        return tasks
+
     def get(self, path: str, *, params: dict | None = None, timeout: float | None = None):
         self.calls.append({"path": path, "params": dict(params or {})})
         if self._error is not None:
@@ -316,10 +334,17 @@ class TestFetchAllTasks:
         assert len(tasks) == 50
         assert len(client.calls) == 2
 
-    def test_uses_tasks_all_endpoint(self) -> None:
-        client = FakeVikunjaClient(pages=[[]])
-        ec.fetch_all_tasks(client)
-        assert client.calls[0]["path"] == "/tasks/all"
+    def test_delegates_to_list_all_tasks(self) -> None:
+        # The v1 /tasks/all endpoint is dead on Vikunja 2.4.0+ (#853); the
+        # consumer now sources tasks from the client's project-scoped
+        # enumeration seam.
+        sentinel = [make_task(1), make_task(2)]
+
+        class _Client:
+            def list_all_tasks(self, **_kwargs):
+                return sentinel
+
+        assert ec.fetch_all_tasks(_Client()) == sentinel
 
     def test_vikunja_error_propagates(self) -> None:
         client = FakeVikunjaClient(error=VikunjaServerError("/tasks/all", status=503))

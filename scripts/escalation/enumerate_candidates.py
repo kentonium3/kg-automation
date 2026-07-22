@@ -32,12 +32,11 @@ Authoritative contracts:
 Vikunja access
 --------------
 Uses ``scripts.common.vikunja_client.VikunjaClient`` (stateless, leading-
-slash paths). The all-tasks endpoint is **``/tasks/all``** — the agent's
-former ``/projects/-4/tasks`` query was the root-cause bug this mission
-fixes. Vikunja caps ``per_page`` at 50; this module paginates starting at
-page 1 and **stops on an empty batch** (never on ``len(batch) < 100`` —
-that heuristic silently truncates whenever a full-but-not-100-sized final
-page arrives, per the mission's memory gotcha).
+slash paths). Tasks are enumerated via ``VikunjaClient.list_all_tasks`` —
+project-scoped (pages ``GET /projects`` then ``GET /projects/{id}/tasks``),
+because the v1 ``GET /tasks/all`` endpoint returns HTTP 400 code 2004 on
+Vikunja 2.4.0+ (see #853). The enumeration is done-inclusive; per-task
+qualification is applied downstream by ``filter_candidates``.
 
 Due-date normalization (H8)
 ---------------------------
@@ -88,7 +87,8 @@ __all__ = [
 #: so there is one ``America/New_York`` definition repo-wide.
 LOCAL_TZ = et_datetime.ET_ZONE
 
-#: Vikunja's hard cap on page size for ``/tasks/all``.
+#: Vikunja's hard cap on page size (retained for reference; task enumeration
+#: now delegates paging to ``VikunjaClient.list_all_tasks``).
 PER_PAGE = 50
 
 #: Minimum priority to qualify for escalation at all (SKILL.md §1).
@@ -199,7 +199,8 @@ def filter_candidates(
     network access).
 
     Args:
-        tasks: Raw Vikunja task dicts (as returned by ``GET /tasks/all``).
+        tasks: Raw Vikunja task dicts (as returned by ``fetch_all_tasks`` /
+            ``VikunjaClient.list_all_tasks``).
         today: The America/New_York calendar date to treat as "today" for
             overdue/due-today comparisons.
         excluded_ids: Project ids to exclude (normally the return value of
@@ -236,26 +237,19 @@ def filter_candidates(
 
 
 def fetch_all_tasks(client: VikunjaClient) -> list[dict]:
-    """Paginate ``GET /tasks/all`` until an empty batch, returning all tasks.
+    """Return every task via project-scoped enumeration.
 
-    Per the contract: starts at page 1, requests ``per_page=PER_PAGE`` (50,
-    Vikunja's cap), and stops when a page returns an empty list — NEVER on
-    ``len(batch) < 100`` (that heuristic is wrong once ``per_page`` is
-    capped at 50 and silently truncates a full-but-partial final page).
+    The v1 ``GET /tasks/all`` endpoint returns HTTP 400 code 2004 on Vikunja
+    2.4.0+ (see #853), so tasks are enumerated project-scoped via
+    :meth:`VikunjaClient.list_all_tasks` (pages ``GET /projects`` then
+    ``GET /projects/{id}/tasks``, done-inclusive). The candidate filter
+    (:func:`filter_candidates`) applies its own per-task predicates downstream.
 
     Raises:
         VikunjaError: Propagated from the underlying HTTP client on any
             network/HTTP failure. Callers (``main``) map this to exit 1.
     """
-    tasks: list[dict] = []
-    page = 1
-    while True:
-        batch = client.get("/tasks/all", params={"page": str(page), "per_page": str(PER_PAGE)})
-        if not batch:
-            break
-        tasks.extend(batch)
-        page += 1
-    return tasks
+    return client.list_all_tasks()
 
 
 # ---------------------------------------------------------------------------

@@ -6,9 +6,10 @@ bootstrap path, the dry-run path, Phase 5b deletion-cleanup, project rename
 detection, and FR-012 abort semantics.
 
 Fixture migration note (WP04): FetchedDelta → FetchedSnapshot. The mock
-HTTP responses now feed `fetch_full_poll` which makes GET /tasks/all then
-GET /projects then (best-effort) GET /info. All tests include 2-3 mock
-responses to match this call order.
+HTTP responses now feed `fetch_full_poll`, which (post-#853) enumerates
+project-scoped: GET /projects FIRST, then GET /projects/{id}/tasks per
+project, then (best-effort) GET /info. The `_full_poll_responses` helper
+builds the responses in that order — see its docstring.
 """
 from __future__ import annotations
 
@@ -103,18 +104,46 @@ def _ok_send():
     return mock
 
 
-# fetch_full_poll calls: GET /tasks/all, GET /projects, GET /info (best-effort)
-# For tests that don't care about projects, we still need to provide the
-# /projects response since it's always called.
+# fetch_full_poll is project-scoped (post-#853): GET /projects FIRST, then
+# GET /projects/{id}/tasks per project, then GET /info (best-effort).
+_SYNTHETIC_PID = 1  # home project for fixture tasks that omit a project_id
+
+
 def _full_poll_responses(tasks, *, projects=None, version="0.24.6"):
-    """Return the 3 mock HTTP responses fetch_full_poll expects."""
+    """Build the mock HTTP responses fetch_full_poll expects, project-scoped.
+
+    Order: GET /projects, then one GET /projects/{id}/tasks page per project
+    (tasks grouped by project_id, each a single short page), then GET /info.
+
+    A task is only enumerated if its project is returned by GET /projects
+    (the #853 project-scoped model). To keep legacy fixtures working, tasks
+    are normalised so each has a project_id (falling back to a synthetic
+    project) and the GET /projects response is augmented with any project_id
+    a task references but that ``projects`` did not list.
+    """
     if projects is None:
         projects = []
-    return [
-        _resp(tasks),           # GET /tasks/all
-        _resp(projects),        # GET /projects
-        _resp({"version": version}),  # GET /info
-    ]
+    norm_tasks: list[dict] = []
+    for task in tasks:
+        task = dict(task)
+        task.setdefault("project_id", _SYNTHETIC_PID)
+        norm_tasks.append(task)
+
+    proj_list = [dict(p) for p in projects]
+    known = {p.get("id") for p in proj_list}
+    for task in norm_tasks:
+        pid = task["project_id"]
+        if pid not in known:
+            proj_list.append({"id": pid, "title": f"Project {pid}", "is_archived": False})
+            known.add(pid)
+
+    responses = [_resp(proj_list)]  # GET /projects (fetched FIRST)
+    for proj in proj_list:
+        pid = proj.get("id")
+        page = [t for t in norm_tasks if t.get("project_id") == pid]
+        responses.append(_resp(page))  # GET /projects/{pid}/tasks
+    responses.append(_resp({"version": version}))  # GET /info
+    return responses
 
 
 # ===========================================================================
@@ -445,7 +474,7 @@ class TestCycleReplay:
                 tasks={
                     "14": st.TaskCacheEntry(
                         vikunja_task_id=14,
-                        fields={"title": "OldTitle"},
+                        fields={"title": "OldTitle", "project_id": 13},
                         vikunja_updated_at="2026-06-04T18:00:00Z",
                         felix_last_observed_at="2026-06-04T17:00:00Z",
                     ),
@@ -454,13 +483,14 @@ class TestCycleReplay:
         )
         # Cycle 1 sees divergence and updates cache.
         # Cycle 2 sees the same task returning the same value — no divergence.
+        _cycle_tasks = [{
+            "id": 14, "title": "NewTitle", "project_id": 13,
+            "updated": "2026-06-04T19:24:00Z",
+        }]
+        _cycle_projects = [{"id": 13, "title": "P", "is_archived": False}]
         mock_urlopen.side_effect = [
-            *_full_poll_responses(
-                tasks=[{"id": 14, "title": "NewTitle", "updated": "2026-06-04T19:24:00Z"}]
-            ),
-            *_full_poll_responses(
-                tasks=[{"id": 14, "title": "NewTitle", "updated": "2026-06-04T19:24:00Z"}]
-            ),
+            *_full_poll_responses(tasks=_cycle_tasks, projects=_cycle_projects),
+            *_full_poll_responses(tasks=_cycle_tasks, projects=_cycle_projects),
         ]
         send = _ok_send()
         cy.run_cycle(_config(state_dir, secrets_dir), send_callable=send, now_utc=NOW_UTC)

@@ -431,11 +431,37 @@ class TestMatchProvenance:
 
 
 class _PagedClient:
-    """Fake VikunjaClient returning a queued sequence of /tasks/all page bodies."""
+    """Fake VikunjaClient returning a queued sequence of task page bodies.
+
+    Production ``VikunjaClient.list_all_tasks`` enumerates project-scoped (its
+    rigor is covered in ``tests/common/test_vikunja_client``). This double
+    reproduces the same *result* — a flat task list — by paging its queued
+    fixtures, so ``_iter_all_tasks`` delegation and the null/partial/non-list
+    termination intents keep being exercised.
+    """
 
     def __init__(self, pages):
         self._pages = list(pages)
         self.calls = 0
+
+    def list_all_tasks(self, *, updated_since=None, per_page=50, max_pages_per_project=200):
+        from scripts.common.vikunja_client import VikunjaError
+
+        tasks: list[dict] = []
+        page = 1
+        while True:
+            batch = self.get("/tasks/all", params={"page": str(page), "per_page": str(per_page)})
+            if batch is None:
+                break
+            if not isinstance(batch, list):
+                raise VikunjaError(path="/tasks/all", status=200)
+            if not batch:
+                break
+            tasks.extend(b for b in batch if isinstance(b, dict))
+            if len(batch) < per_page:
+                break
+            page += 1
+        return tasks
 
     def get(self, path, params=None, **kwargs):
         assert path == "/tasks/all"

@@ -151,38 +151,16 @@ def _create_vikunja_task(
 
 
 def _iter_all_tasks(client: VikunjaClient) -> "list[dict]":
-    """Return every task via the paginated ``GET /tasks/all`` (client-side scan).
+    """Return every task via project-scoped enumeration (client-side scan).
 
-    Vikunja caps ``/tasks/all`` at 50 per page and rejects several server-side
-    ``?filter=`` expressions (G6/G7), so the #751 provenance precheck reads the
-    full list and filters in Python. ``MAX_PAGES`` is a runaway-loop bound.
+    The v1 ``GET /tasks/all`` endpoint returns HTTP 400 code 2004 on Vikunja
+    2.4.0+ (see #853), so tasks are enumerated project-scoped via
+    :meth:`VikunjaClient.list_all_tasks` (pages ``GET /projects`` then
+    ``GET /projects/{id}/tasks``). The #751 provenance precheck reads the full
+    list and filters in Python (:func:`_match_provenance`). This function
+    remains the mockable network seam.
     """
-    PAGE_SIZE = 50
-    MAX_PAGES = 200
-    out: list[dict] = []
-    for page in range(1, MAX_PAGES + 1):
-        batch = client.get("/tasks/all", params={"page": page, "per_page": PAGE_SIZE})
-        # Vikunja returns JSON ``null`` (not ``[]``) for an empty collection /
-        # exhausted page on this endpoint. Treat it as an empty page — the
-        # end of pagination — NOT a scan error: raising here would fail the
-        # precheck closed on an empty task list and strand the note (silent
-        # loss). A genuine HTTP failure surfaces as an exception from ``.get``.
-        if batch is None:
-            break
-        if not isinstance(batch, list):
-            raise VikunjaError(
-                f"GET /tasks/all page {page} returned non-list body: {type(batch).__name__!r}"
-            )
-        if not batch:
-            break
-        out.extend(b for b in batch if isinstance(b, dict))
-        if len(batch) < PAGE_SIZE:
-            break
-    else:
-        raise VikunjaError(
-            f"GET /tasks/all hit page cap ({MAX_PAGES}); refusing an unbounded scan"
-        )
-    return out
+    return client.list_all_tasks()
 
 
 def _match_provenance(

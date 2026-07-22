@@ -106,6 +106,34 @@ class _FakeClient:
         self.put_calls: list[tuple[str, dict]] = []
         self.delete_calls: list[str] = []
 
+    def list_all_tasks(self, *, updated_since=None, per_page=50, max_pages_per_project=200):
+        """Reproduce the real client's flat task enumeration for consumer tests.
+
+        The production ``VikunjaClient.list_all_tasks`` enumerates tasks
+        project-scoped (its rigor is covered in ``tests/common/test_vikunja_client``).
+        This test double simulates the same *result* — a flat, done-inclusive
+        task list — by paging the canned ``/tasks/all`` fixtures the tests
+        configure, so call-sequenced snapshots (plan-time vs pre-delete re-list)
+        keep working. Malformed elements are returned raw; the consumer applies
+        its own validation.
+        """
+        tasks: list = []
+        page = 1
+        while True:
+            batch = self.get(
+                "/tasks/all",
+                params={"per_page": str(per_page), "page": str(page)},
+            )
+            if batch is None:
+                break
+            if not isinstance(batch, list):
+                raise VikunjaError(path="/tasks/all", status=200)
+            tasks.extend(batch)
+            if len(batch) < per_page:
+                break
+            page += 1
+        return tasks
+
     def get(self, path, *, params=None, **_kwargs):
         self.get_calls.append((path, params or {}))
         if self._get_raises is not None:
@@ -1122,10 +1150,11 @@ def test_apply_with_default_token_proceeds(tmp_path, monkeypatch):
         def __init__(self, *, base_url=None, token=None):
             pass
 
-        def get(self, path, *, params=None, **_kwargs):
+        def list_all_tasks(self, **_kwargs):
             # Post-migration state → clean plan, no deletes, preflight passes.
-            if path == "/tasks/all":
-                return _post_migration_tasks()
+            return _post_migration_tasks()
+
+        def get(self, path, *, params=None, **_kwargs):
             if path == "/projects":
                 return _post_migration_projects()
             if path == "/labels":
@@ -1150,9 +1179,10 @@ def test_apply_nonstandard_endpoint_flag_permits_override(tmp_path, monkeypatch)
         def __init__(self, *, base_url=None, token=None):
             pass
 
+        def list_all_tasks(self, **_kwargs):
+            return _post_migration_tasks()
+
         def get(self, path, *, params=None, **_kwargs):
-            if path == "/tasks/all":
-                return _post_migration_tasks()
             if path == "/projects":
                 return _post_migration_projects()
             if path == "/labels":
@@ -1185,9 +1215,10 @@ def test_dry_run_with_nondefault_token_not_locked(tmp_path, monkeypatch):
         def __init__(self, *, base_url=None, token=None):
             pass
 
+        def list_all_tasks(self, **_kwargs):
+            return _post_migration_tasks()
+
         def get(self, path, *, params=None, **_kwargs):
-            if path == "/tasks/all":
-                return _post_migration_tasks()
             if path == "/projects":
                 return _post_migration_projects()
             if path == "/labels":
@@ -1335,10 +1366,11 @@ def test_main_builds_client_from_token_file(tmp_path, monkeypatch):
             captured["base_url"] = base_url
             captured["token"] = token
 
+        def list_all_tasks(self, **_kwargs):
+            # Post-migration state → clean dry-run plan, preflight passes.
+            return _post_migration_tasks()
+
         def get(self, path, *, params=None, **_kwargs):
-            if path == "/tasks/all":
-                # Post-migration state → clean dry-run plan, preflight passes.
-                return _post_migration_tasks()
             if path == "/projects":
                 return _post_migration_projects()
             if path == "/labels":

@@ -222,6 +222,103 @@ class VikunjaClient:
         return self._request("DELETE", path, params=params, json_body=None, timeout=timeout)
 
     # ------------------------------------------------------------------
+    # High-level enumeration helper
+    # ------------------------------------------------------------------
+
+    def list_all_tasks(
+        self,
+        *,
+        updated_since: str | None = None,
+        per_page: int = 50,
+        max_pages_per_project: int = 200,
+    ) -> list[dict]:
+        """Return every task via project-scoped enumeration (all projects × their tasks).
+
+        This is the drop-in replacement for the v1 ``GET /tasks/all`` endpoint,
+        which returns HTTP 400 ``code 2004 "Invalid model provided"`` for every
+        param shape on Vikunja 2.4.0+ (see kentonium3/kg-automation#853). Instead
+        of the (broken) global task endpoint, this method:
+
+        1. Enumerates all projects by paging ``GET /projects``.
+        2. For each project id, pages ``GET /projects/{id}/tasks``.
+
+        Behavior notes:
+
+        - **Done-inclusive.** No ``filter`` is sent, so the project-scoped
+          listing returns both done and not-done tasks — matching the
+          done-inclusive semantics of the old ``/tasks/all``. Callers keep
+          their own ``done`` filtering.
+        - **``updated_since`` passthrough.** When provided, it is sent on every
+          per-project task request; omitted entirely when ``None``.
+        - **Deduplicated by int ``id``.** A defensive measure — a task belongs
+          to exactly one project, but a set guards against any overlap.
+        - **No domain filtering / no per-element validation.** Raw task dicts
+          are returned in a flat list; malformed elements are passed through
+          unchanged so each caller can apply its own validation.
+
+        Empty collections: Vikunja returns JSON ``null`` OR ``[]`` for an
+        exhausted / empty page; both stop paging (never an error). A short page
+        (fewer than ``per_page`` items) also stops paging. A non-list, non-None
+        page body is a contract violation → :class:`VikunjaError`. Both the
+        project loop and each per-project task loop are bounded by
+        ``max_pages_per_project`` (a runaway-loop guard) → :class:`VikunjaError`
+        if exceeded.
+
+        Known limitation: tasks in projects NOT returned by ``GET /projects``
+        (e.g. archived projects, if the server excludes them) are not
+        enumerated. This is acceptable for current consumers, and for the sync
+        driver it yields desirable task/project-layer consistency (a task is
+        only observed if its project is).
+        """
+        project_ids: list[int] = []
+        for page in range(1, max_pages_per_project + 1):
+            batch = self.get(
+                "/projects",
+                params={"page": str(page), "per_page": str(per_page)},
+            )
+            if batch is None:
+                break
+            if not isinstance(batch, list):
+                raise VikunjaError(path="/projects", status=200)
+            for element in batch:
+                if not isinstance(element, dict):
+                    continue
+                pid = element.get("id")
+                if isinstance(pid, int) and not isinstance(pid, bool):
+                    project_ids.append(pid)
+            if len(batch) < per_page:
+                break
+        else:
+            raise VikunjaError(path="/projects", status=None)
+
+        tasks: list[dict] = []
+        seen_ids: set[int] = set()
+        for pid in project_ids:
+            path = f"/projects/{pid}/tasks"
+            for page in range(1, max_pages_per_project + 1):
+                params = {"page": str(page), "per_page": str(per_page)}
+                if updated_since is not None:
+                    params["updated_since"] = updated_since
+                batch = self.get(path, params=params)
+                if batch is None:
+                    break
+                if not isinstance(batch, list):
+                    raise VikunjaError(path=path, status=200)
+                for element in batch:
+                    if isinstance(element, dict):
+                        tid = element.get("id")
+                        if isinstance(tid, int) and not isinstance(tid, bool):
+                            if tid in seen_ids:
+                                continue
+                            seen_ids.add(tid)
+                    tasks.append(element)
+                if len(batch) < per_page:
+                    break
+            else:
+                raise VikunjaError(path=path, status=None)
+        return tasks
+
+    # ------------------------------------------------------------------
     # Private request execution + error mapping
     # ------------------------------------------------------------------
 

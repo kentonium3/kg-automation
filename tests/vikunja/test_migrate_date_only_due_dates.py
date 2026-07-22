@@ -30,9 +30,11 @@ class _NormalizingVikunja:
     def _pages(self):
         return list(self.tasks.values())
 
+    def list_all_tasks(self, **_):
+        # Mirrors VikunjaClient.list_all_tasks — a flat, done-inclusive list.
+        return self._pages()
+
     def get(self, path, **_):
-        if path == "/tasks/all":
-            return self._pages()
         tid = int(path.rsplit("/", 1)[1])
         return dict(self.tasks[tid])
 

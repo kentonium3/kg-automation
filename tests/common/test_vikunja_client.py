@@ -23,7 +23,6 @@ import json
 import urllib.error
 import urllib.parse
 import urllib.request
-from pathlib import Path
 
 import pytest
 
@@ -423,3 +422,213 @@ def test_default_timeout_used_when_no_override(mock_vikunja_urlopen, monkeypatch
     monkeypatch.setattr("urllib.request.urlopen", capturing)
     _client(timeout=7.5).get("/tasks/7")
     assert seen_timeouts == [7.5]
+
+
+# ---------------------------------------------------------------------------
+# list_all_tasks — project-scoped enumeration (replaces v1 GET /tasks/all,
+# which returns HTTP 400 code 2004 on Vikunja 2.4.0+; see #853)
+# ---------------------------------------------------------------------------
+
+
+def _client_with_get(handler):
+    """Return a client whose ``.get`` is replaced by ``handler`` and a call log.
+
+    ``handler(path, params)`` returns the body for that request. The recorded
+    calls are ``(path, params_dict)`` tuples in invocation order.
+    """
+    client = _client()
+    calls: list[tuple[str, dict]] = []
+
+    def fake_get(path, *, params=None, timeout=None):
+        calls.append((path, dict(params or {})))
+        return handler(path, dict(params or {}))
+
+    client.get = fake_get  # type: ignore[assignment]
+    return client, calls
+
+
+def _pages_handler(projects_pages, tasks_pages_by_pid):
+    """Build a ``.get`` handler that serves scripted project/task pages.
+
+    ``projects_pages`` is a list of page bodies for successive ``GET /projects``
+    calls; ``tasks_pages_by_pid`` maps a project id to a list of page bodies for
+    successive ``GET /projects/{id}/tasks`` calls.
+    """
+    proj_iter = iter(projects_pages)
+    task_iters = {pid: iter(pages) for pid, pages in tasks_pages_by_pid.items()}
+
+    def handler(path, params):
+        if path == "/projects":
+            return next(proj_iter)
+        assert path.startswith("/projects/") and path.endswith("/tasks"), path
+        pid = int(path.split("/")[2])
+        return next(task_iters[pid])
+
+    return handler
+
+
+def test_list_all_tasks_enumerates_projects_then_per_project_tasks() -> None:
+    handler = _pages_handler(
+        projects_pages=[[{"id": 10}, {"id": 11}]],
+        tasks_pages_by_pid={
+            10: [[{"id": 1, "project_id": 10}, {"id": 2, "project_id": 10}]],
+            11: [[{"id": 3, "project_id": 11}]],
+        },
+    )
+    client, calls = _client_with_get(handler)
+    tasks = client.list_all_tasks()
+    assert [t["id"] for t in tasks] == [1, 2, 3]
+    # /projects fetched first, then each project's tasks.
+    assert calls[0][0] == "/projects"
+    assert ("/projects/10/tasks", {"page": "1", "per_page": "50"}) in calls
+    assert ("/projects/11/tasks", {"page": "1", "per_page": "50"}) in calls
+
+
+def test_list_all_tasks_pages_each_project_past_per_page() -> None:
+    handler = _pages_handler(
+        projects_pages=[[{"id": 10}]],
+        tasks_pages_by_pid={
+            10: [
+                [{"id": 1, "project_id": 10}, {"id": 2, "project_id": 10}],  # full page
+                [{"id": 3, "project_id": 10}],  # short → stop
+            ],
+        },
+    )
+    client, calls = _client_with_get(handler)
+    tasks = client.list_all_tasks(per_page=2)
+    assert [t["id"] for t in tasks] == [1, 2, 3]
+    task_pages = [p["page"] for path, p in calls if path == "/projects/10/tasks"]
+    assert task_pages == ["1", "2"]
+
+
+def test_list_all_tasks_deduplicates_by_id() -> None:
+    handler = _pages_handler(
+        projects_pages=[[{"id": 10}]],
+        tasks_pages_by_pid={
+            10: [
+                [{"id": 1, "project_id": 10}, {"id": 2, "project_id": 10}],  # full
+                [{"id": 1, "project_id": 10}, {"id": 3, "project_id": 10}],  # full, dup id 1
+                [],  # short → stop
+            ],
+        },
+    )
+    client, _calls = _client_with_get(handler)
+    tasks = client.list_all_tasks(per_page=2)
+    ids = [t["id"] for t in tasks]
+    assert ids == [1, 2, 3]  # id 1 kept once
+
+
+def test_list_all_tasks_is_done_inclusive_and_sends_no_filter() -> None:
+    handler = _pages_handler(
+        projects_pages=[[{"id": 10}]],
+        tasks_pages_by_pid={
+            10: [[
+                {"id": 1, "project_id": 10, "done": False},
+                {"id": 2, "project_id": 10, "done": True},
+            ]],
+        },
+    )
+    client, calls = _client_with_get(handler)
+    tasks = client.list_all_tasks()
+    # Both done and not-done returned; no client-side filtering.
+    assert {t["id"] for t in tasks} == {1, 2}
+    # No ``filter`` param ever sent (done-inclusive means no narrowing).
+    for _path, params in calls:
+        assert "filter" not in params
+
+
+def test_list_all_tasks_passes_updated_since_per_project_only() -> None:
+    handler = _pages_handler(
+        projects_pages=[[{"id": 10}, {"id": 11}]],
+        tasks_pages_by_pid={
+            10: [[{"id": 1, "project_id": 10}]],
+            11: [[{"id": 2, "project_id": 11}]],
+        },
+    )
+    client, calls = _client_with_get(handler)
+    client.list_all_tasks(updated_since="2026-01-01T00:00:00Z")
+    for path, params in calls:
+        if path == "/projects":
+            assert "updated_since" not in params
+        else:
+            assert params["updated_since"] == "2026-01-01T00:00:00Z"
+
+
+def test_list_all_tasks_treats_null_page_as_stop() -> None:
+    handler = _pages_handler(
+        projects_pages=[[{"id": 10}]],
+        tasks_pages_by_pid={10: [None]},  # JSON null → stop, not an error
+    )
+    client, _calls = _client_with_get(handler)
+    assert client.list_all_tasks() == []
+
+
+def test_list_all_tasks_treats_empty_list_page_as_stop() -> None:
+    handler = _pages_handler(
+        projects_pages=[[{"id": 10}]],
+        tasks_pages_by_pid={10: [[]]},  # [] → stop
+    )
+    client, _calls = _client_with_get(handler)
+    assert client.list_all_tasks() == []
+
+
+def test_list_all_tasks_null_projects_page_yields_empty() -> None:
+    handler = _pages_handler(projects_pages=[None], tasks_pages_by_pid={})
+    client, _calls = _client_with_get(handler)
+    assert client.list_all_tasks() == []
+
+
+def test_list_all_tasks_non_list_task_body_raises() -> None:
+    handler = _pages_handler(
+        projects_pages=[[{"id": 10}]],
+        tasks_pages_by_pid={10: [{"unexpected": "dict"}]},
+    )
+    client, _calls = _client_with_get(handler)
+    with pytest.raises(VikunjaError):
+        client.list_all_tasks()
+
+
+def test_list_all_tasks_non_list_projects_body_raises() -> None:
+    handler = _pages_handler(
+        projects_pages=[{"unexpected": "dict"}], tasks_pages_by_pid={}
+    )
+    client, _calls = _client_with_get(handler)
+    with pytest.raises(VikunjaError):
+        client.list_all_tasks()
+
+
+def test_list_all_tasks_skips_non_int_project_ids_defensively() -> None:
+    handler = _pages_handler(
+        projects_pages=[[{"id": 10}, {"id": "bad"}, "not-a-dict", {"id": True}]],
+        tasks_pages_by_pid={10: [[{"id": 1, "project_id": 10}]]},
+    )
+    client, calls = _client_with_get(handler)
+    tasks = client.list_all_tasks()
+    assert [t["id"] for t in tasks] == [1]
+    # Only project 10 was enumerated for tasks.
+    task_paths = {path for path, _p in calls if path.endswith("/tasks")}
+    assert task_paths == {"/projects/10/tasks"}
+
+
+def test_list_all_tasks_raises_on_runaway_task_pagination() -> None:
+    # A project whose task pages are always full never terminates → the
+    # max_pages_per_project guard must raise rather than loop unbounded.
+    def handler(path, params):
+        if path == "/projects":
+            return [{"id": 10}]
+        return [{"id": int(params["page"]), "project_id": 10}]  # always full (len 1 == per_page)
+
+    client, _calls = _client_with_get(handler)
+    with pytest.raises(VikunjaError):
+        client.list_all_tasks(per_page=1, max_pages_per_project=3)
+
+
+def test_list_all_tasks_raises_on_runaway_project_pagination() -> None:
+    # GET /projects always returning a full page never terminates → guard raises.
+    def handler(path, params):
+        assert path == "/projects"
+        return [{"id": int(params["page"])}]  # always full (len 1 == per_page)
+
+    client, _calls = _client_with_get(handler)
+    with pytest.raises(VikunjaError):
+        client.list_all_tasks(per_page=1, max_pages_per_project=3)
