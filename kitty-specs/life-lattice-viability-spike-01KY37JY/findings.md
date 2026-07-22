@@ -19,6 +19,20 @@ Two separable questions, two different answers:
 
 ---
 
+## ⚠️ Threats to validity & harness limitations (from post-merge review — READ BEFORE ACTING)
+
+The headline verdict is robust, but these caveats bound the evidence and must temper any decision:
+
+1. **Q4 was under-seeded → not a clean test.** The registered Q4 trade-off (router vs observability, tipped by `PR_CAPABILITY`) needed the scoping edge *PR_CAPABILITY governs OBJ_ADVISORY*. The seed renderer (`seed_lattice._episodes`) never emitted `principle_edges`, so that tie-breaker was absent from **both** contexts; neither arm could answer the registered Q4, and both instead answered the also-valid PointerHealth-vs-demo collision. So the blinded score is **4/4 Kent preference but only 3/4 clean oracle-aligned evaluations** (Q1/Q2/Q3). Treat Q4 as *not* independent evidence.
+2. **The graph arm was Graphiti's DEFAULT, untuned retrieval** — one `search(num_results=20)`, no query expansion, no graph traversal over candidate entities, no retrieval-budget pass. "The graph lost" means "default top-20 hybrid retrieval lost," **not** "the graph substrate exhausted its options." A tuned retrieval could plausibly close the missed-capacity-constraint gap.
+3. **No repeat runs.** One run per arm (temperature is deprecated on these models, so omitted). "More reliable" is not measured by variance; a 4-question single-shot A/B is sample-fragile.
+4. **The Q4 ontology finding is config-specific.** No custom `entity_types` were passed, so Graphiti flattened to generic `Entity` nodes *in this default configuration*; typed-entity configuration + validation hooks are **untested** and could change the ontology-fit answer.
+5. **Defer-history retrieval was partial in the A/B.** The graph context surfaced first-scheduling + deferrals #3/#4 and *inferred* four from "deferral number 4" — strong, but not four discrete retrieved events (the seed's own retrievability check did better).
+
+None of these overturn the headline (default-graph lost at small static scale; the reasoning is valuable; the decisive test is the dynamic/scale regime). They **do** mean: don't read this as "Graphiti was given its best shot and failed" — it was untuned, Q4 was under-seeded, and typed-entity config is untested. A fair graph verdict requires the scale/dynamics re-test **with tuned retrieval + typed entities**.
+
+---
+
 ## Q2 — Temporal-reasoning payoff (the make-or-break)
 
 ### Pre-registered rubric (locked in research.md R-01a, commit `e533eee9`, before the run)
@@ -39,7 +53,7 @@ Kent's blinded picks (revealed after judging):
 
 **Graph arm: 0/4.** Root cause: the graph arm's hybrid retrieval (top-20 facts) **missed load-bearing facts** — most damagingly the **15h/week capacity constraint** — so it produced weaker or wrong reasoning (pulled in the wrong "observability" collision on Q3/Q4; explicitly said "the context does not state a time budget" on Q4). The flat arm always had the complete context and correctly nailed the 18h-vs-15h collision resolved by the hard client-deadline principle.
 
-Per the rubric: graph was better on **zero** cases → **Q2 graph-substrate = NO-GO / inconclusive.**
+Per the rubric: graph was better on **zero** cases → **Q2 graph-substrate = NO-GO / inconclusive** (caveat: the clean oracle-aligned signal is Q1–Q3; Q4 was under-seeded and the graph arm was untuned — see Threats to validity above).
 
 ### The reasoning itself is valuable (Kent's judgment)
 Independent of representation, the reasoning both arms produced when given the facts — catching that a *medium-priority, no-deadline task feeding a high-priority outcome had silently slipped 4× and was about to slip a 5th*, and resolving the week's conflict by protecting the committed client deadline and de-scoping the demo — Kent judged **"clearly valuable."** That is the capability worth building.
@@ -52,7 +66,7 @@ The flat-dump arm won by *including everything*. That is only possible in the sp
 
 1. **Volume** — many competing priorities, a full schedule, hundreds of commitments. Eventually the world-model can't be dumped (context limits) or dumping drowns the signal in noise. Retrieval becomes mandatory; the flat baseline ceases to exist and the only question is *which* retrieval is best.
 2. **Dynamics** — constant multi-channel inbound (email, Slack), interruptions, urgent items, priority churn. A flat dump is a static snapshot with no story for continuously ingesting / deduping / reconciling / re-prioritizing a stream of new inputs. That ingest-and-reconcile loop is precisely a bi-temporal graph's purpose (and Graphiti's cross-episode entity resolution). The flat approach has no answer here.
-3. **History depth** — a rich decision history ("why deferred 4×? what did we decide last time? the multi-month pattern"). A current-state dump loses it; bi-temporal edges keep it. Notably the graph's **one clear win** in this spike was exactly this: it captured and retrieved the 4-event defer history faithfully.
+3. **History depth** — a rich decision history ("why deferred 4×? what did we decide last time? the multi-month pattern"). A current-state dump loses it; bi-temporal edges keep it. Notably the graph's **clearest strength** in this spike was exactly this: it captured and retrieved enough of the defer history to infer all four deferrals (see Threats §5 for the precise extent).
 
 **Rigor caveat (keeps this OPEN, not a settled "build the graph"):** "scale needs retrieval" ≠ "scale needs a *graph*." At scale you need good retrieval + a temporal store, which could be **vector-RAG + an event log** without Graphiti's typed-graph complexity. The graph's specific bet — that *typed, traversable, bi-temporal structure* beats flat retrieval — is unproven, and this spike surfaced a real threat to it (Graphiti flattened the ontology to generic `Entity` nodes and fragmented the upward edges; see Q4).
 
@@ -75,7 +89,7 @@ No contention with the existing stack (28+ GiB free RAM throughout). **office2 c
 - **For a real build:** episode *text* would reach Anthropic during extraction. Given #848 (private content physically excluded) the residual boundary is "opaque handles in, private content out." A fully-local extraction LLM would be required only if even opaque-handle episode text must not leave the box — a decision for the build, not the spike.
 
 ## Q4 — Ontology fit — significant friction (3-bucket split)
-- **Ontology friction (real):** Graphiti stores everything as generic **`Episodic` + `Entity`** nodes (confirmed: those are the only node labels). The fixed **Purpose→Domain→Outcome→Objective→Project→Task** tiers and the **"every node connects upward to a Purpose"** invariant are **not natively represented** — they survive only as LLM-*extracted* edges, which fragmented (the graph arm hedged on whether a "goal" and an identically-named "outcome" were the same entity). Enforcing the #692 ontology would require custom `entity_types` + validation on top of Graphiti, and even then the hierarchy is reconstructed, not guaranteed.
+- **Ontology friction (config-specific):** In this spike's DEFAULT configuration (no custom `entity_types` passed), Graphiti stores everything as generic **`Episodic` + `Entity`** nodes (confirmed: those are the only node labels); typed-entity configuration + validation hooks are untested and could change this answer. The fixed **Purpose→Domain→Outcome→Objective→Project→Task** tiers and the **"every node connects upward to a Purpose"** invariant are **not natively represented** — they survive only as LLM-*extracted* edges, which fragmented (the graph arm hedged on whether a "goal" and an identically-named "outcome" were the same entity). Enforcing the #692 ontology would require custom `entity_types` + validation on top of Graphiti, and even then the hierarchy is reconstructed, not guaranteed.
 - **Engine/API friction:** FalkorDB `v4.2.2` lacked relationship full-text search (needed a newer image); group-scoped search errored/returned empty (had to use a single unscoped group); newest Claude models deprecate `temperature` (graphiti sends it unconditionally → patched via `NOT_GIVEN`).
 - **Seed-authoring friction:** minimal — the seed loaded cleanly and the bi-temporal defer history *was* faithfully captured and retrievable (the one clear graph strength: 4 discrete reschedule events at their historical timestamps).
 
