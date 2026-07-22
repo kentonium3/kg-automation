@@ -1,0 +1,156 @@
+# Life Lattice Viability Spike — manufactured seed chain
+#
+# SYNTHETIC + life-SHAPED. Opaque, non-sensitive handles only; no real private content (C-002/C-004).
+# Conflicts/trade-offs are NOT asserted here — they must be INFERRED from primitives
+# (constraints, capacity, priorities, temporal facts). Expected answers live in the hidden
+# oracle.yaml, never loaded into the graph (data-model.md hidden-oracle rule; FR-004).
+#
+# Reference "now": 2026-07-21 (Tue). The conflict week's Friday is 2026-07-24.
+
+meta:
+  synthetic: true
+  now: "2026-07-21"
+  note: "Manufactured but shaped like Kent's actual life. Kent validates realism (seed-quality checklist)."
+
+# --- Scarce capacity (a Constraint node — the collisions come from this) ---
+constraints:
+  - id: C_CAP
+    type: capacity
+    statement: "Available focused/deep-work capacity is ~15 hours per week."
+    hours_per_week: 15
+  - id: C_DL_CLIENT
+    type: hard_deadline
+    statement: "PointerHealth Q3 deliverable is due Fri 2026-07-24 (committed to the client)."
+    date: "2026-07-24"
+  - id: C_DL_DEMO
+    type: deadline
+    statement: "Felix EA milestone demo is scheduled for Fri 2026-07-24."
+    date: "2026-07-24"
+
+# --- Principles (constrain decisions; ≥1 hard + ≥1 soft) ---
+principles:
+  - id: PR_DEADLINE
+    strictness: hard
+    statement: "Never miss a committed client deadline — client reputation is the practice's foundation."
+  - id: PR_CAPABILITY
+    strictness: soft
+    statement: "When the reliability floor is stable, prefer capability progress over further polish."
+  - id: PR_HEALTH
+    strictness: soft
+    statement: "Protect the health baseline; don't let work crowd out sleep and exercise."
+
+# --- Purposes (top of every chain; multiple, competing) ---
+purposes:
+  - id: PU_CONSULT
+    label: "Run a sustainable consulting practice"
+  - id: PU_FELIX
+    label: "Ship Felix as a durable product and moat"
+  - id: PU_HEALTH
+    label: "Sustain personal energy, health, and focus"
+
+# --- The hierarchy: Domain -> Outcome -> Objective -> Project -> Task ---
+# Each node carries an explicit `serves` (upward edge) and its own fields.
+# `own_priority` is the node's SELF-declared priority — deliberately sometimes MISLEADING
+# relative to what upward traversal / temporal history reveals.
+
+nodes:
+  # ===== PU_CONSULT branch =====
+  - {id: DO_DELIVERY, type: domain, label: "Client delivery", serves: PU_CONSULT}
+
+  - {id: OUT_PIPELINE, type: outcome, label: "Consulting pipeline stays full through 2026",
+     serves: DO_DELIVERY, own_priority: high}
+  - {id: OBJ_RETAINERS, type: objective, label: "Land 2 new retainer clients by Q4",
+     serves: OUT_PIPELINE}
+  - {id: PRJ_POSITIONING, type: project, label: "Intentional LLC positioning + marketing page",
+     serves: OBJ_RETAINERS}
+  # TASK_POSITIONING = the CHRONIC-DEFER scenario. Own priority looks 'medium' and it has no hard
+  # deadline (misleading surface answer), but it is the ONLY thing advancing a HIGH-priority outcome
+  # and it has been pushed 4x since March.
+  - id: TASK_POSITIONING
+    type: task
+    label: "Write and publish the Intentional LLC positioning page"
+    serves: PRJ_POSITIONING
+    own_priority: medium
+    status: open
+    estimate_hours: 6
+    current_planned_date: "2026-07-15"   # already past 'now' (overdue)
+    defer_history:                        # 4 distinct temporal events (Codex MED-9)
+      - {observed_at: "2026-03-05", previous_planned_date: null,          new_planned_date: "2026-03-15"}
+      - {observed_at: "2026-03-20", previous_planned_date: "2026-03-15",  new_planned_date: "2026-04-10"}
+      - {observed_at: "2026-04-25", previous_planned_date: "2026-04-10",  new_planned_date: "2026-05-20"}
+      - {observed_at: "2026-06-02", previous_planned_date: "2026-05-20",  new_planned_date: "2026-07-15"}
+
+  - {id: OUT_CLIENT_COMMIT, type: outcome, label: "PointerHealth engagement delivered on commitment",
+     serves: DO_DELIVERY, own_priority: high}
+  - {id: OBJ_PH_Q3, type: objective, label: "Ship the PointerHealth Q3 deliverable",
+     serves: OUT_CLIENT_COMMIT}
+  - {id: PRJ_PH, type: project, label: "PointerHealth Q3 data-model deliverable",
+     serves: OBJ_PH_Q3}
+  # TASK_PH = one half of the WEEK-CONFLICT. Hard deadline Fri 07-24, 10h, governed by hard principle.
+  - id: TASK_PH
+    type: task
+    label: "Finalize and hand off the PointerHealth Q3 deliverable"
+    serves: PRJ_PH
+    own_priority: high
+    status: open
+    estimate_hours: 10
+    current_planned_date: "2026-07-24"
+    governed_by: [PR_DEADLINE]
+    deadline_ref: C_DL_CLIENT
+
+  # ===== PU_FELIX branch =====
+  - {id: DO_PRODUCT, type: domain, label: "Felix product", serves: PU_FELIX}
+
+  - {id: OUT_RELIABILITY, type: outcome, label: "Felix reaches advisory-grade reliability",
+     serves: DO_PRODUCT, own_priority: high}
+  - {id: OBJ_ADVISORY, type: objective, label: "Advisory-grade EA by end of summer",
+     serves: OUT_RELIABILITY}
+  # PRJ_ROUTER vs PRJ_OBSERVABILITY = the TRADE-OFF. Both advance OUT_RELIABILITY, both need ~12h
+  # this month, but capacity forces choosing one this cycle. PR_CAPABILITY (soft) tips it toward
+  # the router BECAUSE the reliability floor is already stable. Not obvious from fields alone.
+  - {id: PRJ_ROUTER, type: project, label: "Build the EA decision-router",
+     serves: OBJ_ADVISORY, own_priority: high, estimate_hours_this_month: 12}
+  - {id: TASK_ROUTER, type: task, label: "Router intent-library MVP",
+     serves: PRJ_ROUTER, own_priority: high, status: open, estimate_hours: 12}
+  - {id: PRJ_OBSERVABILITY, type: project, label: "Harden the observability substrate",
+     serves: OBJ_ADVISORY, own_priority: high, estimate_hours_this_month: 12}
+  - {id: TASK_OBSERVABILITY, type: task, label: "Close the last observability gaps",
+     serves: PRJ_OBSERVABILITY, own_priority: high, status: open, estimate_hours: 12}
+
+  - {id: OUT_DEMO, type: outcome, label: "Felix EA milestone demo lands well",
+     serves: DO_PRODUCT, own_priority: high}
+  - {id: OBJ_DEMO, type: objective, label: "Demonstrate the EA arc end-to-end",
+     serves: OUT_DEMO}
+  - {id: PRJ_DEMO, type: project, label: "EA milestone demo", serves: OBJ_DEMO}
+  # TASK_DEMO = the OTHER half of the WEEK-CONFLICT. Same Friday, 8h, DIFFERENT purpose (PU_FELIX).
+  - id: TASK_DEMO
+    type: task
+    label: "Prepare and run the Felix EA milestone demo"
+    serves: PRJ_DEMO
+    own_priority: high
+    status: open
+    estimate_hours: 8
+    current_planned_date: "2026-07-24"
+    deadline_ref: C_DL_DEMO
+
+  # ===== PU_HEALTH branch =====
+  - {id: DO_HEALTH, type: domain, label: "Health & energy", serves: PU_HEALTH}
+  - {id: OUT_ENERGY, type: outcome, label: "Sustainable energy and focus",
+     serves: DO_HEALTH, own_priority: medium}
+  - {id: OBJ_ROUTINE, type: objective, label: "Consistent exercise and sleep routine",
+     serves: OUT_ENERGY}
+  - {id: PRJ_HABITS, type: project, label: "Daily health habits", serves: OBJ_ROUTINE}
+  - {id: TASK_HABITS, type: task, label: "Maintain the daily exercise + sleep habit",
+     serves: PRJ_HABITS, own_priority: medium, status: recurring, hours_per_week: 5,
+     governed_by: [PR_HEALTH]}
+
+# --- Principle scoping (which principle governs which area) ---
+principle_edges:
+  - {principle: PR_DEADLINE,   governs: TASK_PH}
+  - {principle: PR_CAPABILITY, governs: OBJ_ADVISORY}   # tips the router/observability trade-off
+  - {principle: PR_HEALTH,     governs: PU_HEALTH}
+
+# --- NOTE ON WHAT IS DELIBERATELY ABSENT ---
+# No CONFLICTS_WITH / TRADES_OFF edges anywhere. The week-conflict (TASK_PH + TASK_DEMO vs C_CAP),
+# the trade-off (PRJ_ROUTER vs PRJ_OBSERVABILITY under PR_CAPABILITY), and the chronic-defer risk
+# (TASK_POSITIONING) must be INFERRED. The reasoner is scored against oracle.yaml.

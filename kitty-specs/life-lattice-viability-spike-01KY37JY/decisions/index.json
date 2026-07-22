@@ -1,0 +1,30 @@
+{
+  "entries": [
+    {
+      "created_at": "2026-07-21T21:10:46.080679Z",
+      "decision_id": "01KY388M20BYZZNPPXK74BJ80W",
+      "final_answer": "A/B compare graph-retrieval-mediated reasoning vs flat-context-dump baseline on identical seeded data. Go-evidence: graph path matches flat quality (no signal lost) AND offers the scale path flat cannot. Findings must explicitly state that graph-necessity-at-scale is a design argument the small-scale spike can only partially probe.",
+      "input_key": "graph_value_isolation",
+      "mission_id": "01KY37JYB0K4DS5D1TF1YH80BK",
+      "mission_slug": "life-lattice-viability-spike-01KY37JY",
+      "opened_by": "cli",
+      "options": [
+        "AB-compare graph-retrieval vs flat-dump",
+        "Graph-retrieval only",
+        "LLM full-context dump only"
+      ],
+      "origin_flow": "plan",
+      "other_answer": false,
+      "question": "How should the spike ensure Q2 tests the temporal graph's value, not just an LLM reading dumped nodes?",
+      "rationale": null,
+      "resolved_at": "2026-07-21T21:11:56.102031Z",
+      "resolved_by": null,
+      "slot_key": "plan.methodology.graph-value-isolation",
+      "status": "resolved",
+      "step_id": null,
+      "summary_json": null
+    }
+  ],
+  "mission_id": "01KY37JYB0K4DS5D1TF1YH80BK",
+  "version": 1
+}
