@@ -5,7 +5,7 @@ audience: agents_and_humans
 status: approved
 created: 2026-05-27
 last_validated: 2026-05-27
-last_updated: '2026-05-27'
+last_updated: '2026-07-22'
 version: v1.0
 owners: [kgale]
 ---
@@ -297,6 +297,32 @@ The audit writes to the same `drift-events.jsonl` that the doc-audit
 driver reads. A baseline reset itself does **not** emit drift events
 (the audit sees no prior baseline to diff against). New drift events
 only fire on subsequent real changes.
+
+## Secrets provisioning (agent rule + standing test key)
+
+Two conventions keep API keys out of shell history and keep production out of testing.
+
+**1. NEVER provision a secret with `echo` or an inline literal — this is an agent rule.**
+Any command that puts a secret *value on the command line* — `echo 'sk-…' > file`, `export KEY=sk-…`,
+etc. — writes the secret into `~/.bash_history` in cleartext. An earlier session's
+`echo 'sk-ant-…' > .../secrets/anthropic` did exactly this and exposed the OpenClaw **production**
+Anthropic key (found + scrubbed 2026-07-22; the key still had to be rotated — scrubbing history does
+not revoke it). **An agent must never hand a user an `echo`/inline-literal command for a secret.**
+Read the value from stdin so it never becomes a process argument:
+
+```bash
+sudo install -o claude -g claude -m 600 /dev/stdin /home/claude/.config/felix/<name>.env <<< 'ANTHROPIC_API_KEY=sk-ant-…'
+```
+
+(The here-string is consumed by the shell before `install` runs, so the value is not an argv entry in
+history.) After any spike teardown, verify no stray reference remains: `grep -c 'sk-ant' ~/.bash_history`.
+
+**2. Use a dedicated test/dev key — never the production key — for spikes and tests.**
+Testing runs against a separate Anthropic **Workspace** (its own key + a spend cap) so billing, rate
+limits, and rotation are isolated from production; if a test key leaks it rotates with zero prod impact.
+The standing test key lives at **`~/.config/felix/anthropic-test.env`** on office2 (claude user, `0600`).
+Spikes source it (`set -a; . ~/.config/felix/anthropic-test.env; set +a`) instead of provisioning a key
+ad-hoc each run. Related: kg-automation #850 (throwaway-sandbox carve-out).
 
 ## Related documents
 
