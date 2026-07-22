@@ -1,0 +1,38 @@
+- Available focused deep-work capacity is about 15 hours per week. This is a hard limit on how much work can happen in any one week.
+- PointerHealth Q3 deliverable is due Fri 2026-07-24 (committed to the client).
+- Felix EA milestone demo is scheduled for Fri 2026-07-24.
+- Principle (hard): Never miss a committed client deadline — client reputation is the practice's foundation.
+- Principle (soft): When the reliability floor is stable, prefer capability progress over further polish.
+- Principle (soft): Protect the health baseline; don't let work crowd out sleep and exercise.
+- Purpose: Run a sustainable consulting practice.
+- Purpose: Ship Felix as a durable product and moat.
+- Purpose: Sustain personal energy, health, and focus.
+- Domain: 'Client delivery'. It serves / is part of 'Run a sustainable consulting practice'.
+- Outcome: 'Consulting pipeline stays full through 2026'. It serves / is part of 'Client delivery'. Its own stated priority is high.
+- Objective: 'Land 2 new retainer clients by Q4'. It serves / is part of 'Consulting pipeline stays full through 2026'.
+- Project: 'Intentional LLC positioning + marketing page'. It serves / is part of 'Land 2 new retainer clients by Q4'.
+- Task: 'Write and publish the Intentional LLC positioning page'. It serves / is part of 'Intentional LLC positioning + marketing page'. Its own stated priority is medium. It takes about 6 hours. It is currently planned for 2026-07-15.
+- Outcome: 'PointerHealth engagement delivered on commitment'. It serves / is part of 'Client delivery'. Its own stated priority is high.
+- Objective: 'Ship the PointerHealth Q3 deliverable'. It serves / is part of 'PointerHealth engagement delivered on commitment'.
+- Project: 'PointerHealth Q3 data-model deliverable'. It serves / is part of 'Ship the PointerHealth Q3 deliverable'.
+- Task: 'Finalize and hand off the PointerHealth Q3 deliverable'. It serves / is part of 'PointerHealth Q3 data-model deliverable'. Its own stated priority is high. It takes about 10 hours. It is currently planned for 2026-07-24. It has a fixed calendar deadline. It is governed by principle(s): PR_DEADLINE.
+- Domain: 'Felix product'. It serves / is part of 'Ship Felix as a durable product and moat'.
+- Outcome: 'Felix reaches advisory-grade reliability'. It serves / is part of 'Felix product'. Its own stated priority is high.
+- Objective: 'Advisory-grade EA by end of summer'. It serves / is part of 'Felix reaches advisory-grade reliability'.
+- Project: 'Build the EA decision-router'. It serves / is part of 'Advisory-grade EA by end of summer'. Its own stated priority is high. It needs about 12 hours of work this month.
+- Task: 'Router intent-library MVP'. It serves / is part of 'Build the EA decision-router'. Its own stated priority is high. It takes about 12 hours.
+- Project: 'Harden the observability substrate'. It serves / is part of 'Advisory-grade EA by end of summer'. Its own stated priority is high. It needs about 12 hours of work this month.
+- Task: 'Close the last observability gaps'. It serves / is part of 'Harden the observability substrate'. Its own stated priority is high. It takes about 12 hours.
+- Outcome: 'Felix EA milestone demo lands well'. It serves / is part of 'Felix product'. Its own stated priority is high.
+- Objective: 'Demonstrate the EA arc end-to-end'. It serves / is part of 'Felix EA milestone demo lands well'.
+- Project: 'EA milestone demo'. It serves / is part of 'Demonstrate the EA arc end-to-end'.
+- Task: 'Prepare and run the Felix EA milestone demo'. It serves / is part of 'EA milestone demo'. Its own stated priority is high. It takes about 8 hours. It is currently planned for 2026-07-24. It has a fixed calendar deadline.
+- Domain: 'Health & energy'. It serves / is part of 'Sustain personal energy, health, and focus'.
+- Outcome: 'Sustainable energy and focus'. It serves / is part of 'Health & energy'. Its own stated priority is medium.
+- Objective: 'Consistent exercise and sleep routine'. It serves / is part of 'Sustainable energy and focus'.
+- Project: 'Daily health habits'. It serves / is part of 'Consistent exercise and sleep routine'.
+- Task: 'Maintain the daily exercise + sleep habit'. It serves / is part of 'Daily health habits'. Its own stated priority is medium. It is governed by principle(s): PR_HEALTH.
+- The task 'Write and publish the Intentional LLC positioning page' was first scheduled for 2026-03-15.
+- The task 'Write and publish the Intentional LLC positioning page' was rescheduled again: pushed from 2026-03-15 to 2026-04-10. This is deferral number 2.
+- The task 'Write and publish the Intentional LLC positioning page' was rescheduled again: pushed from 2026-04-10 to 2026-05-20. This is deferral number 3.
+- The task 'Write and publish the Intentional LLC positioning page' was rescheduled again: pushed from 2026-05-20 to 2026-07-15. This is deferral number 4.

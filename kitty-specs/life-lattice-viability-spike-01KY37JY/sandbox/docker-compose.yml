@@ -9,7 +9,9 @@ name: lattice-spike
 
 services:
   falkordb:
-    image: falkordb/falkordb:latest        # v4.2.2 lacks relationship full-text search graphiti needs; pin the resolved version after verifying
+    # Pinned by digest (resolved from :latest, graph module ver 42001). v4.2.2 lacked relationship
+    # full-text search that graphiti's hybrid search needs.
+    image: falkordb/falkordb@sha256:9042fdc4e53f5390ca5a3993aa71506523970efb40ffb9a98e6a4b1a9a4f8862
     container_name: lattice-spike-falkordb
     restart: "no"                            # throwaway — never auto-restart
     ports:
