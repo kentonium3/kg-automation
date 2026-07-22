@@ -12,7 +12,7 @@
 # all preserved exactly from the original `docker run` invocation.
 services:
   vikunja:
-    image: vikunja/vikunja:0.24.6
+    image: vikunja/vikunja:2.4.0
     container_name: vikunja
     restart: unless-stopped
     ports:
