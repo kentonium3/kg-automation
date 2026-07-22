@@ -23,15 +23,13 @@ if [[ ! -f "${PACKAGE_REPO_PATH}/liveness.py" ]]; then
   echo "       Did 'git pull origin main' run successfully?" >&2
   exit 1
 fi
-if [[ ! -x "/home/linuxbrew/.linuxbrew/bin/gog" ]]; then
-  echo "ERROR: gog binary not found at /home/linuxbrew/.linuxbrew/bin/gog" >&2
-  echo "       See docs/runbooks/google-workspace-ops.md for setup." >&2
-  exit 1
-fi
-if [[ ! -f "/data/services/openclaw/secrets/openclaw-gateway.env" ]]; then
-  echo "ERROR: openclaw-gateway env file missing at /data/services/openclaw/secrets/openclaw-gateway.env" >&2
-  exit 1
-fi
+# NOTE (#846): the gog binary precheck and the openclaw-gateway.env EnvironmentFile
+# check were removed here. The liveness runner is credential-generic as of #845 —
+# its probes (e.g. calendar_helper --self-check) need neither the gog binary nor
+# GOG_KEYRING_BACKEND/openclaw-gateway.env. Keeping those prechecks would let a
+# gog decommission (#629) or a gateway-env path change fail this deploy before the
+# probe cycle + heartbeat run — reintroducing the exact 'unknown'/paging failure
+# #845 fixed, from the environment side.
 
 echo ">>> Pulling latest repo state"
 git -C "${REPO_ROOT}" pull origin main
