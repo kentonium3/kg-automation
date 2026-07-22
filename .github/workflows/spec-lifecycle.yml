@@ -111,7 +111,7 @@ jobs:
             }
             core.setOutput('skip', 'false');
 
-      - name: Add spec pending and comment
+      - name: Add spec pending
         if: steps.check.outputs.skip != 'true'
         uses: actions/github-script@v8
         with:
@@ -133,12 +133,9 @@ jobs:
                 name: 'spec: brief'
               }).catch(() => {});
             }
-
-            // Post reminder comment
-            await github.rest.issues.createComment({
-              owner, repo, issue_number,
-              body: `This issue was promoted to ${context.payload.label.name}. Before it can enter the spec-kitty workflow, the issue body needs to meet the [template standard](/.github/ISSUE_TEMPLATE/feature.md).\n\nWhen the body is complete, swap \`spec: pending\` → \`spec: ready\`.`
-            });
+            // Note: the "needs formalization" reminder comment was intentionally
+            // removed — the spec: pending label alone signals the state; the
+            // comment only generated notification email noise (per operator).
 
   spec-ready-cleanup:
     # When spec: ready is added, remove spec: pending and spec: brief
