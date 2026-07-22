@@ -307,15 +307,24 @@ Any command that puts a secret *value on the command line* — `echo 'sk-…' > 
 etc. — writes the secret into `~/.bash_history` in cleartext. An earlier session's
 `echo 'sk-ant-…' > .../secrets/anthropic` did exactly this and exposed the OpenClaw **production**
 Anthropic key (found + scrubbed 2026-07-22; the key still had to be rotated — scrubbing history does
-not revoke it). **An agent must never hand a user an `echo`/inline-literal command for a secret.**
-Read the value from stdin so it never becomes a process argument:
+not revoke it). **An agent must never hand a user an `echo`/inline-literal command for a secret — and a here-string
+(`cmd <<< 'sk-…'`) is NOT a safe substitute.** Bash records the *entire command line*, including the
+here-string, into `~/.bash_history` exactly like `echo` does. (An earlier version of this runbook wrongly
+recommended `install /dev/stdin <<< '…'`; corrected 2026-07-22 after it was shown to expose the value.)
+The only safe method keeps the value **off the command line entirely** — capture an interactive paste
+into a variable with `read -rs`, then write it:
 
 ```bash
-sudo install -o claude -g claude -m 600 /dev/stdin /home/claude/.config/felix/<name>.env <<< 'ANTHROPIC_API_KEY=sk-ant-…'
+# The recorded command line holds only $SECRET, never the value. Paste at the silent prompt, press Enter.
+read -rs SECRET
+printf '%s\n' "$SECRET" | sudo -u claude tee /path/to/secret-file >/dev/null   # sudo prompts on the tty
+unset SECRET
 ```
 
-(The here-string is consumed by the shell before `install` runs, so the value is not an argv entry in
-history.) After any spike teardown, verify no stray reference remains: `grep -c 'sk-ant' ~/.bash_history`.
+**Do not** use a bare interactive `tee`/`install /dev/stdin` (paste-then-Ctrl-D): those truncate the
+file on open, so if the paste doesn't register before EOF the file is silently zeroed (this happened
+2026-07-22 and briefly emptied the OpenClaw key file). Capturing with `read -rs` first sidesteps that
+race. After any secret handling, verify no stray reference remains: `grep -c 'sk-ant' ~/.bash_history`.
 
 **2. Use a dedicated test/dev key — never the production key — for spikes and tests.**
 Testing runs against a separate Anthropic **Workspace** (its own key + a spend cap) so billing, rate
