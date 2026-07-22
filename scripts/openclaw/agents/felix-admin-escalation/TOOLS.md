@@ -11,14 +11,17 @@
 
 ### Query overdue tasks
 
+**`/tasks/all` returns HTTP 400 (code 2004) on Vikunja 2.4.0+** — a v1-layer
+regression (#853). Do NOT use it. Query per-project instead:
+
 ```
-GET /api/v1/tasks/all?sort_by=due_date&order_by=asc
+GET /api/v1/projects/{id}/tasks?filter=done = false && priority >= 2&sort_by=due_date&order_by=asc&per_page=50
 ```
 
-Then filter in-agent: `done = false`, `due_date < today`,
-`priority >= 2`, `project_id NOT IN (13)`.
-
-Alternatively, query per-project for each in-scope project.
+Enumerate in-scope projects via `GET /api/v1/projects` (skip Habits/13, which
+is out of escalation scope), page each project, then filter in-agent for
+`due_date < today` and merge the results across projects. (URL-encode filter
+spaces/operators.)
 
 ### Mark task done
 

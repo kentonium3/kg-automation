@@ -185,9 +185,10 @@ Before structuring any task, check whether it relates to an active goal.
 ### Procedure
 
 1. Resolve the Goals project by name via `GET /projects` (never hardcode the ID).
-2. Fetch all active goals:
+2. Fetch all active goals (project-scoped — `/tasks/all` returns HTTP 400 on
+   Vikunja 2.4.0+, #853; put the project id in the PATH, not the filter):
    ```
-   GET /tasks/all?filter=done%20%3D%20false%20%26%26%20project_id%20%3D%20{GOALS_PROJECT_ID}&sort_by=due_date&order_by=asc
+   GET /projects/{GOALS_PROJECT_ID}/tasks?filter=done%20%3D%20false&sort_by=due_date&order_by=asc
    ```
 3. For each goal, compare the task content (title, description, context signals)
    against the goal's title and description.

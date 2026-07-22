@@ -299,18 +299,25 @@ Do not query a "Goals" project by name or id.
 
 ### Ad-Hoc Queries
 
-Use `GET /tasks/all` with query parameters to filter tasks:
+**Do NOT use `GET /tasks/all`** — it returns HTTP 400 (code 2004, "Invalid
+model provided") on Vikunja 2.4.0+ for every param shape (a v1-layer
+regression, #853). Query **per-project** instead — the project id goes in the
+PATH, not the filter:
 
 ```bash
 curl -s -H "Authorization: Bearer $(cat /data/services/openclaw/secrets/vikunja-api)" \
-  "https://office2.tail0f5f56.ts.net/api/v1/tasks/all?filter=FILTER_EXPRESSION&sort_by=FIELD&order_by=ORDER&per_page=50"
+  "https://office2.tail0f5f56.ts.net/api/v1/projects/PROJECT_ID/tasks?filter=FILTER_EXPRESSION&sort_by=FIELD&order_by=ORDER&per_page=50"
 ```
 
-**Filter syntax** (URL-encode spaces and operators):
+For a query spanning **all** projects, enumerate `GET /projects` first, then
+page `GET /projects/{id}/tasks` for each project and merge/sort in-agent (this
+is what the deterministic helpers' `VikunjaClient.list_all_tasks()` does).
+
+**Filter syntax** (URL-encode spaces and operators; omit `project_id` — it is
+implied by the path):
 - `done = false` — incomplete tasks
-- `project_id = 13` — tasks in a specific project (13 = Habits, a real project)
 - `due_date < 2026-04-01T00:00:00Z` — tasks due before a date
-- Combine with `&&`: `done = false && project_id = 13`
+- Combine with `&&`: `done = false && priority >= 2`
 
 **Sort options**:
 - `sort_by=due_date&order_by=asc` — by due date, earliest first
@@ -446,5 +453,5 @@ error explaining what is needed. Do not attempt partial execution.
 
 1. Check health
 2. Resolve Goals project ID by name
-3. Query: `GET /tasks/all?filter=done = false && project_id = {goals_id}&sort_by=due_date&order_by=asc`
+3. Query (project-scoped — `/tasks/all` is broken on Vikunja 2.4.0+, #853): `GET /projects/{goals_id}/tasks?filter=done = false&sort_by=due_date&order_by=asc`
 4. Present results sorted by due date with title, deadline, and labels
