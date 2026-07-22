@@ -67,6 +67,14 @@ def cadence_alert_body(
     cycle_date: date,
 ) -> str:
     days_remaining = (boundary - cycle_date).days
+    # #852: when the credential declares a hard `expires_at`, surface it so the
+    # reader can see WHY the warning boundary is where it is — the boundary is
+    # the earlier of the review-cadence date and this hard expiry.
+    expiry_line = (
+        f"**Hard expiry (`expires_at`)**: **{credential.expires_at.isoformat()}**\n"
+        if credential.expires_at is not None
+        else ""
+    )
     return (
         f"**Credential**: `{credential.name}` (`{credential.type or 'unspecified'}`)\n"
         f"**Scope**: {credential.scope or '—'}\n"
@@ -74,7 +82,9 @@ def cadence_alert_body(
         f"**Used by**: {_used_by_str(credential)}\n\n"
         f"**Review cadence**: `{credential.review_cadence}` — last reviewed "
         f"**{credential.last_reviewed.isoformat() if credential.last_reviewed else '—'}**\n"
-        f"**Cadence boundary**: **{boundary.isoformat()}** (in {days_remaining} days)\n"
+        f"{expiry_line}"
+        f"**Warning boundary** (earlier of review cadence + hard expiry): "
+        f"**{boundary.isoformat()}** (in {days_remaining} days)\n"
         f"**Vikunja task**: #{vikunja_task_id} (due {(boundary - _timedelta_days(7)).isoformat()})\n\n"
         "---\n\n"
         "### Rotation procedure\n\n"

@@ -83,6 +83,7 @@ class Credential:
     host: Optional[str] = None
     last_reviewed: Optional[date] = None
     created_date: Optional[date] = None
+    expires_at: Optional[date] = None
     liveness_probe: Optional[LivenessProbeConfig] = None
 
 
@@ -136,6 +137,18 @@ def _validate_and_construct(
         )
 
     created_date = _parse_iso_date(entry.get("created_date"))
+
+    # expires_at is the credential's REAL hard-expiry date (#852). It is
+    # optional; when present it must be a parseable ISO-8601 date. Unlike
+    # last_reviewed it drives no anchor requirement — it only tightens the
+    # warning boundary (see cadence.compute_effective_boundary).
+    expires_at_raw = entry.get("expires_at")
+    expires_at = _parse_iso_date(expires_at_raw)
+    if expires_at_raw is not None and expires_at is None:
+        return None, ManifestQualityIssue(
+            credential_name=name,
+            reason=f"expires_at is not a parseable ISO-8601 date: {expires_at_raw!r}",
+        )
 
     if cadence in FIXED_INTERVAL_CADENCES:
         # Need an anchor for boundary computation.
@@ -273,6 +286,7 @@ def _validate_and_construct(
         host=entry.get("host") if isinstance(entry.get("host"), str) else None,
         last_reviewed=last_reviewed,
         created_date=created_date,
+        expires_at=expires_at,
         liveness_probe=liveness_probe,
     )
     return cred, None

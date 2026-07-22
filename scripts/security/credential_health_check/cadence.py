@@ -44,6 +44,32 @@ def compute_boundary(credential: Credential) -> Optional[date]:
     return anchor + CADENCE_INTERVALS[credential.review_cadence]
 
 
+def compute_effective_boundary(credential: Credential) -> Optional[date]:
+    """Return the EARLIER of the review-cadence boundary and the hard `expires_at`.
+
+    This is the boundary the warning window should be measured against (#852). A
+    credential whose real expiry (`expires_at`) is sooner than its review-cadence
+    boundary must be warned ahead of the *expiry* — otherwise it silently lapses
+    while the cadence-only boundary still sits far in the future (e.g. an annual
+    review boundary a year out while the key actually dies next month).
+
+    Behaviour:
+    - cadence boundary AND expires_at present  → the earlier of the two.
+    - only a cadence boundary (no expires_at)  → the cadence boundary (unchanged
+      pre-#852 behaviour).
+    - only expires_at (non-fixed-interval cred) → expires_at.
+    - neither                                   → None.
+    """
+    candidates = [
+        d
+        for d in (compute_boundary(credential), credential.expires_at)
+        if d is not None
+    ]
+    if not candidates:
+        return None
+    return min(candidates)
+
+
 def is_within_warning_window(
     boundary: date,
     today: date,

@@ -188,19 +188,50 @@ def whatsapp_session_signal(
                 summary=f"whatsapp: flag `{required_flag}` missing",
             )
 
-    # Check in:/out: durations.
-    for direction in ("in", "out"):
-        prefix = f"{direction}:"
-        token = next((p for p in parts if p.startswith(prefix)), None)
-        if token is None:
+    # health:<state> — when openclaw emits it, the session self-reports its
+    # health. Anything other than `healthy` is a real liveness failure (#854).
+    health_token = next((p for p in parts if p.startswith("health:")), None)
+    if health_token is not None:
+        health_state = health_token[len("health:"):].strip()
+        if health_state != "healthy":
             return ActivitySignalFailure(
                 credential_name=credential.name,
                 reason=(
-                    f"WhatsApp default channel `{prefix}<duration>` token missing in "
-                    f"openclaw status output. Full line: {channel_line!r}"
+                    f"WhatsApp default channel reports `health:{health_state}`, "
+                    f"expected `health:healthy`. Full line: {channel_line!r}"
                 ),
-                summary=f"whatsapp: {prefix} token missing",
+                summary=f"whatsapp: health={health_state}",
             )
+
+    # Freshness of the directional + transport activity timestamps.
+    #
+    # openclaw OMITS the `in:` token whenever there has been no recent *inbound*
+    # message (and likewise `out:` with no recent outbound). A MISSING token
+    # therefore means "no activity in that direction", NOT staleness — a
+    # healthy-but-quiet session (linked+running+connected, health:healthy,
+    # fresh transport:) must not trip a false expiry alert (#854, closes the
+    # #851 class). So evaluate ONLY tokens that are present; a present duration
+    # beyond the 14-day threshold is a genuine expiry signal.
+    #
+    # `transport:` is the transport-layer heartbeat — the most reliable liveness
+    # timestamp because it is independent of message traffic — so it is parsed
+    # and checked the same way when present.
+    #
+    # Design note (renata MED-2): a MISSING `transport:` is deliberately NOT a
+    # failure. openclaw only began emitting the token in a newer status format
+    # (the older healthy fixtures omit it entirely), so enforcing its presence
+    # would false-positive on any session reporting the older shape. For a quiet
+    # session the hard liveness gate is therefore the bare flags
+    # (linked/running/connected) plus `health:` — openclaw drops `connected` /
+    # flips `health` when a session actually dies. This matches the expected
+    # behavior in #854: "healthy if linked+connected present and transport/out
+    # fresh; flag only on a present stale duration, a missing liveness flag, or
+    # health != healthy."
+    for direction in ("in", "out", "transport"):
+        prefix = f"{direction}:"
+        token = next((p for p in parts if p.startswith(prefix)), None)
+        if token is None:
+            continue  # non-fatal: an absent timestamp is not staleness (#854)
         duration_str = token[len(prefix):].strip()
         duration = parse_duration(duration_str)
         if duration is None:

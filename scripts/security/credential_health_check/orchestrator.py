@@ -13,7 +13,11 @@ from typing import Optional
 
 from scripts.common import vikunja_refs
 
-from .cadence import compute_boundary, is_fixed_interval_cadence, is_within_warning_window
+from .cadence import (
+    compute_effective_boundary,
+    is_fixed_interval_cadence,
+    is_within_warning_window,
+)
 from .github_writer import (
     GitHubWriteError,
     MANIFEST_QUALITY_TITLE_PREFIX,
@@ -111,9 +115,20 @@ def run_cycle(
         result.credentials_evaluated += 1
 
         if not liveness_only:
-            # Branch A: fixed-interval cadence.
-            if is_fixed_interval_cadence(cred.review_cadence):
-                boundary = compute_boundary(cred)
+            # Branch A: cadence- or expiry-driven boundary. The warning boundary
+            # is the EARLIER of the review-cadence boundary and the credential's
+            # hard `expires_at` (#852) — so a key whose real expiry precedes its
+            # cadence review date is warned ahead of the expiry, not silently
+            # left to lapse. Entered for any fixed-interval cadence, AND for any
+            # credential that carries `expires_at` even under a non-fixed cadence
+            # (so a future on-revocation/n-a cred with a hard expiry is still
+            # warned). Monitor-activity creds are excluded — they are handled by
+            # their signal reader (Branch B), never here.
+            if is_fixed_interval_cadence(cred.review_cadence) or (
+                cred.expires_at is not None
+                and cred.name not in MONITOR_ACTIVITY_READERS
+            ):
+                boundary = compute_effective_boundary(cred)
                 if boundary is None:
                     _log(
                         logger,

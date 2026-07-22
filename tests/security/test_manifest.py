@@ -289,3 +289,32 @@ def test_liveness_probe_non_object_raises(tmp_path, bad):
     cred_dict = {**_BASE_CRED, "liveness_probe": bad}
     with pytest.raises(ManifestQualityError, match="must be an object"):
         read_manifest(_write_manifest(tmp_path, cred_dict))
+
+
+# ---------------------------------------------------------------------------
+# expires_at parsing (#852)
+# ---------------------------------------------------------------------------
+
+
+def test_expires_at_parsed_when_valid(tmp_path):
+    cred_dict = {**_BASE_CRED, "expires_at": "2026-08-21"}
+    well_formed, malformed = read_manifest(_write_manifest(tmp_path, cred_dict))
+    assert malformed == []
+    assert len(well_formed) == 1
+    assert well_formed[0].expires_at is not None
+    assert well_formed[0].expires_at.isoformat() == "2026-08-21"
+
+
+def test_expires_at_absent_is_none(tmp_path):
+    cred_dict = {**_BASE_CRED}  # no expires_at
+    well_formed, _ = read_manifest(_write_manifest(tmp_path, cred_dict))
+    assert well_formed[0].expires_at is None
+
+
+def test_expires_at_unparseable_is_malformed(tmp_path):
+    cred_dict = {**_BASE_CRED, "expires_at": "not-a-date"}
+    well_formed, malformed = read_manifest(_write_manifest(tmp_path, cred_dict))
+    assert well_formed == []
+    assert len(malformed) == 1
+    assert malformed[0].credential_name == _BASE_CRED["name"]
+    assert "expires_at" in malformed[0].reason
