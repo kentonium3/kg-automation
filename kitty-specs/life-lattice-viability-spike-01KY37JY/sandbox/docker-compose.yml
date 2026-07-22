@@ -9,7 +9,7 @@ name: lattice-spike
 
 services:
   falkordb:
-    image: falkordb/falkordb:v4.2.2        # pinned; not :latest
+    image: falkordb/falkordb:latest        # v4.2.2 lacks relationship full-text search graphiti needs; pin the resolved version after verifying
     container_name: lattice-spike-falkordb
     restart: "no"                            # throwaway — never auto-restart
     ports:
