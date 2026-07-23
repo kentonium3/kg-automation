@@ -21,9 +21,11 @@ subtasks:
 - T009
 phase: Phase 1 - Migration
 assignee: ''
-agent: claude
+agent: "claude:sonnet-5:python-pedro:implementer"
 agent_profile: python-pedro
 role: implementer
+shell_pid: "45025"
+shell_pid_created_at: "1784845073.699929"
 history:
 - at: '2026-07-23T21:04:52Z'
   actor: system
@@ -166,3 +168,7 @@ memory (v1 `GET /tasks/all` → 400; use project-scoped reads — `list_all_task
 - Confirm no urllib remains in the three files; confirm the enumeration decision is explicit and
   tested; confirm `/info` suppression, cache-abort, dedup, and `cycle_error` classification are
   preserved with tests. Confirm exit codes unchanged.
+
+## Activity Log
+
+- 2026-07-23T22:18:07Z – claude:sonnet-5:python-pedro:implementer – shell_pid=45025 – Assigned agent via action command
