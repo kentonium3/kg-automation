@@ -24,9 +24,11 @@ subtasks:
 - T024
 phase: Phase 2 - Gate
 assignee: ''
-agent: claude
+agent: "claude:sonnet-5:python-pedro:implementer"
 agent_profile: python-pedro
 role: implementer
+shell_pid: "85351"
+shell_pid_created_at: "1784847680.091815"
 history:
 - at: '2026-07-23T21:04:52Z'
   actor: system
@@ -138,3 +140,7 @@ mission's acceptance gate proving the consolidation is complete and behavior-pre
 
 - Confirm the writer migration; run the SC-001 greps yourself; confirm the full suite is green and
   the default token is unchanged. This is the mission acceptance gate — be thorough.
+
+## Activity Log
+
+- 2026-07-23T23:01:37Z – claude:sonnet-5:python-pedro:implementer – shell_pid=85351 – Assigned agent via action command
