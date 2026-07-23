@@ -21,9 +21,11 @@ subtasks:
 - T017
 phase: Phase 1 - Migration
 assignee: ''
-agent: claude
+agent: "claude:sonnet-5:python-pedro:implementer"
 agent_profile: python-pedro
 role: implementer
+shell_pid: "45337"
+shell_pid_created_at: "1784845116.939297"
 history:
 - at: '2026-07-23T21:04:52Z'
   actor: system
@@ -150,3 +152,7 @@ opposite ways, so it is the primary consumer of WP01's two update methods.
 
 - Confirm the correct update method per script; confirm the `repeat_after`-survives test and the
   narrow-POST-shape test both exist and pass; confirm error handling paths preserved.
+
+## Activity Log
+
+- 2026-07-23T22:19:15Z – claude:sonnet-5:python-pedro:implementer – shell_pid=45337 – Assigned agent via action command
