@@ -178,3 +178,4 @@ memory (v1 `GET /tasks/all` → 400; use project-scoped reads — `list_all_task
 - 2026-07-23T22:53:55Z – claude:sonnet-5:python-pedro:implementer – shell_pid=82438 – Started implementation via action command
 - 2026-07-23T22:57:17Z – claude:sonnet-5:python-pedro:implementer – shell_pid=82438 – Cycle 2/3 fix — task-page non-JSON-2xx = page-exhausted (silent break), restoring parity; /projects untouched; test renamed. 236 sync tests pass, flake8 exit 0. Commit f8c6ac50 lane-b.
 - 2026-07-23T22:57:44Z – claude:opus:reviewer-renata:reviewer – shell_pid=83822 – Started review via action command
+- 2026-07-23T23:00:56Z – user – shell_pid=83822 – Review passed (opus, cycle 2): task-page non-JSON-2xx parity restored; 236 tests pass. --skip-review-artifact-check per known spec-kitty #1817 (stale cycle-1 rejection artifact blocks cycle-2 approve).

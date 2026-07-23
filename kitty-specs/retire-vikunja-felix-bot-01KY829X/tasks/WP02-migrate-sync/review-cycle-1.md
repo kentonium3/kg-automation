@@ -7,6 +7,10 @@ reviewed_at: '2026-07-23T22:53:11Z'
 reviewer_agent: unknown
 verdict: rejected
 wp_id: WP02
+review_artifact_override_at: "2026-07-23T23:00:46Z"
+review_artifact_override_actor: "operator"
+review_artifact_override_wp_id: "WP02"
+review_artifact_override_reason: "Review passed (opus, cycle 2): task-page non-JSON-2xx parity restored; 236 tests pass. --skip-review-artifact-check per known spec-kitty #1817 (stale cycle-1 rejection artifact blocks cycle-2 approve)."
 ---
 
 # WP02 review feedback — cycle 1/3 (REJECT)
