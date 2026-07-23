@@ -21,11 +21,11 @@ subtasks:
 - T005
 phase: Phase 0 - Foundation
 assignee: ''
-agent: "claude:sonnet-5:python-pedro:implementer"
+agent: "claude:opus:reviewer-renata:reviewer"
 agent_profile: python-pedro
 role: implementer
-shell_pid: "37000"
-shell_pid_created_at: "1784843593.165933"
+shell_pid: "42194"
+shell_pid_created_at: "1784844563.858698"
 history:
 - at: '2026-07-23T21:04:52Z'
   actor: system
@@ -201,3 +201,4 @@ Known operations the consumers use (confirm by grep):
 - 2026-07-23T21:53:26Z – claude:sonnet-5:python-pedro:implementer – shell_pid=37000 – Assigned agent via action command
 - 2026-07-23T22:03:18Z – claude:sonnet-5:python-pedro:implementer – shell_pid=37000 – Blocked: move-task WP01 --to for_review fails with 'Illegal transition: planned -> for_review'. Implementation is complete and committed (3fb9d9b4); 'spec-kitty agent tasks status' and the kanban both show WP01 in Doing/in_progress, but move-task's internal resolution read status as 'planned' — command printed 'Using planning repo's kitty-specs/ on fix/860-retire-vikunja-felix-bot (worktree copy ignored)', i.e. it resolved status from the primary/target-branch checkout instead of the mission coordination branch/worktree, a stale-state/authority-confusion mismatch. Also saw a secondary anomaly on the same call: 'Pre-review regression gate: no_coverage — gate authorities unavailable — unverified: tests.architectural._gate_coverage is not importable'. Not working around either — surfacing to the orchestrating session per standing rules.
 - 2026-07-23T22:08:21Z – claude:sonnet-5:python-pedro:implementer – shell_pid=37000 – Ready for review — patch()+PATCH content-type, replace_task_fields (raw POST) + update_task_fields (read-modify-write preserving repeat_after), get_task, create_task_in_project, create_comment(PUT)/list_task_comments, VikunjaError.body captured but never in str/verbose_message; DEFAULT_TOKEN_PATH unchanged assertion. 73 client tests + 440 common suite pass; flake8 exit 0. Commit 3fb9d9b4 on lane-a.
+- 2026-07-23T22:09:39Z – claude:opus:reviewer-renata:reviewer – shell_pid=42194 – Started review via action command
