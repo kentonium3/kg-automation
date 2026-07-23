@@ -36,6 +36,12 @@ Result-JSON contract (the agent prompt is written against these shapes):
          "event_id": ..., "html_link": ..., "summary": ...,
          "start": <rfc3339 or YYYY-MM-DD>}
 
+    (The idempotent-hit keys described under the clarification shape below —
+    ``idempotent`` / ``time_change_applied`` / ``requested_start`` / ``note`` —
+    can also appear here: a same-key conversational retry idempotent-hits too,
+    though for a retry the requested time equals the existing one, so no
+    ``time_change_applied`` warning is added.)
+
   * created (clarification) — adds a best-effort ``cleanup`` block plus a
     top-level ``cleanup_ok`` (false => event created but the pending record /
     source note were not reconciled; the agent surfaces that to Kent)::
@@ -45,6 +51,15 @@ Result-JSON contract (the agent prompt is written against these shapes):
          "start": <rfc3339 or YYYY-MM-DD>,
          "cleanup": {"record_removed": bool, "note_marked": bool},
          "cleanup_ok": bool}
+
+    ``start`` is the calendar's ACTUAL event start. On an idempotent hit (#838)
+    — the helper matched an EXISTING event for this clarification instead of
+    creating a new one — the result also carries ``"idempotent": true``, and if
+    the newly-requested start differed from the existing event's start it adds
+    ``"time_change_applied": false``, ``"requested_start": <rfc3339>``, and a
+    human ``"note"``. The event is NOT moved; the agent must report the actual
+    ``start`` and, when ``time_change_applied`` is false, tell Kent the requested
+    reschedule did not land (never confirm a time the calendar does not hold).
 
   * needs_clarification (conversational)::
 
@@ -263,6 +278,12 @@ def _invoke_calendar_helper(
                 "status": "created",
                 "event_id": created.get("event_id", ""),
                 "html_link": created.get("html_link", ""),
+                # #838: carry the helper's idempotent flag and the event's ACTUAL
+                # start through the seam so the orchestrator can report the
+                # calendar's real time on an idempotent hit (never the merely
+                # -requested one). Absent on an old helper → benign defaults.
+                "idempotent": bool(created.get("idempotent", False)),
+                "actual_start": created.get("start", ""),
             }
         # Exit 0 but no parseable created line — treat as an error rather than
         # fabricate a success (#683).
@@ -590,7 +611,7 @@ def _create_from_payload(
     ``cleanup`` block).
     """
     summary = payload.get("summary", "")
-    start = _payload_start(payload)
+    requested_start = _payload_start(payload)
 
     create_result = _invoke_calendar_helper(payload, idempotency_key, account)
     if create_result.get("status") != "created":
@@ -610,21 +631,64 @@ def _create_from_payload(
 
     event_id = create_result.get("event_id", "")
     html_link = create_result.get("html_link", "")
+    idempotent = bool(create_result.get("idempotent", False))
+    actual_start = create_result.get("actual_start", "")
+    # #838: on an idempotent hit the helper returned an EXISTING event whose time
+    # may differ from what this reply just requested (the calendar was NOT moved).
+    # Report the calendar's ACTUAL start in that case — never the merely-requested
+    # time. A fresh (non-idempotent) create holds exactly the requested time, so
+    # keep reporting the requested value there (no behavior change — criterion #3).
+    reported_start = actual_start if (idempotent and actual_start) else requested_start
     result: dict = {
         "status": "created",
         "mode": mode,
         "event_id": event_id,
         "html_link": html_link,
         "summary": summary,
-        "start": start,
+        "start": reported_start,
     }
+    if idempotent:
+        result["idempotent"] = True
+        if not actual_start:
+            # Defensive (renata #838 Finding 2): an idempotent match whose actual
+            # start the helper did not surface (should not happen with the
+            # lockstep helper, and a Google event without a start is effectively
+            # impossible). Rather than silently confirm the merely-requested time,
+            # flag it so the agent tells Kent to verify the calendar.
+            result["note"] = (
+                "This clarification matched an existing calendar event, but its "
+                "actual start could not be confirmed from the helper response — "
+                "verify the event time on the calendar before treating it as set."
+            )
+        elif requested_start and requested_start != actual_start:
+            # The newly-requested time differs from the existing event's time, so
+            # this idempotent match did NOT change the calendar. Surface it
+            # explicitly so the agent never confirms a reschedule that didn't land
+            # (#838 — never silently confirm a time the calendar does not hold). We
+            # deliberately do NOT auto-move the event (the success criteria
+            # sanction "clearly states it did not"): the re-reply is reported
+            # honestly and the operator can issue an explicit reschedule.
+            # NOTE: this is a raw string compare of the payload's RFC3339 against
+            # Google's stored dateTime; the helper always emits offset-form
+            # dateTime that Google preserves identically, so a false "not applied"
+            # would require differently-spelled equal instants — and even then the
+            # direction is safe (we still report the true `start`), just an
+            # over-warn (renata #838 Finding 3).
+            result["time_change_applied"] = False
+            result["requested_start"] = requested_start
+            result["note"] = (
+                f"An event for this clarification already exists at {actual_start}; "
+                f"the newly-requested start {requested_start} was NOT applied "
+                f"(idempotent match). The calendar still holds {actual_start} — "
+                f"issue an explicit reschedule to move it."
+            )
     _invoke_log_action(
         AGENT,
         "routine",
         "calendar_event_created",
         summary or event_id,
         "created",
-        {"mode": mode, "event_id": event_id},
+        {"mode": mode, "event_id": event_id, "idempotent": idempotent},
     )
 
     if mode == "clarification":
