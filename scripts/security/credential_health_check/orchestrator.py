@@ -38,6 +38,7 @@ from .manifest import (
     ManifestUnreadableError,
     read_manifest,
 )
+from .reminders import process_expiry_reminder
 from .signals import MONITOR_ACTIVITY_READERS
 from .vikunja_writer import VikunjaWriteError, create_task, load_token
 
@@ -50,6 +51,7 @@ class CycleResult:
     cadence_alerts_filed: int = 0
     staleness_alerts_filed: int = 0
     liveness_alerts_filed: int = 0
+    expiry_reminders_pushed: int = 0
     alerts_deduped: int = 0
     manifest_quality_issue_filed: bool = False
     errors: list[str] = field(default_factory=list)
@@ -172,6 +174,15 @@ def run_cycle(
                             # _process_cadence_alert already logged. The cached state
                             # will remain None and subsequent credentials will retry.
                             pass
+                    # Ramping ntfy reminder ladder (#852 Part 2). Independent of the
+                    # once-filed Vikunja/GitHub artefact above: it re-rings at
+                    # 30/14/7/3/1d then daily-once-overdue via the felix-alert bus,
+                    # deduped per-rung / per-day by its own JSONL ledger. Runs even
+                    # when the GitHub issue already exists (that path deduped).
+                    if process_expiry_reminder(
+                        cred, boundary, today, dry_run=dry_run, logger=logger
+                    ):
+                        result.expiry_reminders_pushed += 1
 
             # Branch B: monitor-activity credentials.
             elif cred.name in MONITOR_ACTIVITY_READERS:
@@ -227,6 +238,7 @@ def run_cycle(
         cadence_filed=result.cadence_alerts_filed,
         staleness_filed=result.staleness_alerts_filed,
         liveness_filed=result.liveness_alerts_filed,
+        expiry_reminders_pushed=result.expiry_reminders_pushed,
         deduped=result.alerts_deduped,
         manifest_quality_filed=result.manifest_quality_issue_filed,
         errors=len(result.errors),
