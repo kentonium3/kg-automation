@@ -140,9 +140,9 @@ parity test (request-level **plus** domain/CLI boundary — see NFR-001).
   unchanged.
 - **Requirements**: FR-001, FR-003, NFR-002 (+ verifies SC-001/SC-004 for the mission).
 - **Subtasks**:
-  - [ ] T022 Migrate `security/credential_health_check/vikunja_writer.py` + parity (WP06)
-  - [ ] T023 SC-001 grep gate + full suite green (WP06)
-  - [ ] T024 SC-004 confirm default token unchanged; behavior-preserving overall (WP06)
+  - [x] T022 Migrate `security/credential_health_check/vikunja_writer.py` + parity (WP06)
+  - [x] T023 SC-001 grep gate + full suite green (WP06)
+  - [x] T024 SC-004 confirm default token unchanged; behavior-preserving overall (WP06)
 - **Dependencies**: WP01, WP02, WP03, WP04, WP05 (final gate needs every migration landed).
 - **Risks**: the gate must account for `sync/http.py`+`fetch.py` and the removed `_read_token()`;
   only admin/one-shot + docs may still reference the raw token.
