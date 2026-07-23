@@ -70,10 +70,10 @@ parity test (request-level **plus** domain/CLI boundary — see NFR-001).
   exit codes.
 - **Requirements**: FR-001, FR-003, NFR-001.
 - **Subtasks**:
-  - [ ] T006 Migrate `sync/http.py` onto `VikunjaClient` (WP02)
-  - [ ] T007 Migrate `sync/fetch.py` read algorithm (WP02)
-  - [ ] T008 Migrate `sync/cycle.py` driver; preserve `cycle_error` classification (WP02)
-  - [ ] T009 Sync parity + golden tests (WP02)
+  - [x] T006 Migrate `sync/http.py` onto `VikunjaClient` (WP02)
+  - [x] T007 Migrate `sync/fetch.py` read algorithm (WP02)
+  - [x] T008 Migrate `sync/cycle.py` driver; preserve `cycle_error` classification (WP02)
+  - [x] T009 Sync parity + golden tests (WP02)
 - **Dependencies**: WP01.
 - **Risks**: `list_all_tasks()` pages `GET /projects?page=…` whereas `fetch.py` does one unpaged
   `GET /projects` — either preserve the raw algorithm behind a sync path or consciously accept +
