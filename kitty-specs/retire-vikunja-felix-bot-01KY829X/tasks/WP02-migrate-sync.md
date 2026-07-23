@@ -172,3 +172,4 @@ memory (v1 `GET /tasks/all` → 400; use project-scoped reads — `list_all_task
 ## Activity Log
 
 - 2026-07-23T22:18:07Z – claude:sonnet-5:python-pedro:implementer – shell_pid=45025 – Assigned agent via action command
+- 2026-07-23T22:45:44Z – claude:sonnet-5:python-pedro:implementer – shell_pid=45025 – Ready for review — sync migrated: enumeration preserved (unpaged GET /projects, NOT list_all_tasks); http.py RETIRED (fetch.py uses client directly, cycle.py 0 changes); {}-vs-None closed at pagination guard + non-JSON-2xx→parse_error + /info best-effort, all with parity tests. tests/sync 243 pass; FULL REPO 5606 pass 0 fail; flake8 exit 0. Commit ecedd259 lane-b.
