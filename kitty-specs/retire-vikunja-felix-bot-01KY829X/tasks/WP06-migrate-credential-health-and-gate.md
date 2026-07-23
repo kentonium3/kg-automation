@@ -25,6 +25,8 @@ subtasks:
 phase: Phase 2 - Gate
 assignee: ''
 agent: claude
+agent_profile: python-pedro
+role: implementer
 history:
 - at: '2026-07-23T21:04:52Z'
   actor: system
