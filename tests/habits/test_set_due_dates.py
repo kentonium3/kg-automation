@@ -19,8 +19,6 @@ import json
 import urllib.error
 from unittest.mock import MagicMock, patch
 
-import pytest
-
 # scripts/habits/ is on sys.path via tests/habits/conftest.py
 import set_due_dates as sdd  # type: ignore  # noqa: E402
 
@@ -83,12 +81,12 @@ def test_validate_iso_eod_et_rejects_malformed():
 
 def test_happy_path_all_succeed(tmp_path, capsys):
     token = _fake_token_file(tmp_path)
-    with patch.object(sdd.urllib.request, "urlopen", return_value=_mock_ok_response()):
+    with patch("urllib.request.urlopen", return_value=_mock_ok_response()):
         rc = sdd.main([
             "--habit-ids", "100,101,102",
             "--iso-eod-et", VALID_ISO,
             "--vikunja-token-path", str(token),
-            "--vikunja-base-url", "http://test",
+            "--vikunja-base-url", "http://test/api/v1",
         ])
     out = capsys.readouterr().out
     assert rc == 0
@@ -109,12 +107,12 @@ def test_partial_failure_exit_1_with_succeeded_subset(tmp_path, capsys):
             raise _mock_http_error(500, "Internal Server Error")
         return _mock_ok_response()
 
-    with patch.object(sdd.urllib.request, "urlopen", side_effect=side_effect):
+    with patch("urllib.request.urlopen", side_effect=side_effect):
         rc = sdd.main([
             "--habit-ids", "100,101,102",
             "--iso-eod-et", VALID_ISO,
             "--vikunja-token-path", str(token),
-            "--vikunja-base-url", "http://test",
+            "--vikunja-base-url", "http://test/api/v1",
         ])
     out = capsys.readouterr().out
     assert rc == 1, f"partial-failure must exit 1; got {rc}"
@@ -128,15 +126,15 @@ def test_partial_failure_exit_1_with_succeeded_subset(tmp_path, capsys):
 
 def test_all_fail_exit_1_empty_succeeded(tmp_path, capsys):
     token = _fake_token_file(tmp_path)
-    with patch.object(
-        sdd.urllib.request, "urlopen",
+    with patch(
+        "urllib.request.urlopen",
         side_effect=_mock_http_error(500, "Server Error"),
     ):
         rc = sdd.main([
             "--habit-ids", "100,101",
             "--iso-eod-et", VALID_ISO,
             "--vikunja-token-path", str(token),
-            "--vikunja-base-url", "http://test",
+            "--vikunja-base-url", "http://test/api/v1",
         ])
     out = capsys.readouterr().out
     assert rc == 1
@@ -148,12 +146,12 @@ def test_all_fail_exit_1_empty_succeeded(tmp_path, capsys):
 def test_dry_run_makes_no_http_calls(tmp_path, capsys):
     """--dry-run MUST NOT call urllib.request.urlopen at all."""
     token = _fake_token_file(tmp_path)
-    with patch.object(sdd.urllib.request, "urlopen") as mock_urlopen:
+    with patch("urllib.request.urlopen") as mock_urlopen:
         rc = sdd.main([
             "--habit-ids", "100,101",
             "--iso-eod-et", VALID_ISO,
             "--vikunja-token-path", str(token),
-            "--vikunja-base-url", "http://test",
+            "--vikunja-base-url", "http://test/api/v1",
             "--dry-run",
         ])
         assert mock_urlopen.call_count == 0, (
@@ -174,12 +172,12 @@ def test_z_suffix_rejected_at_startup_no_http_calls(tmp_path, capsys):
     the bug fix is regressed.
     """
     token = _fake_token_file(tmp_path)
-    with patch.object(sdd.urllib.request, "urlopen") as mock_urlopen:
+    with patch("urllib.request.urlopen") as mock_urlopen:
         rc = sdd.main([
             "--habit-ids", "100",
             "--iso-eod-et", "2026-05-15T23:59:59Z",  # UTC Z suffix — must reject
             "--vikunja-token-path", str(token),
-            "--vikunja-base-url", "http://test",
+            "--vikunja-base-url", "http://test/api/v1",
         ])
         assert mock_urlopen.call_count == 0, (
             "Z-suffix rejection must happen BEFORE any HTTP setup"
@@ -196,7 +194,7 @@ def test_malformed_iso_rejected(tmp_path, capsys):
         "--habit-ids", "100",
         "--iso-eod-et", "garbage",
         "--vikunja-token-path", str(token),
-        "--vikunja-base-url", "http://test",
+        "--vikunja-base-url", "http://test/api/v1",
     ])
     captured = capsys.readouterr()
     assert rc == 2
@@ -210,19 +208,19 @@ def test_idempotency_same_input_same_output(tmp_path, capsys):
     introduces no non-determinism (e.g., timestamps, ordering).
     """
     token = _fake_token_file(tmp_path)
-    with patch.object(sdd.urllib.request, "urlopen", return_value=_mock_ok_response()):
+    with patch("urllib.request.urlopen", return_value=_mock_ok_response()):
         rc1 = sdd.main([
             "--habit-ids", "100,101",
             "--iso-eod-et", VALID_ISO,
             "--vikunja-token-path", str(token),
-            "--vikunja-base-url", "http://test",
+            "--vikunja-base-url", "http://test/api/v1",
         ])
         out1 = capsys.readouterr().out
         rc2 = sdd.main([
             "--habit-ids", "100,101",
             "--iso-eod-et", VALID_ISO,
             "--vikunja-token-path", str(token),
-            "--vikunja-base-url", "http://test",
+            "--vikunja-base-url", "http://test/api/v1",
         ])
         out2 = capsys.readouterr().out
     assert rc1 == rc2 == 0
@@ -238,7 +236,7 @@ def test_empty_habit_ids_exits_0(tmp_path, capsys):
         "--habit-ids", "",
         "--iso-eod-et", VALID_ISO,
         "--vikunja-token-path", str(token),
-        "--vikunja-base-url", "http://test",
+        "--vikunja-base-url", "http://test/api/v1",
     ])
     out = capsys.readouterr().out
     assert rc == 0

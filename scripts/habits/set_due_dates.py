@@ -54,11 +54,8 @@ import json
 import os
 import re
 import sys
-import urllib.error
-import urllib.request
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Any
 from zoneinfo import ZoneInfo
 
 try:
@@ -67,6 +64,7 @@ try:
         SLATier,
         read_cached_task_by_id,
     )
+    from scripts.common.vikunja_client import VikunjaClient, VikunjaError
     from scripts.common.vikunja_config import get_vikunja_base_url
 except ImportError:
     # Fallback for direct-script invocation (`python3 scripts/habits/set_due_dates.py`).
@@ -84,6 +82,10 @@ except ImportError:
         SLATier,
         read_cached_task_by_id,
     )
+    from scripts.common.vikunja_client import (  # type: ignore[no-redef]
+        VikunjaClient,
+        VikunjaError,
+    )
     from scripts.common.vikunja_config import (  # type: ignore[no-redef]
         get_vikunja_base_url,
     )
@@ -91,19 +93,18 @@ except ImportError:
 try:
     from scripts.habits.schedule_loader import (
         ScheduleConfigError,
-        ScheduleEntry,
         WEEKDAY_NAMES,
         is_day_specific,
         load_schedule,
     )
 except ImportError:
     # Fallback for direct-script invocation (`python3 scripts/habits/set_due_dates.py`).
-    # The absolute-package import above resolves only under `python3 -m scripts.habits.set_due_dates`;
-    # both invocation forms are documented (see module docstring) and used in production.
+    # The absolute-package import above resolves only under
+    # `python3 -m scripts.habits.set_due_dates`; both invocation forms are
+    # documented (see module docstring) and used in production.
     # Precedent: scripts/openclaw/observation/summarize.py:36-38.
     from schedule_loader import (  # type: ignore[no-redef]
         ScheduleConfigError,
-        ScheduleEntry,
         WEEKDAY_NAMES,
         is_day_specific,
         load_schedule,
@@ -165,26 +166,20 @@ def _load_token(path: Path) -> str:
     return path.read_text(encoding="utf-8").strip()
 
 
-def _http_put(
-    base_url: str,
-    token: str,
-    path: str,
-    body: dict,
-    timeout: int = 15,
-) -> object:
-    """PUT request to Vikunja with bearer auth. Returns parsed JSON response."""
-    data = json.dumps(body).encode("utf-8")
-    req = urllib.request.Request(
-        f"{base_url}{path}",
-        data=data,
-        method="POST",  # Vikunja /tasks/{id} uses POST for partial updates
-        headers={
-            "Authorization": f"Bearer {token}",
-            "Content-Type": "application/json",
-        },
-    )
-    with urllib.request.urlopen(req, timeout=timeout) as resp:
-        return json.loads(resp.read().decode("utf-8"))
+def _format_vikunja_put_error(exc: VikunjaError) -> str:
+    """Render a ``VikunjaClient`` exception as this module's PUT-failure reason string.
+
+    Adapts the client's typed ``exc.status``/``exc.body`` (see the
+    ``vikunja_client`` module docstring "Return/error semantics") into a
+    short message compatible with this module's existing
+    ``{"id": ..., "reason": ...}`` / ``{"error_type": "vikunja_put",
+    "error_message": ...}`` shapes. HTTP-derived failures show status +
+    captured body; network/timeout failures show the exception's redacted
+    verbose form.
+    """
+    if exc.status is not None:
+        return f"HTTP {exc.status}: {exc.body!r}"
+    return exc.verbose_message()
 
 
 def _format_et_offset(offset_str: str) -> str:
@@ -438,27 +433,14 @@ def reconcile_schedule(
             continue
 
         try:
-            _http_put(
-                base_url,
-                token,
-                f"tasks/{entry.task_id}",
-                {"due_date": new_due},
-            )
-        except urllib.error.HTTPError as exc:
+            client = VikunjaClient(base_url=base_url, token=token)
+            client.replace_task_fields(entry.task_id, {"due_date": new_due})
+        except VikunjaError as exc:
             errors.append(
                 {
                     "task_id": entry.task_id,
                     "error_type": "vikunja_put",
-                    "error_message": f"HTTP {exc.code}: {exc.reason}",
-                }
-            )
-            continue
-        except urllib.error.URLError as exc:
-            errors.append(
-                {
-                    "task_id": entry.task_id,
-                    "error_type": "vikunja_put",
-                    "error_message": f"URLError: {exc.reason}",
+                    "error_message": _format_vikunja_put_error(exc),
                 }
             )
             continue
@@ -728,19 +710,11 @@ def main(argv: list[str] | None = None) -> int:
             succeeded.append(habit_id)
             continue
         try:
-            _http_put(
-                args.vikunja_base_url,
-                token,
-                f"tasks/{habit_id}",
-                body,
-            )
+            client = VikunjaClient(base_url=args.vikunja_base_url, token=token)
+            client.replace_task_fields(habit_id, body)
             succeeded.append(habit_id)
-        except urllib.error.HTTPError as exc:
-            reason = f"HTTP {exc.code}: {exc.reason}"
-            print(f"ERROR: habit {habit_id} PUT failed: {reason}", file=sys.stderr)
-            failed.append({"id": habit_id, "reason": reason})
-        except urllib.error.URLError as exc:
-            reason = f"URLError: {exc.reason}"
+        except VikunjaError as exc:
+            reason = _format_vikunja_put_error(exc)
             print(f"ERROR: habit {habit_id} PUT failed: {reason}", file=sys.stderr)
             failed.append({"id": habit_id, "reason": reason})
         except Exception as exc:  # pragma: no cover — defensive

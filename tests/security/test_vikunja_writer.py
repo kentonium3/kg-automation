@@ -1,4 +1,14 @@
-"""Tests for credential_health_check.vikunja_writer."""
+"""Tests for credential_health_check.vikunja_writer.
+
+WP06 (mission retire-vikunja-felix-bot-01KY829X, #860): the writer's single
+HTTP call now goes through the shared ``VikunjaClient`` rather than a
+hand-rolled ``urllib`` helper. Every test still ultimately mocks
+``urllib.request.urlopen`` (that's where the client itself makes the real
+network call) — patched globally so it intercepts the call regardless of
+which module object issues it, matching the pattern used by the other
+migrated consumers' test suites (``tests/habits/conftest.py``,
+``tests/escalation/conftest.py``).
+"""
 from __future__ import annotations
 
 import json
@@ -147,7 +157,7 @@ def test_create_task_resolves_inbox_via_registry(pinned_inbox_registry):
         return _mock_urlopen_response({"id": 7})
 
     with patch(
-        "credential_health_check.vikunja_writer.urllib.request.urlopen",
+        "urllib.request.urlopen",
         side_effect=fake_urlopen,
     ):
         create_task(
@@ -199,7 +209,7 @@ def test_create_task_fails_loud_when_inbox_unprovisioned():
 def test_create_task_returns_id_from_response():
     response = {"id": 88, "title": "Rotate credential: kg-felix-bot-pat"}
     with patch(
-        "credential_health_check.vikunja_writer.urllib.request.urlopen",
+        "urllib.request.urlopen",
         return_value=_mock_urlopen_response(response),
     ):
         assert (
@@ -225,7 +235,7 @@ def test_create_task_constructs_expected_payload():
         return _mock_urlopen_response({"id": 1})
 
     with patch(
-        "credential_health_check.vikunja_writer.urllib.request.urlopen",
+        "urllib.request.urlopen",
         side_effect=fake_urlopen,
     ):
         create_task(
@@ -251,7 +261,7 @@ def test_create_task_raises_on_http_error():
         url="x", code=500, msg="boom", hdrs=None, fp=None
     )
     with patch(
-        "credential_health_check.vikunja_writer.urllib.request.urlopen",
+        "urllib.request.urlopen",
         side_effect=err,
     ):
         with pytest.raises(VikunjaWriteError):
@@ -266,7 +276,7 @@ def test_create_task_raises_on_http_error():
 
 def test_create_task_raises_on_url_error():
     with patch(
-        "credential_health_check.vikunja_writer.urllib.request.urlopen",
+        "urllib.request.urlopen",
         side_effect=urllib.error.URLError("network down"),
     ):
         with pytest.raises(VikunjaWriteError):
@@ -281,7 +291,7 @@ def test_create_task_raises_on_url_error():
 
 def test_create_task_raises_when_response_missing_id():
     with patch(
-        "credential_health_check.vikunja_writer.urllib.request.urlopen",
+        "urllib.request.urlopen",
         return_value=_mock_urlopen_response({"title": "no id field"}),
     ):
         with pytest.raises(VikunjaWriteError):
@@ -292,3 +302,77 @@ def test_create_task_raises_when_response_missing_id():
                 token="test-token",
                 inbox_project_id=12,
             )
+
+
+# ---------- WP06 parity: VikunjaClient adapter behavior ----------
+
+
+def test_create_task_http_error_message_includes_status_and_body():
+    """The migrated adapter (_adapt_vikunja_error) preserves the pre-migration
+    message shape: HTTP status + response body text, now sourced from the
+    shared client's typed ``exc.status``/``exc.body`` rather than a raw
+    ``urllib`` read."""
+    import io
+
+    err = urllib.error.HTTPError(
+        url="x",
+        code=400,
+        msg="Bad Request",
+        hdrs=None,
+        fp=io.BytesIO(b'{"message": "invalid due_date"}'),
+    )
+    with patch("urllib.request.urlopen", side_effect=err):
+        with pytest.raises(VikunjaWriteError) as exc_info:
+            create_task(
+                _credential(),
+                date(2026, 6, 1),
+                github_issue_number=42,
+                token="test-token",
+                inbox_project_id=12,
+            )
+    message = str(exc_info.value)
+    assert "HTTP 400" in message
+    assert "invalid due_date" in message
+
+
+def test_create_task_preserves_15_second_timeout():
+    """Pre-migration ``_request_json`` hardcoded a 15s timeout (narrower
+    than the shared client's 30s default) -- confirm create_task still
+    passes timeout=15 through to the underlying urlopen call."""
+    captured: dict = {}
+
+    def fake_urlopen(req, timeout=None):
+        captured["timeout"] = timeout
+        return _mock_urlopen_response({"id": 1})
+
+    with patch("urllib.request.urlopen", side_effect=fake_urlopen):
+        create_task(
+            _credential(),
+            date(2026, 6, 1),
+            github_issue_number=42,
+            token="test-token",
+            inbox_project_id=12,
+        )
+
+    assert captured["timeout"] == 15
+
+
+def test_create_task_network_error_wraps_client_server_error():
+    """A network-layer failure (VikunjaServerError, status=None) adapts to
+    VikunjaWriteError with a network-flavored message (not an HTTP-status
+    message), mirroring the pre-migration URLError branch."""
+    with patch(
+        "urllib.request.urlopen",
+        side_effect=urllib.error.URLError("network down"),
+    ):
+        with pytest.raises(VikunjaWriteError) as exc_info:
+            create_task(
+                _credential(),
+                date(2026, 6, 1),
+                github_issue_number=42,
+                token="test-token",
+                inbox_project_id=12,
+            )
+    message = str(exc_info.value)
+    assert "network error" in message
+    assert "HTTP" not in message

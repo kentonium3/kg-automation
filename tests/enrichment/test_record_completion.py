@@ -410,8 +410,19 @@ class TestThreeWriteOrdering:
         tmp_token_file,
         activity_log_sandbox,
     ):
-        """Status 199 (no HTTPError raised) still raises VikunjaError."""
-        mock_urlopen.side_effect = [_resp(None, status=199)]
+        """A non-2xx status (incl. an unusual 199) still raises VikunjaError.
+
+        WP03 (#860) migration note: pre-migration, ``_http_request`` ran its
+        own manual ``if status < 200 or status >= 300`` check reachable only
+        via a hand-crafted mock urlopen response bypassing urlopen's real
+        error handling — a real ``urllib.request.urlopen()`` call always
+        raises ``urllib.error.HTTPError`` for a non-2xx response (stdlib
+        ``HTTPErrorProcessor``), so that branch was unreachable in
+        production. ``VikunjaClient`` (WP01) relies on the same stdlib
+        guarantee and does not re-implement the redundant check; this test
+        now exercises the real code path.
+        """
+        mock_urlopen.side_effect = _http_error(199, b"")
         rec = _make_record()
         with pytest.raises(VikunjaError, match="HTTP 199"):
             record_event(
@@ -1195,3 +1206,117 @@ class TestClockHelper:
         assert isinstance(value, str)
         # Pattern: YYYY-MM-DDTHH:MM:SSZ (no microseconds).
         assert re.match(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$", value)
+
+
+# ---------------------------------------------------------------------------
+# Group 12 — VikunjaClient migration parity (WP03, #860)
+# ---------------------------------------------------------------------------
+
+
+class TestVikunjaClientMigration:
+    """Explicit parity coverage for the ``_http_request`` -> ``VikunjaClient``
+    migration (T012). The rest of this module's tests already exercise the
+    real ``urllib.request.urlopen`` call VikunjaClient makes internally (via
+    ``mock_urlopen``), so request shape / emitted record / exit code / error
+    message parity is already covered end-to-end above. These tests pin the
+    migration itself.
+    """
+
+    def test_comment_put_goes_through_vikunja_client(
+        self,
+        ledger_path,
+        tmp_token_file,
+        fake_vikunja_token,
+        activity_log_sandbox,
+        monkeypatch,
+    ):
+        """Every state's comment PUT goes through ``VikunjaClient.create_comment``."""
+        from scripts.common.vikunja_client import VikunjaClient
+
+        calls: list[tuple[int, str]] = []
+
+        def _spy_init(self, *, base_url=None, token=None, timeout=30.0):
+            assert token == fake_vikunja_token
+            self.base_url = (base_url or "").rstrip("/")
+            self.token = token
+            self.timeout = timeout
+
+        def _spy_create_comment(self, task_id, comment, *, timeout=None):
+            calls.append((task_id, comment))
+            return {"id": 1, "comment": comment}
+
+        monkeypatch.setattr(VikunjaClient, "__init__", _spy_init)
+        monkeypatch.setattr(VikunjaClient, "create_comment", _spy_create_comment)
+
+        rec = _make_record(task_id=5678, state="confirmed")
+        record_event(rec, token_path=tmp_token_file, ledger_path=ledger_path)
+
+        assert len(calls) == 1
+        task_id, comment = calls[0]
+        assert task_id == 5678
+        assert comment == _format_v1_comment(rec)
+
+    def test_client_non_json_2xx_body_tolerated_via_adapter(
+        self,
+        ledger_path,
+        tmp_token_file,
+        activity_log_sandbox,
+        monkeypatch,
+    ):
+        """The adapter tolerates the client's non-JSON-2xx signal (status=200).
+
+        Confirms the WP01 "Return/error semantics" adapter decision
+        documented in ``vikunja_client.py``: the client raises
+        ``VikunjaServerError(status=200, ...)`` for a non-JSON 2xx body
+        (comment-create quirk); this module's ``_put_comment`` adapter must
+        swallow that specific signal rather than let it propagate as a
+        (behavior-changing) ``VikunjaError``.
+        """
+        from scripts.common.vikunja_client import VikunjaClient
+        from scripts.common.vikunja_client import (
+            VikunjaServerError as _ClientVikunjaServerError,
+        )
+
+        def _spy_create_comment(self, task_id, comment, *, timeout=None):
+            raise _ClientVikunjaServerError(
+                path=f"/tasks/{task_id}/comments", status=200, body="OK\n"
+            )
+
+        monkeypatch.setattr(VikunjaClient, "create_comment", _spy_create_comment)
+
+        rec = _make_record()
+        result = record_event(
+            rec, token_path=tmp_token_file, ledger_path=ledger_path
+        )
+        assert result["ok"] is True
+        assert result["vikunja_actions"] == ["comment_PUT"]
+        records = _read_jsonl(ledger_path)
+        assert len(records) == 1
+
+    def test_client_real_server_error_reraised_as_module_vikunja_error(
+        self,
+        ledger_path,
+        tmp_token_file,
+        activity_log_sandbox,
+        monkeypatch,
+    ):
+        """A genuine (non-200-signal) client error is translated, not swallowed."""
+        from scripts.common.vikunja_client import VikunjaClient
+        from scripts.common.vikunja_client import (
+            VikunjaServerError as _ClientVikunjaServerError,
+        )
+
+        def _spy_create_comment(self, task_id, comment, *, timeout=None):
+            raise _ClientVikunjaServerError(
+                path=f"/tasks/{task_id}/comments",
+                status=503,
+                body='{"message":"down"}',
+            )
+
+        monkeypatch.setattr(VikunjaClient, "create_comment", _spy_create_comment)
+
+        rec = _make_record()
+        with pytest.raises(VikunjaError, match="HTTP 503") as excinfo:
+            record_event(rec, token_path=tmp_token_file, ledger_path=ledger_path)
+        assert "down" in str(excinfo.value)
+        assert not ledger_path.exists() or _read_jsonl(ledger_path) == []

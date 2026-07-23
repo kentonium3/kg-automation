@@ -13,8 +13,6 @@ import json
 import urllib.error
 from unittest.mock import MagicMock, patch
 
-import pytest
-
 # scripts/habits/ is on sys.path via tests/habits/conftest.py
 import exclude_completed as exc  # type: ignore  # noqa: E402
 
@@ -49,7 +47,7 @@ def _patch_comments_for(comment_payloads):
             if f"/tasks/{habit_id}/comments" in url:
                 return _mock_response(comments)
         raise AssertionError(f"Unexpected URL: {url}")
-    return patch.object(exc.urllib.request, "urlopen", side_effect=side_effect)
+    return patch("urllib.request.urlopen", side_effect=side_effect)
 
 
 # ---------- parse_felix_comment unit tests ----------
@@ -98,7 +96,7 @@ def test_no_comments_all_ready(tmp_path, capsys):
             "--habit-ids", "100,101,102",
             "--today", TODAY,
             "--vikunja-token-path", str(token),
-            "--vikunja-base-url", "http://test",
+            "--vikunja-base-url", "http://test/api/v1",
         ])
     out = capsys.readouterr().out
     assert rc == 0
@@ -116,7 +114,7 @@ def test_complete_today_addressed(tmp_path, capsys):
             "--habit-ids", "100",
             "--today", TODAY,
             "--vikunja-token-path", str(token),
-            "--vikunja-base-url", "http://test",
+            "--vikunja-base-url", "http://test/api/v1",
         ])
     out = capsys.readouterr().out
     assert rc == 0
@@ -131,7 +129,7 @@ def test_rescheduled_today_addressed(tmp_path, capsys):
     with _patch_comments_for({100: comments}):
         rc = exc.main([
             "--habit-ids", "100", "--today", TODAY,
-            "--vikunja-token-path", str(token), "--vikunja-base-url", "http://test",
+            "--vikunja-token-path", str(token), "--vikunja-base-url", "http://test/api/v1",
         ])
     out = capsys.readouterr().out
     assert rc == 0
@@ -145,7 +143,7 @@ def test_will_not_do_today_addressed(tmp_path, capsys):
     with _patch_comments_for({100: comments}):
         rc = exc.main([
             "--habit-ids", "100", "--today", TODAY,
-            "--vikunja-token-path", str(token), "--vikunja-base-url", "http://test",
+            "--vikunja-token-path", str(token), "--vikunja-base-url", "http://test/api/v1",
         ])
     out = capsys.readouterr().out
     assert rc == 0
@@ -160,7 +158,7 @@ def test_yesterday_comment_ignored(tmp_path, capsys):
     with _patch_comments_for({100: comments}):
         rc = exc.main([
             "--habit-ids", "100", "--today", TODAY,
-            "--vikunja-token-path", str(token), "--vikunja-base-url", "http://test",
+            "--vikunja-token-path", str(token), "--vikunja-base-url", "http://test/api/v1",
         ])
     out = capsys.readouterr().out
     assert rc == 0
@@ -176,7 +174,7 @@ def test_non_felix_comment_ignored(tmp_path, capsys):
     with _patch_comments_for({100: comments}):
         rc = exc.main([
             "--habit-ids", "100", "--today", TODAY,
-            "--vikunja-token-path", str(token), "--vikunja-base-url", "http://test",
+            "--vikunja-token-path", str(token), "--vikunja-base-url", "http://test/api/v1",
         ])
     captured = capsys.readouterr()
     assert rc == 0
@@ -196,7 +194,7 @@ def test_multiple_addressed_uses_most_recent(tmp_path, capsys):
     with _patch_comments_for({100: comments}):
         rc = exc.main([
             "--habit-ids", "100", "--today", TODAY,
-            "--vikunja-token-path", str(token), "--vikunja-base-url", "http://test",
+            "--vikunja-token-path", str(token), "--vikunja-base-url", "http://test/api/v1",
         ])
     out = capsys.readouterr().out
     assert rc == 0
@@ -213,7 +211,7 @@ def test_malformed_felix_prefix_warned(tmp_path, capsys):
     with _patch_comments_for({100: comments}):
         rc = exc.main([
             "--habit-ids", "100", "--today", TODAY,
-            "--vikunja-token-path", str(token), "--vikunja-base-url", "http://test",
+            "--vikunja-token-path", str(token), "--vikunja-base-url", "http://test/api/v1",
         ])
     captured = capsys.readouterr()
     assert rc == 0
@@ -230,7 +228,7 @@ def test_unknown_state_in_felix_format_warned(tmp_path, capsys):
     with _patch_comments_for({100: comments}):
         rc = exc.main([
             "--habit-ids", "100", "--today", TODAY,
-            "--vikunja-token-path", str(token), "--vikunja-base-url", "http://test",
+            "--vikunja-token-path", str(token), "--vikunja-base-url", "http://test/api/v1",
         ])
     captured = capsys.readouterr()
     assert rc == 0
@@ -244,7 +242,7 @@ def test_empty_habit_ids(tmp_path, capsys):
     token = _fake_token_file(tmp_path)
     rc = exc.main([
         "--habit-ids", "", "--today", TODAY,
-        "--vikunja-token-path", str(token), "--vikunja-base-url", "http://test",
+        "--vikunja-token-path", str(token), "--vikunja-base-url", "http://test/api/v1",
     ])
     out = capsys.readouterr().out
     assert rc == 0
@@ -256,13 +254,13 @@ def test_empty_habit_ids(tmp_path, capsys):
 
 def test_vikunja_unreachable_exit_1(tmp_path, capsys):
     token = _fake_token_file(tmp_path)
-    with patch.object(
-        exc.urllib.request, "urlopen",
+    with patch(
+        "urllib.request.urlopen",
         side_effect=urllib.error.URLError("connection refused"),
     ):
         rc = exc.main([
             "--habit-ids", "100", "--today", TODAY,
-            "--vikunja-token-path", str(token), "--vikunja-base-url", "http://test",
+            "--vikunja-token-path", str(token), "--vikunja-base-url", "http://test/api/v1",
         ])
     captured = capsys.readouterr()
     assert rc == 1
@@ -273,7 +271,7 @@ def test_malformed_today_exit_2(tmp_path, capsys):
     token = _fake_token_file(tmp_path)
     rc = exc.main([
         "--habit-ids", "100", "--today", "garbage",
-        "--vikunja-token-path", str(token), "--vikunja-base-url", "http://test",
+        "--vikunja-token-path", str(token), "--vikunja-base-url", "http://test/api/v1",
     ])
     captured = capsys.readouterr()
     assert rc == 2

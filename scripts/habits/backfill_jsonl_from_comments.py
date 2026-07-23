@@ -29,19 +29,16 @@ Contracts:
 from __future__ import annotations
 
 import argparse
-import json
 import re
 import shutil
 import sys
-import urllib.error
-import urllib.parse
-import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Optional
 
 from scripts.common import state_log
 from scripts.common import vikunja_refs
+from scripts.common.vikunja_client import VikunjaClient, VikunjaError, VikunjaTimeoutError
 from scripts.common.vikunja_config import get_vikunja_base_url
 from scripts.habits.exclude_completed import FELIX_COMMENT_PATTERN
 
@@ -90,7 +87,7 @@ class _StateLogInitError(OSError):
 
 
 # ---------------------------------------------------------------------------
-# HTTP helpers (urllib only, mirrors ``reconcile_completions.py``)
+# HTTP helpers
 # ---------------------------------------------------------------------------
 
 
@@ -100,41 +97,19 @@ def _join_url(base: str, path: str) -> str:
     return base + path.lstrip("/")
 
 
-def _http_get(url: str, token: str) -> Any:
-    """Issue an authenticated GET via urllib. Returns parsed JSON (or None).
+def _adapt_vikunja_error(exc: VikunjaError, url: str) -> OSError:
+    """Convert a typed :class:`VikunjaError` into this module's pre-migration
+    ``OSError`` contract (WP05, mission #860 — behavior-preserving).
 
-    Raises:
-        OSError: On network failure, non-2xx HTTP status, or non-JSON body.
+    Mirrors the message shapes the hand-rolled ``_http_get`` helper used to
+    raise, so callers (and their exception-message-embedding anomaly
+    reports) see equivalent detail.
     """
-    headers = {
-        "Accept": "application/json",
-        "Authorization": f"Bearer {token}",
-    }
-    req = urllib.request.Request(url, headers=headers, method="GET")
-    try:
-        with urllib.request.urlopen(req, timeout=HTTP_TIMEOUT_SECONDS) as resp:
-            status = resp.status
-            raw = resp.read().decode("utf-8", errors="replace")
-    except urllib.error.HTTPError as e:
-        try:
-            err_body = e.read().decode("utf-8", errors="replace")
-        except Exception:  # pragma: no cover -- defensive
-            err_body = ""
-        raise OSError(
-            f"GET {url} failed with HTTP {e.code}: {err_body!r}"
-        ) from e
-    except urllib.error.URLError as e:
-        raise OSError(f"GET {url} network failure: {e}") from e
-
-    if status < 200 or status >= 300:
-        raise OSError(f"GET {url} returned HTTP {status}: {raw!r}")
-
-    if not raw.strip():
-        return None
-    try:
-        return json.loads(raw)
-    except json.JSONDecodeError as e:
-        raise OSError(f"GET {url} returned non-JSON body: {raw!r} ({e})") from e
+    if isinstance(exc, VikunjaTimeoutError):
+        return OSError(f"GET {url} timed out: {exc}")
+    if exc.status is None:
+        return OSError(f"GET {url} network failure: {exc}")
+    return OSError(f"GET {url} failed with HTTP {exc.status}: {exc.body!r}")
 
 
 # ---------------------------------------------------------------------------
@@ -143,7 +118,7 @@ def _http_get(url: str, token: str) -> Any:
 
 
 def _enumerate_habit_tasks(
-    api_base_url: str, token: str, project_id: int
+    client: VikunjaClient, project_id: int
 ) -> list[dict]:
     """Enumerate active (non-archived) tasks within the Habits project.
 
@@ -156,12 +131,23 @@ def _enumerate_habit_tasks(
     with HTTP 400. The workaround: drop the server-side filter and
     apply ``is_archived`` filtering client-side on the response.
 
+    Migrated onto :class:`VikunjaClient` (WP05, mission #860) — issues the
+    identical unfiltered ``GET /projects/{id}/tasks`` call (no pagination
+    params; this helper has never paged).
+
     Raises:
         OSError: On HTTP/network failure or non-list payload.
     """
-    url = _join_url(api_base_url, f"projects/{project_id}/tasks")
-    payload = _http_get(url, token)
-    if payload is None:
+    path = f"/projects/{project_id}/tasks"
+    url = _join_url(client.base_url, path.lstrip("/"))
+    try:
+        payload = client.get(path)
+    except VikunjaError as e:
+        raise _adapt_vikunja_error(e, url) from e
+    # Empty/204 success maps to {} on this client vs None on the old raw
+    # helper — both falsy, so `not payload` covers both (module docstring
+    # "Return/error semantics").
+    if not payload:
         return []
     if not isinstance(payload, list):
         raise OSError(
@@ -175,17 +161,22 @@ def _enumerate_habit_tasks(
     ]
 
 
-def _fetch_comments(
-    api_base_url: str, token: str, task_id: int
-) -> list[dict]:
+def _fetch_comments(client: VikunjaClient, task_id: int) -> list[dict]:
     """Fetch comments for a single task.
+
+    Migrated onto :meth:`VikunjaClient.list_task_comments` (WP05, mission
+    #860) — issues the identical ``GET /tasks/{id}/comments`` call.
 
     Raises:
         OSError: On HTTP/network failure or non-list payload.
     """
-    url = _join_url(api_base_url, f"tasks/{task_id}/comments")
-    payload = _http_get(url, token)
-    if payload is None:
+    path = f"/tasks/{task_id}/comments"
+    url = _join_url(client.base_url, path.lstrip("/"))
+    try:
+        payload = client.list_task_comments(task_id)
+    except VikunjaError as e:
+        raise _adapt_vikunja_error(e, url) from e
+    if not payload:
         return []
     if not isinstance(payload, list):
         raise OSError(
@@ -363,8 +354,15 @@ def backfill(
     project_id = vikunja_refs.project_id("habits")
     summary["habits_project_id"] = project_id
 
+    # Shared HTTP client (WP05, mission #860) — one instance for the whole
+    # run (task enumeration + every per-task comment fetch). Same 30s
+    # per-request timeout the hand-rolled ``_http_get`` helper used.
+    client = VikunjaClient(
+        base_url=api_base_url, token=token, timeout=HTTP_TIMEOUT_SECONDS
+    )
+
     # Enumerate habit tasks. OSError → caller maps to exit 1.
-    tasks = _enumerate_habit_tasks(api_base_url, token, project_id)
+    tasks = _enumerate_habit_tasks(client, project_id)
     summary["tasks_enumerated"] = len(tasks)
 
     # Snapshot before any append on a live run. _SnapshotError → exit 3.
@@ -388,7 +386,7 @@ def backfill(
         summary["by_task"].setdefault(task_id, {"title": title, "count": 0})
 
         try:
-            comments = _fetch_comments(api_base_url, token, task_id)
+            comments = _fetch_comments(client, task_id)
         except OSError as e:
             summary["anomalies"].append({
                 "task_id": task_id,

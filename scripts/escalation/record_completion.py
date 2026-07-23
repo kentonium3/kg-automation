@@ -67,8 +67,6 @@ import fcntl
 import json
 import os
 import sys
-import urllib.error
-import urllib.request
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Optional
@@ -77,6 +75,8 @@ from scripts.common import et_datetime
 from scripts.common.state_log_schema import (
     validate_record as _validate_shared_record,
 )
+from scripts.common.vikunja_client import VikunjaClient
+from scripts.common.vikunja_client import VikunjaError as _ClientVikunjaError
 from scripts.common.vikunja_config import get_vikunja_base_url
 from scripts.escalation.schema import (
     EVENT_TYPE_PARAMETERS,
@@ -178,82 +178,47 @@ def _read_token(token_path: Path) -> str:
 
 
 # ---------------------------------------------------------------------------
-# HTTP helper
+# HTTP helper (WP03, mission #860: migrated onto the shared VikunjaClient)
 # ---------------------------------------------------------------------------
 
 
-def _join_url(base: str, path: str) -> str:
-    """Join a base URL and a path, tolerating missing/extra slashes."""
-    if not base.endswith("/"):
-        base = base + "/"
-    return base + path.lstrip("/")
-
-
-def _http_request(
-    method: str,
-    url: str,
+def _patch_task(
+    task_id: int,
+    body: dict,
+    *,
+    base_url: str,
     token: str,
-    body: dict | None = None,
-) -> tuple[int, Any]:
-    """Issue an authenticated HTTP request via urllib.
+) -> None:
+    """PATCH ``/tasks/{task_id}`` via :class:`VikunjaClient`, adapted to this
+    module's pre-migration error contract.
 
-    Args:
-        method: ``GET`` / ``POST`` / ``PUT`` / ``PATCH`` / ``DELETE``.
-        url: Fully qualified URL.
-        token: Vikunja bearer token (felix-bot per FR-010).
-        body: Optional dict — serialized to JSON if present.
-
-    Returns:
-        Tuple ``(status_code, parsed_json_or_none)``.
+    The parsed response body is discarded (the pre-migration ``_http_request``
+    caller never consumed it either — only success/failure mattered), so the
+    only adaptation needed is translating the client's typed exceptions back
+    into this module's :class:`VikunjaError` with an equivalent message, per
+    the WP01 "Return/error semantics" adapter note in
+    ``scripts/common/vikunja_client.py``.
 
     Raises:
-        VikunjaError: On HTTP-status-error or network failure. Message includes
-            ``method url`` + status + server error body when available.
+        VikunjaError: On HTTP-status-error, network failure, or timeout.
+            Message includes ``PATCH <url>`` + status + server error body
+            when available (mirrors the retired ``_http_request`` message
+            shape; substrings ``HTTP <status>`` / ``network failure`` are
+            preserved for existing callers/tests).
     """
-    data: bytes | None = None
-    headers = {
-        "Accept": "application/json",
-        "Authorization": f"Bearer {token}",
-    }
-    if body is not None:
-        data = json.dumps(body).encode("utf-8")
-        headers["Content-Type"] = "application/json"
-
-    req = urllib.request.Request(
-        url, data=data, headers=headers, method=method
-    )
+    client = VikunjaClient(base_url=base_url, token=token, timeout=HTTP_TIMEOUT_SECONDS)
+    path = f"/tasks/{task_id}"
+    url = f"{client.base_url}{path}"
     try:
-        with urllib.request.urlopen(
-            req, timeout=HTTP_TIMEOUT_SECONDS
-        ) as resp:
-            status = resp.status
-            raw = resp.read().decode("utf-8", errors="replace")
-    except urllib.error.HTTPError as exc:
-        try:
-            err_body = exc.read().decode("utf-8", errors="replace")
-        except Exception:  # pragma: no cover - purely defensive
-            err_body = ""
+        client.patch(path, json=body)
+    except _ClientVikunjaError as exc:
+        if exc.status is not None:
+            raise VikunjaError(
+                f"PATCH {url} failed with HTTP {exc.status}: {exc.body!r}"
+            ) from exc
         raise VikunjaError(
-            f"{method} {url} failed with HTTP {exc.code}: {err_body!r}"
+            f"PATCH {url} network failure: {exc.verbose_message()}"
         ) from exc
-    except urllib.error.URLError as exc:
-        raise VikunjaError(
-            f"{method} {url} network failure: {exc}"
-        ) from exc
-
-    if status < 200 or status >= 300:
-        raise VikunjaError(
-            f"{method} {url} returned HTTP {status}: {raw!r}"
-        )
-
-    parsed: Any = None
-    if raw.strip():
-        try:
-            parsed = json.loads(raw)
-        except json.JSONDecodeError:
-            # Comment-create may return non-JSON; tolerate.
-            parsed = None
-    return status, parsed
 
 
 # ---------------------------------------------------------------------------
@@ -448,17 +413,15 @@ def _vikunja_side_effects(
     actions: list[str] = []
 
     if state == "done":
-        url = _join_url(base_url, f"tasks/{task_id}")
-        _http_request("PATCH", url, token, body={"done": True})
+        _patch_task(task_id, {"done": True}, base_url=base_url, token=token)
         actions.append("task_PATCH_done")
     elif state == "rescheduled":
-        url = _join_url(base_url, f"tasks/{task_id}")
         reschedule_to = record["reschedule_to"]
-        _http_request(
-            "PATCH",
-            url,
-            token,
-            body={"due_date": et_datetime.et_end_of_day(reschedule_to)},
+        _patch_task(
+            task_id,
+            {"due_date": et_datetime.et_end_of_day(reschedule_to)},
+            base_url=base_url,
+            token=token,
         )
         actions.append("task_PATCH_due_date")
 

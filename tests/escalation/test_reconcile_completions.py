@@ -34,11 +34,8 @@ Cache reads are mocked via the ``mock_sync_cache_fixture`` from
 """
 from __future__ import annotations
 
-import io
 import json
 import time
-import urllib.error
-from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Any
 from unittest.mock import MagicMock
@@ -48,8 +45,6 @@ import pytest
 from scripts.escalation import reconcile_completions as rcn
 from scripts.escalation import record_completion as rc
 from scripts.escalation.reconcile_completions import (
-    HardFailEvent,
-    ReconcileReport,
     main,
     reconcile_all,
     reconcile_project,
@@ -253,7 +248,7 @@ def _cache_task_fields(
 def test_vikunja_done_emits_synthetic_done(
     jsonl_sandbox: Path,
     tmp_token_file: Path,
-    mock_sync_cache_fixture,
+    mock_sync_cache_fixture,  # noqa: F811 — pytest fixture-by-parameter-name (repo-wide pattern)
     mock_urlopen,
     recorded_hard_fails: _HardFailRecorder,
 ) -> None:
@@ -346,7 +341,7 @@ def test_vikunja_done_with_existing_done_record_no_emit(
 def test_due_date_change_emits_synthetic_rescheduled(
     jsonl_sandbox: Path,
     tmp_token_file: Path,
-    mock_sync_cache_fixture,
+    mock_sync_cache_fixture,  # noqa: F811 — pytest fixture-by-parameter-name (repo-wide pattern)
     mock_urlopen,
     recorded_hard_fails: _HardFailRecorder,
 ) -> None:
@@ -401,7 +396,7 @@ def test_due_date_change_emits_synthetic_rescheduled(
 def test_due_date_unchanged_no_emit(
     jsonl_sandbox: Path,
     tmp_token_file: Path,
-    mock_sync_cache_fixture,
+    mock_sync_cache_fixture,  # noqa: F811 — pytest fixture-by-parameter-name (repo-wide pattern)
     mock_urlopen,
     recorded_hard_fails: _HardFailRecorder,
 ) -> None:
@@ -448,7 +443,7 @@ def test_due_date_unchanged_no_emit(
 def test_eod_et_reschedule_winter_roundtrip_no_spurious_drift(
     jsonl_sandbox: Path,
     tmp_token_file: Path,
-    mock_sync_cache_fixture,
+    mock_sync_cache_fixture,  # noqa: F811 — pytest fixture-by-parameter-name (repo-wide pattern)
     mock_urlopen,
     recorded_hard_fails: _HardFailRecorder,
 ) -> None:
@@ -495,7 +490,7 @@ def test_eod_et_reschedule_winter_roundtrip_no_spurious_drift(
 def test_legacy_utc_midnight_due_date_self_heals_in_one_emit(
     jsonl_sandbox: Path,
     tmp_token_file: Path,
-    mock_sync_cache_fixture,
+    mock_sync_cache_fixture,  # noqa: F811 — pytest fixture-by-parameter-name (repo-wide pattern)
     mock_urlopen,
     recorded_hard_fails: _HardFailRecorder,
 ) -> None:
@@ -607,7 +602,7 @@ def test_due_date_change_with_terminal_record_no_emit(
 def test_no_prior_reschedule_emits_when_vikunja_due_diverges(
     jsonl_sandbox: Path,
     tmp_token_file: Path,
-    mock_sync_cache_fixture,
+    mock_sync_cache_fixture,  # noqa: F811 — pytest fixture-by-parameter-name (repo-wide pattern)
     mock_urlopen,
     recorded_hard_fails: _HardFailRecorder,
 ) -> None:
@@ -688,7 +683,7 @@ def test_invalid_event_params_files_hard_fail(
 def test_no_v1_substrate_reader_path(
     jsonl_sandbox: Path,
     tmp_token_file: Path,
-    mock_sync_cache_fixture,
+    mock_sync_cache_fixture,  # noqa: F811 — pytest fixture-by-parameter-name (repo-wide pattern)
     mock_urlopen,
     recorded_hard_fails: _HardFailRecorder,
 ) -> None:
@@ -819,7 +814,7 @@ def test_within_tick_dedup_prevents_second_file(
 def test_reconcile_all_iterates_projects(
     jsonl_sandbox: Path,
     tmp_token_file: Path,
-    mock_sync_cache_fixture,
+    mock_sync_cache_fixture,  # noqa: F811 — pytest fixture-by-parameter-name (repo-wide pattern)
     mock_urlopen,
     recorded_hard_fails: _HardFailRecorder,
 ) -> None:
@@ -868,7 +863,7 @@ def test_reconcile_all_empty_dir_returns_empty_list(
 def test_dry_run_reports_no_writes(
     jsonl_sandbox: Path,
     tmp_token_file: Path,
-    mock_sync_cache_fixture,
+    mock_sync_cache_fixture,  # noqa: F811 — pytest fixture-by-parameter-name (repo-wide pattern)
     mock_urlopen,
     recorded_hard_fails: _HardFailRecorder,
 ) -> None:
@@ -912,7 +907,7 @@ def test_dry_run_reports_no_writes(
 def test_reconcile_50_tasks_under_60s(
     jsonl_sandbox: Path,
     tmp_token_file: Path,
-    mock_sync_cache_fixture,
+    mock_sync_cache_fixture,  # noqa: F811 — pytest fixture-by-parameter-name (repo-wide pattern)
     mock_urlopen,
     recorded_hard_fails: _HardFailRecorder,
 ) -> None:
@@ -963,7 +958,7 @@ def test_reconcile_50_tasks_under_60s(
 def test_max_tasks_caps_scan(
     jsonl_sandbox: Path,
     tmp_token_file: Path,
-    mock_sync_cache_fixture,
+    mock_sync_cache_fixture,  # noqa: F811 — pytest fixture-by-parameter-name (repo-wide pattern)
     mock_urlopen,
     recorded_hard_fails: _HardFailRecorder,
 ) -> None:
@@ -1011,7 +1006,7 @@ def test_missing_jsonl_file_yields_empty_report(
 def test_cache_read_failure_routes_to_hard_fail(
     jsonl_sandbox: Path,
     tmp_token_file: Path,
-    mock_sync_cache_fixture,
+    mock_sync_cache_fixture,  # noqa: F811 — pytest fixture-by-parameter-name (repo-wide pattern)
     mock_urlopen,
     recorded_hard_fails: _HardFailRecorder,
 ) -> None:
@@ -1064,7 +1059,7 @@ def test_cache_miss_with_task_deleted_event_emits_synthetic_dismissed(
     tmp_token_file: Path,
     tmp_path: Path,
     monkeypatch,
-    mock_sync_cache_fixture,
+    mock_sync_cache_fixture,  # noqa: F811 — pytest fixture-by-parameter-name (repo-wide pattern)
     mock_urlopen,
     recorded_hard_fails: _HardFailRecorder,
 ) -> None:
@@ -1120,11 +1115,12 @@ def test_cache_miss_with_task_deleted_event_for_different_task_still_hard_fails(
     tmp_token_file: Path,
     tmp_path: Path,
     monkeypatch,
-    mock_sync_cache_fixture,
+    mock_sync_cache_fixture,  # noqa: F811 — pytest fixture-by-parameter-name (repo-wide pattern)
     mock_urlopen,
     recorded_hard_fails: _HardFailRecorder,
 ) -> None:
-    """Regression check: task_deleted event for a DIFFERENT task_id must NOT suppress the hard-fail."""
+    """Regression: a task_deleted event for a DIFFERENT task_id must NOT
+    suppress the hard-fail."""
     from scripts.common import state_log
 
     history_root = tmp_path / "habits_state"
@@ -1158,7 +1154,8 @@ def test_task_deleted_helper_returns_most_recent_event(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
-    """When multiple task_deleted events exist for the same task_id, helper returns the newest by detected_at_utc."""
+    """Multiple task_deleted events for the same task_id: helper returns
+    the newest by detected_at_utc."""
     from scripts.common import state_log
     from scripts.escalation.reconcile_completions import _task_deleted_event_for_task
 
@@ -1213,8 +1210,21 @@ def test_task_deleted_helper_tolerates_malformed_lines(
     with path.open("w", encoding="utf-8") as fh:
         fh.write("not json at all\n")
         fh.write("\n")  # blank
-        fh.write(json.dumps({"event_type": "auto_skipped", "task_id": 42}) + "\n")  # wrong event_type
-        fh.write(json.dumps({"event_type": "task_deleted", "task_id": 42, "title": "ok", "detected_at_utc": "2026-06-10T12:00:00Z"}) + "\n")
+        # wrong event_type
+        fh.write(
+            json.dumps({"event_type": "auto_skipped", "task_id": 42}) + "\n"
+        )
+        fh.write(
+            json.dumps(
+                {
+                    "event_type": "task_deleted",
+                    "task_id": 42,
+                    "title": "ok",
+                    "detected_at_utc": "2026-06-10T12:00:00Z",
+                }
+            )
+            + "\n"
+        )
     event = _task_deleted_event_for_task(42)
     assert event is not None
     assert event["title"] == "ok"
@@ -1223,7 +1233,7 @@ def test_task_deleted_helper_tolerates_malformed_lines(
 def test_zero_sentinel_due_date_treated_as_none(
     jsonl_sandbox: Path,
     tmp_token_file: Path,
-    mock_sync_cache_fixture,
+    mock_sync_cache_fixture,  # noqa: F811 — pytest fixture-by-parameter-name (repo-wide pattern)
     mock_urlopen,
     recorded_hard_fails: _HardFailRecorder,
 ) -> None:
@@ -1256,7 +1266,7 @@ def test_zero_sentinel_due_date_treated_as_none(
 def test_malformed_jsonl_line_does_not_crash_enumeration(
     jsonl_sandbox: Path,
     tmp_token_file: Path,
-    mock_sync_cache_fixture,
+    mock_sync_cache_fixture,  # noqa: F811 — pytest fixture-by-parameter-name (repo-wide pattern)
     mock_urlopen,
     recorded_hard_fails: _HardFailRecorder,
 ) -> None:
@@ -1299,7 +1309,7 @@ def test_malformed_jsonl_line_does_not_crash_enumeration(
 def test_synthetic_done_failure_routes_to_hard_fail(
     jsonl_sandbox: Path,
     tmp_token_file: Path,
-    mock_sync_cache_fixture,
+    mock_sync_cache_fixture,  # noqa: F811 — pytest fixture-by-parameter-name (repo-wide pattern)
     mock_urlopen,
     recorded_hard_fails: _HardFailRecorder,
     monkeypatch,
@@ -1367,7 +1377,7 @@ def test_cli_token_missing_yields_exit_3(
 def test_cli_emits_summary_line_for_project(
     jsonl_sandbox: Path,
     tmp_token_file: Path,
-    mock_sync_cache_fixture,
+    mock_sync_cache_fixture,  # noqa: F811 — pytest fixture-by-parameter-name (repo-wide pattern)
     mock_urlopen,
     recorded_hard_fails: _HardFailRecorder,
     capsys,
@@ -1413,7 +1423,7 @@ def test_cli_emits_summary_line_for_project(
 def test_cli_non_quiet_emits_drift_and_hardfail_lines(
     jsonl_sandbox: Path,
     tmp_token_file: Path,
-    mock_sync_cache_fixture,
+    mock_sync_cache_fixture,  # noqa: F811 — pytest fixture-by-parameter-name (repo-wide pattern)
     mock_urlopen,
     recorded_hard_fails: _HardFailRecorder,
     capsys,
@@ -1455,7 +1465,7 @@ def test_cli_non_quiet_emits_drift_and_hardfail_lines(
 def test_cli_all_flag_calls_reconcile_all(
     jsonl_sandbox: Path,
     tmp_token_file: Path,
-    mock_sync_cache_fixture,
+    mock_sync_cache_fixture,  # noqa: F811 — pytest fixture-by-parameter-name (repo-wide pattern)
     mock_urlopen,
     recorded_hard_fails: _HardFailRecorder,
     capsys,
@@ -1498,7 +1508,7 @@ def test_cli_all_flag_calls_reconcile_all(
 def test_cache_oserror_raises(
     jsonl_sandbox: Path,
     tmp_token_file: Path,
-    mock_sync_cache_fixture,
+    mock_sync_cache_fixture,  # noqa: F811 — pytest fixture-by-parameter-name (repo-wide pattern)
     mock_urlopen,
     recorded_hard_fails: _HardFailRecorder,
 ) -> None:
@@ -1527,7 +1537,7 @@ def test_cache_oserror_raises(
 def test_cli_record_event_failure_routes_to_hard_fail(
     jsonl_sandbox: Path,
     tmp_token_file: Path,
-    mock_sync_cache_fixture,
+    mock_sync_cache_fixture,  # noqa: F811 — pytest fixture-by-parameter-name (repo-wide pattern)
     mock_urlopen,
     recorded_hard_fails: _HardFailRecorder,
     monkeypatch,
@@ -1582,3 +1592,75 @@ def test_cli_record_event_failure_routes_to_hard_fail(
     lines = [ln for ln in captured.out.splitlines() if ln.strip()]
     payload = json.loads(lines[-1])
     assert payload["hard_fails"] == 1
+
+
+# ---------------------------------------------------------------------------
+# T011 (WP03, #860) — VikunjaClient migration scope note + parity
+# ---------------------------------------------------------------------------
+#
+# This module (escalation/reconcile_completions.py) contains NO raw urllib /
+# hand-rolled HTTP helper — grep confirms no `urllib` import. It calls
+# `record_completion.record_event(..., skip_vikunja=True)` exclusively for
+# every synthetic-record write (done-drift, rescheduled-drift, and the
+# task_deleted-synthetic-dismissed path), so Vikunja's real HTTP surface is
+# never touched from this module: escalation's WP03 T010 migration of
+# `record_completion.py`'s `_http_request` -> `VikunjaClient.patch` already
+# covers the only path by which this module could reach Vikunja, and that
+# path is always short-circuited here via `skip_vikunja=True`. T011 is
+# therefore scope-narrowed to this confirmation: no code changes were made
+# to reconcile_completions.py itself (SC-001 grep-clean requires nothing to
+# remove), and the parity test below pins the "always skip_vikunja=True,
+# zero real HTTP calls" invariant so a future change can't silently
+# reintroduce a direct Vikunja call here.
+
+
+def test_reconcile_project_never_calls_vikunja_http_directly(
+    jsonl_sandbox: Path,
+    tmp_token_file: Path,
+    mock_sync_cache_fixture,  # noqa: F811 — pytest fixture-by-parameter-name (repo-wide pattern)
+    mock_urlopen,
+    recorded_hard_fails: _HardFailRecorder,
+) -> None:
+    """T011 parity: a full done-drift sweep never issues a real HTTP call.
+
+    Every synthetic write in this module routes through
+    ``record_completion.record_event(..., skip_vikunja=True)`` — confirmed
+    here by making ``mock_urlopen`` raise if invoked at all, rather than
+    merely stubbing a response (as the older tests in this file do
+    defensively). Emitted record + report counters are asserted alongside
+    the zero-HTTP-calls invariant, per WP03's parity requirement (request +
+    emitted record + exit code + error message — the "request" dimension
+    here being "no request at all").
+    """
+    project_id = 4
+    task_id = 1234
+    jsonl_path = jsonl_sandbox / f"project-{project_id}-escalation-history.jsonl"
+    _write_jsonl(
+        jsonl_path,
+        [
+            _make_record(
+                task_id=task_id,
+                project_id=project_id,
+                state="level_sent",
+                date_str="2026-05-19",
+                level=1,
+            )
+        ],
+    )
+    mock_sync_cache_fixture(
+        tasks={task_id: _cache_task_fields(task_id, done=True, title="Task")},
+    )
+    mock_urlopen.side_effect = AssertionError(
+        "escalation reconcile must never call Vikunja directly "
+        "(record_event is always invoked with skip_vikunja=True)"
+    )
+
+    report = reconcile_project(project_id, jsonl_dir=jsonl_sandbox)
+
+    assert mock_urlopen.call_count == 0
+    assert report.synthetic_done_emitted == 1
+    assert report.hard_fails == []
+    records = _read_jsonl(jsonl_path)
+    new_records = [r for r in records if r.get("state") == "done"]
+    assert len(new_records) == 1
+    assert new_records[0]["source"] == "reconcile"

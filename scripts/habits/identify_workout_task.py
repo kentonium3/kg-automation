@@ -47,11 +47,14 @@ import argparse
 import json
 import re
 import sys
-import urllib.error
-import urllib.request
 from pathlib import Path
 from typing import Any
 
+from scripts.common.vikunja_client import (
+    VikunjaClient,
+    VikunjaError,
+    VikunjaTimeoutError,
+)
 from scripts.common.vikunja_config import get_vikunja_base_url
 
 
@@ -79,50 +82,33 @@ WORKOUT_TITLE_REGEX = re.compile(r"workout", re.IGNORECASE)
 # ---------------------------------------------------------------------------
 
 
-def _join_url(base: str, path: str) -> str:
-    if not base.endswith("/"):
-        base = base + "/"
-    return base + path.lstrip("/")
+def _get_task_or_oserror(client: VikunjaClient, task_id: int, url: str) -> Any:
+    """GET one task via :meth:`VikunjaClient.get_task`, adapted to ``OSError``.
 
-
-def _http_get(url: str, token: str) -> tuple[int, str]:
-    """Issue an authenticated GET to ``url`` via urllib.
-
-    Args:
-        url: Fully qualified URL.
-        token: Bearer token (Vikunja API token).
-
-    Returns:
-        Tuple ``(status_code, body_text)``.
+    Migrated onto the shared client (WP05, mission #860). The client raises
+    typed :class:`~scripts.common.vikunja_client.VikunjaError` subclasses;
+    this adapter re-raises as ``OSError`` so the pre-migration return/error
+    contract (documented in this module's docstring: "Raises: OSError") is
+    preserved verbatim for callers and tests.
 
     Raises:
-        OSError: On network failure, HTTP error response, or non-2xx status.
-            The message includes the URL for triage.
+        OSError: On network failure, HTTP error response, or timeout. The
+            message includes the URL and — for HTTP errors — the status
+            code, mirroring the original hand-rolled urllib message shape.
     """
-    headers = {
-        "Accept": "application/json",
-        "Authorization": f"Bearer {token}",
-    }
-    req = urllib.request.Request(url, headers=headers, method="GET")
     try:
-        with urllib.request.urlopen(req, timeout=HTTP_TIMEOUT_SECONDS) as resp:
-            status = resp.status
-            raw = resp.read().decode("utf-8", errors="replace")
-    except urllib.error.HTTPError as e:
-        # Surface the HTTP status + body so a missing candidate ID is loud.
-        try:
-            body = e.read().decode("utf-8", errors="replace")
-        except Exception:
-            body = ""
-        raise OSError(
-            f"HTTP {e.code} from {url}: {body!r}"
-        ) from e
-    except urllib.error.URLError as e:
-        raise OSError(f"Network failure on GET {url}: {e}") from e
-
-    if status < 200 or status >= 300:
-        raise OSError(f"HTTP {status} from {url}: {raw!r}")
-    return status, raw
+        return client.get_task(task_id)
+    except VikunjaTimeoutError as e:
+        raise OSError(f"Timeout on GET {url}: {e}") from e
+    except VikunjaError as e:
+        if e.status is None:
+            # Network-layer failure (URLError, not a timeout) — no HTTP
+            # status to report.
+            raise OSError(f"Network failure on GET {url}: {e}") from e
+        # exc.body carries the raw (uncensored) response text, when
+        # captured, mirroring the pre-migration message that surfaced the
+        # HTTP status + body verbatim.
+        raise OSError(f"HTTP {e.status} from {url}: {e.body!r}") from e
 
 
 # ---------------------------------------------------------------------------
@@ -157,19 +143,17 @@ def find_workout_task(
     if candidate_ids is None:
         candidate_ids = list(DEFAULT_CANDIDATE_IDS)
 
+    # Migrated onto the shared client (WP05, mission #860) — one instance
+    # reused across all candidate lookups, still one GET per candidate.
+    client = VikunjaClient(base_url=api_base_url, token=token)
+
     matches: list[dict] = []
     for task_id in candidate_ids:
-        url = _join_url(api_base_url, f"tasks/{task_id}")
-        _status, raw = _http_get(url, token)
-        try:
-            payload: Any = json.loads(raw)
-        except json.JSONDecodeError as e:
-            raise OSError(
-                f"Non-JSON response from {url}: {raw!r}"
-            ) from e
+        url = f"{client.base_url}/tasks/{task_id}"
+        payload: Any = _get_task_or_oserror(client, task_id, url)
         if not isinstance(payload, dict):
             raise OSError(
-                f"Expected JSON object from {url}, got {type(payload).__name__}: {raw!r}"
+                f"Expected JSON object from {url}, got {type(payload).__name__}: {payload!r}"
             )
         title = payload.get("title", "")
         if not isinstance(title, str):

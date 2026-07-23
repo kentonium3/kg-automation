@@ -46,21 +46,21 @@ Design references:
     - docs/design/research/vikunja-task-model-research.md
         G3 (author.username attribution), G4 (PUT not POST for comments).
     - scripts/common/state_log.py (Phase 2 library used for append/read).
-    - scripts/habits/migrate_schedule.py (urllib HTTP pattern reference).
+    - scripts/common/vikunja_client.py (VikunjaClient -- shared HTTP wrapper;
+      WP04, mission retire-vikunja-felix-bot-01KY829X / #860).
 """
 from __future__ import annotations
 
 import argparse
 import json
 import sys
-import urllib.error
-import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
 from scripts.common import state_log
 from scripts.common.state_log_schema import DOMAIN_STATES
+from scripts.common.vikunja_client import VikunjaClient, VikunjaError
 from scripts.common.vikunja_config import get_vikunja_base_url
 
 
@@ -74,9 +74,6 @@ DEFAULT_BASE_URL: str = ""
 #: Default location of the felix-bot Vikunja API token on office2 (mode 0600).
 DEFAULT_TOKEN_PATH = "/data/services/openclaw/secrets/vikunja-api"
 
-#: HTTP socket timeout in seconds for every Vikunja API call.
-HTTP_TIMEOUT_SECONDS = 30
-
 #: Felix comment body templates per data-model.md Entity 5. The two-segment
 #: form is used when no operator note is supplied; the three-segment form
 #: appends the free-form note as a final pipe-delimited segment.
@@ -85,75 +82,23 @@ COMMENT_TEMPLATE_WITH_NOTE = "[Felix] {date} | {state} | {note}"
 
 
 # ---------------------------------------------------------------------------
-# HTTP helper
+# HTTP helper (WP04, mission #860 -- migrated onto scripts.common.vikunja_client)
 # ---------------------------------------------------------------------------
 
 
-def _join_url(base: str, path: str) -> str:
-    if not base.endswith("/"):
-        base = base + "/"
-    return base + path.lstrip("/")
+def _vikunja_error_detail(exc: VikunjaError) -> str:
+    """Render a ``VikunjaClient`` exception's detail for this module's OSError messages.
 
-
-def _http_request(
-    method: str,
-    url: str,
-    token: str,
-    body: dict | None = None,
-) -> tuple[int, Any]:
-    """Issue an authenticated HTTP request via urllib.
-
-    Args:
-        method: ``GET``, ``POST``, ``PUT``, ``DELETE``.
-        url: Fully qualified URL.
-        token: Vikunja bearer token.
-        body: Optional dict -- serialized to JSON if present.
-
-    Returns:
-        Tuple ``(status_code, parsed_json_or_none)``. ``parsed_json_or_none``
-        is ``None`` when the response body is empty or non-JSON.
-
-    Raises:
-        OSError: On network error or non-2xx HTTP status. The message includes
-            the method + URL + (when available) the server's error body so the
-            operator can triage quickly.
+    Adapts the client's typed ``exc.status``/``exc.body`` (see the
+    ``vikunja_client`` module docstring "Return/error semantics") into a
+    short detail string appended after the ``step N (...)`` prefix that
+    callers/tests key off of. HTTP-derived failures show status + captured
+    body; network/timeout failures (``exc.status is None``) show the
+    exception's redacted verbose form.
     """
-    data: bytes | None = None
-    headers = {
-        "Accept": "application/json",
-        "Authorization": f"Bearer {token}",
-    }
-    if body is not None:
-        data = json.dumps(body).encode("utf-8")
-        headers["Content-Type"] = "application/json"
-
-    req = urllib.request.Request(url, data=data, headers=headers, method=method)
-    try:
-        with urllib.request.urlopen(req, timeout=HTTP_TIMEOUT_SECONDS) as resp:
-            status = resp.status
-            raw = resp.read().decode("utf-8", errors="replace")
-    except urllib.error.HTTPError as e:
-        try:
-            err_body = e.read().decode("utf-8", errors="replace")
-        except Exception:  # pragma: no cover -- purely defensive
-            err_body = ""
-        raise OSError(
-            f"{method} {url} failed with HTTP {e.code}: {err_body!r}"
-        ) from e
-    except urllib.error.URLError as e:
-        raise OSError(f"{method} {url} network failure: {e}") from e
-
-    if status < 200 or status >= 300:
-        raise OSError(f"{method} {url} returned HTTP {status}: {raw!r}")
-
-    parsed: Any = None
-    if raw.strip():
-        try:
-            parsed = json.loads(raw)
-        except json.JSONDecodeError:
-            # Comment-create may return non-JSON; tolerate.
-            parsed = None
-    return status, parsed
+    if exc.status is not None:
+        return f"HTTP {exc.status}: {exc.body!r}"
+    return exc.verbose_message()
 
 
 # ---------------------------------------------------------------------------
@@ -272,8 +217,9 @@ def record(
     if existing:
         return
 
-    # Step 2: Vikunja done=true. POST per migrate_schedule pattern (Vikunja
-    # v0.24.6 uses POST -- not PATCH -- for partial task updates).
+    # Step 2: Vikunja done=true. Narrow read-modify-write via VikunjaClient
+    # (WP01's replace_task_fields, driven with a manually-echoed body --
+    # NOT update_task_fields' full-current-task echo; see WP04 caveat).
     #
     # WHY the GET first (read-modify-write): Vikunja v0.24.6 treats POST
     # /tasks/<id> as a replacement -- fields not in the body are zeroed
@@ -282,12 +228,16 @@ def record(
     # to fire. See #524 for the reproducer (2026-06-04 morning check-in
     # missed 4 of 7 daily habits because earlier completions had silently
     # stripped repeat_after=86400 -> 0). We GET the current task and echo
-    # repeat_after/repeat_mode back so the recurrence config survives.
-    done_url = _join_url(api_base_url, f"tasks/{task_id}")
+    # repeat_after/repeat_mode back so the recurrence config survives --
+    # but the POST body stays NARROW (only these 3 fields), matching the
+    # pre-migration wire shape exactly (not a full-task echo).
+    client = VikunjaClient(base_url=api_base_url, token=token)
     try:
-        _, current = _http_request("GET", done_url, token)
-    except OSError as e:
-        raise OSError(f"step 2 (Vikunja GET pre-done) failed: {e}") from e
+        current = client.get_task(task_id)
+    except VikunjaError as e:
+        raise OSError(
+            f"step 2 (Vikunja GET pre-done) failed: {_vikunja_error_detail(e)}"
+        ) from e
     if not isinstance(current, dict):
         raise OSError(
             f"step 2 (Vikunja GET pre-done) returned non-dict body: "
@@ -299,19 +249,21 @@ def record(
         "repeat_mode": current.get("repeat_mode", 0),
     }
     try:
-        _http_request("POST", done_url, token, body=body)
-    except OSError as e:
-        raise OSError(f"step 2 (Vikunja done=true) failed: {e}") from e
+        client.replace_task_fields(task_id, body)
+    except VikunjaError as e:
+        raise OSError(
+            f"step 2 (Vikunja done=true) failed: {_vikunja_error_detail(e)}"
+        ) from e
 
-    # Step 3: Vikunja comment. G4: comment-create endpoint is PUT, not POST.
-    comment_url = _join_url(api_base_url, f"tasks/{task_id}/comments")
+    # Step 3: Vikunja comment. G4: comment-create endpoint is PUT, not POST
+    # (VikunjaClient.create_comment encodes this).
     comment_body = _format_comment(date, state, note)
     try:
-        _http_request(
-            "PUT", comment_url, token, body={"comment": comment_body}
-        )
-    except OSError as e:
-        raise OSError(f"step 3 (Vikunja comment) failed: {e}") from e
+        client.create_comment(task_id, comment_body)
+    except VikunjaError as e:
+        raise OSError(
+            f"step 3 (Vikunja comment) failed: {_vikunja_error_detail(e)}"
+        ) from e
 
     # Step 4: state_log.append. Vikunja side is already committed; failure
     # here surfaces as exit code 2 so the operator knows JSONL is behind.

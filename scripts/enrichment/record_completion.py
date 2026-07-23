@@ -71,12 +71,15 @@ import json
 import logging
 import os
 import sys
-import urllib.error
-import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Optional
+from typing import Optional
 
+from scripts.common.vikunja_client import VikunjaClient
+from scripts.common.vikunja_client import VikunjaError as _ClientVikunjaError
+from scripts.common.vikunja_client import (
+    VikunjaServerError as _ClientVikunjaServerError,
+)
 from scripts.common.vikunja_config import get_vikunja_base_url
 from scripts.enrichment.schema import (
     DEFAULT_LEDGER_PATH,
@@ -188,83 +191,58 @@ def _read_token(token_path: Path) -> str:
 
 
 # ---------------------------------------------------------------------------
-# HTTP helper
+# HTTP helper (WP03, mission #860: migrated onto the shared VikunjaClient)
 # ---------------------------------------------------------------------------
 
 
-def _join_url(base: str, path: str) -> str:
-    """Join a base URL and a path, tolerating missing/extra slashes."""
-    if not base.endswith("/"):
-        base = base + "/"
-    return base + path.lstrip("/")
-
-
-def _http_request(
-    method: str,
-    url: str,
+def _put_comment(
+    task_id: int,
+    comment: str,
+    *,
+    base_url: str,
     token: str,
-    body: dict | None = None,
-) -> tuple[int, Any]:
-    """Issue an authenticated HTTP request via urllib.
+) -> None:
+    """PUT ``/tasks/{task_id}/comments`` via :class:`VikunjaClient`, adapted
+    to this module's pre-migration error + non-JSON-tolerance contract.
 
-    Args:
-        method: ``GET`` / ``POST`` / ``PUT`` / ``PATCH`` / ``DELETE``.
-        url: Fully qualified URL.
-        token: Vikunja bearer token (felix-bot).
-        body: Optional dict — serialized to JSON if present.
-
-    Returns:
-        Tuple ``(status_code, parsed_json_or_none)``.
+    Per the WP01 "Return/error semantics" adapter note in
+    ``scripts/common/vikunja_client.py``: the client raises
+    :class:`VikunjaServerError` for a non-JSON 2xx response body (always
+    signalled with ``status=200`` regardless of the real status code), but
+    the pre-migration ``_http_request`` helper *tolerated* that case for the
+    comment-create endpoint (a documented real Vikunja quirk — see
+    ``test_non_json_response_body_tolerated``). This adapter reproduces that
+    tolerance explicitly rather than inheriting the client's stricter
+    default.
 
     Raises:
-        VikunjaError: On HTTP-status-error or network failure. Message
-            includes ``method url`` + status + server error body when
-            available.
+        VikunjaError: On a genuine HTTP-status-error, network failure, or
+            timeout. A non-JSON 2xx body is tolerated (no exception).
     """
-    data: bytes | None = None
-    headers = {
-        "Accept": "application/json",
-        "Authorization": f"Bearer {token}",
-    }
-    if body is not None:
-        data = json.dumps(body).encode("utf-8")
-        headers["Content-Type"] = "application/json"
-
-    req = urllib.request.Request(
-        url, data=data, headers=headers, method=method
-    )
+    client = VikunjaClient(base_url=base_url, token=token, timeout=HTTP_TIMEOUT_SECONDS)
+    path = f"/tasks/{task_id}/comments"
+    url = f"{client.base_url}{path}"
     try:
-        with urllib.request.urlopen(
-            req, timeout=HTTP_TIMEOUT_SECONDS
-        ) as resp:
-            status = resp.status
-            raw = resp.read().decode("utf-8", errors="replace")
-    except urllib.error.HTTPError as exc:
-        try:
-            err_body = exc.read().decode("utf-8", errors="replace")
-        except Exception:  # pragma: no cover — purely defensive
-            err_body = ""
+        client.create_comment(task_id, comment)
+    except _ClientVikunjaServerError as exc:
+        if exc.status == 200:
+            # Non-JSON 2xx body — tolerated (comment-create quirk).
+            return
+        if exc.status is None:
+            raise VikunjaError(
+                f"PUT {url} network failure: {exc.verbose_message()}"
+            ) from exc
         raise VikunjaError(
-            f"{method} {url} failed with HTTP {exc.code}: {err_body!r}"
+            f"PUT {url} failed with HTTP {exc.status}: {exc.body!r}"
         ) from exc
-    except urllib.error.URLError as exc:
+    except _ClientVikunjaError as exc:
+        if exc.status is not None:
+            raise VikunjaError(
+                f"PUT {url} failed with HTTP {exc.status}: {exc.body!r}"
+            ) from exc
         raise VikunjaError(
-            f"{method} {url} network failure: {exc}"
+            f"PUT {url} network failure: {exc.verbose_message()}"
         ) from exc
-
-    if status < 200 or status >= 300:
-        raise VikunjaError(
-            f"{method} {url} returned HTTP {status}: {raw!r}"
-        )
-
-    parsed: Any = None
-    if raw.strip():
-        try:
-            parsed = json.loads(raw)
-        except json.JSONDecodeError:
-            # Comment-create may return non-JSON; tolerate.
-            parsed = None
-    return status, parsed
 
 
 # ---------------------------------------------------------------------------
@@ -497,11 +475,8 @@ def _vikunja_side_effect(
             happen when this is raised.
     """
     task_id = record_dict["task_id"]
-    comment_url = _join_url(base_url, f"tasks/{task_id}/comments")
     comment_body = _format_v1_comment(record_dict)
-    _http_request(
-        "PUT", comment_url, token, body={"comment": comment_body}
-    )
+    _put_comment(task_id, comment_body, base_url=base_url, token=token)
     return ["comment_PUT"]
 
 

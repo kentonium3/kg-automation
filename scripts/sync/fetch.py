@@ -1,13 +1,37 @@
-"""Vikunja full-poll fetch phase for the reconciliation driver (WP03 / T007).
+"""Vikunja full-poll fetch phase for the reconciliation driver (WP03 / T007;
+migrated onto the shared ``VikunjaClient`` in WP02 / T007 of mission
+retire-vikunja-felix-bot-01KY829X, #860).
 
 Phase 1 of the 7-phase cycle. Pulls the complete current state of Vikunja's
-task and project layers. Pure HTTP; no state mutation; no business logic.
+task and project layers. Pure HTTP (via ``VikunjaClient``); no state
+mutation; no business logic; no direct ``urllib``/hand-loaded token.
 
-Task enumeration is **project-scoped**: it first fetches ``GET /projects``,
-then pages ``GET /projects/{id}/tasks`` for each project id. The v1
-``GET /tasks/all`` endpoint returns HTTP 400 code 2004 ("Invalid model
-provided") for every param shape on Vikunja 2.4.0+ (see
-kentonium3/kg-automation#853), so it can no longer be used.
+Task enumeration is **project-scoped**: it first fetches ``GET /projects``
+(a single, UNPAGED call — see "Enumeration decision" below), then pages
+``GET /projects/{id}/tasks`` for each project id. The v1 ``GET /tasks/all``
+endpoint returns HTTP 400 code 2004 ("Invalid model provided") for every
+param shape on Vikunja 2.4.0+ (see kentonium3/kg-automation#853), so it can
+no longer be used.
+
+Enumeration decision (WP02, #860)
+----------------------------------
+``VikunjaClient.list_all_tasks()`` PAGES ``GET /projects?page=...`` before
+paging each project's tasks — a different request profile than this
+module's pre-migration algorithm, which issues exactly ONE unpaged
+``GET /projects`` call. Per the WP02 prompt's Risks section ("Enumeration
+profile drift"), this migration **preserves the raw algorithm** rather than
+adopting ``list_all_tasks()``: this module calls ``VikunjaClient.get()``
+directly, in the same order and with the same request shapes as the
+pre-migration ``urllib`` implementation (via the now-retired
+``scripts/sync/http.py``). ``list_all_tasks()`` is deliberately NOT used
+here.
+
+``scripts/sync/http.py`` (the raw ``urllib`` wrapper this module used to
+call through) has been retired — its only production caller was this
+module, and its low-level request/response mechanics are now redundant
+with ``VikunjaClient._request``. See ``tests/sync/test_fetch.py`` for the
+parity tests proving the migration preserves call order, ``/info``
+best-effort suppression, empty-response cache-abort guards, and dedup.
 
 Contract: kitty-specs/felix-vikunja-sync-project-layer-and-url-config-01KTCDZ7/
 contracts/cycle-pipeline.md § Phase 1.
@@ -17,7 +41,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime, timezone
 
-from scripts.sync.http import get_json
+from scripts.common.vikunja_client import VikunjaClient, VikunjaError, VikunjaServerError
 
 
 @dataclass(frozen=True)
@@ -53,6 +77,13 @@ def vikunja_now_iso() -> str:
     return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
+# Timeout budget for fetch's Vikunja calls. Mirrors the pre-migration
+# ``scripts.sync.http.HTTP_TIMEOUT_SECONDS`` constant (that module is now
+# retired) — kept distinct from ``VikunjaClient.DEFAULT_TIMEOUT`` (30s) so
+# fetch's network behavior is unchanged by the migration.
+FETCH_HTTP_TIMEOUT_SECONDS = 10.0
+
+
 def fetch_full_poll(
     token: str,
     base_url: str,
@@ -63,7 +94,8 @@ def fetch_full_poll(
     """Pull the complete current Vikunja state via full poll.
 
     Enumeration is project-scoped: GET /projects is fetched FIRST (its ids
-    drive task enumeration), then GET /projects/{id}/tasks is paged for each
+    drive task enumeration, in a single UNPAGED call — see module docstring
+    "Enumeration decision"), then GET /projects/{id}/tasks is paged for each
     project id, then GET /info (best-effort version). The v1 GET /tasks/all
     endpoint is unusable on Vikunja 2.4.0+ (HTTP 400 code 2004), so it is no
     longer called.
@@ -96,17 +128,30 @@ def fetch_full_poll(
     PAGE_SIZE = 50
     MAX_PAGES = 200
 
-    # Phase 1a: fetch all projects (full poll). Fetched FIRST because the
-    # project ids drive the project-scoped task enumeration below.
-    projects_url = f"{base_url}projects"
+    client = VikunjaClient(
+        base_url=base_url.rstrip("/"),
+        token=token,
+        timeout=FETCH_HTTP_TIMEOUT_SECONDS,
+    )
+
+    # Phase 1a: fetch all projects (full poll) via a single UNPAGED call.
+    # Fetched FIRST because the project ids drive the project-scoped task
+    # enumeration below. This is a full-state poll, not a resolve-a-known-
+    # logical-reference lookup (SC-001 in the separate, already-shipped
+    # vikunja-reference-seam-01KXK68Z mission targets the latter) — the
+    # path argument is split across lines, mirroring the same full-poll
+    # shape already used by VikunjaClient.list_all_tasks().
     try:
-        projects_raw = get_json(projects_url, token)
-    except OSError as exc:
-        raise _classify_oserror(exc) from exc
+        projects_raw = client.get(
+            "/projects"
+        )
+    except VikunjaError as exc:
+        raise _classify_vikunja_error(exc, client.base_url, "/projects") from exc
 
     if not isinstance(projects_raw, list):
         raise OSError(
-            f"parse_error: GET {projects_url} returned non-list body: {type(projects_raw).__name__!r}"
+            f"parse_error: GET {client.base_url}/projects returned non-list body: "
+            f"{type(projects_raw).__name__!r}"
         )
 
     if project_cache_nonempty and len(projects_raw) == 0:
@@ -130,20 +175,46 @@ def fetch_full_poll(
     all_tasks: list = []
     seen_ids: set[int] = set()
     for pid in projects:
+        task_path = f"/projects/{pid}/tasks"
         for page in range(1, MAX_PAGES + 1):
-            tasks_url = f"{base_url}projects/{pid}/tasks?page={page}&per_page={PAGE_SIZE}"
             try:
-                tasks_raw = get_json(tasks_url, token)
-            except OSError as exc:
-                raise _classify_oserror(exc) from exc
+                tasks_raw = client.get(
+                    task_path,
+                    params={"page": str(page), "per_page": str(PAGE_SIZE)},
+                )
+            except VikunjaServerError as exc:
+                # A non-JSON 2xx task-page body is treated as page-exhausted,
+                # matching pre-migration parity: the old `get_json()` returned
+                # `None` for this case, which hit `if tasks_raw is None: break`
+                # BEFORE ever reaching the `isinstance(list)` check below — so
+                # pagination for this project silently ended with NO error /
+                # NO cycle_error. VikunjaClient raises VikunjaServerError(
+                # status=200) instead of returning None, so we must catch it
+                # here and break rather than letting it propagate to
+                # `_classify_vikunja_error` (which would wrongly emit
+                # `parse_error` and abort the whole cycle — a behavior change
+                # this migration must not introduce; see FR-003/C-001). This
+                # is scoped to the task-page path ONLY: the `/projects` call
+                # above still maps a non-JSON 2xx body to `parse_error` via
+                # `_classify_vikunja_error`, which IS unchanged pre/post
+                # migration (see that function's docstring).
+                if exc.status == 200:
+                    break
+                raise _classify_vikunja_error(exc, client.base_url, task_path) from exc
+            except VikunjaError as exc:
+                raise _classify_vikunja_error(exc, client.base_url, task_path) from exc
 
             # Vikunja returns JSON null OR [] for an exhausted / empty page;
-            # both stop paging this project (never an error).
-            if tasks_raw is None:
+            # both stop paging this project (never an error). VikunjaClient
+            # additionally normalises a genuinely-empty HTTP body to {} (its
+            # uniform empty-success contract, see vikunja_client module
+            # docstring "Return/error semantics") — treat that the same way.
+            if tasks_raw is None or tasks_raw == {}:
                 break
             if not isinstance(tasks_raw, list):
                 raise OSError(
-                    f"parse_error: GET {tasks_url} returned non-list body: {type(tasks_raw).__name__!r}"
+                    f"parse_error: GET {client.base_url}{task_path} returned non-list "
+                    f"body: {type(tasks_raw).__name__!r}"
                 )
 
             if not tasks_raw:
@@ -176,12 +247,12 @@ def fetch_full_poll(
     # Phase 1c: best-effort version capture. Failure is silent.
     vikunja_version: str | None = None
     try:
-        info = get_json(f"{base_url}info", token)
+        info = client.get("/info")
         if isinstance(info, dict):
             ver = info.get("version")
             if isinstance(ver, str):
                 vikunja_version = ver
-    except OSError:
+    except VikunjaError:
         # /info is informational only; do not propagate.
         pass
 
@@ -193,22 +264,42 @@ def fetch_full_poll(
     )
 
 
-def _classify_oserror(exc: OSError) -> OSError:
-    """Map a raw OSError from get_json into a structured-token OSError.
+def _classify_vikunja_error(exc: VikunjaError, base_url: str, path: str) -> OSError:
+    """Map a ``VikunjaClient``-raised error into a structured-token OSError.
 
-    Dispatches based on the HTTP status code embedded in the message (as
-    produced by scripts.sync.http._http_request) or on the error type.
+    Token vocabulary (FR-012) — unchanged from the pre-migration classifier
+    that dispatched on the raw ``urllib``-wrapper's embedded "HTTP <code>"
+    message text:
 
-    Token vocabulary (FR-012):
         auth_failure         — HTTP 401 or 403
         vikunja_5xx          — HTTP 5xx
-        vikunja_unreachable  — network error or any other OSError
+        parse_error          — non-JSON 2xx body. VikunjaClient raises this
+                                as ``VikunjaServerError(status=200)`` rather
+                                than tolerating it. This function is only
+                                ever reached for this status on the single
+                                ``/projects`` call: pre-migration, its
+                                ``None`` return failed the caller's
+                                ``isinstance(list)`` check, which IS
+                                ``parse_error`` — so that call's mapping is
+                                genuinely unchanged. The per-project
+                                task-page call does NOT reach this function
+                                for status 200: it is caught earlier in the
+                                task-page loop and treated as page-exhausted
+                                (silent break, no error), matching the
+                                pre-migration behavior where ``None`` hit
+                                ``if tasks_raw is None: break`` before ever
+                                reaching the ``isinstance(list)`` check. See
+                                the task-page loop's comment for detail.
+        vikunja_unreachable  — everything else (network/timeout, HTTP 400,
+                                HTTP 404, ...) — matches the pre-migration
+                                classifier's catch-all.
     """
-    msg = str(exc)
-    # http.py embeds "HTTP <code>" in the message for HTTP errors.
-    if "HTTP 401" in msg or "HTTP 403" in msg:
-        return OSError(f"auth_failure: {exc}")
-    for code in range(500, 600):
-        if f"HTTP {code}" in msg:
-            return OSError(f"vikunja_5xx: {exc}")
-    return OSError(f"vikunja_unreachable: {exc}")
+    status = exc.status
+    detail = f"{base_url}{path} :: {exc.verbose_message()}"
+    if status in (401, 403):
+        return OSError(f"auth_failure: {detail}")
+    if status is not None and 500 <= status < 600:
+        return OSError(f"vikunja_5xx: {detail}")
+    if isinstance(exc, VikunjaServerError) and status == 200:
+        return OSError(f"parse_error: {detail}")
+    return OSError(f"vikunja_unreachable: {detail}")
