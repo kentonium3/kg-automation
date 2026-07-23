@@ -131,6 +131,87 @@ def test_at_window_boundary_is_fresh(tmp_path, monkeypatch):
     }
 
 
+# ---------------------------------------------------------------------------
+# Record-aware push filter (Codex F: multi-line diff bodies must be dropped whole)
+# ---------------------------------------------------------------------------
+
+# A realistic expected-drift record: header + multi-line diff body.
+_EXPECTED_RECORD = [
+    "[ALERT] systemd-user-unit-contents.txt changed since baseline: 5c5",
+    "< ExecStart=/old/path",
+    "---",
+    "> ExecStart=/new/path",
+]
+_UNEXPECTED_RECORD = [
+    "[ALERT] openclaw-cron.txt changed since baseline: 1c1",
+    "< jobs-before",
+    "> jobs-after",
+]
+_IOC_RECORD = ["[ALERT] IOC: /tmp/pglog exists (litellm indicator)"]
+
+
+def test_filter_drops_expected_record_including_diff_body():
+    lines = _EXPECTED_RECORD + _UNEXPECTED_RECORD + _IOC_RECORD
+    kept = ed.filter_alert_lines(lines, {"systemd-user-unit-contents.txt"})
+    # The expected record's header AND its 3 diff-body lines are gone.
+    assert kept == _UNEXPECTED_RECORD + _IOC_RECORD
+    # No orphaned diff-body line leaked through.
+    assert "< ExecStart=/old/path" not in kept
+    assert "> ExecStart=/new/path" not in kept
+
+
+def test_filter_keeps_ioc_and_unexpected_records():
+    lines = _EXPECTED_RECORD + _IOC_RECORD + _UNEXPECTED_RECORD
+    kept = ed.filter_alert_lines(lines, {"systemd-user-unit-contents.txt"})
+    assert kept == _IOC_RECORD + _UNEXPECTED_RECORD
+
+
+def test_filter_all_expected_returns_empty():
+    kept = ed.filter_alert_lines(_EXPECTED_RECORD, {"systemd-user-unit-contents.txt"})
+    assert kept == []
+
+
+def test_filter_empty_expected_keeps_everything():
+    lines = _EXPECTED_RECORD + _UNEXPECTED_RECORD + _IOC_RECORD
+    assert ed.filter_alert_lines(lines, set()) == lines
+
+
+def test_filter_exact_match_not_prefix_sibling():
+    # A token naming the shorter sibling must NOT suppress the longer baseline.
+    lines = _EXPECTED_RECORD  # systemd-user-unit-contents.txt
+    kept = ed.filter_alert_lines(lines, {"systemd-user-units.txt"})
+    assert kept == _EXPECTED_RECORD  # nothing suppressed
+
+
+def test_filter_alerts_cli_roundtrip(tmp_path):
+    """--filter-alerts reads stdin, drops the expected record, exits 0.
+
+    The subprocess computes freshness against REAL wall-clock now (it can't see the
+    test's injected _NOW), so the token's pending_since_utc must be real-now-relative.
+    """
+    real_now = _dt.datetime.now(tz=_dt.timezone.utc)
+    token = tmp_path / "rebaseline-pending.json"
+    token.write_text(
+        json.dumps(
+            {
+                "pending_since_utc": _iso(real_now - _dt.timedelta(seconds=30)),
+                "expected_baselines": ["systemd-user-unit-contents.txt"],
+            }
+        ),
+        encoding="utf-8",
+    )
+    stdin = "\n".join(_EXPECTED_RECORD + _IOC_RECORD) + "\n"
+    env = {**__import__("os").environ, "EXPECTED_DRIFT_TOKEN_PATH": str(token)}
+    proc = subprocess.run(
+        [sys.executable, str(HELPER_PATH), "--filter-alerts"],
+        input=stdin, capture_output=True, text=True, env=env, check=False,
+    )
+    assert proc.returncode == 0
+    # systemd-user-unit-contents.txt is expected+fresh → its record dropped; IOC kept.
+    assert "systemd-user-unit-contents.txt" not in proc.stdout
+    assert "IOC: /tmp/pglog" in proc.stdout
+
+
 @pytest.mark.parametrize("payload", [None, _fresh_payload(), {"bad": 1}])
 def test_cli_list_always_exits_zero(tmp_path, payload):
     """--list must never fail the caller (exit 0) regardless of token state."""

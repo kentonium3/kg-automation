@@ -21,7 +21,11 @@ Design (see kitty-specs/drift-alert-rebaseline-suppression-01KY7GZZ/):
   audit pages exactly as it does today (FR-004/FR-005/NFR-002/NFR-003).
 
 Usage:
-    expected_drift.py --list     # print fresh expected baseline names, one per line
+    expected_drift.py --list            # print fresh expected baseline names, one per line
+    expected_drift.py --filter-alerts   # read an audit alert file on stdin, write to stdout
+                                        # only the alert records to PUSH (expected-baseline
+                                        # drift records — header AND their multi-line diff
+                                        # body — are dropped; IOC and unexpected records kept)
 
 Env:
     EXPECTED_DRIFT_TOKEN_PATH    # override the token path (tests / live-verify);
@@ -32,7 +36,13 @@ from __future__ import annotations
 import datetime as _dt
 import os
 import pathlib
+import re
 import sys
+
+# A baseline-drift alert record header, as emitted by audit.sh's alert():
+#   "[ALERT] <name> changed since baseline: <first diff line>"
+# The diff body continues on the following lines (which do NOT start with "[ALERT]").
+_BASELINE_ALERT_RE = re.compile(r"^\[ALERT\] (\S+) changed since baseline:")
 
 # Dedicated SHORT suppression window (#862, Codex F3): ~15 min = a small multiple of
 # the felix-deployer ~5-min deploy tick. NOT rebaseline.MAX_AGE_SECONDS (24 h).
@@ -86,8 +96,49 @@ def fresh_expected_baselines(now: "_dt.datetime | None" = None) -> "set[str]":
         return set()
 
 
+def filter_alert_lines(lines: "list[str]", expected: "set[str]") -> "list[str]":
+    """Return the alert lines to PUSH, dropping whole records for expected baselines.
+
+    An audit alert *record* is a ``[ALERT] …`` header line followed by zero or more
+    continuation lines (the multi-line ``diff`` body, which do not start with
+    ``[ALERT]``). When a baseline-drift header names an *expected* baseline, the header
+    **and its whole diff body** are dropped. IOC records (``[ALERT] IOC: …`` etc., which
+    do not match "changed since baseline:") and unexpected-drift records are kept in
+    full. Pure function — no I/O; trivially testable.
+    """
+    out: list[str] = []
+    suppress = False
+    for line in lines:
+        if line.startswith("[ALERT]"):
+            m = _BASELINE_ALERT_RE.match(line)
+            name = m.group(1) if m else None
+            if name is not None and name in expected:
+                suppress = True  # drop this header and its following diff body
+                continue
+            suppress = False
+            out.append(line)
+        elif not suppress:
+            out.append(line)
+    return out
+
+
+def _run_filter_alerts() -> int:
+    """stdin (audit alert file) -> stdout (lines to push). Fail-safe: on ANY error,
+    pass the input through unchanged so the audit pushes everything."""
+    raw = sys.stdin.read()
+    try:
+        lines = raw.splitlines()
+        kept = filter_alert_lines(lines, fresh_expected_baselines())
+        sys.stdout.write("\n".join(kept) + ("\n" if kept else ""))
+    except Exception:  # noqa: BLE001 - fail-safe: emit original input, push everything
+        sys.stdout.write(raw)
+    return 0
+
+
 def main(argv: "list[str] | None" = None) -> int:
     args = list(sys.argv[1:] if argv is None else argv)
+    if "--filter-alerts" in args:
+        return _run_filter_alerts()
     if "--list" in args:
         for name in sorted(fresh_expected_baselines()):
             print(name)

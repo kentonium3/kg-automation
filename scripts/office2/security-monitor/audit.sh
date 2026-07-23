@@ -295,25 +295,23 @@ if [ "$ALERT" -eq 1 ]; then
     # felix-deployer has flagged as an expected in-flight rebaseline. Detection is
     # untouched above: every drift is already in $ALERT_FILE + stdout and $ALERT=1
     # forces exit 1, so felix-deployer's reconcile still sees the drift and stamps
-    # the new baseline. Here we only filter which alert lines reach the human push.
-    # The helper is fail-safe (any error → empty list → nothing suppressed).
-    EXPECTED_DRIFT=$(python3 "$EXPECTED_DRIFT_HELPER" --list 2>/dev/null || true)
+    # the new baseline. Here we only filter which alert RECORDS reach the human push.
+    # The helper is record-aware (drops a suppressed alert's whole multi-line diff
+    # body, not just its header) and fail-safe: on ANY helper failure we push
+    # everything (copy the full alert file), so a broken helper never mutes an alert.
     PUSH_FILE=$(mktemp)
-    while IFS= read -r line; do
-        # Baseline-drift lines look like "[ALERT] <name> changed since baseline: …".
-        # IOC lines ("[ALERT] IOC: …", "[ALERT] /etc/hosts modified…") don't match
-        # this pattern, so bname is empty for them → they are always pushed.
-        bname=$(printf '%s\n' "$line" | sed -n 's/^\[ALERT\] \([^ ]*\) changed since baseline:.*/\1/p')
-        if [ -n "$bname" ] && [ -n "$EXPECTED_DRIFT" ] \
-           && printf '%s\n' "$EXPECTED_DRIFT" | grep -Fxq -- "$bname"; then
-            log "PUSH SUPPRESSED (expected in-flight rebaseline): $bname"
-            continue
-        fi
-        printf '%s\n' "$line" >> "$PUSH_FILE"
-    done < "$ALERT_FILE"
+    if ! python3 "$EXPECTED_DRIFT_HELPER" --filter-alerts < "$ALERT_FILE" > "$PUSH_FILE" 2>/dev/null; then
+        cp "$ALERT_FILE" "$PUSH_FILE"
+    fi
 
     PUSH_COUNT=$(grep -c "^\[ALERT\]" "$PUSH_FILE" 2>/dev/null || true)
     [ -z "$PUSH_COUNT" ] && PUSH_COUNT=0
+    # Cosmetic: log how many records were suppressed (guard the non-numeric "?" case).
+    case "$ALERT_COUNT" in
+        ''|*[!0-9]*) : ;;
+        *) SUPPRESSED_COUNT=$((ALERT_COUNT - PUSH_COUNT))
+           [ "$SUPPRESSED_COUNT" -gt 0 ] && log "PUSH SUPPRESSED: $SUPPRESSED_COUNT expected in-flight-rebaseline drift record(s)" ;;
+    esac
 
     if [ "$PUSH_COUNT" -gt 0 ]; then
         # Send push notification via the felix-alert bus shim.
