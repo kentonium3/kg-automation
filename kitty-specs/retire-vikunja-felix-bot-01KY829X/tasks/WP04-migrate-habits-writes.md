@@ -156,3 +156,4 @@ opposite ways, so it is the primary consumer of WP01's two update methods.
 ## Activity Log
 
 - 2026-07-23T22:19:15Z – claude:sonnet-5:python-pedro:implementer – shell_pid=45337 – Assigned agent via action command
+- 2026-07-23T22:40:22Z – claude:sonnet-5:python-pedro:implementer – shell_pid=45337 – Ready for review — full-echo caveat resolved via inline narrow RMW: record_completion uses get_task()+replace_task_fields() (narrow 3-field), NOT update_task_fields; migrate_schedule uses replace_task_fields (narrow) + create_task_in_project; set_due_dates/exclude_completed migrated; exclude_completed_v2 untouched (no HTTP). No client-file edits. 209/209 target + 1188/1188 sweep; flake8 exit 0. Commit f3bd9423 lane-d.
