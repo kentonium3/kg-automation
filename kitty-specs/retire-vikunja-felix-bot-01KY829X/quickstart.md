@@ -1,47 +1,43 @@
-# Quickstart / Verification: Retire Vikunja felix-bot (single kent-token model)
+# Quickstart / Verification: Consolidate Felix→Vikunja onto the shared client (phase 1 of #860)
 
-## Unit / seam tests (local)
+**Behavior-preserving refactor — no identity change, no live cutover.** (The token flip + attended
+Tier-2 cutover are Phase 2, a follow-on kitty-light change.)
 
-- `VikunjaClient` default resolves the kent token path; any test pinning the felix-bot default
-  is updated to the new default.
-- `route_someday` no longer has the 403 fail-soft branch — the attach path is unconditional;
-  update/remove the fail-soft test.
-- `validate_refs` draws its token from the shared default; the negative test (registry diverges
-  from the runtime view → validator fails) still bites.
-- Run the Vikunja + inbox + habits + trust + escalation test surfaces that touch `VikunjaClient`.
+## Unit / parity tests (local — the core acceptance gate)
+
+- **`VikunjaClient` new methods**: unit-test each operation added under FR-002 (comments,
+  completions, label ops, bulk reads, partial-update read-modify-write) against the client contract
+  + error model.
+- **Per-consumer parity**: for each migrated consumer, a test proves the migrated path issues the
+  **same** Vikunja requests / produces the same effects as the raw-HTTP path (mock/record the HTTP).
+  `sync/cycle.py` (bidirectional) gets the most coverage.
+- Run the full Vikunja + inbox + habits + escalation + enrichment + trust + credential-health suites.
 
 ## Grep gate (SC-001)
 
-- `grep -rnE "secrets/vikunja-api([^-]|$)" scripts/` → **no runtime** consumer hand-loads the
-  felix-bot token or issues raw HTTP to Vikunja; every runtime Vikunja op goes through
-  `VikunjaClient` (only admin/one-shot + docs may remain, and felix-bot-tied one-shots are
-  archived). The single `VikunjaClient` default is the kent token.
+- `grep -rnE "secrets/vikunja-api([^-]|$)" scripts/` → **no runtime** consumer hand-loads a token or
+  issues raw HTTP to Vikunja; every runtime Vikunja op goes through `VikunjaClient` (only
+  admin/one-shot + docs may remain).
 
-## ⛔ Attended Tier-2 pre-flight (HOLD for the operator — before ANY live change)
+## Identity unchanged (SC-004)
 
-1. **Restic snapshot**: confirm a backup within 24h of `/data/services/openclaw/secrets/` +
-   service state; trigger one if not.
-2. **Before baseline**: for each of the 9 consumers, capture the current connectivity result
-   (auth OK; task/project counts under the felix-bot token) — this is the comparison point.
-3. Operator present for the cutover.
+- `grep -n "DEFAULT_TOKEN_PATH" scripts/common/vikunja_client.py` → still `…/vikunja-api`
+  (felix-bot). This phase changes **no** identity/token.
 
-## Cutover + live verification (SC-002 / NFR-001 / NFR-003)
+## Deploy + spot-check (SC-002/003)
 
-- Merge → felix-deployer self-pulls → the kent default is live on next consumer invocation
-  (no restart; clients read the token per-call). SKILL.md syncs via the skill-sync pipeline.
-- **SC-002 / NFR-001**: a live runtime read now returns tasks from projects **16–20** (was 0):
-  e.g. list tasks across the topic-projects under the deployed runtime and confirm count > 0.
-- **NFR-003**: re-run the connectivity check for all 9 consumers → all green, zero new auth
-  failures vs. the before baseline.
-- **SC-003**: `validate_refs` passes under the runtime token; a deliberately diverged registry
-  entry makes it fail (guardrail proven).
+- Merge → felix-deployer self-pulls; consumers run through `VikunjaClient` on next invocation
+  (still felix-bot; no restart, no cutover). No deploy manifest; **Rebaseline: not required**.
+- Spot-verify each migrated consumer runs correctly on office2 (same behavior as before) — no
+  regression.
 
-## Rollback (NFR-002)
+## Rollback
 
-- Revert the runtime commit + redeploy (self-pull). The felix-bot `vikunja-api` token is still
-  valid, so prior behavior is fully restored. No Vikunja-side action needed.
+- Revert the mission commit + redeploy (self-pull). No credential/auth state changed, so rollback is
+  a pure code revert.
 
-## Close-out
+## Hand-off to Phase 2
 
-- Confirm rebaseline outcome (per R6 — record `completed` or `not required — <reason>`).
-- Close #831 (SKILL.md now current) and #750 (fail-soft branch removed / attach works).
+- On a green, deployed, soaked Phase 1, Phase 2 (kitty-light under #860) does the one-line flip to
+  the kent token + felix-bot Vikunja retirement + attended Tier-2 cutover + projects-16–20 verify +
+  #831/#750 resolution.
