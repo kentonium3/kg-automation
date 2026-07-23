@@ -12,8 +12,10 @@
 
 ## Grep gate (SC-001)
 
-- `grep -rn "VikunjaClient(" scripts/` → every no-token site inherits the kent default; **no**
-  `vikunja-api` (felix-bot) default remains in the runtime path (`grep -rn "secrets/vikunja-api\b"`).
+- `grep -rnE "secrets/vikunja-api([^-]|$)" scripts/` → **no runtime** consumer hand-loads the
+  felix-bot token or issues raw HTTP to Vikunja; every runtime Vikunja op goes through
+  `VikunjaClient` (only admin/one-shot + docs may remain, and felix-bot-tied one-shots are
+  archived). The single `VikunjaClient` default is the kent token.
 
 ## ⛔ Attended Tier-2 pre-flight (HOLD for the operator — before ANY live change)
 

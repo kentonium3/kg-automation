@@ -2,13 +2,28 @@
 
 Phase 0 decisions. Decision → Rationale → Alternatives.
 
-## R1 — One central-default change, not per-site edits
+## R1 — Consolidate onto the client first, THEN a one-line identity flip (revised, Codex HIGH)
 
-- **Decision**: repoint `VikunjaClient.DEFAULT_TOKEN_PATH` (`scripts/common/vikunja_client.py:67`)
-  to `…/vikunja-api-kent`; all 9 no-token consumers inherit it.
-- **Rationale**: C-003 single source of truth; it *is* the "collapse to single-token." Nine
-  identical per-site edits would be error-prone and re-introduce drift risk.
-- **Alternatives**: pass the kent token at each call site — rejected (nine places to keep in sync).
+- **Decision**: the mission is a **consolidation**, not a one-line pivot. ~6 runtime domains
+  (sync, escalation, enrichment, habits, credential-health) talk to Vikunja with raw HTTP +
+  hand-loaded tokens; migrate them all onto the shared `VikunjaClient` (extending it where it
+  lacks an op), then flip the single `DEFAULT_TOKEN_PATH` to the kent token.
+- **Rationale**: repointing the client default alone leaves the raw-HTTP consumers on felix-bot →
+  a **split-brain** (some kent, some felix-bot) that is worse than today's consistent-but-partial
+  view. Consolidation is also the Epic #531 boundary / EA-§11 task seam and fixes the design
+  inconsistency directly.
+- **Alternatives**: flip only the `VikunjaClient` consumers now, migrate the rest later — rejected
+  (split-brain, prohibited by NFR-001). A one-line pivot — rejected (undercounts the real surface).
+
+## R1b — Establish the seam, not a formal port (EA-§11 discipline)
+
+- **Decision**: `VikunjaClient` is the seam; do **not** build an abstract `TaskService` port /
+  adapter registry now.
+- **Rationale**: §11 — "seam now, formal port when a second implementation justifies it; don't
+  build elaborate abstractions around an unproven core." No second task backend exists;
+  Todoist/Asana is explicitly deferred, and §11 says design the *channel* port first anyway.
+- **Alternatives**: introduce a `TaskService` interface + Vikunja adapter now — rejected as
+  premature generalization (C-004).
 
 ## R2 — Rollback-safe token retirement (operator decision, 2026-07-23)
 
@@ -50,16 +65,19 @@ Phase 0 decisions. Decision → Rationale → Alternatives.
 - **Alternatives**: pure self-pull with no manifest — workable but loses the auditable deploy
   record + the live-verify convention.
 
-## R6 — Rebaseline: likely NOT required (contradicts the issue body)
+## R6 — Rebaseline NOT required; omit the deploy manifest (revised, Codex MED)
 
-- **Decision**: treat rebaseline as **not required**, pending a concrete check at implement.
-- **Rationale**: `audited-surfaces.json` patterns cover systemd units, openclaw prompts/config,
-  python-deps, docker, ssh keys, and the deploy-pipeline (empty `affected_baselines`). Neither
-  `scripts/common/**` nor `credential-manifest.json` matches — no hashed baseline drifts. The
-  issue body's "audited surface" note likely conflates the office2 **secret file** with a hashed
-  baseline; the secret file's *content* isn't changing (we repoint to an existing file).
-- **Alternatives**: assume audited + rebaseline — rejected unless the implement-time check finds
-  an actual matching pattern; the merge commit's `Rebaseline:` line records the verified outcome.
+- **Decision**: **omit** a `deploys/queued/*.yaml` for this cutover; record `Rebaseline: not
+  required — no audited surface matched`.
+- **Rationale**: `scripts/**` and `credential-manifest.json` match no audited-surface pattern.
+  Codex correction: a `deploys/queued/*.yaml` *does* match the deploy-pipeline surface
+  (`rebaseline_required: true`, empty `affected_baselines`) → adding one would demand a
+  deploy-pipeline rebaseline record. But the code is checkout-resident (self-pull) + SKILL.md via
+  skill-sync — no imperative deploy action is needed — so we skip the manifest entirely and
+  live-verify in the attended step. No manifest ⇒ no audited surface touched ⇒ rebaseline genuinely
+  not required.
+- **Alternatives**: add a manifest for auditability — rejected (pulls in the deploy-pipeline
+  rebaseline for no functional gain; the attended verify covers the live-check).
 
 ## R7 — Attended Tier-2 boundary
 
