@@ -21,9 +21,11 @@ subtasks:
 - T005
 phase: Phase 0 - Foundation
 assignee: ''
-agent: claude
+agent: "claude:sonnet-5:python-pedro:implementer"
 agent_profile: python-pedro
 role: implementer
+shell_pid: "37000"
+shell_pid_created_at: "1784843593.165933"
 history:
 - at: '2026-07-23T21:04:52Z'
   actor: system
@@ -193,3 +195,7 @@ Known operations the consumers use (confirm by grep):
 - Verify `patch()` + PATCH content-type; the two distinct update methods; a read-modify-write test
   proving `repeat_after` survives; the default-token assertion.
 - Confirm no abstract port and no default-token change. Confirm every new method is unit-tested.
+
+## Activity Log
+
+- 2026-07-23T21:53:26Z – claude:sonnet-5:python-pedro:implementer – shell_pid=37000 – Assigned agent via action command
