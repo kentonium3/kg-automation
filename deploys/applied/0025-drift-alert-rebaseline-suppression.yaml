@@ -1,0 +1,29 @@
+schema_version: v1
+name: drift-alert-rebaseline-suppression
+issue: kentonium3/kg-automation#862
+tier: 3
+entrypoint: scripts/deploy/deploy-security-monitor-audit.py
+audited_surface: false
+created_at: '2026-07-23T13:32:04Z'
+created_by: fix-862-drift-alert-rebaseline-suppression
+apply_mode: manifest
+notes: "Syncs the updated security-monitor audit.sh to its standalone office2 copy\n\
+  (/data/services/security-monitor/scripts/audit.sh) for kentonium3/kg-automation#862.\n\
+  \n#862 fixes a false-page race: an audited-surface deploy that lands within seconds\
+  \ of\na security-monitor audit tick fires a false `error` push for drift that felix-deployer\n\
+  has already flagged as expected and is actively rebaselining. audit.sh now consults\
+  \ a\nnew checkout-resident helper (scripts/deploy/felix-deployer/expected_drift.py)\
+  \ at PUSH\ntime and withholds the push for baseline drift named in felix-deployer's\
+  \ fresh\npending-rebaseline token \u2014 WITHOUT changing detection (every drift\
+  \ still emits its\n`[ALERT]` line and the run still exits 1, so felix-deployer's\
+  \ reconcile still detects\nthe drift and stamps the baseline). Unexpected drift\
+  \ and IOC alerts always push.\nFail-safe: any helper error \u2192 empty list \u2192\
+  \ the audit pages exactly as before.\n\nThe helper (expected_drift.py) is checkout-resident\
+  \ and arrives on office2 via\nfelix-deployer's own self-pull in the same tick that\
+  \ applies this manifest; only the\nstandalone audit.sh copy needs an explicit sync,\
+  \ which this entrypoint performs.\n\nTier 3 (a file copy into a claude-owned dir\
+  \ \u2014 no sudo, no Tier 0/1/2 action).\naudited_surface: false \u2014 audit.sh\
+  \ (scripts/office2/security-monitor/*.sh) matches no\naudited-surfaces.json pattern\
+  \ (systemd-user-units covers scripts/office2/*.service and\nscripts/office2/deploy/*.sh,\
+  \ not security-monitor/audit.sh); no hashed baseline drifts.\nRebaseline: not required.\n"
+applied_at: '2026-07-23T13:52:54Z'
