@@ -120,6 +120,15 @@ deploy half:
   surface** (`audited-surfaces.json`), so the deploy is a rebaseline event —
   `felix-deployer` auto-rebaselines on the happy path because the change has a
   repo-file signal.
+- **Expected-drift push suppression (#862).** When an audited-surface deploy lands
+  within seconds of an audit tick, the audit would page on the expected drift before
+  `felix-deployer`'s deferred-confirm rebaseline stamps the new baseline. `audit.sh`
+  now consults `felix-deployer`'s pending-rebaseline token (read-only, via
+  `scripts/deploy/felix-deployer/expected_drift.py`) at push time and withholds the
+  push for that expected drift — **without** changing detection (the `[ALERT]` line +
+  exit 1 are unchanged, so the rebaseline trigger is unaffected). Bounded by a short
+  ~15-min window; fail-safe to paging on any error. See
+  [security-posture.md](<./security-posture.md>) → Expected-drift push suppression.
 
 ## 4. Invariants the pattern guarantees
 

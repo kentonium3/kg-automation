@@ -43,6 +43,12 @@ ALERT=0
 # single Python ntfy source of truth. No hardcoded topic lives here anymore.
 ALERT_BUS="/home/claude/kg-automation/scripts/common/alert_bus.sh"
 
+# Expected-drift query helper (#862) — reads felix-deployer's pending-rebaseline
+# token to decide which baseline-drift alerts to withhold from the PUSH (never from
+# DETECTION). Checkout-resident, like ALERT_BUS above. Fail-safe: any error prints
+# nothing → nothing is suppressed → the audit pages exactly as before.
+EXPECTED_DRIFT_HELPER="/home/claude/kg-automation/scripts/deploy/felix-deployer/expected_drift.py"
+
 # --- Helpers ---
 log()   { echo "[$(date '+%H:%M:%S')] $1" >> "$LOGFILE"; }
 alert() { echo "[ALERT] $1" | tee -a "$ALERT_FILE" >> "$LOGFILE"; ALERT=1; }
@@ -285,25 +291,49 @@ if [ "$ALERT" -eq 1 ]; then
     ALERT_COUNT=$(grep -c "^\[ALERT\]" "$ALERT_FILE" 2>/dev/null || echo "?")
     log "AUDIT COMPLETE: $ALERT_COUNT ALERT(S) FOUND"
 
-    # Send push notification via the felix-alert bus shim.
-    # Severity: always `error` (maps to ntfy Priority: high). The audit only
-    # emits when count>0, i.e. real baseline drift or an IOC hit — every such
-    # finding warrants the high-priority gradient, matching the old path which
-    # always sent "Priority: high". No warn/error threshold branching: a single
-    # drift is as security-relevant as many, so `error` is the floor for any
-    # finding.
-    ALERT_SUMMARY=$(head -5 "$ALERT_FILE" | sed 's/\[ALERT\] //' | tr '\n' ' ')
-    SEVERITY="error"
-    # Best-effort: the shim always exits 0, and `|| true` is belt-and-suspenders
-    # so a notification failure can never fail the audit cron.
-    "$ALERT_BUS" emit \
-        --source "security-monitor/audit" \
-        --severity "$SEVERITY" \
-        --title "Felix Security Alert — office2" \
-        --description "${ALERT_COUNT} alert(s) on ${DATE}" \
-        --detail summary="${ALERT_SUMMARY}" \
-        && log "felix-alert emit attempted (severity=$SEVERITY)" \
-        || true
+    # #862 — withhold the PUSH (not the detection) for baseline drift that
+    # felix-deployer has flagged as an expected in-flight rebaseline. Detection is
+    # untouched above: every drift is already in $ALERT_FILE + stdout and $ALERT=1
+    # forces exit 1, so felix-deployer's reconcile still sees the drift and stamps
+    # the new baseline. Here we only filter which alert RECORDS reach the human push.
+    # The helper is record-aware (drops a suppressed alert's whole multi-line diff
+    # body, not just its header) and fail-safe: on ANY helper failure we push
+    # everything (copy the full alert file), so a broken helper never mutes an alert.
+    PUSH_FILE=$(mktemp)
+    if ! python3 "$EXPECTED_DRIFT_HELPER" --filter-alerts < "$ALERT_FILE" > "$PUSH_FILE" 2>/dev/null; then
+        cp "$ALERT_FILE" "$PUSH_FILE"
+    fi
+
+    PUSH_COUNT=$(grep -c "^\[ALERT\]" "$PUSH_FILE" 2>/dev/null || true)
+    [ -z "$PUSH_COUNT" ] && PUSH_COUNT=0
+    # Cosmetic: log how many records were suppressed (guard the non-numeric "?" case).
+    case "$ALERT_COUNT" in
+        ''|*[!0-9]*) : ;;
+        *) SUPPRESSED_COUNT=$((ALERT_COUNT - PUSH_COUNT))
+           [ "$SUPPRESSED_COUNT" -gt 0 ] && log "PUSH SUPPRESSED: $SUPPRESSED_COUNT expected in-flight-rebaseline drift record(s)" ;;
+    esac
+
+    if [ "$PUSH_COUNT" -gt 0 ]; then
+        # Send push notification via the felix-alert bus shim.
+        # Severity: always `error` (maps to ntfy Priority: high). Every un-suppressed
+        # finding — real unexpected baseline drift or an IOC hit — warrants the
+        # high-priority gradient. No warn/error threshold branching.
+        ALERT_SUMMARY=$(head -5 "$PUSH_FILE" | sed 's/\[ALERT\] //' | tr '\n' ' ')
+        SEVERITY="error"
+        # Best-effort: the shim always exits 0, and `|| true` is belt-and-suspenders
+        # so a notification failure can never fail the audit cron.
+        "$ALERT_BUS" emit \
+            --source "security-monitor/audit" \
+            --severity "$SEVERITY" \
+            --title "Felix Security Alert — office2" \
+            --description "${PUSH_COUNT} alert(s) on ${DATE}" \
+            --detail summary="${ALERT_SUMMARY}" \
+            && log "felix-alert emit attempted (severity=$SEVERITY, ${PUSH_COUNT} pushed)" \
+            || true
+    else
+        log "PUSH WITHHELD: all ${ALERT_COUNT} drift(s) are expected in-flight rebaseline — no push"
+    fi
+    rm -f "$PUSH_FILE"
 
     echo "========================================="
     echo " SECURITY ALERTS DETECTED — $DATE"

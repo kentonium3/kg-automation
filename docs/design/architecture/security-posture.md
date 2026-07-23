@@ -86,3 +86,27 @@ Change control is governed by a five-tier risk taxonomy (`docs/design/architectu
 | Python pth files | 3AM daily | `audit.sh` | `pth-files.txt` |
 
 After deploying a new service, baselines must be reset. See [Security Baseline Operations](<../../runbooks/security-baseline-ops.md>) for the canonical procedure.
+
+### Expected-drift push suppression (#862)
+
+An audited-surface deploy that lands within seconds of an audit tick produces
+**expected** drift that `felix-deployer` is already reconciling via its deferred-confirm
+rebaseline. To keep the security push channel credible (no false pages for drift the
+system already knows about), `audit.sh` consults a read-only helper
+(`scripts/deploy/felix-deployer/expected_drift.py`) at **push time** and withholds the
+push for baseline drift named in `felix-deployer`'s **fresh** pending-rebaseline token
+(`/data/services/felix-deployer/state/rebaseline-pending.json`).
+
+Invariants that keep this safe:
+
+- **Detection is never suppressed** — every drift still emits its `[ALERT] <name>` line
+  and the audit still exits `1`, so `felix-deployer`'s reconcile still detects the drift
+  and stamps the new baseline. Only the human *push* is gated.
+- **Read-only, one-directional** coupling — the audit only reads the token; it never
+  writes `felix-deployer` state.
+- **Short window** — suppression is bounded by a dedicated ~15-minute window
+  (`AUDIT_SUPPRESS_WINDOW_SECONDS`), **not** `felix-deployer`'s 24 h stale threshold, so
+  a lingering or maliciously planted token can never mute the channel for long.
+- **Fail-safe** — a missing, malformed, stale, or unreadable token (or any helper error)
+  suppresses nothing; the audit pages exactly as before.
+- **Scoped to baseline drift** — IOC alerts and unexpected baseline drift always push.
