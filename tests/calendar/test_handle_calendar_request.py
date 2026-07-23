@@ -228,6 +228,104 @@ def test_clarification_sole_match_combines_date_and_time(seams, monkeypatch, tmp
 
 
 # ---------------------------------------------------------------------------
+# 3b. #838 — idempotent hit: the re-reply requests a DIFFERENT time, but the
+#     helper matched an EXISTING event. Report the calendar's ACTUAL time and
+#     flag that the requested reschedule did NOT land (never confirm a time the
+#     calendar does not hold).
+# ---------------------------------------------------------------------------
+
+
+def test_clarification_idempotent_hit_differing_time_reports_actual(seams, monkeypatch, tmp_path):
+    # The existing event (matched by idempotency key) is at 2pm.
+    seams.helper_result = {
+        "status": "created",
+        "event_id": "E1",
+        "html_link": "L1",
+        "idempotent": True,
+        "actual_start": "2026-07-25T14:00:00-04:00",  # 2pm — what the calendar holds
+    }
+    state = _seed_state(
+        tmp_path,
+        [_record("Felix live smoke", "July 25",
+                 note_filename="felix-smoke.md",
+                 source_inbox_path="/inbox/vault/felix-smoke.md")],
+    )
+    code, out, err = _run(
+        monkeypatch,
+        # The re-reply asks for 3pm.
+        {"title": "Felix live smoke", "start_natural": "3pm", "duration_natural": "1 hour"},
+        ["--state-file", str(state), "--now-iso", "2026-07-20T12:00:00-04:00"],
+    )
+    assert code == 0, err
+    assert out["status"] == "created"
+    # The payload requested 3pm...
+    assert seams.created_payloads[0]["start_rfc3339"] == "2026-07-25T15:00:00-04:00"
+    # ...but the reported start is the calendar's ACTUAL 2pm, never the requested 3pm.
+    assert out["start"] == "2026-07-25T14:00:00-04:00"
+    assert out["idempotent"] is True
+    assert out["time_change_applied"] is False
+    assert out["requested_start"] == "2026-07-25T15:00:00-04:00"
+    assert "2026-07-25T14:00:00-04:00" in out["note"]
+
+
+def test_clarification_idempotent_hit_same_time_no_warning(seams, monkeypatch, tmp_path):
+    # Idempotent hit where the requested time EQUALS the existing event: still
+    # report the actual time, but no time_change_applied warning.
+    seams.helper_result = {
+        "status": "created",
+        "event_id": "E1",
+        "html_link": "L1",
+        "idempotent": True,
+        "actual_start": "2026-07-25T14:00:00-04:00",
+    }
+    state = _seed_state(
+        tmp_path,
+        [_record("Felix live smoke", "July 25",
+                 note_filename="felix-smoke.md",
+                 source_inbox_path="/inbox/vault/felix-smoke.md")],
+    )
+    code, out, err = _run(
+        monkeypatch,
+        {"title": "Felix live smoke", "start_natural": "2pm", "duration_natural": "1 hour"},
+        ["--state-file", str(state), "--now-iso", "2026-07-20T12:00:00-04:00"],
+    )
+    assert code == 0, err
+    assert out["start"] == "2026-07-25T14:00:00-04:00"
+    assert out["idempotent"] is True
+    assert "time_change_applied" not in out
+    assert "note" not in out
+
+
+def test_clarification_idempotent_hit_without_actual_start_flags_note(seams, monkeypatch, tmp_path):
+    # renata #838 Finding 2: idempotent match but the helper didn't surface the
+    # existing event's start → flag a verify-the-calendar note (don't silently
+    # confirm the merely-requested time).
+    seams.helper_result = {
+        "status": "created",
+        "event_id": "E1",
+        "html_link": "L1",
+        "idempotent": True,
+        "actual_start": "",  # helper couldn't surface it
+    }
+    state = _seed_state(
+        tmp_path,
+        [_record("Felix live smoke", "July 25",
+                 note_filename="felix-smoke.md",
+                 source_inbox_path="/inbox/vault/felix-smoke.md")],
+    )
+    code, out, err = _run(
+        monkeypatch,
+        {"title": "Felix live smoke", "start_natural": "3pm", "duration_natural": "1 hour"},
+        ["--state-file", str(state), "--now-iso", "2026-07-20T12:00:00-04:00"],
+    )
+    assert code == 0, err
+    assert out["status"] == "created"
+    assert out["idempotent"] is True
+    assert "note" in out
+    assert "verify" in out["note"].lower()
+
+
+# ---------------------------------------------------------------------------
 # 4. Clarification TERSE reply (no title) — binds via no-title -> all-candidates
 # ---------------------------------------------------------------------------
 
@@ -642,10 +740,43 @@ def test_calendar_helper_command_shape(monkeypatch):
         "/inbox/vault/felix-smoke.md",
         "personal",
     )
-    assert result == {"status": "created", "event_id": "e9", "html_link": "h9"}
+    assert result == {
+        "status": "created",
+        "event_id": "e9",
+        "html_link": "h9",
+        "idempotent": False,
+        "actual_start": "",
+    }
     cmd = recorded["cmd"]
     assert cmd[0] == hcr.DEFAULT_CALENDAR_HELPER_PYTHON
     assert cmd[0] != sys.executable
     assert "-m" in cmd and hcr.CALENDAR_HELPER_MODULE in cmd
     assert cmd[cmd.index("--idempotency-key") + 1] == "/inbox/vault/felix-smoke.md"
     assert cmd[cmd.index("--account") + 1] == "personal"
+
+
+def test_calendar_helper_passes_through_idempotent_and_actual_start(monkeypatch):
+    """#838: the seam carries the helper's idempotent flag + actual event start."""
+    import subprocess
+
+    def fake_run(cmd, **kwargs):
+        return subprocess.CompletedProcess(
+            args=cmd,
+            returncode=0,
+            stdout=(
+                '{"status": "created", "event_id": "E", "html_link": "h", '
+                '"idempotent": true, "start": "2026-07-25T14:00:00-04:00", '
+                '"end": "2026-07-25T15:00:00-04:00"}\n'
+                "SUMMARY: op=create status=created idempotent=true\n"
+            ),
+            stderr="",
+        )
+
+    monkeypatch.setattr(hcr.subprocess, "run", fake_run)
+    result = hcr._invoke_calendar_helper(
+        {"summary": "x", "start_rfc3339": "2026-07-25T15:00:00-04:00"},
+        "/inbox/vault/note.md",
+        "personal",
+    )
+    assert result["idempotent"] is True
+    assert result["actual_start"] == "2026-07-25T14:00:00-04:00"

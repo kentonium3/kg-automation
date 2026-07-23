@@ -405,6 +405,16 @@ def _emit_success_create(
 ) -> None:
     event_id = event.get("id", "")
     html_link = event.get("htmlLink", "")
+    # Surface the event's ACTUAL start/end (#838). On an idempotent match this is
+    # the EXISTING event's time — which may differ from the just-requested time —
+    # so the caller can report the calendar's real state instead of the time it
+    # merely asked for. `event` is a full Google event resource (fresh insert or
+    # the matched existing event), so start/end carry dateTime (timed) or date
+    # (all-day).
+    start_obj = event.get("start", {}) if isinstance(event.get("start"), dict) else {}
+    end_obj = event.get("end", {}) if isinstance(event.get("end"), dict) else {}
+    start_str = start_obj.get("dateTime") or start_obj.get("date", "")
+    end_str = end_obj.get("dateTime") or end_obj.get("date", "")
     if args.json:
         _emit_json(
             {
@@ -412,6 +422,8 @@ def _emit_success_create(
                 "idempotent": idempotent,
                 "event_id": event_id,
                 "html_link": html_link,
+                "start": start_str,
+                "end": end_str,
             }
         )
     _emit_summary(

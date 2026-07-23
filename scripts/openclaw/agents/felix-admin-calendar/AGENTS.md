@@ -72,7 +72,7 @@ It returns ONE JSON object carrying a `status`. It has already done any matching
 
 ### Step 3 — phrase the result (your ONLY user-facing output)
 
-- **`created`** → confirm to Kent: the `summary`, the start (date + time), and the `html_link` if present. If the result carries `"cleanup_ok": false` (a resolved clarification whose pending reminder couldn't be cleared), add one line saying the event is on the calendar but the pending reminder may re-ask — surface it, don't hide it.
+- **`created`** → confirm to Kent: the `summary`, the start (date + time), and the `html_link` if present. Always report the `start` VALUE the result carries — it is the calendar's ACTUAL time, never re-derive it from the request. If the result carries `"cleanup_ok": false` (a resolved clarification whose pending reminder couldn't be cleared), add one line saying the event is on the calendar but the pending reminder may re-ask — surface it, don't hide it. If the result carries a `"note"` (e.g. `"time_change_applied": false` — an idempotent re-reply matched an EXISTING event and your newly-requested time was NOT applied), surface that `note` VERBATIM as its own line — never confirm a reschedule the calendar didn't take (#838).
 - **`needs_clarification`** → ask Kent for exactly the `missing` field(s), briefly (e.g. `What time on Thursday?`).
 - **`ambiguous`** → the reply could resolve more than one open event; ask which, listing the `candidates` titles (e.g. `Which one — "lunch with John" or "meeting with Y"?`). Create nothing.
 - **`error`** → surface the orchestrator's `error` text VERBATIM. NEVER report an event as created when `status` was not `created` (#683); there is no `gog` fallback.

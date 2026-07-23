@@ -195,7 +195,12 @@ def _stdout_lines(capsys: pytest.CaptureFixture[str]) -> list[str]:
 def test_create_explicit_maps_body_and_defaults_send_updates_none(
     helper, recorder, capsys
 ):
-    recorder.outcomes["insert"] = {"id": "evt1", "htmlLink": "https://cal/evt1"}
+    recorder.outcomes["insert"] = {
+        "id": "evt1",
+        "htmlLink": "https://cal/evt1",
+        "start": {"dateTime": "2026-07-14T15:00:00-04:00"},
+        "end": {"dateTime": "2026-07-14T16:00:00-04:00"},
+    }
     code = run(
         helper,
         [
@@ -235,6 +240,8 @@ def test_create_explicit_maps_body_and_defaults_send_updates_none(
         "idempotent": False,
         "event_id": "evt1",
         "html_link": "https://cal/evt1",
+        "start": "2026-07-14T15:00:00-04:00",
+        "end": "2026-07-14T16:00:00-04:00",
     }
     assert "status=created" in lines[-1]
     assert "idempotent=false" in lines[-1]
@@ -458,7 +465,12 @@ def test_create_idempotent_returns_existing_no_second_insert(
     _seed_list_queue(recorder, monkeypatch)
     # The dedupe list finds an existing event → no insert.
     recorder.list_queue = [
-        {"items": [{"id": "evtExisting", "htmlLink": "L"}]}
+        {"items": [{
+            "id": "evtExisting",
+            "htmlLink": "L",
+            "start": {"dateTime": "2026-07-14T15:00:00-04:00"},
+            "end": {"dateTime": "2026-07-14T16:00:00-04:00"},
+        }]}
     ]
     code = run(
         helper,
@@ -477,6 +489,10 @@ def test_create_idempotent_returns_existing_no_second_insert(
     assert "event_id=evtExisting" in lines[-1]
     parsed = json.loads(lines[0])
     assert parsed["idempotent"] is True
+    # #838: the existing event's ACTUAL start is surfaced so the caller can
+    # report the calendar's real time (not a merely-requested one).
+    assert parsed["start"] == "2026-07-14T15:00:00-04:00"
+    assert parsed["event_id"] == "evtExisting"
 
 
 def test_create_idempotent_no_match_inserts_and_stamps_key(
