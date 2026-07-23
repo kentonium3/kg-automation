@@ -21,9 +21,11 @@ subtasks:
 - T021
 phase: Phase 1 - Migration
 assignee: ''
-agent: claude
+agent: "claude:sonnet-5:python-pedro:implementer"
 agent_profile: python-pedro
 role: implementer
+shell_pid: "45337"
+shell_pid_created_at: "1784845116.939297"
 history:
 - at: '2026-07-23T21:04:52Z'
   actor: system
@@ -136,3 +138,7 @@ reconcile_completions cache-based.
 
 - Confirm the three reads go through the client; confirm `_read_token()` is gone and
   `reconcile_completions.py` is unchanged in data path; confirm parity tests exist.
+
+## Activity Log
+
+- 2026-07-23T22:19:37Z – claude:sonnet-5:python-pedro:implementer – shell_pid=45337 – Assigned agent via action command
