@@ -151,3 +151,4 @@ mirror each other's urllib helper).
 ## Activity Log
 
 - 2026-07-23T22:18:52Z – claude:sonnet-5:python-pedro:implementer – shell_pid=45337 – Assigned agent via action command
+- 2026-07-23T22:39:25Z – claude:sonnet-5:python-pedro:implementer – shell_pid=45337 – Ready for review — escalation/record_completion via patch() adapter (error substrings + JSONL ordering preserved); escalation/reconcile has NO direct HTTP (record_event skip_vikunja=True, invariant test added); enrichment/record_completion via create_comment (non-JSON-2xx tolerance preserved); enrichment/reconcile via list_task_comments (OSError re-raise routes exit-1, {}-vs-None fixed). 383 tests pass; flake8 exit 0. Note: implementer also cleaned pre-existing lint in owned files. Commit 37aa80b0 lane-c.

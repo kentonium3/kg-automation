@@ -87,10 +87,10 @@ parity test (request-level **plus** domain/CLI boundary — see NFR-001).
 - **Independent test**: `pytest tests/escalation/ tests/enrichment/` green; per-consumer parity.
 - **Requirements**: FR-001, FR-003, NFR-001.
 - **Subtasks**:
-  - [ ] T010 Migrate `escalation/record_completion.py` (PATCH) + parity (WP03)
-  - [ ] T011 Migrate `escalation/reconcile_completions.py` + parity (WP03)
-  - [ ] T012 Migrate `enrichment/record_completion.py` + parity (WP03)
-  - [ ] T013 Migrate `enrichment/reconcile_completions.py` + parity (WP03)
+  - [x] T010 Migrate `escalation/record_completion.py` (PATCH) + parity (WP03)
+  - [x] T011 Migrate `escalation/reconcile_completions.py` + parity (WP03)
+  - [x] T012 Migrate `enrichment/record_completion.py` + parity (WP03)
+  - [x] T013 Migrate `enrichment/reconcile_completions.py` + parity (WP03)
 - **Dependencies**: WP01.
 - **Risks**: escalation uses `PATCH /tasks/{id}` (needs WP01 `patch()`); preserve the raw
   `None`-on-empty / error-body-in-message semantics or adapter-translate per consumer.
@@ -103,10 +103,10 @@ parity test (request-level **plus** domain/CLI boundary — see NFR-001).
 - **Independent test**: `pytest tests/habits/test_record_completion.py tests/habits/test_set_due_dates*.py tests/habits/test_exclude_completed*.py tests/habits/test_migrate_schedule.py` green.
 - **Requirements**: FR-001, FR-003, NFR-001.
 - **Subtasks**:
-  - [ ] T014 Migrate `habits/record_completion.py` (GET-before-POST) + parity (WP04)
-  - [ ] T015 Migrate `habits/set_due_dates.py` + parity (WP04)
-  - [ ] T016 Migrate `habits/exclude_completed.py` + parity (WP04)
-  - [ ] T017 Migrate `habits/migrate_schedule.py` (narrow POST) + parity (WP04)
+  - [x] T014 Migrate `habits/record_completion.py` (GET-before-POST) + parity (WP04)
+  - [x] T015 Migrate `habits/set_due_dates.py` + parity (WP04)
+  - [x] T016 Migrate `habits/exclude_completed.py` + parity (WP04)
+  - [x] T017 Migrate `habits/migrate_schedule.py` (narrow POST) + parity (WP04)
 - **Dependencies**: WP01.
 - **Risks**: `record_completion` GET-before-POSTs to preserve `repeat_after`/`repeat_mode`
   (v0.24.6 zeroing) → use WP01's read-modify-write method; `migrate_schedule` intentionally POSTs
