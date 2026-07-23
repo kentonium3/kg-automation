@@ -130,6 +130,29 @@ def test_build_listings_no_boundary_for_monitor_activity():
     assert listings[0].boundary is None
 
 
+def test_build_listings_uses_effective_boundary_for_expiry():
+    """#852 (renata MED-1): --list must key off the EFFECTIVE boundary so it
+    agrees with the alerter. anthropic-test: annual cadence boundary 2027-07-22
+    but expires_at 2026-08-21 → the row shows the expiry boundary + WARNING."""
+    cred = _cred(
+        name="anthropic-test",
+        last_reviewed=date(2026, 7, 22),  # annual → cadence boundary 2027-07-22
+        expires_at=date(2026, 8, 21),
+    )
+    listings = build_listings([cred], today=date(2026, 8, 1))
+    assert listings[0].boundary == date(2026, 8, 21)  # the earlier (expiry), not 2027
+    assert listings[0].status == "WARNING (20d)"
+
+
+def test_status_for_non_fixed_cadence_with_expiry_uses_boundary():
+    """A non-fixed cadence credential that carries an effective boundary
+    (expires_at) is classified by days-to-boundary, not 'skip'."""
+    cred = _cred(review_cadence="on-revocation", last_reviewed=None,
+                 expires_at=date(2026, 9, 1))
+    status = _status_for(cred, boundary=date(2026, 9, 1), today=date(2026, 8, 20))
+    assert status == "WARNING (12d)"
+
+
 # ---------- render_table ----------
 
 

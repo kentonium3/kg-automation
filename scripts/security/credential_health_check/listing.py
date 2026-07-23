@@ -13,7 +13,11 @@ from dataclasses import dataclass
 from datetime import date
 from typing import IO, Iterable, Optional
 
-from .cadence import WARNING_WINDOW_DAYS, compute_boundary, is_fixed_interval_cadence
+from .cadence import (
+    WARNING_WINDOW_DAYS,
+    compute_effective_boundary,
+    is_fixed_interval_cadence,
+)
 from .manifest import Credential, ManifestQualityIssue, read_manifest
 
 
@@ -30,19 +34,26 @@ class CredentialListing:
 
 
 def _status_for(cred: Credential, boundary: Optional[date], today: date) -> str:
-    """Classify a credential's current state for the Status column."""
-    if not is_fixed_interval_cadence(cred.review_cadence):
-        if cred.review_cadence == "monitor-activity":
-            return "activity-tracked"
-        return f"skip ({cred.review_cadence})"
-    if boundary is None:
+    """Classify a credential's current state for the Status column.
+
+    Keyed off the (effective) boundary first (#852): any credential with a
+    boundary — cadence-driven or `expires_at`-driven — is classified by its
+    days-to-boundary, so the --list view agrees with what the alerter fires on.
+    Only when there is no boundary do we fall back to a cadence-type label.
+    """
+    if boundary is not None:
+        delta = (boundary - today).days
+        if delta < 0:
+            return f"OVERDUE ({-delta}d ago)"
+        if delta <= WARNING_WINDOW_DAYS:
+            return f"WARNING ({delta}d)"
+        return f"within ({delta}d)"
+    # No boundary: classify by cadence type.
+    if cred.review_cadence == "monitor-activity":
+        return "activity-tracked"
+    if is_fixed_interval_cadence(cred.review_cadence):
         return "skip (no anchor)"
-    delta = (boundary - today).days
-    if delta < 0:
-        return f"OVERDUE ({-delta}d ago)"
-    if delta <= WARNING_WINDOW_DAYS:
-        return f"WARNING ({delta}d)"
-    return f"within ({delta}d)"
+    return f"skip ({cred.review_cadence})"
 
 
 def build_listings(
@@ -51,7 +62,7 @@ def build_listings(
     """Build CredentialListing entries from well-formed credentials."""
     rows: list[CredentialListing] = []
     for cred in credentials:
-        boundary = compute_boundary(cred)
+        boundary = compute_effective_boundary(cred)
         rows.append(
             CredentialListing(
                 name=cred.name,

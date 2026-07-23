@@ -118,6 +118,35 @@ def test_cadence_body_renders_due_date_one_week_before_boundary():
     assert "due 2026-05-29" in body  # boundary 2026-06-05 minus 7 days
 
 
+def test_cadence_body_surfaces_hard_expiry_when_present():
+    """#852: when the credential declares expires_at, the body shows it and
+    labels the boundary as the earlier of the cadence + hard expiry."""
+    cred = Credential(
+        name="anthropic-test",
+        review_cadence="annual",
+        storage="~/.config/anthropic/test-key",
+        expiry_notes="Rotate the test key.",
+        type="api-token",
+        last_reviewed=date(2026, 7, 22),
+        expires_at=date(2026, 8, 21),
+    )
+    body = cadence_alert_body(
+        cred, date(2026, 8, 21), vikunja_task_id=7, cycle_date=date(2026, 8, 1)
+    )
+    assert "Hard expiry" in body
+    assert "2026-08-21" in body
+    assert "Warning boundary" in body
+    assert "in 20 days" in body
+
+
+def test_cadence_body_omits_hard_expiry_line_when_absent():
+    """A credential with no expires_at renders no Hard expiry line."""
+    body = cadence_alert_body(
+        _credential(), date(2026, 6, 5), vikunja_task_id=42, cycle_date=date(2026, 5, 11)
+    )
+    assert "Hard expiry" not in body
+
+
 def test_cadence_body_includes_rotation_procedure():
     body = cadence_alert_body(
         _credential(),

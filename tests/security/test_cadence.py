@@ -8,6 +8,7 @@ import pytest
 from credential_health_check.cadence import (
     WARNING_WINDOW_DAYS,
     compute_boundary,
+    compute_effective_boundary,
     is_fixed_interval_cadence,
     is_within_warning_window,
 )
@@ -84,6 +85,58 @@ def test_compute_boundary_returns_none_for_on_revocation():
 def test_compute_boundary_returns_none_when_anchor_missing():
     cred = _make_credential(last_reviewed=None, created_date=None)
     assert compute_boundary(cred) is None
+
+
+# ---------- compute_effective_boundary (#852) ----------
+
+
+def test_effective_boundary_expiry_earlier_than_cadence_wins():
+    """#852 core bug: expires_at sooner than the annual cadence boundary must win.
+
+    anthropic-test scenario: last_reviewed 2026-07-22 (annual → cadence 2027-07-22),
+    expires_at 2026-08-21 → effective boundary is the expiry, ~11 months earlier.
+    """
+    cred = _make_credential(
+        last_reviewed=date(2026, 7, 22), expires_at=date(2026, 8, 21)
+    )
+    assert compute_boundary(cred) == date(2027, 7, 22)  # cadence-only (the old bug)
+    assert compute_effective_boundary(cred) == date(2026, 8, 21)
+
+
+def test_effective_boundary_cadence_earlier_than_expiry_wins():
+    cred = _make_credential(
+        last_reviewed=date(2026, 5, 11), expires_at=date(2029, 5, 17)
+    )
+    # cadence boundary 2027-05-11 is earlier than the 2029 expiry.
+    assert compute_effective_boundary(cred) == date(2027, 5, 11)
+
+
+def test_effective_boundary_no_expires_at_falls_back_to_cadence():
+    cred = _make_credential(last_reviewed=date(2025, 5, 11), expires_at=None)
+    assert compute_effective_boundary(cred) == date(2026, 5, 11)
+
+
+def test_effective_boundary_expiry_only_non_fixed_interval():
+    """A non-fixed-interval cred with only an expires_at warns off the expiry."""
+    cred = _make_credential(
+        review_cadence="on-revocation", last_reviewed=None, expires_at=date(2026, 9, 1)
+    )
+    assert compute_boundary(cred) is None
+    assert compute_effective_boundary(cred) == date(2026, 9, 1)
+
+
+def test_effective_boundary_none_when_neither_present():
+    cred = _make_credential(
+        review_cadence="on-revocation", last_reviewed=None, expires_at=None
+    )
+    assert compute_effective_boundary(cred) is None
+
+
+def test_effective_boundary_tie_returns_that_date():
+    cred = _make_credential(
+        last_reviewed=date(2026, 7, 22), expires_at=date(2027, 7, 22)
+    )
+    assert compute_effective_boundary(cred) == date(2027, 7, 22)
 
 
 # ---------- is_within_warning_window ----------

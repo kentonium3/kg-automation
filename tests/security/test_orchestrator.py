@@ -93,6 +93,67 @@ def test_cycle_near_expiry_files_paired_alert():
     assert call_order[1] == "issue"
 
 
+# ---------- expires_at-driven boundary (#852) ----------
+
+
+def _annual_cred_with_expiry(expires_at: date) -> Credential:
+    """Annual cred whose cadence boundary is ~1yr out but has a nearer hard expiry."""
+    return Credential(
+        name="anthropic-test",
+        review_cadence="annual",
+        storage="~/.config/anthropic/test-key",
+        expiry_notes="Rotate the test key in the Anthropic console.",
+        type="api-token",
+        last_reviewed=date(2026, 7, 22),  # annual cadence boundary → 2027-07-22
+        expires_at=expires_at,
+    )
+
+
+def test_cycle_expires_at_within_window_fires_when_cadence_is_far():
+    """#852: a key whose cadence boundary is a year out but whose real expiry is
+    within 30 days MUST fire a cadence alert (it previously passed unwarned)."""
+    cred = _annual_cred_with_expiry(date(2026, 8, 21))
+    p = _patch_paths()
+    with (
+        patch(p["dedup_check"], return_value=[]),
+        patch(p["create_task"], return_value=88) as mock_task,
+        patch(p["create_issue"], return_value=77) as mock_issue,
+        patch(p["load_token"], return_value="t"),
+        patch(p["project_id"], return_value=1),
+        patch(p["MONITOR_ACTIVITY_READERS"], new={}),
+        patch("credential_health_check.orchestrator.read_manifest", return_value=([cred], [])),
+    ):
+        # today = 2026-08-01: 20 days before the 2026-08-21 expiry (inside the
+        # 30-day window) but ~11 months before the 2027-07-22 cadence boundary.
+        result = run_cycle("/fake/manifest.json", today=date(2026, 8, 1))
+    assert result.cadence_alerts_filed == 1
+    mock_task.assert_called_once()
+    mock_issue.assert_called_once()
+    # The alert must be keyed off the EXPIRY boundary, not the cadence boundary.
+    task_boundary = mock_task.call_args.args[1]
+    assert task_boundary == date(2026, 8, 21)
+
+
+def test_cycle_same_cred_without_expiry_does_not_fire():
+    """Negative control: identical cred without expires_at → cadence boundary is
+    far out → no alert. Proves the alert above is driven by expires_at."""
+    cred = _annual_cred_with_expiry(None)  # type: ignore[arg-type]
+    p = _patch_paths()
+    with (
+        patch(p["dedup_check"], return_value=[]),
+        patch(p["create_task"]) as mock_task,
+        patch(p["create_issue"]) as mock_issue,
+        patch(p["load_token"], return_value="t"),
+        patch(p["project_id"], return_value=1),
+        patch(p["MONITOR_ACTIVITY_READERS"], new={}),
+        patch("credential_health_check.orchestrator.read_manifest", return_value=([cred], [])),
+    ):
+        result = run_cycle("/fake/manifest.json", today=date(2026, 8, 1))
+    assert result.cadence_alerts_filed == 0
+    mock_task.assert_not_called()
+    mock_issue.assert_not_called()
+
+
 # ---------- Dedup ----------
 
 

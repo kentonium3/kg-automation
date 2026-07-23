@@ -109,6 +109,85 @@ def test_stale_in_activity_alerts():
     )
 
 
+def test_quiet_no_inbound_returns_none():
+    """#854: a healthy-but-quiet session omits the `in:` token (no recent
+    inbound). That is NOT staleness — with linked+running+connected,
+    health:healthy, and a fresh transport:, the signal must be healthy."""
+    stdout = (FIXTURES / "openclaw-channels-status-quiet-no-inbound.txt").read_text()
+    assert "in:" not in stdout.split("WhatsApp default:", 1)[1]  # fixture really omits in:
+    with patch(
+        "credential_health_check.signals.subprocess.run",
+        return_value=_fake_completed(stdout),
+    ):
+        assert whatsapp_session_signal(_credential()) is None
+
+
+def test_stale_transport_alerts():
+    """#854: when the transport heartbeat itself is stale beyond the 14-day
+    threshold, that IS a genuine liveness failure (even with no in:/out)."""
+    stdout = (
+        "Checking channel status…\nGateway reachable.\n"
+        "- WhatsApp default: enabled, configured, linked, running, connected, "
+        "transport:15d ago, dm:allowlist, allow:+16179300916, health:healthy\n"
+    )
+    with patch(
+        "credential_health_check.signals.subprocess.run",
+        return_value=_fake_completed(stdout),
+    ):
+        failure = whatsapp_session_signal(_credential())
+    assert isinstance(failure, ActivitySignalFailure)
+    assert "transport" in failure.summary.lower()
+    assert "14" in failure.reason
+
+
+def test_health_not_healthy_alerts():
+    """#854: an explicit non-healthy `health:` value is a real failure."""
+    stdout = (
+        "Checking channel status…\nGateway reachable.\n"
+        "- WhatsApp default: enabled, configured, linked, running, connected, "
+        "out:2h ago, transport:1m ago, dm:allowlist, allow:+16179300916, health:degraded\n"
+    )
+    with patch(
+        "credential_health_check.signals.subprocess.run",
+        return_value=_fake_completed(stdout),
+    ):
+        failure = whatsapp_session_signal(_credential())
+    assert isinstance(failure, ActivitySignalFailure)
+    assert "health" in failure.summary.lower()
+    assert "degraded" in failure.reason.lower()
+
+
+def test_healthy_with_health_token_returns_none():
+    """A present `health:healthy` token must not itself cause a failure."""
+    stdout = (
+        "Checking channel status…\nGateway reachable.\n"
+        "- WhatsApp default: enabled, configured, linked, running, connected, "
+        "in:5m ago, out:2h ago, transport:1m ago, dm:allowlist, allow:+16179300916, health:healthy\n"
+    )
+    with patch(
+        "credential_health_check.signals.subprocess.run",
+        return_value=_fake_completed(stdout),
+    ):
+        assert whatsapp_session_signal(_credential()) is None
+
+
+def test_connected_no_timestamps_no_health_is_healthy():
+    """#854 (renata MED-2): the intended behavior for a session that reports
+    linked+running+connected but omits ALL of in:/out:/transport: and any
+    health: token — liveness rests on the bare flags (openclaw drops `connected`
+    when a session truly dies), so this returns None (no false staleness)."""
+    stdout = (
+        "Checking channel status…\nGateway reachable.\n"
+        "- WhatsApp default: enabled, configured, linked, running, connected, "
+        "dm:allowlist, allow:+16179300916\n"
+    )
+    with patch(
+        "credential_health_check.signals.subprocess.run",
+        return_value=_fake_completed(stdout),
+    ):
+        assert whatsapp_session_signal(_credential()) is None
+
+
 def test_subprocess_nonzero_exit_alerts():
     with patch(
         "credential_health_check.signals.subprocess.run",

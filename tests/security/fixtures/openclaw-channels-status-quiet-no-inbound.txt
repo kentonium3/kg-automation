@@ -1,0 +1,5 @@
+Checking channel status…
+Gateway reachable.
+- WhatsApp default: enabled, configured, linked, running, connected, out:2h ago, transport:1m ago, dm:allowlist, allow:+16179300916, health:healthy
+
+Tip: https://docs.openclaw.ai/cli#status adds gateway health probes to status output (requires a reachable gateway).
