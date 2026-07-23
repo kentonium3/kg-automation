@@ -2,14 +2,14 @@
   "mission_slug": "retire-vikunja-felix-bot-01KY829X",
   "mission_number": "",
   "mission_type": "software-dev",
-  "overall_verdict": "passed",
+  "overall_verdict": "pass",
   "criteria": [
     {
       "criterion_id": "FR-001",
       "description": "All Felix→Vikunja runtime access goes through the shared VikunjaClient (sync/escalation/enrichment/habits/credential-health migrated off raw urllib + hand-loaded tokens).",
       "proof_type": "automated_test",
       "evidence": "WP06 SC-001 gate: grep for urllib.request/urlopen across scripts/sync, scripts/escalation, scripts/enrichment, scripts/habits, scripts/security/credential_health_check returns ZERO runtime matches (independently re-run by reviewer). Only admin/one-shot scripts + docs + DEFAULT_TOKEN_PATH constants remain. All migrated modules import VikunjaClient.",
-      "pass_fail": "passed",
+      "pass_fail": "pass",
       "verified_by": "opus/reviewer-renata (WP02-WP06 reviews) + WP06 SC-001 gate",
       "verified_at": "2026-07-23T23:15:49Z",
       "notes": "sync (cycle+fetch+http, http.py retired), escalation+enrichment (PATCH via client), habits writes+reads, credential-health writer — all on VikunjaClient."
@@ -19,7 +19,7 @@
       "description": "VikunjaClient extended to cover every migrated consumer operation (patch(), raw POST-replace + safe read-modify-write, get_task, create_task_in_project, create_comment (PUT/G4), list_task_comments), on the existing contract + error model, unit-tested.",
       "proof_type": "automated_test",
       "evidence": "WP01: 73 client unit tests pass (tests/common/test_vikunja_client.py), incl. read-modify-write preserving repeat_after and the DEFAULT_TOKEN_PATH-unchanged assertion. Reviewed + approved by opus/reviewer-renata.",
-      "pass_fail": "passed",
+      "pass_fail": "pass",
       "verified_by": "opus/reviewer-renata (WP01 review)",
       "verified_at": "2026-07-23T23:15:49Z",
       "notes": "patch() + PATCH content-type; two distinct update shapes kept separate to avoid the v0.24.6 POST-zeroing trap."
@@ -29,7 +29,7 @@
       "description": "Consolidation is behavior-preserving: identity, token, base URL, and each consumer's observable Vikunja effects unchanged; VikunjaClient default token remains felix-bot vikunja-api.",
       "proof_type": "automated_test",
       "evidence": "SC-002 full affected suite: 3153 passed, 40 skipped, 1 xfailed, 0 failed (independently re-run by WP06 reviewer). Per-consumer parity tests (request + domain-boundary: exit codes, emitted records, error strings, sync cycle_error tokens) all green. SC-004: VikunjaClient.DEFAULT_TOKEN_PATH unchanged (felix-bot /data/services/openclaw/secrets/vikunja-api). The WP02 review caught + fixed a task-page non-JSON-2xx divergence to restore strict parity.",
-      "pass_fail": "passed",
+      "pass_fail": "pass",
       "verified_by": "opus/reviewer-renata (all WP reviews) + WP06 SC-002/SC-004 gate",
       "verified_at": "2026-07-23T23:15:49Z",
       "notes": "Narrow POST bodies preserved (habits record_completion inline narrow RMW, migrate_schedule raw narrow replace); non-JSON-2xx comment tolerance + OSError-routing contracts preserved."
@@ -39,7 +39,7 @@
       "description": "No abstract TaskService port / adapter layer introduced (seam via VikunjaClient; formal port deferred).",
       "proof_type": "code_review",
       "evidence": "WP01 review confirmed no TaskService/ABC/port introduced — VikunjaClient is the seam. No later WP added an abstraction layer (each migrated onto the concrete client).",
-      "pass_fail": "passed",
+      "pass_fail": "pass",
       "verified_by": "opus/reviewer-renata (WP01 review, frozen-surface/locked-decision checks)",
       "verified_at": "2026-07-23T23:15:49Z",
       "notes": "§11 discipline: seam now, formal port only when a second task backend justifies it."
