@@ -27,3 +27,6 @@ notes: "Syncs the updated security-monitor audit.sh to its standalone office2 co
   \ (systemd-user-units covers scripts/office2/*.service and\nscripts/office2/deploy/*.sh,\
   \ not security-monitor/audit.sh); no hashed baseline drifts.\nRebaseline: not required.\n"
 applied_at: '2026-07-23T13:52:54Z'
+rebaseline:
+  outcome: pending_clean
+  at_utc: '2026-07-23T13:52:59Z'
