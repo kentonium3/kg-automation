@@ -398,6 +398,17 @@ plan MUST include a `deploys/queued/<name>.yaml` manifest entry. See
 [`docs/runbooks/deploy/discipline.md`](docs/runbooks/deploy/discipline.md)
 for the operational pattern and worked examples.
 
+**Sandbox carve-out.** A **throwaway/isolated sandbox** — a short-lived spike
+that runs on a dedicated network/volume under a resource ceiling with
+non-colliding ports, touches no production state or credential, and is torn down
+after use (teardown removing pulled images and scratch too) — does **not** need
+a manifest. The carve-out is narrow and conjunctive: fail any one criterion and
+it rides the manifest discipline like any production deploy. It is
+self-certified (nothing machine-checks it), so it still gets a lightweight note
+(network/volume/ports + resource ceiling + teardown command) in its issue/spike
+record **before it runs**, for the audit trail. Full criteria:
+[`discipline.md` § Exception: throwaway / isolated sandboxes](docs/runbooks/deploy/discipline.md#exception-throwaway--isolated-sandboxes).
+
 The 7 pre-discipline deploy scripts named in #548 were archived to
 `docs/archive/scripts/deploy/` on 2026-06-13 (their missions had all merged
 and the scripts were one-shot wrappers). The only active `scripts/deploy/`

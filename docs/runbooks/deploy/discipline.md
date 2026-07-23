@@ -3,7 +3,7 @@ title: Deploy Discipline (canonical)
 doc_type: runbook
 audience: agents_and_humans
 status: approved
-last_updated: '2026-06-17'
+last_updated: '2026-07-23'
 ---
 
 # Deploy Discipline
@@ -22,13 +22,102 @@ service config, venvs, and office2-path installs.** It is **not** the only path
 to office2: agent **prompt/skill file content** is delivered by the pull-based
 `agent-prompt-sync` (+ `agent-skill-sync`) copier, and Python **helper scripts**
 under `scripts/**` ride the shared checkout's `git pull` (self-pull) with no copy
-step. Which mechanism owns which surface is the
+step. A third exception is a **throwaway/isolated sandbox** — a short-lived spike
+that touches no production state and is torn down after use — which rides no
+pipeline at all; see [Exception: throwaway / isolated
+sandboxes](#exception-throwaway--isolated-sandboxes) below. Which mechanism owns
+which surface is the
 [office2 deploy-paths surface partition](./office2-deploy-paths.md); this runbook
 is the manifest-pipeline half of it.
 The grandfathered per-mission scripts at `scripts/deploy/deploy-{028,149,f013,
 f014,f026,felix-admin-calendar,restore-whatsapp-dm-reply-delivery}.sh` remain
 in place and continue to work — sibling issue #548 handles their cleanup —
 but no new deploy is authored against the old pattern.
+
+---
+
+## Exception: throwaway / isolated sandboxes
+
+A **throwaway sandbox** — a short-lived experiment or spike (e.g. the #844
+graph-DB spike) that runs in isolation, touches no production state, and is torn
+down when the experiment ends — does **not** require a
+`deploys/queued/<slug>.yaml` manifest. Forcing one adds ceremony with no safety
+benefit: the manifest discipline exists to protect *production* surfaces (crons,
+systemd units, service config, shared volumes/ports, credentials), and a sandbox
+by definition touches none of them.
+
+This carve-out is **narrow and conjunctive**. A deploy qualifies as a sandbox
+**only if it meets every one** of the criteria below; if it fails **any single**
+criterion it is not a sandbox and MUST ride the manifest discipline. The
+criteria are deliberately strict so the carve-out never becomes a back door
+around production protection.
+
+1. **Dedicated, isolated resources — with a resource ceiling.** Its own Docker
+   network and its own volume(s) — or none — never a production or otherwise
+   shared network or volume. Any published port collides with **no** production
+   binding (the authoritative test; cross-check
+   `docs/design/architecture/data/service-inventory.json` — "non-default port"
+   is only a heuristic). office2 is a **single shared host**, so isolation is
+   logical, not physical: the spike MUST run under an explicit resource ceiling
+   (e.g. `docker run --memory … --cpus …`, a bounded disk footprint) so a hang
+   or runaway cannot starve production services. A *dedicated, non-colliding*
+   network/port is not the shared **fabric** the Tier-1 taxonomy governs; any
+   change to an existing network, proxy, or production port binding fails this
+   criterion and rides the manifest at its true tier.
+2. **No shared or production state.** It reads no production credential, secret,
+   database, or data path, and writes to none. It does not add, edit, or remove
+   any OpenClaw cron, systemd unit, service config, or committed file that a
+   production component depends on. It **operates outside the live
+   felix-deployer checkout** (`/home/claude/kg-automation`) and never runs git
+   against it (a concurrent git op there races the applier tick — see
+   *Troubleshooting: applier stuck on `git pull`* below). It keeps runtime code
+   **out of the auto-syncing `scripts/**`** paths (which ride the self-pull to
+   the live office2 checkout with no manifest), or reverts any committed
+   scaffolding at teardown. (Allowed: sourcing the standing **test** Anthropic
+   key at `~/.config/felix/anthropic-test.env`, which is isolated from
+   production by design — see `security-baseline-ops.md`. The **production** key
+   is not.)
+3. **Torn down after use — images and scratch included.** The experiment ends
+   with an explicit teardown that removes the container(s), the dedicated
+   network, the dedicated volume(s), **any images pulled for it** (`docker rmi`
+   / `docker image prune` scoped to what the spike pulled), **and any
+   files/directories written outside a dedicated volume** (datasets, scratch
+   dirs) — so nothing lingers on office2's disk or Docker state. A
+   **non-containerized** spike carries the same obligation in process terms:
+   kill any spawned process, unbind any port, and remove any files written.
+4. **Near-zero blast radius.** If it breaks, hangs, or is forgotten, no
+   production surface is affected (criterion 1's resource ceiling is what makes
+   this true on a shared host). It touches **no audited surface** (per
+   `docs/design/architecture/data/audited-surfaces.json`, so no rebaseline
+   obligation) and — like everything else — **no Tier-0 host surface** (firewall
+   / sshd / sudoers / kernel remain absolutely off-limits; a sandbox never edits
+   them).
+
+> **Non-containerized spikes.** The criteria are written in Docker terms because
+> that is the common case, but the carve-out is not Docker-specific. A bare-
+> process spike (a venv daemon, a bound port, a scratch dir) must satisfy the
+> **same** isolation, resource-ceiling, and teardown obligations in process /
+> port / file terms — it does not pass criterion 1 vacuously by virtue of having
+> "no Docker network."
+
+**Lightweight note, not zero ceremony — and self-certified.** Unlike the
+manifest path (CI schema validation + runtime tier guard + rebaseline reconcile),
+**nothing machine-verifies** these criteria — the protection is the author's
+honest self-classification. So the sandbox MUST be tracked in its own issue or
+spike record that documents — **before the sandbox runs** — the dedicated
+network / volume / port names, the isolation + resource-ceiling argument (why
+criteria 1–2 hold), and the **exact teardown command** (criterion 3). That
+pre-registered artifact is what an operator audits the run against; it preserves
+the audit trail without invoking the manifest pipeline's tier-guard and
+verification machinery, which has nothing to guard on a resource that touches no
+production surface.
+
+**Promotion re-enters the discipline.** The carve-out covers experiments that
+will **never** become a standing service as-is. The moment any sandbox artifact
+is promoted toward production — it gains a persistent volume, a cron or systemd
+unit, a shared port, or a production credential — it is no longer a sandbox and
+MUST be (re)authored as a `deploys/queued/<slug>.yaml` manifest per this
+discipline.
 
 ---
 
