@@ -234,7 +234,7 @@ def main(argv: list[str] | None = None) -> int:
     ready: list[int] = []
     addressed: list[dict] = []
     state_counts = {"complete": 0, "rescheduled": 0, "will-not-do": 0}
-    client = VikunjaClient(base_url=args.vikunja_base_url, token=token)
+    client = VikunjaClient(base_url=args.vikunja_base_url, token=token, timeout=15)
 
     for habit_id in habit_ids:
         try:

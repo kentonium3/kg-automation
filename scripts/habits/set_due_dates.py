@@ -433,7 +433,7 @@ def reconcile_schedule(
             continue
 
         try:
-            client = VikunjaClient(base_url=base_url, token=token)
+            client = VikunjaClient(base_url=base_url, token=token, timeout=15)
             client.replace_task_fields(entry.task_id, {"due_date": new_due})
         except VikunjaError as exc:
             errors.append(
@@ -710,7 +710,7 @@ def main(argv: list[str] | None = None) -> int:
             succeeded.append(habit_id)
             continue
         try:
-            client = VikunjaClient(base_url=args.vikunja_base_url, token=token)
+            client = VikunjaClient(base_url=args.vikunja_base_url, token=token, timeout=15)
             client.replace_task_fields(habit_id, body)
             succeeded.append(habit_id)
         except VikunjaError as exc:

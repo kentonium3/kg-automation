@@ -60,7 +60,11 @@ from typing import Any
 
 from scripts.common import state_log
 from scripts.common.state_log_schema import DOMAIN_STATES
-from scripts.common.vikunja_client import VikunjaClient, VikunjaError
+from scripts.common.vikunja_client import (
+    VikunjaClient,
+    VikunjaError,
+    VikunjaServerError,
+)
 from scripts.common.vikunja_config import get_vikunja_base_url
 
 
@@ -260,6 +264,15 @@ def record(
     comment_body = _format_comment(date, state, note)
     try:
         client.create_comment(task_id, comment_body)
+    except VikunjaServerError as e:
+        # Non-JSON 2xx body on comment-create is a documented Vikunja quirk that
+        # the pre-migration _http_request tolerated (returned (200, None), no raise).
+        # Preserve that: swallow a 200, re-raise any real server error. (Mirrors the
+        # enrichment record_completion adapter.)
+        if e.status != 200:
+            raise OSError(
+                f"step 3 (Vikunja comment) failed: {_vikunja_error_detail(e)}"
+            ) from e
     except VikunjaError as e:
         raise OSError(
             f"step 3 (Vikunja comment) failed: {_vikunja_error_detail(e)}"

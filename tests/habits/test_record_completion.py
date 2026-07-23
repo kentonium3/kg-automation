@@ -23,7 +23,6 @@ import io
 import json
 import sys
 import urllib.error
-from pathlib import Path
 from unittest.mock import MagicMock
 
 import pytest
@@ -129,6 +128,38 @@ class TestHappyPath:
         assert rec_row["state"] == "complete"
         assert rec_row["source"] == "whatsapp"
         assert "timestamp" in rec_row
+
+    def test_comment_non_json_2xx_body_is_tolerated(
+        self, mock_urlopen, mock_state_log_dir
+    ):
+        """A non-JSON 2xx body on the comment PUT must NOT raise (Vikunja quirk).
+
+        Pre-migration ``_http_request`` returned ``(200, None)`` for a non-JSON
+        comment-create body and tolerated it; the migrated path must preserve
+        that (post-merge Codex HIGH). A raw ``b"OK"`` body makes VikunjaClient
+        raise ``VikunjaServerError(status=200)``, which record() swallows so the
+        state_log append (step 4) still lands.
+        """
+        raw_resp = MagicMock(name="raw-response")
+        raw_resp.status = 200
+        raw_resp.read = MagicMock(return_value=b"OK")  # non-JSON 2xx body
+        raw_cm = MagicMock(name="raw-cm")
+        raw_cm.__enter__ = MagicMock(return_value=raw_resp)
+        raw_cm.__exit__ = MagicMock(return_value=False)
+
+        mock_urlopen.side_effect = [
+            _resp({"id": 14, "repeat_after": 86400, "repeat_mode": 0}),  # GET pre-done
+            _resp({"id": 14, "done": True}),  # POST done=true
+            raw_cm,  # step 3: PUT comment -> non-JSON 2xx body (tolerated)
+        ]
+
+        # Must NOT raise despite the non-JSON comment response.
+        rc.record(**VALID_KWARGS)
+
+        assert mock_urlopen.call_count == 3
+        # step 4 still landed -- the tolerated comment did not abort the record.
+        records = state_log.read("habits", task_id=14, date="2026-05-20")
+        assert len(records) == 1
 
     def test_passes_authorization_header(
         self, mock_urlopen, mock_state_log_dir
