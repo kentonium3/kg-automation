@@ -10,5 +10,7 @@
   "purpose_tldr": "Retire the Vikunja felix-bot token and route all Felix to Vikunja access through the single kent token, so Felix sees Kent's full task store.",
   "slug": "retire-vikunja-felix-bot-01KY829X",
   "target_branch": "fix/860-retire-vikunja-felix-bot",
-  "topology": "single_branch"
+  "topology": "single_branch",
+  "vcs": "git",
+  "vcs_locked_at": "2026-07-23T21:53:16.876818+00:00"
 }

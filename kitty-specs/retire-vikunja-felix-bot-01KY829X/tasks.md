@@ -50,11 +50,11 @@ parity test (request-level **plus** domain/CLI boundary — see NFR-001).
   `DEFAULT_TOKEN_PATH` still resolves to the felix-bot `vikunja-api` file.
 - **Requirements**: FR-002, FR-003, FR-004.
 - **Subtasks**:
-  - [ ] T001 Add `patch()` + PATCH content-type to `_request` + unit tests (WP01)
-  - [ ] T002 Add raw POST-replace update method + unit tests (WP01)
-  - [ ] T003 Add safe read-modify-write update method + unit tests (WP01)
-  - [ ] T004 Add shared read/comment/label ops + unit tests (WP01)
-  - [ ] T005 Return/error-semantics adapter option; assert default token unchanged (WP01)
+  - [x] T001 Add `patch()` + PATCH content-type to `_request` + unit tests (WP01)
+  - [x] T002 Add raw POST-replace update method + unit tests (WP01)
+  - [x] T003 Add safe read-modify-write update method + unit tests (WP01)
+  - [x] T004 Add shared read/comment/label ops + unit tests (WP01)
+  - [x] T005 Return/error-semantics adapter option; assert default token unchanged (WP01)
 - **Dependencies**: none.
 - **Risks**: preserve Vikunja quirks (v0.24.6 POST-zeroing, pagination, id-vs-identifier); do NOT
   introduce an abstract port (FR-004); do NOT change the default token (SC-004).
