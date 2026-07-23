@@ -13,6 +13,7 @@
   "accepted_at": "2026-07-23T23:17:12.739351+00:00",
   "accepted_by": "kentgale",
   "accepted_from_commit": "16cd44213c8cd65a1190fc0368ed6ae3a8fa908a",
+  "baseline_merge_commit": "822e6b6af2f5ed90cfec21dc2e04540c1bba18cb",
   "created_at": "2026-07-23T18:02:48.918260+00:00",
   "flattened": false,
   "friendly_name": "Consolidate Felix-Vikunja onto the shared client (phase 1 of #860)",
