@@ -121,10 +121,10 @@ parity test (request-level **plus** domain/CLI boundary — see NFR-001).
 - **Independent test**: `pytest tests/habits/test_sweeper*.py tests/habits/test_identify_workout_task.py tests/habits/test_backfill_jsonl_from_comments.py tests/habits/test_reconcile_completions.py` green.
 - **Requirements**: FR-001, FR-003, NFR-001.
 - **Subtasks**:
-  - [ ] T018 Migrate `habits/sweeper.py` + parity (WP05)
-  - [ ] T019 Migrate `habits/identify_workout_task.py` + parity (WP05)
-  - [ ] T020 Migrate `habits/backfill_jsonl_from_comments.py` + parity (WP05)
-  - [ ] T021 Remove dead `_read_token()` from `habits/reconcile_completions.py` (WP05)
+  - [x] T018 Migrate `habits/sweeper.py` + parity (WP05)
+  - [x] T019 Migrate `habits/identify_workout_task.py` + parity (WP05)
+  - [x] T020 Migrate `habits/backfill_jsonl_from_comments.py` + parity (WP05)
+  - [x] T021 Remove dead `_read_token()` from `habits/reconcile_completions.py` (WP05)
 - **Dependencies**: WP01.
 - **Risks**: `reconcile_completions.py` reads via the sync **cache**, not HTTP — do NOT migrate its
   read path onto the client; only delete the unused `_read_token()` and confirm cache-only.

@@ -142,3 +142,4 @@ reconcile_completions cache-based.
 ## Activity Log
 
 - 2026-07-23T22:19:37Z – claude:sonnet-5:python-pedro:implementer – shell_pid=45337 – Assigned agent via action command
+- 2026-07-23T22:32:09Z – claude:sonnet-5:python-pedro:implementer – shell_pid=45337 – Ready for review — sweeper→replace_task_fields, identify_workout_task→get_task w/ OSError adapter, backfill→get+list_task_comments, reconcile_completions dead _read_token removed (cache-only preserved). 136 habits-read tests pass (+6 parity); flake8 baseline-clean. Commit ee738d23 on lane-e. Did not run move-task from lane (subagent).
