@@ -15,7 +15,7 @@ existing entity and produces one ephemeral output.
   | Field | Type | Use here |
   |-------|------|----------|
   | `expected_baselines` | `list[str]` | The set of baseline filenames with expected in-flight drift. Membership source for FR-002(b). |
-  | `pending_since_utc` | ISO-8601 `str` | Window-open timestamp. Freshness = `now − pending_since_utc ≤ MAX_AGE_SECONDS` (FR-005). |
+  | `pending_since_utc` | ISO-8601 `str` | Window-open timestamp. Freshness = `now − pending_since_utc ≤ AUDIT_SUPPRESS_WINDOW_SECONDS` (~900 s, a dedicated short bound — NOT felix-deployer's 24 h `MAX_AGE_SECONDS`). See FR-005. |
 
   Other token fields (`schema_version`, `observed_head_sha`, `surface_ids`,
   `matched_files`, `last_check_utc`, `alerts_emitted`) are ignored.
@@ -41,18 +41,22 @@ existing entity and produces one ephemeral output.
 
 ## Decision truth table (the deterministic core, IC-01/IC-02)
 
-For a drifted baseline `name` during an audit run:
+**Detection is unconditional.** For every drifted baseline, `check_baseline` always
+emits `[ALERT] <name>` + sets `ALERT=1`, and the run exits `1` — so felix-deployer
+always detects the drift and rebaselines (FR-008). The table below governs only
+whether that baseline's line is included in the **human push**:
 
-| Token state | `name ∈ expected_baselines` | Token fresh (age ≤ 24 h) | Result |
-|-------------|:---------------------------:|:------------------------:|--------|
-| present | yes | yes | **Suppress push** — log + `emit_drift_event`, skip `alert` |
-| present | yes | no (stale) | Alert (FR-005) |
-| present | no | — | Alert (FR-002/FR-003 unexpected) |
-| absent | — | — | Alert (FR-004) |
-| unreadable / malformed | — | — | Alert (FR-004) |
-| helper/import error | — | — | Alert (FR-005/NFR-002/NFR-003, fail-safe) |
+| Token state | `name ∈ expected_baselines` | Fresh (age ≤ ~15 min) | Push includes this baseline? |
+|-------------|:---------------------------:|:---------------------:|------------------------------|
+| present | yes | yes | **No — push suppressed** (line stays in log/stdout + `drift-events.jsonl`) |
+| present | yes | no (stale) | Yes — pushed (FR-005) |
+| present | no | — | Yes — pushed (FR-002/FR-003 unexpected) |
+| absent | — | — | Yes — pushed (FR-004) |
+| unreadable / malformed | — | — | Yes — pushed (FR-004) |
+| helper/import error | — | — | Yes — pushed (FR-004/NFR-002/NFR-003, fail-safe) |
 
-Non-baseline IOC alerts are **out of this table** — never suppressed (R6/FR-003).
+Non-baseline IOC alert lines never match `changed since baseline:` → always pushed
+(R6/FR-003). The push fires iff at least one alert line survives the filter.
 
 ## Invariants
 
@@ -63,3 +67,7 @@ Non-baseline IOC alerts are **out of this table** — never suppressed (R6/FR-00
   (NFR-003).
 - **INV-4** (record preserved): a suppressed drift still writes the audit log +
   `drift-events.jsonl` identically to an alerted one (FR-006).
+- **INV-5** (detection contract preserved): the `[ALERT] <name>` stdout line and the
+  exit-`1`-on-drift behavior are unchanged for every drift, so felix-deployer's
+  reconcile still detects expected drift and stamps the baseline (FR-008). Only the
+  push emit is gated.

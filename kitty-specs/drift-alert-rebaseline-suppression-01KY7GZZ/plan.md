@@ -11,24 +11,29 @@ any baseline drift with zero awareness of felix-deployer's deferred-confirm
 rebaseline. When an audited-surface deploy lands within the audit window, the audit
 fires a false `error` page for drift felix-deployer has already recorded as expected.
 
-**Approach**: add a small, tested Python helper that reads felix-deployer's
-pending-rebaseline token (`rebaseline-pending.json`) and, reusing felix-deployer's
-own `read_token` + `MAX_AGE_SECONDS` staleness definition, returns the set of
-baselines with **fresh, expected** in-flight drift. `audit.sh` calls this helper
-**once per run** to load that set into a shell variable; `check_baseline()` then
-withholds the *push* for a drifted baseline that is in the set (while still writing
-the audit log and `drift-events.jsonl`), and pages exactly as today for every other
-drift. The coupling is one-directional and read-only. Fail-safe by construction:
+**Approach** (revised after post-plan Codex review — see "Codex findings folded"):
+add a small, tested Python helper that reads felix-deployer's pending-rebaseline
+token (`rebaseline-pending.json`) and, reusing felix-deployer's own `read_token`,
+returns the set of baselines with **fresh, expected** in-flight drift — where "fresh"
+uses a dedicated **short** suppression window (~15 min), not felix-deployer's 24 h
+stale threshold. `audit.sh` leaves its drift-detection path **completely unchanged**
+(every drift still emits `[ALERT] <name>` to stdout and the run still exits `1`, so
+felix-deployer's reconcile still detects the drift and stamps the new baseline). The
+**only** change is at the end-of-run **push emit**: `audit.sh` calls the helper once
+(only when drift exists) and filters the expected-baseline lines out of the push
+summary — pushing only unexpected drift and IOC alerts, or nothing if all drift is
+expected. The coupling is one-directional and read-only. Fail-safe by construction:
 any error, missing/stale token, or unreadable state yields an **empty** set → the
-audit alerts exactly as it does today.
+audit pushes exactly as it does today.
 
 ## Technical Context
 
 **Language/Version**: Python 3 (office2 is python3-only — no `python` binary) for the
 helper; Bash for the `audit.sh` integration.
 **Primary Dependencies**: Reuses `scripts/deploy/felix-deployer/rebaseline.py`
-(`read_token`, `MAX_AGE_SECONDS`) as the single source of truth for token schema and
-staleness. Standard library only (`json`, `datetime`, `pathlib`).
+(`read_token`, token schema) as the single source of truth for the token. Defines a
+dedicated short suppression window `AUDIT_SUPPRESS_WINDOW_SECONDS` (≈900 s), NOT
+`MAX_AGE_SECONDS`. Standard library only (`json`, `datetime`, `pathlib`, `os`).
 **Storage**: Reads (never writes) `/data/services/felix-deployer/state/rebaseline-pending.json`.
 **Testing**: `pytest` unit tests for the helper (token present/fresh/stale/absent/
 malformed; membership; empty-on-error). Bash integration verified by a live office2
@@ -124,30 +129,43 @@ checkout path, consistent with how it already sources `alert_bus.sh`.
 - **Relevant requirements**: FR-001, FR-002, FR-004, FR-005; NFR-001, NFR-002;
   C-001, C-002, C-003.
 - **Affected surfaces**: `scripts/deploy/felix-deployer/expected_drift.py` (new);
-  imports `rebaseline.read_token` + `rebaseline.MAX_AGE_SECONDS`.
+  imports `rebaseline.read_token` (reuses the schema + reader). Defines its own
+  `AUDIT_SUPPRESS_WINDOW_SECONDS` (≈900 s / 15 min) — deliberately NOT
+  `rebaseline.MAX_AGE_SECONDS` (Codex F3).
 - **Sequencing/depends-on**: none.
-- **Behavior contract**: `--list` prints the space-separated expected-baseline set to
-  stdout (empty when: no token / unreadable / malformed / stale [age > MAX_AGE_SECONDS]).
-  Exit 0 always (never fails the caller). Read-only. A `is_expected(name)` mode may be
-  provided but the run-once `--list` path is what `audit.sh` uses (NFR-001).
-- **Risks**: importing `rebaseline` pulls its `audited_surfaces` import — wrap in
-  try/except so any import failure degrades to an empty set (fail-safe), never raises.
+- **Behavior contract**: `--list` prints the newline-delimited expected-baseline set
+  to stdout — a baseline is included only when the token is present, the name is in
+  `expected_baselines`, and `now − pending_since_utc ≤ AUDIT_SUPPRESS_WINDOW_SECONDS`.
+  Empty output when: no token / unreadable / malformed / stale / unparseable timestamp.
+  **Exit 0 always** (never fails the caller). **Read-only.** Honors an
+  `EXPECTED_DRIFT_TOKEN_PATH` env override for tests/live-verify (Codex F4); defaults
+  to `rebaseline.DEFAULT_TOKEN_PATH`.
+- **Risks**: importing `rebaseline` pulls its `audited_surfaces` import — wrap the
+  import AND the read in try/except so any failure degrades to an empty set
+  (fail-safe), never raises (Codex F5: membership is done in Python, so no shell
+  pattern-matching hazard).
 
-### IC-02 — audit.sh integration (per-baseline suppression at the alert boundary)
+### IC-02 — audit.sh integration (gate the PUSH, never the detection)
 
-- **Purpose**: Consult the expected set and withhold the push for expected baselines
-  only, preserving all other alerting including non-baseline IOC alerts.
-- **Relevant requirements**: FR-003, FR-006; NFR-003.
-- **Affected surfaces**: `scripts/office2/security-monitor/audit.sh` — load the set
-  once (`EXPECTED_DRIFT=$(python3 <helper> --list 2>/dev/null || true)`); in
-  `check_baseline()`, when a diff is found and `$name` ∈ `$EXPECTED_DRIFT`, still
-  `log` + `emit_drift_event` but **skip** `alert` (so `ALERT` is not set for that
-  baseline → no push if nothing else alerts).
+- **Purpose**: Filter expected-baseline drift out of the human push while leaving the
+  drift-detection contract felix-deployer depends on completely unchanged.
+- **Relevant requirements**: FR-003, FR-006, FR-008; NFR-003.
+- **Affected surfaces**: `scripts/office2/security-monitor/audit.sh` — **no change**
+  to `check_baseline()` or `alert()`: every drift still emits `[ALERT] <name>`, sets
+  `ALERT=1`, and the run still exits `1` (FR-008). The change is confined to the
+  end-of-run summary/emit block (lines ~283–319): when `ALERT=1`, call the helper once
+  (`EXPECTED_DRIFT=$(python3 <helper> --list 2>/dev/null || true)`), build the push
+  set from `$ALERT_FILE` by dropping lines matching
+  `^\[ALERT\] <name> changed since baseline:` whose `<name>` is in `$EXPECTED_DRIFT`
+  (exact match via `grep -Fxq`), and emit the push **only if** the push set is
+  non-empty. `stdout` (`cat "$ALERT_FILE"`) and `exit 1` are unchanged.
 - **Sequencing/depends-on**: IC-01.
-- **Risks**: (a) suppression MUST be scoped to the `check_baseline` drift path only —
-  the generic `alert()` used for IOCs (`/tmp/pglog`, sysmon, `/etc/hosts`) must NEVER
-  be suppressed. (b) word-boundary membership test (avoid substring false-matches
-  between baseline names). (c) helper-call failure → empty var → today's behavior.
+- **Risks**: (a) the line-parse must extract `<name>` only from baseline-drift lines —
+  IOC alert lines (`[ALERT] IOC: …`, `[ALERT] /etc/hosts modified…`) never match the
+  `changed since baseline:` pattern, so they are always pushed (FR-003). (b) the single
+  helper read happens at push time = freshest possible (resolves Codex F2 stale-snapshot
+  race — no read-at-start/decide-later gap). (c) helper failure → empty var → today's
+  push behavior.
 
 ### IC-03 — Deploy + documentation sync
 
@@ -162,7 +180,25 @@ checkout path, consistent with how it already sources `alert_bus.sh`.
   (+ any affected `data/*.json`) describing the read-only audit↔felix-deployer coupling
   and its fail-safe rules.
 - **Sequencing/depends-on**: IC-01, IC-02.
-- **Risks**: live-verify (SC-001/002/003) requires a real or simulated in-flight token
-  — plan the verification to inject a synthetic pending token on office2 (read-only to
-  felix-deployer; the audit only reads it) rather than waiting for an organic deploy.
+- **Risks**: live-verify (SC-001/002/003) must NOT write a synthetic token into the
+  live felix-deployer state dir (the running timer would race/consume it — Codex F4).
+  Instead point the helper at a temp token via `EXPECTED_DRIFT_TOKEN_PATH` and run the
+  audit with that env set; felix-deployer's real state is never touched (INV-1).
+
+## Codex findings folded (post-plan review, 2026-07-23)
+
+The mandatory post-plan Codex pass caught one HIGH design flaw and four refinements;
+all are folded into this plan and the spec before task decomposition:
+
+- **F1 (HIGH)** — the original "skip `alert()`" idea would have made felix-deployer's
+  reconcile see "All clear" and never stamp the baseline. **Fix**: gate only the push;
+  leave the `[ALERT]`/exit-1 detection path unchanged (FR-008, IC-02).
+- **F2 (MED)** — single-read-at-start stale-snapshot race. **Fix**: the one helper read
+  moves to push time (freshest possible; no cache-then-decide gap).
+- **F3 (MED)** — 24 h stale threshold could mute the security channel for a day.
+  **Fix**: dedicated ~15 min `AUDIT_SUPPRESS_WINDOW_SECONDS` (FR-005, C-002).
+- **F4 (MED)** — live synthetic token races the deployer. **Fix**:
+  `EXPECTED_DRIFT_TOKEN_PATH` override for verification (IC-03).
+- **F5 (LOW)** — shell pattern-match hazard. **Fix**: membership in Python + exact
+  `grep -Fxq` (IC-01/IC-02).
 ```

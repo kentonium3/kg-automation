@@ -61,12 +61,13 @@ deploy), and the operator (Kent), who receives the push pages.
 | ID | Requirement | Status |
 |----|-------------|--------|
 | FR-001 | When the audit detects drift on a baseline, it MUST determine whether that specific baseline is named in felix-deployer's active pending-rebaseline token before deciding whether to raise a push alert for it. | Required |
-| FR-002 | The audit MUST withhold the push alert for a drifted baseline **only when all** of the following hold: (a) an active pending-rebaseline token exists and is readable; (b) the baseline name is in the token's `expected_baselines`; (c) the token is within its bounded pending window (not stale). In every other case it MUST raise the alert exactly as it does today. | Required |
-| FR-003 | Suppression MUST be scoped per baseline. In a single audit run mixing expected and unexpected drifted baselines, the audit MUST withhold only the expected baselines and MUST still raise a push alert for every unexpected drifted baseline. | Required |
-| FR-004 | If the pending token is absent, unreadable, or malformed, the audit MUST fall back to current behavior (raise the alert). Ambiguity always resolves toward alerting. | Required |
-| FR-005 | If the pending token exists but is older than the bounded pending window, the audit MUST NOT suppress; it MUST raise the alert so a stuck expected-drift still surfaces within one audit cycle. | Required |
+| FR-002 | The audit MUST withhold the **push notification** for a drifted baseline **only when all** of the following hold: (a) an active pending-rebaseline token exists and is readable; (b) the baseline name is in the token's `expected_baselines`; (c) the token is within the bounded suppression window (see FR-005). In every other case it MUST push exactly as it does today. Suppression gates only the *push* — never drift *detection* (see FR-008). | Required |
+| FR-003 | Suppression MUST be scoped per baseline. In a single audit run mixing expected and unexpected drifted baselines, the audit MUST withhold the push only for the expected baselines and MUST still push for every unexpected drifted baseline and every non-baseline IOC alert. | Required |
+| FR-004 | If the pending token is absent, unreadable, or malformed, the audit MUST fall back to current behavior (push the alert). Ambiguity always resolves toward alerting. | Required |
+| FR-005 | The suppression window MUST be a dedicated **short** bound (a small multiple of the felix-deployer deploy tick — target ~15 minutes), **not** felix-deployer's 24-hour stale-token threshold. If the token's `pending_since_utc` is older than this window, the audit MUST NOT suppress; it MUST push, so a stuck/lingering (or maliciously planted) token can never mute the security channel for longer than the short window. | Required |
 | FR-006 | A suppressed drift MUST still be recorded locally — the audit log and the `drift-events.jsonl` doc-audit signal MUST be written exactly as for an un-suppressed drift. Only the push notification is withheld; the local audit trail and downstream signals are unchanged. | Required |
-| FR-007 | The change MUST update the affected architecture/observability documentation (security posture and observability-and-alerting narratives, plus any affected machine-readable data) to describe the audit↔felix-deployer coupling and its fail-safe rules. | Required |
+| FR-007 | The change MUST update the affected architecture/observability documentation (security posture and observability-and-alerting narratives, plus any affected machine-readable data) to describe the read-only audit↔felix-deployer coupling and its fail-safe rules. | Required |
+| FR-008 | The change MUST NOT alter the audit's drift-**detection** contract that felix-deployer's reconcile depends on: every drifted baseline (expected or not) MUST still emit its `[ALERT] <name> changed since baseline:` line to stdout and the audit MUST still exit `1` on any drift, so felix-deployer continues to detect the expected drift and stamp the new baseline. Only the human push is gated. | Required |
 
 ### Non-Functional Requirements
 
@@ -81,7 +82,7 @@ deploy), and the operator (Kent), who receives the push pages.
 | ID | Constraint | Status |
 |----|-----------|--------|
 | C-001 | The coupling MUST be one-directional and read-only: the audit reads felix-deployer's pending-token state and MUST NOT write to or mutate any felix-deployer state. | Required |
-| C-002 | The suppression logic MUST reuse felix-deployer's existing token schema and staleness definition (`expected_baselines`, `pending_since_utc`, and the existing `MAX_AGE_SECONDS` window) rather than defining a parallel notion of "expected" or "stale." Single source of truth. | Required |
+| C-002 | The suppression logic MUST reuse felix-deployer's existing token schema and reader (`read_token`, `expected_baselines`, `pending_since_utc`) as the single source of truth for **what** drift is expected — it MUST NOT redefine or reparse the token. The audit applies its own dedicated **short** suppression window (FR-005) for **how long** it honors the token; this is intentionally distinct from felix-deployer's 24 h `MAX_AGE_SECONDS` stale threshold and is not a second definition of "expected." | Required |
 | C-003 | The deterministic decision `(baseline_name, token_state) → suppress \| alert` MUST be implemented as an independently tested helper per the repo's helper-script conventions, not as ad-hoc inline shell logic. | Required |
 | C-004 | The change deploys to office2 through the `deploys/queued/<name>.yaml` manifest discipline; if `audit.sh` (or any touched file) is an audited surface, the deploy must carry the rebaseline obligation. | Required |
 
@@ -123,15 +124,24 @@ deploy), and the operator (Kent), who receives the push pages.
   considered and rejected as re-introducing the noise the mission removes. This is
   the one product choice the operator may wish to revisit; it is called out for
   review rather than silently assumed.
-- The bounded suppression window reuses felix-deployer's existing `MAX_AGE_SECONDS`
-  (24 h) staleness threshold. In practice the token clears within ~10 s, so the real
-  suppression window is seconds; the 24 h bound only governs the stuck-reconcile
-  edge (FR-005).
-- felix-deployer and security-monitor both run on office2 and the audit process can
-  read felix-deployer's state directory. To be verified against the live host during
-  plan (per DIR-015).
-- The audit already makes its alert decision per baseline, so the suppression check
-  slots in at the existing per-baseline alert decision point.
+- The bounded suppression window is a dedicated **short** window (~15 min, a small
+  multiple of the felix-deployer deploy tick), **not** felix-deployer's 24 h stale
+  threshold (revised per post-plan Codex Finding 3). In practice the token clears
+  within ~10 s, so real suppression lasts seconds; the ~15 min bound only covers a
+  slow reconcile and hard-caps how long a lingering or maliciously planted token can
+  mute the security push.
+- **Threat-model boundary**: the token is `0600 claude`-owned. An actor with `claude`
+  write access could already trigger felix-deployer's auto-rebaseline of a planted
+  change (a pre-existing felix-deployer vector, independent of this mission). This
+  mission adds only a short-window *push* suppression on top of that; it grants no new
+  capability, and the short window bounds the mute. Full token-provenance validation
+  was considered and deferred as disproportionate to that pre-existing exposure.
+- felix-deployer and security-monitor both run on office2 and the audit (running as
+  the `claude` user via `sg docker -c`) can read felix-deployer's `0600` token —
+  **verified live on office2** during plan (per DIR-015).
+- The suppression gates the **push** at the end-of-run emit step; drift detection
+  (the per-baseline `[ALERT]` line + exit code) is untouched so felix-deployer's
+  reconcile is unaffected (FR-008).
 
 ## Out of Scope
 
