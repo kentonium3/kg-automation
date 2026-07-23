@@ -1,7 +1,7 @@
 {
-  "event_count": 31,
-  "last_event_id": "01KY8JXKVSX35J51YS73H49VAS",
-  "materialized_at": "2026-07-23T22:53:11.929232+00:00",
+  "event_count": 33,
+  "last_event_id": "01KY8JYQ2YVJG7BPG5J0TME8CH",
+  "materialized_at": "2026-07-23T22:53:47.997853+00:00",
   "mission_number": "",
   "mission_slug": "retire-vikunja-felix-bot-01KY829X",
   "mission_type": "software-dev",
@@ -12,9 +12,9 @@
     "claimed": 0,
     "done": 0,
     "for_review": 0,
-    "in_progress": 0,
+    "in_progress": 1,
     "in_review": 0,
-    "planned": 2
+    "planned": 1
   },
   "work_packages": {
     "WP01": {
@@ -25,11 +25,11 @@
       "last_transition_at": "2026-07-23T22:16:53.665697+00:00"
     },
     "WP02": {
-      "actor": "user",
+      "actor": "claude:sonnet-5:python-pedro:implementer",
       "force_count": 1,
-      "lane": "planned",
-      "last_event_id": "01KY8JXKVSX35J51YS73H49VAS",
-      "last_transition_at": "2026-07-23T22:53:11.929232+00:00"
+      "lane": "in_progress",
+      "last_event_id": "01KY8JYQ2YVJG7BPG5J0TME8CH",
+      "last_transition_at": "2026-07-23T22:53:47.997853+00:00"
     },
     "WP03": {
       "actor": "user",
