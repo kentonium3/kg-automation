@@ -21,9 +21,11 @@ subtasks:
 - T013
 phase: Phase 1 - Migration
 assignee: ''
-agent: claude
+agent: "claude:sonnet-5:python-pedro:implementer"
 agent_profile: python-pedro
 role: implementer
+shell_pid: "45337"
+shell_pid_created_at: "1784845116.939297"
 history:
 - at: '2026-07-23T21:04:52Z'
   actor: system
@@ -145,3 +147,7 @@ mirror each other's urllib helper).
 
 - Confirm PATCH via `patch()`; confirm each consumer's error messages / return values are unchanged;
   confirm parity tests assert emitted records + exit codes, not just request bodies.
+
+## Activity Log
+
+- 2026-07-23T22:18:52Z – claude:sonnet-5:python-pedro:implementer – shell_pid=45337 – Assigned agent via action command
