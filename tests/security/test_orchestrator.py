@@ -93,6 +93,58 @@ def test_cycle_near_expiry_files_paired_alert():
     assert call_order[1] == "issue"
 
 
+# ---------- expiry reminder ladder wiring (#852 Part 2) ----------
+
+
+def test_cycle_pushes_expiry_reminder_within_window():
+    """The ramping ntfy ladder fires (and is counted) alongside the once-filed
+    Vikunja/GitHub artefact when a credential is inside the warning window."""
+    from credential_health_check import reminders
+    from scripts.common.alert_bus import AlertResult
+
+    p = _patch_paths()
+    with (
+        patch(p["dedup_check"], return_value=[]),
+        patch(p["create_task"], return_value=88),
+        patch(p["create_issue"], return_value=77),
+        patch(p["load_token"], return_value="t"),
+        patch(p["project_id"], return_value=1),
+        patch(p["MONITOR_ACTIVITY_READERS"], new={}),
+        patch.object(
+            reminders, "emit",
+            return_value=AlertResult(ok=True, reason=None, topic_configured=True),
+        ) as mock_emit,
+    ):
+        result = run_cycle(
+            str(FIXTURES / "manifest-near-expiry.json"),
+            today=date(2026, 5, 11),
+        )
+    assert result.expiry_reminders_pushed == 1
+    mock_emit.assert_called_once()
+
+
+def test_cycle_dry_run_does_not_push_reminder():
+    from credential_health_check import reminders
+
+    p = _patch_paths()
+    with (
+        patch(p["dedup_check"], return_value=[]),
+        patch(p["create_task"], return_value=88),
+        patch(p["create_issue"], return_value=77),
+        patch(p["load_token"], return_value="t"),
+        patch(p["project_id"], return_value=1),
+        patch(p["MONITOR_ACTIVITY_READERS"], new={}),
+        patch.object(reminders, "emit") as mock_emit,
+    ):
+        result = run_cycle(
+            str(FIXTURES / "manifest-near-expiry.json"),
+            today=date(2026, 5, 11),
+            dry_run=True,
+        )
+    assert result.expiry_reminders_pushed == 0
+    mock_emit.assert_not_called()
+
+
 # ---------- expires_at-driven boundary (#852) ----------
 
 
@@ -158,6 +210,9 @@ def test_cycle_same_cred_without_expiry_does_not_fire():
 
 
 def test_cycle_dedup_skips_already_open():
+    from credential_health_check import reminders
+    from scripts.common.alert_bus import AlertResult
+
     p = _patch_paths()
     with (
         patch(p["dedup_check"], return_value=[42]),  # any prefix returns an existing issue
@@ -166,6 +221,10 @@ def test_cycle_dedup_skips_already_open():
         patch(p["load_token"], return_value="t"),
         patch(p["project_id"], return_value=1),
         patch(p["MONITOR_ACTIVITY_READERS"], new={}),
+        patch.object(
+            reminders, "emit",
+            return_value=AlertResult(ok=True, reason=None, topic_configured=True),
+        ) as mock_emit,
     ):
         result = run_cycle(
             str(FIXTURES / "manifest-near-expiry.json"),
@@ -175,6 +234,12 @@ def test_cycle_dedup_skips_already_open():
     assert result.alerts_deduped >= 1
     mock_task.assert_not_called()
     mock_issue.assert_not_called()
+    # The ntfy ladder is INDEPENDENT of the once-filed GitHub/Vikunja dedup: it
+    # still rings even when the cadence alert was deduped (design decision — the
+    # push keeps escalating while the durable issue sits open). Locks the
+    # property against a refactor that moves the ladder into the not-deduped path.
+    assert result.expiry_reminders_pushed == 1
+    mock_emit.assert_called_once()
 
 
 # ---------- Vikunja failure ----------

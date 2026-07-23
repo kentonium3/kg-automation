@@ -57,6 +57,23 @@ _SECURITY_MODULES = [
 
 
 @pytest.fixture(autouse=True)
+def isolate_reminder_state(tmp_path, monkeypatch):
+    """Keep the #852 expiry-reminder ladder hermetic in every security test.
+
+    - Redirects its JSONL firing ledger (``CREDENTIAL_HEALTH_STATE_DIR``) to a
+      per-test tmp dir so no test ever reads/writes /data.
+    - Ensures ``FELIX_ALERT_NTFY_TOPIC`` is unset so ``alert_bus.emit`` never
+      attempts a real ntfy POST (it short-circuits to ok=False, no network).
+
+    Returns the state dir so reminder tests can inspect the ledger.
+    """
+    state_dir = tmp_path / "cred-health-state"
+    monkeypatch.setenv("CREDENTIAL_HEALTH_STATE_DIR", str(state_dir))
+    monkeypatch.delenv("FELIX_ALERT_NTFY_TOPIC", raising=False)
+    return state_dir
+
+
+@pytest.fixture(autouse=True)
 def mock_vikunja_base_url(monkeypatch):
     """Prevent get_vikunja_base_url() from reading the config file in tests.
 
