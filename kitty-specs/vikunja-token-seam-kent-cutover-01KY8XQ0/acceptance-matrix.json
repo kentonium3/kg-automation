@@ -80,7 +80,8 @@
       "invariant_id": "C-001",
       "description": "No abstract TaskService port / adapter layer introduced (seam via VikunjaClient + config helper only).",
       "pass_fail": "pass",
-      "evidence": "No TaskService/port abstraction added; the seam is get_vikunja_token_path() + VikunjaClient. Grep for a TaskService class returns none.",
+      "verification_method": "grep for a TaskService/port abstraction class across scripts/ returns none; the seam is get_vikunja_token_path() + VikunjaClient.",
+      "evidence": "No TaskService/port abstraction added; the seam is get_vikunja_token_path() + VikunjaClient.",
       "verified_by": "claude (orchestrator review)",
       "verified_at": "2026-07-24T03:59:35Z"
     },
@@ -88,6 +89,7 @@
       "invariant_id": "C-002",
       "description": "The felix-bot Vikunja user is left dormant, not deprovisioned; the vikunja-api secret file is retained.",
       "pass_fail": "pass",
+      "verification_method": "Inspect credential-manifest (vikunja-api status=retired, runtime=false, not removed) + ADR-0007/narrative confirming user retained and deprovision out of scope.",
       "evidence": "credential-manifest marks vikunja-api retired/dormant (not deleted); ADR-0007 + narrative note the user is retained (owns Inbox 14, history preserved) and deprovision/Inbox-14 reassignment are out of scope.",
       "verified_by": "claude (orchestrator review)",
       "verified_at": "2026-07-24T03:59:35Z"
