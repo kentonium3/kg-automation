@@ -62,8 +62,7 @@ felix-bot-label-attach path in the loop — that closes #750 (SC-008).
 | Scan helper | `scripts/intake/scan_inbox.py` (invoked by `felix-admin-capture` after `route_and_finalize`) |
 | Apply helper | `scripts/intake/apply_reply.py` (invoked by the `main` DM agent on Kent's reply) |
 | Grammar module | `scripts/intake/shorthand.py` (alias table; shared by apply) |
-| Read token | `vikunja-api` (felix-bot) — scan only |
-| Write token | `/data/services/openclaw/secrets/vikunja-api-kent` (kent) — apply only |
+| Runtime token | `/data/services/openclaw/secrets/vikunja-api-kent` (kent) — both scan and apply, resolved via `get_vikunja_token_path()` (#860 phase 2 / ADR-0007; the former felix-bot `vikunja-api` read token is retired/dormant) |
 | Id resolution | `scripts/common/vikunja_refs.py` (#748 seam; **no hardcoded ids**) |
 | State dir | `/data/services/openclaw/state/intake/` |
 | Correlation record | `digests/intake-<digest_id>.json` (immutable per digest; 48h retention) |

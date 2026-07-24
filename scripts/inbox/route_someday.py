@@ -64,6 +64,7 @@ import json
 import sys
 
 from scripts.common import vikunja_refs
+from scripts.common.vikunja_config import VikunjaConfigError
 from scripts.common.vikunja_client import VikunjaClient, VikunjaError
 from scripts.common.vikunja_refs import VikunjaRefError, VikunjaRefUnprovisioned
 
@@ -194,8 +195,13 @@ def route_someday(
     """
     try:
         client = VikunjaClient()
-    except ValueError as exc:
-        # Token/base-url config errors surface here. Treat as vikunja_error.
+    except (ValueError, VikunjaConfigError) as exc:
+        # Token/base-url config errors surface here. `VikunjaConfigError` is the
+        # single fail-loud error from the token seam (get_vikunja_token_path,
+        # #860 phase 2) when the default token file is missing/unreadable — it is
+        # a RuntimeError subclass, NOT a ValueError, so it must be caught here
+        # explicitly to preserve the structured RouteSomedayError -> exit-2 CLI
+        # contract rather than tracebacking.
         raise RouteSomedayError(f"VikunjaClient construction failed: {exc}") from exc
 
     project_id = _resolve_destination_project_id(project)

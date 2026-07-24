@@ -236,15 +236,15 @@ stays populated rather than decaying into inconsistency.
 > **✅ Implemented — task-intake-validation-loop-01KXS06W (#749; folds in #750),
 > 2026-07-17.** The validation loop this section deferred to the integration epic
 > is live. It **rides the existing inbox-processing crons** (~4×/day): after each
-> inbox tick, `scripts/intake/scan_inbox.py` scans the Inbox (felix-bot read,
+> inbox tick, `scripts/intake/scan_inbox.py` scans the Inbox (kent runtime token via `get_vikunja_token_path()` since #860 phase 2 / ADR-0007; formerly felix-bot read,
 > Inbox id via the #748 `vikunja_refs` seam — no hardcoded ids) for not-done
 > Tier-1-incomplete tasks and Felix sends **one batched WhatsApp digest**
 > numbering them with their missing fields. Kent replies in **compact shorthand**
 > (e.g. `1 personal f2 schedule`); a deterministic parser
 > (`scripts/intake/shorthand.py`) resolves the tokens against the seam and
 > `scripts/intake/apply_reply.py` applies the project + labels + applicable
-> Tier-2 **through the kent Vikunja token** (`vikunja-api-kent`, the #715
-> two-token model) using read-modify-write with family-replace for the
+> Tier-2 **through the kent Vikunja token** (`vikunja-api-kent`, the
+> sole runtime Vikunja credential since #860 phase 2 / ADR-0007) using read-modify-write with family-replace for the
 > mutually-exclusive `q:`/`f:` families. Reply→digest **correlation is
 > content-based** (line-number set + task-title evidence, mirroring the habits
 > `correlate_reply_to_checkin` pattern) across the day's ticks, so a delayed reply

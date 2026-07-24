@@ -418,6 +418,24 @@ def test_client_construction_error_exits_2(monkeypatch, capsys):
     assert "token file missing" in err
 
 
+def test_client_construction_config_error_exits_2(monkeypatch, capsys):
+    # #860 phase 2: a missing/unreadable default token now fails loud as
+    # VikunjaConfigError (a RuntimeError subclass, NOT a ValueError). The CLI
+    # must still map it to the structured RouteSomedayError -> exit-2 contract,
+    # not traceback.
+    def boom():
+        raise rs.VikunjaConfigError(
+            "Vikunja token file not available at /data/services/openclaw/secrets/vikunja-api-kent"
+        )
+
+    monkeypatch.setattr(rs, "VikunjaClient", boom)
+    rc = rs.main(_ARGS)
+    assert rc == 2
+    err = capsys.readouterr().err
+    assert "vikunja_error" in err
+    assert "token file not available" in err
+
+
 # ---------------------------------------------------------------------------
 # CLI ergonomics
 # ---------------------------------------------------------------------------
