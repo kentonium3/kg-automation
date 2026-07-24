@@ -43,9 +43,18 @@ that the first inventory omitted escalation + enrichment and misclassified `appl
 **Decision**: IC-01 adds the single point; IC-02 routes the client default (covers Group A);
 IC-03 routes all 13 Group-B modules. Non-runtime literals stay as-is and are the *only* permitted
 SC-001 matches, in two classes: (a) felix-bot-targeting admin/one-shot — `provision_felix_bot`,
-`validate_felix_bot`, `swap_vikunja_secrets`; (b) kent-only admin tools whose felix literal is a
-**refusal/guard** — `migrate_tasks` (`:78-82`), `create_saved_filters` (`:80-82`),
-`reconcile_projects` (`:63-67`), plus `apply_reply`'s guard.
+`validate_felix_bot`, `swap_vikunja_secrets`, and `habits/backfill_jsonl_from_comments.py` (`:54`,
+a completed one-shot ADR-0002-era backfill, **not cron-invoked** per its own docstring); (b) kent-only
+admin tools whose felix literal is a **refusal/guard** — `migrate_tasks` (`:82`),
+`create_saved_filters` (`:82`), `reconcile_projects` (`:67`), plus `apply_reply`'s guard.
+
+**Exhaustive re-sweep (beyond the Codex catch)**: `git grep 'VikunjaClient('` + felix-bot-literal sweep
+found two more the first inventory missed — (1) `habits/backfill_jsonl_from_comments.py` = one-shot admin
+(allowlisted above, not runtime); (2) **`intake/scan_inbox.py`** = a **runtime Group-A** consumer (bare
+`VikunjaClient(base_url=, timeout=)`, no token → client default → inherits the flip). scan_inbox's
+`_build_client` docstring encodes the *old* #715 invariant ("scan must NEVER use the kent write token") —
+which #860 retires; IC-06 must update that comment (and sweep siblings + the `sync` systemd-unit comment)
+so code and docstring agree post-flip. No functional change: scan_inbox reads Inbox=1 (visible to kent).
 
 **Deployment fact (verified)**: the deployed drivers invoke Group B/C with **no** token args
 (`ExecStart=/usr/bin/python3 -m scripts.habits.sweeper`; `… weekly_report_driver`); `--token-path` is a
