@@ -80,7 +80,10 @@ from scripts.common.vikunja_client import VikunjaError as _ClientVikunjaError
 from scripts.common.vikunja_client import (
     VikunjaServerError as _ClientVikunjaServerError,
 )
-from scripts.common.vikunja_config import get_vikunja_base_url
+from scripts.common.vikunja_config import (
+    get_vikunja_base_url,
+    get_vikunja_token_path,
+)
 from scripts.enrichment.schema import (
     DEFAULT_LEDGER_PATH,
     SCHEMA_VERSION,
@@ -114,8 +117,12 @@ __all__ = [
 #: Sentinel; resolved at call-time via get_vikunja_base_url().
 DEFAULT_BASE_URL: str = ""
 
-#: Default location of the ``felix-bot`` Vikunja API token on office2.
-DEFAULT_TOKEN_PATH: Path = Path("/data/services/openclaw/secrets/vikunja-api")
+#: Override hook for the default token path. ``None`` means "resolve the token
+#: path at call-time via :func:`scripts.common.vikunja_config.get_vikunja_token_path`"
+#: — the WP01 seam that returns the kent-owned runtime credential (FR-001). No
+#: felix-bot literal lives here anymore. Kept as a module attribute (also
+#: re-exported by ``reconcile_completions``) so callers/tests may monkeypatch.
+DEFAULT_TOKEN_PATH: Optional[Path] = None
 
 #: HTTP socket timeout in seconds for every Vikunja API call.
 HTTP_TIMEOUT_SECONDS: int = 30
@@ -495,7 +502,7 @@ def record(
     idempotent: bool = False,
     skip_vikunja: bool = False,
     base_url: Optional[str] = None,
-    token_path: Path = DEFAULT_TOKEN_PATH,
+    token_path: Optional[Path] = None,
     ledger_path: Path = DEFAULT_LEDGER_PATH,
 ) -> dict:
     """Public convenience wrapper. Builds the record and delegates to ``record_event``.
@@ -551,7 +558,7 @@ def record_event(
     record_dict: dict,
     *,
     base_url: Optional[str] = None,
-    token_path: Path = DEFAULT_TOKEN_PATH,
+    token_path: Optional[Path] = None,
     ledger_path: Path = DEFAULT_LEDGER_PATH,
     skip_vikunja: bool = False,
 ) -> dict:
@@ -588,6 +595,8 @@ def record_event(
     # Step 1: Vikunja side-effect (FIRST).
     vikunja_actions: list[str] = []
     if not skip_vikunja:
+        if token_path is None:
+            token_path = get_vikunja_token_path()
         token = _read_token(token_path)
         vikunja_actions = _vikunja_side_effect(
             record_dict, base_url=base_url, token=token
@@ -611,7 +620,7 @@ def idempotent_record_event(
     record_dict: dict,
     *,
     base_url: Optional[str] = None,
-    token_path: Path = DEFAULT_TOKEN_PATH,
+    token_path: Optional[Path] = None,
     ledger_path: Path = DEFAULT_LEDGER_PATH,
     skip_vikunja: bool = False,
 ) -> dict:
@@ -752,10 +761,10 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--token-path",
         type=Path,
-        default=DEFAULT_TOKEN_PATH,
+        default=None,
         help=(
-            "Path to the felix-bot Vikunja API token file "
-            f"(default: {DEFAULT_TOKEN_PATH})."
+            "Path to the Vikunja API token file (default: resolved via "
+            "get_vikunja_token_path() — the kent-owned runtime credential)."
         ),
     )
     parser.add_argument(
@@ -853,8 +862,11 @@ def main(argv: list[str] | None = None) -> int:
 
     vikunja_actions: list[str] = []
     if not args.no_vikunja:
+        token_path = args.token_path
+        if token_path is None:
+            token_path = get_vikunja_token_path()
         try:
-            token = _read_token(args.token_path)
+            token = _read_token(token_path)
         except (FileNotFoundError, ValueError) as exc:
             print(
                 json.dumps(
