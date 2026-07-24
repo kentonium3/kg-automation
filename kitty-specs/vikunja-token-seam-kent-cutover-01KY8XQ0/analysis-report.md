@@ -4,7 +4,7 @@ artifact_type: spec-kitty.analysis-report
 command: /spec-kitty.analyze
 mission_slug: vikunja-token-seam-kent-cutover-01KY8XQ0
 mission_id: 01KY8XQ0VGARKZ0V9WKV1WQ6DV
-generated_at: '2026-07-24T03:18:32.876365+00:00'
+generated_at: '2026-07-24T03:35:40.642712+00:00'
 analyzer_agent: claude
 input_artifacts:
   spec.md:
@@ -15,16 +15,16 @@ input_artifacts:
     sha256: ba771d0d7630b396c36e2b88da44de33225f0da544659c1436fcf411205252e4
   tasks.md:
     path: /Users/kentgale/repos/kg-automation/kitty-specs/vikunja-token-seam-kent-cutover-01KY8XQ0/tasks.md
-    sha256: a1ce60cab2ffa16cb4a17824ec456b70267027a27f80f5c69d1281701d24e21d
+    sha256: 2c0e5f9cf24ab12af5427fbd430299c7111d668f3ef129fba6646fef1a31b361
   charter:
     path: /Users/kentgale/repos/kg-automation/.kittify/charter/charter.md
     sha256: 4891223a0c3fc0dc96917475523586e8f3147a3ccaa113ecb7ff19da646e82e2
 verdict: ready
 issue_counts:
-  low: 2
   medium: 0
-  high: 0
   critical: 0
+  high: 0
+  low: 2
   info: 0
 findings:
 - id: L1
