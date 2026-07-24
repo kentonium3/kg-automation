@@ -47,7 +47,7 @@ CLI surface::
         [--state-dir /data/services/openclaw/state/habits] \\
         [--history-path /data/services/openclaw/state/habits-history.jsonl] \\
         [--schedule-path scripts/habits/migrations/phase3-schedule.yaml] \\
-        [--vikunja-token-path /data/services/openclaw/secrets/vikunja-api] \\
+        [--vikunja-token-path /data/services/openclaw/secrets/vikunja-api-kent] \\
         [--vikunja-base-url https://office2.tail0f5f56.ts.net/api/v1] \\
         [--now-utc 2026-06-02T11:30:00Z]
 
@@ -80,7 +80,10 @@ from typing import Any
 from zoneinfo import ZoneInfo
 
 from scripts.common.vikunja_client import VikunjaClient, VikunjaError
-from scripts.common.vikunja_config import get_vikunja_base_url
+from scripts.common.vikunja_config import (
+    get_vikunja_base_url,
+    get_vikunja_token_path,
+)
 
 # --------------------------------------------------------------------------
 # Cross-WP imports
@@ -138,8 +141,8 @@ DEFAULT_HISTORY_PATH = Path("/data/services/openclaw/state/habits-history.jsonl"
 #: Sentinel; resolved at call-time via get_vikunja_base_url().
 DEFAULT_VIKUNJA_BASE_URL: str = ""
 
-#: Default Vikunja API token file (mode 0600).
-DEFAULT_VIKUNJA_TOKEN_PATH = Path("/data/services/openclaw/secrets/vikunja-api")
+#: Sentinel; resolved at call-time via get_vikunja_token_path().
+DEFAULT_VIKUNJA_TOKEN_PATH: str = ""
 
 #: Default schedule YAML path.
 DEFAULT_SCHEDULE_PATH = (
@@ -662,7 +665,7 @@ def run_sweep(
     schedule_path: Path,
     state_dir: Path,
     history_path: Path,
-    vikunja_token_path: Path,
+    vikunja_token_path: Path | None,
     vikunja_base_url: str,
     now_utc: datetime,
     dry_run: bool = False,
@@ -732,7 +735,9 @@ def run_sweep(
     def _ensure_token() -> str:
         nonlocal vikunja_token
         if vikunja_token is None:
-            vikunja_token = _load_token(vikunja_token_path)
+            vikunja_token = _load_token(
+                vikunja_token_path or get_vikunja_token_path()
+            )
         return vikunja_token
 
     # ---- Per-checkin, per-habit evaluation -------------------------------
@@ -1054,11 +1059,11 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--vikunja-token-path",
         type=Path,
-        default=DEFAULT_VIKUNJA_TOKEN_PATH,
+        default=None,
         help=(
-            f"Path to the Vikunja API token file (default: "
-            f"{DEFAULT_VIKUNJA_TOKEN_PATH}). Read only when at least one "
-            f"day-specific habit needs a PUT."
+            "Path to the Vikunja API token file (default: resolved via "
+            "VIKUNJA_TOKEN_PATH env or the kent-owned runtime credential). "
+            "Read only when at least one day-specific habit needs a PUT."
         ),
     )
     parser.add_argument(

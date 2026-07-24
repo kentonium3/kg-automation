@@ -46,7 +46,7 @@ Invocation:
     python3 scripts/habits/exclude_completed.py \\
         --habit-ids 123,124,125 \\
         --today 2026-05-15 \\
-        [--vikunja-token-path /data/services/openclaw/secrets/vikunja-api] \\
+        [--vikunja-token-path /data/services/openclaw/secrets/vikunja-api-kent] \\
         [--vikunja-base-url https://office2.tail0f5f56.ts.net/api/v1]
 
 Output (stdout):
@@ -70,10 +70,14 @@ import sys
 from pathlib import Path
 
 from scripts.common.vikunja_client import VikunjaClient, VikunjaError
-from scripts.common.vikunja_config import get_vikunja_base_url
+from scripts.common.vikunja_config import (
+    get_vikunja_base_url,
+    get_vikunja_token_path,
+)
 
 
-DEFAULT_TOKEN_PATH = Path("/data/services/openclaw/secrets/vikunja-api")
+#: Sentinel; resolved at call-time via get_vikunja_token_path().
+DEFAULT_TOKEN_PATH: str = ""
 #: Sentinel; resolved at call-time via get_vikunja_base_url().
 DEFAULT_BASE_URL: str = ""
 
@@ -191,7 +195,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--vikunja-token-path",
         type=Path,
-        default=DEFAULT_TOKEN_PATH,
+        default=None,
         help="Path to the Vikunja API token (mode-600 file)",
     )
     parser.add_argument(
@@ -224,7 +228,7 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     try:
-        token = _load_token(args.vikunja_token_path)
+        token = _load_token(args.vikunja_token_path or get_vikunja_token_path())
     except FileNotFoundError:
         print(
             f"ERROR: Vikunja token file not found: {args.vikunja_token_path}",
