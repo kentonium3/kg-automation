@@ -55,10 +55,12 @@ HABITS_DIR = REPO_ROOT / "scripts" / "habits"
 VIKUNJA_CURRENT_STATE_ALLOWLIST: frozenset[str] = frozenset({
     "query_active_habits_v2.py",         # current-state: "what habits are due today" list
     "exclude_completed_v2.py",           # current-state: today's already-completed check
+    "exclude_completed.py",              # current-state: parses TODAY's [Felix] completion comments for dedup (v1 of the today-already-done check; reads comments, not done_at as history) — VikunjaClient import surfaced by the #860 raw-urllib→client migration
     "morning_checkin_list.py",           # invokes query_active_habits_v2; same domain
     "record_completion.py",              # writes completion to Vikunja current state
     "sweeper.py",                        # current-state sweeper for missed day-specific habits
     "set_due_dates.py",                  # current-state mutation
+    "migrate_schedule.py",               # current-state mutation: one-shot Tier-2 schedule migration (writes recurrence via felix-bot; reads done_at only for the rollback snapshot, not as completion history) — VikunjaClient import surfaced by the #860 migration
     "identify_workout_task.py",          # current-state query for the day's workout task
     "backfill_jsonl_from_comments.py",   # one-time backfill READS Vikunja COMMENTS (not done_at)
     "query_active_habits_weekly.py",     # current-state ONLY: titles + repeat_after classification

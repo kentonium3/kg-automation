@@ -1,6 +1,13 @@
 #!/usr/bin/env python3
 """ADR-0002 Phase 3 habits schedule migration helper.
 
+Architectural note (habits-history ratchet): this module imports ``VikunjaClient``
+and is allowlisted in ``tests/architectural/test_habits_history_canonical_read.py``
+because its Vikunja use is **current-state mutation** — a one-shot Tier-2 tool that
+writes recurrence config; it reads ``done_at`` only for the pre-change rollback
+snapshot, never as completion *history* (that belongs to ``habits-history.jsonl``).
+The import was surfaced by the #860 raw-urllib→client migration; semantics unchanged.
+
 Reads ``habits-schedule.yaml`` describing per-task schedule changes;
 captures a BEFORE-state snapshot to ``/data/services/openclaw/state/
 habits-pre-phase3-snapshot.json``; then applies the changes via Vikunja

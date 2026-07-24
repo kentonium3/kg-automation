@@ -1,6 +1,14 @@
 #!/usr/bin/env python3
 """Filter out habits already addressed today by parsing Vikunja completion comments.
 
+Architectural note (habits-history ratchet): this module imports ``VikunjaClient``
+and is allowlisted in ``tests/architectural/test_habits_history_canonical_read.py``
+because its Vikunja use is **current-state only** — it reads TODAY's ``[Felix]``
+completion *comments* to dedup the morning check-in; it does NOT infer completion
+*history* from Vikunja ``done_at`` (that belongs to ``habits-history.jsonl`` via
+``scripts/habits/history.py``). The import was surfaced by the #860 raw-urllib→client
+migration; the read semantics are unchanged.
+
 Mission #282 / FR-004. Part of the felix-admin-habits Steps 1-4 refactor
 (per Constitution Directive 6 and `docs/design/helper-script-conventions.md`).
 
