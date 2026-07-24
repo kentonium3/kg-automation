@@ -16,8 +16,11 @@
 #   systemctl --user enable --now felix-vikunja-sync.timer
 #
 # Configuration is via the Environment= directives below. Recipient is the
-# operator's phone number; not a credential. Vikunja token is read from
-# /data/services/openclaw/secrets/vikunja-api by the driver itself.
+# operator's phone number; not a credential. The Vikunja token is resolved by the
+# driver itself through the single token seam (get_vikunja_token_path()); the
+# runtime credential is now the kent-owned token at
+# /data/services/openclaw/secrets/vikunja-api-kent (kentonium3/kg-automation#860
+# retired the felix-bot runtime token). Override with VIKUNJA_TOKEN_PATH if needed.
 #
 # See: kitty-specs/.../contracts/cycle-pipeline.md § Cycle entry point.
 # See: docs/runbooks/sync-driver-ops.md for the full operator runbook.

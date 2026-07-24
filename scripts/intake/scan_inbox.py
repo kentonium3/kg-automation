@@ -6,10 +6,12 @@ This module rides the inbox-processing crons (FR-003). On each tick it:
 
 1. **Enumerates** the not-done Vikunja **Inbox** tasks — the Inbox project id is
    resolved via the #748 ``vikunja_refs`` seam (never hardcoded), and the read
-   uses the **felix-bot** token (the default :class:`~scripts.common.vikunja_client.VikunjaClient`,
-   NOT the kent write token). Tasks are enumerated project-scoped
-   (done-inclusive) via ``VikunjaClient.list_all_tasks`` and filtered
-   client-side to ``project_id == inbox && done == false`` (FR-001).
+   uses the single runtime **kent** token (the default
+   :class:`~scripts.common.vikunja_client.VikunjaClient`, which resolves through
+   ``get_vikunja_token_path()`` — kentonium3/kg-automation#860 retired the
+   felix-bot/kent two-token split; kent sees Inbox=1). Tasks are enumerated
+   project-scoped (done-inclusive) via ``VikunjaClient.list_all_tasks`` and
+   filtered client-side to ``project_id == inbox && done == false`` (FR-001).
 2. **Classifies** each task's Tier-1 completeness deterministically (FR-002):
    Tier-1-complete iff ``project != Inbox`` AND a schedulable friction label
    (``f:1-flow``/``f:2-growth``/``f:3-edge``) AND exactly one Eisenhower quadrant
@@ -608,7 +610,7 @@ def _build_parser() -> argparse.ArgumentParser:
             "Deterministically scan the Vikunja Inbox, classify Tier-1 "
             "completeness, write an immutable per-digest correlation record + a "
             "per-tick observability artifact, and render the numbered digest "
-            "text. No LLM. Reads with the felix-bot token."
+            "text. No LLM. Reads with the single kent runtime token."
         ),
     )
     parser.add_argument(
@@ -658,11 +660,14 @@ def _build_parser() -> argparse.ArgumentParser:
 
 
 def _build_client(base_url: str | None) -> Any:
-    """Construct the default (felix-bot) :class:`VikunjaClient`.
+    """Construct the default :class:`VikunjaClient` (single kent runtime token).
 
-    Passing no ``token`` selects the felix-bot credential — the scan is a **read**
-    and must NEVER use the kent write token (reviewer guidance / #715 two-token
-    model).
+    Passing no ``token`` selects the client default, which resolves through
+    ``get_vikunja_token_path()`` — the single runtime Vikunja credential
+    (kent-owned). kentonium3/kg-automation#860 retired the felix-bot/kent
+    two-token split, so there is no longer a separate read/write token to choose
+    between; the scan reads Inbox=1, which kent sees. Behaviour is unchanged from
+    the pre-flip client default — only the resolved identity moved.
     """
     from scripts.common.vikunja_client import VikunjaClient
 
