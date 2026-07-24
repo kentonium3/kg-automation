@@ -2,78 +2,95 @@
   "mission_slug": "vikunja-token-seam-kent-cutover-01KY8XQ0",
   "mission_number": "",
   "mission_type": "software-dev",
-  "overall_verdict": "pending",
+  "overall_verdict": "pass",
   "criteria": [
     {
       "criterion_id": "FR-001",
-      "description": "Verify FR-001 is satisfied",
+      "description": "Single token-resolution point: every runtime Vikunja consumer resolves the token via get_vikunja_token_path(); no runtime module hand-loads a felix-bot token path (SC-001).",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
-      "notes": "TODO: replace with a real acceptance criterion"
+      "evidence": "WP01 added get_vikunja_token_path() (scripts/common/vikunja_config.py); client routes through it (WP01); 13 consumers routed (habits WP02, escalation+enrichment WP03, sync+credential-health WP04). SC-001 gate `git grep -nE 'secrets/vikunja-api([^-]|$)' -- scripts ':!**/__pycache__/**'` returns only the enumerated admin/one-shot + guard/refusal + docs allowlist; per-WP grep confirmed clean at each approve.",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator review)",
+      "verified_at": "2026-07-24T03:59:35Z",
+      "notes": "Consumer inventory made exhaustive after the post-plan Codex review + git-grep sweep (escalation/enrichment were missed in the first pass)."
     },
     {
       "criterion_id": "FR-002",
-      "description": "Verify FR-002 is satisfied",
+      "description": "Behavior-preserving centralization: each migrated consumer's Vikunja effects are unchanged (NFR-001).",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
-      "notes": "TODO: replace with a real acceptance criterion"
+      "evidence": "Consumer suites green with zero regressions: habits 755 passed, escalation+enrichment 383 passed (baseline 383), sync+credential-health 258 passed. Token resolved at read-site (WP02/WP03) to preserve early-exit/validation ordering + dry-run; _read_token/PATCH/comment flows untouched.",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator review)",
+      "verified_at": "2026-07-24T03:59:35Z",
+      "notes": "Sync NFR-001 failure-classification preserved by widening the preamble catch to (OSError, VikunjaConfigError); byte-identical parity test added (WP04)."
     },
     {
       "criterion_id": "FR-003",
-      "description": "Verify FR-003 is satisfied",
+      "description": "The atomic flip: the single resolution point defaults to the kent token (vikunja-api-kent).",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
-      "notes": "TODO: replace with a real acceptance criterion"
+      "evidence": "get_vikunja_token_path() default = /data/services/openclaw/secrets/vikunja-api-kent (WP01). SC-002 single-point-flip proof test green (tests/common/test_vikunja_token_seam.py): one lever (VIKUNJA_TOKEN_PATH) moves both the helper and a default VikunjaClient(); apply_reply stays kent-pinned (does not follow the override).",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator review)",
+      "verified_at": "2026-07-24T03:59:35Z",
+      "notes": "Runtime felix-bot->kent transition is inert until the office2 pull (attended cutover, IC-07)."
     },
     {
       "criterion_id": "FR-004",
-      "description": "Verify FR-004 is satisfied",
+      "description": "Retire felix-bot from the runtime path: remove the route_someday 403 fail-soft (#750); mark the vikunja-api credential dormant/non-runtime, kent sole runtime.",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
-      "notes": "TODO: replace with a real acceptance criterion"
+      "evidence": "WP05: route_someday 403 fail-soft removed -> fail-loud RouteSomedayError (names the created task id); network-error-also-surfaces test added; unprovisioned-degrade preserved. WP06: credential-manifest vikunja-api status=retired, runtime=false, dormant (user/file retained, Inbox 14 preserved); vikunja-api-kent = sole runtime credential. Validators green.",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator review)",
+      "verified_at": "2026-07-24T03:59:35Z",
+      "notes": "felix-bot Vikunja user left dormant (not deprovisioned) per C-002; GitHub kg-felix-bot unaffected per C-003."
     },
     {
       "criterion_id": "FR-005",
-      "description": "Verify FR-005 is satisfied",
+      "description": "Validator convergence: validate_refs exercises the same token view as the runtime (#748).",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
-      "notes": "TODO: replace with a real acceptance criterion"
+      "evidence": "WP05: validate_refs.py default token now resolves via get_vikunja_token_path() (same single source as the runtime) — the independent DEFAULT_KENT_TOKEN_FILE literal removed; --token-file override preserved. Test proves the default equals the runtime resolution point (no independent literal); 30 passed.",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator review)",
+      "verified_at": "2026-07-24T03:59:35Z",
+      "notes": "Closes the structural blindness that hid #860 (validator on kent, runtime on felix-bot)."
     },
     {
       "criterion_id": "FR-006",
-      "description": "Verify FR-006 is satisfied",
-      "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
-      "notes": "TODO: replace with a real acceptance criterion"
+      "description": "Doc/ADR/skill reconciliation: ADR-0007 supersedes ADR-0002; identity/credential/service/data-flow docs to single-token model; SKILL/TOOLS token refs + SKILL v2.4.0/health-check (#831).",
+      "proof_type": "manual_verification",
+      "evidence": "WP06: ADR-0007 authored (Accepted), ADR-0002 marked superseded; credential-manifest + credentials-and-secrets + identity-model + service-inventory(md/json) + data-flows(md/json) reconciled; validate_architecture_data --strict OK + validate_docs OK. WP07: 17 auth examples + escalation SKILL + tasker TOOLS repointed to kent; SKILL v0.24.6->v2.4.0 + health-check fixed (verified against live /info); scan_inbox obsolete two-token docstring de-obsoleted (comment-only); 30 passed.",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator review)",
+      "verified_at": "2026-07-24T03:59:35Z",
+      "notes": "ADR-0002 frontmatter kept status:approved (superseded not in validate_docs enum); supersession recorded in the ADR body status line."
     },
     {
       "criterion_id": "FR-007",
-      "description": "Verify FR-007 is satisfied",
+      "description": "Attended Tier-2 cutover + verification tooling. The mergeable deliverable is the deterministic verification tool; the live cutover (IC-07) + SC-004/SC-005 (live per-consumer verification, inverse probe, rebaseline) are the attended post-merge operator step by design.",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
-      "notes": "TODO: replace with a real acceptance criterion"
+      "evidence": "WP08: scripts/vikunja/cutover_verify.py built + tested (18 passed) — read-only (grep-audited: no post/put/patch/delete), token via get_vikunja_token_path(); --inverse-probe (asserts projects 16-20 + Inbox 1 + Habits 13), --connectivity, --task-delta. The live attended Tier-2 cutover on office2 runs post-merge with a Restic snapshot <=24h and before/after connectivity (spec IC-07); NOT yet run at accept time (by design).",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator review)",
+      "verified_at": "2026-07-24T03:59:35Z",
+      "notes": "PARTIAL-by-design: the code deliverable (verification tooling) is complete and is the mergeable artifact; SC-004/SC-005 live verification + rebaseline run at the attended cutover, gated on the operator (Kent), before feat->main deploys the flip."
     }
   ],
-  "negative_invariants": []
+  "negative_invariants": [
+    {
+      "invariant_id": "C-001",
+      "description": "No abstract TaskService port / adapter layer introduced (seam via VikunjaClient + config helper only).",
+      "pass_fail": "pass",
+      "evidence": "No TaskService/port abstraction added; the seam is get_vikunja_token_path() + VikunjaClient. Grep for a TaskService class returns none.",
+      "verified_by": "claude (orchestrator review)",
+      "verified_at": "2026-07-24T03:59:35Z"
+    },
+    {
+      "invariant_id": "C-002",
+      "description": "The felix-bot Vikunja user is left dormant, not deprovisioned; the vikunja-api secret file is retained.",
+      "pass_fail": "pass",
+      "evidence": "credential-manifest marks vikunja-api retired/dormant (not deleted); ADR-0007 + narrative note the user is retained (owns Inbox 14, history preserved) and deprovision/Inbox-14 reassignment are out of scope.",
+      "verified_by": "claude (orchestrator review)",
+      "verified_at": "2026-07-24T03:59:35Z"
+    }
+  ]
 }
