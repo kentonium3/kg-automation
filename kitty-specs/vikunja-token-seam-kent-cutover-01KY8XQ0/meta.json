@@ -10,5 +10,7 @@
   "purpose_tldr": "Collapse Felix->Vikunja token resolution to one point, then flip felix-bot->kent and retire the felix-bot runtime token.",
   "slug": "vikunja-token-seam-kent-cutover-01KY8XQ0",
   "target_branch": "feat/vikunja-token-seam-kent-cutover",
-  "topology": "single_branch"
+  "topology": "single_branch",
+  "vcs": "git",
+  "vcs_locked_at": "2026-07-24T03:18:56.444172+00:00"
 }
