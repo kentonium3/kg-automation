@@ -2,8 +2,8 @@
 title: Identity Model
 doc_type: reference
 status: approved
-last_updated: '2026-07-12'
-updated_by: '#715-vikunja-api-kent-config-token-audit-exception + #523-kg-felix-bot-project-sync-pat-added + #341-felix-bot-expiry-context + #304-felix-bot-rotation + #100-google-workspace-foundation + #227'
+last_updated: '2026-07-23'
+updated_by: 'vikunja-token-seam-kent-cutover-01KY8XQ0 (#860 phase 2, ADR-0007 — Vikunja felix-bot retired to dormant; kent is the sole runtime Vikunja identity) + #715-vikunja-api-kent-config-token-audit-exception + #523-kg-felix-bot-project-sync-pat-added + #341-felix-bot-expiry-context + #304-felix-bot-rotation + #100-google-workspace-foundation + #227'
 ---
 
 # Identity Model
@@ -48,7 +48,9 @@ Areas are organizational parent projects — convention is to place tasks in sub
 
 ## Agent Service Accounts
 
-Felix agents act under dedicated service-account identities, distinct from Kent's personal accounts on each surface. Splitting human and agent identities keeps every audit timeline unambiguously attributable: a commit, issue comment, label change, PR action, Vikunja task creation, or task comment performed by an agent is visible under the agent's service account and cannot be confused with a Kent-driven action. Today Felix has two service accounts — one for GitHub, one for Vikunja — paired with the corresponding surface.
+Felix agents act under service-account identities per surface. On **GitHub**, that is a dedicated `kg-felix-bot` account distinct from Kent's personal `kentonium3` — the split keeps every GitHub audit timeline (commit, issue comment, label change, PR action) unambiguously attributable to agent vs. human.
+
+On **Vikunja**, the picture changed with [ADR-0007](<./adr/0007-retire-vikunja-felix-bot.md>) (#860 phase 2, 2026-07-23): Felix **no longer uses a dedicated Vikunja service account for runtime work.** All runtime Felix→Vikunja access — task reads and writes, completion writes, inbox scan/apply, sync, escalation/enrichment, and config/label work — now authenticates as the **`kent`** Vikunja user via the single `vikunja-api-kent` token. The former dedicated `felix-bot` Vikunja account and its `vikunja-api` token are **retired to dormant** (see below). The agent-vs-human attribution distinction was deliberately dropped on the Vikunja surface because Vikunja's per-user object scoping (#715/#717) made it expensive and actively caused incomplete reads (#860) — the correctness and reliability gains outweigh the lost distinction, and the `[Felix]` comment-text convention remains the in-Vikunja marker of agent authorship. **GitHub `kg-felix-bot` is unaffected** — the two surfaces are independent.
 
 ### `kg-felix-bot` — GitHub
 
@@ -65,45 +67,28 @@ The shared GitHub service account for all Felix agents (currently `felix-doc-aud
 | Credentials | `kg-felix-bot-pat` (classic PAT, scopes `repo, read:org, workflow`, held in gh CLI auth store on office2) and `kg-felix-bot-project-sync-pat` (classic PAT, scope `project` only, held as `PROJECT_SYNC_PAT` GitHub Actions secret on `kentonium3/kg-automation`) — see [`credential-manifest.json`](<./data/credential-manifest.json>) for full details. Two separate tokens, same identity: the project-sync PAT is intentionally narrower to keep blast radius low for the auto-sync workflow. |
 | Created by | #215 (identity), #523 (project-sync PAT added) |
 
-### `felix-bot` — Vikunja
+### `kent` — Vikunja (the sole runtime Vikunja identity, ADR-0007)
 
-The shared Vikunja service account for all Felix sub-agents performing API writes (`felix-admin-habits`, `felix-admin-escalation`, `felix-admin-capture`, `felix-admin-tasker`). Provisioned during ADR-0002 Phase 1 (issue #304); see [`docs/runbooks/felix-bot-vikunja-provisioning.md`](<../../runbooks/felix-bot-vikunja-provisioning.md>) for the rotation procedure.
+As of [ADR-0007](<./adr/0007-retire-vikunja-felix-bot.md>) (#860 phase 2), **all** runtime Felix→Vikunja access authenticates as the **`kent`** Vikunja user through the single `vikunja-api-kent` all-permissions API token. Runtime consumers resolve this token through one point — `scripts/common/vikunja_config.get_vikunja_token_path()` (directly or via the shared `VikunjaClient` default) — so the runtime identity lives in exactly one place.
 
 | Field | Value |
 |---|---|
-| Surface | Vikunja v0.24.6 on office2 (`https://office2.tail0f5f56.ts.net/`) |
-| Username | `felix-bot` |
-| Scope | All Felix sub-agent API writes; read/write on the 12 real Vikunja projects (IDs 1, 2, 4-13). Not admin (per ADR-0002 Q3 / spec C-004). |
-| Currently used by | `felix-admin-habits`, `felix-admin-escalation`, `felix-admin-capture`, `felix-admin-tasker` (via the shared `vikunja-api` OpenClaw skill) |
-| Email | `kentgale+felix-bot@gmail.com` (routes to `kentgale@gmail.com`) |
-| Password storage | 1Password (entry `felix-bot (Vikunja)`) — no on-disk copy on office2 |
-| TOTP / 2FA | Not enabled (per ADR-0002 Q5c / spec C-010 — API-only identity, Tailscale gate constrains attack surface) |
-| Credential | `vikunja-api` — see [`credential-manifest.json`](<./data/credential-manifest.json>) |
-| Token created | 2026-05-17 (#304 Phase 1) |
-| Token expires | 2029-05-17 — `expiry_policy: rotate-before-expiry`. Vikunja v0.24.6 UI requires an explicit expiry at token creation (no non-expiring option); 3 years was chosen at operator discretion. `credential-health-check.service` is configured to alert ~30 days before expiry (~2029-04-17). Plan rotation per [felix-bot-vikunja-provisioning.md](<../../runbooks/felix-bot-vikunja-provisioning.md>). |
-| Created by | #304 / ADR-0002 Phase 1 |
+| Surface | Vikunja v2.4.0 on office2 (`https://office2.tail0f5f56.ts.net/`) |
+| Username | `kent` |
+| Scope | **All runtime Felix→Vikunja access** — task reads/writes, completion writes, inbox scan/apply, sync full-poll, escalation/enrichment, plus config/label work (labels, saved filters, projects, label attachment). All-permissions token. |
+| Runtime consumers | habits, escalation, enrichment, sync, inbox scan/apply, credential-health writer, `vikunja/create_task`, `trust/assertion_verifier`, `create_taxonomy_labels`, and the #748 `validate_refs` drift validator — all via the shared token seam |
+| Credential | `vikunja-api-kent` — see [`credential-manifest.json`](<./data/credential-manifest.json>) |
+| Token created | 2026-07-12 (#715); promoted to sole runtime credential 2026-07-23 (ADR-0007) |
+| Token expires | 2027-07-12 — `expiry_policy: rotate-before-expiry`. `credential-health-check.service` alerts ~30 days before (~2027-06-12). Now the sole runtime Vikunja credential — rotate before expiry to maintain **all** Felix Vikunja capability. |
+| Created by | #715; promoted by ADR-0007 (#860 phase 2) |
 
-Note: `kg-felix-bot` (GitHub) and `felix-bot` (Vikunja) are two distinct accounts on two distinct surfaces. They share an email alias (`kentgale+felix-bot@gmail.com`) for routing convenience, but the credentials, password stores, and audit timelines are independent. `felix-doc-auditor` uses `kg-felix-bot` and does NOT use the Vikunja API.
+**Why a human account and not a bot?** Vikunja scopes objects (projects, labels, saved filters, label attachment) **per user**: a `felix-bot` account was blind to projects it was never shared into (topic projects 16–20, the #860 blind-read) and could not attach `kent`-owned labels (HTTP 403, #750). Consolidating on `kent` closes both — runtime and the #748 validator now share the same view and cannot silently diverge. The accepted cost: runtime writes attribute to `kent`, so `created_by` no longer distinguishes agent from human on Vikunja (the `[Felix]` comment-text convention remains that marker). See [ADR-0007](<./adr/0007-retire-vikunja-felix-bot.md>) for the full rationale and [`credentials-and-secrets.md` §3](<./credentials-and-secrets.md>) for the credential entry.
 
-### `kent` — Vikunja config/system token (the audit-separation exception, #715)
+### `felix-bot` — Vikunja (retired to dormant, ADR-0007)
 
-The `felix-bot`/`kent` separation above holds for **task writes** but has a
-**deliberate exception for Vikunja configuration**. Vikunja scopes some objects
-(labels, saved filters) **per user**: a label created by `felix-bot` is
-invisible in Kent's `kent` UI, and `felix-bot` cannot attach a `kent`-owned
-label to a task (HTTP 403). So configuration Kent must see and manage — the
-label taxonomy, saved filters, projects — has to be created **as `kent`**.
+The dedicated `felix-bot` Vikunja service account was provisioned during ADR-0002 Phase 1 (issue #304) as the agent write identity, and served that role until [ADR-0007](<./adr/0007-retire-vikunja-felix-bot.md>) (#860 phase 2, 2026-07-23) **retired it from the runtime path**. It is **dormant, not deprovisioned**: the `felix-bot` Vikunja user still exists, its `created_by: felix-bot` attribution on existing tasks/comments is preserved, and it still owns its private Inbox project (14). Its `vikunja-api` token is marked **retired / dormant (non-runtime)** in [`credential-manifest.json`](<./data/credential-manifest.json>) — the secret file remains on office2 but no runtime consumer resolves it. Full deprovision of the user and reassignment of Inbox(14) are **out of scope** (deferred cleanup; spec C-002). Historical provisioning/rotation detail lives in [`docs/runbooks/felix-bot-vikunja-provisioning.md`](<../../runbooks/felix-bot-vikunja-provisioning.md>).
 
-Felix therefore also holds an all-permissions **`kent`** Vikunja API token
-(`vikunja-api-kent`, #715) used only for these config/system changes and for
-label-attach. The consequence, accepted knowingly: **Vikunja config changes
-attribute to `kent`, not `felix-bot`** — the agent-vs-UI audit separation is
-kept for task writes (`vikunja-api`) but given up for config, because Vikunja
-offers no delegation model that would let an agent make user-visible config
-changes under a distinct identity. Verified 2026-07-12: `felix-bot` **can**
-read/filter `kent`-owned labels on shared tasks (Felix's label-based queries
-work) but **cannot** attach them. Full detail and the credential entry live in
-[`credentials-and-secrets.md` §3](<./credentials-and-secrets.md>).
+Note: `kg-felix-bot` (GitHub) and `felix-bot` (Vikunja) were always two distinct accounts on two distinct surfaces. They share an email alias (`kentgale+felix-bot@gmail.com`) for routing convenience, but the credentials, password stores, and audit timelines are independent. **GitHub `kg-felix-bot` is unaffected by ADR-0007** — only the Vikunja `felix-bot` user is retired from the runtime path. `felix-doc-auditor` uses `kg-felix-bot` and does NOT use the Vikunja API.
 
 Canonical registry: [`AGENT-REGISTRY.md` §Service Accounts](<../../constitution/AGENT-REGISTRY.md#service-accounts>).
 
