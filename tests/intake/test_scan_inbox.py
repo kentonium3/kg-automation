@@ -465,11 +465,12 @@ def test_bad_now_utc_exits_one(capsys):
 
 
 # ---------------------------------------------------------------------------
-# felix-bot (read) — never the kent write token
+# single runtime token — scan pins no token, inheriting the seam default
+# (kent post-#860)
 # ---------------------------------------------------------------------------
 
 
-def test_build_client_uses_felix_bot_default_token(monkeypatch):
+def test_build_client_pins_no_token_inheriting_seam_default(monkeypatch):
     captured: dict = {}
 
     class _FakeVC:
@@ -479,7 +480,9 @@ def test_build_client_uses_felix_bot_default_token(monkeypatch):
 
     monkeypatch.setattr("scripts.common.vikunja_client.VikunjaClient", _FakeVC)
     scan_inbox._build_client(None)
-    # No explicit token → the felix-bot default credential (never kent's).
+    # No explicit token → the scan inherits the client/seam default credential
+    # (the single kent runtime token post-#860). scan_inbox never pins a token
+    # of its own, so the flip reaches it with no per-consumer edit.
     assert captured["token"] is None
 
 

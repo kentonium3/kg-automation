@@ -13,7 +13,7 @@ writes anything to Vikunja.
 Invocation:
 
     python3 -m scripts.habits.identify_workout_task \\
-        [--token-file /data/services/openclaw/secrets/vikunja-api] \\
+        [--token-file /data/services/openclaw/secrets/vikunja-api-kent] \\
         [--base-url http://100.92.197.90:3456/api/v1/] \\
         [--candidate-ids 14,15,16,17,18,19,20,65]
 
@@ -55,7 +55,10 @@ from scripts.common.vikunja_client import (
     VikunjaError,
     VikunjaTimeoutError,
 )
-from scripts.common.vikunja_config import get_vikunja_base_url
+from scripts.common.vikunja_config import (
+    get_vikunja_base_url,
+    get_vikunja_token_path,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -65,8 +68,8 @@ from scripts.common.vikunja_config import get_vikunja_base_url
 #: Sentinel; resolved at call-time via get_vikunja_base_url().
 DEFAULT_BASE_URL: str = ""
 
-#: Default location for the felix-bot Vikunja API token on office2 (mode 0600).
-DEFAULT_TOKEN_PATH = "/data/services/openclaw/secrets/vikunja-api"
+#: Sentinel; resolved at call-time via get_vikunja_token_path().
+DEFAULT_TOKEN_PATH: str = ""
 
 #: The 8 known production habit task IDs as of Phase 3 (see spec.md).
 DEFAULT_CANDIDATE_IDS: list[int] = [14, 15, 16, 17, 18, 19, 20, 65]
@@ -220,10 +223,10 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--token-file",
         type=Path,
-        default=Path(DEFAULT_TOKEN_PATH),
+        default=None,
         help=(
-            "Path to the Vikunja API token file "
-            f"(default: {DEFAULT_TOKEN_PATH})."
+            "Path to the Vikunja API token file (default: resolved via "
+            "VIKUNJA_TOKEN_PATH env or the kent-owned runtime credential)."
         ),
     )
     parser.add_argument(
@@ -267,7 +270,7 @@ def main(argv: list[str] | None = None) -> int:
 
     # Read token (exit 2 on I/O error per CLI contract).
     try:
-        token = _read_token(args.token_file)
+        token = _read_token(args.token_file or get_vikunja_token_path())
     except OSError as e:
         print(f"ERROR: {e}", file=sys.stderr)
         return 2

@@ -132,6 +132,25 @@ def test_load_token_raises_on_missing(tmp_path: Path):
         load_token(tmp_path / "does-not-exist")
 
 
+def test_load_token_resolves_via_seam_when_no_path(tmp_path: Path, monkeypatch):
+    """WP04: with no explicit path, load_token resolves through the single
+    config seam (VIKUNJA_TOKEN_PATH override → kent default), so the
+    credential-health writer follows the same one-lever token identity as every
+    other runtime consumer (FR-001) — no felix-bot literal in this surface."""
+    token_file = tmp_path / "vikunja-api-kent"
+    token_file.write_text("seam-token-xyz\n")
+    monkeypatch.setenv("VIKUNJA_TOKEN_PATH", str(token_file))
+    assert load_token() == "seam-token-xyz"
+
+
+def test_load_token_seam_failure_wraps_in_write_error(tmp_path: Path, monkeypatch):
+    """A seam resolution failure (VikunjaConfigError — missing token file) is
+    adapted into the writer's VikunjaWriteError contract, not surfaced raw."""
+    monkeypatch.setenv("VIKUNJA_TOKEN_PATH", str(tmp_path / "missing-token"))
+    with pytest.raises(VikunjaWriteError):
+        load_token()
+
+
 # ---------- API helpers ----------
 
 

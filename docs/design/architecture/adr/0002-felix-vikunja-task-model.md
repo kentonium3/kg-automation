@@ -3,15 +3,16 @@ title: ADR-0002 — Felix ↔ Vikunja task model
 doc_type: reference
 status: approved
 owners: ["@kentonium3"]
-last_updated: '2026-05-17'
+last_updated: '2026-07-23'
 version: v1.0
 audience: agents_and_humans
-tags: [2032]
+tags: [2032, 860]
 ---
 
 # ADR-0002 — Felix ↔ Vikunja task model
 
-**Status**: Approved
+**Status**: Approved — **superseded on the identity-attribution decision (Q6) by [ADR-0007](<./0007-retire-vikunja-felix-bot.md>)** (2026-07-23). The rest of the task model (recurrence, completion signal, JSONL history, comment mirrors, reconciliation) remains in force; this ADR is retained as the historical record.
+**Superseded by**: [ADR-0007 — Retire Vikunja felix-bot; single kent-token runtime identity](<./0007-retire-vikunja-felix-bot.md>) — supersedes Q6 only (the `felix-bot` Vikunja write-attribution decision). Runtime now attributes to the `kent` user; the `felix-bot` Vikunja user is left dormant.
 **Date**: 2026-05-17
 **Deciders**: Kent Gale
 **Supersedes**: the implicit task model embedded in the original `habits` / `escalation` / `tasker` agents (comment-as-completion, in-prompt comment parsing, agent-as-Kent attribution).

@@ -24,6 +24,14 @@ the sole declared label namespace (``felix:ignore``) is ``owner_token: kent``.
 Labels are per-user (#715), so they are read in kent's namespace. This is a
 **read-only** check — it never mutates Vikunja.
 
+Token convergence (FR-005)
+--------------------------
+The validator's default token path resolves through the **same single source** as
+the runtime — ``scripts.common.vikunja_config.get_vikunja_token_path`` — so it
+exercises the exact identity the runtime authenticates as, with no independent
+literal that could silently drift out of step (the structural blindness behind
+#748/#860). ``--token-file`` remains as an explicit ops override.
+
 Run it (``-m`` invocation form is mandatory — a bare script path breaks the
 ``scripts.*`` package imports, per ``[[feedback_helper_m_invocation_form]]``)::
 
@@ -38,22 +46,17 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from pathlib import Path
 from typing import Any
 
 from scripts.common.vikunja_client import VikunjaError
 from scripts.common.vikunja_refs_validate import ValidationFinding, validate
 
 __all__ = [
-    "DEFAULT_KENT_TOKEN_FILE",
     "KENT_TOKEN",
     "collect_and_validate",
     "main",
 ]
-
-# The kent-owned API token (#715 two-token model). Projects are kent-owned and
-# the declared label namespace is kent's, so this is the token that sees the
-# references the registry declares.
-DEFAULT_KENT_TOKEN_FILE = "/data/services/openclaw/secrets/vikunja-api-kent"
 
 # The single token whose namespace we validate today (felix:ignore is
 # owner_token: kent). Used as the key into ``live_labels_by_token``.
@@ -156,12 +159,15 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--token-file",
-        default=DEFAULT_KENT_TOKEN_FILE,
+        default=None,
         metavar="PATH",
         help=(
-            "read the kent-owned API token from this file (default: "
-            f"{DEFAULT_KENT_TOKEN_FILE}). Labels are validated in this token's "
-            "namespace (#715)."
+            "ops override: read the API token from this file instead of the "
+            "runtime default. When omitted, the token path resolves through the "
+            "SAME single source as the Felix runtime "
+            "(scripts.common.vikunja_config.get_vikunja_token_path), so the "
+            "validator exercises the identity the runtime authenticates as "
+            "(FR-005). Labels are validated in this token's namespace (#715)."
         ),
     )
     parser.add_argument(
@@ -177,18 +183,36 @@ def _build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def _read_token_file(path: str) -> str:
+def _read_token_file(path: str | Path) -> str:
     with open(path, encoding="utf-8") as handle:
         token = handle.read()
     if not token.strip():
-        raise ValueError(f"kent token file {path!r} is empty")
+        raise ValueError(f"kent token file {str(path)!r} is empty")
     return token
+
+
+def _resolve_token_path(args: argparse.Namespace) -> Path:
+    """Resolve the token-file path: explicit ``--token-file`` override, else the
+    runtime single source.
+
+    With no ``--token-file`` the path resolves through
+    :func:`scripts.common.vikunja_config.get_vikunja_token_path` — the *same*
+    single token-resolution point the Felix runtime and every default
+    ``VikunjaClient()`` use (FR-001/FR-005). Converging here means the validator
+    can no longer diverge from the runtime token *by construction*: there is no
+    independent literal to drift (the structural blindness behind #748/#860).
+    """
+    if args.token_file:
+        return Path(args.token_file)
+    from scripts.common.vikunja_config import get_vikunja_token_path
+
+    return get_vikunja_token_path()
 
 
 def _build_client(args: argparse.Namespace) -> Any:
     from scripts.common.vikunja_client import VikunjaClient
 
-    token = _read_token_file(args.token_file)
+    token = _read_token_file(_resolve_token_path(args))
     return VikunjaClient(base_url=args.base_url, token=token)
 
 

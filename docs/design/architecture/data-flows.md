@@ -2,9 +2,9 @@
 title: Data Flows
 doc_type: reference
 status: approved
-last_updated: '2026-07-19'
-updated_by: 'openclaw-skills-sync-01KXW1DQ (#775 — +openclaw-skill-sync flow: pull-based SKILL.md deploy/sync repo -> office2 via agent-skill-sync, sibling to agent-prompt-sync #567; closes the #563 skills silent-drift class) + task-intake-validation-loop-01KXS06W (#749 — +intake-validation-loop flow: scan -> WhatsApp digest -> compact-shorthand reply -> kent-token apply; closes #750) + felix-canary-registry-01KX8T7B (#327 — +felix-canary, +felix-trust-scan, +unified-alert-bus-emit observability flows) + felix-calendar-helper-01KX4H3C (#699 — calendar surface now Felix helper -> Google direct, not gog; closes #679) + felix-admin-cron-path-fix-01KWQTY3 (#656) + restore-whatsapp-dm-reply-delivery-01KTVVHH (#588) + inbox-calendar-and-aspiration-routing-01KTHHXS + #520-felix-vikunja-sync-project-layer-and-url-config'
-tags: [775, 567, 563, 327, 683, 701, 706, 516, 656, 588, 520, 507, 519, 518, 309, 343, 362, 391, 400, 310, 374]
+last_updated: '2026-07-23'
+updated_by: 'vikunja-token-seam-kent-cutover-01KY8XQ0 (#860 phase 2, ADR-0007 — intake scan flow flips from a felix-bot read token to the kent token, collapsing the #715 two-token model onto the single runtime vikunja-api-kent credential) + openclaw-skills-sync-01KXW1DQ (#775 — +openclaw-skill-sync flow: pull-based SKILL.md deploy/sync repo -> office2 via agent-skill-sync, sibling to agent-prompt-sync #567; closes the #563 skills silent-drift class) + task-intake-validation-loop-01KXS06W (#749 — +intake-validation-loop flow: scan -> WhatsApp digest -> compact-shorthand reply -> kent-token apply; closes #750) + felix-canary-registry-01KX8T7B (#327 — +felix-canary, +felix-trust-scan, +unified-alert-bus-emit observability flows) + felix-calendar-helper-01KX4H3C (#699 — calendar surface now Felix helper -> Google direct, not gog; closes #679) + felix-admin-cron-path-fix-01KWQTY3 (#656) + restore-whatsapp-dm-reply-delivery-01KTVVHH (#588) + inbox-calendar-and-aspiration-routing-01KTHHXS + #520-felix-vikunja-sync-project-layer-and-url-config'
+tags: [860, 775, 567, 563, 327, 683, 701, 706, 516, 656, 588, 520, 507, 519, 518, 309, 343, 362, 391, 400, 310, 374]
 ---
 
 # Data Flows
@@ -779,7 +779,7 @@ pattern [`observability-and-alerting.md`](<./observability-and-alerting.md>).
 
 ```
 felix-admin-capture (each inbox tick, AFTER route_and_finalize)
-  → scripts/intake/scan_inbox.py            (felix-bot READ; Inbox id via #748 seam; no LLM)
+  → scripts/intake/scan_inbox.py            (kent READ via vikunja-api-kent, ADR-0007; Inbox id via #748 seam; no LLM)
        → Vikunja GET /tasks/all             (enumerate not-done Inbox tasks; classify Tier-1)
        → /data/services/openclaw/state/intake/digests/intake-<digest_id>.json  (immutable record)
        → …/intake/latest.json                                                  (newest-digest pointer)
@@ -805,10 +805,12 @@ nothing is incomplete). Kent replies in compact shorthand; the **main** DM agent
 correlates the reply **content-based** (line-number set + task-title evidence,
 habits `correlate_reply_to_checkin` semantics) to the correct digest within the
 48h window and applies working project + labels + applicable Tier-2 through the
-**kent** write token (`vikunja-api-kent`, the #715 two-token model) using
+**kent** write token (`vikunja-api-kent`, now the **sole runtime Vikunja token**
+per [ADR-0007](<./adr/0007-retire-vikunja-felix-bot.md>) — the same kent identity
+the scan reads under, collapsing the former #715 two-token model) using
 read-modify-write with **family-replace** for the mutually-exclusive `q:`/`f:`
-families. felix-bot is used **read-only** and is never used for the kent-owned
-label attach — **this closes #750** (felix-bot 403; SC-008). Deterministic
+families. **This closes #750** (the retired felix-bot path 403'd on the
+kent-owned label attach; SC-008). Deterministic
 throughout; the LLM is a narrow fallback only for a token the parser cannot
 resolve, constrained to a canonical name re-resolved through the seam (Directive
 6). Applying project + `f:` + `q:` moves the task out of Inbox so it stops

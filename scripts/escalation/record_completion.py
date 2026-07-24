@@ -77,7 +77,10 @@ from scripts.common.state_log_schema import (
 )
 from scripts.common.vikunja_client import VikunjaClient
 from scripts.common.vikunja_client import VikunjaError as _ClientVikunjaError
-from scripts.common.vikunja_config import get_vikunja_base_url
+from scripts.common.vikunja_config import (
+    get_vikunja_base_url,
+    get_vikunja_token_path,
+)
 from scripts.escalation.schema import (
     EVENT_TYPE_PARAMETERS,
     EscalationSchemaError,
@@ -107,8 +110,12 @@ __all__ = [
 #: Sentinel; resolved at call-time via get_vikunja_base_url().
 DEFAULT_BASE_URL: str = ""
 
-#: Default location of the ``felix-bot`` Vikunja API token on office2.
-DEFAULT_TOKEN_PATH = Path("/data/services/openclaw/secrets/vikunja-api")
+#: Override hook for the default token path. ``None`` means "resolve the token
+#: path at call-time via :func:`scripts.common.vikunja_config.get_vikunja_token_path`"
+#: — the WP01 seam that returns the kent-owned runtime credential (FR-001). No
+#: felix-bot literal lives here anymore; the path is decided at exactly one point.
+#: Kept as a module attribute so callers/tests may monkeypatch a fixed path.
+DEFAULT_TOKEN_PATH: Optional[Path] = None
 
 #: HTTP socket timeout in seconds for every Vikunja API call.
 HTTP_TIMEOUT_SECONDS = 30
@@ -437,7 +444,7 @@ def record_event(
     record: dict,
     *,
     base_url: Optional[str] = None,
-    token_path: Path = DEFAULT_TOKEN_PATH,
+    token_path: Optional[Path] = None,
     skip_vikunja: bool = False,
 ) -> dict:
     """Validate, run any Vikunja side-effect FIRST, then JSONL append SECOND.
@@ -482,6 +489,8 @@ def record_event(
     # Step 1: Vikunja side-effect (FIRST per research D6).
     vikunja_actions: list[str] = []
     if not skip_vikunja:
+        if token_path is None:
+            token_path = get_vikunja_token_path()
         token = _read_token(token_path)
         vikunja_actions = _vikunja_side_effects(
             record, base_url=base_url, token=token
@@ -503,7 +512,7 @@ def idempotent_record_event(
     record: dict,
     *,
     base_url: Optional[str] = None,
-    token_path: Path = DEFAULT_TOKEN_PATH,
+    token_path: Optional[Path] = None,
     skip_vikunja: bool = False,
 ) -> dict:
     """Pre-check then ``record_event``. No-op on duplicate ``(task_id, date, state)``.
@@ -678,10 +687,10 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--token-path",
         type=Path,
-        default=DEFAULT_TOKEN_PATH,
+        default=None,
         help=(
-            "Path to the felix-bot Vikunja API token file "
-            f"(default: {DEFAULT_TOKEN_PATH})."
+            "Path to the Vikunja API token file (default: resolved via "
+            "get_vikunja_token_path() — the kent-owned runtime credential)."
         ),
     )
     return parser

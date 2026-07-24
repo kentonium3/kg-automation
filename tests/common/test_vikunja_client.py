@@ -27,6 +27,7 @@ import urllib.request
 import pytest
 
 from scripts.common import vikunja_client as vc
+from scripts.common import vikunja_config as vcfg
 from scripts.common.vikunja_client import (
     VikunjaAuthError,
     VikunjaBadRequestError,
@@ -37,6 +38,7 @@ from scripts.common.vikunja_client import (
     VikunjaServerError,
     VikunjaTimeoutError,
 )
+from scripts.common.vikunja_config import VikunjaConfigError
 
 
 # Test-time base URL — never touches a real server because the global
@@ -112,17 +114,22 @@ def test_construct_resolves_base_url_from_config_when_omitted(monkeypatch) -> No
 
 
 def test_construct_resolves_token_from_default_path(monkeypatch, tmp_path) -> None:
+    # The default-token load now resolves at call time through the single
+    # config seam (get_vikunja_token_path); the VIKUNJA_TOKEN_PATH override is
+    # the lever a bare VikunjaClient() follows.
     token_file = tmp_path / "vikunja-token"
     token_file.write_text("file-token\n", encoding="utf-8")
-    monkeypatch.setattr(vc, "DEFAULT_TOKEN_PATH", token_file)
+    monkeypatch.setenv("VIKUNJA_TOKEN_PATH", str(token_file))
     client = VikunjaClient(base_url=TEST_BASE_URL)
     assert client.token == "file-token"
 
 
 def test_construct_raises_when_token_file_missing(monkeypatch, tmp_path) -> None:
+    # A missing/unreadable token file fails loud as the single VikunjaConfigError
+    # from the seam (NFR-002) rather than N divergent per-script messages.
     missing = tmp_path / "does-not-exist"
-    monkeypatch.setattr(vc, "DEFAULT_TOKEN_PATH", missing)
-    with pytest.raises(ValueError, match="token file"):
+    monkeypatch.setenv("VIKUNJA_TOKEN_PATH", str(missing))
+    with pytest.raises(VikunjaConfigError, match="token file"):
         VikunjaClient(base_url=TEST_BASE_URL)
 
 
@@ -576,17 +583,24 @@ def test_network_layer_errors_leave_body_none(mock_vikunja_urlopen) -> None:
 
 
 # ---------------------------------------------------------------------------
-# Default token path — zero identity change this phase (SC-004, T005)
+# Default token path — resolved through the single config seam (FR-001/FR-003)
 # ---------------------------------------------------------------------------
 
 
-def test_default_token_path_is_still_felix_bot_path() -> None:
-    # Phase 1 (#860) is behavior-preserving: the client must keep pointing at
-    # the felix-bot token until the (separate, Phase 2) cutover WP flips it.
+def test_client_defines_no_token_path_literal() -> None:
+    # SC-001: the client must NOT carry a token-path literal (the felix-bot
+    # DEFAULT_TOKEN_PATH constant is gone); resolution lives solely in the seam.
+    assert not hasattr(vc, "DEFAULT_TOKEN_PATH")
+    assert "DEFAULT_TOKEN_PATH" not in vc.__all__
+
+
+def test_default_token_path_is_kent_path() -> None:
+    # Phase 2 (#860) flips the single resolution point's default to the
+    # kent-owned credential — the mission end-state (FR-003).
     from pathlib import Path
 
-    assert vc.DEFAULT_TOKEN_PATH == Path(
-        "/data/services/openclaw/secrets/vikunja-api"
+    assert vcfg._DEFAULT_TOKEN_PATH == Path(
+        "/data/services/openclaw/secrets/vikunja-api-kent"
     )
 
 

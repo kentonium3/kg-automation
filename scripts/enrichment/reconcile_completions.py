@@ -52,7 +52,7 @@ CLI surface — see ``contracts/cli.md`` (reconcile section):
     --dry-run            no JSONL writes; report only
     --ledger-path PATH   default scripts/enrichment/schema.DEFAULT_LEDGER_PATH
     --base-url URL       default Tailscale Vikunja base URL (for comment fetch)
-    --token-path PATH    default /data/services/openclaw/secrets/vikunja-api
+    --token-path PATH    default resolved via get_vikunja_token_path() (WP01 seam)
 
 Exit codes::
 
@@ -95,7 +95,10 @@ from scripts.common.sync_cache import (
 )
 from scripts.common.vikunja_client import VikunjaClient
 from scripts.common.vikunja_client import VikunjaError as _ClientVikunjaError
-from scripts.common.vikunja_config import get_vikunja_base_url
+from scripts.common.vikunja_config import (
+    get_vikunja_base_url,
+    get_vikunja_token_path,
+)
 from scripts.enrichment import record_completion as rc
 from scripts.enrichment.record_completion import (
     DEFAULT_TOKEN_PATH,
@@ -488,7 +491,7 @@ def reconcile(
     *,
     since: date | str = DEFAULT_BACKFILL_SINCE,
     base_url: Optional[str] = None,
-    token_path: Path = DEFAULT_TOKEN_PATH,
+    token_path: Optional[Path] = None,
     ledger_path: Path = DEFAULT_LEDGER_PATH,
     dry_run: bool = False,
     excluded_project_ids: Iterable[int] = EXCLUDED_PROJECT_IDS,
@@ -530,6 +533,8 @@ def reconcile(
         since_date = since
     excluded_set = frozenset(excluded_project_ids)
 
+    if token_path is None:
+        token_path = get_vikunja_token_path()
     token = _read_token(token_path)
 
     # Read all tasks from the sync cache (replaces Vikunja project + task
@@ -730,10 +735,10 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--token-path",
         type=Path,
-        default=DEFAULT_TOKEN_PATH,
+        default=None,
         help=(
-            "Path to the felix-bot Vikunja API token file "
-            f"(default: {DEFAULT_TOKEN_PATH})."
+            "Path to the Vikunja API token file (default: resolved via "
+            "get_vikunja_token_path() — the kent-owned runtime credential)."
         ),
     )
     parser.add_argument(

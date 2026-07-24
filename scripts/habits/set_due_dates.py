@@ -32,7 +32,7 @@ Invocation:
     python3 scripts/habits/set_due_dates.py \\
         --habit-ids 123,124,125 \\
         --iso-eod-et 2026-05-15T23:59:59-04:00 \\
-        [--vikunja-token-path /data/services/openclaw/secrets/vikunja-api] \\
+        [--vikunja-token-path /data/services/openclaw/secrets/vikunja-api-kent] \\
         [--vikunja-base-url <url>] \\
         [--dry-run]
 
@@ -65,7 +65,10 @@ try:
         read_cached_task_by_id,
     )
     from scripts.common.vikunja_client import VikunjaClient, VikunjaError
-    from scripts.common.vikunja_config import get_vikunja_base_url
+    from scripts.common.vikunja_config import (
+        get_vikunja_base_url,
+        get_vikunja_token_path,
+    )
 except ImportError:
     # Fallback for direct-script invocation (`python3 scripts/habits/set_due_dates.py`).
     # Under that form only scripts/habits/ is on sys.path, so the absolute-package
@@ -88,6 +91,7 @@ except ImportError:
     )
     from scripts.common.vikunja_config import (  # type: ignore[no-redef]
         get_vikunja_base_url,
+        get_vikunja_token_path,
     )
 
 try:
@@ -114,7 +118,8 @@ except ImportError:
 TOUCHPOINT_SLA: SLATier = SLA_NORMAL
 TOUCHPOINT_NAME = "habits.set_due_dates"
 
-DEFAULT_TOKEN_PATH = Path("/data/services/openclaw/secrets/vikunja-api")
+#: Sentinel; resolved at call-time via get_vikunja_token_path().
+DEFAULT_TOKEN_PATH: str = ""
 
 #: Default in-repo path to the runtime schedule YAML. Mirrors the default
 #: used by ``morning_checkin_list`` so both helpers agree on the source.
@@ -509,7 +514,7 @@ def _run_reconcile_mode(args: argparse.Namespace) -> int:
         token = ""
     else:
         try:
-            token = _load_token(args.vikunja_token_path)
+            token = _load_token(args.vikunja_token_path or get_vikunja_token_path())
         except FileNotFoundError:
             print(
                 f"ERROR: Vikunja token file not found: "
@@ -589,7 +594,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--vikunja-token-path",
         type=Path,
-        default=DEFAULT_TOKEN_PATH,
+        default=None,
         help="Path to the Vikunja API token (mode-600 file)",
     )
     parser.add_argument(
@@ -682,7 +687,7 @@ def main(argv: list[str] | None = None) -> int:
         token = ""  # unused
     else:
         try:
-            token = _load_token(args.vikunja_token_path)
+            token = _load_token(args.vikunja_token_path or get_vikunja_token_path())
         except FileNotFoundError:
             print(
                 f"ERROR: Vikunja token file not found: {args.vikunja_token_path}",
