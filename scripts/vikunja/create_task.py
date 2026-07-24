@@ -8,7 +8,8 @@ to re-derive the REST call.
 
 Runs **on office2**, where the base-URL config
 (``/data/services/openclaw/config/vikunja-base-url.txt``) and the API token
-(``/data/services/openclaw/secrets/vikunja-api``) live. For cross-repo,
+(``/data/services/openclaw/secrets/vikunja-api-kent``, the kent runtime
+credential — see ADR-0007) live. For cross-repo,
 cwd-independent invocation from the Mac use the global slash-command
 ``~/.claude/commands/create-vikunja-task.md``, which SSH-dispatches to this
 module (so the token is never copied off office2).
