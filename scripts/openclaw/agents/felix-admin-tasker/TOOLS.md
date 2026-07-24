@@ -21,7 +21,7 @@ Primary interaction channel for Kent communication.
 REST API for task management.
 
 - **Base URL**: https://office2.tail0f5f56.ts.net/api/v1
-- **Auth**: Bearer token from /data/services/openclaw/secrets/vikunja-api
+- **Auth**: Bearer token from /data/services/openclaw/secrets/vikunja-api-kent (single kent-owned runtime credential — kentonium3/kg-automation#860)
 - Use the vikunja_api skill for all Vikunja operations
 - Run `openclaw skills info vikunja_api` for details
 

@@ -1,0 +1,195 @@
+{
+  "version": 1,
+  "mission_slug": "vikunja-token-seam-kent-cutover-01KY8XQ0",
+  "mission_id": "01KY8XQ0VGARKZ0V9WKV1WQ6DV",
+  "mission_branch": "kitty/mission-vikunja-token-seam-kent-cutover-01KY8XQ0",
+  "target_branch": "feat/vikunja-token-seam-kent-cutover",
+  "lanes": [
+    {
+      "lane_id": "lane-a",
+      "wp_ids": [
+        "WP01"
+      ],
+      "write_scope": [
+        "scripts/common/vikunja_client.py",
+        "scripts/common/vikunja_config.py",
+        "tests/common/test_vikunja_client.py",
+        "tests/common/test_vikunja_config.py",
+        "tests/common/test_vikunja_token_seam.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "legacy-cleanup"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    },
+    {
+      "lane_id": "lane-b",
+      "wp_ids": [
+        "WP02"
+      ],
+      "write_scope": [
+        "scripts/habits/exclude_completed.py",
+        "scripts/habits/identify_workout_task.py",
+        "scripts/habits/migrate_schedule.py",
+        "scripts/habits/record_completion.py",
+        "scripts/habits/set_due_dates.py",
+        "scripts/habits/sweeper.py",
+        "tests/habits/test_exclude_completed.py",
+        "tests/habits/test_exclude_completed_v2.py",
+        "tests/habits/test_identify_workout_task.py",
+        "tests/habits/test_migrate_schedule.py",
+        "tests/habits/test_record_completion.py",
+        "tests/habits/test_set_due_dates.py",
+        "tests/habits/test_set_due_dates_reconcile.py",
+        "tests/habits/test_sweeper_idempotent.py",
+        "tests/habits/test_sweeper_unit.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "tests"
+      ],
+      "depends_on_lanes": [
+        "lane-a"
+      ],
+      "parallel_group": 1
+    },
+    {
+      "lane_id": "lane-c",
+      "wp_ids": [
+        "WP03"
+      ],
+      "write_scope": [
+        "scripts/enrichment/reconcile_completions.py",
+        "scripts/enrichment/record_completion.py",
+        "scripts/escalation/reconcile_completions.py",
+        "scripts/escalation/record_completion.py",
+        "tests/enrichment/test_reconcile_completions.py",
+        "tests/enrichment/test_record_completion.py",
+        "tests/escalation/test_reconcile_completions.py",
+        "tests/escalation/test_record_completion.py"
+      ],
+      "predicted_surfaces": [
+        "api"
+      ],
+      "depends_on_lanes": [
+        "lane-a"
+      ],
+      "parallel_group": 1
+    },
+    {
+      "lane_id": "lane-d",
+      "wp_ids": [
+        "WP04"
+      ],
+      "write_scope": [
+        "scripts/security/credential_health_check/vikunja_writer.py",
+        "scripts/sync/cycle.py",
+        "scripts/sync/fetch.py",
+        "tests/security/test_vikunja_writer.py",
+        "tests/sync/test_cycle.py",
+        "tests/sync/test_fetch.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "tracker-integration"
+      ],
+      "depends_on_lanes": [
+        "lane-a"
+      ],
+      "parallel_group": 1
+    },
+    {
+      "lane_id": "lane-e",
+      "wp_ids": [
+        "WP05"
+      ],
+      "write_scope": [
+        "scripts/inbox/route_someday.py",
+        "scripts/vikunja/validate_refs.py",
+        "tests/inbox/test_route_someday.py",
+        "tests/vikunja/test_validate_refs.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "legacy-cleanup"
+      ],
+      "depends_on_lanes": [
+        "lane-a"
+      ],
+      "parallel_group": 1
+    },
+    {
+      "lane_id": "lane-f",
+      "wp_ids": [
+        "WP06"
+      ],
+      "write_scope": [
+        "docs/DEVELOPER_PORTAL.md",
+        "docs/INDEX.md",
+        "docs/design/architecture/adr/0002-felix-vikunja-task-model.md",
+        "docs/design/architecture/adr/0007-retire-vikunja-felix-bot.md",
+        "docs/design/architecture/adr/README.md",
+        "docs/design/architecture/credentials-and-secrets.md",
+        "docs/design/architecture/data-flows.md",
+        "docs/design/architecture/data/credential-manifest.json",
+        "docs/design/architecture/data/data-flows.json",
+        "docs/design/architecture/data/service-inventory.json",
+        "docs/design/architecture/identity-model.md",
+        "docs/design/architecture/service-inventory.md"
+      ],
+      "predicted_surfaces": [
+        "api"
+      ],
+      "depends_on_lanes": [
+        "lane-a"
+      ],
+      "parallel_group": 1
+    },
+    {
+      "lane_id": "lane-g",
+      "wp_ids": [
+        "WP07"
+      ],
+      "write_scope": [
+        "scripts/intake/scan_inbox.py",
+        "scripts/openclaw/agents/felix-admin-tasker/AGENTS.md",
+        "scripts/openclaw/agents/felix-admin-tasker/TOOLS.md",
+        "scripts/openclaw/skills/escalation/SKILL.md",
+        "scripts/openclaw/skills/vikunja-api/SKILL.md",
+        "scripts/sync/systemd/felix-vikunja-sync.service",
+        "tests/intake/test_scan_inbox.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "tracker-integration"
+      ],
+      "depends_on_lanes": [
+        "lane-a"
+      ],
+      "parallel_group": 1
+    },
+    {
+      "lane_id": "lane-h",
+      "wp_ids": [
+        "WP08"
+      ],
+      "write_scope": [
+        "scripts/vikunja/cutover_verify.py",
+        "tests/vikunja/test_cutover_verify.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "tracker-integration"
+      ],
+      "depends_on_lanes": [
+        "lane-a"
+      ],
+      "parallel_group": 1
+    }
+  ],
+  "computed_at": "2026-07-24T03:13:28.905067+00:00",
+  "computed_from": "dependency_graph+ownership",
+  "planning_artifact_wps": []
+}

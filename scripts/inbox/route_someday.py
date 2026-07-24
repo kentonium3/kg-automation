@@ -20,32 +20,39 @@ represents the "important, but not date-committed" state as a task carrying the
    ``POST /tasks/<id>`` (that partial-replaces an existing task and was the root
    cause of #524). The description footer ``Source: <note-filename>`` and the
    caller's routing-log / dedup substrate (FR-013) are preserved.
-3. **Best-effort** attaches the ``q:schedule`` label (resolved by id through the
-   seam: ``label_id("q:schedule", "kent")``) via ``PUT /tasks/<id>/labels``.
+3. Attaches the ``q:schedule`` label (resolved by id through the seam:
+   ``label_id("q:schedule", "kent")``) via ``PUT /tasks/<id>/labels``. Under the
+   single kent identity this attach is **fail-loud** (see below).
 
-Anti-silent-loss guarantee (#743)
-----------------------------------
+Anti-silent-loss + fail-loud attach (#743, #750)
+------------------------------------------------
 The task is **always created** first — that is the capture's durable landing.
-The label attach is deliberately **fail-soft**: ``route_someday`` runs under the
-felix-bot ``VikunjaClient``, and a 2026-07-15 live-probe confirmed felix-bot
-receives **HTTP 403** attaching the kent-owned ``q:schedule`` label (the #715
-per-token ownership boundary). Rather than block or lose the capture, an attach
-failure is **logged loudly** (a structured warning envelope on stderr) and the
-route still **succeeds** (exit 0, ``task_id=<int>``). This means the label is
-populated automatically the moment felix-bot gains attach capability, with zero
-capture loss in the meantime; until then the #749 task-intake loop applies the
-label. The broader ``f:/q:/t:/loe:`` intake taxonomy remains deferred to #749 —
-this helper never guesses/attaches labels not declared in the registry.
+The label attach then runs under the **single kent identity** (the token-seam
+cutover, #860 phase 2). The felix-bot **HTTP 403** on the kent-owned
+``q:schedule`` label — the #715/#750 two-token symptom that the old fail-soft
+branch tolerated — can no longer occur, so that branch is **retired**: a genuine
+attach failure now **fails loud** as a :class:`RouteSomedayError` that still
+**names the created task id** (the capture is preserved; the failure surfaces at
+exit 2 rather than being swallowed into a warning, so a real error — 500,
+timeout, network drop — is never masked). The only remaining graceful degrade is
+a label **declared but not yet provisioned** in the registry (a dormant registry
+state, token-independent): that still logs loudly and the route succeeds
+(exit 0), because there is no id to attach yet. The broader ``f:/q:/t:/loe:``
+intake taxonomy remains deferred to #749 — this helper never guesses/attaches
+labels not declared in the registry.
 
 CLI (mandatory ``-m`` form per ``[[feedback_helper_m_invocation_form]]``)::
 
     python3 -m scripts.inbox.route_someday \
         --title "<title>" --body "<body>" --note-filename <name> [--project <name>]
 
-Contract: ``task_id=<int>`` to stdout on success (exit 0). A hard failure
-(cannot create the task) emits ``{"error": ..., "detail": ...}`` JSON to stderr
-and exits 2. A soft label-attach failure emits a ``{"warning": ...}`` JSON line
-to stderr but does **not** change the exit code (the task is safely created).
+Contract: ``task_id=<int>`` to stdout on success (exit 0). A hard failure emits
+``{"error": ..., "detail": ...}`` JSON to stderr and exits 2 — this now includes
+a genuine label-attach failure (fail-loud), whose error names the created task id
+so the capture is not orphaned. The one soft case left — a declared-but-
+unprovisioned label — emits a ``{"warning": ...}`` JSON line to stderr but does
+**not** change the exit code (the task is safely created; there is no id to
+attach yet).
 
 Stdlib only. Imports the shared ``VikunjaClient`` and the network-free
 ``vikunja_refs`` accessor (both stdlib-only).
@@ -57,6 +64,7 @@ import json
 import sys
 
 from scripts.common import vikunja_refs
+from scripts.common.vikunja_config import VikunjaConfigError
 from scripts.common.vikunja_client import VikunjaClient, VikunjaError
 from scripts.common.vikunja_refs import VikunjaRefError, VikunjaRefUnprovisioned
 
@@ -92,9 +100,11 @@ class RouteSomedayError(Exception):
 def _emit_warning(detail: str, **fields: object) -> None:
     """Write a structured, loud (but non-fatal) warning envelope to stderr.
 
-    Used for the fail-soft label attach: the capture is already safely created,
-    so this never changes the exit code — it makes the degraded state visible
-    (never silently swallowed) so operators and the #749 loop can see it.
+    Used for the one remaining soft degrade — a declared-but-unprovisioned
+    ``q:schedule`` label: the capture is already safely created, so this never
+    changes the exit code — it makes the degraded state visible (never silently
+    swallowed) so operators and the #749 loop can see it. A genuine attach
+    failure is NOT soft anymore; it fails loud (see :func:`route_someday`).
     """
     payload: dict[str, object] = {"warning": "label_attach_failed", "detail": detail}
     payload.update(fields)
@@ -121,17 +131,20 @@ def _resolve_destination_project_id(project_name: str) -> int:
 
 
 def _attach_someday_label(client: VikunjaClient, task_id: int) -> bool:
-    """Best-effort attach of the ``q:schedule`` label to ``task_id``.
+    """Attach the ``q:schedule`` label to ``task_id`` (fail-loud on attach error).
 
-    Returns ``True`` if the label was attached, ``False`` otherwise. It degrades
-    (warns + returns ``False``) for only two cases: (1) the ``q:schedule`` label
-    is **declared but not yet provisioned** in the registry
-    (:class:`VikunjaRefUnprovisioned` — dormant, graceful), and (2) the attach
-    ``PUT /tasks/<id>/labels`` fails with a Vikunja/network error (the felix-bot
-    HTTP 403 case). A genuine registry breakage of the label reference — an
-    undeclared name, wrong-owner token, or invalid provisioned id (any *other*
-    :class:`VikunjaRefError`) — is NOT swallowed: it **propagates** so the caller
-    surfaces it loudly. Attaches via ``PUT /tasks/<id>/labels`` with
+    Returns ``True`` when the label is attached. The single remaining graceful
+    degrade is case (1): the ``q:schedule`` label is **declared but not yet
+    provisioned** in the registry (:class:`VikunjaRefUnprovisioned` — dormant,
+    token-independent) — it warns and returns ``False`` because there is no id to
+    attach yet. The felix-bot HTTP 403 fail-soft branch is **retired** (#750): the
+    single kent identity cannot receive that 403, so the attach
+    ``PUT /tasks/<id>/labels`` no longer swallows Vikunja/network errors — any
+    such error **propagates** (fail-loud) and the caller maps it to a hard
+    :class:`RouteSomedayError` naming the created task id. A genuine registry
+    breakage of the label reference — an undeclared name, wrong-owner token, or
+    invalid provisioned id (any *other* :class:`VikunjaRefError`) — likewise
+    **propagates**. Attaches via ``PUT /tasks/<id>/labels`` with
     ``{"label_id": <id>}`` (the Vikunja task-label endpoint).
     """
     try:
@@ -146,20 +159,11 @@ def _attach_someday_label(client: VikunjaClient, task_id: int) -> bool:
         )
         return False
 
-    try:
-        client.put(f"/tasks/{task_id}/labels", json={"label_id": lbl_id})
-    except (VikunjaError, ConnectionError) as exc:
-        # Expected today: felix-bot receives HTTP 403 attaching the kent-owned
-        # q:schedule label (#715 live-probe 2026-07-15). Log loud, do not lose
-        # the task; #749 applies the label later.
-        _emit_warning(
-            f"could not attach label {SOMEDAY_LABEL_NAME!r} (id {lbl_id}) to "
-            f"task {task_id}: {exc}",
-            label=SOMEDAY_LABEL_NAME,
-            label_id=lbl_id,
-            task_id=task_id,
-        )
-        return False
+    # Fail-loud: under the single kent identity a genuine attach failure (incl.
+    # the retired felix-bot 403, or a real 500/timeout/network drop) must surface
+    # — it propagates to route_someday, which raises RouteSomedayError naming the
+    # created task id. No error is swallowed here.
+    client.put(f"/tasks/{task_id}/labels", json={"label_id": lbl_id})
     return True
 
 
@@ -191,8 +195,13 @@ def route_someday(
     """
     try:
         client = VikunjaClient()
-    except ValueError as exc:
-        # Token/base-url config errors surface here. Treat as vikunja_error.
+    except (ValueError, VikunjaConfigError) as exc:
+        # Token/base-url config errors surface here. `VikunjaConfigError` is the
+        # single fail-loud error from the token seam (get_vikunja_token_path,
+        # #860 phase 2) when the default token file is missing/unreadable — it is
+        # a RuntimeError subclass, NOT a ValueError, so it must be caught here
+        # explicitly to preserve the structured RouteSomedayError -> exit-2 CLI
+        # contract rather than tracebacking.
         raise RouteSomedayError(f"VikunjaClient construction failed: {exc}") from exc
 
     project_id = _resolve_destination_project_id(project)
@@ -218,16 +227,23 @@ def route_someday(
         )
     task_id = int(response["id"])
 
-    # Anti-silent-loss: the task now exists. The label attach is fail-soft for
-    # the unprovisioned-label and attach-403/network cases, but a genuine
-    # registry breakage of the q:schedule reference must surface loudly (exit 2)
-    # — while still naming the created task id so the capture is not orphaned.
+    # Anti-silent-loss: the task now exists. Only a declared-but-unprovisioned
+    # label degrades gracefully (handled inside _attach_someday_label). Every
+    # other failure — a genuine attach error (the retired felix-bot 403, or a
+    # real 500/timeout/network drop) OR a registry breakage of the q:schedule
+    # reference — must surface loudly (exit 2) while still naming the created
+    # task id so the capture is not orphaned.
     try:
         _attach_someday_label(client, task_id)
     except VikunjaRefError as exc:
         raise RouteSomedayError(
             f"Task {task_id} created, but the {SOMEDAY_LABEL_NAME!r} label registry "
             f"reference is broken (not the unprovisioned/attach-degrade case): {exc}"
+        ) from exc
+    except (VikunjaError, ConnectionError) as exc:
+        raise RouteSomedayError(
+            f"Task {task_id} created, but attaching the {SOMEDAY_LABEL_NAME!r} label "
+            f"failed (fail-loud under the single kent identity): {exc}"
         ) from exc
 
     return task_id

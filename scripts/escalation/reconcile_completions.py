@@ -79,7 +79,10 @@ from scripts.common.sync_cache import (
     TaskCacheView,
     read_cached_task_by_id,
 )
-from scripts.common.vikunja_config import get_vikunja_base_url
+from scripts.common.vikunja_config import (
+    get_vikunja_base_url,
+    get_vikunja_token_path,
+)
 from scripts.escalation.derive_state import (
     EscalationStateError,
     derive_state,
@@ -131,9 +134,13 @@ TOUCHPOINT_NAME = "escalation.reconcile_completions"
 #: reads at module import.
 DEFAULT_BASE_URL: str = ""  # sentinel; resolved lazily — see reconcile_project
 
-#: Default location of the ``felix-bot`` Vikunja API token on office2.
-#: Retained for synthetic-record writes via ``record_event``.
-DEFAULT_TOKEN_PATH = Path("/data/services/openclaw/secrets/vikunja-api")
+#: Override hook for the default token path (used for the fail-fast check and
+#: the synthetic-record writes via ``record_event``). ``None`` means "resolve
+#: at call-time via :func:`scripts.common.vikunja_config.get_vikunja_token_path`"
+#: — the WP01 seam returning the kent-owned runtime credential (FR-001). No
+#: felix-bot literal lives here anymore. Kept as a module attribute so
+#: tests/callers may monkeypatch a fixed path.
+DEFAULT_TOKEN_PATH: Optional[Path] = None
 
 #: Per-project JSONL state directory. Reconcile reads (and writes synthetic
 #: records into) the per-project files matching
@@ -1147,7 +1154,7 @@ def reconcile_project(
     if base_url is None:
         base_url = get_vikunja_base_url()
     if token_path is None:
-        token_path = DEFAULT_TOKEN_PATH
+        token_path = DEFAULT_TOKEN_PATH or get_vikunja_token_path()
     if jsonl_dir is None:
         jsonl_dir = JSONL_STATE_DIR
 
@@ -1255,7 +1262,7 @@ def reconcile_all(
     if base_url is None:
         base_url = get_vikunja_base_url()
     if token_path is None:
-        token_path = DEFAULT_TOKEN_PATH
+        token_path = DEFAULT_TOKEN_PATH or get_vikunja_token_path()
     if jsonl_dir is None:
         jsonl_dir = JSONL_STATE_DIR
 
@@ -1352,10 +1359,10 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--token-path",
         type=Path,
-        default=DEFAULT_TOKEN_PATH,
+        default=None,
         help=(
-            "Path to the felix-bot Vikunja API token file "
-            f"(default: {DEFAULT_TOKEN_PATH})."
+            "Path to the Vikunja API token file (default: resolved via "
+            "get_vikunja_token_path() — the kent-owned runtime credential)."
         ),
     )
     parser.add_argument(

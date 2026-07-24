@@ -65,7 +65,10 @@ from scripts.common.vikunja_client import (
     VikunjaError,
     VikunjaServerError,
 )
-from scripts.common.vikunja_config import get_vikunja_base_url
+from scripts.common.vikunja_config import (
+    get_vikunja_base_url,
+    get_vikunja_token_path,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -75,8 +78,8 @@ from scripts.common.vikunja_config import get_vikunja_base_url
 #: Sentinel; resolved at call-time via get_vikunja_base_url().
 DEFAULT_BASE_URL: str = ""
 
-#: Default location of the felix-bot Vikunja API token on office2 (mode 0600).
-DEFAULT_TOKEN_PATH = "/data/services/openclaw/secrets/vikunja-api"
+#: Sentinel; resolved at call-time via get_vikunja_token_path().
+DEFAULT_TOKEN_PATH: str = ""
 
 #: Felix comment body templates per data-model.md Entity 5. The two-segment
 #: form is used when no operator note is supplied; the three-segment form
@@ -359,10 +362,10 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--token-file",
         type=Path,
-        default=Path(DEFAULT_TOKEN_PATH),
+        default=None,
         help=(
-            "Path to the Vikunja API token file "
-            f"(default: {DEFAULT_TOKEN_PATH})."
+            "Path to the Vikunja API token file (default: resolved via "
+            "VIKUNJA_TOKEN_PATH env or the kent-owned runtime credential)."
         ),
     )
     parser.add_argument(
@@ -447,7 +450,7 @@ def main(argv: list[str] | None = None) -> int:
 
     # Read the API token.
     try:
-        token = _read_token(args.token_file)
+        token = _read_token(args.token_file or get_vikunja_token_path())
     except OSError as e:
         print(f"ERROR: {e}", file=sys.stderr)
         return 3

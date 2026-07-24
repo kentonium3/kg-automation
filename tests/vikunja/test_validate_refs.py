@@ -20,9 +20,13 @@ from typing import Any
 
 import pytest
 
-from scripts.common import vikunja_refs
+from scripts.common import vikunja_config, vikunja_refs
 from scripts.common.vikunja_client import VikunjaError
 from scripts.vikunja import validate_refs as vr
+
+# A syntactically valid base URL so ``VikunjaClient`` construction in the
+# token-convergence tests never depends on live base-url config resolution.
+_FAKE_BASE_URL = "https://host.example/api/v1"
 
 
 class _SpyClient:
@@ -160,3 +164,60 @@ def test_unreachable_on_generic_exception(clean_registry) -> None:
     client = _SpyClient(raise_exc=ConnectionError("boom"))
     rc = vr.main([], client=client)
     assert rc == 2
+
+
+# ---------------------------------------------------------------------------
+# Token convergence (FR-005) — the validator's default token resolves through
+# the SAME single source as the runtime, with no independent literal.
+# ---------------------------------------------------------------------------
+
+
+def test_no_independent_token_literal() -> None:
+    """FR-005: the validator no longer carries its own hardcoded token-path
+    literal — the single source is get_vikunja_token_path()."""
+    assert not hasattr(vr, "DEFAULT_KENT_TOKEN_FILE")
+
+
+def test_default_token_resolves_via_runtime_single_source(monkeypatch, tmp_path) -> None:
+    """With no ``--token-file`` override the validator resolves its token path
+    through the runtime single source — the SAME
+    ``get_vikunja_token_path`` the Felix runtime / default ``VikunjaClient``
+    use — so validator and runtime cannot diverge by construction (FR-005)."""
+    token_file = tmp_path / "vikunja-api-kent"
+    token_file.write_text("kent-secret-token\n", encoding="utf-8")
+
+    called: dict[str, bool] = {}
+
+    def _fake_get_path() -> Any:
+        called["hit"] = True
+        return token_file
+
+    monkeypatch.setattr(vikunja_config, "get_vikunja_token_path", _fake_get_path)
+
+    args = vr._build_parser().parse_args(["--base-url", _FAKE_BASE_URL])
+    client = vr._build_client(args)
+
+    assert called.get("hit") is True  # resolution went through the single source
+    assert client.token == "kent-secret-token"  # and that token was actually used
+
+
+def test_token_file_override_takes_precedence(monkeypatch, tmp_path) -> None:
+    """The explicit ``--token-file`` override is preserved for ops use and wins
+    over the runtime single-source default (get_vikunja_token_path is not even
+    consulted)."""
+    override = tmp_path / "override-token"
+    override.write_text("override-token-value\n", encoding="utf-8")
+
+    def _must_not_be_called() -> Any:  # pragma: no cover - asserted via raise
+        raise AssertionError(
+            "get_vikunja_token_path must not be consulted when --token-file is given"
+        )
+
+    monkeypatch.setattr(vikunja_config, "get_vikunja_token_path", _must_not_be_called)
+
+    args = vr._build_parser().parse_args(
+        ["--token-file", str(override), "--base-url", _FAKE_BASE_URL]
+    )
+    client = vr._build_client(args)
+
+    assert client.token == "override-token-value"

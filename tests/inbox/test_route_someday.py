@@ -9,9 +9,13 @@ Post-reset behavior under test (SC-005 / FR-010..FR-013):
   topic project. The retired ``find_someday_project`` / ``SOMEDAY_PROJECT_TITLE``
   by-title lookup is gone (it looked up a deleted project — the direct #743 cause).
 - The task is **always created** first (anti-silent-loss #743); the ``q:schedule``
-  attach is **fail-soft**: felix-bot cannot attach the kent-owned ``q:schedule``
-  label (live-probe 2026-07-15 → HTTP 403, #715), so an attach failure is logged
-  loudly on stderr and the route still succeeds (exit 0).
+  attach is now **fail-loud** under the single kent identity (token-seam cutover,
+  #860 phase 2 / #750). The felix-bot HTTP 403 that the old fail-soft branch
+  tolerated can no longer occur, so a genuine attach failure raises a
+  ``RouteSomedayError`` that names the created task id (exit 2) instead of being
+  swallowed into a warning. The one remaining graceful degrade is a
+  declared-but-unprovisioned label (dormant registry state): route still
+  succeeds (exit 0) with a loud warning, because there is no id to attach yet.
 - No live ``/projects`` listing occurs — the seam resolves ids from the registry.
 
 Resolution is injected via ``vikunja_refs.set_registry_for_test`` (network-free);
@@ -181,9 +185,33 @@ def test_no_block_key_omits_block_line(monkeypatch):
     assert "Source: 2026-06-09-iceland.md" in payload["description"]
 
 
-def test_attach_failure_still_creates_task_and_logs_loudly(monkeypatch, capsys):
-    """The #715 403 case: attach fails, task is still created, route succeeds,
-    and the degraded state is logged loudly (never silently swallowed)."""
+def test_attach_403_now_fails_loud_naming_task(monkeypatch):
+    """#750 cutover: the felix-bot 403 fail-soft branch is retired. Under the
+    single kent identity a genuine attach failure PROPAGATES as a hard
+    RouteSomedayError that NAMES the created task id — the capture is preserved
+    (task created) while the failure surfaces loudly, no longer swallowed into a
+    warning."""
+    client = _install(
+        monkeypatch,
+        FakeClient(
+            create_response={"id": 777},
+            attach_error=VikunjaError(path="/tasks/777/labels", status=403),
+        ),
+    )
+    with pytest.raises(rs.RouteSomedayError) as exc:
+        rs.route_someday(
+            title="Try Iceland again",
+            body="Planning notes",
+            note_filename="2026-06-09-iceland.md",
+        )
+    assert len(client.create_calls) == 1  # task still created (anti-silent-loss)
+    assert len(client.attach_calls) == 1  # attach attempted
+    assert "777" in str(exc.value)  # created task id named in the error
+
+
+def test_attach_failure_exits_2_via_cli_naming_task(monkeypatch, capsys):
+    """The CLI maps the now-fail-loud attach failure to exit 2 while the task
+    remains created, and the stderr envelope names the created task id."""
     client = _install(
         monkeypatch,
         FakeClient(
@@ -192,16 +220,31 @@ def test_attach_failure_still_creates_task_and_logs_loudly(monkeypatch, capsys):
         ),
     )
     rc = rs.main(_ARGS)
-    assert rc == 0  # route SUCCEEDS despite attach failure
-    assert len(client.create_calls) == 1  # task created
-    assert len(client.attach_calls) == 1  # attach attempted
-    captured = capsys.readouterr()
-    assert "task_id=777" in captured.out
-    # Loud, structured warning on stderr — not swallowed.
-    warning = json.loads(captured.err.strip().splitlines()[-1])
-    assert warning["warning"] == "label_attach_failed"
-    assert warning["label"] == "q:schedule"
-    assert warning["task_id"] == 777
+    assert rc == 2  # fail-loud, not swallowed
+    assert len(client.create_calls) == 1  # task created before the loud failure
+    assert len(client.attach_calls) == 1
+    err = capsys.readouterr().err
+    assert "vikunja_error" in err
+    assert "777" in err
+
+
+def test_attach_network_error_also_surfaces(monkeypatch, capsys):
+    """Removing the 403 branch must not swallow a *different* real error: a
+    non-403 attach failure (here a network drop / ConnectionError) now surfaces
+    fail-loud too, rather than being masked by the retired fail-soft catch."""
+    client = _install(
+        monkeypatch,
+        FakeClient(
+            create_response={"id": 778},
+            attach_error=ConnectionError("network down during attach"),
+        ),
+    )
+    rc = rs.main(_ARGS)
+    assert rc == 2
+    assert len(client.create_calls) == 1
+    err = capsys.readouterr().err
+    assert "vikunja_error" in err
+    assert "778" in err
 
 
 def _registry_with_label(label_entries):
@@ -373,6 +416,24 @@ def test_client_construction_error_exits_2(monkeypatch, capsys):
     err = capsys.readouterr().err
     assert "vikunja_error" in err
     assert "token file missing" in err
+
+
+def test_client_construction_config_error_exits_2(monkeypatch, capsys):
+    # #860 phase 2: a missing/unreadable default token now fails loud as
+    # VikunjaConfigError (a RuntimeError subclass, NOT a ValueError). The CLI
+    # must still map it to the structured RouteSomedayError -> exit-2 contract,
+    # not traceback.
+    def boom():
+        raise rs.VikunjaConfigError(
+            "Vikunja token file not available at /data/services/openclaw/secrets/vikunja-api-kent"
+        )
+
+    monkeypatch.setattr(rs, "VikunjaClient", boom)
+    rc = rs.main(_ARGS)
+    assert rc == 2
+    err = capsys.readouterr().err
+    assert "vikunja_error" in err
+    assert "token file not available" in err
 
 
 # ---------------------------------------------------------------------------
