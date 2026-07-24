@@ -1,4 +1,16 @@
 {
+  "acceptance_history": [
+    {
+      "acceptance_mode": "pr",
+      "accepted_at": "2026-07-24T04:03:05.894736+00:00",
+      "accepted_by": "kentgale",
+      "accepted_from_commit": "322806026ccc61af4d4811bf120918c97d291afb"
+    }
+  ],
+  "acceptance_mode": "pr",
+  "accepted_at": "2026-07-24T04:03:05.894736+00:00",
+  "accepted_by": "kentgale",
+  "accepted_from_commit": "322806026ccc61af4d4811bf120918c97d291afb",
   "created_at": "2026-07-24T02:01:50.196194+00:00",
   "flattened": false,
   "friendly_name": "Vikunja token seam + kent cutover (phase 2)",
