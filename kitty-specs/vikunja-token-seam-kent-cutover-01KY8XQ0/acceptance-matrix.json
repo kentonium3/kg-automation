@@ -48,7 +48,7 @@
       "criterion_id": "FR-005",
       "description": "Validator convergence: validate_refs exercises the same token view as the runtime (#748).",
       "proof_type": "automated_test",
-      "evidence": "WP05: validate_refs.py default token now resolves via get_vikunja_token_path() (same single source as the runtime) — the independent DEFAULT_KENT_TOKEN_FILE literal removed; --token-file override preserved. Test proves the default equals the runtime resolution point (no independent literal); 30 passed.",
+      "evidence": "WP05: validate_refs.py default token now resolves via get_vikunja_token_path() (same single source as the runtime) \u2014 the independent DEFAULT_KENT_TOKEN_FILE literal removed; --token-file override preserved. Test proves the default equals the runtime resolution point (no independent literal); 30 passed.",
       "pass_fail": "pass",
       "verified_by": "claude (orchestrator review)",
       "verified_at": "2026-07-24T03:59:35Z",
@@ -68,31 +68,12 @@
       "criterion_id": "FR-007",
       "description": "Attended Tier-2 cutover + verification tooling. The mergeable deliverable is the deterministic verification tool; the live cutover (IC-07) + SC-004/SC-005 (live per-consumer verification, inverse probe, rebaseline) are the attended post-merge operator step by design.",
       "proof_type": "automated_test",
-      "evidence": "WP08: scripts/vikunja/cutover_verify.py built + tested (18 passed) — read-only (grep-audited: no post/put/patch/delete), token via get_vikunja_token_path(); --inverse-probe (asserts projects 16-20 + Inbox 1 + Habits 13), --connectivity, --task-delta. The live attended Tier-2 cutover on office2 runs post-merge with a Restic snapshot <=24h and before/after connectivity (spec IC-07); NOT yet run at accept time (by design).",
+      "evidence": "WP08: scripts/vikunja/cutover_verify.py built + tested (18 passed) \u2014 read-only (grep-audited: no post/put/patch/delete), token via get_vikunja_token_path(); --inverse-probe (asserts projects 16-20 + Inbox 1 + Habits 13), --connectivity, --task-delta. The live attended Tier-2 cutover on office2 runs post-merge with a Restic snapshot <=24h and before/after connectivity (spec IC-07); NOT yet run at accept time (by design).",
       "pass_fail": "pass",
       "verified_by": "claude (orchestrator review)",
       "verified_at": "2026-07-24T03:59:35Z",
       "notes": "PARTIAL-by-design: the code deliverable (verification tooling) is complete and is the mergeable artifact; SC-004/SC-005 live verification + rebaseline run at the attended cutover, gated on the operator (Kent), before feat->main deploys the flip."
     }
   ],
-  "negative_invariants": [
-    {
-      "invariant_id": "C-001",
-      "description": "No abstract TaskService port / adapter layer introduced (seam via VikunjaClient + config helper only).",
-      "pass_fail": "pass",
-      "verification_method": "grep for a TaskService/port abstraction class across scripts/ returns none; the seam is get_vikunja_token_path() + VikunjaClient.",
-      "evidence": "No TaskService/port abstraction added; the seam is get_vikunja_token_path() + VikunjaClient.",
-      "verified_by": "claude (orchestrator review)",
-      "verified_at": "2026-07-24T03:59:35Z"
-    },
-    {
-      "invariant_id": "C-002",
-      "description": "The felix-bot Vikunja user is left dormant, not deprovisioned; the vikunja-api secret file is retained.",
-      "pass_fail": "pass",
-      "verification_method": "Inspect credential-manifest (vikunja-api status=retired, runtime=false, not removed) + ADR-0007/narrative confirming user retained and deprovision out of scope.",
-      "evidence": "credential-manifest marks vikunja-api retired/dormant (not deleted); ADR-0007 + narrative note the user is retained (owns Inbox 14, history preserved) and deprovision/Inbox-14 reassignment are out of scope.",
-      "verified_by": "claude (orchestrator review)",
-      "verified_at": "2026-07-24T03:59:35Z"
-    }
-  ]
+  "negative_invariants": []
 }
