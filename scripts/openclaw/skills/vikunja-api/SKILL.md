@@ -8,7 +8,7 @@ version: 1.0.0
 
 Vikunja is the task management system running on office2. It stores tasks, goals,
 projects, labels, and saved filters. This skill teaches you how to interact with
-the Vikunja REST API (v0.24.6) using curl via the `exec` tool.
+the Vikunja REST API (v2.4.0) using curl via the `exec` tool.
 
 **Supported operations**: Create, read, update, complete, and delete tasks.
 Query projects and labels by name. Execute filters (Today, Upcoming, Overdue,
@@ -32,11 +32,15 @@ Before performing any operation, verify the Vikunja service is running:
 curl -s https://office2.tail0f5f56.ts.net/api/v1/info
 ```
 
-This endpoint requires **no authentication**. Expected response:
+This endpoint requires **no authentication**. Expected response (Vikunja v2.4.0):
 
 ```json
-{"version": "v0.24.6", "frontend_url": "https://office2.tail0f5f56.ts.net/", ...}
+{"version": "v2.4.0", "frontend_url": "https://office2.tail0f5f56.ts.net/", "motd": "", "link_sharing_enabled": true, "max_items_per_page": 50, ...}
 ```
+
+A `version` of `v2.4.0` (not the pre-upgrade `v0.24.6`) confirms you are talking
+to the current server. The `/info` endpoint itself is unchanged across the
+upgrade, so this same command works on both.
 
 If this fails or returns a connection error, Vikunja is unreachable. Report this
 to the user — do not attempt other operations until the service is confirmed
@@ -44,13 +48,18 @@ running.
 
 ## Authentication
 
-All endpoints except `/info` require a Bearer token. The token is stored on
-office2 at `/data/services/openclaw/secrets/vikunja-api` (mode 600, claude-owned).
+All endpoints except `/info` require a Bearer token. The runtime credential is
+the **kent-owned** token, stored on office2 at
+`/data/services/openclaw/secrets/vikunja-api-kent` (mode 600, claude-owned). This
+is the single Vikunja runtime identity (kentonium3/kg-automation#860): the
+former felix-bot `vikunja-api` token is retired from the runtime path, so all
+reads and writes now authenticate as kent and see kent's full project set
+(Inbox and the topic projects 16–20).
 
 Include this header in every authenticated request:
 
 ```bash
--H "Authorization: Bearer $(cat /data/services/openclaw/secrets/vikunja-api)"
+-H "Authorization: Bearer $(cat /data/services/openclaw/secrets/vikunja-api-kent)"
 ```
 
 This reads the token from the credential store at runtime. **Never** log, print,
@@ -63,7 +72,7 @@ vikunja-ops.md runbook for the token rotation procedure.
 ### List All Projects
 
 ```bash
-curl -s -H "Authorization: Bearer $(cat /data/services/openclaw/secrets/vikunja-api)" \
+curl -s -H "Authorization: Bearer $(cat /data/services/openclaw/secrets/vikunja-api-kent)" \
   https://office2.tail0f5f56.ts.net/api/v1/projects
 ```
 
@@ -96,7 +105,7 @@ Access them like regular projects: `GET /projects/{id}/tasks`. For example:
 
 ```bash
 # Get today's tasks
-curl -s -H "Authorization: Bearer $(cat /data/services/openclaw/secrets/vikunja-api)" \
+curl -s -H "Authorization: Bearer $(cat /data/services/openclaw/secrets/vikunja-api-kent)" \
   https://office2.tail0f5f56.ts.net/api/v1/projects/-2/tasks
 ```
 
@@ -117,7 +126,7 @@ curl -s -H "Authorization: Bearer $(cat /data/services/openclaw/secrets/vikunja-
 ### List All Labels
 
 ```bash
-curl -s -H "Authorization: Bearer $(cat /data/services/openclaw/secrets/vikunja-api)" \
+curl -s -H "Authorization: Bearer $(cat /data/services/openclaw/secrets/vikunja-api-kent)" \
   https://office2.tail0f5f56.ts.net/api/v1/labels
 ```
 
@@ -153,7 +162,7 @@ Creating a task is a two-step process: create the task, then add an identity lab
 
 ```bash
 curl -s -X PUT \
-  -H "Authorization: Bearer $(cat /data/services/openclaw/secrets/vikunja-api)" \
+  -H "Authorization: Bearer $(cat /data/services/openclaw/secrets/vikunja-api-kent)" \
   -H "Content-Type: application/json" \
   -d '{"title": "TASK_TITLE", "description": "DESCRIPTION", "due_date": "2026-04-15T00:00:00Z", "priority": 1}' \
   https://office2.tail0f5f56.ts.net/api/v1/projects/PROJECT_ID/tasks
@@ -169,7 +178,7 @@ curl -s -X PUT \
 
 ```bash
 curl -s -X PUT \
-  -H "Authorization: Bearer $(cat /data/services/openclaw/secrets/vikunja-api)" \
+  -H "Authorization: Bearer $(cat /data/services/openclaw/secrets/vikunja-api-kent)" \
   -H "Content-Type: application/json" \
   -d '{"label_id": LABEL_ID}' \
   https://office2.tail0f5f56.ts.net/api/v1/tasks/TASK_ID/labels
@@ -200,7 +209,7 @@ Before creating a task, check if one with the same title already exists in the
 target project:
 
 ```bash
-curl -s -H "Authorization: Bearer $(cat /data/services/openclaw/secrets/vikunja-api)" \
+curl -s -H "Authorization: Bearer $(cat /data/services/openclaw/secrets/vikunja-api-kent)" \
   "https://office2.tail0f5f56.ts.net/api/v1/projects/PROJECT_ID/tasks?s=SEARCH_TERM"
 ```
 
@@ -213,7 +222,7 @@ curl -s -H "Authorization: Bearer $(cat /data/services/openclaw/secrets/vikunja-
 ### Read Task
 
 ```bash
-curl -s -H "Authorization: Bearer $(cat /data/services/openclaw/secrets/vikunja-api)" \
+curl -s -H "Authorization: Bearer $(cat /data/services/openclaw/secrets/vikunja-api-kent)" \
   https://office2.tail0f5f56.ts.net/api/v1/tasks/TASK_ID
 ```
 
@@ -229,7 +238,7 @@ Returns the full task object including:
 
 ```bash
 curl -s -X POST \
-  -H "Authorization: Bearer $(cat /data/services/openclaw/secrets/vikunja-api)" \
+  -H "Authorization: Bearer $(cat /data/services/openclaw/secrets/vikunja-api-kent)" \
   -H "Content-Type: application/json" \
   -d '{"description": "Updated description"}' \
   https://office2.tail0f5f56.ts.net/api/v1/tasks/TASK_ID
@@ -246,7 +255,7 @@ Mark a task as done:
 
 ```bash
 curl -s -X POST \
-  -H "Authorization: Bearer $(cat /data/services/openclaw/secrets/vikunja-api)" \
+  -H "Authorization: Bearer $(cat /data/services/openclaw/secrets/vikunja-api-kent)" \
   -H "Content-Type: application/json" \
   -d '{"done": true}' \
   https://office2.tail0f5f56.ts.net/api/v1/tasks/TASK_ID
@@ -259,11 +268,11 @@ Vikunja will auto-populate `done_at` with the current timestamp.
 
 ```bash
 curl -s -X DELETE \
-  -H "Authorization: Bearer $(cat /data/services/openclaw/secrets/vikunja-api)" \
+  -H "Authorization: Bearer $(cat /data/services/openclaw/secrets/vikunja-api-kent)" \
   https://office2.tail0f5f56.ts.net/api/v1/tasks/TASK_ID
 ```
 
-**WARNING: DELETE IS PERMANENT.** Vikunja v0.24.6 has no soft-delete or archive
+**WARNING: DELETE IS PERMANENT.** Vikunja v2.4.0 has no soft-delete or archive
 endpoint. Once deleted, a task cannot be recovered.
 
 - Only use for test cleanup or when explicitly requested by Kent
@@ -278,15 +287,15 @@ Get tasks from the built-in filters using pseudo-project IDs:
 
 ```bash
 # Today's tasks
-curl -s -H "Authorization: Bearer $(cat /data/services/openclaw/secrets/vikunja-api)" \
+curl -s -H "Authorization: Bearer $(cat /data/services/openclaw/secrets/vikunja-api-kent)" \
   https://office2.tail0f5f56.ts.net/api/v1/projects/-2/tasks
 
 # Upcoming tasks
-curl -s -H "Authorization: Bearer $(cat /data/services/openclaw/secrets/vikunja-api)" \
+curl -s -H "Authorization: Bearer $(cat /data/services/openclaw/secrets/vikunja-api-kent)" \
   https://office2.tail0f5f56.ts.net/api/v1/projects/-3/tasks
 
 # Overdue tasks
-curl -s -H "Authorization: Bearer $(cat /data/services/openclaw/secrets/vikunja-api)" \
+curl -s -H "Authorization: Bearer $(cat /data/services/openclaw/secrets/vikunja-api-kent)" \
   https://office2.tail0f5f56.ts.net/api/v1/projects/-4/tasks
 ```
 
@@ -305,7 +314,7 @@ regression, #853). Query **per-project** instead — the project id goes in the
 PATH, not the filter:
 
 ```bash
-curl -s -H "Authorization: Bearer $(cat /data/services/openclaw/secrets/vikunja-api)" \
+curl -s -H "Authorization: Bearer $(cat /data/services/openclaw/secrets/vikunja-api-kent)" \
   "https://office2.tail0f5f56.ts.net/api/v1/projects/PROJECT_ID/tasks?filter=FILTER_EXPRESSION&sort_by=FIELD&order_by=ORDER&per_page=50"
 ```
 
@@ -345,7 +354,7 @@ Filter results include these key fields per task:
 
 ```bash
 curl -s -X PUT \
-  -H "Authorization: Bearer $(cat /data/services/openclaw/secrets/vikunja-api)" \
+  -H "Authorization: Bearer $(cat /data/services/openclaw/secrets/vikunja-api-kent)" \
   -H "Content-Type: application/json" \
   -d '{"comment": "[Felix] COMMENT_TEXT"}' \
   https://office2.tail0f5f56.ts.net/api/v1/tasks/TASK_ID/comments
@@ -360,7 +369,7 @@ human comments. For example:
 ### Read Comments
 
 ```bash
-curl -s -H "Authorization: Bearer $(cat /data/services/openclaw/secrets/vikunja-api)" \
+curl -s -H "Authorization: Bearer $(cat /data/services/openclaw/secrets/vikunja-api-kent)" \
   https://office2.tail0f5f56.ts.net/api/v1/tasks/TASK_ID/comments
 ```
 

@@ -11,7 +11,7 @@ agent. It is self-contained — apply the full escalation workflow by reading
 this skill alone.
 
 **API Base URL**: `https://office2.tail0f5f56.ts.net/api/v1`
-**API Token**: `cat /data/services/openclaw/secrets/vikunja-api`
+**API Token**: `cat /data/services/openclaw/secrets/vikunja-api-kent` (the single kent-owned runtime credential — kentonium3/kg-automation#860)
 
 ---
 
