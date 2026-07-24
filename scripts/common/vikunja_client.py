@@ -27,7 +27,14 @@ mission scope — it is the foundation that the next WP consumes.
 
 Public surface
 --------------
-Constants: ``DEFAULT_TOKEN_PATH``, ``DEFAULT_TIMEOUT``
+Constants: ``DEFAULT_TIMEOUT``
+Token resolution: the default token path is **not** a constant here — it is
+    resolved at call time through
+    :func:`scripts.common.vikunja_config.get_vikunja_token_path` (the single
+    token-resolution point, FR-001 of the token-seam mission). Keeping it out of
+    this module means no felix-bot token literal survives in the runtime surface
+    (SC-001) and a ``VIKUNJA_TOKEN_PATH`` override / default change moves every
+    default-constructed ``VikunjaClient()`` with it.
 Exceptions: ``VikunjaError``, ``VikunjaHttpError``, ``VikunjaAuthError``,
     ``VikunjaNotFoundError``, ``VikunjaBadRequestError``,
     ``VikunjaServerError``, ``VikunjaTimeoutError``
@@ -86,11 +93,9 @@ import socket
 import urllib.error
 import urllib.parse
 import urllib.request
-from pathlib import Path
 from typing import Any
 
 __all__ = [
-    "DEFAULT_TOKEN_PATH",
     "DEFAULT_TIMEOUT",
     "VikunjaError",
     "VikunjaHttpError",
@@ -102,7 +107,6 @@ __all__ = [
     "VikunjaClient",
 ]
 
-DEFAULT_TOKEN_PATH = Path("/data/services/openclaw/secrets/vikunja-api")
 DEFAULT_TIMEOUT = 30.0
 
 _BASE_URL_PATTERN = re.compile(r"^https?://[^/]+/api/v1$")
@@ -218,11 +222,23 @@ class VikunjaClient:
 
     @staticmethod
     def _load_default_token() -> str:
+        # Resolve the token path at *call time* (never import time) through the
+        # single config seam (FR-001). A VIKUNJA_TOKEN_PATH override — or a
+        # change to the one module default in vikunja_config — then moves every
+        # default-constructed VikunjaClient() with it. The import is local to
+        # keep resolution call-time (mirrors the base_url seam in __init__) and
+        # to avoid an import-time coupling to vikunja_config.
+        from scripts.common.vikunja_config import get_vikunja_token_path
+
+        # A missing/unreadable token file fails loud here as the single
+        # VikunjaConfigError (NFR-002); the OSError guard below is a defensive
+        # TOCTOU backstop only.
+        token_path = get_vikunja_token_path()
         try:
-            return DEFAULT_TOKEN_PATH.read_text(encoding="utf-8")
-        except OSError as exc:
+            return token_path.read_text(encoding="utf-8")
+        except OSError as exc:  # pragma: no cover — helper already gates access
             raise ValueError(
-                f"Vikunja token file {DEFAULT_TOKEN_PATH} could not be read: {exc}"
+                f"Vikunja token file {token_path} could not be read: {exc}"
             ) from exc
 
     # ------------------------------------------------------------------
