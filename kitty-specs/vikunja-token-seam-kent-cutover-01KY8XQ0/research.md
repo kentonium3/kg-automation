@@ -23,19 +23,29 @@ issue wants the credential retired and the path honest.
 
 ## R2 — Runtime consumer inventory (grep-confirmed at HEAD `93834f4e`)
 
-Token-resolution patterns after Phase 1:
+Token-resolution patterns after Phase 1 (**corrected after the post-plan Codex review**, which caught
+that the first inventory omitted escalation + enrichment and misclassified `apply_reply`):
 - **Group A — already centralized** (bare `VikunjaClient()`): `inbox/route_and_finalize`,
   `inbox/route_someday`, `vikunja/create_task`, `trust/assertion_verifier`, `habits/weekly_report_driver`,
   `habits/query_active_habits_weekly`. Inherit the flip automatically once the client default routes
   through `get_vikunja_token_path()`.
-- **Group B — self-load a felix-bot `DEFAULT_TOKEN_PATH` literal**: `habits/{sweeper, record_completion,
-  exclude_completed, set_due_dates, identify_workout_task, migrate_schedule}`.
-- **Group C — literal filename**: `sync/{cycle,fetch}` (`config.secrets_dir / "vikunja-api"`);
-  `security/credential_health_check/vikunja_writer` (`VIKUNJA_TOKEN_PATH = …/vikunja-api`).
+- **Group B — self-load a felix-bot `DEFAULT_TOKEN_PATH` literal** (13 modules): `habits/{sweeper,
+  record_completion, exclude_completed, set_due_dates, identify_workout_task, migrate_schedule}`,
+  **`escalation/{record_completion, reconcile_completions}`**, **`enrichment/{record_completion,
+  reconcile_completions}`**, `security/credential_health_check/vikunja_writer`, and
+  `sync/{cycle,fetch}` (literal `config.secrets_dir / "vikunja-api"`). All confirmed at
+  `escalation/record_completion.py:111`, `escalation/reconcile_completions.py:136`,
+  `enrichment/record_completion.py:118`, `enrichment/reconcile_completions.py` (imports the constant).
+- **Kent-pinned exception — NOT a flip participant**: `intake/apply_reply.py` explicitly loads the
+  **kent** token (`DEFAULT_KENT_TOKEN_FILE`) and **refuses** the felix-bot path (`apply_reply.py:1001-1013`,
+  #750/#715). Already at the target identity; retains its refusal guard; documented in SC-002, not re-pointed.
 
-**Decision**: IC-01 adds the single point; IC-02 routes the client default; IC-03 routes Groups B+C.
-Admin/one-shot scripts that deliberately target felix-bot (`provision_felix_bot`, `validate_felix_bot`,
-`swap_vikunja_secrets`) stay as-is — they are the *only* permitted SC-001 matches.
+**Decision**: IC-01 adds the single point; IC-02 routes the client default (covers Group A);
+IC-03 routes all 13 Group-B modules. Non-runtime literals stay as-is and are the *only* permitted
+SC-001 matches, in two classes: (a) felix-bot-targeting admin/one-shot — `provision_felix_bot`,
+`validate_felix_bot`, `swap_vikunja_secrets`; (b) kent-only admin tools whose felix literal is a
+**refusal/guard** — `migrate_tasks` (`:78-82`), `create_saved_filters` (`:80-82`),
+`reconcile_projects` (`:63-67`), plus `apply_reply`'s guard.
 
 **Deployment fact (verified)**: the deployed drivers invoke Group B/C with **no** token args
 (`ExecStart=/usr/bin/python3 -m scripts.habits.sweeper`; `… weekly_report_driver`); `--token-path` is a
@@ -60,10 +70,29 @@ override-then-default shape, same test approach. Lowest-surprise, no new depende
 
 ## R4 — SC-001 grep semantics (avoid the `-kent` false match)
 
-**Decision**: the gate is `grep -rnE "secrets/vikunja-api([^-]|$)" scripts/`. After IC-04 the single
-default is `…/vikunja-api-kent`; `([^-]|$)` deliberately excludes the `-kent` suffix so the kent path is
-**not** a match. Only felix-bot literals (`…/vikunja-api` followed by non-`-`/EOL) match — which post-flip
-should exist **only** in the enumerated admin/one-shot scripts + docs describing the dormant credential.
+**Decision**: the gate is a **tracked-text** ratchet `git grep -nE "secrets/vikunja-api([^-]|$)" -- scripts
+':!**/__pycache__/**'` (not raw `grep -rnE`, which traverses `__pycache__` binaries — a Codex catch).
+After IC-04 the single default is `…/vikunja-api-kent`; `([^-]|$)` deliberately excludes the `-kent` suffix
+so the kent path is **not** a match. Only felix-bot literals (`…/vikunja-api` followed by non-`-`/EOL) match
+— which post-flip must exist **only** in the enumerated non-runtime files of R2's two allowlist classes
+(felix-targeting admin + kent-only refusal guards) and docs describing the dormant credential.
+
+## R8 — Sync identity-expansion cutover gate (Codex MED)
+
+**Decision**: Before the live cutover, run a **dry-run sync cycle under the kent token** and capture the
+first-observation delta. Under kent, `sync/fetch.py:137-183` (`fetch_full_poll`) enumerates every visible
+project and pages each project's tasks; kent newly sees projects 16–20 (R1), so the first live cycle
+post-flip will observe a burst of new tasks + emit the corresponding events/cache writes. Gate the live
+run on that delta being expected and bounded — do not let the first kent cycle be an unmeasured surprise.
+IC-07 owns this; SC-004 records it.
+
+## R9 — Sync failure-classification preservation (Codex MED)
+
+**Decision**: `sync/cycle.py:141-157` currently catches only `OSError` in the preamble and records
+`phase="preamble"`, `exit_code=1`. The new typed fail-loud helper (R3) can raise a non-`OSError`. IC-03
+must adapt the helper's token-resolution/read failure into sync's existing preamble path so the
+`cycle_error` token, phase, and exit code are unchanged — with a parity test. Otherwise a token failure
+post-refactor would be classified differently than at HEAD (a silent behavior change NFR-001 forbids).
 
 ## R5 — Doc targets (signal-to-doc-map, confirmed)
 

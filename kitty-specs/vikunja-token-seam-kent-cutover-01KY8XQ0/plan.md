@@ -71,8 +71,11 @@ scripts/common/vikunja_config.py          # + get_vikunja_token_path() — the s
 scripts/common/vikunja_client.py          # default-token load routes through IC-01 (IC-02)
 scripts/habits/{sweeper,record_completion,exclude_completed,set_due_dates,
                 identify_workout_task,migrate_schedule}.py   # drop own DEFAULT_TOKEN_PATH literal → IC-01 (IC-03)
-scripts/sync/{cycle,fetch}.py             # token resolves via IC-01 (IC-03)
+scripts/escalation/{record_completion,reconcile_completions}.py   # drop DEFAULT_TOKEN_PATH literal → IC-01 (IC-03)
+scripts/enrichment/{record_completion,reconcile_completions}.py   # drop DEFAULT_TOKEN_PATH literal → IC-01 (IC-03)
+scripts/sync/{cycle,fetch}.py             # token resolves via IC-01; preserve preamble cycle_error (IC-03)
 scripts/security/credential_health_check/vikunja_writer.py   # VIKUNJA_TOKEN_PATH → IC-01 (IC-03)
+# scripts/intake/apply_reply.py           # NOT changed — deliberately kent-pinned w/ felix-bot refusal (#750)
 scripts/inbox/route_someday.py            # remove felix-bot 403 fail-soft branch (#750) (IC-05)
 scripts/vikunja/validate_refs.py          # converge onto runtime token view (#748) (IC-05)
 docs/design/architecture/adr/0007-*.md    # NEW ADR (IC-06)
@@ -89,11 +92,11 @@ tests/…                                    # single-point-flip proof (SC-002) 
 |----|---------|---------|-------|
 | IC-01 | **Single resolution point.** Add `get_vikunja_token_path()` (env `VIKUNJA_TOKEN_PATH` → canonical default `…/vikunja-api` for now); unit tests incl. env override + fail-loud. | FR-001, NFR-002, SC-002 | Foundation. Default stays felix-bot at this step. |
 | IC-02 | Route `VikunjaClient` default-token loading through IC-01 (replace module `DEFAULT_TOKEN_PATH` literal). | FR-001 | Group-A consumers (bare `VikunjaClient()`) inherit IC-01 automatically. |
-| IC-03 | Route the self-loading consumers through IC-01: 6 habits scripts, `sync/{cycle,fetch}`, `credential_health_check/vikunja_writer`. Remove their felix-bot `DEFAULT_TOKEN_PATH` literals; `--token-path` CLI defaults → `get_vikunja_token_path()`. | FR-001, FR-002, NFR-001 | Behavior-preserving; parity suite green, still felix-bot. |
+| IC-03 | Route the self-loading consumers through IC-01 — the full **13-module** set: 6 habits (`sweeper, record_completion, exclude_completed, set_due_dates, identify_workout_task, migrate_schedule`), **escalation `record_completion` + `reconcile_completions`**, **enrichment `record_completion` + `reconcile_completions`**, `credential_health_check/vikunja_writer`, `sync/{cycle,fetch}`. Remove their felix-bot `DEFAULT_TOKEN_PATH` literals; `--token-path` CLI defaults → `get_vikunja_token_path()`. **Sync MUST keep its preamble failure classification** (token-read error → `phase="preamble"`, `exit_code=1`, same `cycle_error`) by adapting the helper's typed error into the existing `OSError`/preamble path. **`intake/apply_reply.py` is NOT in this set** — it is deliberately kent-pinned with a felix-bot-refusal guard (#750) and stays as-is. | FR-001, FR-002, NFR-001 | Behavior-preserving; parity suite green, still felix-bot. escalation/enrichment were missed in the first inventory (post-plan Codex catch). |
 | IC-04 | **The flip.** Change IC-01's default `vikunja-api` → `vikunja-api-kent`. Add the single-point-flip proof test. | FR-003, SC-002 | One line + one test. |
 | IC-05 | Retire felix-bot runtime path: remove `route_someday` 403 fail-soft (#750); mark `vikunja-api` credential dormant/non-runtime in the manifest; converge `validate_refs.py` on the runtime token (#748, FR-005). | FR-004, FR-005 | |
 | IC-06 | Docs/ADR: ADR-0007 (supersede ADR-0002 rationale); identity-model, credentials-and-secrets, service-inventory, data-flows; SKILL/TOOLS/AGENTS token refs + SKILL v2.4.0 + health-check fix (#831). | FR-006 | |
-| IC-07 | **Attended Tier-2 cutover** (post-merge-to-feat, before feat→main): before/after connectivity per consumer; inverse probe (kent sees 16–20 + Inbox 1); rebaseline record. | FR-007, SC-004, SC-005 | Operator step — hard-stop for Kent; not a code WP. |
+| IC-07 | **Attended Tier-2 cutover** (post-merge-to-feat, before feat→main): **pre-cutover kent dry-run sync** to size the 16–20 first-observation delta + gate the live run on an acceptable delta; before/after connectivity per consumer; inverse probe (kent sees 16–20 + Inbox 1); rebaseline record. | FR-007, SC-004, SC-005 | Operator step — hard-stop for Kent; not a code WP. |
 
 ## Sequencing
 
