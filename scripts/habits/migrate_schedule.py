@@ -38,8 +38,6 @@ import json
 import os
 import re
 import sys
-import urllib.error
-import urllib.request
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
@@ -53,6 +51,7 @@ except ImportError:  # pragma: no cover — handled at runtime only
     )
     sys.exit(2)
 
+from scripts.common.vikunja_client import VikunjaClient, VikunjaError
 from scripts.common.vikunja_config import get_vikunja_base_url
 
 
@@ -80,9 +79,6 @@ VALID_OPS = {"patch", "retire", "create"}
 
 #: Valid ``repeat_mode`` values per Vikunja v0.24.6.
 VALID_REPEAT_MODES = {0, 1, 2}
-
-#: HTTP socket timeout in seconds for every Vikunja API call.
-HTTP_TIMEOUT_SECONDS = 30
 
 #: Snapshot schema version. Bumped on breaking changes to the snapshot file.
 SNAPSHOT_SCHEMA_VERSION = "1"
@@ -140,12 +136,15 @@ def _check_repeat_block(op_index: int, block: Any, block_name: str) -> None:
     repeat_mode = block.get("repeat_mode")
     if not isinstance(repeat_mode, int) or isinstance(repeat_mode, bool):
         raise _validation_error(
-            op_index, f"'{block_name}.repeat_mode' must be an integer in {sorted(VALID_REPEAT_MODES)}"
+            op_index,
+            f"'{block_name}.repeat_mode' must be an integer in "
+            f"{sorted(VALID_REPEAT_MODES)}",
         )
     if repeat_mode not in VALID_REPEAT_MODES:
         raise _validation_error(
             op_index,
-            f"'{block_name}.repeat_mode' must be one of {sorted(VALID_REPEAT_MODES)} (got {repeat_mode})",
+            f"'{block_name}.repeat_mode' must be one of "
+            f"{sorted(VALID_REPEAT_MODES)} (got {repeat_mode})",
         )
 
 
@@ -280,84 +279,46 @@ def load_schedule(path: Path) -> dict:
 
 # ---------------------------------------------------------------------------
 # T005 — HTTP helpers + capture_snapshot + apply_schedule
+# (WP04, mission #860 -- migrated onto scripts.common.vikunja_client;
+#  see module docstring "Vikunja HTTP conventions" -- migrate_schedule's
+#  narrow POST-replace bodies are intentional, so this module uses WP01's
+#  raw ``replace_task_fields``/``create_task_in_project``, NOT the
+#  read-modify-write ``update_task_fields`` (that's record_completion.py's
+#  method; the two are kept deliberately separate per WP04).
 # ---------------------------------------------------------------------------
 
 
-def _join_url(base: str, path: str) -> str:
-    if not base.endswith("/"):
-        base = base + "/"
-    return base + path.lstrip("/")
+def _adapt_vikunja_error(method: str, path: str, exc: VikunjaError) -> OSError:
+    """Translate a ``VikunjaClient`` exception into this module's OSError contract.
 
-
-def _http_request(
-    method: str,
-    url: str,
-    token: str,
-    body: dict | None = None,
-) -> tuple[int, Any]:
-    """Issue an authenticated HTTP request via ``urllib``.
-
-    Args:
-        method: ``GET``, ``POST``, ``PUT``, ``DELETE``.
-        url: Fully qualified URL.
-        token: Vikunja bearer token.
-        body: Optional dict — serialized to JSON if present.
-
-    Returns:
-        Tuple ``(status_code, parsed_json_or_none)``. ``parsed_json_or_none``
-        is None when the response body is empty or non-JSON.
-
-    Raises:
-        OSError: On network error or non-2xx HTTP status. The message includes
-            the method + URL + (when available) the server's error body so the
-            operator can triage quickly.
+    Preserves the pre-migration raw-``urllib`` message shape closely enough
+    for existing message-matching call sites (``capture_snapshot``'s
+    documented ``OSError`` contract; the CLI's mid-batch error printing):
+    HTTP-derived failures render as ``"<method> <path> failed with HTTP
+    <status>: <body>"``; network/timeout failures (``exc.status is None``)
+    render as ``"<method> <path> network failure: <detail>"``. Detail is
+    sourced from the client's typed ``exc.status``/``exc.body`` (see the
+    ``vikunja_client`` module docstring "Return/error semantics") rather
+    than the raw ``urllib`` exception text.
     """
-    data: bytes | None = None
-    headers = {
-        "Accept": "application/json",
-        "Authorization": f"Bearer {token}",
-    }
-    if body is not None:
-        data = json.dumps(body).encode("utf-8")
-        headers["Content-Type"] = "application/json"
-
-    req = urllib.request.Request(url, data=data, headers=headers, method=method)
-    try:
-        with urllib.request.urlopen(req, timeout=HTTP_TIMEOUT_SECONDS) as resp:
-            status = resp.status
-            raw = resp.read().decode("utf-8", errors="replace")
-    except urllib.error.HTTPError as e:
-        try:
-            err_body = e.read().decode("utf-8", errors="replace")
-        except Exception:  # pragma: no cover — purely defensive
-            err_body = ""
-        raise OSError(
-            f"{method} {url} failed with HTTP {e.code}: {err_body!r}"
-        ) from e
-    except urllib.error.URLError as e:
-        raise OSError(f"{method} {url} network failure: {e}") from e
-
-    if status < 200 or status >= 300:
-        raise OSError(f"{method} {url} returned HTTP {status}: {raw!r}")
-
-    parsed: Any = None
-    if raw.strip():
-        try:
-            parsed = json.loads(raw)
-        except json.JSONDecodeError as e:
-            raise OSError(
-                f"{method} {url} returned non-JSON body: {raw!r} ({e})"
-            ) from e
-    return status, parsed
+    if exc.status is not None:
+        return OSError(
+            f"{method} {path} failed with HTTP {exc.status}: {exc.body!r}"
+        )
+    return OSError(f"{method} {path} network failure: {exc.verbose_message()}")
 
 
 def _fetch_task(api_base_url: str, token: str, task_id: int) -> dict:
     """GET a Vikunja task and return the fields relevant to Phase 3."""
-    url = _join_url(api_base_url, f"tasks/{task_id}")
-    _status, payload = _http_request("GET", url, token)
+    path = f"tasks/{task_id}"
+    client = VikunjaClient(base_url=api_base_url, token=token)
+    try:
+        payload = client.get_task(task_id)
+    except VikunjaError as exc:
+        raise _adapt_vikunja_error("GET", path, exc) from exc
     if not isinstance(payload, dict):
         raise OSError(
-            f"GET {url} returned a non-object body (got "
+            f"GET {path} returned a non-object body (got "
             f"{type(payload).__name__})"
         )
     return {
@@ -533,16 +494,28 @@ def _default_due_date(title: str, repeat_after: int, *, run_date: datetime | Non
 def _apply_patch(
     api_base_url: str, token: str, op: dict
 ) -> dict:
-    """POST to update an existing task's schedule (Vikunja uses POST not PATCH)."""
-    url = _join_url(api_base_url, f"tasks/{op['task_id']}")
+    """POST to update an existing task's schedule (raw narrow POST-replace).
+
+    Uses ``VikunjaClient.replace_task_fields`` (WP01's raw-replace method).
+    This body is deliberately narrow -- ``{repeat_after, repeat_mode}`` only
+    -- matching the pre-migration wire shape exactly; do NOT switch to
+    ``update_task_fields`` (that would echo the full current task back,
+    widening the request per the WP04 caveat).
+    """
+    task_id = op["task_id"]
+    path = f"tasks/{task_id}"
+    client = VikunjaClient(base_url=api_base_url, token=token)
     body = {
         "repeat_after": op["target"]["repeat_after"],
         "repeat_mode": op["target"]["repeat_mode"],
     }
-    _status, parsed = _http_request("POST", url, token, body=body)
+    try:
+        parsed = client.replace_task_fields(task_id, body)
+    except VikunjaError as exc:
+        raise _adapt_vikunja_error("POST", path, exc) from exc
     if not isinstance(parsed, dict):
         raise OSError(
-            f"POST {url} (patch) returned non-object body (got "
+            f"POST {path} (patch) returned non-object body (got "
             f"{type(parsed).__name__})"
         )
     return parsed
@@ -551,13 +524,22 @@ def _apply_patch(
 def _apply_retire(
     api_base_url: str, token: str, op: dict
 ) -> dict:
-    """POST to mark an existing task ``done=true`` (Vikunja uses POST for updates)."""
-    url = _join_url(api_base_url, f"tasks/{op['task_id']}")
+    """POST to mark an existing task ``done=true`` (raw narrow POST-replace).
+
+    Uses ``VikunjaClient.replace_task_fields`` -- the narrow ``{"done":
+    True}`` body is intentional (see ``_apply_patch``).
+    """
+    task_id = op["task_id"]
+    path = f"tasks/{task_id}"
+    client = VikunjaClient(base_url=api_base_url, token=token)
     body = {"done": True}
-    _status, parsed = _http_request("POST", url, token, body=body)
+    try:
+        parsed = client.replace_task_fields(task_id, body)
+    except VikunjaError as exc:
+        raise _adapt_vikunja_error("POST", path, exc) from exc
     if not isinstance(parsed, dict):
         raise OSError(
-            f"POST {url} (retire) returned non-object body (got "
+            f"POST {path} (retire) returned non-object body (got "
             f"{type(parsed).__name__})"
         )
     return parsed
@@ -603,14 +585,19 @@ def _apply_create(
     inherit_labels: list | None = None,
     run_date: datetime | None = None,
 ) -> dict:
-    """PUT to ``/projects/<id>/tasks`` to create a new task."""
+    """PUT to ``/projects/<id>/tasks`` to create a new task.
+
+    Uses ``VikunjaClient.create_task_in_project`` (WP01's shared create-task
+    op, PUT not POST).
+    """
     project_id, due_date, labels = _resolve_create_defaults(
         op,
         inherit_project_id=inherit_project_id,
         inherit_labels=inherit_labels,
         run_date=run_date,
     )
-    url = _join_url(api_base_url, f"projects/{project_id}/tasks")
+    path = f"projects/{project_id}/tasks"
+    client = VikunjaClient(base_url=api_base_url, token=token)
     body = {
         "title": op["attributes"]["title"],
         "due_date": due_date,
@@ -618,10 +605,13 @@ def _apply_create(
         "repeat_mode": op["schedule"]["repeat_mode"],
         "labels": labels,
     }
-    _status, parsed = _http_request("PUT", url, token, body=body)
+    try:
+        parsed = client.create_task_in_project(project_id, body)
+    except VikunjaError as exc:
+        raise _adapt_vikunja_error("PUT", path, exc) from exc
     if not isinstance(parsed, dict):
         raise OSError(
-            f"PUT {url} (create) returned non-object body (got "
+            f"PUT {path} (create) returned non-object body (got "
             f"{type(parsed).__name__})"
         )
     return parsed
@@ -908,6 +898,7 @@ def rollback(
     original_changes = [c for c in applied_changes]
     reverse_target = [c for c in original_changes if c.get("result") == "success"]
 
+    client = VikunjaClient(base_url=api_base_url, token=token)
     total = len(reverse_target)
     reversed_count = 0
     for idx, change in enumerate(reversed(reverse_target), start=1):
@@ -922,12 +913,15 @@ def rollback(
                         f"Snapshot missing before_state for task {task_id} "
                         "(cannot reverse patch)"
                     )
-                url = _join_url(api_base_url, f"tasks/{task_id}")
+                path = f"tasks/{task_id}"
                 body = {
                     "repeat_after": before["before"]["repeat_after"],
                     "repeat_mode": before["before"]["repeat_mode"],
                 }
-                _http_request("POST", url, token, body=body)
+                try:
+                    client.replace_task_fields(task_id, body)
+                except VikunjaError as exc:
+                    raise _adapt_vikunja_error("POST", path, exc) from exc
                 print(
                     f"[{idx}/{total}] reverse op=patch task_id={task_id}: "
                     f"repeat_after={body['repeat_after']} "
@@ -950,9 +944,12 @@ def rollback(
                         "(cannot reverse retire)"
                     )
                 # Pre-flight check guarantees BEFORE done was False.
-                url = _join_url(api_base_url, f"tasks/{task_id}")
+                path = f"tasks/{task_id}"
                 body = {"done": bool(before["before"].get("done", False))}
-                _http_request("POST", url, token, body=body)
+                try:
+                    client.replace_task_fields(task_id, body)
+                except VikunjaError as exc:
+                    raise _adapt_vikunja_error("POST", path, exc) from exc
                 print(
                     f"[{idx}/{total}] reverse op=retire task_id={task_id}: "
                     f"done={body['done']} [OK]"
@@ -967,8 +964,11 @@ def rollback(
                 )
 
             elif op_name == "create":
-                url = _join_url(api_base_url, f"tasks/{task_id}")
-                _http_request("DELETE", url, token)
+                path = f"tasks/{task_id}"
+                try:
+                    client.delete(f"/{path}")
+                except VikunjaError as exc:
+                    raise _adapt_vikunja_error("DELETE", path, exc) from exc
                 print(
                     f"[{idx}/{total}] reverse op=create task_id={task_id}: "
                     "DELETE [OK]"

@@ -73,14 +73,13 @@ import re
 import secrets
 import sys
 import time
-import urllib.error
-import urllib.request
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
 
+from scripts.common.vikunja_client import VikunjaClient, VikunjaError
 from scripts.common.vikunja_config import get_vikunja_base_url
 
 # --------------------------------------------------------------------------
@@ -611,35 +610,23 @@ def _vikunja_put_due_date(
     token: str,
     task_id: int,
     new_due_date: str,
-    timeout: int = 15,
+    timeout: float = 15,
 ) -> None:
     """Update one Vikunja task's ``due_date`` via the partial-update verb.
 
-    Vikunja v0.24.6 uses ``POST /tasks/{id}`` for partial updates (NOT
-    ``PUT``); see ``record_completion.py`` for the precedent.
+    Migrated onto :class:`~scripts.common.vikunja_client.VikunjaClient`
+    (WP05, mission #860) — ``replace_task_fields`` issues the identical
+    ``POST /tasks/{id}`` call with a body containing only ``due_date``,
+    preserving Phase 1 behavior verbatim (including the POST-partial-replace
+    quirk this call site has always relied on; not a bug fix — see
+    ``vikunja_client.replace_task_fields`` docstring).
 
     Raises:
-        OSError: HTTP error, URL error, or other I/O failure.
+        VikunjaError: HTTP error, network/URL error, or timeout — the
+            client's typed equivalent of the previous ``OSError`` contract.
     """
-    payload = json.dumps({"due_date": new_due_date}).encode("utf-8")
-    req = urllib.request.Request(
-        f"{base_url}tasks/{task_id}",
-        data=payload,
-        method="POST",
-        headers={
-            "Authorization": f"Bearer {token}",
-            "Content-Type": "application/json",
-            "Accept": "application/json",
-        },
-    )
-    try:
-        with urllib.request.urlopen(req, timeout=timeout) as resp:
-            # Drain the body so the connection releases cleanly.
-            resp.read()
-    except urllib.error.HTTPError as exc:
-        raise OSError(f"HTTP {exc.code}: {exc.reason}") from exc
-    except urllib.error.URLError as exc:
-        raise OSError(f"URLError: {exc.reason}") from exc
+    client = VikunjaClient(base_url=base_url, token=token, timeout=timeout)
+    client.replace_task_fields(task_id, {"due_date": new_due_date})
 
 
 def _load_token(path: Path) -> str:
@@ -879,7 +866,11 @@ def run_sweep(
                             task_id=task_id,
                             new_due_date=new_due_date_et,
                         )
-                    except OSError as exc:
+                    except (VikunjaError, OSError) as exc:
+                        # VikunjaError: typed failures from the shared client
+                        # (HTTP status, timeout, network). OSError: retained
+                        # defensively for any lower-level I/O failure (e.g.
+                        # the token file read inside _ensure_token()).
                         tick.errors.append(
                             SweeperError(
                                 task_id=task_id,

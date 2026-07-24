@@ -20,9 +20,7 @@ cache migration).  Comment fetches still call Vikunja directly via the
 """
 from __future__ import annotations
 
-import io
 import json
-import sys
 import urllib.error
 from datetime import date
 from pathlib import Path
@@ -32,11 +30,7 @@ import pytest
 
 from scripts.enrichment import reconcile_completions as recon
 from scripts.enrichment.reconcile_completions import (
-    DEFAULT_BACKFILL_SINCE,
     EXCLUDED_PROJECT_IDS,
-    FELIX_COMMENT_PREFIX,
-    MalformedComment,
-    ReconcileReport,
     _is_habit_comment,
     _parse_since,
     _record_is_in_window,
@@ -361,7 +355,7 @@ class TestSinceWindowAndParse:
 class TestReconcileHappyPath:
     def test_5_enrichment_comments_produce_5_jsonl_rows(
         self,
-        mock_sync_cache_fixture,
+        mock_sync_cache_fixture,  # noqa: F811
         mock_urlopen,
         tmp_token_file,
         ledger_path,
@@ -439,7 +433,7 @@ class TestReconcileHappyPath:
 
     def test_excluded_projects_skipped(
         self,
-        mock_sync_cache_fixture,
+        mock_sync_cache_fixture,  # noqa: F811
         mock_urlopen,
         tmp_token_file,
         ledger_path,
@@ -496,7 +490,7 @@ class TestReconcileHappyPath:
 
     def test_private_tasks_skipped(
         self,
-        mock_sync_cache_fixture,
+        mock_sync_cache_fixture,  # noqa: F811
         mock_urlopen,
         tmp_token_file,
         ledger_path,
@@ -536,7 +530,7 @@ class TestReconcileHappyPath:
 
     def test_no_task_enumeration_via_vikunja(
         self,
-        mock_sync_cache_fixture,
+        mock_sync_cache_fixture,  # noqa: F811
         mock_urlopen,
         tmp_token_file,
         ledger_path,
@@ -575,7 +569,7 @@ class TestReconcileHappyPath:
 class TestReconcileDisambiguation:
     def test_3_enrichment_plus_2_habit_yields_3_rows(
         self,
-        mock_sync_cache_fixture,
+        mock_sync_cache_fixture,  # noqa: F811
         mock_urlopen,
         tmp_token_file,
         ledger_path,
@@ -643,7 +637,7 @@ class TestReconcileDisambiguation:
 class TestReconcileIdempotency:
     def test_rerun_on_same_comments_writes_zero_new_rows(
         self,
-        mock_sync_cache_fixture,
+        mock_sync_cache_fixture,  # noqa: F811
         mock_urlopen,
         tmp_token_file,
         ledger_path,
@@ -698,7 +692,7 @@ class TestReconcileIdempotency:
 class TestReconcileWindowFilter:
     def test_comments_before_since_skipped(
         self,
-        mock_sync_cache_fixture,
+        mock_sync_cache_fixture,  # noqa: F811
         mock_urlopen,
         tmp_token_file,
         ledger_path,
@@ -752,7 +746,7 @@ class TestReconcileWindowFilter:
 
     def test_since_as_string_parses(
         self,
-        mock_sync_cache_fixture,
+        mock_sync_cache_fixture,  # noqa: F811
         mock_urlopen,
         tmp_token_file,
         ledger_path,
@@ -784,7 +778,7 @@ class TestReconcileWindowFilter:
 class TestReconcileDryRun:
     def test_dry_run_no_writes(
         self,
-        mock_sync_cache_fixture,
+        mock_sync_cache_fixture,  # noqa: F811
         mock_urlopen,
         tmp_token_file,
         ledger_path,
@@ -829,7 +823,7 @@ class TestReconcileDryRun:
 class TestReconcileMalformed:
     def test_malformed_enrichment_comment_surfaced(
         self,
-        mock_sync_cache_fixture,
+        mock_sync_cache_fixture,  # noqa: F811
         mock_urlopen,
         tmp_token_file,
         ledger_path,
@@ -884,7 +878,7 @@ class TestReconcileMalformed:
 class TestCacheStale:
     def test_stale_cache_raises_oserror(
         self,
-        mock_sync_cache_fixture,
+        mock_sync_cache_fixture,  # noqa: F811
         mock_urlopen,
         tmp_token_file,
         ledger_path,
@@ -954,7 +948,7 @@ class TestCLI:
 
     def test_cli_success_emits_summary(
         self,
-        mock_sync_cache_fixture,
+        mock_sync_cache_fixture,  # noqa: F811
         mock_urlopen,
         tmp_token_file,
         ledger_path,
@@ -994,7 +988,7 @@ class TestCLI:
 
     def test_cli_dry_run(
         self,
-        mock_sync_cache_fixture,
+        mock_sync_cache_fixture,  # noqa: F811
         mock_urlopen,
         tmp_token_file,
         ledger_path,
@@ -1035,7 +1029,7 @@ class TestCLI:
 
     def test_cli_vikunja_failure_returns_1(
         self,
-        mock_sync_cache_fixture,
+        mock_sync_cache_fixture,  # noqa: F811
         mock_urlopen,
         tmp_token_file,
         ledger_path,
@@ -1067,7 +1061,7 @@ class TestCLI:
 
     def test_cli_emits_malformed_lines(
         self,
-        mock_sync_cache_fixture,
+        mock_sync_cache_fixture,  # noqa: F811
         mock_urlopen,
         tmp_token_file,
         ledger_path,
@@ -1134,3 +1128,145 @@ class TestExcludedProjectIdsDerivedFromSeam:
         runtime value of the derived frozenset is identical to the prior
         hardcoded ``frozenset({13})``."""
         assert EXCLUDED_PROJECT_IDS == frozenset({13})
+
+
+# ---------------------------------------------------------------------------
+# T013 (WP03, #860) — VikunjaClient migration parity
+# ---------------------------------------------------------------------------
+
+
+class TestVikunjaClientMigration:
+    """Explicit parity coverage for the ``_http_get`` -> ``VikunjaClient``
+    migration (T013). The rest of this module's tests already exercise the
+    real ``urllib.request.urlopen`` call VikunjaClient makes internally (via
+    ``mock_urlopen``), so request shape / emitted-row / exit-code / error
+    parity is already covered end-to-end above (including
+    ``test_cli_vikunja_failure_returns_1`` for the network-failure ->
+    exit 1 path). These tests pin the migration itself.
+    """
+
+    def test_comment_fetch_goes_through_vikunja_client(
+        self,
+        mock_sync_cache_fixture,  # noqa: F811
+        tmp_token_file,
+        fake_vikunja_token,
+        ledger_path,
+        activity_log_sandbox,
+        monkeypatch,
+    ):
+        """Comment fetch calls ``VikunjaClient.list_task_comments``, not raw urllib."""
+        from scripts.common.vikunja_client import VikunjaClient
+
+        mock_sync_cache_fixture(
+            tasks={100: _task_fields(100, project_id=5)},
+        )
+        calls: list[int] = []
+
+        def _spy_init(self, *, base_url=None, token=None, timeout=30.0):
+            assert token == fake_vikunja_token
+            self.base_url = (base_url or "").rstrip("/")
+            self.token = token
+            self.timeout = timeout
+
+        def _spy_list_comments(self, task_id, *, timeout=None):
+            calls.append(task_id)
+            return [
+                _make_felix_enrichment_comment(
+                    comment_id=1,
+                    task_id=task_id,
+                    state="proposed",
+                    timestamp_utc="2026-05-20T10:00:00Z",
+                )
+            ]
+
+        monkeypatch.setattr(VikunjaClient, "__init__", _spy_init)
+        monkeypatch.setattr(
+            VikunjaClient, "list_task_comments", _spy_list_comments
+        )
+
+        report = reconcile(
+            since=date(2026, 4, 11),
+            token_path=tmp_token_file,
+            ledger_path=ledger_path,
+        )
+
+        assert calls == [100]
+        assert report.comments_replayed == 1
+
+    def test_empty_client_response_treated_as_no_comments(
+        self,
+        mock_sync_cache_fixture,  # noqa: F811
+        tmp_token_file,
+        ledger_path,
+        activity_log_sandbox,
+        monkeypatch,
+    ):
+        """WP01 adapter: the client's ``{}`` empty-body return is treated the
+        same as the retired ``_http_get``'s ``None`` — both are falsy, so
+        ``_fetch_comments`` must use a falsy check (not ``is None``) to keep
+        "no comments" behavior identical post-migration."""
+        from scripts.common.vikunja_client import VikunjaClient
+
+        mock_sync_cache_fixture(
+            tasks={100: _task_fields(100, project_id=5)},
+        )
+
+        def _spy_list_comments(self, task_id, *, timeout=None):
+            return {}  # VikunjaClient's empty-body representation.
+
+        monkeypatch.setattr(
+            VikunjaClient, "list_task_comments", _spy_list_comments
+        )
+
+        report = reconcile(
+            since=date(2026, 4, 11),
+            token_path=tmp_token_file,
+            ledger_path=ledger_path,
+        )
+
+        assert report.tasks_scanned == 0
+        assert report.comments_replayed == 0
+
+    def test_client_http_error_reraised_as_oserror_for_cli_compat(
+        self,
+        mock_sync_cache_fixture,  # noqa: F811
+        tmp_token_file,
+        ledger_path,
+        activity_log_sandbox,
+        monkeypatch,
+        capsys,
+    ):
+        """A typed client exception surfaces as ``OSError`` (not the client's
+        own exception type) so ``main()``'s existing ``except OSError``
+        clause keeps routing Vikunja failures to CLI exit 1 without needing
+        to change ``main()`` itself."""
+        from scripts.common.vikunja_client import VikunjaClient
+        from scripts.common.vikunja_client import (
+            VikunjaServerError as _ClientVikunjaServerError,
+        )
+
+        mock_sync_cache_fixture(
+            tasks={100: _task_fields(100, project_id=5)},
+        )
+
+        def _spy_list_comments(self, task_id, *, timeout=None):
+            raise _ClientVikunjaServerError(
+                path=f"/tasks/{task_id}/comments",
+                status=503,
+                body='{"message":"down"}',
+            )
+
+        monkeypatch.setattr(
+            VikunjaClient, "list_task_comments", _spy_list_comments
+        )
+
+        rc_code = main(
+            [
+                "--token-path", str(tmp_token_file),
+                "--ledger-path", str(ledger_path),
+            ]
+        )
+        assert rc_code == 1
+        err = json.loads(capsys.readouterr().err)
+        assert err["step"] == "vikunja"
+        assert "HTTP 503" in err["error"]

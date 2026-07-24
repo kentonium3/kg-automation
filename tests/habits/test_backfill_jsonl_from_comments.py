@@ -29,7 +29,7 @@ import os
 import shutil
 import urllib.error
 from pathlib import Path
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -1046,6 +1046,51 @@ class TestCLI:
             not call.args[0].full_url.rstrip("/").endswith("/projects")
             for call in mock_urlopen.call_args_list
         )
+
+
+# ===========================================================================
+# WP05 (mission #860) — VikunjaClient migration parity
+# ===========================================================================
+
+
+class TestVikunjaClientMigrationWP05:
+    """Parity coverage for WP05: task enumeration + comment fetch now go
+    through the shared ``VikunjaClient`` (``get()`` /
+    ``list_task_comments()``) instead of a hand-rolled ``urllib`` GET
+    helper. The rest of this file's tests already prove the observable
+    HTTP-boundary + OSError contract is unchanged (they patch
+    ``urllib.request.urlopen``, the same seam the client calls); this class
+    additionally proves the *client* drives that seam, not a parallel
+    raw-HTTP path.
+    """
+
+    def test_module_no_longer_imports_urllib_directly(self):
+        assert not hasattr(bf, "urllib")
+        assert hasattr(bf, "VikunjaClient")
+
+    def test_backfill_uses_client_get_and_list_task_comments(
+        self, mock_state_log_dir
+    ):
+        mock_client = MagicMock(name="vikunja_client_instance")
+        mock_client.base_url = "http://test/api/v1"
+        mock_client.get.return_value = [_task(14, "Wake")]
+        mock_client.list_task_comments.return_value = [
+            _felix_comment(101, "2026-05-15", "complete")
+        ]
+        with patch(
+            "scripts.habits.backfill_jsonl_from_comments.VikunjaClient",
+            return_value=mock_client,
+        ) as mock_cls:
+            result = bf.backfill("http://test/api/v1/", "t", dry_run=True)
+
+        mock_cls.assert_called_once_with(
+            base_url="http://test/api/v1/", token="t", timeout=bf.HTTP_TIMEOUT_SECONDS
+        )
+        mock_client.get.assert_called_once_with(
+            f"/projects/{HABITS_PROJECT_ID}/tasks"
+        )
+        mock_client.list_task_comments.assert_called_once_with(14)
+        assert result["records_planned"] == 1
 
 
 # ===========================================================================

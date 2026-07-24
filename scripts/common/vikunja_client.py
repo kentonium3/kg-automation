@@ -38,7 +38,45 @@ Redaction policy (FR-011, FR-012)
 Default ``str(exc)`` returns ``"<ExceptionClass>: <path>"`` only — never
 response body content. ``exc.verbose_message()`` returns the longer
 representation including the status code; intended for ad-hoc debugging,
-never logged by default.
+never logged by default. The raw response body text (when available) is
+captured on ``exc.body`` for adapter use (see "Return/error semantics"
+below) — it is never included in ``str(exc)`` or ``verbose_message()``.
+
+Return/error semantics (WP01, mission retire-vikunja-felix-bot-01KY829X)
+--------------------------------------------------------------------------
+This is Phase 1 (behavior-preserving consolidation, #860). The raw-HTTP
+consumers being migrated in later WPs (WP02-WP06) each hand-roll their own
+``urllib``-based helper with subtly different return/error semantics than
+this client. This client's contract does **not** change to match them —
+instead, each migrating WP adapts its call site. The decision, per
+operation family:
+
+- **Empty / 204 success body.** This client returns ``{}`` (uniform
+  mapping, existing contract). Raw consumers return ``None``. Both are
+  falsy, so a migrated call site that does ``if result:`` needs no change;
+  a call site that does ``if result is None:`` must switch to
+  ``if not result:`` or an explicit ``== {}`` check.
+- **Non-2xx HTTP status.** This client raises a typed
+  :class:`VikunjaHttpError` subclass; ``str(exc)`` is redacted (FR-012) to
+  ``"<Class>: <path>"``. Raw consumers raise a local exception (``OSError``
+  or a domain-specific class) whose *message* embeds
+  ``"{method} {url} failed with HTTP {code}: {body!r}"`` verbatim. A
+  migrated call site that pattern-matches on that raw message text must
+  instead catch the typed exception and read ``exc.status`` /
+  ``exc.body`` (adapter path — the raw body text, uncensored, captured at
+  raise time) to reconstruct equivalent detail, or (preferred) switch to
+  matching on the typed exception class.
+- **Non-JSON 2xx body.** This client raises :class:`VikunjaServerError`
+  (existing contract — a non-JSON 2xx body is a contract violation).
+  Some raw consumers instead *tolerate* a non-JSON 2xx body by returning
+  ``None`` (comment-create in particular carries a defensive comment to
+  this effect). A migrating WP touching a comment-create call site must
+  verify actual server behavior before relying on this client's stricter
+  (raising) contract, and use ``exc.body`` if it needs to inspect what
+  came back.
+
+No migration happens in this WP (T005 only defines the seam); WP02-WP06
+each make the per-call-site adaptation decision explicitly.
 """
 from __future__ import annotations
 
@@ -87,9 +125,17 @@ class VikunjaError(Exception):
     :meth:`verbose_message` for ad-hoc debugging.
     """
 
-    def __init__(self, path: str, status: int | None = None) -> None:
+    def __init__(
+        self, path: str, status: int | None = None, *, body: str | None = None
+    ) -> None:
         self.path = path
         self.status = status
+        #: Raw response body text, when captured (adapter path — see the
+        #: module-level "Return/error semantics" note). Never included in
+        #: ``str(exc)`` or :meth:`verbose_message`; a WP migrating a raw
+        #: consumer reads this directly when it must reconstruct raw-style
+        #: error detail.
+        self.body = body
         super().__init__(f"{type(self).__name__}: {path}")
 
     def verbose_message(self) -> str:
@@ -212,6 +258,21 @@ class VikunjaClient:
     ) -> Any:
         return self._request("PUT", path, params=params, json_body=json, timeout=timeout)
 
+    def patch(
+        self,
+        path: str,
+        *,
+        json: dict | None = None,
+        params: dict[str, str] | None = None,
+        timeout: float | None = None,
+    ) -> Any:
+        """PATCH request. Mirrors :meth:`put` — same contract, PATCH verb.
+
+        Added for the escalation domain (``PATCH /tasks/{id}`` for
+        ``done``/``due_date`` updates — WP01, #860).
+        """
+        return self._request("PATCH", path, params=params, json_body=json, timeout=timeout)
+
     def delete(
         self,
         path: str,
@@ -319,6 +380,112 @@ class VikunjaClient:
         return tasks
 
     # ------------------------------------------------------------------
+    # Shared task/comment operations (WP01, mission #860 — inventory-driven
+    # from the raw-HTTP consumers in scripts/sync, scripts/escalation,
+    # scripts/enrichment, scripts/habits, scripts/security/credential_health_check)
+    # ------------------------------------------------------------------
+
+    def get_task(
+        self, task_id: int, *, timeout: float | None = None
+    ) -> Any:
+        """GET a single task by id.
+
+        Shared single-task read used directly (e.g.
+        ``habits/identify_workout_task.py``) and internally by
+        :meth:`update_task_fields`.
+        """
+        return self.get(f"/tasks/{task_id}", timeout=timeout)
+
+    def replace_task_fields(
+        self, task_id: int, body: dict, *, timeout: float | None = None
+    ) -> Any:
+        """POST ``body`` to ``/tasks/{task_id}`` verbatim — a raw **replace**.
+
+        Vikunja v0.24.6 uses POST (not PATCH) for partial task field
+        updates, and **zeroes any field not present in ``body``**
+        server-side (the POST-partial-replace quirk — see
+        ``habits/record_completion.py`` #524 for the reproducer). Use this
+        method only when the caller deliberately wants replace semantics
+        (e.g. ``habits/migrate_schedule.py`` narrow patch/retire/rollback
+        bodies). Callers that need to preserve unspecified fields (like
+        ``repeat_after``/``repeat_mode``) MUST use
+        :meth:`update_task_fields` instead — the two are kept intentionally
+        distinct (see module docstring "Risks": do not collapse into one
+        generic partial-update method).
+        """
+        return self.post(f"/tasks/{task_id}", json=body, timeout=timeout)
+
+    def update_task_fields(
+        self, task_id: int, changes: dict, *, timeout: float | None = None
+    ) -> Any:
+        """Safe read-modify-write update: GET the task, merge ``changes``, POST.
+
+        Defeats the POST-partial-replace zeroing quirk (see
+        :meth:`replace_task_fields`) by echoing every current field back
+        alongside ``changes`` — so ``repeat_after``, ``repeat_mode``, and
+        any other unspecified field survive the write. Mirrors
+        ``habits/record_completion.py``'s GET-then-POST pattern.
+
+        Args:
+            task_id: Vikunja task id.
+            changes: Fields to override on top of the current task state.
+            timeout: Optional per-call timeout override (applied to both
+                the GET and the POST).
+
+        Returns:
+            The parsed POST response body.
+
+        Raises:
+            VikunjaError: If the GET response body is not a JSON object
+                (contract violation — nothing to merge onto).
+        """
+        current = self.get_task(task_id, timeout=timeout)
+        if not isinstance(current, dict):
+            raise VikunjaError(path=f"/tasks/{task_id}", status=200)
+        merged = dict(current)
+        merged.update(changes)
+        return self.replace_task_fields(task_id, merged, timeout=timeout)
+
+    def create_task_in_project(
+        self, project_id: int, body: dict, *, timeout: float | None = None
+    ) -> Any:
+        """PUT ``body`` to ``/projects/{project_id}/tasks`` — create a task.
+
+        Shared by ``habits/migrate_schedule.py`` and
+        ``security/credential_health_check/vikunja_writer.py``, both of
+        which create tasks via ``PUT /projects/{id}/tasks`` (Vikunja's
+        task-create verb — PUT, not POST).
+        """
+        return self.put(f"/projects/{project_id}/tasks", json=body, timeout=timeout)
+
+    def create_comment(
+        self, task_id: int, comment: str, *, timeout: float | None = None
+    ) -> Any:
+        """Create a comment on a task via ``PUT /tasks/{task_id}/comments``.
+
+        Vikunja's comment-create endpoint is PUT, not POST (the "G4" gotcha
+        documented in ``docs/design/research/vikunja-task-model-research.md``
+        and relied on by ``habits/record_completion.py`` and
+        ``enrichment/record_completion.py``). Passing POST here would be
+        wrong, not merely inconsistent.
+        """
+        return self.put(
+            f"/tasks/{task_id}/comments", json={"comment": comment}, timeout=timeout
+        )
+
+    def list_task_comments(
+        self, task_id: int, *, timeout: float | None = None
+    ) -> Any:
+        """GET the list of comments on a task.
+
+        Used by ``habits/exclude_completed.py``,
+        ``enrichment/reconcile_completions.py``, and
+        ``habits/backfill_jsonl_from_comments.py`` to parse ``[Felix] ...``
+        completion comments.
+        """
+        return self.get(f"/tasks/{task_id}/comments", timeout=timeout)
+
+    # ------------------------------------------------------------------
     # Private request execution + error mapping
     # ------------------------------------------------------------------
 
@@ -338,10 +505,11 @@ class VikunjaClient:
         if json_body is not None:
             data = json.dumps(json_body).encode("utf-8")
         # Per contract: Content-Type: application/json is method-driven.
-        # POST and PUT always advertise a JSON content type, even when the
-        # caller sends no body (e.g. bulk endpoints that take only query
-        # parameters), so the server's content negotiation is unambiguous.
-        if method in ("POST", "PUT"):
+        # POST, PUT, and PATCH always advertise a JSON content type, even
+        # when the caller sends no body (e.g. bulk endpoints that take only
+        # query parameters), so the server's content negotiation is
+        # unambiguous.
+        if method in ("POST", "PUT", "PATCH"):
             headers["Content-Type"] = "application/json"
 
         effective_timeout = timeout if timeout is not None else self.timeout
@@ -353,7 +521,16 @@ class VikunjaClient:
         except socket.timeout:
             raise VikunjaTimeoutError(path=path, status=None) from None
         except urllib.error.HTTPError as exc:
-            raise self._map_http_error(path, exc.code) from None
+            # Capture the raw error body for the adapter path (module
+            # docstring "Return/error semantics") — never surfaced via
+            # str(exc)/verbose_message(), only via exc.body.
+            try:
+                raw_error_body: str | None = exc.read().decode(
+                    "utf-8", errors="replace"
+                )
+            except Exception:  # pragma: no cover — purely defensive
+                raw_error_body = None
+            raise self._map_http_error(path, exc.code, body=raw_error_body) from None
         except urllib.error.URLError as exc:
             if isinstance(exc.reason, socket.timeout):
                 raise VikunjaTimeoutError(path=path, status=None) from None
@@ -367,7 +544,9 @@ class VikunjaClient:
         try:
             return json.loads(body)
         except json.JSONDecodeError:
-            raise VikunjaServerError(path=path, status=200) from None
+            raise VikunjaServerError(
+                path=path, status=200, body=body.decode("utf-8", errors="replace")
+            ) from None
 
     def _compose_url(
         self, path: str, params: dict[str, str] | None
@@ -399,13 +578,15 @@ class VikunjaClient:
         return urllib.parse.urlunparse(parsed._replace(query=new_query))
 
     @staticmethod
-    def _map_http_error(path: str, status: int) -> VikunjaHttpError:
+    def _map_http_error(
+        path: str, status: int, *, body: str | None = None
+    ) -> VikunjaHttpError:
         if status == 401:
-            return VikunjaAuthError(path=path, status=status)
+            return VikunjaAuthError(path=path, status=status, body=body)
         if status == 404:
-            return VikunjaNotFoundError(path=path, status=status)
+            return VikunjaNotFoundError(path=path, status=status, body=body)
         if status == 400:
-            return VikunjaBadRequestError(path=path, status=status)
+            return VikunjaBadRequestError(path=path, status=status, body=body)
         if 500 <= status < 600:
-            return VikunjaServerError(path=path, status=status)
-        return VikunjaHttpError(path=path, status=status)
+            return VikunjaServerError(path=path, status=status, body=body)
+        return VikunjaHttpError(path=path, status=status, body=body)

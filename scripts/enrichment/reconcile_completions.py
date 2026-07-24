@@ -82,12 +82,10 @@ import json
 import re
 import sys
 import time
-import urllib.error
-import urllib.request
 from dataclasses import dataclass, field
-from datetime import date, datetime, timezone
+from datetime import date, datetime
 from pathlib import Path
-from typing import Any, Iterable, Optional
+from typing import Iterable, Optional
 
 from scripts.common import vikunja_refs
 from scripts.common.sync_cache import (
@@ -95,13 +93,14 @@ from scripts.common.sync_cache import (
     SLATier,
     read_cached_tasks,
 )
+from scripts.common.vikunja_client import VikunjaClient
+from scripts.common.vikunja_client import VikunjaError as _ClientVikunjaError
 from scripts.common.vikunja_config import get_vikunja_base_url
 from scripts.enrichment import record_completion as rc
 from scripts.enrichment.record_completion import (
     DEFAULT_TOKEN_PATH,
     EnrichmentSchemaError,
     StateLogError,
-    VikunjaError,
 )
 from scripts.enrichment.schema import (
     DEFAULT_LEDGER_PATH,
@@ -262,15 +261,8 @@ class _DateParseError(ValueError):
 
 
 # ---------------------------------------------------------------------------
-# HTTP helpers (urllib-only, mirrors escalation backfill)
+# HTTP helpers (WP03, mission #860: migrated onto the shared VikunjaClient)
 # ---------------------------------------------------------------------------
-
-
-def _join_url(base: str, path: str) -> str:
-    """Join a base URL and a path, tolerating missing/extra slashes."""
-    if not base.endswith("/"):
-        base = base + "/"
-    return base + path.lstrip("/")
 
 
 def _read_token(token_path: Path) -> str:
@@ -289,58 +281,40 @@ def _read_token(token_path: Path) -> str:
     return content
 
 
-def _http_get(url: str, token: str) -> Any:
-    """Issue an authenticated GET via urllib. Returns parsed JSON (or None).
-
-    Raises:
-        OSError: On network failure, non-2xx HTTP status, or non-JSON body.
-    """
-    headers = {
-        "Accept": "application/json",
-        "Authorization": f"Bearer {token}",
-    }
-    req = urllib.request.Request(url, headers=headers, method="GET")
-    try:
-        with urllib.request.urlopen(
-            req, timeout=HTTP_TIMEOUT_SECONDS
-        ) as resp:
-            status = resp.status
-            raw = resp.read().decode("utf-8", errors="replace")
-    except urllib.error.HTTPError as exc:
-        try:
-            err_body = exc.read().decode("utf-8", errors="replace")
-        except Exception:  # pragma: no cover - defensive
-            err_body = ""
-        raise OSError(
-            f"GET {url} failed with HTTP {exc.code}: {err_body!r}"
-        ) from exc
-    except urllib.error.URLError as exc:
-        raise OSError(f"GET {url} network failure: {exc}") from exc
-
-    if status < 200 or status >= 300:
-        raise OSError(f"GET {url} returned HTTP {status}: {raw!r}")
-
-    if not raw.strip():
-        return None
-    try:
-        return json.loads(raw)
-    except json.JSONDecodeError as exc:
-        raise OSError(
-            f"GET {url} returned non-JSON body: {raw!r} ({exc})"
-        ) from exc
-
-
 def _fetch_comments(
     base_url: str, token: str, task_id: int
 ) -> list[dict]:
-    """Fetch comments for a single task.
+    """Fetch comments for a single task via :class:`VikunjaClient`.
+
+    Adapted to preserve the pre-migration ``_http_get``/``_fetch_comments``
+    contract that :func:`reconcile`/:func:`main` rely on:
+
+    - Empty body: the client returns ``{}`` (WP01 "empty/204 success body"
+      semantics), not ``None`` as the retired ``_http_get`` did — handled
+      here via a falsy check (``{}`` and ``None`` are both falsy) rather
+      than an ``is None`` check, per the WP01 adapter note.
+    - Any HTTP/network/timeout failure is re-raised as :class:`OSError`
+      (not the client's typed exception) so ``main()``'s existing
+      ``except OSError`` clause continues to route Vikunja failures to
+      CLI exit 1 (``step: "vikunja"``) without needing to change ``main()``.
 
     Raises:
         OSError: On HTTP/network failure or non-list payload.
     """
-    url = _join_url(base_url, f"tasks/{task_id}/comments")
-    payload = _http_get(url, token)
-    if payload is None:
+    client = VikunjaClient(base_url=base_url, token=token, timeout=HTTP_TIMEOUT_SECONDS)
+    path = f"/tasks/{task_id}/comments"
+    url = f"{client.base_url}{path}"
+    try:
+        payload = client.list_task_comments(task_id)
+    except _ClientVikunjaError as exc:
+        if exc.status is not None:
+            raise OSError(
+                f"GET {url} failed with HTTP {exc.status}: {exc.body!r}"
+            ) from exc
+        raise OSError(
+            f"GET {url} network failure: {exc.verbose_message()}"
+        ) from exc
+    if not payload:
         return []
     if not isinstance(payload, list):
         raise OSError(
@@ -409,7 +383,10 @@ def parse_comment(
         # other malformed shape. The caller already invoked
         # ``_is_habit_comment`` before this; if the regex misses here it's
         # truly malformed.
-        return None, "regex mismatch (expected '[Felix] enrichment | <state> | <timestamp>[| <note>]')"
+        return None, (
+            "regex mismatch (expected '[Felix] enrichment | <state> | "
+            "<timestamp>[| <note>]')"
+        )
 
     state = match.group("state").strip()
     timestamp_raw = match.group("timestamp").strip()
@@ -591,82 +568,82 @@ def reconcile(
         tasks_scanned += 1
 
         for c in felix:
-                comments_parsed += 1
-                body = c.get("comment") or c.get("body") or ""
-                comment_id = c.get("id")
+            comments_parsed += 1
+            body = c.get("comment") or c.get("body") or ""
+            comment_id = c.get("id")
 
-                # FR-007 disambiguation: habit comments skipped silently.
-                if _is_habit_comment(body):
-                    habit_comments_skipped += 1
-                    continue
+            # FR-007 disambiguation: habit comments skipped silently.
+            if _is_habit_comment(body):
+                habit_comments_skipped += 1
+                continue
 
-                # Parse as enrichment.
-                record, reason = parse_comment(body, task_id=task_id)
-                if record is None:
-                    snippet = (body or "")[:160]
-                    malformed.append(
-                        MalformedComment(
-                            task_id=task_id,
-                            comment_id=(
-                                comment_id
-                                if isinstance(comment_id, int)
-                                else None
-                            ),
-                            snippet=snippet,
-                            reason=reason or "unknown parse failure",
-                        )
+            # Parse as enrichment.
+            record, reason = parse_comment(body, task_id=task_id)
+            if record is None:
+                snippet = (body or "")[:160]
+                malformed.append(
+                    MalformedComment(
+                        task_id=task_id,
+                        comment_id=(
+                            comment_id
+                            if isinstance(comment_id, int)
+                            else None
+                        ),
+                        snippet=snippet,
+                        reason=reason or "unknown parse failure",
                     )
-                    continue
+                )
+                continue
 
-                enrichment_comments_found += 1
+            enrichment_comments_found += 1
 
-                # FR-008: window filter.
-                if not _record_is_in_window(record, since_date):
-                    comments_out_of_window += 1
-                    continue
+            # FR-008: window filter.
+            if not _record_is_in_window(record, since_date):
+                comments_out_of_window += 1
+                continue
 
-                if dry_run:
-                    # Dry-run reports the upper bound — no dedup pre-check
-                    # is performed because we are not writing anything.
-                    comments_replayed += 1
-                    continue
+            if dry_run:
+                # Dry-run reports the upper bound — no dedup pre-check
+                # is performed because we are not writing anything.
+                comments_replayed += 1
+                continue
 
-                # Live: invoke record_completion.record with --no-vikunja.
-                # The underlying ledger append handles fcntl-locked dedup
-                # via (task_id, state) — FR-009 idempotency.
-                try:
-                    result = rc.record(
-                        task_id=record["task_id"],
-                        state=record["state"],
-                        source="backfill",
-                        note=record.get("note"),
-                        timestamp_utc=record["timestamp_utc"],
-                        skip_vikunja=True,
-                        ledger_path=ledger_path,
-                        idempotent=True,
+            # Live: invoke record_completion.record with --no-vikunja.
+            # The underlying ledger append handles fcntl-locked dedup
+            # via (task_id, state) — FR-009 idempotency.
+            try:
+                result = rc.record(
+                    task_id=record["task_id"],
+                    state=record["state"],
+                    source="backfill",
+                    note=record.get("note"),
+                    timestamp_utc=record["timestamp_utc"],
+                    skip_vikunja=True,
+                    ledger_path=ledger_path,
+                    idempotent=True,
+                )
+            except EnrichmentSchemaError as exc:
+                # Defensive: parse_comment built the record, but the
+                # schema validator may still reject it.
+                snippet = (body or "")[:160]
+                malformed.append(
+                    MalformedComment(
+                        task_id=task_id,
+                        comment_id=(
+                            comment_id
+                            if isinstance(comment_id, int)
+                            else None
+                        ),
+                        snippet=snippet,
+                        reason=f"record validation rejected: {exc}",
                     )
-                except EnrichmentSchemaError as exc:
-                    # Defensive: parse_comment built the record, but the
-                    # schema validator may still reject it.
-                    snippet = (body or "")[:160]
-                    malformed.append(
-                        MalformedComment(
-                            task_id=task_id,
-                            comment_id=(
-                                comment_id
-                                if isinstance(comment_id, int)
-                                else None
-                            ),
-                            snippet=snippet,
-                            reason=f"record validation rejected: {exc}",
-                        )
-                    )
-                    continue
+                )
+                continue
 
-                if result.get("deduped"):
-                    comments_deduped += 1
-                else:
-                    comments_replayed += 1
+            if result.get("deduped"):
+                comments_deduped += 1
+            else:
+                comments_replayed += 1
 
     duration = time.monotonic() - started_at
     return ReconcileReport(

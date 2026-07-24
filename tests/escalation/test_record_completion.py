@@ -1086,12 +1086,22 @@ class TestHttpEdgeCases:
         tmp_token_file,
         make_jsonl_record,
     ):
-        """Status 199 (no HTTPError raised) still raises VikunjaError.
+        """A non-2xx status (incl. an unusual 199) still raises VikunjaError.
 
-        Uses ``state=done`` since post-parity-cleanup only done/rescheduled
-        produce a Vikunja call.
+        WP03 (#860) migration note: pre-migration, ``_http_request`` ran its
+        own manual ``if status < 200 or status >= 300`` check as a defensive
+        backstop reachable only by a hand-crafted mock urlopen response that
+        bypasses urlopen's real error handling — a real
+        ``urllib.request.urlopen()`` call always raises
+        ``urllib.error.HTTPError`` for a non-2xx response (stdlib
+        ``HTTPErrorProcessor``), so that branch was unreachable in
+        production. ``VikunjaClient`` (WP01) relies on the same stdlib
+        guarantee and does not re-implement the redundant check. This test
+        now exercises the real code path — urlopen raising ``HTTPError`` for
+        a non-2xx status — which is how a status of 199 would actually reach
+        this code in production.
         """
-        mock_urlopen.side_effect = [_resp(None, status=199)]
+        mock_urlopen.side_effect = _http_error(199, b"")
         record = make_jsonl_record(state="done", source="kent_reply")
         with pytest.raises(VikunjaError, match="HTTP 199"):
             record_event(record, token_path=tmp_token_file)
@@ -1116,3 +1126,117 @@ class TestHttpEdgeCases:
         record = make_jsonl_record(state="level_sent", level=1)
         result = record_event(record, token_path=tmp_token_file)
         assert result["ok"] is True
+
+
+# ---------------------------------------------------------------------------
+# Group 12 — VikunjaClient migration parity (WP03, #860)
+# ---------------------------------------------------------------------------
+
+
+class TestVikunjaClientMigration:
+    """Explicit parity coverage for the ``_http_request`` -> ``VikunjaClient``
+    migration (T010). The rest of this module's tests already exercise the
+    real ``urllib.request.urlopen`` call VikunjaClient makes internally (via
+    ``mock_urlopen``), so request shape / emitted record / exit code / error
+    message parity is already covered end-to-end above. These tests pin the
+    migration itself: the done/rescheduled PATCH goes through
+    ``VikunjaClient.patch`` (not a hand-rolled urllib helper).
+    """
+
+    def test_done_patch_goes_through_vikunja_client(
+        self,
+        jsonl_sandbox,
+        tmp_token_file,
+        fake_vikunja_token,
+        make_jsonl_record,
+        monkeypatch,
+    ):
+        """``state=done`` calls ``VikunjaClient.patch("/tasks/{id}", json=...)``."""
+        from scripts.common.vikunja_client import VikunjaClient
+
+        calls: list[tuple[str, dict]] = []
+        original_init = VikunjaClient.__init__
+
+        def _spy_init(self, *, base_url=None, token=None, timeout=30.0):
+            original_init(self, base_url=base_url, token=token, timeout=timeout)
+            assert token == fake_vikunja_token
+
+        def _spy_patch(self, path, *, json=None, params=None, timeout=None):
+            calls.append((path, json))
+            return {"id": 1234, "done": True}
+
+        monkeypatch.setattr(VikunjaClient, "__init__", _spy_init)
+        monkeypatch.setattr(VikunjaClient, "patch", _spy_patch)
+
+        record = make_jsonl_record(state="done", source="kent_reply")
+        record_event(record, token_path=tmp_token_file)
+
+        assert calls == [("/tasks/1234", {"done": True})]
+
+    def test_rescheduled_patch_goes_through_vikunja_client(
+        self,
+        jsonl_sandbox,
+        tmp_token_file,
+        make_jsonl_record,
+        monkeypatch,
+    ):
+        """``state=rescheduled`` calls ``VikunjaClient.patch`` with ``due_date``."""
+        from scripts.common.vikunja_client import VikunjaClient
+
+        calls: list[tuple[str, dict]] = []
+
+        def _spy_patch(self, path, *, json=None, params=None, timeout=None):
+            calls.append((path, json))
+            return {"id": 1234, "due_date": json.get("due_date")}
+
+        monkeypatch.setattr(VikunjaClient, "patch", _spy_patch)
+
+        record = make_jsonl_record(
+            state="rescheduled",
+            source="kent_reply",
+            reschedule_to="2026-06-15",
+        )
+        record_event(record, token_path=tmp_token_file)
+
+        assert len(calls) == 1
+        path, body = calls[0]
+        assert path == "/tasks/1234"
+        assert body == {"due_date": "2026-06-15T23:59:59-04:00"}
+
+    def test_client_http_error_reraised_as_module_vikunja_error(
+        self,
+        jsonl_sandbox,
+        tmp_token_file,
+        make_jsonl_record,
+        monkeypatch,
+    ):
+        """A typed client exception is translated to this module's ``VikunjaError``.
+
+        Confirms the adapter path documented in ``vikunja_client.py``'s
+        "Return/error semantics" note: the client's typed exception carries
+        ``status``/``body``; the migrated call site reconstructs an
+        equivalent message rather than leaking the client's own exception
+        type to callers (which still expect ``scripts.escalation.
+        record_completion.VikunjaError``).
+        """
+        from scripts.common.vikunja_client import VikunjaClient
+        from scripts.common.vikunja_client import (
+            VikunjaServerError as _ClientVikunjaServerError,
+        )
+
+        def _spy_patch(self, path, *, json=None, params=None, timeout=None):
+            raise _ClientVikunjaServerError(
+                path=path, status=503, body='{"message":"down"}'
+            )
+
+        monkeypatch.setattr(VikunjaClient, "patch", _spy_patch)
+
+        record = make_jsonl_record(state="done", source="kent_reply")
+        with pytest.raises(VikunjaError, match="HTTP 503") as excinfo:
+            record_event(record, token_path=tmp_token_file)
+        # The reconstructed message surfaces the client's captured raw body
+        # (adapter path), matching the pre-migration ``_http_request``
+        # message content.
+        assert "down" in str(excinfo.value)
+        path = jsonl_sandbox / "project-4-escalation-history.jsonl"
+        assert not path.exists() or _read_jsonl(path) == []

@@ -220,6 +220,34 @@ def test_put_without_body_sets_content_type(mock_vikunja_urlopen) -> None:
 
 
 # ---------------------------------------------------------------------------
+# patch() (T001 — mirrors put(), PATCH content-type)
+# ---------------------------------------------------------------------------
+
+
+def test_patch_serializes_json_body_and_sets_content_type(mock_vikunja_urlopen) -> None:
+    calls = mock_vikunja_urlopen("mock_response_200_object")
+    _client().patch("/tasks/7", json={"done": True})
+    req = calls[0]
+    assert req.get_method() == "PATCH"
+    assert req.get_header("Content-type") == "application/json"
+    assert json.loads(req.data.decode("utf-8")) == {"done": True}
+
+
+def test_patch_without_body_sets_content_type(mock_vikunja_urlopen) -> None:
+    # PATCH mirrors POST/PUT — bodyless PATCHes still advertise
+    # application/json (per _request's method-driven content-type rule).
+    calls = mock_vikunja_urlopen("mock_response_200_object")
+    _client().patch("/tasks/7")
+    assert calls[0].get_header("Content-type") == "application/json"
+    assert calls[0].data is None
+
+
+def test_patch_empty_body_response_returns_empty_dict(mock_vikunja_urlopen) -> None:
+    mock_vikunja_urlopen("mock_response_204_no_content")
+    assert _client().patch("/tasks/7", json={"done": True}) == {}
+
+
+# ---------------------------------------------------------------------------
 # Param encoding
 # ---------------------------------------------------------------------------
 
@@ -281,6 +309,129 @@ def test_get_preserves_embedded_query_when_no_params(mock_vikunja_urlopen) -> No
     parsed = urllib.parse.urlparse(calls[0].full_url)
     qs = urllib.parse.parse_qs(parsed.query)
     assert qs == {"filter": ["done=true"]}
+
+
+# ---------------------------------------------------------------------------
+# Shared task/comment operations (T002-T004)
+# ---------------------------------------------------------------------------
+
+
+def test_get_task_issues_get_to_tasks_path(mock_vikunja_urlopen) -> None:
+    calls = mock_vikunja_urlopen("mock_response_200_object")
+    result = _client().get_task(7)
+    assert result == {"id": 7, "title": "One task", "done": True}
+    assert calls[0].get_method() == "GET"
+    assert calls[0].full_url == f"{TEST_BASE_URL}/tasks/7"
+
+
+def test_replace_task_fields_posts_body_verbatim(mock_vikunja_urlopen) -> None:
+    # T002 — raw POST-replace. The body goes out exactly as given; no
+    # merge, no GET. Vikunja v0.24.6 zeroes any field not included here.
+    calls = mock_vikunja_urlopen("mock_response_200_object")
+    body = {"done": True}
+    _client().replace_task_fields(42, body)
+    req = calls[0]
+    assert req.get_method() == "POST"
+    assert req.full_url == f"{TEST_BASE_URL}/tasks/42"
+    assert req.get_header("Content-type") == "application/json"
+    assert json.loads(req.data.decode("utf-8")) == {"done": True}
+
+
+def test_update_task_fields_preserves_repeat_after_via_read_modify_write() -> None:
+    # T003 — the core proof: a read-modify-write update on a task with
+    # repeat_after set must NOT zero it out, unlike a raw POST-replace.
+    client = _client()
+    current_task = {
+        "id": 42,
+        "title": "Daily habit",
+        "done": False,
+        "repeat_after": 86400,
+        "repeat_mode": 0,
+    }
+    get_calls: list[str] = []
+    post_calls: list[tuple[str, dict]] = []
+
+    def fake_get(path, *, params=None, timeout=None):
+        get_calls.append(path)
+        assert path == "/tasks/42"
+        return dict(current_task)
+
+    def fake_post(path, *, json=None, params=None, timeout=None):
+        post_calls.append((path, json))
+        return {**current_task, **json}
+
+    client.get = fake_get  # type: ignore[assignment]
+    client.post = fake_post  # type: ignore[assignment]
+
+    result = client.update_task_fields(42, {"done": True})
+
+    assert get_calls == ["/tasks/42"]
+    assert len(post_calls) == 1
+    posted_path, posted_body = post_calls[0]
+    assert posted_path == "/tasks/42"
+    # The requested change is applied...
+    assert posted_body["done"] is True
+    # ...but repeat_after/repeat_mode — NOT part of `changes` — survive.
+    # This is the zeroing quirk being defeated.
+    assert posted_body["repeat_after"] == 86400
+    assert posted_body["repeat_mode"] == 0
+    assert result["repeat_after"] == 86400
+
+
+def test_update_task_fields_changes_override_current_values() -> None:
+    client = _client()
+
+    def fake_current_get(path, **kw):
+        return {"id": 1, "done": False, "title": "Old"}
+
+    client.get = fake_current_get  # type: ignore[assignment]
+    seen = {}
+
+    def fake_post(path, *, json=None, **kw):
+        seen["body"] = json
+        return json
+
+    client.post = fake_post  # type: ignore[assignment]
+    client.update_task_fields(1, {"title": "New"})
+    assert seen["body"]["title"] == "New"
+    assert seen["body"]["done"] is False
+
+
+def test_update_task_fields_raises_when_get_returns_non_dict() -> None:
+    client = _client()
+    client.get = lambda path, **kw: [1, 2, 3]  # type: ignore[assignment]
+    with pytest.raises(VikunjaError):
+        client.update_task_fields(1, {"done": True})
+
+
+def test_create_task_in_project_puts_to_project_tasks_path(mock_vikunja_urlopen) -> None:
+    calls = mock_vikunja_urlopen("mock_response_200_object")
+    body = {"title": "New task", "due_date": "2026-01-01T00:00:00Z"}
+    _client().create_task_in_project(13, body)
+    req = calls[0]
+    assert req.get_method() == "PUT"
+    assert req.full_url == f"{TEST_BASE_URL}/projects/13/tasks"
+    assert json.loads(req.data.decode("utf-8")) == body
+
+
+def test_create_comment_uses_put_not_post(mock_vikunja_urlopen) -> None:
+    # G4 quirk: Vikunja's comment-create endpoint is PUT, not POST.
+    calls = mock_vikunja_urlopen("mock_response_200_object")
+    _client().create_comment(42, "[Felix] 2026-07-23 | complete")
+    req = calls[0]
+    assert req.get_method() == "PUT"
+    assert req.full_url == f"{TEST_BASE_URL}/tasks/42/comments"
+    assert json.loads(req.data.decode("utf-8")) == {
+        "comment": "[Felix] 2026-07-23 | complete"
+    }
+
+
+def test_list_task_comments_issues_get_to_comments_path(mock_vikunja_urlopen) -> None:
+    calls = mock_vikunja_urlopen("mock_response_200_json")
+    result = _client().list_task_comments(42)
+    assert result == [{"id": 1, "title": "Sample habit", "done": False}]
+    assert calls[0].get_method() == "GET"
+    assert calls[0].full_url == f"{TEST_BASE_URL}/tasks/42/comments"
 
 
 # ---------------------------------------------------------------------------
@@ -389,6 +540,54 @@ def test_base_exception_can_be_caught_for_any_subclass(mock_vikunja_urlopen) -> 
     mock_vikunja_urlopen("mock_response_500")
     with pytest.raises(VikunjaError):
         _client().get("/tasks")
+
+
+# ---------------------------------------------------------------------------
+# Return/error semantics adapter path (T005) — exc.body captures the raw
+# response text without leaking it into str(exc)/verbose_message().
+# ---------------------------------------------------------------------------
+
+
+def test_http_error_captures_raw_body_on_exception_for_adapters(
+    mock_vikunja_urlopen,
+) -> None:
+    mock_vikunja_urlopen("mock_response_401")
+    with pytest.raises(VikunjaAuthError) as info:
+        _client().get("/projects/13/tasks")
+    # Adapter path: the raw body IS available on the exception...
+    assert "Invalid token" in info.value.body
+    # ...but str(exc) stays redacted (FR-012, unchanged by this addition).
+    assert "Invalid token" not in str(info.value)
+    assert "Invalid token" not in info.value.verbose_message()
+
+
+def test_non_json_2xx_body_error_captures_raw_body(mock_vikunja_urlopen) -> None:
+    mock_vikunja_urlopen("mock_response_non_json")
+    with pytest.raises(VikunjaServerError) as info:
+        _client().get("/tasks")
+    assert info.value.body == "<html>not json</html>"
+
+
+def test_network_layer_errors_leave_body_none(mock_vikunja_urlopen) -> None:
+    mock_vikunja_urlopen("mock_response_timeout")
+    with pytest.raises(VikunjaTimeoutError) as info:
+        _client().get("/tasks")
+    assert info.value.body is None
+
+
+# ---------------------------------------------------------------------------
+# Default token path — zero identity change this phase (SC-004, T005)
+# ---------------------------------------------------------------------------
+
+
+def test_default_token_path_is_still_felix_bot_path() -> None:
+    # Phase 1 (#860) is behavior-preserving: the client must keep pointing at
+    # the felix-bot token until the (separate, Phase 2) cutover WP flips it.
+    from pathlib import Path
+
+    assert vc.DEFAULT_TOKEN_PATH == Path(
+        "/data/services/openclaw/secrets/vikunja-api"
+    )
 
 
 # ---------------------------------------------------------------------------

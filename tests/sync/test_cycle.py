@@ -59,8 +59,15 @@ def _http_error(code: int = 500, body: bytes = b'{"message":"boom"}'):
 
 @pytest.fixture
 def mock_urlopen(monkeypatch):
+    """Patch ``urllib.request.urlopen`` as seen by ``VikunjaClient``.
+
+    WP02 migration note: sync now routes every Vikunja call through
+    ``VikunjaClient`` instead of the retired ``scripts/sync/http.py`` urllib
+    wrapper, so the patch target moved to
+    ``scripts.common.vikunja_client.urllib...``.
+    """
     mock = MagicMock()
-    monkeypatch.setattr("scripts.sync.http.urllib.request.urlopen", mock)
+    monkeypatch.setattr("scripts.common.vikunja_client.urllib.request.urlopen", mock)
     return mock
 
 
@@ -161,7 +168,9 @@ class TestSteadyStateHappy:
         assert result.success is True
         # Freshness advanced to NOW.
         fresh = st.read_freshness(state_dir)
-        assert fresh.layers[cy.LAYER_STATUS_AND_TASK].last_polled_utc.startswith("2026-06-04T19:25:30")
+        assert fresh.layers[cy.LAYER_STATUS_AND_TASK].last_polled_utc.startswith(
+            "2026-06-04T19:25:30"
+        )
         # last-tick.json written with success — schema_version 2 + layer_summary.
         last = json.loads((state_dir / st.LAST_TICK_FILENAME).read_text())
         assert last["cycle_error"] is None
@@ -338,8 +347,10 @@ class TestFailureInjection:
             tasks=[{"id": 14, "title": "NewTitle", "updated": "2026-06-04T19:24:00Z"}]
         )
         # Force emit failure.
+
         def _boom(*a, **k):
             raise OSError("simulated emit failure")
+
         monkeypatch.setattr("scripts.sync.cycle.emit_events", _boom)
         result = cy.run_cycle(_config(state_dir, secrets_dir), now_utc=NOW_UTC)
         assert result.exit_code == 2

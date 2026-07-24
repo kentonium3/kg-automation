@@ -2,18 +2,30 @@
 
 See kitty-specs/credential-expiry-health-check-01KRCF92/contracts/vikunja-task-writer.md
 for the authoritative contract.
+
+HTTP conventions (WP06, mission retire-vikunja-felix-bot-01KY829X, #860)
+-------------------------------------------------------------------------
+This module used to hand-roll its own ``urllib``-based request helper. It
+now issues its single write (task create) through the shared
+:class:`~scripts.common.vikunja_client.VikunjaClient` (``create_task_in_project``,
+the same ``PUT /projects/{id}/tasks`` verb this module always used). This is
+Phase 1 (behavior-preserving consolidation) — the module's public contract
+(``VikunjaWriteError``, ``load_token``, ``create_task``) is unchanged;
+:func:`_adapt_vikunja_error` translates the client's typed exceptions into
+this module's pre-existing :class:`VikunjaWriteError` with an equivalent
+message, per the "Return/error semantics" note in the ``vikunja_client``
+module docstring.
 """
 from __future__ import annotations
 
-import json
-import urllib.error
-import urllib.request
 from datetime import date, datetime, timedelta
 from pathlib import Path
 from typing import Optional
 from zoneinfo import ZoneInfo
 
 from scripts.common import vikunja_refs
+from scripts.common.vikunja_client import VikunjaClient
+from scripts.common.vikunja_client import VikunjaError as _ClientVikunjaError
 from scripts.common.vikunja_config import get_vikunja_base_url
 from .manifest import Credential
 
@@ -76,32 +88,25 @@ def load_token(path: Path = VIKUNJA_TOKEN_PATH) -> str:
         raise VikunjaWriteError(f"Could not read vikunja-api token at {path}: {e}") from e
 
 
-def _request_json(
-    method: str,
-    url: str,
-    token: str,
-    payload: Optional[dict] = None,
-    timeout: int = 15,
-) -> dict | list:
-    headers = {"Authorization": f"Bearer {token}"}
-    data: Optional[bytes] = None
-    if payload is not None:
-        data = json.dumps(payload).encode("utf-8")
-        headers["Content-Type"] = "application/json"
-    req = urllib.request.Request(url, data=data, headers=headers, method=method)
-    try:
-        with urllib.request.urlopen(req, timeout=timeout) as resp:
-            body = resp.read()
-        return json.loads(body) if body else {}
-    except urllib.error.HTTPError as e:
-        err_body = e.read().decode("utf-8", "ignore") if hasattr(e, "read") else ""
-        raise VikunjaWriteError(
-            f"Vikunja {method} {url} failed: HTTP {e.code} — {err_body[:200]}"
-        ) from e
-    except urllib.error.URLError as e:
-        raise VikunjaWriteError(f"Vikunja {method} {url} network error: {e}") from e
-    except json.JSONDecodeError as e:
-        raise VikunjaWriteError(f"Vikunja {method} {url} returned non-JSON: {e}") from e
+def _adapt_vikunja_error(
+    method: str, url: str, exc: _ClientVikunjaError
+) -> VikunjaWriteError:
+    """Translate a ``VikunjaClient`` exception into this module's ``VikunjaWriteError``.
+
+    Preserves the pre-migration message shape (``"Vikunja {method} {url}
+    failed: HTTP {code} — {body}"`` for HTTP-status failures; a network/
+    timeout-flavored message otherwise) using the client's typed
+    ``exc.status``/``exc.body`` rather than raw ``urllib`` exception text —
+    see the ``vikunja_client`` module docstring "Return/error semantics".
+    """
+    if exc.status is not None:
+        body = (exc.body or "")[:200]
+        return VikunjaWriteError(
+            f"Vikunja {method} {url} failed: HTTP {exc.status} — {body}"
+        )
+    return VikunjaWriteError(
+        f"Vikunja {method} {url} network error: {exc.verbose_message()}"
+    )
 
 
 def create_task(
@@ -130,13 +135,14 @@ def create_task(
         "description": task_description(credential, boundary, github_issue_number),
         "due_date": render_due_date_iso(due_date_for_boundary(boundary)),
     }
-    body = _request_json(
-        "PUT",
-        f"{get_vikunja_base_url()}projects/{inbox_project_id}/tasks",
-        token,
-        payload=payload,
-        timeout=15,
-    )
+    url = f"{get_vikunja_base_url()}projects/{inbox_project_id}/tasks"
+    try:
+        client = VikunjaClient(base_url=get_vikunja_base_url(), token=token, timeout=15)
+        body = client.create_task_in_project(inbox_project_id, payload)
+    except (_ClientVikunjaError, ValueError) as exc:
+        if isinstance(exc, _ClientVikunjaError):
+            raise _adapt_vikunja_error("PUT", url, exc) from exc
+        raise VikunjaWriteError(f"Vikunja {url} client configuration error: {exc}") from exc
     if not isinstance(body, dict) or "id" not in body:
         raise VikunjaWriteError(
             f"Vikunja task create response missing 'id': {str(body)[:200]}"

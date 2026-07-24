@@ -745,6 +745,66 @@ class TestRunSweepFailureModes:
         assert tick.exit_status == "partial"
 
 
+class TestVikunjaClientMigrationWP05:
+    """Parity coverage for WP05 (mission #860): the sweeper's day-specific
+    ``due_date`` PUT now goes through the shared ``VikunjaClient`` instead
+    of a hand-rolled ``urllib`` call. The rest of this file's tests already
+    prove the observable HTTP-boundary behavior is unchanged (they patch
+    ``urllib.request.urlopen``, the same seam the client itself calls); this
+    class additionally proves the *client* is the thing driving that seam,
+    not a parallel raw-HTTP path.
+    """
+
+    def test_module_no_longer_imports_urllib_directly(self):
+        assert not hasattr(sweeper, "urllib")
+        assert hasattr(sweeper, "VikunjaClient")
+
+    def test_dayspecific_put_uses_vikunja_client_replace_task_fields(
+        self, tmp_path
+    ):
+        schedule = _write_schedule(tmp_path)
+        state_dir = tmp_path / "state"
+        history_path = tmp_path / "history.jsonl"
+        token_path = tmp_path / "token"
+        token_path.write_text("token-xxx\n", encoding="utf-8")
+        _write_checkin(
+            state_dir,
+            "2026-05-27",
+            "2026-05-27T11:05:00Z",
+            [
+                {
+                    "vikunja_task_id": 76,
+                    "title": "Strength training — Wednesday",
+                    "designated_weekdays": ["Wed"],
+                }
+            ],
+        )
+        mock_client = MagicMock(name="vikunja_client_instance")
+        mock_client.replace_task_fields.return_value = {}
+        with patch(
+            "scripts.habits.sweeper.VikunjaClient", return_value=mock_client
+        ) as mock_cls:
+            tick = sweeper.run_sweep(
+                schedule_path=schedule,
+                state_dir=state_dir,
+                history_path=history_path,
+                vikunja_token_path=token_path,
+                vikunja_base_url="https://example.invalid/api/v1",
+                now_utc=datetime(2026, 6, 2, 11, 30, tzinfo=timezone.utc),
+            )
+        assert tick.exit_status == "success"
+        assert len(tick.habits_auto_skipped) == 1
+        new_due_date = tick.habits_auto_skipped[0].new_due_date_et
+        mock_cls.assert_called_once_with(
+            base_url="https://example.invalid/api/v1",
+            token="token-xxx",
+            timeout=15,
+        )
+        mock_client.replace_task_fields.assert_called_once_with(
+            76, {"due_date": new_due_date}
+        )
+
+
 class TestFindExpiredCheckinsAdditional:
     def test_artifact_with_unparseable_delivered_at_skipped(self, tmp_path):
         state_dir = tmp_path / "state"

@@ -49,10 +49,32 @@ def _http_error(code: int = 500, body: bytes = b'{"message":"boom"}'):
     )
 
 
+def _resp_raw(raw_body: bytes, *, status: int = 200):
+    """Mock response returning raw (non-JSON) bytes — for WP02 parity tests
+    proving VikunjaClient's non-JSON-2xx-body and genuinely-empty-body
+    handling classify the same way the retired ``scripts/sync/http.py``
+    wrapper did (see ``scripts.sync.fetch._classify_vikunja_error``)."""
+    resp = MagicMock(name="response")
+    resp.status = status
+    resp.read = MagicMock(return_value=raw_body)
+    cm = MagicMock(name="cm")
+    cm.__enter__ = MagicMock(return_value=resp)
+    cm.__exit__ = MagicMock(return_value=False)
+    return cm
+
+
 @pytest.fixture
 def mock_urlopen(monkeypatch):
+    """Patch ``urllib.request.urlopen`` as seen by ``VikunjaClient``.
+
+    WP02 migration note: fetch.py now routes every Vikunja call through
+    ``VikunjaClient`` (``scripts/common/vikunja_client.py``) instead of the
+    retired ``scripts/sync/http.py`` urllib wrapper, so the patch target
+    moved from ``scripts.sync.http.urllib...`` to
+    ``scripts.common.vikunja_client.urllib...``.
+    """
     mock = MagicMock()
-    monkeypatch.setattr("scripts.sync.http.urllib.request.urlopen", mock)
+    monkeypatch.setattr("scripts.common.vikunja_client.urllib.request.urlopen", mock)
     return mock
 
 
@@ -65,8 +87,14 @@ BASE = "http://test/api/v1/"
 TOKEN = "test-token"
 
 TASKS_PAYLOAD = [
-    {"id": 1, "title": "Task A", "project_id": 10, "done": False, "updated": "2026-06-04T18:00:00Z"},
-    {"id": 2, "title": "Task B", "project_id": 10, "done": True, "updated": "2026-06-04T19:00:00Z"},
+    {
+        "id": 1, "title": "Task A", "project_id": 10, "done": False,
+        "updated": "2026-06-04T18:00:00Z",
+    },
+    {
+        "id": 2, "title": "Task B", "project_id": 10, "done": True,
+        "updated": "2026-06-04T19:00:00Z",
+    },
 ]
 PROJECTS_PAYLOAD = [
     {"id": 10, "title": "Project Alpha", "is_archived": False},
@@ -404,3 +432,172 @@ class TestStrictCallSequence:
         urls = _urls(mock_urlopen)
         assert urls[0].endswith("projects")
         assert "projects/10/tasks" in urls[1]
+
+
+# ===========================================================================
+# Scenario 11 — WP02 migration parity: VikunjaClient error-classification
+# ===========================================================================
+#
+# fetch.py now routes every Vikunja call through VikunjaClient instead of
+# the retired scripts/sync/http.py urllib wrapper. These tests prove the
+# migration's error classification (_classify_vikunja_error) reproduces the
+# pre-migration token vocabulary (FR-012) for cases the pre-migration
+# classifier handled via raw "HTTP <code>" message-text matching.
+
+
+class TestWP02ClassifyErrorMapping:
+    def test_400_classifies_as_vikunja_unreachable(self, mock_urlopen):
+        """HTTP 400 is not auth/5xx — pre-migration's catch-all classified it
+        vikunja_unreachable; the migrated classifier must match."""
+        mock_urlopen.side_effect = _http_error(400, b'{"message":"bad request"}')
+        with pytest.raises(OSError, match=r"^vikunja_unreachable:"):
+            f.fetch_full_poll(TOKEN, BASE)
+
+    def test_404_classifies_as_vikunja_unreachable(self, mock_urlopen):
+        mock_urlopen.side_effect = _http_error(404, b'{"message":"not found"}')
+        with pytest.raises(OSError, match=r"^vikunja_unreachable:"):
+            f.fetch_full_poll(TOKEN, BASE)
+
+    def test_per_project_task_401_classifies_as_auth_failure(self, mock_urlopen):
+        """The classifier applies identically to the per-project task fetch,
+        not just the /projects call."""
+        mock_urlopen.side_effect = [
+            _resp([{"id": 10, "title": "Alpha"}]),
+            _http_error(401, b'{"message":"unauthorized"}'),
+        ]
+        with pytest.raises(OSError, match=r"^auth_failure:"):
+            f.fetch_full_poll(TOKEN, BASE)
+
+    def test_per_project_task_503_classifies_as_vikunja_5xx(self, mock_urlopen):
+        mock_urlopen.side_effect = [
+            _resp([{"id": 10, "title": "Alpha"}]),
+            _http_error(503, b'{"message":"down"}'),
+        ]
+        with pytest.raises(OSError, match=r"^vikunja_5xx:"):
+            f.fetch_full_poll(TOKEN, BASE)
+
+
+# ===========================================================================
+# Scenario 12 — WP02 migration parity: non-JSON 2xx body handling
+# ===========================================================================
+#
+# The retired http.py wrapper TOLERATED a non-JSON 2xx body by returning
+# None (never raising) — see its "Vikunja sometimes returns non-JSON body on
+# success (rare)" comment.
+#
+# For the SINGLE /projects call, that None return failed the caller's
+# isinstance(list) check, which IS parse_error — VikunjaClient's
+# VikunjaServerError(status=200) is mapped to the same "parse_error" token,
+# so that path's classification is genuinely unchanged.
+#
+# For a per-project /tasks (task-page) call, the pre-migration None return
+# instead hit `if tasks_raw is None: break` BEFORE ever reaching the
+# isinstance(list) check — so pagination for that project silently ended
+# with NO error / NO cycle_error. fetch.py restores that exact behavior by
+# catching VikunjaServerError(status=200) inside the task-page loop and
+# breaking (page-exhausted) rather than letting it reach the classifier.
+#
+# The /info best-effort catch swallows this case unconditionally regardless
+# (matching the pre-migration "except OSError: pass").
+
+
+class TestWP02NonJsonBodyParity:
+    def test_projects_non_json_body_raises_parse_error(self, mock_urlopen):
+        mock_urlopen.side_effect = [_resp_raw(b"<html>oops</html>", status=200)]
+        with pytest.raises(OSError, match=r"^parse_error:"):
+            f.fetch_full_poll(TOKEN, BASE)
+        assert mock_urlopen.call_count == 1
+
+    def test_per_project_tasks_non_json_body_ends_pagination_silently(self, mock_urlopen):
+        """A non-JSON 2xx body on a task page is page-exhausted (silent
+        break), NOT parse_error — matching pre-migration behavior where the
+        old None return hit `if tasks_raw is None: break` before ever
+        reaching the isinstance(list)/parse_error check. No cycle_error is
+        raised on this path."""
+        mock_urlopen.side_effect = [
+            _resp([{"id": 10, "title": "Alpha"}]),  # projects
+            _resp_raw(b"<html>oops</html>", status=200),  # projects/10/tasks
+            _resp({"version": "0.24.6"}),  # info
+        ]
+        snap = f.fetch_full_poll(TOKEN, BASE)
+        assert snap.tasks == ()
+        assert 10 in snap.projects
+        assert snap.vikunja_version == "0.24.6"
+
+    def test_info_non_json_body_is_suppressed_not_raised(self, mock_urlopen):
+        """Non-JSON /info body does NOT abort the cycle — same best-effort
+        suppression as a 404 or network failure on /info."""
+        mock_urlopen.side_effect = [
+            _resp(PROJECTS_PAYLOAD),
+            _resp(TASKS_PAYLOAD),
+            _resp([]),
+            _resp_raw(b"<html>oops</html>", status=200),
+        ]
+        snap = f.fetch_full_poll(TOKEN, BASE)
+        assert snap.vikunja_version is None
+        assert len(snap.tasks) == 2
+
+
+# ===========================================================================
+# Scenario 13 — WP02 migration parity: genuinely-empty HTTP body on a
+# per-project task page is treated as page-exhausted (not parse_error)
+# ===========================================================================
+#
+# VikunjaClient normalises a genuinely-empty (0-byte) HTTP body to {} (its
+# uniform empty-success contract — see the vikunja_client module docstring
+# "Return/error semantics"). The pre-migration http.py wrapper instead
+# returned None for this same 0-byte case. fetch.py's pagination guard
+# explicitly treats both None and {} as "stop paging, not an error" so this
+# normalisation difference does not change observable behavior.
+
+
+class TestWP02EmptyBodyNormalization:
+    def test_empty_http_body_on_task_page_stops_pagination_not_parse_error(
+        self, mock_urlopen
+    ):
+        mock_urlopen.side_effect = [
+            _resp([{"id": 10, "title": "Alpha"}]),  # projects
+            _resp_raw(b""),                          # projects/10/tasks — 0-byte body -> {}
+            _resp({"version": "0.24.6"}),             # info
+        ]
+        snap = f.fetch_full_poll(TOKEN, BASE)
+        assert snap.tasks == ()
+        assert 10 in snap.projects
+
+
+# ===========================================================================
+# Scenario 14 — Golden test: full snapshot end-state through VikunjaClient
+# ===========================================================================
+
+
+class TestWP02GoldenFullPoll:
+    def test_golden_snapshot_matches_pre_migration_shape(self, mock_urlopen):
+        """One consolidated assertion of the full FetchedSnapshot shape,
+        call order, and request URLs — the golden record for the WP02
+        migration (fetch.py routed onto VikunjaClient)."""
+        mock_urlopen.side_effect = [
+            _resp(PROJECTS_PAYLOAD),        # 1. GET /projects (unpaged)
+            _resp(TASKS_PAYLOAD),            # 2. GET /projects/10/tasks?page=1
+            _resp([]),                       # 3. GET /projects/11/tasks?page=1
+            _resp({"version": "0.24.6"}),    # 4. GET /info (best-effort)
+        ]
+        snap = f.fetch_full_poll(TOKEN, BASE)
+
+        assert isinstance(snap, FetchedSnapshot)
+        assert {t["id"] for t in snap.tasks} == {1, 2}
+        assert set(snap.projects.keys()) == {10, 11}
+        assert snap.vikunja_version == "0.24.6"
+
+        assert mock_urlopen.call_count == 4
+        urls = _urls(mock_urlopen)
+        assert urls[0] == BASE.rstrip("/") + "/projects"
+        assert urls[1].startswith(BASE.rstrip("/") + "/projects/10/tasks?")
+        assert "page=1" in urls[1] and "per_page=50" in urls[1]
+        assert urls[2].startswith(BASE.rstrip("/") + "/projects/11/tasks?")
+        assert urls[3] == BASE.rstrip("/") + "/info"
+
+        # Every request carries the bearer token — proves VikunjaClient
+        # (not a hand-rolled/second token path) is the sole HTTP surface.
+        for call in mock_urlopen.call_args_list:
+            req = call[0][0]
+            assert req.headers.get("Authorization") == f"Bearer {TOKEN}"

@@ -339,7 +339,10 @@ class TestCaptureSnapshot:
         schedule = _minimal_valid_schedule_dict()
         mock_urlopen.side_effect = [
             _resp(_make_task_payload(14, title="Wake at 5:00 AM")),
-            _resp(_make_task_payload(17, title="Workout", project_id=1, labels=[{"id": 5, "title": "personal"}])),
+            _resp(_make_task_payload(
+                17, title="Workout", project_id=1,
+                labels=[{"id": 5, "title": "personal"}],
+            )),
         ]
         snapshot = ms.capture_snapshot(
             "http://test/api/v1/", "token", schedule
@@ -733,7 +736,10 @@ class TestRollback:
 
     def test_unsupported_schema_version_raises(self, tmp_path):
         path = tmp_path / "wrong-schema.json"
-        path.write_text(json.dumps({"schema_version": "0", "applied_changes": []}), encoding="utf-8")
+        path.write_text(
+            json.dumps({"schema_version": "0", "applied_changes": []}),
+            encoding="utf-8",
+        )
         with pytest.raises(ValueError, match="unsupported schema_version"):
             ms.rollback("http://test/api/v1/", "token", path)
 
@@ -747,7 +753,9 @@ class TestRollback:
         with pytest.raises(OSError):
             ms.rollback("http://test/api/v1/", "token", snap_path)
         on_disk = json.loads(snap_path.read_text(encoding="utf-8"))
-        rollback_entries = [c for c in on_disk["applied_changes"] if c["op"].startswith("rollback_")]
+        rollback_entries = [
+            c for c in on_disk["applied_changes"] if c["op"].startswith("rollback_")
+        ]
         # One success (create reversal) + one error (retire reversal).
         results = [c["result"] for c in rollback_entries]
         assert "success" in results
@@ -985,43 +993,53 @@ class TestCLIInProcess:
 
 
 # ---------------------------------------------------------------------------
-# Group 8: _http_request edge cases (defensive coverage)
+# Group 8: VikunjaClient error-adaptation + non-object-body edge cases
+# (WP04, mission #860: the raw `_http_request` urllib helper was retired in
+# favor of `scripts.common.vikunja_client.VikunjaClient`; these tests cover
+# the same edge-case territory -- HTTP-error / network-error translation via
+# `_adapt_vikunja_error`, plus non-object-body guards -- through the
+# migrated call sites `_fetch_task` / `_apply_patch` / `_apply_retire` /
+# `_apply_create`.)
 # ---------------------------------------------------------------------------
 
 
-class TestHTTPRequest:
-    def test_get_returns_parsed_dict(self, mock_urlopen):
-        mock_urlopen.return_value = _resp({"id": 1, "title": "Test"})
-        status, body = ms._http_request("GET", "http://test/tasks/1", "token")
-        assert status == 200
-        assert body == {"id": 1, "title": "Test"}
+class TestVikunjaErrorAdaptation:
+    def test_fetch_task_http_error_translates_with_status(self, mock_urlopen):
+        mock_urlopen.side_effect = _http_error(503, b'{"message":"down"}')
+        with pytest.raises(OSError, match="HTTP 503"):
+            ms._fetch_task("http://test/api/v1/", "token", 14)
 
-    def test_empty_body_returns_none(self, mock_urlopen):
-        # 204-style empty body — parsed should be None.
-        mock_urlopen.return_value = _resp(None)
-        status, body = ms._http_request("DELETE", "http://test/tasks/1", "token")
-        assert body is None
+    def test_fetch_task_network_error_translates(self, mock_urlopen):
+        mock_urlopen.side_effect = urllib.error.URLError("DNS fail")
+        with pytest.raises(OSError, match="network failure"):
+            ms._fetch_task("http://test/api/v1/", "token", 14)
 
-    def test_non_json_body_raises(self, mock_urlopen):
-        cm = MagicMock()
-        resp = MagicMock()
-        resp.status = 200
-        resp.read = MagicMock(return_value=b"<html>not json</html>")
-        cm.__enter__ = MagicMock(return_value=resp)
-        cm.__exit__ = MagicMock(return_value=False)
-        mock_urlopen.return_value = cm
-        with pytest.raises(OSError, match="non-JSON body"):
-            ms._http_request("GET", "http://test/x", "token")
+    def test_apply_patch_http_error_translates_with_status(self, mock_urlopen):
+        mock_urlopen.side_effect = _http_error(500, b'{"message":"boom"}')
+        with pytest.raises(OSError, match="HTTP 500"):
+            ms._apply_patch(
+                "http://test/api/v1/",
+                "token",
+                {"task_id": 14, "target": {"repeat_after": 86400, "repeat_mode": 0}},
+            )
 
-    def test_post_sends_json_body(self, mock_urlopen):
-        mock_urlopen.return_value = _resp({"ok": True})
-        ms._http_request("POST", "http://test/x", "token", body={"done": True})
-        called_req = mock_urlopen.call_args[0][0]
-        assert called_req.get_method() == "POST"
-        assert json.loads(called_req.data.decode("utf-8")) == {"done": True}
-        assert called_req.headers["Content-type"] == "application/json"
-        assert called_req.headers["Authorization"] == "Bearer token"
+    def test_apply_create_puts_to_projects_tasks_path(self, mock_urlopen):
+        mock_urlopen.return_value = _resp({"id": 200, "title": "New task"})
+        ms._apply_create(
+            "http://test/api/v1/",
+            "token",
+            {
+                "schedule": {"repeat_after": 86400, "repeat_mode": 0},
+                "attributes": {"title": "New task", "project_id": 9},
+            },
+        )
+        req = mock_urlopen.call_args[0][0]
+        assert req.get_method() == "PUT"
+        assert req.full_url == "http://test/api/v1/projects/9/tasks"
+        assert req.headers["Authorization"] == "Bearer token"
 
+
+class TestNonObjectBodyGuards:
     def test_fetch_task_non_object_raises(self, mock_urlopen):
         # Vikunja returning a JSON array instead of object is a contract violation.
         mock_urlopen.return_value = _resp([1, 2, 3])
@@ -1055,6 +1073,108 @@ class TestHTTPRequest:
                     "attributes": {"title": "Test task", "project_id": 1},
                 },
             )
+
+
+# ---------------------------------------------------------------------------
+# Group 8b: Narrow-POST-body parity (WP04, mission #860)
+#
+# migrate_schedule's patch/retire/rollback bodies are raw narrow POST-
+# replaces (VikunjaClient.replace_task_fields), deliberately NOT the
+# read-modify-write update_task_fields (record_completion.py's method).
+# A regression here would silently widen the wire body to a full-task
+# echo -- see the WP04 caveat / vikunja_client module docstring "Risks".
+# ---------------------------------------------------------------------------
+
+
+class TestNarrowPostBodyParity:
+    def test_apply_patch_body_is_narrow_two_fields(self, mock_urlopen):
+        mock_urlopen.return_value = _resp(
+            {"id": 14, "repeat_after": 86400, "repeat_mode": 0}
+        )
+        ms._apply_patch(
+            "http://test/api/v1/",
+            "token",
+            {"task_id": 14, "target": {"repeat_after": 86400, "repeat_mode": 0}},
+        )
+        req = mock_urlopen.call_args[0][0]
+        assert req.get_method() == "POST"
+        assert req.full_url == "http://test/api/v1/tasks/14"
+        body = json.loads(req.data.decode("utf-8"))
+        assert body == {"repeat_after": 86400, "repeat_mode": 0}
+        # Exactly these 2 keys -- no full-task echo (id/title/done/etc absent).
+        assert set(body.keys()) == {"repeat_after", "repeat_mode"}
+
+    def test_apply_retire_body_is_narrow_one_field(self, mock_urlopen):
+        mock_urlopen.return_value = _resp({"id": 17, "done": True})
+        ms._apply_retire("http://test/api/v1/", "token", {"task_id": 17})
+        req = mock_urlopen.call_args[0][0]
+        assert req.get_method() == "POST"
+        assert req.full_url == "http://test/api/v1/tasks/17"
+        body = json.loads(req.data.decode("utf-8"))
+        assert body == {"done": True}
+        assert set(body.keys()) == {"done"}
+
+    def test_rollback_patch_body_is_narrow(self, mock_urlopen, tmp_path):
+        snap_path = tmp_path / "snap-patch.json"
+        snapshot = {
+            "schema_version": "1",
+            "mission_id": "01KS0M59313RF0WVJZTXYDJC6C",
+            "before_states": [
+                {
+                    "task_id": 14,
+                    "before": {"repeat_after": 0, "repeat_mode": 0},
+                    "intended_op": "patch",
+                }
+            ],
+            "created_tasks": [],
+            "applied_changes": [
+                {
+                    "task_id": 14,
+                    "op": "patch",
+                    "applied_at": "2026-05-18T12:00:00+00:00",
+                    "result": "success",
+                }
+            ],
+        }
+        snap_path.write_text(json.dumps(snapshot), encoding="utf-8")
+        mock_urlopen.return_value = _resp({"id": 14, "repeat_after": 0})
+        ms.rollback("http://test/api/v1/", "token", snap_path)
+        req = mock_urlopen.call_args[0][0]
+        assert req.get_method() == "POST"
+        body = json.loads(req.data.decode("utf-8"))
+        assert body == {"repeat_after": 0, "repeat_mode": 0}
+        assert set(body.keys()) == {"repeat_after", "repeat_mode"}
+
+    def test_rollback_retire_body_is_narrow(self, mock_urlopen, tmp_path):
+        snap_path = tmp_path / "snap-retire.json"
+        snapshot = {
+            "schema_version": "1",
+            "mission_id": "01KS0M59313RF0WVJZTXYDJC6C",
+            "before_states": [
+                {
+                    "task_id": 17,
+                    "before": {"done": False},
+                    "intended_op": "retire",
+                }
+            ],
+            "created_tasks": [],
+            "applied_changes": [
+                {
+                    "task_id": 17,
+                    "op": "retire",
+                    "applied_at": "2026-05-18T12:00:01+00:00",
+                    "result": "success",
+                }
+            ],
+        }
+        snap_path.write_text(json.dumps(snapshot), encoding="utf-8")
+        mock_urlopen.return_value = _resp({"id": 17, "done": False})
+        ms.rollback("http://test/api/v1/", "token", snap_path)
+        req = mock_urlopen.call_args[0][0]
+        assert req.get_method() == "POST"
+        body = json.loads(req.data.decode("utf-8"))
+        assert body == {"done": False}
+        assert set(body.keys()) == {"done"}
 
 
 # ---------------------------------------------------------------------------

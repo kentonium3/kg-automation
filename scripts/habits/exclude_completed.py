@@ -43,7 +43,9 @@ Invocation:
 
 Output (stdout):
 
-    {"ready_for_checkin": [123, 124], "already_addressed": [{"id": 125, "state": "complete", "comment_id": 9876}], "total_checked": 3}
+    {"ready_for_checkin": [123, 124],
+     "already_addressed": [{"id": 125, "state": "complete", "comment_id": 9876}],
+     "total_checked": 3}
     SUMMARY: total=3 ready=2 addressed=1 complete=1 rescheduled=0 will-not-do=0
 
 Exit codes:
@@ -57,10 +59,9 @@ import argparse
 import json
 import re
 import sys
-import urllib.error
-import urllib.request
 from pathlib import Path
 
+from scripts.common.vikunja_client import VikunjaClient, VikunjaError
 from scripts.common.vikunja_config import get_vikunja_base_url
 
 
@@ -89,17 +90,6 @@ FELIX_COMMENT_PATTERN = re.compile(
 def _load_token(path: Path) -> str:
     """Read Vikunja API token from a mode-600 file."""
     return path.read_text(encoding="utf-8").strip()
-
-
-def _http_get(base_url: str, token: str, path: str, timeout: int = 15) -> object:
-    """GET request to Vikunja with bearer-style auth. Returns parsed JSON."""
-    url = base_url.rstrip("/") + "/" + path.lstrip("/")
-    req = urllib.request.Request(
-        url,
-        headers={"Authorization": f"Bearer {token}"},
-    )
-    with urllib.request.urlopen(req, timeout=timeout) as resp:
-        return json.loads(resp.read().decode("utf-8"))
 
 
 def parse_felix_comment(comment_text: str) -> tuple[str, str, str | None] | None:
@@ -244,15 +234,12 @@ def main(argv: list[str] | None = None) -> int:
     ready: list[int] = []
     addressed: list[dict] = []
     state_counts = {"complete": 0, "rescheduled": 0, "will-not-do": 0}
+    client = VikunjaClient(base_url=args.vikunja_base_url, token=token, timeout=15)
 
     for habit_id in habit_ids:
         try:
-            comments = _http_get(
-                args.vikunja_base_url,
-                token,
-                f"/tasks/{habit_id}/comments",
-            )
-        except urllib.error.URLError as exc:
+            comments = client.list_task_comments(habit_id)
+        except VikunjaError as exc:
             print(f"ERROR: failed to fetch comments for habit {habit_id}: {exc}", file=sys.stderr)
             return 1
         if not isinstance(comments, list):

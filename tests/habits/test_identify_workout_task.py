@@ -17,7 +17,7 @@ from __future__ import annotations
 import io
 import json
 import urllib.error
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -436,6 +436,46 @@ def test_non_string_title_skipped(
         "https://vikunja.test/api/v1/", fake_vikunja_token, candidate_ids=[14]
     )
     assert result is None
+
+
+class TestVikunjaClientMigrationWP05:
+    """Parity coverage for WP05 (mission #860): the read-only lookup now
+    goes through the shared ``VikunjaClient.get_task`` instead of a
+    hand-rolled ``urllib`` GET helper. The rest of this file's tests
+    already prove the observable HTTP-boundary + OSError contract is
+    unchanged (they patch ``urllib.request.urlopen``, the same seam the
+    client calls); this class additionally proves the *client* drives that
+    seam, not a parallel raw-HTTP path.
+    """
+
+    def test_module_no_longer_imports_urllib_directly(self):
+        assert not hasattr(iwt, "urllib")
+        assert hasattr(iwt, "VikunjaClient")
+
+    def test_find_workout_task_uses_client_get_task_per_candidate(
+        self, fake_vikunja_token
+    ):
+        mock_client = MagicMock(name="vikunja_client_instance")
+        mock_client.base_url = "https://vikunja.test/api/v1"
+        mock_client.get_task.side_effect = [
+            {"id": tid, "title": f"Habit {tid}"} for tid in [14, 15]
+        ]
+        with patch(
+            "scripts.habits.identify_workout_task.VikunjaClient",
+            return_value=mock_client,
+        ) as mock_cls:
+            result = iwt.find_workout_task(
+                "https://vikunja.test/api/v1/",
+                fake_vikunja_token,
+                candidate_ids=[14, 15],
+            )
+        assert result is None
+        mock_cls.assert_called_once_with(
+            base_url="https://vikunja.test/api/v1/", token=fake_vikunja_token
+        )
+        assert mock_client.get_task.call_count == 2
+        mock_client.get_task.assert_any_call(14)
+        mock_client.get_task.assert_any_call(15)
 
 
 def test_http_error_with_unreadable_body_still_raises(

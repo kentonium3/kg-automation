@@ -257,22 +257,6 @@ def reconcile(
 # ---------------------------------------------------------------------------
 
 
-def _read_token(token_file: Path) -> str:
-    try:
-        content = token_file.read_text(encoding="utf-8").strip()
-    except FileNotFoundError as e:
-        raise OSError(f"Token file not found: {token_file}") from e
-    except PermissionError as e:
-        raise OSError(
-            f"Token file not readable (permission denied): {token_file}"
-        ) from e
-    except OSError as e:
-        raise OSError(f"Could not read token file {token_file}: {e}") from e
-    if not content:
-        raise OSError(f"Token file is empty: {token_file}")
-    return content
-
-
 def build_parser() -> argparse.ArgumentParser:
     """Build the argparse parser for the ``python3 -m`` entry point."""
     parser = argparse.ArgumentParser(
