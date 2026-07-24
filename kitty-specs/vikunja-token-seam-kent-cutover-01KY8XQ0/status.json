@@ -1,7 +1,7 @@
 {
-  "event_count": 3,
-  "last_event_id": "01KY91S2A2E6NDXQTV00M127XZ",
-  "materialized_at": "2026-07-24T03:12:51.522609+00:00",
+  "event_count": 4,
+  "last_event_id": "01KY91S99R9576SKVXES8AEZJS",
+  "materialized_at": "2026-07-24T03:12:58.680711+00:00",
   "mission_number": "",
   "mission_slug": "vikunja-token-seam-kent-cutover-01KY8XQ0",
   "mission_type": "software-dev",
@@ -14,7 +14,7 @@
     "for_review": 0,
     "in_progress": 0,
     "in_review": 0,
-    "planned": 3
+    "planned": 4
   },
   "work_packages": {
     "WP01": {
@@ -37,6 +37,13 @@
       "lane": "planned",
       "last_event_id": "01KY91S2A2E6NDXQTV00M127XZ",
       "last_transition_at": "2026-07-24T03:12:51.522609+00:00"
+    },
+    "WP04": {
+      "actor": "finalize-tasks",
+      "force_count": 0,
+      "lane": "planned",
+      "last_event_id": "01KY91S99R9576SKVXES8AEZJS",
+      "last_transition_at": "2026-07-24T03:12:58.680711+00:00"
     }
   }
 }
