@@ -25,6 +25,9 @@ owned_files:
 - tests/vikunja/test_cutover_verify.py
 role: implementer
 tags: []
+agent: "claude"
+shell_pid: "73940"
+shell_pid_created_at: "1784864327.692636"
 ---
 
 # Work Package Prompt: WP08 — Cutover verification tooling
@@ -69,3 +72,7 @@ Capabilities (each a subcommand or flag):
 ## Reviewer guidance
 - Confirm it is strictly read-only (no writes to Vikunja) and fails loud on a missing expected project.
 - Confirm it resolves the token via `get_vikunja_token_path()` (so BEFORE/AFTER is just the office2 file state / an env override), not a hardcoded path.
+
+## Activity Log
+
+- 2026-07-24T03:39:34Z – claude – shell_pid=73940 – Assigned agent via action command
