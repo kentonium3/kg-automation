@@ -80,3 +80,5 @@ Behavior-preserving (NFR-001), with one explicit invariant to protect: sync's fa
 ## Activity Log
 
 - 2026-07-24T03:37:26Z – claude – shell_pid=72212 – Assigned agent via action command
+- 2026-07-24T03:48:45Z – claude – shell_pid=72212 – sync+credhealth on seam; preamble cycle_error preserved via (OSError,VikunjaConfigError); 258 tests pass
+- 2026-07-24T03:49:40Z – user – shell_pid=72212 – sync preamble cycle_error preserved: catch widened to (OSError,VikunjaConfigError), phase/exit_code/token unchanged + byte-identical parity test; fetch unchanged; credhealth seam+redaction; 258 pass

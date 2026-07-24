@@ -92,3 +92,4 @@ Vikunja user (attribution history preserved).
 ## Activity Log
 
 - 2026-07-24T03:38:24Z – claude – shell_pid=72212 – Assigned agent via action command
+- 2026-07-24T03:58:08Z – user – shell_pid=72212 – ADR-0007 accepted + ADR-0002 superseded; credential-manifest vikunja-api retired/runtime:false/dormant, kent sole runtime; narrative docs reconciled; validate_architecture_data + validate_docs green

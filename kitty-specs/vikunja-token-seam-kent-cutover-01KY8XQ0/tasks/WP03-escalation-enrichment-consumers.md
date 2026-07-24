@@ -79,3 +79,5 @@ these still felix-bot). Behavior-preserving (NFR-001): only the token-path sourc
 ## Activity Log
 
 - 2026-07-24T03:36:53Z – claude – shell_pid=72212 – Assigned agent via action command
+- 2026-07-24T03:55:36Z – claude – shell_pid=72212 – escalation+enrichment on seam (sentinel None + read-site resolve, monkeypatch-preserved); grep clean; 383 pass, 0 regressions
+- 2026-07-24T03:55:59Z – user – shell_pid=72212 – grep clean in 4 files, behavior-preserving (read_token/PATCH/comment flows untouched), 383 pass

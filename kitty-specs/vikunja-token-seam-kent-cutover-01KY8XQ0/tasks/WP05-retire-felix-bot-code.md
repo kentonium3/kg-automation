@@ -73,3 +73,5 @@ again (the structural blindness that caused #860).
 ## Activity Log
 
 - 2026-07-24T03:37:55Z – claude – shell_pid=72212 – Assigned agent via action command
+- 2026-07-24T03:49:57Z – claude – shell_pid=72212 – route_someday fail-loud (#750) + validate_refs seam convergence (#748); 30 pass
+- 2026-07-24T03:50:57Z – user – shell_pid=72212 – swallow-branch removed→fail-loud RouteSomedayError (names task id), network-error-surfaces test added, unprovisioned-degrade preserved; validate_refs resolves via get_vikunja_token_path (no independent literal); 30 pass

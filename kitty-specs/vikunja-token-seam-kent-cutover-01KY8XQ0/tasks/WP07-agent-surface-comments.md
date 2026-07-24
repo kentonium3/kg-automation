@@ -78,3 +78,5 @@ the flipped default.
 ## Activity Log
 
 - 2026-07-24T03:39:03Z – claude – shell_pid=73940 – Assigned agent via action command
+- 2026-07-24T03:47:30Z – claude – shell_pid=73940 – WP07 implemented: kent token refs + SKILL v2.4.0/health-check (#831) + scan_inbox docstring; 30 tests pass
+- 2026-07-24T03:48:28Z – user – shell_pid=73940 – Comment/doc-only verified (scan_inbox no logic change; token is None invariant intact); #831 SKILL v2.4.0+health-check fixed against live /info; 30 tests pass

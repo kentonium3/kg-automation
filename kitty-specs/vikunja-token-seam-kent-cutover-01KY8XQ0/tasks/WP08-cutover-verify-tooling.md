@@ -76,3 +76,5 @@ Capabilities (each a subcommand or flag):
 ## Activity Log
 
 - 2026-07-24T03:39:34Z – claude – shell_pid=73940 – Assigned agent via action command
+- 2026-07-24T03:50:14Z – claude – shell_pid=73940 – cutover_verify.py read-only, token via seam, 3 capabilities; 18 pass
+- 2026-07-24T03:51:21Z – user – shell_pid=73940 – cutover_verify read-only (grep-audited: no post/put/patch/delete), token via get_vikunja_token_path, inverse-probe/connectivity/task-delta, 18 pass

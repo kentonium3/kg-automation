@@ -41,37 +41,37 @@ ownership. WP01 is the foundation (all others depend on it). WP02–WP08 are ind
 
 ### WP02 — Habits consumers (IC-03)
 - **Goal**: route the 6 habits scripts through the helper; behavior-preserving.
-- Subtasks: - [ ] T004 (WP02) · - [ ] T005 (WP02)
+- Subtasks: - [x] T004 (WP02) · - [x] T005 (WP02)
 - **Deps**: WP01. **Prompt**: [tasks/WP02-habits-consumers.md](./tasks/WP02-habits-consumers.md)
 
 ### WP03 — Escalation + enrichment consumers (IC-03)
 - **Goal**: route escalation×2 + enrichment×2 through the helper (the post-plan Codex catch).
-- Subtasks: - [ ] T006 (WP03) · - [ ] T007 (WP03) · - [ ] T008 (WP03)
+- Subtasks: - [x] T006 (WP03) · - [x] T007 (WP03) · - [x] T008 (WP03)
 - **Deps**: WP01. **Prompt**: [tasks/WP03-escalation-enrichment-consumers.md](./tasks/WP03-escalation-enrichment-consumers.md)
 
 ### WP04 — Sync + credential-health consumers (IC-03)
 - **Goal**: route sync + credential-health through the helper; preserve sync's failure classification.
-- Subtasks: - [ ] T009 (WP04) · - [ ] T010 (WP04) · - [ ] T011 (WP04)
+- Subtasks: - [x] T009 (WP04) · - [x] T010 (WP04) · - [x] T011 (WP04)
 - **Deps**: WP01. **Prompt**: [tasks/WP04-sync-credhealth-consumers.md](./tasks/WP04-sync-credhealth-consumers.md)
 
 ### WP05 — Retire felix-bot code path (IC-05)
 - **Goal**: remove `route_someday` 403 fail-soft (#750); converge `validate_refs` (#748/FR-005).
-- Subtasks: - [ ] T012 (WP05) · - [ ] T013 (WP05)
+- Subtasks: - [x] T012 (WP05) · - [x] T013 (WP05)
 - **Deps**: WP01. **Prompt**: [tasks/WP05-retire-felix-bot-code.md](./tasks/WP05-retire-felix-bot-code.md)
 
 ### WP06 — Credential + architecture docs + ADR-0007 (IC-06)
 - **Goal**: ADR-0007 + credential-manifest dormant + credential/identity/service/data-flow docs.
-- Subtasks: - [ ] T014 (WP06) · - [ ] T015 (WP06) · - [ ] T016 (WP06)
+- Subtasks: - [x] T014 (WP06) · - [x] T015 (WP06) · - [x] T016 (WP06)
 - **Deps**: WP01. **Prompt**: [tasks/WP06-credential-arch-docs-adr.md](./tasks/WP06-credential-arch-docs-adr.md)
 
 ### WP07 — Agent surface + comment reconciliation (IC-06, #831)
 - **Goal**: SKILL/TOOLS/AGENTS token refs + SKILL v2.4.0/health-check; obsolete in-code comments.
-- Subtasks: - [ ] T017 (WP07) · - [ ] T018 (WP07)
+- Subtasks: - [x] T017 (WP07) · - [x] T018 (WP07)
 - **Deps**: WP01. **Prompt**: [tasks/WP07-agent-surface-comments.md](./tasks/WP07-agent-surface-comments.md)
 
 ### WP08 — Cutover verification tooling (IC-07 / FR-007)
 - **Goal**: a deterministic `cutover_verify.py` for the attended cutover (inverse probe + connectivity + delta).
-- Subtasks: - [ ] T019 (WP08) · - [ ] T020 (WP08)
+- Subtasks: - [x] T019 (WP08) · - [x] T020 (WP08)
 - **Deps**: WP01. **Prompt**: [tasks/WP08-cutover-verify-tooling.md](./tasks/WP08-cutover-verify-tooling.md)
 
 ## MVP / sequencing

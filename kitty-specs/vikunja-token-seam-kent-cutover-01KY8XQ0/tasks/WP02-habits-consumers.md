@@ -87,3 +87,5 @@ For each of `sweeper.py`, `record_completion.py`, `exclude_completed.py`, `set_d
 ## Activity Log
 
 - 2026-07-24T03:36:11Z – claude – shell_pid=71576 – Assigned agent via action command
+- 2026-07-24T03:53:48Z – claude – shell_pid=71576 – 6 habits consumers on seam (resolved at read-site to preserve early-exit ordering, NFR-001); grep clean; 755 pass
+- 2026-07-24T03:54:19Z – user – shell_pid=71576 – read-site seam resolution (args.X or get_vikunja_token_path()) preserves early-exit ordering + dry-run; grep clean in 6 files; 755 pass
