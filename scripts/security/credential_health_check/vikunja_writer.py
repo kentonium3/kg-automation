@@ -26,13 +26,19 @@ from zoneinfo import ZoneInfo
 from scripts.common import vikunja_refs
 from scripts.common.vikunja_client import VikunjaClient
 from scripts.common.vikunja_client import VikunjaError as _ClientVikunjaError
-from scripts.common.vikunja_config import get_vikunja_base_url
+from scripts.common.vikunja_config import (
+    VikunjaConfigError,
+    get_vikunja_base_url,
+    get_vikunja_token_path,
+)
 from .manifest import Credential
 
 
 #: Sentinel; resolved at call-time via get_vikunja_base_url().
 VIKUNJA_API_BASE: str = ""
-VIKUNJA_TOKEN_PATH = Path("/data/services/openclaw/secrets/vikunja-api")
+#: The token path is resolved at call-time via get_vikunja_token_path() (the
+#: single config seam, WP01 / FR-001) — the felix-bot ``vikunja-api`` literal
+#: deliberately no longer lives in this runtime surface (SC-001).
 DUE_DATE_TIMEZONE = "America/New_York"
 DUE_DATE_DAYS_BEFORE_BOUNDARY = 7
 
@@ -80,8 +86,25 @@ def render_due_date_iso(due: date) -> str:
 # ---------- Token + API ----------
 
 
-def load_token(path: Path = VIKUNJA_TOKEN_PATH) -> str:
-    """Read the vikunja-api bearer token from disk. Never log this value."""
+def load_token(path: Optional[Path] = None) -> str:
+    """Read the vikunja-api bearer token from disk. Never log this value.
+
+    When ``path`` is omitted the token path is resolved through the single
+    config seam (:func:`get_vikunja_token_path` — its ``VIKUNJA_TOKEN_PATH``
+    override or the kent-owned module default), so the credential-health writer
+    follows the same one-lever runtime identity as every other consumer
+    (FR-001). An explicit ``path`` (used by tests) bypasses the seam. A seam
+    resolution failure fails loud as :class:`VikunjaConfigError`; it is adapted
+    into this module's pre-existing :class:`VikunjaWriteError` contract, and the
+    token value is never logged (redaction preserved).
+    """
+    if path is None:
+        try:
+            path = get_vikunja_token_path()
+        except VikunjaConfigError as e:
+            raise VikunjaWriteError(
+                f"Could not resolve vikunja-api token path: {e}"
+            ) from e
     try:
         return path.read_text(encoding="utf-8").strip()
     except OSError as e:

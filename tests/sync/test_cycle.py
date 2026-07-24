@@ -94,6 +94,22 @@ def env(tmp_path) -> tuple[Path, Path]:
     return state_dir, secrets_dir
 
 
+@pytest.fixture(autouse=True)
+def seam_token(tmp_path, monkeypatch):
+    """Route sync's token resolution (WP04) through the WP01 config seam.
+
+    ``run_cycle``/``run_bootstrap`` now resolve the Vikunja token via
+    ``get_vikunja_token_path()`` (the ``VIKUNJA_TOKEN_PATH`` override → kent
+    default) rather than ``config.secrets_dir / "vikunja-api"``. Point the
+    override at a seeded token file so every cycle test's preamble succeeds by
+    default; the failure-classification tests re-point it at a missing path.
+    """
+    token_file = tmp_path / "seam-vikunja-token"
+    token_file.write_text("seam-test-token")
+    monkeypatch.setenv("VIKUNJA_TOKEN_PATH", str(token_file))
+    return token_file
+
+
 def _config(state_dir: Path, secrets_dir: Path, *, dry_run: bool = False) -> cy.CycleConfig:
     return cy.CycleConfig(
         state_dir=state_dir,
@@ -311,6 +327,59 @@ class TestFailureInjection:
         err = json.loads(errors_path.read_text().splitlines()[0])
         assert err["phase"] == "preamble"
         assert err["layer_pointers_unchanged"] is True
+
+    def test_token_resolution_failure_classified_as_preamble(
+        self, env, mock_urlopen, monkeypatch
+    ):
+        """NFR-001: a token-path failure must land in sync's EXISTING preamble
+        outcome, unchanged from HEAD.
+
+        The WP01 seam (``get_vikunja_token_path``) fails loud with
+        ``VikunjaConfigError`` — a ``RuntimeError`` subclass, NOT an
+        ``OSError`` — on a missing/unreadable token. ``run_cycle`` must catch
+        that typed error and map it into the same ``phase="preamble"``,
+        ``exit_code=1``, populated-``cycle_error`` classification HEAD produced
+        for an ``OSError`` token-read failure. A token failure must not change
+        sync's error taxonomy.
+        """
+        state_dir, secrets_dir = env
+        # Re-point the seam at a nonexistent token file → get_vikunja_token_path()
+        # raises VikunjaConfigError during the preamble, BEFORE the freshness read.
+        monkeypatch.setenv("VIKUNJA_TOKEN_PATH", str(state_dir / "no-such-token"))
+        result = cy.run_cycle(_config(state_dir, secrets_dir), now_utc=NOW_UTC)
+        assert result.success is False
+        assert result.exit_code == 1
+        assert result.cycle_error is not None
+        # Failure stream records phase="preamble" with pointers unchanged —
+        # byte-for-byte the same classification as the OSError path (see
+        # test_missing_freshness_exit_1).
+        errors_path = state_dir / st.LAST_TICK_ERRORS_FILENAME
+        assert errors_path.exists()
+        err = json.loads(errors_path.read_text().splitlines()[0])
+        assert err["phase"] == "preamble"
+        assert err["layer_pointers_unchanged"] is True
+        # Freshness pointer NOT advanced (safe-state, exit_code==1).
+        fresh = st.read_freshness(state_dir)
+        assert fresh.layers[cy.LAYER_STATUS_AND_TASK].last_polled_utc == "2026-06-04T19:20:00Z"
+
+    def test_bootstrap_token_resolution_failure_classified_as_preamble(
+        self, tmp_path, mock_urlopen, monkeypatch
+    ):
+        """NFR-001 (bootstrap mirror): a token-path failure maps into the
+        existing ``bootstrap-preamble`` outcome (exit_code=1), never leaking a
+        raw ``VikunjaConfigError``."""
+        state_dir = tmp_path / "state"
+        state_dir.mkdir()
+        monkeypatch.setenv("VIKUNJA_TOKEN_PATH", str(tmp_path / "no-such-token"))
+        result = cy.run_bootstrap(
+            _config(state_dir, tmp_path / "secrets"), now_utc=NOW_UTC
+        )
+        assert result.success is False
+        assert result.exit_code == 1
+        assert result.cycle_error is not None
+        errors_path = state_dir / st.LAST_TICK_ERRORS_FILENAME
+        err = json.loads(errors_path.read_text().splitlines()[0])
+        assert err["phase"] == "bootstrap-preamble"
 
     def test_phase_1_fetch_failure_exit_1(self, env, mock_urlopen):
         state_dir, secrets_dir = env
