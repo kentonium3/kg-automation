@@ -2,7 +2,7 @@
 title: Service Inventory
 doc_type: reference
 status: approved
-tags: [775, 749, 750, 656, 588, 579, 572, 520, 519, 518, 137, 189, 80, 202, 149, 190, 374, 100, 253, 185, 254, 371, 309, 343, 306, 308, 310, 362, 391, 400, 105, 115, 562, 490, 408, 567, 563, 558, 561, 540, 542, 306/, 152, 376, 368-, 112]
+tags: [860, 775, 749, 750, 656, 588, 579, 572, 520, 519, 518, 137, 189, 80, 202, 149, 190, 374, 100, 253, 185, 254, 371, 309, 343, 306, 308, 310, 362, 391, 400, 105, 115, 562, 490, 408, 567, 563, 558, 561, 540, 542, 306/, 152, 376, 368-, 112]
 ---
 
 # Service Inventory
@@ -354,8 +354,11 @@ apply side is also recorded under `services[openclaw-gateway].agents.main`.
 
 - **scan_inbox.py** (`scripts/intake/scan_inbox.py`, #749) — runs after
   `route_and_finalize` on each tick. Deterministic (no LLM); resolves the Inbox
-  project id via the #748 `vikunja_refs` seam and reads with the **felix-bot**
-  token. Enumerates not-done Inbox tasks, classifies Tier-1 completeness
+  project id via the #748 `vikunja_refs` seam and reads with the **kent** token
+  (`vikunja-api-kent`, resolved via `get_vikunja_token_path()` — the sole runtime
+  Vikunja token per [ADR-0007](<./adr/0007-retire-vikunja-felix-bot.md>); formerly
+  a felix-bot read token, flipped in #860 phase 2). Enumerates not-done Inbox
+  tasks, classifies Tier-1 completeness
   (project ≠ Inbox **and** a friction `f:1-3` **and** an Eisenhower `q:*` —
   `f:4-overload` is a decomposition trigger, not a satisfying friction), writes an
   **immutable per-digest** correlation record + `latest.json` pointer + a per-tick
@@ -368,11 +371,12 @@ apply side is also recorded under `services[openclaw-gateway].agents.main`.
   content-based (line-number set + task-title evidence, habits
   `correlate_reply_to_checkin` semantics) to the right digest within the 48h
   window, resolves tokens through the seam, and applies working project + labels +
-  applicable Tier-2 via the **kent** write token (`vikunja-api-kent`, the #715
+  applicable Tier-2 via the **kent** write token (`vikunja-api-kent`, now the
+  **sole runtime Vikunja token** per [ADR-0007](<./adr/0007-retire-vikunja-felix-bot.md>)
+  — the same kent identity the scan now reads under, collapsing the former #715
   two-token model) using read-modify-write with **family-replace** for the
-  mutually-exclusive `q:`/`f:` families. felix-bot is never used for the
-  kent-owned label attach — **this closes #750** (felix-bot 403 on kent-owned
-  label attach; SC-008). Per-line status set (`applied`/`echoed_back`/`noop`/
+  mutually-exclusive `q:`/`f:` families. **This closes #750** (the retired
+  felix-bot path 403'd on kent-owned label attach; SC-008). Per-line status set (`applied`/`echoed_back`/`noop`/
   `overload_flagged`/`not_found`/`already_done`/`moved_conflict`/`access_denied`)
   is appended to the apply ledger and confirmed to Kent. The LLM is a narrow
   fallback only for an unresolvable token (Directive 6), constrained to a
@@ -429,7 +433,7 @@ Per-helper metadata mirrors `docs/design/architecture/data/service-inventory.jso
   - **invoked_by**: `felix-admin-habits` agent (cron `habits-morning-checkin`)
   - **writes_to**: `/data/services/openclaw/state/habits/morning-checkin-<YYYY-MM-DD>.json`
   - **reads_from**: Vikunja API (`GET /projects/<id>/tasks` via `query_active_habits_v2.py`); habits JSONL state log (via `exclude_completed_v2.py`)
-  - **credentials**: `vikunja-api`
+  - **credentials**: `vikunja-api-kent`
 - **scripts/habits/parse_morning_reply.py** (script, introduced_by #371, updated_by #371) — Deterministic reply parser. Loads the persisted morning-list artifact for the date, tokenizes Kent's reply, and emits canonical `{tuples, judgment_required, errors}` JSON per data-model Entity 2. Supports number references (single + comma-separated), exact title matches (case-insensitive), simple substring matches that uniquely identify one habit, and special `"all done"` family tokens. Ambiguous substring matches emit `judgment_required` records (NOT silently picked). Implements FR-003, FR-004, FR-005, FR-008. Exit code 4 when no morning-list artifact exists for the date — agent files a P2-bug via `felix-file-issue.py` rather than falling back to live Vikunja state (FR-009).
   - **runs_on**: `office2`
   - **invoked_by**: `felix-admin-habits` agent (reply tick)
@@ -452,13 +456,13 @@ Per-helper metadata mirrors `docs/design/architecture/data/service-inventory.jso
   - **invoked_by**: `felix-habits-weekly` systemd user timer via `scripts/habits/weekly_report_driver.py` (Monday 06:00 America/New_York, #723; the prior `habits-weekly-report` OpenClaw cron on `felix-admin-habits` was retired)
   - **writes_to**: (none — stdout only: `WeeklyHabitReport` JSON, or the pre-rendered WhatsApp body with `--output text`; the `felix-habits-weekly` driver, #723, delivers it via `openclaw message send`)
   - **reads_from**: canonical `/data/services/openclaw/state/habits-history.jsonl` via `scripts/habits/history.py` (completion history); Vikunja API via `scripts/common/vikunja_client.py` for current-state habit metadata only (titles + `repeat_after`, project 13) — Vikunja `done_at` is NOT read for history (#605)
-  - **credentials**: `vikunja-api`
-- **scripts/common/vikunja_client.py** (shared library, introduced_by mission `vikunja-client-and-habits-weekly-report-01KTKSFT` foundation #542) — Stateless shared client for direct Vikunja API consumers. Centralizes base URL composition (via `scripts/common/vikunja_config.get_vikunja_base_url()` with trailing-slash normalization), token loading from `/data/services/openclaw/secrets/vikunja-api`, `urllib.request`-backed HTTP execution, 30s default per-request timeout, and a typed exception hierarchy (`VikunjaError` -> `VikunjaAuthError`, `VikunjaNotFoundError`, `VikunjaBadRequestError`, `VikunjaServerError`, `VikunjaTimeoutError`, `VikunjaHttpError`). Errors are redaction-safe by default (exception messages include the request path but NOT request body or response body). No global state — instantiating two clients in the same process is isolated. Standard library only. Architectural note: `service-inventory.json` does not model shared libraries as first-class service entries; this module is registered under the `habit-checkin` cron's `config_files[*]` array as the first consuming service. Future migrations (`scripts/sync/`, `scripts/habits/`, `scripts/escalation/`, etc.) will reference this module from their own service entries as they cut over.
+  - **credentials**: `vikunja-api-kent`
+- **scripts/common/vikunja_client.py** (shared library, introduced_by mission `vikunja-client-and-habits-weekly-report-01KTKSFT` foundation #542) — Stateless shared client for direct Vikunja API consumers. Centralizes base URL composition (via `scripts/common/vikunja_config.get_vikunja_base_url()` with trailing-slash normalization), token loading via `scripts/common/vikunja_config.get_vikunja_token_path()` (resolves to `/data/services/openclaw/secrets/vikunja-api-kent` post-[ADR-0007](<./adr/0007-retire-vikunja-felix-bot.md>); formerly the felix-bot `vikunja-api` file), `urllib.request`-backed HTTP execution, 30s default per-request timeout, and a typed exception hierarchy (`VikunjaError` -> `VikunjaAuthError`, `VikunjaNotFoundError`, `VikunjaBadRequestError`, `VikunjaServerError`, `VikunjaTimeoutError`, `VikunjaHttpError`). Errors are redaction-safe by default (exception messages include the request path but NOT request body or response body). No global state — instantiating two clients in the same process is isolated. Standard library only. Architectural note: `service-inventory.json` does not model shared libraries as first-class service entries; this module is registered under the `habit-checkin` cron's `config_files[*]` array as the first consuming service. Future migrations (`scripts/sync/`, `scripts/habits/`, `scripts/escalation/`, etc.) will reference this module from their own service entries as they cut over.
   - **runs_on**: `office2`
   - **invoked_by**: `scripts/habits/query_active_habits_weekly.py` (first and only consumer in this mission; future migrations will add consumers across scripts/sync/, scripts/habits/, scripts/escalation/, scripts/enrichment/ per #542's deferred follow-up issue)
   - **writes_to**: Vikunja API (per consumer demand — read-only against Vikunja in this mission's only consumer)
-  - **reads_from**: `/data/services/openclaw/secrets/vikunja-api`; Vikunja API
-  - **credentials**: `vikunja-api`
+  - **reads_from**: `/data/services/openclaw/secrets/vikunja-api-kent` (via `get_vikunja_token_path()`); Vikunja API
+  - **credentials**: `vikunja-api-kent`
 
 ### Felix Admin Tasker Agent (F013; JSONL state migration #310)
 - **Deployed by**: F013
@@ -487,14 +491,14 @@ Per-helper metadata mirrors `docs/design/architecture/data/service-inventory.jso
   - **runs_on**: `office2`
   - **invoked_by**: `felix-admin-tasker` agent; `scripts/enrichment/reconcile_completions.py`
   - **writes_to**: Vikunja API (`PUT /tasks/<id>/comments`); `/data/services/openclaw/state/enrichment/enrichment-history.jsonl`
-  - **reads_from**: Vikunja API (idempotency pre-check); `/data/services/openclaw/secrets/vikunja`
-  - **credentials**: `vikunja-api`
+  - **reads_from**: Vikunja API (idempotency pre-check); `/data/services/openclaw/secrets/vikunja-api-kent` (via `get_vikunja_token_path()`)
+  - **credentials**: `vikunja-api-kent`
 - **scripts/enrichment/reconcile_completions.py** (one-shot helper, introduced_by #310, updated_by #310) — Operator-driven historical backfill (FR-006..FR-009). Enumerates Vikunja tasks with historic `[Felix] enrichment` comments since the 2026-04-11 window, disambiguates them from habit comments (`[Felix] YYYY-MM-DD` vs literal `enrichment` in the second field), and replays each parseable comment as a synthetic JSONL row via `record_completion.py --no-vikunja --source backfill`. Idempotent — re-runs on the same comment set are no-ops.
   - **runs_on**: `office2`
   - **invoked_by**: Operator via `cutover_tasker.py`; Operator via manual triage
   - **writes_to**: `/data/services/openclaw/state/enrichment/enrichment-history.jsonl` (source=backfill)
   - **reads_from**: Vikunja API (`GET /projects`, `GET /projects/<id>/tasks`, `GET /tasks/<id>/comments`)
-  - **credentials**: `vikunja-api`
+  - **credentials**: `vikunja-api-kent`
 - **scripts/enrichment/derive_state.py** (library + debug CLI, introduced_by #310, updated_by #310) — Pure function (FR-014). Input: list of JSONL records for one task (newest-first). Output: `EnrichmentState` dataclass with `current_state`, `last_event_recorded_at`. Single-offer policy enforcement lives here (skipped/declined are terminal). Consumed by `record_completion.py` (idempotency pre-check) + the tasker agent (check-before-propose) + `reconcile_completions.py` (dedup).
   - **runs_on**: `office2`
   - **invoked_by**: `felix-admin-tasker` agent; `scripts/enrichment/record_completion.py`; `scripts/enrichment/reconcile_completions.py`
@@ -544,13 +548,13 @@ Per-helper metadata mirrors `docs/design/architecture/data/service-inventory.jso
   - **invoked_by**: `felix-admin-escalation` agent; `scripts/escalation/reconcile_completions.py`
   - **writes_to**: Vikunja API (`PATCH /tasks/<id>` for done/rescheduled events only); `/data/services/openclaw/state/escalation/<project-slug>-escalation-history.jsonl`
   - **reads_from**: Vikunja API (`GET /tasks/<id>`); JSONL state log (idempotent dedup pre-check)
-  - **credentials**: `vikunja-api`
+  - **credentials**: `vikunja-api-kent`
 - **scripts/escalation/reconcile_completions.py** (script, introduced_by #309, updated_by #309) — Drift detection helper (FR-005). Invoked at tick start. Enumerates escalation-subscribed tasks (those with at least one prior `level_sent` JSONL record AND no terminal record since) per project; GETs current Vikunja state per task; compares against `derive_state()` output. Emits synthetic `done` records when Vikunja shows `done=true` with no JSONL `done`; emits synthetic `rescheduled` records when `due_date` changed without a JSONL `rescheduled` record. Surfaces hard-fails per Q10 (FR-008) by calling `scripts/escalation/hard_fail.py`. Output: `ReconcileReport` dataclass.
   - **runs_on**: `office2`
   - **invoked_by**: `felix-admin-escalation` agent (tick start)
   - **writes_to**: JSONL state log (synthetic records, via `record_completion.py --no-vikunja`); GitHub Issues (via `hard_fail.py` for Q10 hard-fails)
   - **reads_from**: Vikunja API (`GET /projects/<id>/tasks`, `GET /tasks/<id>`); JSONL state log (via `derive_state.py`)
-  - **credentials**: `vikunja-api`
+  - **credentials**: `vikunja-api-kent`
 - **scripts/escalation/derive_state.py** (library + debug CLI, introduced_by #309, updated_by #309) — Pure function (FR-001). Input: list of JSONL records for one task (newest-first). Output: `EscalationState` dataclass with `current_state`, `last_event`, `snooze_active_until`, `next_eligible_level`, `last_event_recorded_at`. All escalation policy lives here; consumed by `record_completion` + `reconcile_completions`. Debuggable via `python3 -m scripts.escalation.derive_state --task-id <id> --project-id <id>`. Raises `EscalationStateError` on internally inconsistent record sets (Q10 hard-fail surface — bug filing delegated to `hard_fail.py`).
   - **runs_on**: `office2`
   - **invoked_by**: `felix-admin-escalation` agent; `record_completion.py`; `reconcile_completions.py`; `kent_via_cli` (debug mode)
