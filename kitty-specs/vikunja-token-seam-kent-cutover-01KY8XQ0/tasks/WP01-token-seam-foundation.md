@@ -108,3 +108,4 @@ attended cutover); unit tests mock HTTP, so the token value does not change test
 - 2026-07-24T03:19:06Z – claude – shell_pid=65348 – Assigned agent via action command
 - 2026-07-24T03:29:44Z – claude – shell_pid=65348 – WP01 implemented: token seam + client routing + SC-002 flip proof; tests/common 457 passed
 - 2026-07-24T03:30:14Z – claude – shell_pid=69381 – Started review via action command
+- 2026-07-24T03:33:29Z – user – shell_pid=69381 – Review passed: token seam correct, SC-001/SC-002 satisfied, tests green
