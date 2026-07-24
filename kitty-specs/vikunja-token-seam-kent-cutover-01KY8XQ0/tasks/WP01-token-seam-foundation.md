@@ -31,8 +31,8 @@ owned_files:
 role: implementer
 tags: []
 agent: "claude"
-shell_pid: "65348"
-shell_pid_created_at: "1784863132.600278"
+shell_pid: "69381"
+shell_pid_created_at: "1784863803.55448"
 ---
 
 # Work Package Prompt: WP01 — Token seam foundation
@@ -106,3 +106,5 @@ attended cutover); unit tests mock HTTP, so the token value does not change test
 ## Activity Log
 
 - 2026-07-24T03:19:06Z – claude – shell_pid=65348 – Assigned agent via action command
+- 2026-07-24T03:29:44Z – claude – shell_pid=65348 – WP01 implemented: token seam + client routing + SC-002 flip proof; tests/common 457 passed
+- 2026-07-24T03:30:14Z – claude – shell_pid=69381 – Started review via action command

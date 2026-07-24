@@ -36,7 +36,7 @@ ownership. WP01 is the foundation (all others depend on it). WP02–WP08 are ind
 ### WP01 — Token seam foundation (IC-01/IC-02/IC-04)
 - **Goal**: one resolution point (`get_vikunja_token_path()`), client default routed through it, default = **kent** (end state), proven single-point.
 - **Priority**: P0 (foundation). **Independent test**: config/client unit tests + SC-002 flip proof.
-- Subtasks: - [ ] T001 (WP01) · - [ ] T002 (WP01) · - [ ] T003 (WP01)
+- Subtasks: - [x] T001 (WP01) · - [x] T002 (WP01) · - [x] T003 (WP01)
 - **Deps**: none. **Prompt**: [tasks/WP01-token-seam-foundation.md](./tasks/WP01-token-seam-foundation.md)
 
 ### WP02 — Habits consumers (IC-03)
