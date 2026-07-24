@@ -17,6 +17,10 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from scripts.common.vikunja_config import (
+    VikunjaConfigError,
+    get_vikunja_token_path,
+)
 from scripts.sync.classify import CLASS_AUTO_RESOLVED, CLASS_UNSAFE, classify
 from scripts.sync.cleanup import append_task_deleted_event, prune_schedule_yaml
 from scripts.sync.diff import (
@@ -78,6 +82,10 @@ class CycleConfig:
     """Resolved configuration for one cycle invocation."""
 
     state_dir: Path
+    # Retained for the driver/CLI construction contract. As of WP04 the Vikunja
+    # token is resolved through the config seam (get_vikunja_token_path), NOT
+    # from secrets_dir / "vikunja-api"; this field no longer drives token
+    # resolution but is kept so resolve_config()'s CycleConfig call is unchanged.
     secrets_dir: Path
     api_base_url: str
     cadence_seconds: int
@@ -139,13 +147,24 @@ def run_cycle(
     start_perf = time.perf_counter()
 
     # --- Phase 0: preamble ---
+    # Token resolution routes through the single config seam (WP01 / FR-001):
+    # get_vikunja_token_path() resolves the VIKUNJA_TOKEN_PATH override or the
+    # kent-owned module default, then _read_token reads/validates the file.
+    #
+    # NFR-001 (failure-classification invariant): a missing/unreadable token
+    # fails loud as VikunjaConfigError — a RuntimeError subclass, NOT an
+    # OSError — so it is caught alongside OSError here and mapped into sync's
+    # EXISTING preamble outcome (phase="preamble", exit_code=1, populated
+    # cycle_error). This keeps a token-resolution failure classified exactly as
+    # HEAD classified an OSError token-read failure; a token failure must not
+    # change sync's error taxonomy.
     try:
-        token = _read_token(config.secrets_dir / "vikunja-api")
+        token = _read_token(get_vikunja_token_path())
         _read_or_fail_freshness(config.state_dir)   # validates bootstrap was run
         task_cache = read_task_cache(config.state_dir)
         project_cache = read_project_cache(config.state_dir)
         guard_state = read_guard_state(config.state_dir)
-    except OSError as e:
+    except (OSError, VikunjaConfigError) as e:
         return _record_failure(
             config=config,
             tick_id=tick_id,
@@ -423,9 +442,13 @@ def run_bootstrap(
     started_at_utc = now_utc.strftime("%Y-%m-%dT%H:%M:%SZ")
     start_perf = time.perf_counter()
 
+    # Token resolution routes through the config seam (WP01 / FR-001); a
+    # missing/unreadable token fails loud as VikunjaConfigError (RuntimeError
+    # subclass, NOT OSError), caught here and mapped into the existing
+    # bootstrap-preamble outcome (NFR-001, mirroring run_cycle's preamble).
     try:
-        token = _read_token(config.secrets_dir / "vikunja-api")
-    except OSError as e:
+        token = _read_token(get_vikunja_token_path())
+    except (OSError, VikunjaConfigError) as e:
         return _record_failure(
             config=config,
             tick_id=tick_id,
