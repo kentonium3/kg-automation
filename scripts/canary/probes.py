@@ -158,12 +158,21 @@ class ProbeResult:
       caller maps this to ``unknown``.
     * ``evidence`` — human-readable detail (status code, exit code, age, missing
       marker, or error text).
+    * ``signal`` — optional **run-identity fingerprint** for a bad result whose
+      cause is a *frozen past event* rather than a continuously-observed live
+      condition (#871). When set, the dedup layer re-alerts only when this value
+      *changes* (a new event), not on the fixed 6h re-remind window — so a cron
+      that errored on a past run and cannot change until it next runs is paged
+      once, not every 6h. ``None`` (the default) means "no run identity" →
+      dedup's normal window-based re-remind applies (live conditions:
+      missing/disabled/overdue crons, service-down, freshness).
     """
 
     ok: bool
     stale: bool
     evaluable: bool
     evidence: str
+    signal: str | None = None
 
 
 # Injected-effect callable signatures (documentation only; not enforced).
@@ -524,11 +533,21 @@ def _evaluate_openclaw_crons(
     failures: list[str] = []
     stale: list[str] = []
     indeterminate: list[str] = []
+    # #871 run-identity fingerprint: a cron whose most-recent run errored is a
+    # *frozen* failure — it cannot change until the cron next runs, so re-nagging
+    # every 6h is noise. We fingerprint each run-error by its ``nextRunAtMs``
+    # (stable while frozen; advances on the next run), and only when EVERY failure
+    # is a run-error (no live config-drift like missing/disabled) do we hand the
+    # signal to dedup for run-identity re-alerting. Any live condition present →
+    # signal stays None → normal window re-remind (nag until fixed).
+    run_error_signals: list[str] = []
+    all_failures_are_run_errors = True
 
     for name in crons:
         job = by_name.get(name)
         if job is None:
             failures.append(f"{name}: not present in cron list")
+            all_failures_are_run_errors = False
             continue
         # Strict boolean check: anything that is not literally ``True`` (missing,
         # ``False``, or a drifted string like ``"disabled"``) fails loud rather
@@ -537,6 +556,7 @@ def _evaluate_openclaw_crons(
         # the safe direction — page, never false-heal.
         if job.get("enabled") is not True:
             failures.append(f"{name}: not enabled (enabled={job.get('enabled')!r})")
+            all_failures_are_run_errors = False
             continue
 
         state = job.get("state") if isinstance(job.get("state"), dict) else {}
@@ -550,6 +570,10 @@ def _evaluate_openclaw_crons(
             failures.append(
                 f"{name}: lastRunStatus={status} ({str(last_err).strip()[:80]})"
             )
+            # Fingerprint this frozen run-error by its next-run anchor (advances
+            # only when the cron actually runs again) so dedup re-alerts on a new
+            # run, not on the same frozen one (#871).
+            run_error_signals.append(f"{name}@{state.get('nextRunAtMs')!r}")
             continue
 
         next_run = state.get("nextRunAtMs")
@@ -569,9 +593,18 @@ def _evaluate_openclaw_crons(
     # freshness anchor; only when nothing is failed/stale does an indeterminate
     # cron make the whole service unknown (honest, never a false healthy).
     if failures:
+        # Hand dedup a run-identity signal ONLY when every failure is a frozen
+        # run-error (#871). If any live config-drift failure is present, signal
+        # stays None so that condition re-nags on the normal window until fixed.
+        signal = (
+            "|".join(sorted(run_error_signals))
+            if all_failures_are_run_errors and run_error_signals
+            else None
+        )
         return ProbeResult(
             ok=False, stale=False, evaluable=True,
             evidence="cron failure(s): " + "; ".join(failures),
+            signal=signal,
         )
     if stale:
         return ProbeResult(

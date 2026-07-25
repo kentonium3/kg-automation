@@ -12,6 +12,14 @@ The dedup decision (:func:`decide`) is keyed by ``component_id`` and remembers
 always emits, so a re-failure after a recovery is never swallowed by a stale
 suppression window.
 
+An entry also remembers an optional ``last_signal`` — a run-identity fingerprint
+for a bad outcome whose cause is a *frozen past event* rather than a live,
+continuously-observed condition (#871). When the current ``signal`` matches
+``last_signal`` on an unchanged-bad tick, the 6h re-remind is suppressed (the
+event cannot change until a new one occurs), so a once-daily cron that errored
+is paged once, not every 6h until its next run. ``last_signal`` is absent on
+pre-#871 state and on signal-less live conditions, which re-nag exactly as before.
+
 Deterministic: :func:`decide` takes ``now`` as an injected parameter; it never
 calls ``datetime.now()`` itself, so tests drive the window boundary exactly.
 
@@ -109,10 +117,17 @@ def load_state(path: Path | str = DEFAULT_DEDUP_PATH) -> dict[str, dict[str, str
             isinstance(entry.get(key), str)
             for key in ("last_outcome", "last_emitted_utc")
         ):
-            cleaned[component_id] = {
+            loaded = {
                 "last_outcome": entry["last_outcome"],
                 "last_emitted_utc": entry["last_emitted_utc"],
             }
+            # #871: carry the optional run-identity fingerprint when present so a
+            # frozen run-error stays suppressed across ticks. Absent on pre-#871
+            # state (loads unchanged) and on signal-less live conditions.
+            signal = entry.get("last_signal")
+            if isinstance(signal, str):
+                loaded["last_signal"] = signal
+            cleaned[component_id] = loaded
     return cleaned
 
 
@@ -147,6 +162,18 @@ def save_state(
         raise
 
 
+def _entry(outcome: str, emitted_utc: str, signal: str | None) -> dict[str, str]:
+    """Build a dedup state entry, including ``last_signal`` only when present.
+
+    Omitting a ``None`` signal keeps the on-disk state free of ``null``s and lets
+    pre-#871 state (which has no ``last_signal``) load and compare unchanged.
+    """
+    entry = {"last_outcome": outcome, "last_emitted_utc": emitted_utc}
+    if signal is not None:
+        entry["last_signal"] = signal
+    return entry
+
+
 def decide(
     component_id: str,
     outcome: str,
@@ -154,6 +181,7 @@ def decide(
     state: dict[str, dict[str, str]],
     *,
     window: timedelta = DEFAULT_WINDOW,
+    signal: str | None = None,
 ) -> tuple[bool, bool, dict[str, str]]:
     """Decide whether *outcome* should emit for *component_id* this tick.
 
@@ -172,7 +200,15 @@ def decide(
     - unchanged **and** bad **and** ``now - last_emitted_utc < window`` ⇒ suppress
       (``should_emit=False``); the entry is carried forward unchanged (the runner
       still ledgers the tick).
-    - unchanged, bad, window elapsed ⇒ re-emit; ``last_emitted_utc`` advances.
+    - unchanged, bad, with a run-identity ``signal`` **unchanged** since the last
+      emit ⇒ suppress regardless of the window (#871): the bad state is a frozen
+      past event (e.g. a cron whose last run errored and cannot change until it
+      next runs), so the transition emit is the only page it warrants. A
+      **changed** ``signal`` (a new event) falls through to the window rule and
+      re-alerts once the window elapses. ``signal=None`` (live conditions:
+      missing/disabled/overdue crons, service-down, freshness) is unaffected.
+    - unchanged, bad, window elapsed (no signal, or signal changed) ⇒ re-emit;
+      ``last_emitted_utc`` advances.
     - ``healthy`` unchanged ⇒ no emit, no ``last_emitted_utc`` churn (the entry is
       carried forward so ``last_outcome`` stays recorded).
 
@@ -181,6 +217,7 @@ def decide(
     now_str = _utc_iso(now)
     prior = state.get(component_id)
     prior_outcome = prior.get("last_outcome") if prior is not None else None
+    prior_signal = prior.get("last_signal") if prior is not None else None
     is_healthy = outcome == _HEALTHY_OUTCOME
 
     # --- Transition: any change in outcome always emits (F7 / INV-F). ------- #
@@ -191,27 +228,31 @@ def decide(
     # healthy *from a prior bad outcome* is a genuine recovery and emits INFO.
     if prior_outcome != outcome:
         if is_healthy and prior_outcome is None:
-            new_entry = {"last_outcome": outcome, "last_emitted_utc": now_str}
-            return False, False, new_entry
+            return False, False, _entry(outcome, now_str, signal)
         is_recovery = is_healthy  # prior_outcome is not None here
-        new_entry = {"last_outcome": outcome, "last_emitted_utc": now_str}
-        return True, is_recovery, new_entry
+        return True, is_recovery, _entry(outcome, now_str, signal)
 
     # --- Unchanged outcome. ------------------------------------------------- #
     # A healthy component that stays healthy: no emit, no churn — but keep the
     # entry so last_outcome remains recorded (carry the prior emitted timestamp).
     if is_healthy:
-        carried = {
-            "last_outcome": outcome,
-            "last_emitted_utc": (
-                prior.get("last_emitted_utc", now_str)
-                if prior is not None
-                else now_str
-            ),
-        }
-        return False, False, carried
+        carried_utc = (
+            prior.get("last_emitted_utc", now_str) if prior is not None else now_str
+        )
+        return False, False, _entry(outcome, carried_utc, signal)
 
-    # Unchanged and bad: re-remind only once the window has elapsed.
+    # Unchanged and bad. #871: a run-identity ``signal`` that is UNCHANGED since
+    # the last emit means this bad state is a *frozen past event* — it cannot
+    # change until a new event (e.g. the cron's next run), so re-nagging on the
+    # 6h window is pure noise. The transition already paged it. Suppress until the
+    # signal changes (new event → falls through below) or the outcome transitions
+    # (recovery). Signal-less live conditions skip this and re-nag as before.
+    if signal is not None and prior is not None and prior_signal == signal:
+        carried_utc = prior.get("last_emitted_utc", now_str)
+        return False, False, _entry(outcome, carried_utc, signal)
+
+    # Otherwise (no signal → live condition, or a NEW event → changed signal):
+    # re-remind only once the window has elapsed.
     last_emitted_str = (
         prior.get("last_emitted_utc") if prior is not None else None
     )
@@ -228,12 +269,9 @@ def decide(
         window_elapsed = (now - last_emitted) >= window
 
     if window_elapsed:
-        new_entry = {"last_outcome": outcome, "last_emitted_utc": now_str}
-        return True, False, new_entry
+        return True, False, _entry(outcome, now_str, signal)
 
-    # Suppress: carry the prior entry forward unchanged (last_emitted_utc holds).
-    carried = {
-        "last_outcome": outcome,
-        "last_emitted_utc": last_emitted_str or now_str,
-    }
-    return False, False, carried
+    # Suppress within the window: carry forward, preserving the last EMITTED
+    # signal (not the current one) so a new event arriving mid-window still
+    # re-alerts once the window elapses.
+    return False, False, _entry(outcome, last_emitted_str or now_str, prior_signal)

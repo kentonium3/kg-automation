@@ -272,6 +272,7 @@ def run_pass(
         evidence: str,
         *,
         emit_on_first_seen: bool = True,
+        signal: str | None = None,
     ) -> None:
         """Dedup → (maybe) emit → ledger one emitting-eligible outcome.
 
@@ -298,7 +299,7 @@ def run_pass(
         """
         nonlocal emitted, suppressed_dedup
         should_emit, is_recovery, new_entry = dedup_mod.decide(
-            component_id, outcome, now, state
+            component_id, outcome, now, state, signal=signal
         )
 
         # F5: suppress the FIRST-SEEN emit for unknown/gap. A first observation
@@ -431,6 +432,7 @@ def run_pass(
             outcome,
             result.evidence,
             emit_on_first_seen=outcome != "unknown",
+            signal=result.signal,
         )
 
     # ---- Coverage gaps → WARN through the same dedup path (keyed by id). --- #

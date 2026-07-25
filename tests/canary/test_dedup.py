@@ -98,6 +98,120 @@ def test_unchanged_healthy_no_emit_no_churn():
 
 
 # --------------------------------------------------------------------------- #
+# #871 — run-identity signal: a frozen event pages once, not every window.
+# --------------------------------------------------------------------------- #
+S_A = "inbox-5pm@1700000000000"
+S_B = "inbox-5pm@1700086400000"
+
+
+def test_frozen_signal_unchanged_suppresses_far_past_window():
+    # A cron errored (the transition already paged it) and has NOT re-run — same
+    # run-identity signal. Even a day later, far past the 6h window, no re-nag.
+    state = {
+        "c": {
+            "last_outcome": "failed",
+            "last_emitted_utc": T0.isoformat(),
+            "last_signal": S_A,
+        }
+    }
+    should_emit, is_recovery, entry = dedup.decide(
+        "c", "failed", T0 + timedelta(hours=25), state, signal=S_A
+    )
+    assert should_emit is False
+    assert is_recovery is False
+    assert entry["last_signal"] == S_A
+    # No page happened → last_emitted is NOT advanced.
+    assert entry["last_emitted_utc"] == T0.isoformat()
+
+
+def test_new_run_error_signal_reemits_after_window():
+    # The cron ran again and errored anew (signal advanced) → a genuine new
+    # failure re-alerts (throttled by the window, which has elapsed here).
+    state = {
+        "c": {
+            "last_outcome": "failed",
+            "last_emitted_utc": T0.isoformat(),
+            "last_signal": S_A,
+        }
+    }
+    should_emit, _, entry = dedup.decide(
+        "c", "failed", T0 + timedelta(hours=7), state, signal=S_B
+    )
+    assert should_emit is True
+    assert entry["last_signal"] == S_B
+
+
+def test_signal_less_bad_reemits_on_window_unchanged_behavior():
+    # A live condition (no signal) re-nags on the window exactly as before #871.
+    state = {"c": {"last_outcome": "failed", "last_emitted_utc": T0.isoformat()}}
+    should_emit, _, _ = dedup.decide(
+        "c", "failed", T0 + timedelta(hours=7), state, signal=None
+    )
+    assert should_emit is True
+
+
+def test_transition_to_failed_records_signal():
+    state: dict = {}
+    should_emit, _, entry = dedup.decide("c", "failed", T0, state, signal=S_A)
+    assert should_emit is True
+    assert entry["last_signal"] == S_A
+
+
+def test_new_signal_within_window_reemits_once_window_elapses():
+    # A new errored run arrives mid-window: suppressed now (throttle), but the
+    # prior EMITTED signal is preserved so the next post-window tick re-alerts.
+    state = {
+        "c": {
+            "last_outcome": "failed",
+            "last_emitted_utc": T0.isoformat(),
+            "last_signal": S_A,
+        }
+    }
+    emit1, _, entry1 = dedup.decide(
+        "c", "failed", T0 + timedelta(hours=1), state, signal=S_B
+    )
+    assert emit1 is False
+    assert entry1["last_signal"] == S_A  # last EMITTED signal preserved, not S_B
+    state["c"] = entry1
+    emit2, _, entry2 = dedup.decide(
+        "c", "failed", T0 + timedelta(hours=7), state, signal=S_B
+    )
+    assert emit2 is True
+    assert entry2["last_signal"] == S_B
+
+
+def test_frozen_failed_then_recovery_still_emits():
+    # A frozen (suppressed) failure that recovers on the next run emits INFO.
+    state = {
+        "c": {
+            "last_outcome": "failed",
+            "last_emitted_utc": T0.isoformat(),
+            "last_signal": S_A,
+        }
+    }
+    should_emit, is_recovery, _ = dedup.decide(
+        "c", "healthy", T0 + timedelta(hours=8), state
+    )
+    assert should_emit is True
+    assert is_recovery is True
+
+
+def test_load_state_preserves_signal(tmp_path):
+    p = tmp_path / "dedup.json"
+    dedup.save_state(
+        {
+            "c": {
+                "last_outcome": "failed",
+                "last_emitted_utc": T0.isoformat(),
+                "last_signal": S_A,
+            }
+        },
+        p,
+    )
+    assert dedup.load_state(p)["c"]["last_signal"] == S_A
+
+
+# --------------------------------------------------------------------------- #
 # Headline: failed -> healthy -> failed emits all three (INV-F / F7).
 # --------------------------------------------------------------------------- #
 def test_failed_healthy_failed_emits_three_times():

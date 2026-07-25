@@ -73,6 +73,10 @@ class HealthResult:
     severity: Severity | None
     evidence: str
     evaluated_at: str
+    # #871 run-identity fingerprint carried through from the ProbeResult, threaded
+    # into dedup.decide so a frozen run-error re-alerts on a new run, not the 6h
+    # window. None for every non-signalled outcome (unchanged behavior).
+    signal: str | None = None
 
 
 # Injected-effect callable signatures (documentation only; not enforced).
@@ -153,4 +157,5 @@ def evaluate(
         severity=severity,
         evidence=probe.evidence,
         evaluated_at=evaluated_at,
+        signal=probe.signal,
     )

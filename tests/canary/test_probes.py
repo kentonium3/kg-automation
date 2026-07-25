@@ -645,6 +645,59 @@ def test_openclaw_cron_errored_run_is_failed():
     assert "python3 inline script failed" in result.evidence
 
 
+def test_openclaw_cron_errored_run_sets_run_identity_signal():
+    # #871: an all-run-error failure carries a run-identity signal (fingerprinted
+    # by nextRunAtMs) so dedup re-alerts on a NEW run, not the same frozen one.
+    payload = _cron_list(
+        _cron_job("inbox-5pm", status="error", next_run_ms=NOW_MS + 3_600_000,
+                  last_error="boom"),
+    )
+    result = run_probe(
+        _cron_hc(["inbox-5pm"]),
+        NOW, http_get=_boom, run_cmd=make_cmd(payload), read_state=_boom,
+    )
+    assert not result.ok and result.evaluable
+    assert result.signal is not None and "inbox-5pm@" in result.signal
+
+    # The cron ran again (next-run anchor advanced) → a DIFFERENT signal, so a
+    # genuine new failure is not mistaken for the frozen one.
+    payload2 = _cron_list(
+        _cron_job("inbox-5pm", status="error", next_run_ms=NOW_MS + 90_000_000,
+                  last_error="boom again"),
+    )
+    result2 = run_probe(
+        _cron_hc(["inbox-5pm"]),
+        NOW, http_get=_boom, run_cmd=make_cmd(payload2), read_state=_boom,
+    )
+    assert result2.signal is not None and result2.signal != result.signal
+
+
+def test_openclaw_cron_config_drift_failure_has_no_signal():
+    # A live config-drift failure (a mapped cron missing from the list) present →
+    # NO run-identity signal, so the condition re-nags on the normal window.
+    payload = _cron_list(
+        _cron_job("inbox-5pm", status="error", next_run_ms=NOW_MS + 3_600_000,
+                  last_error="boom"),
+    )  # inbox-noon is absent → live drift alongside the run-error
+    result = run_probe(
+        _cron_hc(["inbox-5pm", "inbox-noon"]),
+        NOW, http_get=_boom, run_cmd=make_cmd(payload), read_state=_boom,
+    )
+    assert not result.ok and result.evaluable
+    assert result.signal is None
+
+
+def test_openclaw_cron_healthy_has_no_signal():
+    payload = _cron_list(
+        _cron_job("inbox-7am", status="ok", next_run_ms=NOW_MS + 3_600_000),
+    )
+    result = run_probe(
+        _cron_hc(["inbox-7am"]),
+        NOW, http_get=_boom, run_cmd=make_cmd(payload), read_state=_boom,
+    )
+    assert result.ok and result.signal is None
+
+
 def test_openclaw_cron_overdue_is_stale():
     # Scheduler stopped firing it: nextRunAtMs is in the past by > grace.
     payload = _cron_list(

@@ -205,6 +205,67 @@ def test_recovery_transition_emits_info(tmp_path):
 
 
 # --------------------------------------------------------------------------- #
+# #871 — run-identity signal end-to-end (result.signal → _route → decide).
+# --------------------------------------------------------------------------- #
+def _failed_with_signal(signal: str):
+    """An evaluate_fn returning a failed HealthResult carrying *signal*."""
+
+    def evaluate_fn(target, now, *, http_get, run_cmd, read_state):
+        return HealthResult(
+            component_id=target.component_id,
+            outcome="failed",
+            alert_eligible=True,
+            should_emit=True,
+            severity=Severity.ERROR,
+            evidence="cron failure(s): inbox-5pm: lastRunStatus=error",
+            evaluated_at=now.isoformat(),
+            signal=signal,
+        )
+
+    return evaluate_fn
+
+
+def test_frozen_run_error_signal_pages_once_then_suppresses(tmp_path):
+    # A failed component whose run-identity signal is unchanged pages on the first
+    # pass, then is suppressed on a later pass even 25h out (past the 6h window) —
+    # the frozen run cannot change until the cron next runs.
+    inv = _inventory("cronsvc")
+    p = _paths(tmp_path)
+    ev = _failed_with_signal("inbox-5pm@1700000000000")
+
+    em1 = _recording_emit()
+    run_mod.run_pass(now=NOW, inventory=inv, emit_fn=em1, evaluate_fn=ev, **p)
+    assert len(em1.sent) == 1  # first frozen error pages
+
+    em2 = _recording_emit()
+    run_mod.run_pass(
+        now=NOW + timedelta(hours=25), inventory=inv, emit_fn=em2, evaluate_fn=ev, **p
+    )
+    assert len(em2.sent) == 0  # same frozen run, far past window → suppressed
+
+
+def test_new_run_error_signal_reemits(tmp_path):
+    # After the frozen error is suppressed, a NEW errored run (advanced signal)
+    # re-alerts — a genuine new failure is never swallowed.
+    inv = _inventory("cronsvc")
+    p = _paths(tmp_path)
+
+    em1 = _recording_emit()
+    run_mod.run_pass(
+        now=NOW, inventory=inv, emit_fn=em1,
+        evaluate_fn=_failed_with_signal("inbox-5pm@1700000000000"), **p,
+    )
+    assert len(em1.sent) == 1
+
+    em2 = _recording_emit()
+    run_mod.run_pass(
+        now=NOW + timedelta(hours=25), inventory=inv, emit_fn=em2,
+        evaluate_fn=_failed_with_signal("inbox-5pm@1700086400000"), **p,
+    )
+    assert len(em2.sent) == 1  # new run identity → genuine new failure re-alerts
+
+
+# --------------------------------------------------------------------------- #
 # Fail-open (INV-D / NFR-004).
 # --------------------------------------------------------------------------- #
 def test_raising_evaluate_does_not_abort_the_pass(tmp_path):
