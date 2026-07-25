@@ -491,6 +491,44 @@ def test_read_note_handles_colonless_frontmatter_line(tmp_path: Path) -> None:
     assert "Today" in body
 
 
+def test_read_note_leading_blank_line_before_fence(tmp_path: Path) -> None:
+    """A stray leading blank line before the ``---`` fence must not defeat
+    frontmatter detection (#869). Regression: a single leading newline used
+    to make read_note return empty frontmatter with the whole note as body,
+    which failed an inbox run and suppressed the WhatsApp summary."""
+    path = tmp_path / "leading_newline.md"
+    path.write_text(
+        "\n---\nid: foo\nstatus: pending\n---\nToday I feel good.\n",
+        encoding="utf-8",
+    )
+    fm, body = classify_content.read_note(path)
+    assert fm["id"] == "foo"
+    assert fm["status"] == "pending"
+    assert body.strip() == "Today I feel good."
+
+
+def test_read_note_leading_blanks_and_bom_before_fence(tmp_path: Path) -> None:
+    """Multiple leading blank lines plus a BOM are skipped before the fence."""
+    path = tmp_path / "bom_blanks.md"
+    path.write_text(
+        "﻿\n  \n---\nid: bar\n---\nBody line.\n",
+        encoding="utf-8",
+    )
+    fm, body = classify_content.read_note(path)
+    assert fm["id"] == "bar"
+    assert body.strip() == "Body line."
+
+
+def test_read_note_blank_lines_then_no_fence_is_body(tmp_path: Path) -> None:
+    """Leading blanks followed by non-fence content is still pure body —
+    the whole original text is preserved, no frontmatter invented."""
+    path = tmp_path / "blank_then_body.md"
+    path.write_text("\n\nJust a plain thought, no frontmatter.\n", encoding="utf-8")
+    fm, body = classify_content.read_note(path)
+    assert fm == {}
+    assert "Just a plain thought" in body
+
+
 def test_read_note_frontmatter_dict() -> None:
     """read_note returns a dict of frontmatter keys plus the body string."""
     import tempfile

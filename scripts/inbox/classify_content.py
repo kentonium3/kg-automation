@@ -161,18 +161,27 @@ def read_note(path: Path) -> tuple[dict, str]:
     """
     text = path.read_text(encoding="utf-8", errors="replace")
     lines = text.splitlines(keepends=False)
-    if not lines or lines[0].lstrip("﻿").strip() != "---":
+    # Skip a leading BOM and any leading blank lines before the opening fence.
+    # A stray leading newline (capture write-path / editor artifact / a stray
+    # Enter) must not defeat frontmatter detection: without this, a single
+    # blank first line makes ``lines[0]`` empty, the fence check fails, and the
+    # whole note (fence + frontmatter + body) is mis-read as pure body. That
+    # dropped a real note's frontmatter and failed an inbox run (#869).
+    open_idx = 0
+    while open_idx < len(lines) and lines[open_idx].lstrip("﻿").strip() == "":
+        open_idx += 1
+    if open_idx >= len(lines) or lines[open_idx].lstrip("﻿").strip() != "---":
         return {}, text
     # Find closing fence
     close_idx = None
-    for i in range(1, len(lines)):
+    for i in range(open_idx + 1, len(lines)):
         if lines[i].strip() == "---":
             close_idx = i
             break
     if close_idx is None:
         return {}, text
     fm: dict[str, str] = {}
-    for line in lines[1:close_idx]:
+    for line in lines[open_idx + 1 : close_idx]:
         if ":" in line:
             key, _, val = line.partition(":")
             fm[key.strip()] = val.strip()
