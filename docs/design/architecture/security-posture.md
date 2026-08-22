@@ -10,7 +10,20 @@ tags: [152, 575]
 ## Network Security
 
 - **Services bind to Tailscale IP** (`100.92.197.90`) unless fronted by Tailscale Serve, which allows `0.0.0.0` binding safely
-- No services exposed to the public internet (Tailscale Funnel is disabled)
+- **One service is exposed to the public internet** (corrected 2026-08-22; this line read
+  "No services exposed to the public internet (Tailscale Funnel is disabled)" and was false
+  from 2026-08-04): **Tailscale Funnel is ENABLED** on `office2` for
+  `https://office2.tail0f5f56.ts.net:8443` → `127.0.0.1:3457`, the spec-kitty-qa
+  `qa-dispatch-webhook` (Linear dispatch). Interim — retired by #887. See
+  `data/network-topology.json` and #886.
+  - Consequence of Funnel that survives its retirement: `office2.tail0f5f56.ts.net` is now
+    resolvable in **public DNS** and recorded in **Certificate Transparency logs**, so the
+    host is publicly nameable and the tailnet name externally enumerable. CT entries are
+    permanent; turning Funnel off does not undo this.
+  - Ingress is authenticated: HMAC signature check (constant-time, fail-closed on missing
+    secret or header), replay guard on `webhookTimestamp`, actor-type check rejecting
+    bots/OAuth clients, and a fail-closed reviewer allowlist.
+- Every other service is tailnet-only
 - No port forwarding or NAT traversal outside Tailscale
 - Docker's default networking bypasses iptables/ufw — explicit IP binding is the primary control for non-Serve services
 
