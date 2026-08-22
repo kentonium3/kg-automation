@@ -3,7 +3,7 @@ title: Spec-Kitty — Per-Repo Version-Drift Sweep
 doc_type: runbook
 audience: humans
 status: active
-last_validated: 2026-07-19
+last_validated: 2026-08-21
 ---
 
 # Spec-Kitty — Per-Repo Version-Drift Sweep
@@ -43,6 +43,20 @@ cd /Users/kentgale/repos/kg-automation && python3 -m scripts.spec_kitty.check_ve
 - `--json` emits a machine-readable report (for a future trigger to consume).
 - **Exit codes:** `0` = no drift, `1` = drift found, `2` = usage/IO error. The
   non-zero-on-drift contract is what lets a scheduler alert on it.
+
+> **⚠ The semver signal is not authoritative (2026-08-21).** The helper compares recorded
+> `spec_kitty.version` strings against `spec-kitty --version`, which is meaningless while the CLI
+> tracks upstream `main`: `main` carries the *next* release's string, so a bump from a `3.2.6`
+> main build to a `3.2.6rc3` main build makes **every** repo report `[drift]` without any repo
+> having changed. Observed immediately after the 2026-08-21 bump: **14/14 drifted**, expected
+> `3.2.6rc3` vs recorded `3.2.6`.
+>
+> Do not treat that output as a work list, and do not reason about version strings at all. The
+> operating rule is: **ignore the semver signal and install the latest build on `main`** — see
+> [`spec-kitty-init-in-existing-repo.md` § 3.2b](spec-kitty-init-in-existing-repo.md#32b-upgrade-off-main-the-default-channel).
+> The helper's genuine signal is a repo *materially* behind (e.g. `spec-kitty-telescope` at
+> `3.2.0rc33`), not a suffix mismatch. Reworking the comparison to ignore pre-release suffixes is
+> an open follow-up.
 
 Discovery excludes hidden/scratch dirs (e.g. a `.autopilot-wt` worktree) and
 linked git worktrees (`.git` is a file), so the count reflects independent repos.

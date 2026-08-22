@@ -3,7 +3,7 @@ title: Spec-Kitty — Install, Initialize, Upgrade
 doc_type: runbook
 audience: humans
 status: active
-last_validated: 2026-06-23
+last_validated: 2026-08-21
 ---
 
 # Spec-Kitty — Install, Initialize, Upgrade
@@ -138,12 +138,55 @@ To pin to a specific RC:
 pipx install --force "spec-kitty-cli==3.2.0rc44"
 ```
 
-### 3.2b Upgrade off `main` (unreleased change)
+### 3.2a A `main` build's staleness is invisible to `spec-kitty upgrade`
+
+`spec-kitty upgrade` compares **version strings**, so a git-`main` install is effectively
+undetectable as stale: `main` carries the *next* release's string (e.g. `3.2.6rc3`) long before
+that tag is cut, so the checker sees `installed >= latest` and reports healthy.
+
+Observed 2026-08-21 on a build that was **51 commits behind** the `v3.2.6rc2` tag and **91
+behind** `main` HEAD:
+
+```json
+"cli": { "installed_version": "3.2.6rc2", "latest_version": "3.2.5",
+         "latest_source": "pypi", "is_outdated": false },
+"pending_migrations": []
+```
+
+`latest_version` is PyPI's **stable** channel, which never lists RCs — so the standard path
+would not have offered the RC even if it had noticed. On a git install `latest_version` can
+also come back `null` with `latest_source: "none"` (no comparison attempted at all).
+
+**Never trust `is_outdated` on a git install — compare commits:**
+
+```bash
+python3 -c "import json; d=json.load(open('$HOME/.local/pipx/venvs/spec-kitty-cli/pipx_metadata.json')); print(d['main_package']['package_or_url'])"
+```
+
+```bash
+gh api "repos/Priivacy-ai/spec-kitty/compare/<installed-sha>...$(gh api repos/Priivacy-ai/spec-kitty/commits/main --jq .sha)" --jq '"ahead=\(.ahead_by) behind=\(.behind_by)"'
+```
+
+**Do not use `pipx upgrade` to change channels — always `pipx install --force` with an explicit
+spec.** On a git install the tool's own `upgrade_hint` still recommends
+`pipx upgrade spec-kitty-cli`, which is at best a no-op against a SHA-pinned spec; `reference_speckitty_version_history`
+records it landing back on PyPI in the past. Either way the outcome is not what you asked for, so
+state the spec explicitly rather than relying on `upgrade`'s resolution. `install --force` reuses
+the existing venv, so `pipx inject`ed packages (e.g. `pytest`) survive — verified 2026-08-21.
+
+### 3.2b Upgrade off `main` (the default channel)
 
 When a merged upstream PR you need is on `main` but **not yet in any tagged release** (e.g. a doctrine
 directive that hasn't shipped in a `vX.Y.Z` tag), install the CLI directly from upstream `main`:
 
 ```bash
+# preferred — pin the exact commit: reproducible, and rollback is an exact SHA
+SHA=$(gh api repos/Priivacy-ai/spec-kitty/commits/main --jq .sha)
+pipx install --force "spec-kitty-cli @ git+https://github.com/Priivacy-ai/spec-kitty@$SHA"
+```
+
+```bash
+# or track the moving branch
 pipx install --force "git+https://github.com/Priivacy-ai/spec-kitty.git@main"
 ```
 
@@ -160,10 +203,28 @@ Record it in any bug/tracking report as `X.Y.Z (main build, SHA <9char>)`.
 **Verify the change actually landed** (a version bump alone doesn't prove the doctrine is present):
 `grep -rl "<new DIRECTIVE_ID or wording>" "$(dirname "$(python3 -c 'import spec_kitty_cli,os;print(os.path.dirname(spec_kitty_cli.__file__))')")/../doctrine" 2>/dev/null` — or list `…/site-packages/doctrine/directives/built-in/`.
 
-**Caveat:** installing off `main` reverses the pinned-official-release posture (daily-driving-main).
-Prefer waiting for the next tagged release unless the change is needed now. Roll back with
-`pipx install --force spec-kitty-cli==<last-good-tag>`. Note new builtin directives are **available** in
-the CLI but not auto-activated in a project's charter — adopting one is a separate charter update.
+**Channel posture (updated 2026-08-21) — `main` is the default channel.** The team
+deliberately keeps upstream `main` **red** while a release is in flight: red is a live pointer
+to the top issues still needing resolution. Everyone agreed to this, and the team pulls from
+`main` anyway to keep catfooding it. Therefore:
+
+- **Do not gate an upgrade on overall CI red/green.** A red `main` is the expected steady
+  state, not evidence of a broken build.
+- Read *which* checks are red. Distinguish **governance/hygiene** failures — e.g.
+  `Protect Main Branch` / `check-merge-compliance` firing on "Direct push to main branch
+  detected" — from **code-health** failures such as `Release Readiness Check`. Only the latter
+  warrants a pause, and even then name it rather than blocking.
+- **Ignore the semver signal entirely.** Version strings do not tell you whether you are
+  current (see § 3.2a), so do not reason about them: the operating rule is simply *install the
+  latest build on `main`*. Same for the per-repo drift helper's version comparison — see
+  [`spec-kitty-per-repo-upgrade.md`](spec-kitty-per-repo-upgrade.md).
+- Roll back with a known-good **SHA**, not a tag:
+  `pipx install --force "spec-kitty-cli @ git+https://github.com/Priivacy-ai/spec-kitty@<sha>"`.
+
+This **supersedes** the former "prefer waiting for the next tagged release / pinned-official-release
+posture" guidance, which treated a deliberately-red `main` as a reason to hold. Note new builtin
+directives are **available** in the CLI but not auto-activated in a project's charter — adopting
+one is a separate charter update.
 
 Then run §3.3 (per-repo `--project --yes`) as normal.
 
