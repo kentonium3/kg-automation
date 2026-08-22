@@ -167,6 +167,11 @@ python3 -c "import json; d=json.load(open('$HOME/.local/pipx/venvs/spec-kitty-cl
 gh api "repos/Priivacy-ai/spec-kitty/compare/<installed-sha>...$(gh api repos/Priivacy-ai/spec-kitty/commits/main --jq .sha)" --jq '"ahead=\(.ahead_by) behind=\(.behind_by)"'
 ```
 
+Upstream tracks the fix — build/SHA-aware version reporting so a newer build within the same
+version is recognised — as **Priivacy-ai/spec-kitty#2617**, committed by Stijn for **3.2.7**
+(the tracker milestone still reads the broader `3.2.x`). Until it ships, compare SHAs by hand as
+above.
+
 **Do not use `pipx upgrade` to change channels — always `pipx install --force` with an explicit
 spec.** On a git install the tool's own `upgrade_hint` still recommends
 `pipx upgrade spec-kitty-cli`, which is at best a no-op against a SHA-pinned spec; `reference_speckitty_version_history`

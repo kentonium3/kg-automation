@@ -55,8 +55,12 @@ cd /Users/kentgale/repos/kg-automation && python3 -m scripts.spec_kitty.check_ve
 > operating rule is: **ignore the semver signal and install the latest build on `main`** — see
 > [`spec-kitty-init-in-existing-repo.md` § 3.2b](spec-kitty-init-in-existing-repo.md#32b-upgrade-off-main-the-default-channel).
 > The helper's genuine signal is a repo *materially* behind (e.g. `spec-kitty-telescope` at
-> `3.2.0rc33`), not a suffix mismatch. Reworking the comparison to ignore pre-release suffixes is
-> an open follow-up.
+> `3.2.0rc33`), not a suffix mismatch. The upstream fix — build/SHA-aware comparison so a newer
+> build within the same version is recognised — is tracked as
+> **Priivacy-ai/spec-kitty#2617** (`enhancement`, P1). The tracker milestone reads `3.2.x`, but
+> Stijn committed to Kent directly that it lands in **3.2.7** — treat that as the real schedule;
+> the milestone field just hasn't been narrowed. Related: #2771 (Build Identity contract, P2,
+> unmilestoned).
 
 Discovery excludes hidden/scratch dirs (e.g. a `.autopilot-wt` worktree) and
 linked git worktrees (`.git` is a file), so the count reflects independent repos.
