@@ -1,7 +1,7 @@
 {
   "schema_version": "1.2",
-  "last_updated": "2026-06-09",
-  "updated_by": "#575-tailscale-ssh-docs",
+  "last_updated": "2026-08-22",
+  "updated_by": "#886 (registered the spec-kitty-qa QA Pipeline ports on office2 \u2014 qa-register :8788, qa-dispatch-webhook :3457, and the Tailscale Funnel on :8443 which is the host's only public-internet ingress; corrected the access rule that still claimed no services were publicly exposed) + #575-tailscale-ssh-docs",
   "network": {
     "type": "tailscale",
     "tailnet_owner": "kentgale@",
@@ -61,6 +61,45 @@
         "interface": "tailscale0",
         "ufw_rule": "allow in on tailscale0 to any port 443 proto tcp"
       }
+    },
+    {
+      "port": 8788,
+      "service": "qa-register",
+      "host": "office2",
+      "bind_ip": "100.92.197.90",
+      "protocol": "tcp",
+      "public_exposure": "none",
+      "access": "tailscale-only",
+      "notes": "spec-kitty-qa QA Pipeline DB component; interim tenancy, moves to a dev-class machine (#887)"
+    },
+    {
+      "port": 3457,
+      "service": "qa-dispatch-webhook",
+      "host": "office2",
+      "bind_ip": "127.0.0.1",
+      "protocol": "tcp",
+      "public_exposure": "none",
+      "access": "localhost-only",
+      "notes": "Loopback origin behind the Funnel on :8443; not directly reachable"
+    },
+    {
+      "port": 8443,
+      "service": "tailscale-funnel",
+      "host": "office2",
+      "bind_ip": "tailscale0",
+      "protocol": "tcp",
+      "public_exposure": "public-internet",
+      "access": "public",
+      "tls_termination": "tailscale-funnel",
+      "public_url": "https://office2.tail0f5f56.ts.net:8443",
+      "tailscale_serve": {
+        "listen_port": 8443,
+        "funnel": true,
+        "backend": "http://127.0.0.1:3457",
+        "backend_service": "qa-dispatch-webhook",
+        "interface": "tailscale0"
+      },
+      "notes": "THE ONLY PUBLIC-INTERNET INGRESS ON OFFICE2. Live since 2026-08-04 for the spec-kitty-qa Linear dispatch webhook. Interim — retired when the pipeline moves to a dev-class machine (#887). Registered by #886."
     }
   ],
   "access_rules": [
@@ -68,7 +107,7 @@
     "SSH access for agents: ssh office2-claude only",
     "SSH access for Kent: ssh office2-kgale (Mac terminal) or Termius mobile (kgale + claude hosts)",
     "SSH connections to port 22 on the Tailscale IP are intercepted by Tailscale SSH first (action: accept), then passed to sshd for authorized_keys auth — see tailscale_ssh block above + ADR-0004",
-    "No services exposed to public internet",
+    "Exactly one service is exposed to the public internet: the qa-dispatch-webhook via Tailscale Funnel on :8443 (since 2026-08-04, interim \u2014 see #886/#887). Every other office2 service is tailnet-only. This rule read \"No services exposed to public internet\" until 2026-08-22, when it was corrected; treat any future public exposure as requiring an explicit entry here.",
     "No port forwarding or NAT traversal outside Tailscale"
   ]
 }
