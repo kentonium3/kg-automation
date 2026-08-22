@@ -5,7 +5,7 @@ audience: agents_and_humans
 status: approved
 created: 2026-05-27
 last_validated: 2026-05-27
-last_updated: '2026-07-22'
+last_updated: '2026-08-22'
 version: v1.0
 owners: [kgale]
 ---
@@ -213,6 +213,19 @@ list specific triggers:
   [deployment.md](<./deployment.md>). Note the actor edits to
   `_tick.py` / `deploy_agent_prompts.py` / `notify.py` are **not** registry-matched
   and do not by themselves trigger a rebaseline.
+
+- **`qa-register` rebuilds (interim, kentonium3/kg-automation#886)** — the
+  spec-kitty-qa QA Pipeline DB component runs on office2 out-of-band (no
+  `deploys/queued` manifest), so felix-deployer's expected-drift token never
+  suppresses its drift. Its image tag rolls on **every rebuild**
+  (`9bacc37` → `cc3220f` → `fb679e6` in two weeks), and each roll re-drifts
+  `docker-images.txt`, restarting the daily 03:00 alert until reset. **Expected
+  drift is `docker-images.txt` only, naming `qa-register:*`.** If drift extends
+  beyond that, investigate before resetting. This is a knowingly-accepted manual
+  step (option (d) on #886): automating it — either tag normalisation in
+  `audit.sh` or bringing qa-register under the manifest pipeline — was judged
+  disproportionate for a component scheduled to leave the host per #887. **When
+  #887 lands, delete this bullet.**
 
 If you see drift alerts and aren't sure whether the change is
 intentional, inspect `logs/alerts-YYYY-MM-DD.log` for the diff before
