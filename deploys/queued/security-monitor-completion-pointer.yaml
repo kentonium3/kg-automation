@@ -1,0 +1,43 @@
+schema_version: v1
+name: security-monitor-completion-pointer
+issue: kentonium3/kg-automation#891
+tier: 3
+entrypoint: scripts/deploy/deploy-security-monitor-audit.py
+audited_surface: false
+created_at: '2026-08-27T22:30:00Z'
+created_by: fix-891-canary-checks-that-cannot-fail
+apply_mode: manifest
+notes: |
+  Syncs the updated security-monitor audit.sh to its standalone office2 copy
+  (/data/services/security-monitor/scripts/audit.sh) for kentonium3/kg-automation#891.
+
+  audit.sh now writes a completion pointer at
+  /data/services/security-monitor/state/last-tick.json on BOTH exit branches,
+  plus an EXIT trap that records exit_status=failure on abnormal termination.
+  The canary's inventory entry is repointed to method: state-file against that
+  path in the same commit.
+
+  SEQUENCING — why this manifest is required, not optional. The inventory half
+  of the change reaches office2 automatically (felix-deployer fast-forwards the
+  checkout every ~5 min), but the standalone audit.sh copy does not move on its
+  own. Landing the repoint without this manifest would aim the canary at a path
+  nothing writes: read_state raises, the probe returns evaluable=False, and the
+  component goes unknown -> WARN -> paged once dedup's persistence rule fires.
+  That would convert a check that could not fail into a check guaranteed to
+  alert. This manifest must apply before the first canary tick after merge.
+
+  exit_status semantics: "the audit ran to completion", NOT "no drift found".
+  Drift already pushes via the alert bus from inside audit.sh, so flipping the
+  canary on the same event would page twice for one finding — and would also
+  page on a #862 expected-in-flight rebaseline, which deliberately withholds its
+  own push while still exiting 1. Drift counts ride in alert_count/pushed_count,
+  which sit outside the canary's explicit-error vocabulary and cannot affect
+  health. Verified: _explicit_error returns None on the drift record and
+  exit_status='failure' on the crash record.
+
+  Tier 3 (a file copy into a claude-owned dir — no sudo, no Tier 0/1/2 action).
+  audited_surface: false — scripts/office2/security-monitor/*.sh matches no
+  audited-surfaces.json pattern (systemd-user-units covers
+  scripts/office2/*.service and scripts/office2/deploy/*.sh, not
+  security-monitor/audit.sh); no hashed baseline drifts.
+  Rebaseline: not required.
