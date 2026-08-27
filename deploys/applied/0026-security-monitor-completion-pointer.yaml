@@ -1,0 +1,35 @@
+schema_version: v1
+name: security-monitor-completion-pointer
+issue: kentonium3/kg-automation#891
+tier: 3
+entrypoint: scripts/deploy/deploy-security-monitor-audit.py
+audited_surface: false
+created_at: '2026-08-27T22:30:00Z'
+created_by: fix-891-canary-checks-that-cannot-fail
+apply_mode: manifest
+notes: "Syncs the updated security-monitor audit.sh to its standalone office2 copy\n\
+  (/data/services/security-monitor/scripts/audit.sh) for #891.\n\naudit.sh now writes\
+  \ a completion pointer to\n/data/services/security-monitor/state/last-tick.json\
+  \ on both exit branches,\nplus an EXIT trap recording exit_status=failure on abnormal\
+  \ termination. The\ncanary's inventory entry is repointed to method: state-file\
+  \ in the same\ncommit.\n\nREQUIRED, NOT SUFFICIENT. The inventory half reaches office2\
+  \ on its own via\nthe checkout fast-forward; the standalone audit.sh copy does not,\
+  \ so without\nthis manifest the canary aims at a path nothing will ever write.\n\
+  \nThis manifest copies audit.sh; it does not run it (the entrypoint is the\ncanonical\
+  \ syncer for every future change, and running an audit as a deploy\nside effect\
+  \ can push drift alerts). audit.sh creates STATE_DIR itself, so the\npointer first\
+  \ appears at the next scheduled run, 0 3 * * * UTC.\n\nTHE WINDOW. Until that run\
+  \ the pointer is absent: read_state raises, the\nprobe is unevaluable, the component\
+  \ reads unknown. First sighting is silent\n(emit_on_first_seen=False for unknown)\
+  \ but dedup re-emits every 6h, so a\nmerge just after 03:00 UTC would page 3-4 times.\
+  \ Do not rely on merge timing.\nRun this immediately after apply to close the window:\n\
+  \n  ssh office2-claude 'sg docker -c /data/services/security-monitor/scripts/audit.sh'\n\
+  \  ssh office2-claude 'cat /data/services/security-monitor/state/last-tick.json'\n\
+  \nNon-destructive when baselines exist. If the pointer is absent after that\nrun,\
+  \ investigate \u2014 the canary will page every 6h.\n\nexit_status means \"ran to\
+  \ completion\", NOT \"no drift\" \u2014 drift already pushes\nfrom audit.sh, and\
+  \ a #862 suppressed rebaseline exits 1 without pushing.\nCounts ride in alert_count/pushed_count,\
+  \ outside the error vocabulary.\n\nTier 3 (file copy into a claude-owned dir; no\
+  \ sudo). audited_surface: false \u2014\nscripts/office2/security-monitor/*.sh matches\
+  \ no audited-surfaces.json\npattern. Rebaseline: not required.\n"
+applied_at: '2026-08-27T23:04:34Z'
