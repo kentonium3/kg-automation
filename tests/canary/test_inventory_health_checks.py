@@ -19,6 +19,7 @@ does not parse as ISO-8601, so the staleness branch never fires).
 
 from __future__ import annotations
 
+import shlex
 from pathlib import Path
 
 import pytest
@@ -42,9 +43,9 @@ PENDING_POINTER_MIGRATION: dict[str, str] = {
     # bound is live and this entry works today. The rewrite is owned by the
     # substrate move off /tmp.
     "obsidian-sync-heartbeat": "#894",
-    # Made fail-closed in #891 (grep + -o short-iso), which also made its bound
-    # live for the first time. Migrating it to a pointer needs a writer added to
-    # the Python service — tracked separately.
+    # Made fail-closed in #891 (grep + -o short-iso + a rolling 25h window).
+    # Its max_age_seconds is still not the binding constraint — the journalctl
+    # window is — which is exactly why the pointer migration is still owed.
     "credential-health-check": "#891 follow-up",
     # Fails closed correctly (pipeline ends in grep), but expresses its freshness
     # window twice: `max_age_seconds` in the data and `--since '7 hours ago'` in
@@ -137,4 +138,121 @@ def test_no_alert_eligible_target_probes_a_volatile_path(targets):
     assert offenders == ["obsidian-sync-heartbeat"], (
         "the set of components probing a path under /tmp changed; #894 owns "
         f"draining it to empty. Found: {offenders}"
+    )
+
+
+#: Command-scan methods decide health from an executable string, and the FINAL
+#: pipeline stage owns the exit status. These commands succeed on empty input,
+#: so ending a pipeline in one masks any upstream failure. `journalctl` is the
+#: subtle member: it prints "-- No entries --" to STDOUT and exits 0 for a unit
+#: that does not exist, so a bare journalctl endpoint reports healthy on nothing.
+COMMAND_SCAN_METHODS = frozenset({"shell", "log-tail", "journal", "self-check-command", "self-test"})
+FAIL_OPEN_FINAL_STAGES = frozenset({
+    "journalctl", "ls", "cat", "echo", "printf", "true",
+    "head", "tail", "wc", "sort", "uniq", "jq", "tee",
+})
+
+#: Separate from PENDING_POINTER_MIGRATION on purpose — an exemption from the
+#: pointer rule must not also excuse a fail-open endpoint.
+PENDING_FAIL_CLOSED_ENDPOINT: dict[str, str] = {
+    # `tail -5 /tmp/sync-heartbeat.log` — fails closed only incidentally, when
+    # the file is missing. Owned by the substrate move.
+    "obsidian-sync-heartbeat": "#894",
+}
+
+
+def _final_stage(endpoint: str) -> str:
+    """Command word of the last top-level pipeline stage.
+
+    Quote-aware: `grep -E 'a|b|c'` is ONE stage, not four. Splitting the raw
+    string on "|" gets that wrong and reports the last alternation branch as
+    the command.
+    """
+    if not endpoint:
+        return ""
+    try:
+        tokens = shlex.split(endpoint)
+    except ValueError:
+        return ""
+    last = 0
+    for i, tok in enumerate(tokens):
+        if tok in ("|", "&&", ";"):
+            last = i + 1
+    return tokens[last] if last < len(tokens) else ""
+
+
+def _fail_open_endpoints(targets) -> dict[str, str]:
+    out = {}
+    for t in targets:
+        hc = t.health_check or {}
+        if hc.get("method") not in COMMAND_SCAN_METHODS:
+            continue
+        endpoint = hc.get("endpoint") or ""
+        if _final_stage(endpoint) in FAIL_OPEN_FINAL_STAGES:
+            out[t.component_id] = endpoint
+    return out
+
+
+def test_command_scan_endpoints_fail_closed(targets):
+    """The assertion #891 was filed for.
+
+    `ls -t .../baselines/*.json | head -1` reported healthy on empty stdout
+    because the pipeline returned `head`'s status. A bare `journalctl ...`
+    reported healthy on a deleted unit for the same reason.
+    """
+    offenders = _fail_open_endpoints(targets)
+    unexpected = {k: v for k, v in offenders.items() if k not in PENDING_FAIL_CLOSED_ENDPOINT}
+    assert not unexpected, (
+        "these command-scan endpoints do not end in a stage that fails when it "
+        "finds nothing, so they can report healthy on no evidence:\n"
+        + "\n".join(f"  {k}: {v}" for k, v in sorted(unexpected.items()))
+        + f"\n\nThese final stages succeed on empty input: "
+        f"{sorted(FAIL_OPEN_FINAL_STAGES)}. Filter the pipeline through grep/test, "
+        "move the component to a pointer method, or record an exemption in "
+        "PENDING_FAIL_CLOSED_ENDPOINT with the issue that owns it."
+    )
+
+
+def test_fail_closed_exemptions_have_not_gone_stale(targets):
+    offenders = _fail_open_endpoints(targets)
+    known = {t.component_id for t in targets}
+    stale = []
+    for component, owner in PENDING_FAIL_CLOSED_ENDPOINT.items():
+        if component not in known:
+            stale.append(f"  {component} — no longer in the inventory ({owner})")
+        elif component not in offenders:
+            stale.append(f"  {component} — endpoint now fails closed ({owner})")
+    assert not stale, "PENDING_FAIL_CLOSED_ENDPOINT is stale:\n" + "\n".join(stale)
+
+
+def test_felix_health_check_still_declares_its_success_allowlist(targets):
+    """Deleting the allow-list silently reverts `status` to the fail-open
+    deny-list, where UNKNOWN and SCRIPT_MISSING read healthy again (#891).
+    Nothing else in the data would show that."""
+    hc = next(
+        (t.health_check for t in targets if t.component_id == "felix-health-check"),
+        None,
+    )
+    assert hc is not None, "felix-health-check missing from the inventory"
+    declared = hc.get("success_status_values")
+    assert declared, "felix-health-check must declare success_status_values"
+    assert set(declared) == {"ALL_HEALTHY", "FAILURES_DETECTED"}, (
+        f"unexpected success set {declared!r} — UNKNOWN and SCRIPT_MISSING are "
+        "runner faults and must not be listed as healthy"
+    )
+
+
+def test_no_near_miss_success_allowlist_key(targets):
+    """A misspelled key silently falls back to the fail-open deny-list."""
+    near_misses = {"success_status_value", "success_statuses", "healthy_status_values",
+                   "success_values", "status_success_values"}
+    bad = [
+        f"  {t.component_id}: {k}"
+        for t in targets
+        for k in (t.health_check or {})
+        if k in near_misses
+    ]
+    assert not bad, (
+        "near-miss key name; the probe only reads 'success_status_values' and "
+        "silently fails open otherwise:\n" + "\n".join(bad)
     )

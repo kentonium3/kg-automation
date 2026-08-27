@@ -117,8 +117,11 @@ _RESTIC_OK_EXIT_CODES: frozenset[int] = frozenset({0, 3})
 #   ``{ALL_HEALTHY, FAILURES_DETECTED, UNKNOWN, SCRIPT_MISSING}`` where
 #   ``FAILURES_DETECTED`` means the *monitored system* had failures while the
 #   runner itself ran fine ("a health failure is data, not a runner error").
-#   Using "not success" here would false-fail ``ALL_HEALTHY``. So ``status`` is
-#   matched against an explicit failure-VALUE set only.
+#   Using "not success" here would false-fail ``ALL_HEALTHY``. So by default
+#   ``status`` is matched against an explicit failure-VALUE set only — a
+#   fail-OPEN deny-list. A health_check may instead declare
+#   ``success_status_values``, which inverts this to a fail-closed allow-list
+#   (#891); prefer that for new pointers.
 _EXIT_STATUS_SUCCESS: frozenset[str] = frozenset({"success", "ok"})
 _STATUS_FAILURE_VALUES: frozenset[str] = frozenset(
     {"error", "failed", "fail", "failure"}

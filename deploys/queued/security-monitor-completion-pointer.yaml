@@ -17,14 +17,35 @@ notes: |
   The canary's inventory entry is repointed to method: state-file against that
   path in the same commit.
 
-  SEQUENCING — why this manifest is required, not optional. The inventory half
-  of the change reaches office2 automatically (felix-deployer fast-forwards the
-  checkout every ~5 min), but the standalone audit.sh copy does not move on its
-  own. Landing the repoint without this manifest would aim the canary at a path
-  nothing writes: read_state raises, the probe returns evaluable=False, and the
-  component goes unknown -> WARN -> paged once dedup's persistence rule fires.
-  That would convert a check that could not fail into a check guaranteed to
-  alert. This manifest must apply before the first canary tick after merge.
+  SEQUENCING — why this manifest is required, but NOT sufficient on its own.
+  The inventory half of the change reaches office2 automatically (felix-deployer
+  fast-forwards the checkout every ~5 min); the standalone audit.sh copy does
+  not move on its own, so without this manifest the canary would aim at a path
+  that nothing will EVER write.
+
+  This manifest copies audit.sh; it does not run it. The entrypoint is the
+  canonical audit.sh syncer used by every future audit.sh change, and making it
+  execute a security audit as a deploy side effect (which can push drift alerts)
+  is out of scope here. audit.sh creates STATE_DIR itself via `mkdir -p`, so the
+  pointer first appears on the next scheduled run: `0 3 * * *` UTC.
+
+  THE WINDOW, stated honestly. Between merge and that first 03:00 run the
+  pointer does not exist. read_state raises FileNotFoundError, the probe returns
+  evaluable=False, and the component reads `unknown`. run.py passes
+  emit_on_first_seen=False for `unknown`, so the first sighting is silent — but
+  dedup re-emits a persistent bad outcome every 6h (dedup.DEFAULT_WINDOW). So:
+    * merged within ~6h before 03:00 UTC -> no page, one recovery INFO after.
+    * merged just after 03:00 UTC -> ~24h of unknown -> 3-4 WARN pages.
+  Do not rely on merge timing. REQUIRED live-verify immediately after this
+  manifest applies, which closes the window outright:
+
+    ssh office2-claude 'sg docker -c /data/services/security-monitor/scripts/audit.sh'
+    ssh office2-claude 'cat /data/services/security-monitor/state/last-tick.json'
+
+  That is the same command the cron runs and is non-destructive when the
+  baselines already exist (check_baseline only writes a baseline when one is
+  MISSING). If the pointer is absent after that run, the copy landed but the
+  write did not — investigate before leaving it; the canary will page every 6h.
 
   exit_status semantics: "the audit ran to completion", NOT "no drift found".
   Drift already pushes via the alert bus from inside audit.sh, so flipping the
