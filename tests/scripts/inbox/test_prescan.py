@@ -95,9 +95,21 @@ def _copy_fixture(name: str, dst_dir: Path, dst_name: str | None = None) -> Path
 
 
 def _set_age(path: Path, age_days: float) -> None:
-    """Set a file's mtime to ``age_days`` in the past."""
+    """Set a file's mtime to ``age_days`` in the past.
+
+    Use this for *relative* thresholds (staleness). For a fixture that must land
+    on a known side of an *absolute* boundary — e.g. ``ROUTING_LOG_CUTOVER_UTC``
+    — use :func:`_set_mtime_utc` instead: an age relative to ``now`` silently
+    crosses a fixed date as the wall clock advances (#896).
+    """
     target = datetime.now(timezone.utc) - timedelta(days=age_days)
     ts = target.timestamp()
+    os.utime(path, (ts, ts))
+
+
+def _set_mtime_utc(path: Path, when: datetime) -> None:
+    """Set a file's mtime to an absolute UTC instant (date-stable)."""
+    ts = when.timestamp()
     os.utime(path, (ts, ts))
 
 
@@ -919,10 +931,12 @@ def test_run_prescan_empty_archive_anomalies_when_healthy(monkeypatch, tmp_path,
     # flags a processed note with no routing-log entry, but #753 exempts notes
     # processed before ROUTING_LOG_CUTOVER_UTC (2026-07-17) — they predate the
     # log-before-mark guarantee, so a missing entry is not a silent-loss signal.
-    # This fixture is dated 2026-06-08 (pre-cutover); age its mtime to match so
-    # the exemption applies and the tick is genuinely healthy.
+    # This fixture is dated 2026-06-08 (pre-cutover); pin its mtime to that
+    # absolute date so the exemption applies and the tick is genuinely healthy.
+    # Must NOT be expressed as an age relative to now — that crosses the fixed
+    # cutover as the wall clock advances and the test starts failing (#896).
     p = _make_archive_file(archive, "Inbox 2026-06-08 0712.md", "processed")
-    _set_age(p, 40)
+    _set_mtime_utc(p, datetime(2026, 6, 8, 7, 12, tzinfo=timezone.utc))
 
     rc = run_prescan()
     captured = capsys.readouterr()
