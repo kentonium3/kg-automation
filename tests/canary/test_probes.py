@@ -10,7 +10,7 @@ real ``service-inventory.json`` entries and their real pointer files (restic
 """
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 import pytest
 
@@ -867,3 +867,162 @@ def test_dispatch_covers_every_handled_method():
     from scripts.canary.probes import _DISPATCH
     from scripts.canary.registry import HANDLED_METHODS
     assert set(_DISPATCH) == set(HANDLED_METHODS)
+
+
+# --------------------------------------------------------------------------- #
+# #891 — health verdicts must be affirmative, not default-positive.
+#
+# Health check shapes below are copied verbatim from real service-inventory.json
+# entries, per this module's house style.
+# --------------------------------------------------------------------------- #
+
+_HC_HEALTH_CHECK_RUNNER = {
+    "method": "signal-file",
+    "max_age_seconds": 46800,
+    "endpoint": "/data/services/openclaw/felix-health-check/last-run.json",
+    "success_status_values": ["ALL_HEALTHY", "FAILURES_DETECTED"],
+}
+
+_HC_SECURITY_MONITOR = {
+    "method": "state-file",
+    "state_path": "/data/services/security-monitor/state/last-tick.json",
+    "max_age_seconds": 108000,
+}
+
+_HC_SYNC_DRIVER = {
+    "method": "tick-signal-file",
+    "endpoint": "/data/services/openclaw/state/sync/last-tick.json",
+    "max_age_seconds": 600,
+}
+
+
+def _fresh(**extra):
+    payload = {"completed_at_utc": NOW.isoformat()}
+    payload.update(extra)
+    return payload
+
+
+class TestDeclaredSuccessStatusValues:
+    """`success_status_values` inverts `status` from a deny-list to an allow-list."""
+
+    def test_declared_healthy_value_passes(self):
+        r = run_probe(
+            _HC_HEALTH_CHECK_RUNNER, NOW,
+            http_get=_boom, run_cmd=_boom,
+            read_state=make_state({"ran_at_utc": NOW.isoformat(), "status": "ALL_HEALTHY"}),
+        )
+        assert r.ok and not r.stale
+
+    def test_failures_detected_stays_healthy(self):
+        """Monitored-system failures are data, not a runner fault — the
+        monitored services have their own canary entries."""
+        r = run_probe(
+            _HC_HEALTH_CHECK_RUNNER, NOW,
+            http_get=_boom, run_cmd=_boom,
+            read_state=make_state({"ran_at_utc": NOW.isoformat(), "status": "FAILURES_DETECTED"}),
+        )
+        assert r.ok
+
+    @pytest.mark.parametrize("status", ["SCRIPT_MISSING", "UNKNOWN"])
+    def test_runner_faults_fail(self, status):
+        """Both mean the check did not conclusively execute. Before #891 both
+        read healthy, because `status` was matched against a deny-list."""
+        r = run_probe(
+            _HC_HEALTH_CHECK_RUNNER, NOW,
+            http_get=_boom, run_cmd=_boom,
+            read_state=make_state({"ran_at_utc": NOW.isoformat(), "status": status}),
+        )
+        assert not r.ok
+        assert status in r.evidence
+
+    def test_a_newly_invented_status_word_fails_closed(self):
+        """The property that retires the class: nobody has to remember to add
+        the new word to a failure list."""
+        r = run_probe(
+            _HC_HEALTH_CHECK_RUNNER, NOW,
+            http_get=_boom, run_cmd=_boom,
+            read_state=make_state({"ran_at_utc": NOW.isoformat(), "status": "PARTIALLY_WEDGED"}),
+        )
+        assert not r.ok
+
+    def test_without_a_declaration_legacy_denylist_still_applies(self):
+        """Backward compatibility for the components not yet migrated."""
+        hc = {k: v for k, v in _HC_HEALTH_CHECK_RUNNER.items() if k != "success_status_values"}
+        assert run_probe(
+            hc, NOW, http_get=_boom, run_cmd=_boom,
+            read_state=make_state({"ran_at_utc": NOW.isoformat(), "status": "UNKNOWN"}),
+        ).ok
+        assert not run_probe(
+            hc, NOW, http_get=_boom, run_cmd=_boom,
+            read_state=make_state({"ran_at_utc": NOW.isoformat(), "status": "error"}),
+        ).ok
+
+
+class TestSecurityMonitorCompletionPointer:
+    def test_clean_run_is_healthy(self):
+        r = run_probe(
+            _HC_SECURITY_MONITOR, NOW, http_get=_boom, run_cmd=_boom,
+            read_state=make_state(_fresh(exit_status="success", alert_count=0, pushed_count=0)),
+        )
+        assert r.ok and not r.stale
+
+    def test_drift_does_not_flip_health(self):
+        """audit.sh pushes its own alert for drift; the canary must not page
+        again for the same event — nor for a #862 suppressed rebaseline."""
+        r = run_probe(
+            _HC_SECURITY_MONITOR, NOW, http_get=_boom, run_cmd=_boom,
+            read_state=make_state(_fresh(exit_status="success", alert_count=3, pushed_count=2)),
+        )
+        assert r.ok
+
+    def test_abnormal_termination_fails(self):
+        r = run_probe(
+            _HC_SECURITY_MONITOR, NOW, http_get=_boom, run_cmd=_boom,
+            read_state=make_state(_fresh(exit_status="failure", alert_count=0, pushed_count=0)),
+        )
+        assert not r.ok
+
+    def test_stale_pointer_is_stale(self):
+        old = (NOW - timedelta(seconds=108001)).isoformat()
+        r = run_probe(
+            _HC_SECURITY_MONITOR, NOW, http_get=_boom, run_cmd=_boom,
+            read_state=make_state({"completed_at_utc": old, "exit_status": "success"}),
+        )
+        assert r.stale
+
+    def test_missing_pointer_is_unknown_never_healthy(self):
+        """The pre-#891 probe reported healthy on nothing at all."""
+        r = run_probe(
+            _HC_SECURITY_MONITOR, NOW, http_get=_boom, run_cmd=_boom,
+            read_state=make_state(None),
+        )
+        assert not r.evaluable
+
+
+class TestCycleErrorVocabulary:
+    def test_clean_cycle_is_healthy(self):
+        r = run_probe(
+            _HC_SYNC_DRIVER, NOW, http_get=_boom, run_cmd=_boom,
+            read_state=make_state(_fresh(cycle_error=None)),
+        )
+        assert r.ok
+
+    def test_non_null_cycle_error_fails(self):
+        """Pre-#891 this read healthy: the probe piped through jq and inspected
+        the LAST line, which was the literal string `null`."""
+        r = run_probe(
+            _HC_SYNC_DRIVER, NOW, http_get=_boom, run_cmd=_boom,
+            read_state=make_state(_fresh(cycle_error="vikunja 500")),
+        )
+        assert not r.ok
+        assert "cycle_error" in r.evidence
+
+    def test_stale_pointer_is_stale(self):
+        """Also previously invisible — `_parse_iso('null')` returned None, so
+        the staleness branch never ran."""
+        old = (NOW - timedelta(seconds=601)).isoformat()
+        r = run_probe(
+            _HC_SYNC_DRIVER, NOW, http_get=_boom, run_cmd=_boom,
+            read_state=make_state({"completed_at_utc": old, "cycle_error": None}),
+        )
+        assert r.stale

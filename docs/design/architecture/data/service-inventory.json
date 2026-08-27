@@ -339,10 +339,12 @@
         }
       ],
       "health_check": {
-        "method": "shell",
-        "endpoint": "ls -t /data/services/security-monitor/baselines/*.json | head -1",
-        "expected": "baseline file updated within 24h",
-        "timeout_seconds": 5
+        "method": "state-file",
+        "state_path": "/data/services/security-monitor/state/last-tick.json",
+        "max_age_seconds": 108000,
+        "expected": "exit_status=success with completed_at_utc within the last 30h (24h cron cadence + 6h slack). exit_status means the audit RAN TO COMPLETION, not that it found nothing — drift pushes via the alert bus from audit.sh itself, and alert_count/pushed_count ride along for context without affecting health. A missing or unreadable pointer is unknown, never healthy.",
+        "timeout_seconds": 5,
+        "note": "#891 — the prior probe was `ls -t .../baselines/*.json | head -1`, which could not fail: the baselines are .txt so the glob never matched, and the pipeline returned head's exit status (0) regardless. Keying on baseline mtime instead would have been equally wrong in the other direction — check_baseline only rewrites a baseline when one is MISSING, so all baselines sat at 2026-08-22 while the audit completed cleanly every day; a 24h bound would have false-alarmed for five days. audit.sh now writes this pointer on both exit branches."
       },
       "config_files": [
         {
@@ -2341,8 +2343,13 @@
         "method": "signal-file",
         "max_age_seconds": 46800,
         "endpoint": "/data/services/openclaw/felix-health-check/last-run.json",
-        "expected": "status in {ALL_HEALTHY, FAILURES_DETECTED, UNKNOWN, SCRIPT_MISSING}, ran_at_utc within the last ~13 hours (covers both 11:00/23:00 ticks), exit_code recorded. Healthy runs are silent (no ntfy push); non-healthy runs alert. See kitty-specs/deterministic-monitoring-checks-01KX1XNW/contracts/health-check-runner.contract.md for the schema.",
-        "timeout_seconds": 5
+        "success_status_values": [
+          "ALL_HEALTHY",
+          "FAILURES_DETECTED"
+        ],
+        "expected": "ran_at_utc within the last ~13 hours (covers both 11:00/23:00 ticks), exit_code recorded, and status in success_status_values. FAILURES_DETECTED is healthy for THIS component because it means the runner ran fine and the monitored system had failures — that is data, not a runner fault; the monitored services have their own canary entries. UNKNOWN and SCRIPT_MISSING are runner faults and fail.",
+        "timeout_seconds": 5,
+        "note": "#891 — success_status_values makes health affirmative for this pointer. Previously `status` was matched against a deny-list of failure words, so UNKNOWN and SCRIPT_MISSING both read healthy: a runner that never conclusively executed was indistinguishable from a clean pass. The allow-list also means any status word this component invents later fails closed rather than defaulting to silence."
       },
       "config_files": [
         {
@@ -2663,9 +2670,10 @@
       "health_check": {
         "method": "journal",
         "max_age_seconds": 90000,
-        "endpoint": "journalctl --user -u credential-health-check --since today",
-        "expected": "cycle_end event present from the most recent 13:00 UTC tick",
-        "timeout_seconds": 5
+        "endpoint": "journalctl --user -u credential-health-check --since '25 hours ago' -o short-iso | grep -F 'cycle_end'",
+        "expected": "a cycle_end line from the most recent 13:00 UTC tick, within max_age_seconds (25h)",
+        "timeout_seconds": 5,
+        "note": "#891 — the prior endpoint had no grep filter and used journalctl's default output. Both halves were broken: journalctl writes '-- No entries --' to STDOUT with exit 0, so a deleted unit still read healthy (the probe accepted a systemd teardown line as the marker); and the default 'Aug 27 13:00:43' prefix does not parse as ISO-8601, so max_age_seconds was inert. `grep -F` makes the pipeline fail closed (exit 1 -> unknown, never a false healthy) and `-o short-iso` makes the leading token parseable. The window MUST be rolling, not calendar-day: the host is UTC and the timer fires at 13:00 UTC, so `--since today` is empty from 00:00 to 13:00 daily — with the grep filter added that is 13 hours of `unknown` and two WARN pages every morning. A 25h rolling window matches max_age_seconds and keeps the probe evaluable at every hour. This is the credential-liveness-probe idiom in full: its `--since '7 hours ago'` window and its 25200s bound agree with each other."
       },
       "config_files": [
         {
@@ -2907,11 +2915,12 @@
         }
       ],
       "health_check": {
-        "method": "log-tail",
+        "method": "tick-signal-file",
+        "endpoint": "/data/services/openclaw/state/sync/last-tick.json",
         "max_age_seconds": 600,
-        "endpoint": "cat /data/services/openclaw/state/sync/last-tick.json | jq '.completed_at_utc, .cycle_error'",
-        "expected": "completed_at_utc within ~6 minutes; cycle_error: null",
-        "timeout_seconds": 5
+        "expected": "cycle_error null with completed_at_utc within ~10 minutes (5-minute cadence + slack); a non-null cycle_error is an explicit failure",
+        "timeout_seconds": 5,
+        "note": "#891 — the prior probe piped the pointer through jq and read the LAST output line, which was `.cycle_error` printing `null`. `_parse_iso('null')` returned None, so the freshness branch never ran and an arbitrarily stale pointer read healthy (live evidence string was literally 'marker present in log window: null'). cycle_error was never evaluated either. Reading the pointer directly lets the shared freshness probe judge both; cycle_error was added to the probe's explicit-error vocabulary in the same change."
       },
       "config_files": [
         {

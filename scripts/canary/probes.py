@@ -117,8 +117,11 @@ _RESTIC_OK_EXIT_CODES: frozenset[int] = frozenset({0, 3})
 #   ``{ALL_HEALTHY, FAILURES_DETECTED, UNKNOWN, SCRIPT_MISSING}`` where
 #   ``FAILURES_DETECTED`` means the *monitored system* had failures while the
 #   runner itself ran fine ("a health failure is data, not a runner error").
-#   Using "not success" here would false-fail ``ALL_HEALTHY``. So ``status`` is
-#   matched against an explicit failure-VALUE set only.
+#   Using "not success" here would false-fail ``ALL_HEALTHY``. So by default
+#   ``status`` is matched against an explicit failure-VALUE set only — a
+#   fail-OPEN deny-list. A health_check may instead declare
+#   ``success_status_values``, which inverts this to a fail-closed allow-list
+#   (#891); prefer that for new pointers.
 _EXIT_STATUS_SUCCESS: frozenset[str] = frozenset({"success", "ok"})
 _STATUS_FAILURE_VALUES: frozenset[str] = frozenset(
     {"error", "failed", "fail", "failure"}
@@ -214,7 +217,10 @@ def _resolve_timestamp(pointer: dict[str, Any]) -> tuple[str, datetime] | None:
     return None
 
 
-def _explicit_error(pointer: dict[str, Any]) -> str | None:
+def _explicit_error(
+    pointer: dict[str, Any],
+    success_status_values: frozenset[str] | None = None,
+) -> str | None:
     """Return an evidence string if the pointer explicitly signals failure.
 
     Recognizes the real success/failure field conventions used across the
@@ -234,14 +240,20 @@ def _explicit_error(pointer: dict[str, Any]) -> str | None:
       (``success``/``partial``/``failure``) so "not success" is safe here; covers
       felix-core-digest, felix-habit-sweeper, and any tick-signal using
       ``exit_status``.
-    * ``status`` — present and holding an explicit failure VALUE
-      (:data:`_STATUS_FAILURE_VALUES`, e.g. ``error``/``failed``) is a failure.
+    * ``status`` — two modes. When the health_check declares
+      ``success_status_values``, that allow-list is authoritative and anything
+      outside it is a failure (fail-closed; #891). Otherwise the legacy
+      deny-list :data:`_STATUS_FAILURE_VALUES` applies (fail-open) — a component
+      that invents a new status word reads healthy, which is the defect the
+      allow-list exists to retire. Prefer declaring the allow-list.
       An OPEN vocabulary, so it is matched against explicit failure values only
       — a legitimate non-failure ``status`` such as felix-health-check's
       ``ALL_HEALTHY`` / ``FAILURES_DETECTED`` (monitored-system data, not a
       runner fault) must NOT be flipped to failed.
     * ``errors`` — a truthy (non-empty) value is a failure.
     * ``error`` — a truthy value is a failure.
+    * ``cycle_error`` — a truthy value is a failure. felix-vikunja-sync-driver's
+      ``last-tick.json`` (#891); ``null`` on a clean cycle.
 
     Returns ``None`` when no explicit failure signal is present. Be conservative:
     a pointer with ``status: success`` / ``exit_code: 0`` / ``exit_status:
@@ -260,14 +272,27 @@ def _explicit_error(pointer: dict[str, Any]) -> str | None:
     if isinstance(exit_status, str) and exit_status.lower() not in _EXIT_STATUS_SUCCESS:
         return f"exit_status={exit_status!r}"
     status = pointer.get("status")
-    if isinstance(status, str) and status.lower() in _STATUS_FAILURE_VALUES:
-        return f"status={status!r}"
+    if isinstance(status, str):
+        if success_status_values is not None:
+            # Declared allow-list (#891): health is affirmative. Any value the
+            # component invents that is not declared healthy is a failure, so a
+            # new status word defaults to paging rather than to silence.
+            if status.lower() not in success_status_values:
+                return (
+                    f"status={status!r} not in declared success set "
+                    f"{sorted(success_status_values)}"
+                )
+        elif status.lower() in _STATUS_FAILURE_VALUES:
+            return f"status={status!r}"
     errors = pointer.get("errors")
     if errors:
         return f"errors={errors!r}"
     error = pointer.get("error")
     if error:
         return f"error={error!r}"
+    cycle_error = pointer.get("cycle_error")
+    if cycle_error:
+        return f"cycle_error={cycle_error!r}"
     return None
 
 
@@ -381,7 +406,13 @@ def _probe_freshness(
         )
 
     # Explicit error signal wins over freshness (restic_exit_code / errors).
-    err = _explicit_error(pointer)
+    declared = health_check.get("success_status_values")
+    success_values = (
+        frozenset(v.lower() for v in declared if isinstance(v, str))
+        if isinstance(declared, list) and declared
+        else None
+    )
+    err = _explicit_error(pointer, success_values)
     if err is not None:
         return ProbeResult(
             ok=False, stale=False, evaluable=True,

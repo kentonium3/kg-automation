@@ -37,6 +37,10 @@ LOGFILE="$LOG_DIR/audit-$DATE.log"
 ALERT_FILE="$LOG_DIR/alerts-$DATE.log"
 # Signal-driven doc-audit event stream (#278) — append-only JSONL
 DRIFT_EVENTS_FILE="$LOG_DIR/drift-events.jsonl"
+# Completion pointer (#891) — the canary's freshness anchor. Written on BOTH
+# exit branches so "the audit ran" is observable independently of what it found.
+STATE_DIR="$BASE_DIR/state"
+TICK_FILE="$STATE_DIR/last-tick.json"
 ALERT=0
 
 # felix-alert bus shim — sources the topic env-file and delivers via the
@@ -52,6 +56,52 @@ EXPECTED_DRIFT_HELPER="/home/claude/kg-automation/scripts/deploy/felix-deployer/
 # --- Helpers ---
 log()   { echo "[$(date '+%H:%M:%S')] $1" >> "$LOGFILE"; }
 alert() { echo "[ALERT] $1" | tee -a "$ALERT_FILE" >> "$LOGFILE"; ALERT=1; }
+
+# Completion pointer for the canary (#891). Written atomically on BOTH exit
+# branches.
+#
+# `exit_status` means "this audit ran to completion" — NOT "no drift was found".
+# Drift already pushes via $ALERT_BUS above; flipping the canary to failed on the
+# same event would page twice for one finding. It would also page on a #862
+# expected-in-flight rebaseline, which deliberately withholds its own push while
+# still exiting 1. Drift counts ride along in `alert_count`/`pushed_count`, which
+# are outside the canary's explicit-error vocabulary and so cannot flip health.
+#
+# Best-effort by construction: every failure path returns 0, because a pointer
+# problem must never fail the audit (same discipline as the alert-bus emit).
+TICK_WRITTEN=0
+
+write_tick() {
+    local status="$1" alert_count="$2" pushed_count="$3" ts tmp
+    case "$alert_count" in ''|*[!0-9]*) alert_count=0 ;; esac
+    case "$pushed_count" in ''|*[!0-9]*) pushed_count=0 ;; esac
+    ts=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+    mkdir -p "$STATE_DIR" 2>/dev/null || return 0
+    tmp=$(mktemp "$STATE_DIR/.last-tick.XXXXXX" 2>/dev/null) || return 0
+    if printf '{"schema_version":1,"completed_at_utc":"%s","exit_status":"%s","alert_count":%s,"pushed_count":%s}\n' \
+        "$ts" "$status" "$alert_count" "$pushed_count" > "$tmp" 2>/dev/null; then
+        if mv -f "$tmp" "$TICK_FILE" 2>/dev/null; then
+            TICK_WRITTEN=1
+        else
+            rm -f "$tmp" 2>/dev/null
+        fi
+    else
+        rm -f "$tmp" 2>/dev/null
+    fi
+    return 0
+}
+
+# Abnormal-termination cover (#891). Without this, a crash before the summary
+# block (OOM, a failing `sg docker -c` wrapper, a mid-scan abort) writes no
+# pointer at all, and the canary only notices when max_age_seconds expires — a
+# 30h blind window, because the NEXT day's run would have to fail too. The trap
+# records an explicit failure that pages within one canary tick instead. Both
+# normal exit paths call write_tick first and set TICK_WRITTEN, so this fires
+# only on the abnormal path.
+on_exit() {
+    [ "$TICK_WRITTEN" -eq 1 ] || write_tick "failure" 0 0
+}
+trap on_exit EXIT
 
 # Emit a structured drift event for felix-doc-auditor to consume.
 # Diff is base64-encoded to avoid JSON-escaping multi-line content.
@@ -340,10 +390,12 @@ if [ "$ALERT" -eq 1 ]; then
     echo "========================================="
     cat "$ALERT_FILE"
     echo "========================================="
+    write_tick "success" "$ALERT_COUNT" "$PUSH_COUNT"
     exit 1
 else
     log "AUDIT COMPLETE: All clear"
     rm -f "$ALERT_FILE"
     echo "Security audit $DATE: All clear"
+    write_tick "success" 0 0
     exit 0
 fi
