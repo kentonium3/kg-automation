@@ -33,3 +33,6 @@ notes: "Syncs the updated security-monitor audit.sh to its standalone office2 co
   \ sudo). audited_surface: false \u2014\nscripts/office2/security-monitor/*.sh matches\
   \ no audited-surfaces.json\npattern. Rebaseline: not required.\n"
 applied_at: '2026-08-27T23:04:34Z'
+rebaseline:
+  outcome: cleared_clean
+  at_utc: '2026-08-27T23:04:38Z'
