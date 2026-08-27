@@ -8,7 +8,7 @@
 # written on every script exit (success or failure).
 
 export RESTIC_REPOSITORY="/mnt/backups/restic-repo"
-export RESTIC_PASSWORD_FILE="/home/claude/.config/restic/password"
+export RESTIC_PASSWORD_FILE="/etc/restic/password"
 
 LOG_DIR="/data/services/backup/logs"
 STATE_DIR="/data/services/backup/state"
