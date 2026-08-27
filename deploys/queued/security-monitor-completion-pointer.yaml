@@ -9,56 +9,39 @@ created_by: fix-891-canary-checks-that-cannot-fail
 apply_mode: manifest
 notes: |
   Syncs the updated security-monitor audit.sh to its standalone office2 copy
-  (/data/services/security-monitor/scripts/audit.sh) for kentonium3/kg-automation#891.
+  (/data/services/security-monitor/scripts/audit.sh) for #891.
 
-  audit.sh now writes a completion pointer at
-  /data/services/security-monitor/state/last-tick.json on BOTH exit branches,
-  plus an EXIT trap that records exit_status=failure on abnormal termination.
-  The canary's inventory entry is repointed to method: state-file against that
-  path in the same commit.
+  audit.sh now writes a completion pointer to
+  /data/services/security-monitor/state/last-tick.json on both exit branches,
+  plus an EXIT trap recording exit_status=failure on abnormal termination. The
+  canary's inventory entry is repointed to method: state-file in the same
+  commit.
 
-  SEQUENCING — why this manifest is required, but NOT sufficient on its own.
-  The inventory half of the change reaches office2 automatically (felix-deployer
-  fast-forwards the checkout every ~5 min); the standalone audit.sh copy does
-  not move on its own, so without this manifest the canary would aim at a path
-  that nothing will EVER write.
+  REQUIRED, NOT SUFFICIENT. The inventory half reaches office2 on its own via
+  the checkout fast-forward; the standalone audit.sh copy does not, so without
+  this manifest the canary aims at a path nothing will ever write.
 
-  This manifest copies audit.sh; it does not run it. The entrypoint is the
-  canonical audit.sh syncer used by every future audit.sh change, and making it
-  execute a security audit as a deploy side effect (which can push drift alerts)
-  is out of scope here. audit.sh creates STATE_DIR itself via `mkdir -p`, so the
-  pointer first appears on the next scheduled run: `0 3 * * *` UTC.
+  This manifest copies audit.sh; it does not run it (the entrypoint is the
+  canonical syncer for every future change, and running an audit as a deploy
+  side effect can push drift alerts). audit.sh creates STATE_DIR itself, so the
+  pointer first appears at the next scheduled run, 0 3 * * * UTC.
 
-  THE WINDOW, stated honestly. Between merge and that first 03:00 run the
-  pointer does not exist. read_state raises FileNotFoundError, the probe returns
-  evaluable=False, and the component reads `unknown`. run.py passes
-  emit_on_first_seen=False for `unknown`, so the first sighting is silent — but
-  dedup re-emits a persistent bad outcome every 6h (dedup.DEFAULT_WINDOW). So:
-    * merged within ~6h before 03:00 UTC -> no page, one recovery INFO after.
-    * merged just after 03:00 UTC -> ~24h of unknown -> 3-4 WARN pages.
-  Do not rely on merge timing. REQUIRED live-verify immediately after this
-  manifest applies, which closes the window outright:
+  THE WINDOW. Until that run the pointer is absent: read_state raises, the
+  probe is unevaluable, the component reads unknown. First sighting is silent
+  (emit_on_first_seen=False for unknown) but dedup re-emits every 6h, so a
+  merge just after 03:00 UTC would page 3-4 times. Do not rely on merge timing.
+  Run this immediately after apply to close the window:
 
     ssh office2-claude 'sg docker -c /data/services/security-monitor/scripts/audit.sh'
     ssh office2-claude 'cat /data/services/security-monitor/state/last-tick.json'
 
-  That is the same command the cron runs and is non-destructive when the
-  baselines already exist (check_baseline only writes a baseline when one is
-  MISSING). If the pointer is absent after that run, the copy landed but the
-  write did not — investigate before leaving it; the canary will page every 6h.
+  Non-destructive when baselines exist. If the pointer is absent after that
+  run, investigate — the canary will page every 6h.
 
-  exit_status semantics: "the audit ran to completion", NOT "no drift found".
-  Drift already pushes via the alert bus from inside audit.sh, so flipping the
-  canary on the same event would page twice for one finding — and would also
-  page on a #862 expected-in-flight rebaseline, which deliberately withholds its
-  own push while still exiting 1. Drift counts ride in alert_count/pushed_count,
-  which sit outside the canary's explicit-error vocabulary and cannot affect
-  health. Verified: _explicit_error returns None on the drift record and
-  exit_status='failure' on the crash record.
+  exit_status means "ran to completion", NOT "no drift" — drift already pushes
+  from audit.sh, and a #862 suppressed rebaseline exits 1 without pushing.
+  Counts ride in alert_count/pushed_count, outside the error vocabulary.
 
-  Tier 3 (a file copy into a claude-owned dir — no sudo, no Tier 0/1/2 action).
-  audited_surface: false — scripts/office2/security-monitor/*.sh matches no
-  audited-surfaces.json pattern (systemd-user-units covers
-  scripts/office2/*.service and scripts/office2/deploy/*.sh, not
-  security-monitor/audit.sh); no hashed baseline drifts.
-  Rebaseline: not required.
+  Tier 3 (file copy into a claude-owned dir; no sudo). audited_surface: false —
+  scripts/office2/security-monitor/*.sh matches no audited-surfaces.json
+  pattern. Rebaseline: not required.
