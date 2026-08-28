@@ -25,7 +25,7 @@
       "wp": null
     },
     "#899": {
-      "evidence_ref": "<link or commit>",
+      "evidence_ref": "Closed 2026-08-27. Cited as the hard constraint shaping this mission: a claude-writable directory on a NOPASSWD sudo path is equivalent to NOPASSWD: ALL. Re-verified live \u2014 directory is root:root, touch as claude denied, grant still present. It is why #903 resolves as detection rather than automation.",
       "fr": null,
       "nfr": null,
       "repo": null,
@@ -33,7 +33,7 @@
       "scope": null,
       "source_file": "spec.md",
       "title": "<fill at WP-implementation time>",
-      "verdict": "unknown",
+      "verdict": "verified-already-fixed",
       "wp": null
     },
     "#902": {
