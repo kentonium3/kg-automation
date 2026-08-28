@@ -1,7 +1,7 @@
 {
-  "event_count": 8,
-  "last_event_id": "01M143BDJ58WY5JHGQH1DA7T84",
-  "materialized_at": "2026-08-28T11:51:14.757965+00:00",
+  "event_count": 10,
+  "last_event_id": "01M143DVKNZ1VFDJ0Z631ZF22G",
+  "materialized_at": "2026-08-28T11:52:34.675972+00:00",
   "mission_number": "",
   "mission_slug": "backup-integrity-observability-01M1414D",
   "mission_type": "software-dev",
@@ -12,9 +12,9 @@
     "claimed": 0,
     "done": 0,
     "for_review": 1,
-    "in_progress": 0,
+    "in_progress": 1,
     "in_review": 0,
-    "planned": 4
+    "planned": 3
   },
   "work_packages": {
     "WP01": {
@@ -49,11 +49,14 @@
       "last_transition_at": "2026-08-28T11:42:21.019281+00:00"
     },
     "WP03": {
-      "actor": "finalize-tasks",
+      "actor": "claude",
+      "agent": "claude",
       "force_count": 0,
-      "lane": "planned",
-      "last_event_id": "01M142V8K4DM1KYD7THX1DQWGC",
-      "last_transition_at": "2026-08-28T11:42:25.380739+00:00"
+      "lane": "in_progress",
+      "last_event_id": "01M143DVKNZ1VFDJ0Z631ZF22G",
+      "last_transition_at": "2026-08-28T11:52:34.675972+00:00",
+      "shell_pid": 32887,
+      "shell_pid_created_at": "1787917941.134592"
     },
     "WP04": {
       "actor": "finalize-tasks",
