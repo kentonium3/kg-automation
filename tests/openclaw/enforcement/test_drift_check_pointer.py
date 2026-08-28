@@ -187,3 +187,21 @@ def test_main_writes_error_pointer_when_config_is_missing(tmp_path, monkeypatch)
     assert payload["status"] == "error"
     assert payload["exit_code"] == 2
     assert not probe(ptr).ok, "a runner failure must not read as healthy"
+
+
+def test_help_does_not_write_a_pointer(tmp_path, monkeypatch):
+    """`--help` is a clean SystemExit(0), not a runner failure.
+
+    Regression guard (post-merge review): the blanket BaseException handler used
+    to stamp status=error on the production pointer path for `--help`, making a
+    healthy component read as broken.
+    """
+    ptr = tmp_path / "last-tick.json"
+    monkeypatch.setattr(drift_check, "LAST_TICK_PATH", str(ptr))
+    monkeypatch.setattr(sys, "argv", ["drift_check.py", "--help"])
+
+    with pytest.raises(SystemExit) as exc:
+        drift_check.main()
+
+    assert exc.value.code == 0
+    assert not ptr.exists(), "--help must not write a freshness pointer"

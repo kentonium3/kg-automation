@@ -392,10 +392,22 @@ def main():
     _TICK_WRITTEN["done"] = False
     try:
         _run()
+    except SystemExit as exc:
+        # A clean SystemExit is not a failure. argparse implements `--help` by
+        # raising SystemExit(0) at parse time, before any pointer is written, so
+        # without this branch `drift_check.py --help` would stamp a spurious
+        # status=error pointer on the production path and make a healthy
+        # component look broken (post-merge review).
+        code = exc.code if isinstance(exc.code, int) else 1
+        if code != 0 and not _TICK_WRITTEN["done"]:
+            write_last_tick(
+                LAST_TICK_PATH, status="error", exit_code=2, has_drift=None
+            )
+        raise
     except BaseException:
+        # Anything else escaping is a genuine runner failure, and the canary is
+        # owed an immediate explicit error rather than silence until max_age.
         if not _TICK_WRITTEN["done"]:
-            # argparse failures happen before the flag path is reachable with a
-            # parsed value, so fall back to the default location.
             write_last_tick(
                 LAST_TICK_PATH, status="error", exit_code=2, has_drift=None
             )

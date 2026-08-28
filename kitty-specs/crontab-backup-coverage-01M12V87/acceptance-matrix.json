@@ -18,11 +18,11 @@
       "criterion_id": "FR-002",
       "description": "Each capture lands before the nightly backup run, so the copy in a snapshot reflects the current schedule.",
       "proof_type": "inspection",
-      "evidence": "c59c8008. scripts/office2/crontab-capture.timer sets OnCalendar=hourly with Persistent=true; the Restic backup runs 0 4 * * * (daily). The capture interval is strictly shorter than the backup interval, so a capture always precedes any given backup run, and Persistent=true replays a run missed while the host was down. Live end-to-end confirmation is in quickstart.md and requires the deploy to have applied.",
+      "evidence": "c59c8008. scripts/office2/crontab-capture.timer sets OnCalendar=hourly with Persistent=true and RandomizedDelaySec=120; the Restic backup runs 0 4 * * * (daily). NARROWED after post-merge review: under normal uptime the hourly cadence means a capture precedes any given 04:00 backup, and Persistent=true replays a run missed while the host was down. This is a freshness property, NOT a strict ordering guarantee \u2014 nothing serialises the timer against the cron backup under boot/replay or failure timing. A hard guarantee would require an orchestrated pre-backup capture gate, which was not built and is not required by NFR-002 (a 24h recovery window). Live end-to-end confirmation is in quickstart.md and closes with SC-001/SC-002 after the deploy applies.",
       "pass_fail": "pass",
       "verified_by": "claude",
       "verified_at": "2026-08-28T02:10:00Z",
-      "notes": "Verified during WP review; see evidence."
+      "notes": "Evidence narrowed post-merge: the original wording claimed an ordering guarantee the mechanism does not provide."
     },
     {
       "criterion_id": "FR-003",
