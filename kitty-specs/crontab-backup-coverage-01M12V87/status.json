@@ -151,7 +151,8 @@
       "last_transition_at": "2026-08-28T03:42:34.322843+00:00",
       "model": "__resolved_model_absent__",
       "notes": [
-        "Ready for review"
+        "Ready for review",
+        "Review passed. Verified against the REAL canary probe (not by reading JSON) that both new health checks can actually fail -- the #891 defect class: fresh/success healthy, aged past bound reports stale=True, runner error reports ok=False, for both components. Also verified the inverse for agent-drift-check: a drift-FOUND pointer (exit_code=0, has_drift=true) still reads healthy, so a successful run that finds drift will not page. Both entries use absolute state_path + integer max_age_seconds, neither probes /tmp. validate_architecture_data --strict OK; canary inventory data guard 9 passed; make test 6215 passed / 0 failed. audited-surfaces.json deliberately unchanged with rationale recorded (its systemd-user-units surface already matches scripts/office2/*.timer)."
       ],
       "provider": "__resolved_provider_absent__",
       "review_result": {
