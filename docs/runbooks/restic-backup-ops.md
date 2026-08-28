@@ -158,35 +158,53 @@ reports when the two copies diverge.
 
 ### Installing an updated script
 
-Verify the source **before** trusting it. It lives in `/home/claude/kg-automation`,
-which the unprivileged `claude` account can write; installing straight from there
-as root would leave the same boundary weak one step upstream. Protecting the
-destination is not enough if the source is unverified.
+**Install from GitHub, not from the office2 checkout.** `/home/claude/kg-automation`
+is writable by the unprivileged `claude` account; installing from there as root
+would let that account influence root-executed content. Fetching the reviewed
+commit from GitHub removes it from the trust path entirely.
+
+Two earlier versions of this procedure were wrong and are worth recording so they
+are not reintroduced:
+
+- Sourcing the install from `/home/claude/kg-automation/...` — protects the
+  destination while leaving the source unverified.
+- Verifying with `git -C /home/claude/kg-automation diff --quiet …` — `/home/claude`
+  is mode `0750`, so `kgale` cannot traverse it. The command exits non-zero for
+  *permission denied* and, wrapped in `&& … || …`, reports that as "working tree
+  differs". A check that cannot distinguish "verified false" from "could not
+  check" is the defect class this whole runbook exists to fix.
 
 ```bash
-cd /home/claude/kg-automation && git log --oneline -1 -- scripts/office2/restic-backup.sh
+ssh office2-kgale
 ```
 
+Fetch the exact reviewed commit into your own home (not `/tmp`, which is
+world-writable and invites a swap between fetch and install):
+
 ```bash
-git -C /home/claude/kg-automation diff --quiet HEAD -- scripts/office2/restic-backup.sh && echo "matches committed content" || echo "WORKING TREE DIFFERS — do not install"
+curl -fsSL -o ~/restic-backup.sh https://raw.githubusercontent.com/kentonium3/kg-automation/<commit-sha>/scripts/office2/restic-backup.sh
 ```
 
-Only if both agree with the commit you reviewed:
+Confirm the content hash matches the commit you reviewed:
 
 ```bash
-sudo install -o root -g root -m 755 \
-  /home/claude/kg-automation/scripts/office2/restic-backup.sh \
-  /data/services/backup/scripts/backup.sh
+md5sum ~/restic-backup.sh
+```
+
+Only then install, from the file you just verified:
+
+```bash
+sudo install -o root -g root -m 755 ~/restic-backup.sh /data/services/backup/scripts/backup.sh
 ```
 
 Confirm what actually landed:
 
 ```bash
-sudo md5sum /data/services/backup/scripts/backup.sh /home/claude/kg-automation/scripts/office2/restic-backup.sh
+sudo md5sum /data/services/backup/scripts/backup.sh
 ```
 
-Both hashes must match. From then on `backup-script-drift` performs that
-comparison daily and reports divergence without being asked.
+It must equal the hash from the fetch. `backup-script-drift` then performs that
+comparison daily without being asked, and will flip from `drift` to `match`.
 
 ### Reading the drift signal
 
