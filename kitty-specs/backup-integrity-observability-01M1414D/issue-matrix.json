@@ -24,6 +24,18 @@
       "verdict": "verified-already-fixed",
       "wp": null
     },
+    "#891": {
+      "evidence_ref": "Shipped (9ab02083). Cited as the affirmative-health rule this mission must follow: the comparator's health check declares success_status_values so an unrecognised status word cannot pass as healthy, and every new check is proven able to fail through the real run_probe.",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": null,
+      "title": null,
+      "verdict": "verified-already-fixed",
+      "wp": null
+    },
     "#895": {
       "evidence_ref": "Predecessor mission, merged e2a72715 and live-verified. Its crontab_capture.py is the surface WP04 extends, and its quickstart carried the stale grep pattern that became #906.",
       "fr": null,
