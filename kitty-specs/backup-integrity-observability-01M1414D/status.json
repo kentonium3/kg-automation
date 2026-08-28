@@ -51,10 +51,15 @@
     "WP03": {
       "actor": "claude",
       "agent": "claude",
+      "agent_profile": "__resolved_profile_absent__",
+      "agent_profile_version": "__resolved_profile_version_absent__",
       "force_count": 0,
       "lane": "in_progress",
       "last_event_id": "01M143DVKNZ1VFDJ0Z631ZF22G",
       "last_transition_at": "2026-08-28T11:52:34.675972+00:00",
+      "model": "__resolved_model_absent__",
+      "provider": "__resolved_provider_absent__",
+      "role": "implementer",
       "shell_pid": 32887,
       "shell_pid_created_at": "1787917941.134592"
     },
