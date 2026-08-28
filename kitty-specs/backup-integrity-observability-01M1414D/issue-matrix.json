@@ -37,7 +37,7 @@
       "wp": null
     },
     "#902": {
-      "evidence_ref": "<link or commit>",
+      "evidence_ref": "Second half of #902 \u2014 the reason the ten-hour prune failure was invisible. WP01 records prune_exit_code with a 127 not-attempted sentinel; WP02 teaches the canary to act on it with a {0} good-set.",
       "fr": null,
       "nfr": null,
       "repo": null,
@@ -45,8 +45,8 @@
       "scope": null,
       "source_file": "spec.md",
       "title": "<fill at WP-implementation time>",
-      "verdict": "unknown",
-      "wp": null
+      "verdict": "in-mission",
+      "wp": "WP01"
     },
     "#903": {
       "evidence_ref": "<link or commit>",
