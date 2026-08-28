@@ -59,7 +59,8 @@
       "last_transition_at": "2026-08-28T03:14:33.883922+00:00",
       "model": "__resolved_model_absent__",
       "notes": [
-        "Ready for review"
+        "Ready for review",
+        "Codex read-only review found 6 findings (2 HIGH, 2 MEDIUM, 2 LOW); all accepted and fixed in 94cce5c0 before approval. HIGH-1: text=True broke byte identity (FR-003) via universal-newline translation and locale decoding. HIGH-2: non-UTF-8 existing artifact raised UnicodeDecodeError past the OSError handler, aborting before the freshness pointer was written. Capture path is now bytes-native; main() always emits a pointer and SUMMARY. Codex verified as correct: --force bypasses only the shrink guard, idempotency behaviour, and that the emitted pointer fields are interpreted as intended by probes.py with no explicit-error key collision. make test 6205 passed / 0 failed (floor 6177 + 28 new)."
       ],
       "provider": "__resolved_provider_absent__",
       "review_result": {
