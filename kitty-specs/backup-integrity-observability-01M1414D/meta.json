@@ -1,0 +1,14 @@
+{
+  "created_at": "2026-08-28T11:12:28.252942+00:00",
+  "flattened": false,
+  "friendly_name": "backup integrity observability",
+  "mission_id": "01M1414DJR4NR3CQ8875X06Y9W",
+  "mission_number": null,
+  "mission_slug": "backup-integrity-observability-01M1414D",
+  "mission_type": "software-dev",
+  "purpose_context": "This mission advances backup integrity observability on feat/backup-integrity-observability so stakeholders can track the work from mission creation onward.",
+  "purpose_tldr": "backup integrity observability",
+  "slug": "backup-integrity-observability-01M1414D",
+  "target_branch": "feat/backup-integrity-observability",
+  "topology": "single_branch"
+}
