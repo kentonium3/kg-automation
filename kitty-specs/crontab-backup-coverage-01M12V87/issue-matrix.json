@@ -72,6 +72,18 @@
       "verdict": "verified-already-fixed",
       "wp": null
     },
+    "#894": {
+      "evidence_ref": "Follow-up: #894. Owns the /tmp probe migration. This mission must not touch /tmp/drift-check.log or the crontab redirect; WP04 adds a durable pointer alongside instead, leaving #894's substrate move intact.",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": null,
+      "title": null,
+      "verdict": "deferred-with-followup",
+      "wp": null
+    },
     "#895": {
       "evidence_ref": "Mission issue. WP01 (5ecd7d40) closes FR-007; WP02-WP05 carry FR-001..FR-006.",
       "fr": null,
