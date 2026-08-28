@@ -85,7 +85,7 @@
       "wp": "WP03"
     },
     "#906": {
-      "evidence_ref": "The documented crontab recovery re-implemented header stripping in prose, which drifted. WP04 adds --emit-body reusing the writer's own parser so there is one implementation; WP05 moves the procedure into a runbook.",
+      "evidence_ref": "Fixed. WP04 replaces the prose header-stripping with split_header() reused by --emit-body, plus a drift guard that fails if the header format changes; WP05 moves the recovery procedure into docs/runbooks/crontab-recovery.md.",
       "fr": null,
       "nfr": null,
       "repo": null,
@@ -93,7 +93,7 @@
       "scope": null,
       "source_file": "spec.md",
       "title": "<fill at WP-implementation time>",
-      "verdict": "in-mission",
+      "verdict": "fixed",
       "wp": "WP04"
     }
   },
