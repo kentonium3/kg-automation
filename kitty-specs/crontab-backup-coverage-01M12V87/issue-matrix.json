@@ -36,6 +36,18 @@
       "verdict": "fixed",
       "wp": "WP01"
     },
+    "#889": {
+      "evidence_ref": "Cited as evidence only. #889 (af37583a) moved the restic key out of the tree it protects; verified its repo copy is byte-identical to the live host file (md5 767da888...), which is how the hand-deploy gap #903 was discovered.",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": null,
+      "title": null,
+      "verdict": "verified-already-fixed",
+      "wp": null
+    },
     "#890": {
       "evidence_ref": "Out of scope by spec.md 'Out of Scope': placing the 5 legacy cron jobs under repo control / building a reconciler is #890's subject. This mission deliberately adds a systemd user timer instead of a 6th cron entry so it does not enlarge #890's surface.",
       "fr": null,
