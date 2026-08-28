@@ -46,7 +46,18 @@ Complete ALL steps before executing the change:
     end'"'"' /data/services/backup/state/last-backup.json'
   ```
 
-  Freshness budget is 28 hours (24 h cadence + 4 h slack). A pointer that exists but is stale or carries a failed exit code MUST fail. If the check fails, do NOT use `--backup-confirmed` to attest around it — investigate per [`docs/runbooks/restic-backup-ops.md`](<../restic-backup-ops.md>).
+  Freshness budget is 28 hours (24 h cadence + 4 h slack). A pointer that exists but is stale or carries a failed exit code MUST fail.
+
+  **This check deliberately does NOT inspect `prune_exit_code`,** even though the
+  pointer has carried it since #902 and the component-health check in
+  [`restic-backup-ops.md`](<../restic-backup-ops.md>) does. The question here is
+  "does a recent, valid snapshot exist that I could restore from" — and a failed
+  `restic forget --prune` does not invalidate the snapshot. Retention failure is
+  a disk-hygiene problem: it alerts through the canary, it does not block Tier-2
+  work. Adding it here would stop deploys for a condition that leaves the backup
+  entirely intact. The same asymmetry is enforced in code —
+  `scripts/deploy/lib/snapshot.py` reads only `restic_exit_code` and the snapshot
+  timestamp. If the check fails, do NOT use `--backup-confirmed` to attest around it — investigate per [`docs/runbooks/restic-backup-ops.md`](<../restic-backup-ops.md>).
 
   Deploy scripts continue to accept `--backup-confirmed` as an operator attestation flag, but the attestation should be made on the basis of the check above, not log-scraping.
 

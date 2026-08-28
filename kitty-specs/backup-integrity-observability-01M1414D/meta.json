@@ -1,0 +1,32 @@
+{
+  "accept_commit": "386883bed2ccc1fa64fff3a64e6953c53830c122",
+  "acceptance_history": [
+    {
+      "accept_commit": "386883bed2ccc1fa64fff3a64e6953c53830c122",
+      "acceptance_mode": "pr",
+      "accepted_at": "2026-08-28T13:10:53.494307+00:00",
+      "accepted_by": "kentgale",
+      "accepted_from_commit": "ceba90149d779bc43cbdc2da4b21e688107c0184"
+    }
+  ],
+  "acceptance_mode": "pr",
+  "accepted_at": "2026-08-28T13:10:53.494307+00:00",
+  "accepted_by": "kentgale",
+  "accepted_from_commit": "ceba90149d779bc43cbdc2da4b21e688107c0184",
+  "baseline_merge_commit": "ea3f5b0b2e9bd07ae405a7e4a771d0b36ca1d7f7",
+  "created_at": "2026-08-28T11:12:28.252942+00:00",
+  "flattened": false,
+  "friendly_name": "backup integrity observability",
+  "mission_id": "01M1414DJR4NR3CQ8875X06Y9W",
+  "mission_number": null,
+  "mission_slug": "backup-integrity-observability-01M1414D",
+  "mission_type": "software-dev",
+  "purpose_context": "This mission advances backup integrity observability on feat/backup-integrity-observability so stakeholders can track the work from mission creation onward.",
+  "purpose_tldr": "backup integrity observability",
+  "slug": "backup-integrity-observability-01M1414D",
+  "status_phase": "1",
+  "target_branch": "feat/backup-integrity-observability",
+  "topology": "single_branch",
+  "vcs": "git",
+  "vcs_locked_at": "2026-08-28T11:44:04.880946+00:00"
+}

@@ -6,12 +6,48 @@
 # pre-flight check can verify backup currency with a single `jq` query
 # instead of scraping logs. The trap below guarantees the pointer is
 # written on every script exit (success or failure).
+#
+# #902: the pointer also records `prune_exit_code`, the outcome of
+# `restic forget --prune`. Before this, a prune failure was logged as a
+# WARNING and then discarded, so a stale lock blocked retention for ten
+# hours while every health surface correctly reported the BACKUP healthy.
+#   0    retention applied
+#   127  never attempted -- the run exited before reaching the prune step
+#   else the prune ran and failed
+# Only 0 is success. This differs from `restic_exit_code`, where {0,3} is
+# accepted because a backup exiting 3 still produced a snapshot; `forget`
+# exiting 3 carries no such guarantee.
 
-export RESTIC_REPOSITORY="/mnt/backups/restic-repo"
-export RESTIC_PASSWORD_FILE="/etc/restic/password"
+export RESTIC_REPOSITORY="${RESTIC_REPOSITORY:-/mnt/backups/restic-repo}"
+export RESTIC_PASSWORD_FILE="${RESTIC_PASSWORD_FILE:-/etc/restic/password}"
 
-LOG_DIR="/data/services/backup/logs"
-STATE_DIR="/data/services/backup/state"
+# Overridable for testing only. Added with #902 so the pointer-emission paths --
+# especially the early exits that skip the prune -- can be EXECUTED by a test
+# rather than verified by reading, which is how the sibling #906 defect survived
+# review.
+#
+# Hardened per post-implementation review: when running privileged, the overrides
+# are ignored outright and the real paths are used. This script is a NOPASSWD
+# sudo target, so it normally runs as root. Today `sudo` is configured with
+# env_reset + secure_path (verified on office2), which already strips these --
+# but that makes the safety property depend on sudoers staying that way. If the
+# rule ever gained SETENV or a matching env_keep, an attacker could redirect
+# RESTIC_REPOSITORY and RESTIC_PASSWORD_FILE, bypass the mount check with
+# BACKUP_MOUNT=/, and have root write into paths they control.
+#
+# Making the guard intrinsic removes that dependency: privileged runs cannot be
+# redirected regardless of how sudo is configured.
+if [ "$(id -u)" -eq 0 ]; then
+    LOG_DIR="/data/services/backup/logs"
+    STATE_DIR="/data/services/backup/state"
+    BACKUP_MOUNT="/mnt/backups"
+    RESTIC_REPOSITORY="/mnt/backups/restic-repo"
+    RESTIC_PASSWORD_FILE="/etc/restic/password"
+else
+    LOG_DIR="${LOG_DIR:-/data/services/backup/logs}"
+    STATE_DIR="${STATE_DIR:-/data/services/backup/state}"
+    BACKUP_MOUNT="${BACKUP_MOUNT:-/mnt/backups}"
+fi
 mkdir -p "$LOG_DIR" "$STATE_DIR"
 DATE=$(date +%Y-%m-%d)
 LOGFILE="$LOG_DIR/backup-$DATE.log"
@@ -22,6 +58,11 @@ STATE_FILE="$STATE_DIR/last-backup.json"
 # writes the pointer atomically so the freshness check always sees the
 # latest outcome — including failed runs where restic never executed.
 BACKUP_RC=127      # "not run" sentinel; overwritten by `restic backup`
+PRUNE_RC=127       # "not run" sentinel; overwritten by `restic forget --prune`.
+                   # Deliberately an integer, never null: the canary's
+                   # explicit-error scan guards with isinstance(code, int), so a
+                   # non-integer is SKIPPED and a run killed between a successful
+                   # backup and the prune would read healthy (#902).
 INTEGRITY_RUN=false
 INTEGRITY_PASSED=null
 
@@ -51,7 +92,7 @@ write_state_pointer() {
     fi
 
     local repo_size_bytes
-    repo_size_bytes=$(du -sb /mnt/backups/restic-repo 2>/dev/null | awk '{print $1}')
+    repo_size_bytes=$(du -sb "$RESTIC_REPOSITORY" 2>/dev/null | awk '{print $1}')
     [ -z "$repo_size_bytes" ] && repo_size_bytes="null"
 
     local script_finished_at_utc
@@ -64,6 +105,7 @@ write_state_pointer() {
   "snapshot_timestamp_utc": $snapshot_ts_json,
   "snapshot_id": $snapshot_id_json,
   "restic_exit_code": $BACKUP_RC,
+  "prune_exit_code": $PRUNE_RC,
   "script_finished_at_utc": "$script_finished_at_utc",
   "repo_size_bytes": $repo_size_bytes,
   "snapshot_count": $snapshot_count_json,
@@ -81,8 +123,8 @@ trap write_state_pointer EXIT
 echo "=== Backup: $DATE ===" > "$LOGFILE"
 
 # Check if backup drive is mounted
-if ! mountpoint -q /mnt/backups; then
-    log "ERROR: /mnt/backups not mounted. Backup drive missing?"
+if ! mountpoint -q "$BACKUP_MOUNT"; then
+    log "ERROR: $BACKUP_MOUNT not mounted. Backup drive missing?"
     exit 1
 fi
 

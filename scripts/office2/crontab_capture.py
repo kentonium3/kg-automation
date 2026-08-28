@@ -100,23 +100,50 @@ def build_header(*, user: str, host: str, now: str) -> bytes:
     ).encode("utf-8")
 
 
-def strip_header(data: bytes) -> bytes:
-    """Return the crontab body, dropping only our own provenance header.
+def split_header(data: bytes) -> tuple[bool, bytes]:
+    """Return ``(recognized, body)`` for a captured artifact.
 
-    Bytes in, bytes out — the body must survive untouched, including CRLF, a
-    missing trailing newline, and non-UTF-8 content. The header is recognised by
-    its exact first line and terminated by an explicit sentinel, so a user's own
-    leading comments are never mistaken for ours.
+    The single implementation of "where does our header end". Both the tolerant
+    capture path and the strict recovery path derive from this, so they cannot
+    disagree — which is the whole point. #906 happened because header removal was
+    implemented once in code and again in prose, with nothing binding them; a
+    second implementation here, however small, recreates that.
+
+    ``recognized`` is True only when the artifact opens with our exact first line
+    AND carries the sentinel. Anything else — foreign content, a headerless file,
+    or a truncated one whose first line matches but whose sentinel is missing —
+    is ``(False, data)``: the whole input is body, unmodified.
+
+    Callers use ``recognized`` differently on purpose. Capture ignores it and
+    treats unrecognised content as body, so a crontab whose first line happens to
+    look like ours is still backed up faithfully. ``--emit-body`` refuses it,
+    because emitting an unverified body during recovery installs wrong content
+    silently.
     """
-    if not data.startswith(HEADER_FIRST_LINE.encode("utf-8")):
-        return data
     lines = data.splitlines(keepends=True)
+    if not lines:
+        return False, data
+    # The FIRST LINE must equal our header line exactly. A prefix match would
+    # accept a foreign file that merely begins with the same text (e.g.
+    # "# captured-by: crontab_capture.py.bak") and, if the sentinel appeared
+    # anywhere later, emit only the tail -- handing the operator a silently
+    # TRUNCATED crontab instead of a refusal.
+    if lines[0].rstrip(b"\r\n") != HEADER_FIRST_LINE.encode("utf-8"):
+        return False, data
     sentinel = HEADER_SENTINEL.encode("utf-8")
     for i, line in enumerate(lines):
         if line.rstrip(b"\r\n") == sentinel:
-            return b"".join(lines[i + 1:])
-    # First line matched but no sentinel: refuse to guess, treat it all as body.
-    return data
+            return True, b"".join(lines[i + 1:])
+    # First line matched but no sentinel: refuse to guess where the header ends.
+    return False, data
+
+
+def strip_header(data: bytes) -> bytes:
+    """Return the crontab body, dropping only our own provenance header.
+
+    Tolerant by design for the capture path — see :func:`split_header`.
+    """
+    return split_header(data)[1]
 
 
 def write_atomic(path: Path, value: bytes) -> None:
@@ -291,11 +318,73 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--force", action="store_true",
                    help="Bypass the shrink guard only. Never bypasses the empty/failed guard.")
     p.add_argument("--dry-run", action="store_true", help="Report intent; write nothing.")
+    p.add_argument(
+        "--emit-body",
+        action="store_true",
+        help=("Print the captured crontab body to stdout for reinstallation "
+              "(`... --emit-body | crontab -`). Writes nothing."),
+    )
     return p
+
+
+def emit_body(artifact_path: Path) -> int:
+    """Print the artifact's reinstallable body to stdout. Writes nothing.
+
+    Fails closed. During recovery the operator pipes this straight into
+    ``crontab -``, so emitting an unverified or partial body would install wrong
+    content silently — the failure mode #906 was filed for. Anything we cannot
+    positively recognise as our own artifact is refused.
+
+    The body goes to stdout RAW: no ``SUMMARY:`` line and no ``INFO:`` prefix,
+    which is a deliberate documented exception to the helper stdout convention,
+    because stdout here is the payload rather than a report. Diagnostics go to
+    stderr.
+    """
+    # Refuse symlinks. The emitted bytes are piped straight into `crontab -`, so
+    # they become executable schedule; following a link means installing content
+    # from wherever it points. Same reasoning as the backup-script comparator.
+    if artifact_path.is_symlink():
+        print(f"ERROR: {artifact_path} is a symlink; refusing to follow it "
+              "when the output will be installed as a crontab", file=sys.stderr)
+        return 1
+    if not artifact_path.exists():
+        print(f"ERROR: no captured artifact at {artifact_path}", file=sys.stderr)
+        return 1
+    try:
+        data = artifact_path.read_bytes()
+    except OSError as exc:
+        print(f"ERROR: cannot read {artifact_path}: {exc}", file=sys.stderr)
+        return 1
+    if not data.strip():
+        print(f"ERROR: captured artifact {artifact_path} is empty", file=sys.stderr)
+        return 1
+
+    recognized, body = split_header(data)
+    if not recognized:
+        print(
+            f"ERROR: {artifact_path} does not carry a recognisable "
+            "crontab_capture header; refusing to emit a body that may be "
+            "incomplete or foreign",
+            file=sys.stderr,
+        )
+        return 1
+    if not body.strip():
+        print(f"ERROR: {artifact_path} has a header but an empty body", file=sys.stderr)
+        return 1
+
+    sys.stdout.buffer.write(body)
+    sys.stdout.buffer.flush()
+    return 0
 
 
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
+    if args.emit_body:
+        if args.dry_run or args.force:
+            print("ERROR: --emit-body cannot be combined with --dry-run or --force",
+                  file=sys.stderr)
+            return 2
+        return emit_body(args.artifact_path)
     try:
         return capture(
             artifact_path=args.artifact_path,

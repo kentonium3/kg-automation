@@ -1,0 +1,101 @@
+{
+  "rows": {
+    "#557": {
+      "evidence_ref": "Cited as the governing rebaseline mechanism. This mission complies via the repo-file signal from scripts/office2/*.{service,timer}, already matched by the systemd-user-units audited surface, so expected_baselines is not declared.",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": null,
+      "title": null,
+      "verdict": "verified-already-fixed",
+      "wp": null
+    },
+    "#889": {
+      "evidence_ref": "Cited as evidence only: #889 (af37583a) changed scripts/office2/restic-backup.sh with no deploy manifest and the live file was hand-installed with sudo \u2014 which is the divergence-without-detection that #903 exists to make visible.",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": "spec.md",
+      "title": "<fill at WP-implementation time>",
+      "verdict": "verified-already-fixed",
+      "wp": null
+    },
+    "#891": {
+      "evidence_ref": "Shipped (9ab02083). Cited as the affirmative-health rule this mission must follow: the comparator's health check declares success_status_values so an unrecognised status word cannot pass as healthy, and every new check is proven able to fail through the real run_probe.",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": null,
+      "title": null,
+      "verdict": "verified-already-fixed",
+      "wp": null
+    },
+    "#895": {
+      "evidence_ref": "Predecessor mission, merged e2a72715 and live-verified. Its crontab_capture.py is the surface WP04 extends, and its quickstart carried the stale grep pattern that became #906.",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": "spec.md",
+      "title": "<fill at WP-implementation time>",
+      "verdict": "verified-already-fixed",
+      "wp": null
+    },
+    "#899": {
+      "evidence_ref": "Closed 2026-08-27. Cited as the hard constraint shaping this mission: a claude-writable directory on a NOPASSWD sudo path is equivalent to NOPASSWD: ALL. Re-verified live \u2014 directory is root:root, touch as claude denied, grant still present. It is why #903 resolves as detection rather than automation.",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": "spec.md",
+      "title": "<fill at WP-implementation time>",
+      "verdict": "verified-already-fixed",
+      "wp": null
+    },
+    "#902": {
+      "evidence_ref": "Fixed. WP01 records prune_exit_code with a 127 never-attempted sentinel (tests execute the script's early-exit paths); WP02 makes the canary act on it with a {0} good-set and fails closed when a restic pointer has no parseable snapshot timestamp. Merged in backup-integrity-observability-01M1414D.",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": "spec.md",
+      "title": "<fill at WP-implementation time>",
+      "verdict": "fixed",
+      "wp": "WP01"
+    },
+    "#903": {
+      "evidence_ref": "Fixed as detection plus a written decision. WP03 ships an observe-only comparator (O_NOFOLLOW, fail-closed inconclusive); WP05 records that the install stays manual because automating it would make a NOPASSWD sudo directory claude-writable, recreating #899.",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": "spec.md",
+      "title": "<fill at WP-implementation time>",
+      "verdict": "fixed",
+      "wp": "WP03"
+    },
+    "#906": {
+      "evidence_ref": "Fixed. WP04 replaces the prose header-stripping with split_header() reused by --emit-body, plus a drift guard that fails if the header format changes; WP05 moves the recovery procedure into docs/runbooks/crontab-recovery.md.",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": "spec.md",
+      "title": "<fill at WP-implementation time>",
+      "verdict": "fixed",
+      "wp": "WP04"
+    }
+  },
+  "schema_version": 1
+}

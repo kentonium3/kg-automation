@@ -1,0 +1,151 @@
+{
+  "mission_slug": "backup-integrity-observability-01M1414D",
+  "mission_number": "",
+  "mission_type": "software-dev",
+  "overall_verdict": "pass_pending_consolidation",
+  "criteria": [
+    {
+      "criterion_id": "FR-001",
+      "description": "The backup run records whether retention was applied.",
+      "proof_type": "automated_test",
+      "evidence": "WP01. prune_exit_code added to write_state_pointer. tests/office2/restic_backup/test_pointer_emission.py EXECUTES the script with mountpoint/restic/du stubbed and asserts the field on the happy path and on prune failure.",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-08-28T13:15:00Z",
+      "notes": "Verified at WP review; see evidence."
+    },
+    {
+      "criterion_id": "FR-002",
+      "description": "A run that never reached the prune is distinguishable from one that pruned cleanly.",
+      "proof_type": "automated_test",
+      "evidence": "WP01. PRUNE_RC initialises to 127, matching the existing BACKUP_RC convention and deliberately not null (a non-integer is skipped by _explicit_error and would read healthy). Asserted for all four pre-prune exit paths: unmounted, repo inaccessible, backup failed, plus an is-integer check across every branch.",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-08-28T13:15:00Z",
+      "notes": "Verified at WP review; see evidence."
+    },
+    {
+      "criterion_id": "FR-003",
+      "description": "A recorded prune failure makes the component unhealthy.",
+      "proof_type": "automated_test",
+      "evidence": "WP02. _PRUNE_OK_EXIT_CODES={0}, separate from the backup's {0,3}. tests/canary/test_probes_prune.py drives the REAL run_probe: 0 healthy; 1, 3 and 127 all unhealthy. The 3 case is the one a careless implementation gets wrong by reusing the backup set.",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-08-28T13:15:00Z",
+      "notes": "Verified at WP review; see evidence."
+    },
+    {
+      "criterion_id": "FR-004",
+      "description": "Repo/host divergence of the backup script is detected and reported.",
+      "proof_type": "automated_test",
+      "evidence": "WP03. backup_script_drift.compare() with match/drift/inconclusive verdicts; 23 tests including differing files, missing, unreadable, symlinked, and directory-in-place-of-file.",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-08-28T13:15:00Z",
+      "notes": "Verified at WP review; see evidence."
+    },
+    {
+      "criterion_id": "FR-005",
+      "description": "Comparator health is observable, including inconclusive.",
+      "proof_type": "code_review_plus_execution_log",
+      "evidence": "WP03+WP05. Pointer judged by the real run_probe at review: match ok=True; drift, inconclusive, and an unrecognised status word all ok=False; aged past bound stale=True. The unrecognised-word case passes only because success_status_values is declared.",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-08-28T13:15:00Z",
+      "notes": "Verified at WP review; see evidence."
+    },
+    {
+      "criterion_id": "FR-006",
+      "description": "Recovery needs no hand-written header strip.",
+      "proof_type": "automated_test",
+      "evidence": "WP04. split_header() is the single implementation; strip_header delegates and a test asserts it contains no duplicate sentinel logic. --emit-body round-trips byte-identically to the original crontab -l input, including CRLF, non-UTF-8, and a body containing the sentinel.",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-08-28T13:15:00Z",
+      "notes": "Verified at WP review; see evidence."
+    },
+    {
+      "criterion_id": "FR-007",
+      "description": "The recovery procedure lives where an operator looks.",
+      "proof_type": "doc_diff",
+      "evidence": "WP05. New docs/runbooks/crontab-recovery.md, indexed in docs/INDEX.md and DEVELOPER_PORTAL.md, naming the superseded grep form and why it is wrong.",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-08-28T13:15:00Z",
+      "notes": "Verified at WP review; see evidence."
+    },
+    {
+      "criterion_id": "FR-008",
+      "description": "The backup script's deploy story is written down.",
+      "proof_type": "doc_diff",
+      "evidence": "WP05. restic-backup-ops.md records it as manual by decision with the #899 reason; discipline.md and office2-deploy-paths.md record it as a narrow named exception; scripts/deploy/lib/README.md points at it.",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-08-28T13:15:00Z",
+      "notes": "Verified at WP review; see evidence."
+    },
+    {
+      "criterion_id": "FR-009",
+      "description": "A backup with no usable snapshot timestamp is not healthy.",
+      "proof_type": "automated_test",
+      "evidence": "WP02. Guard requires _parse_iso() to succeed, not merely a non-empty string \u2014 a first attempt allowed 'not-a-date' through and it still fell back to script_finished_at_utc. Tests cover null, absent, whitespace, unparseable, and numeric, plus two non-restic pointers proving the change is scoped.",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-08-28T13:15:00Z",
+      "notes": "Verified at WP review; see evidence."
+    },
+    {
+      "criterion_id": "FR-010",
+      "description": "The privileged install verifies its source.",
+      "proof_type": "doc_diff",
+      "evidence": "WP05. restic-backup-ops.md documents checking the source against the reviewed commit and a clean working tree BEFORE sudo install, then comparing hashes after. Protecting the destination while sourcing from a claude-writable checkout leaves the same boundary weak one step upstream.",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-08-28T13:15:00Z",
+      "notes": "Verified at WP review; see evidence."
+    }
+  ],
+  "negative_invariants": [
+    {
+      "invariant_id": "NEG-001",
+      "description": "No deploy artifact may perform an install or copy OPERATION targeting /data/services/backup/scripts/ (spec C-001, C-002). A claude-writable directory on a NOPASSWD sudo path is equivalent to NOPASSWD: ALL, which was #899.",
+      "verification_method": "grep_absence",
+      "verification_command": "(install|copy2|copyfile|shutil\\.copy|cp ).*backup/scripts",
+      "result": "confirmed_absent",
+      "evidence": "grep found zero matches (verified manually post-merge; the deferred pre-merge run could not see the file)",
+      "scope": "scripts/deploy deploys/queued",
+      "deferred_reason": "Scoped path(s) 'deploys/queued/backup-script-drift.yaml' do not exist on the primary surface at ref 'feat/backup-integrity-observability'; judging here would report a false still_present (FR-003). Deferred to the post-consolidation verification op.",
+      "deferred_to_phase": "POST_CONSOLIDATION",
+      "notes": "Reformulated post-merge. The first version grepped for the PATH STRING, which false-positives: the manifest's notes field explains at length why that directory must never be written, and the entrypoint docstring says the same. Matching prose that documents the prohibition as though it were the violation would train a reader to ignore the invariant. This version matches the operation shape instead. Verified absent post-consolidation.",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-08-28T13:40:00Z"
+    },
+    {
+      "invariant_id": "NEG-002",
+      "description": "The prune good-set must never be checked against the backup's {0,3} set (spec C-006). restic forget exiting 3 means snapshots could not be removed, so accepting it would pass a prune that never applied retention \u2014 the exact #902 failure.",
+      "verification_method": "grep_absence",
+      "verification_command": "prune_exit_code.*_RESTIC_OK",
+      "result": "confirmed_absent",
+      "evidence": "grep found zero matches",
+      "scope": "scripts/canary/probes.py",
+      "verified_ref": "feat/backup-integrity-observability",
+      "verified_surface_kind": "primary",
+      "provenance_origin": "recorded",
+      "notes": "The violation signature is prune_exit_code being tested against _RESTIC_OK_EXIT_CODES. Checkable on the primary surface both before and after the merge. The stronger form \u2014 pinning _PRUNE_OK_EXIT_CODES == {0} \u2014 is enforced by tests/canary/test_inventory_health_checks.py, which runs in CI."
+    },
+    {
+      "invariant_id": "NEG-003",
+      "description": "The superseded hand-written header strip must not survive as an active procedure in any runbook (spec C-004, #906).",
+      "verification_method": "grep_absence",
+      "verification_command": "captured-.*crontab_capture.py > /tmp",
+      "result": "confirmed_absent",
+      "evidence": "grep found zero matches",
+      "scope": "docs/runbooks",
+      "verified_ref": "feat/backup-integrity-observability",
+      "verified_surface_kind": "primary",
+      "provenance_origin": "recorded",
+      "notes": "Targets the old recover-by-grep FORM rather than the pattern text itself, because crontab-recovery.md deliberately quotes that text inside a warning so an operator who finds it elsewhere recognises it as wrong. Enforcement that the single-implementation property holds lives in tests: test_only_one_place_computes_where_the_header_ends and test_emit_body_fails_if_the_header_format_drifts."
+    }
+  ]
+}

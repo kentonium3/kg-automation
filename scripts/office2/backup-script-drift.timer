@@ -1,0 +1,18 @@
+# Daily comparison of repo vs deployed backup script (#903).
+#
+# Daily is sufficient: the deployed script changes only when an operator installs
+# it by hand, which is a deliberate and rare act. Persistent=true means a run
+# missed while the host was down executes on the next boot rather than being
+# skipped silently.
+[Unit]
+Description=Daily backup-script drift check (#903)
+Documentation=https://github.com/kentonium3/kg-automation/issues/903
+
+[Timer]
+OnCalendar=daily
+Persistent=true
+RandomizedDelaySec=300
+Unit=backup-script-drift.service
+
+[Install]
+WantedBy=timers.target
