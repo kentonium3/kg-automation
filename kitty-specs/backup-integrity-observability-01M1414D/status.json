@@ -1,7 +1,7 @@
 {
-  "event_count": 22,
-  "last_event_id": "01M145VNA66VMEC0TEXY2BNW2K",
-  "materialized_at": "2026-08-28T12:35:04.134632+00:00",
+  "event_count": 23,
+  "last_event_id": "01M145W7EX0F28NA06JZ3M5V27",
+  "materialized_at": "2026-08-28T12:35:22.717718+00:00",
   "mission_number": "",
   "mission_slug": "backup-integrity-observability-01M1414D",
   "mission_type": "software-dev",
@@ -11,8 +11,8 @@
     "canceled": 0,
     "claimed": 0,
     "done": 0,
-    "for_review": 0,
-    "in_progress": 1,
+    "for_review": 1,
+    "in_progress": 0,
     "in_review": 0,
     "planned": 1
   },
@@ -58,7 +58,8 @@
       "last_transition_at": "2026-08-28T12:35:04.134632+00:00",
       "model": "__resolved_model_absent__",
       "notes": [
-        "Ready for review"
+        "Ready for review",
+        "Codex read-only review: 1 HIGH, accepted and fixed before approval. The fail-closed check tested for a non-empty snapshot timestamp rather than a parseable one, so a malformed-but-truthy value ('not-a-date') passed the guard and fell through TIMESTAMP_KEYS to script_finished_at_utc — verified reproducing ok=True/stale=False against the real probe. Now requires _parse_iso() to succeed, with regression tests for unparseable and numeric values plus a felix-health-check-shaped non-restic scoping witness. Codex verified correct against restic's own scripting docs that the {0} prune good-set is right (exit 3 from forget means snapshots could not be removed), the restic-only scoping, check ordering vs the generic exit_code branch, legacy pointer compatibility, and that the Tier-2 deploy gate stays prune-agnostic. canary 183 passed; make test 6242 / 0 failed."
       ],
       "provider": "__resolved_provider_absent__",
       "review_result": {
@@ -113,14 +114,19 @@
       "agent_profile": "__resolved_profile_absent__",
       "agent_profile_version": "__resolved_profile_version_absent__",
       "force_count": 0,
-      "lane": "in_progress",
-      "last_event_id": "01M1455CWAKXRZEPP92105N84S",
-      "last_transition_at": "2026-08-28T12:22:54.600658+00:00",
+      "lane": "for_review",
+      "last_event_id": "01M145W7EX0F28NA06JZ3M5V27",
+      "last_transition_at": "2026-08-28T12:35:22.717718+00:00",
       "model": "__resolved_model_absent__",
       "provider": "__resolved_provider_absent__",
       "role": "implementer",
       "shell_pid": 69657,
-      "shell_pid_created_at": "1787919765.378836"
+      "shell_pid_created_at": "1787919765.378836",
+      "subtasks": {
+        "T014": "done",
+        "T015": "done",
+        "T016": "done"
+      }
     },
     "WP05": {
       "actor": "finalize-tasks",
