@@ -7,7 +7,9 @@ requirement_refs:
 planning_base_branch: feat/crontab-backup-coverage
 merge_target_branch: feat/crontab-backup-coverage
 branch_strategy: Planning artifacts for this mission were generated on feat/crontab-backup-coverage. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into feat/crontab-backup-coverage unless the human explicitly redirects the landing branch.
-created_at: '2026-08-28T00:37:21Z'
+base_branch: kitty/mission-crontab-backup-coverage-01M12V87
+base_commit: 0adee2012657e7df3407661a927df0a199aeea23
+created_at: '2026-08-28T02:37:36.005537+00:00'
 subtasks:
 - T001
 - T002
