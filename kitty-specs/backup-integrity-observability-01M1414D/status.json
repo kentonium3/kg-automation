@@ -1,7 +1,7 @@
 {
-  "event_count": 17,
-  "last_event_id": "01M14539WV8SV78PJV6QQ17GFQ",
-  "materialized_at": "2026-08-28T12:21:46.011404+00:00",
+  "event_count": 18,
+  "last_event_id": "01M1453XJKJGGES5Q997EWCXKP",
+  "materialized_at": "2026-08-28T12:22:06.163604+00:00",
   "mission_number": "",
   "mission_slug": "backup-integrity-observability-01M1414D",
   "mission_type": "software-dev",
@@ -11,8 +11,8 @@
     "canceled": 0,
     "claimed": 0,
     "done": 0,
-    "for_review": 0,
-    "in_progress": 1,
+    "for_review": 1,
+    "in_progress": 0,
     "in_review": 0,
     "planned": 2
   },
@@ -53,14 +53,19 @@
       "agent_profile": "__resolved_profile_absent__",
       "agent_profile_version": "__resolved_profile_version_absent__",
       "force_count": 0,
-      "lane": "in_progress",
-      "last_event_id": "01M144C4KQSYHSDMWPNSCAX0B5",
-      "last_transition_at": "2026-08-28T12:09:06.933742+00:00",
+      "lane": "for_review",
+      "last_event_id": "01M1453XJKJGGES5Q997EWCXKP",
+      "last_transition_at": "2026-08-28T12:22:06.163604+00:00",
       "model": "__resolved_model_absent__",
       "provider": "__resolved_provider_absent__",
       "role": "implementer",
       "shell_pid": 52388,
-      "shell_pid_created_at": "1787918939.648085"
+      "shell_pid_created_at": "1787918939.648085",
+      "subtasks": {
+        "T005": "done",
+        "T006": "done",
+        "T007": "done"
+      }
     },
     "WP03": {
       "actor": "user",
@@ -73,7 +78,8 @@
       "last_transition_at": "2026-08-28T12:21:46.011404+00:00",
       "model": "__resolved_model_absent__",
       "notes": [
-        "Ready for review"
+        "Ready for review",
+        "Codex read-only review: 1 HIGH + 3 MEDIUM + 1 LOW, all accepted and fixed in 47b9685f before approval. HIGH: the comparator followed symlinks, so a deployed backup.sh symlinked into claude's checkout would hash the repo file and report 'match' — blessing precisely the #899 shape it exists to catch. Now O_NOFOLLOW + S_ISREG, with symlinks/directories inconclusive. MEDIUM: post-verification checked for a pointer the deploy never created ('enable --now' on a timer does not start its service), which would have failed the deploy after enabling and re-applied every tick (#891/#901); the entrypoint now seeds it with a real run. MEDIUM: write_state swallowed OSError, letting a stale success pointer persist while drift was known. MEDIUM: --state-path could target the protected directory. Codex verified correct: no writes to the protected directory, the health mapping against _explicit_error, the 0-or-1-but-not-2 gate, manifest schema validity, and the expected_baselines omission. make test 6239 / 0 failed."
       ],
       "provider": "__resolved_provider_absent__",
       "review_result": {
