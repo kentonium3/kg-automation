@@ -1,0 +1,16 @@
+# Detect divergence between the repo's backup script and the deployed copy (#903).
+#
+# The deployed script lives in a root-owned directory because it is a NOPASSWD
+# sudo target; making that directory writable by claude would recreate the #899
+# privilege escalation. So this component OBSERVES only — the operator installs.
+[Unit]
+Description=Compare the repo backup script against the deployed copy (#903)
+Documentation=https://github.com/kentonium3/kg-automation/issues/903
+
+[Service]
+Type=oneshot
+WorkingDirectory=/home/claude/kg-automation
+# Absolute interpreter: office2 is python3-only and a bare `python` exits 127,
+# which has previously produced false cron-failure alerts.
+ExecStart=/usr/bin/python3 /home/claude/kg-automation/scripts/office2/backup_script_drift.py
+Environment=PATH=/home/claude/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin

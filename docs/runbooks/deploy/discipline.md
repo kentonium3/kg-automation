@@ -36,6 +36,27 @@ but no new deploy is authored against the old pattern.
 
 ---
 
+## Exception: `restic-backup.sh` is installed by hand
+
+One file in the repo is deliberately outside this pipeline:
+`scripts/office2/restic-backup.sh`, deployed to
+`/data/services/backup/scripts/backup.sh`.
+
+The applier runs as `claude`. Installing that file means writing
+`/data/services/backup/scripts/`, which holds the `NOPASSWD` sudo target
+`backup.sh` — and a claude-writable directory on a NOPASSWD path makes the grant
+equivalent to `NOPASSWD: ALL`. That was #899, a real privilege escalation fixed
+on 2026-08-27. Bringing this file into the pipeline would reopen it.
+
+So the install stays privileged and manual, and the gap it leaves — repo and host
+silently diverging — is covered by detection instead: the `backup-script-drift`
+comparator (#903) compares the two copies daily and reports divergence. The
+procedure, including source verification before `sudo install`, is in
+[`restic-backup-ops.md`](<../restic-backup-ops.md>).
+
+This is a narrow, named exception for one file, not a general licence to deploy
+by hand.
+
 ## Exception: throwaway / isolated sandboxes
 
 A **throwaway sandbox** — a short-lived experiment or spike (e.g. the #844

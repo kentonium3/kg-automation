@@ -40,12 +40,20 @@ ssh office2-claude 'jq -er '"'"'
     (now - (.snapshot_timestamp_utc | fromdateiso8601)) as $age_sec |
     if ($age_sec > 100800) then "FAIL: stale (\($age_sec / 3600 | floor) hours old)"
     elif (.restic_exit_code != 0 and .restic_exit_code != 3) then "FAIL: restic exit \(.restic_exit_code)"
+    elif (has("prune_exit_code") and .prune_exit_code != 0) then "FAIL: prune exit \(.prune_exit_code)"
     else "OK (\($age_sec / 3600 | floor) hours since snapshot)"
     end
   end'"'"' /data/services/backup/state/last-backup.json'
 ```
 
 Returns one line on stdout and exit 0 (`OK …`) or exit 1 (`FAIL: …`).
+
+The `prune_exit_code` clause is guarded with `has(...)` so a pointer written
+before #902 — which carries no such field — still evaluates. Note the good-set
+is `0` alone, deliberately narrower than the backup's `{0, 3}`: a `restic backup`
+exiting 3 completed with warnings but still produced a snapshot, whereas
+`restic forget` exiting 3 means snapshots could not be removed, which is not a
+successful retention pass. `127` is the script's "never attempted" sentinel.
 
 Freshness budget: 28 hours = 24 h cadence + 4 h slack for a slow run.
 Restic exit codes 0 (success) and 3 (success with permission-denied
@@ -62,7 +70,8 @@ failure — so a stale pointer always means the cron has not fired.
 | `schema_version` | constant `1` | Bump on breaking schema change. |
 | `snapshot_timestamp_utc` | `restic snapshots --latest 1 --json` after the run | Authoritative. `null` when the snapshot query failed (repo broken). |
 | `snapshot_id` | same query | `null` on failure. |
-| `restic_exit_code` | the `restic backup` step's `$?` | NOT the script's overall exit. `127` = "never reached the backup step" (pre-check failed). |
+| `restic_exit_code` | the `restic backup` step's `$?` | NOT the script's overall exit. `127` = "never reached the backup step" (pre-check failed). Good set `{0, 3}`. |
+| `prune_exit_code` | the `restic forget --prune` step's `$?` (#902) | Good set `{0}` ONLY. `127` = "never reached the prune step". Before #902 this was logged as a WARNING and discarded, so a stale lock blocked retention for ten hours while every health surface correctly reported the *backup* healthy. |
 | `script_finished_at_utc` | `date -u` at script-end | Separate witness so "did the cron fire" stays distinct from "did restic succeed". |
 | `repo_size_bytes` | `du -sb /mnt/backups/restic-repo` | Trend with the daily logs. |
 | `snapshot_count` | `restic snapshots --json` length | After prune. |
@@ -131,6 +140,65 @@ echo $?  # should be 1
 
 The real pointer file is owned `root:root`, so this manual test is
 sandboxed in `/tmp` and does not perturb production state.
+
+## Deploying this script — manual, by decision
+
+`scripts/office2/restic-backup.sh` is the repo source of truth. The deployed copy
+is `/data/services/backup/scripts/backup.sh`, owned `root:root` in a `root:root`
+directory.
+
+**It is installed by hand, on purpose, and that will not change.** The deploy
+pipeline runs as `claude`, so automating this install would mean making
+`/data/services/backup/scripts/` claude-writable. That directory holds the
+`NOPASSWD` sudo target `backup.sh`, and a writable directory on a NOPASSWD path
+makes the grant equivalent to `NOPASSWD: ALL` — which is #899, a real privilege
+escalation fixed on 2026-08-27. Automating the deploy would reopen it to save one
+command. So the pipeline is not used here; instead `backup-script-drift` (#903)
+reports when the two copies diverge.
+
+### Installing an updated script
+
+Verify the source **before** trusting it. It lives in `/home/claude/kg-automation`,
+which the unprivileged `claude` account can write; installing straight from there
+as root would leave the same boundary weak one step upstream. Protecting the
+destination is not enough if the source is unverified.
+
+```bash
+cd /home/claude/kg-automation && git log --oneline -1 -- scripts/office2/restic-backup.sh
+```
+
+```bash
+git -C /home/claude/kg-automation diff --quiet HEAD -- scripts/office2/restic-backup.sh && echo "matches committed content" || echo "WORKING TREE DIFFERS — do not install"
+```
+
+Only if both agree with the commit you reviewed:
+
+```bash
+sudo install -o root -g root -m 755 \
+  /home/claude/kg-automation/scripts/office2/restic-backup.sh \
+  /data/services/backup/scripts/backup.sh
+```
+
+Confirm what actually landed:
+
+```bash
+sudo md5sum /data/services/backup/scripts/backup.sh /home/claude/kg-automation/scripts/office2/restic-backup.sh
+```
+
+Both hashes must match. From then on `backup-script-drift` performs that
+comparison daily and reports divergence without being asked.
+
+### Reading the drift signal
+
+```bash
+ssh office2-claude 'cat /data/services/backup/state/script-drift-last-tick.json'
+```
+
+| `verdict` | meaning |
+|---|---|
+| `match` | the deployed script is the repo script |
+| `drift` | they differ — reinstall, or find out who changed the host copy |
+| `inconclusive` | the comparator could not read one side: missing, unreadable, a symlink, or not a regular file. **Never treated as agreement.** A symlinked deployed copy is especially significant: it would mean the NOPASSWD sudo target points somewhere else. |
 
 ## Retention policy
 

@@ -147,3 +147,15 @@ tracks the implementation.
   the drift-*enforcement* layer (mission 028; #766 on-host-read fix landed 2026-07-18).
 - [`../../design/felix-bedrock-stabilization.md`](../../design/felix-bedrock-stabilization.md)
   — Foundation 2, the #636 problem statement.
+
+## Exception — `restic-backup.sh`
+
+| Repo path | Deployed path | How it gets there |
+|---|---|---|
+| `scripts/office2/restic-backup.sh` | `/data/services/backup/scripts/backup.sh` | **Manual `sudo install` by the operator.** Not felix-deployer, not self-pull. |
+
+The target directory is `root:root` because it holds the `NOPASSWD` sudo target
+`backup.sh`; making it claude-writable so the pipeline could write there would
+recreate #899. Divergence between the two copies is detected daily by
+`backup-script-drift` (#903) rather than prevented by automation. Procedure:
+[`restic-backup-ops.md`](<../restic-backup-ops.md>).

@@ -126,3 +126,12 @@ deprecation cycle. See the contract for the full policy.
   — WhatsApp DM payload schema (phase enum source of truth).
 * `kitty-specs/pull-based-deploy-pipeline-01KTYQQS/data-model.md`
   — entity model and lifecycle diagrams.
+
+## Not everything on office2 ships through this pipeline
+
+`scripts/office2/restic-backup.sh` is installed by hand with `sudo`, deliberately.
+Its target directory holds a `NOPASSWD` sudo target, and making that directory
+writable by the applier's `claude` account would make the grant equivalent to
+`NOPASSWD: ALL` (#899). The `backup-script-drift` comparator (#903) reports when
+the repo and deployed copies diverge, since automation is not available here.
+See [`docs/runbooks/deploy/discipline.md`](<../../../docs/runbooks/deploy/discipline.md>).

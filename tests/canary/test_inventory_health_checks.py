@@ -256,3 +256,37 @@ def test_no_near_miss_success_allowlist_key(targets):
         "near-miss key name; the probe only reads 'success_status_values' and "
         "silently fails open otherwise:\n" + "\n".join(bad)
     )
+
+
+def test_restic_expected_prose_describes_the_prune_rule(inventory_targets=None):
+    """Bind the restic `expected` prose to the code that implements it.
+
+    Analysis finding I1: this mission fixes two unenforced couplings (#906's
+    prose-vs-code header stripping, #902's pointer-vs-probe) and would otherwise
+    have created a third — the inventory's `expected` text and
+    `_explicit_error`'s behaviour agree only if a reviewer notices.
+
+    A substring check is weak, but it is exactly strong enough to catch the shape
+    that actually occurred: code gains a rule, prose is not updated, and the
+    declaration quietly becomes false.
+    """
+    import json
+    from pathlib import Path
+
+    from scripts.canary.probes import _PRUNE_OK_EXIT_CODES
+
+    inv = json.loads(
+        (Path(__file__).resolve().parents[2]
+         / "docs/design/architecture/data/service-inventory.json").read_text()
+    )
+    entry = next(s for s in inv["services"] if s.get("name") == "restic-backup")
+    expected = entry["health_check"]["expected"]
+
+    assert "prune_exit_code" in expected, (
+        "probes.py checks prune_exit_code but the restic-backup `expected` prose "
+        "does not mention it — the declaration is now false"
+    )
+    assert _PRUNE_OK_EXIT_CODES == frozenset({0}), (
+        "the prune good-set changed; update the inventory prose to match"
+    )
+    assert "snapshot_timestamp_utc" in expected

@@ -153,6 +153,7 @@ local validation and CI.
 - [Calendar Helper Operations](<./runbooks/calendar-helper-ops.md>)
 - [Canary Registry Operations](<./runbooks/canary-registry-ops.md>)
 - [Credential Liveness Probe Operations](<./runbooks/credential-liveness-probe-ops.md>)
+- [Crontab Recovery](<./runbooks/crontab-recovery.md>)
 - [Deploy Discipline (canonical)](<./runbooks/deploy/discipline.md>)
 - [Deployment Runbook](<./runbooks/deployment.md>)
 - [Doc Auditor Operations Runbook](<./runbooks/doc-auditor-ops.md>)

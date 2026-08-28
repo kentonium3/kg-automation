@@ -98,6 +98,15 @@ TIMESTAMP_KEYS: tuple[str, ...] = (
 # source files could not be read" (partial but the snapshot completed).
 _RESTIC_OK_EXIT_CODES: frozenset[int] = frozenset({0, 3})
 
+#: Prune success is ``{0}`` ONLY -- deliberately narrower than
+#: :data:`_RESTIC_OK_EXIT_CODES`. Backup accepts 3 because a restic *backup*
+#: exiting 3 completed with warnings but still produced a snapshot. ``forget``
+#: exiting 3 carries no such guarantee, and ``restic-backup.sh`` already agrees:
+#: it treats only ``PRUNE_RC == 0`` as success. Reusing the backup's set here
+#: would accept a prune that never applied retention -- the exact #902 failure.
+#: Do not "tidy up" this duplication.
+_PRUNE_OK_EXIT_CODES: frozenset[int] = frozenset({0})
+
 # --------------------------------------------------------------------------- #
 # Explicit-failure field conventions (the freshness-pointer analogue of the
 # TIMESTAMP_KEYS candidate list). Audited against the real freshness pointers in
@@ -264,6 +273,25 @@ def _explicit_error(
         code = pointer["restic_exit_code"]
         if isinstance(code, int) and code not in _RESTIC_OK_EXIT_CODES:
             return f"restic_exit_code={code}"
+        # A restic pointer that reports an exit code but no snapshot timestamp
+        # must not fall through to another TIMESTAMP_KEYS candidate and read
+        # fresh (#902/FR-009). Before this, ``script_finished_at_utc`` would
+        # satisfy the freshness probe for a run that produced no snapshot at
+        # all, while the inventory asserted the snapshot timestamp must be
+        # non-null. Scoped to restic pointers so no other component is affected.
+        # "Usable" means PARSEABLE, not merely non-empty. A truthy but malformed
+        # value (e.g. "not-a-date") would otherwise pass this guard and then fall
+        # through TIMESTAMP_KEYS to script_finished_at_utc, reopening the very
+        # hole this closes -- verified against the real probe before fixing.
+        snapshot_ts = pointer.get("snapshot_timestamp_utc")
+        if _parse_iso(snapshot_ts) is None:
+            return "restic pointer has no usable snapshot_timestamp_utc"
+    if "prune_exit_code" in pointer:
+        code = pointer["prune_exit_code"]
+        if isinstance(code, int) and code not in _PRUNE_OK_EXIT_CODES:
+            # 127 is the script's "never attempted" sentinel: the run exited
+            # before reaching the prune, so retention did not happen.
+            return f"prune_exit_code={code}"
     if "exit_code" in pointer:
         code = pointer["exit_code"]
         if isinstance(code, int) and code != 0:

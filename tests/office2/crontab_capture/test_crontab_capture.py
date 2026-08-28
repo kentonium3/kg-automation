@@ -380,3 +380,173 @@ def test_refusal_writes_error_to_stderr_and_summary_to_stdout(paths, capsys):
     assert captured.err.startswith("ERROR: ") or "ERROR: " in captured.err
     assert captured.out.strip().splitlines()[-1].startswith("SUMMARY: ")
     assert "refused=true" in captured.out
+
+
+# --------------------------------------------------------------------------- #
+# --emit-body (#906). Recovery must not require hand-reproducing a header
+# stripping incantation — that duplication is what rotted and produced both a
+# false verification failure and a slowly-corrupting recovery.
+# --------------------------------------------------------------------------- #
+
+def emit(artifact, capsysbinary):
+    # Drain whatever the preceding capture run printed, so the assertion sees
+    # only the emitter's output — the body must be the WHOLE of stdout.
+    capsysbinary.readouterr()
+    rc = crontab_capture.main(["--emit-body", "--artifact-path", str(artifact)])
+    return rc, capsysbinary.readouterr()
+
+
+def test_emit_body_round_trips_to_the_original_input(paths, capsysbinary):
+    """Asserted against the ORIGINAL crontab -l input, not the emitter's output."""
+    artifact, state = paths
+    run(artifact, state, read_crontab=reader(0, CRONTAB))
+    rc, out = emit(artifact, capsysbinary)
+    assert rc == 0
+    assert out.out == CRONTAB, "emitted body must equal the captured input byte-for-byte"
+
+
+def test_emit_body_survives_crlf_and_non_utf8(paths, capsysbinary):
+    artifact, state = paths
+    body = b"# note \xff\r\n0 3 * * * echo hi\r\n"
+    run(artifact, state, read_crontab=reader(0, body))
+    rc, out = emit(artifact, capsysbinary)
+    assert rc == 0 and out.out == body
+
+
+def test_emit_body_handles_a_body_containing_the_sentinel(paths, capsysbinary):
+    artifact, state = paths
+    body = (b"0 3 * * * echo a\n"
+            + crontab_capture.HEADER_SENTINEL.encode() + b"\n"
+            + b"0 4 * * * echo b\n")
+    run(artifact, state, read_crontab=reader(0, body))
+    rc, out = emit(artifact, capsysbinary)
+    assert rc == 0 and out.out == body
+
+
+def test_emit_body_writes_nothing(paths, capsysbinary):
+    """Used during recovery; the artifact and pointer must be untouched."""
+    artifact, state = paths
+    run(artifact, state, read_crontab=reader(0, CRONTAB))
+    a_before = (artifact.stat().st_mtime_ns, artifact.read_bytes())
+    s_before = (state.stat().st_mtime_ns, state.read_bytes())
+    emit(artifact, capsysbinary)
+    assert (artifact.stat().st_mtime_ns, artifact.read_bytes()) == a_before
+    assert (state.stat().st_mtime_ns, state.read_bytes()) == s_before
+
+
+# --- fail-closed ---------------------------------------------------------- #
+
+def test_emit_body_refuses_a_missing_artifact(tmp_path, capsysbinary):
+    rc = crontab_capture.main(["--emit-body", "--artifact-path", str(tmp_path / "nope")])
+    assert rc != 0
+    assert capsysbinary.readouterr().out == b""
+
+
+def test_emit_body_refuses_an_empty_artifact(tmp_path, capsysbinary):
+    p = tmp_path / "empty"
+    p.write_bytes(b"")
+    assert crontab_capture.main(["--emit-body", "--artifact-path", str(p)]) != 0
+    assert capsysbinary.readouterr().out == b""
+
+
+def test_emit_body_refuses_a_headerless_file(tmp_path, capsysbinary):
+    """A foreign file is not our artifact; emitting it would install junk."""
+    p = tmp_path / "foreign"
+    p.write_bytes(b"0 3 * * * echo not-ours\n")
+    assert crontab_capture.main(["--emit-body", "--artifact-path", str(p)]) != 0
+    assert capsysbinary.readouterr().out == b""
+
+
+def test_emit_body_refuses_a_truncated_header(tmp_path, capsysbinary):
+    """First line matches but the sentinel is missing — refuse to guess."""
+    p = tmp_path / "truncated"
+    p.write_bytes(crontab_capture.HEADER_FIRST_LINE.encode() + b"\n0 3 * * * echo hi\n")
+    assert crontab_capture.main(["--emit-body", "--artifact-path", str(p)]) != 0
+    assert capsysbinary.readouterr().out == b""
+
+
+def test_emit_body_rejects_conflicting_flags(paths, capsysbinary):
+    artifact, _ = paths
+    assert crontab_capture.main(
+        ["--emit-body", "--dry-run", "--artifact-path", str(artifact)]) == 2
+
+
+# --- the guard that would have caught the original defect ------------------ #
+
+def test_emit_body_fails_if_the_header_format_drifts(paths, monkeypatch, capsysbinary):
+    """SC-005.
+
+    #906 was not a wrong pattern; it was an unenforced coupling between the
+    header writer and a separate stripper. If someone changes the header format
+    without updating the parser, recovery must BREAK LOUDLY rather than return
+    something plausible. This test is the binding.
+    """
+    artifact, state = paths
+
+    def header_without_sentinel(*, user, host, now):
+        return f"# captured-by: crontab_capture.py\n# captured-at-utc: {now}\n".encode()
+
+    monkeypatch.setattr(crontab_capture, "build_header", header_without_sentinel)
+    rc_capture = run(artifact, state, read_crontab=reader(0, CRONTAB))
+    capsysbinary.readouterr()
+
+    # Prove the test is not passing vacuously via a missing/unreadable artifact:
+    # the capture must have SUCCEEDED and written the drifted header plus body.
+    assert rc_capture == 0, "capture must succeed, or the refusal below proves nothing"
+    written = artifact.read_bytes()
+    assert written.startswith(b"# captured-by: crontab_capture.py")
+    assert crontab_capture.HEADER_SENTINEL.encode() not in written
+    assert written.endswith(CRONTAB)
+
+    rc = crontab_capture.main(["--emit-body", "--artifact-path", str(artifact)])
+    assert rc != 0, "a drifted header format must fail recovery, not silently half-work"
+    assert capsysbinary.readouterr().out == b""
+
+
+def test_only_one_place_computes_where_the_header_ends(paths):
+    """C-004: strip_header must delegate, not reimplement."""
+    import inspect
+    src = inspect.getsource(crontab_capture.strip_header)
+    assert "split_header" in src
+    assert crontab_capture.HEADER_SENTINEL not in src, "second implementation detected"
+
+
+def test_emit_body_refuses_a_prefix_impostor(tmp_path, capsysbinary):
+    """A foreign file that merely BEGINS with our header text must be refused.
+
+    A prefix match would accept it and, because the sentinel appears later, emit
+    only the tail — handing the operator a silently truncated crontab.
+    """
+    p = tmp_path / "impostor"
+    p.write_bytes(
+        b"# captured-by: crontab_capture.py.bak\n"
+        b"0 3 * * * echo REAL-JOB-THAT-WOULD-BE-LOST\n"
+        + crontab_capture.HEADER_SENTINEL.encode() + b"\n"
+        b"0 4 * * * echo only-this-would-survive\n"
+    )
+    assert crontab_capture.main(["--emit-body", "--artifact-path", str(p)]) != 0
+    assert capsysbinary.readouterr().out == b""
+
+
+def test_emit_body_refuses_a_symlinked_artifact(paths, tmp_path, capsysbinary):
+    """Output is piped into `crontab -`, so it becomes executable schedule."""
+    artifact, state = paths
+    run(artifact, state, read_crontab=reader(0, CRONTAB))
+    link = tmp_path / "link.crontab"
+    link.symlink_to(artifact)
+    capsysbinary.readouterr()
+    assert crontab_capture.main(["--emit-body", "--artifact-path", str(link)]) != 0
+    assert capsysbinary.readouterr().out == b""
+
+
+def test_split_header_requires_an_exact_first_line():
+    """Unit-level guard on the prefix-vs-exact distinction."""
+    good = (crontab_capture.HEADER_FIRST_LINE.encode() + b"\n"
+            + crontab_capture.HEADER_SENTINEL.encode() + b"\nbody\n")
+    assert crontab_capture.split_header(good) == (True, b"body\n")
+
+    impostor = (crontab_capture.HEADER_FIRST_LINE.encode() + b".bak\n"
+                + crontab_capture.HEADER_SENTINEL.encode() + b"\nbody\n")
+    recognized, body = crontab_capture.split_header(impostor)
+    assert recognized is False
+    assert body == impostor, "unrecognised input must pass through whole"

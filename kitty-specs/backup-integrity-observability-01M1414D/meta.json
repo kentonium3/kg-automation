@@ -23,7 +23,6 @@
   "purpose_context": "This mission advances backup integrity observability on feat/backup-integrity-observability so stakeholders can track the work from mission creation onward.",
   "purpose_tldr": "backup integrity observability",
   "slug": "backup-integrity-observability-01M1414D",
-  "status_phase": "1",
   "target_branch": "feat/backup-integrity-observability",
   "topology": "single_branch",
   "vcs": "git",
