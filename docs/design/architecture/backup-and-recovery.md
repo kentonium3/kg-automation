@@ -13,7 +13,7 @@ status: approved
 | Schedule | 4AM daily (claude's crontab, runs via `sudo`) |
 | Script | `/data/services/backup/scripts/backup.sh` |
 | Repository | `/mnt/backups/restic-repo` (916 GB drive) |
-| Password | `/home/claude/.config/restic/password` |
+| Password | `/etc/restic/password` |
 | Retention | GFS (grandfathered) |
 | Effective user | `root` (cron runs `sudo backup.sh`, so snapshots are `root:root`) |
 | Log | `/data/services/backup/logs/backup-YYYY-MM-DD.log` |
@@ -82,12 +82,12 @@ passes the flag to confirm a backup exists within 24 hours.
 ```bash
 # List recent snapshots (must run as root or kgale with sudo):
 sudo RESTIC_REPOSITORY="/mnt/backups/restic-repo" \
-     RESTIC_PASSWORD_FILE="/home/claude/.config/restic/password" \
+     RESTIC_PASSWORD_FILE="/etc/restic/password" \
      restic snapshots --latest 3
 
 # Check specific path in latest snapshot:
 sudo RESTIC_REPOSITORY="/mnt/backups/restic-repo" \
-     RESTIC_PASSWORD_FILE="/home/claude/.config/restic/password" \
+     RESTIC_PASSWORD_FILE="/etc/restic/password" \
      restic ls latest /data/services/vikunja/data/
 ```
 

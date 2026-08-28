@@ -268,7 +268,7 @@
       "host": "office2",
       "cron_user": "claude",
       "repository": "/mnt/backups/restic-repo",
-      "password_file": "/home/claude/.config/restic/password",
+      "password_file": "/etc/restic/password",
       "backup_sources": [
         "/data/services",
         "/data/transcripts",

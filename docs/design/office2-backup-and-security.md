@@ -88,7 +88,7 @@ Restic backs up user data and service configurations to the encrypted repository
 | Yearly | 1 |
 
 **Repository:** `/mnt/backups/restic-repo` (encrypted, deduplicated)
-**Password file:** `/home/claude/.config/restic/password` (mode 600)
+**Password file:** `/etc/restic/password` (mode 600)
 **Backup password:** Stored offline in password manager. Required to access or restore from the repository. Loss of this password means the backup data is irrecoverable.
 
 **Schedule:** Daily at 4:00 AM via claude user's crontab, run with `sudo`.
@@ -110,7 +110,7 @@ LABEL=backups /mnt/backups ext4 defaults,nofail 0 2
 
 ```bash
 export RESTIC_REPOSITORY="/mnt/backups/restic-repo"
-export RESTIC_PASSWORD_FILE="/home/claude/.config/restic/password"
+export RESTIC_PASSWORD_FILE="/etc/restic/password"
 
 # List snapshots
 restic snapshots

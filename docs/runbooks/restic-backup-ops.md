@@ -23,7 +23,7 @@ unit or timer, so `systemctl status` will not find it.
 | Script (canonical source) | [`scripts/office2/restic-backup.sh`](../../scripts/office2/restic-backup.sh) |
 | Script (deployed) | `/data/services/backup/scripts/backup.sh` on office2 |
 | Restic repo | `/mnt/backups/restic-repo` on office2 (2.7 TB drive at `/mnt/backups`) |
-| Password file | `/home/claude/.config/restic/password` |
+| Password file | `/etc/restic/password` (root-owned 0600; moved out of `/home/claude/.config/restic/` by #888 because the key lived inside the tree it protects) |
 | Daily logs | `/data/services/backup/logs/backup-YYYY-MM-DD.log` |
 | Health pointer | `/data/services/backup/state/last-backup.json` |
 | Cron entry | `claude`'s crontab on office2, `0 4 * * *` (04:00 UTC daily) via `sudo /data/services/backup/scripts/backup.sh` |
@@ -104,7 +104,7 @@ The repo files are `root:root` mode 400, so `claude` cannot run
 
 ```bash
 ssh office2-kgale 'sudo RESTIC_REPOSITORY=/mnt/backups/restic-repo \
-  RESTIC_PASSWORD_FILE=/home/claude/.config/restic/password \
+  RESTIC_PASSWORD_FILE=/etc/restic/password \
   restic snapshots --latest 5'
 ```
 
@@ -115,7 +115,7 @@ above, then:
 
 ```bash
 ssh office2-kgale 'sudo RESTIC_REPOSITORY=/mnt/backups/restic-repo \
-  RESTIC_PASSWORD_FILE=/home/claude/.config/restic/password \
+  RESTIC_PASSWORD_FILE=/etc/restic/password \
   restic restore <snapshot-id> --target /tmp/restore-<date>'
 ```
 

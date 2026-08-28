@@ -326,7 +326,7 @@ graph TD
 | Name | Type | Storage Mechanism | Used By |
 |------|------|-------------------|---------|
 | `vikunja-admin` | username/password | Runtime JWT, not stored | Vikunja web UI, `setup_vikunja.py` |
-| `restic-password` | password file | Standalone — `/home/claude/.config/restic/password` | `backup.sh` |
+| `restic-password` | password file | Standalone — `/etc/restic/password` | `backup.sh` |
 | `tailscale-auth` | system-managed | Managed by `tailscaled` | Tailscale daemon |
 | `anthropic` | API key | OpenClaw native auth store (`/home/claude/.openclaw/agents/main/agent/auth-profiles.json`) + scoped plaintext (`/data/services/openclaw/secrets/anthropic`, 0600) | `openclaw-gateway` (proxies API calls for all openclaw-launched agents), `felix-doc-auditor-driver` (reads the plaintext file directly each systemd tick and calls `api.anthropic.com` via the `anthropic` Python SDK — bypasses openclaw-gateway; #343), `felix-heartbeat-gate` (same file-read pattern as the doc-auditor driver — reads the key each 30-min systemd tick and calls `api.anthropic.com` directly with `claude-haiku-4-5`; #490) |
 | `vikunja-api-kent` | API token, all-permissions (owner: `kent` Vikunja user, #715; **sole runtime credential** per ADR-0007) | Scoped plaintext — `/data/services/openclaw/secrets/vikunja-api-kent` (mode 600, claude:claude) | **All runtime Felix→Vikunja access** via `scripts/common/vikunja_config.get_vikunja_token_path()` (directly or via the shared `VikunjaClient` default) — habits, escalation, enrichment, sync, inbox scan/apply, credential-health writer, `vikunja/create_task`, `trust/assertion_verifier`, config/label tooling (`create_taxonomy_labels`), and the #748 `validate_refs` validator. Runtime attributes to `kent` (see §3). |
