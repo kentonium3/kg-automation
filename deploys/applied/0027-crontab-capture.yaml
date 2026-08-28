@@ -78,3 +78,8 @@ notes: 'Installs the hourly claude-crontab capture as a systemd user timer on of
   '
 apply_mode: manifest
 applied_at: '2026-08-28T04:05:32Z'
+rebaseline:
+  outcome: unexpected_drift
+  at_utc: '2026-08-28T04:05:37Z'
+  unexpected:
+  - brew-packages.txt
