@@ -1,7 +1,7 @@
 {
-  "event_count": 28,
-  "last_event_id": "01M137B6CXCCB1W7XR6HPAMZ2R",
-  "materialized_at": "2026-08-28T03:41:47.293663+00:00",
+  "event_count": 29,
+  "last_event_id": "01M137C5N12XFZSCEQYK2N07Y5",
+  "materialized_at": "2026-08-28T03:42:19.297941+00:00",
   "mission_number": "",
   "mission_slug": "crontab-backup-coverage-01M12V87",
   "mission_type": "software-dev",
@@ -11,9 +11,9 @@
     "canceled": 0,
     "claimed": 0,
     "done": 0,
-    "for_review": 1,
+    "for_review": 0,
     "in_progress": 0,
-    "in_review": 0,
+    "in_review": 1,
     "planned": 0
   },
   "work_packages": {
@@ -146,14 +146,17 @@
       "agent_profile": "__resolved_profile_absent__",
       "agent_profile_version": "__resolved_profile_version_absent__",
       "force_count": 0,
-      "lane": "for_review",
-      "last_event_id": "01M137B6CXCCB1W7XR6HPAMZ2R",
-      "last_transition_at": "2026-08-28T03:41:47.293663+00:00",
+      "lane": "in_review",
+      "last_event_id": "01M137C5N12XFZSCEQYK2N07Y5",
+      "last_transition_at": "2026-08-28T03:42:19.297941+00:00",
       "model": "__resolved_model_absent__",
+      "notes": [
+        "Ready for review"
+      ],
       "provider": "__resolved_provider_absent__",
-      "role": "implementer",
-      "shell_pid": 66413,
-      "shell_pid_created_at": "1787887727.922739",
+      "role": "reviewer",
+      "shell_pid": 82681,
+      "shell_pid_created_at": "1787888536.239336",
       "subtasks": {
         "T020": "done",
         "T021": "done",
