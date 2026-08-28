@@ -7,7 +7,9 @@ requirement_refs:
 planning_base_branch: feat/backup-integrity-observability
 merge_target_branch: feat/backup-integrity-observability
 branch_strategy: Planning artifacts for this mission were generated on feat/backup-integrity-observability. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into feat/backup-integrity-observability unless the human explicitly redirects the landing branch.
-created_at: '2026-08-28T11:30:00Z'
+base_branch: kitty/mission-backup-integrity-observability-01M1414D
+base_commit: 7c7a443258232f05c31b22ae225de9462b40f0cb
+created_at: '2026-08-28T12:22:54.025858+00:00'
 subtasks:
 - T014
 - T015
