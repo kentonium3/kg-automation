@@ -2,8 +2,8 @@
 title: Data Flows
 doc_type: reference
 status: approved
-last_updated: '2026-07-23'
-updated_by: 'vikunja-token-seam-kent-cutover-01KY8XQ0 (#860 phase 2, ADR-0007 — intake scan flow flips from a felix-bot read token to the kent token, collapsing the #715 two-token model onto the single runtime vikunja-api-kent credential) + openclaw-skills-sync-01KXW1DQ (#775 — +openclaw-skill-sync flow: pull-based SKILL.md deploy/sync repo -> office2 via agent-skill-sync, sibling to agent-prompt-sync #567; closes the #563 skills silent-drift class) + task-intake-validation-loop-01KXS06W (#749 — +intake-validation-loop flow: scan -> WhatsApp digest -> compact-shorthand reply -> kent-token apply; closes #750) + felix-canary-registry-01KX8T7B (#327 — +felix-canary, +felix-trust-scan, +unified-alert-bus-emit observability flows) + felix-calendar-helper-01KX4H3C (#699 — calendar surface now Felix helper -> Google direct, not gog; closes #679) + felix-admin-cron-path-fix-01KWQTY3 (#656) + restore-whatsapp-dm-reply-delivery-01KTVVHH (#588) + inbox-calendar-and-aspiration-routing-01KTHHXS + #520-felix-vikunja-sync-project-layer-and-url-config'
+last_updated: '2026-08-28'
+updated_by: 'crontab-backup-coverage-01M12V87 (#895 — +crontab-capture flow: hourly claude-crontab capture into /data/services/, already a Restic source path, so the crontab becomes recoverable from a snapshot without depending on a security-monitor drift baseline) + vikunja-token-seam-kent-cutover-01KY8XQ0 (#860 phase 2, ADR-0007 — intake scan flow flips from a felix-bot read token to the kent token, collapsing the #715 two-token model onto the single runtime vikunja-api-kent credential) + openclaw-skills-sync-01KXW1DQ (#775 — +openclaw-skill-sync flow: pull-based SKILL.md deploy/sync repo -> office2 via agent-skill-sync, sibling to agent-prompt-sync #567; closes the #563 skills silent-drift class) + task-intake-validation-loop-01KXS06W (#749 — +intake-validation-loop flow: scan -> WhatsApp digest -> compact-shorthand reply -> kent-token apply; closes #750) + felix-canary-registry-01KX8T7B (#327 — +felix-canary, +felix-trust-scan, +unified-alert-bus-emit observability flows) + felix-calendar-helper-01KX4H3C (#699 — calendar surface now Felix helper -> Google direct, not gog; closes #679) + felix-admin-cron-path-fix-01KWQTY3 (#656) + restore-whatsapp-dm-reply-delivery-01KTVVHH (#588) + inbox-calendar-and-aspiration-routing-01KTHHXS + #520-felix-vikunja-sync-project-layer-and-url-config'
 tags: [860, 775, 567, 563, 327, 683, 701, 706, 516, 656, 588, 520, 507, 519, 518, 309, 343, 362, 391, 400, 310, 374]
 ---
 
@@ -48,6 +48,40 @@ office2 (/data/services, /data/transcripts, /home/*) → Restic → /mnt/backups
 ```
 
 Runs at 4AM daily via claude's crontab. GFS retention policy. Excludes transcribe models, temp files, and caches.
+
+### Crontab Capture (#895)
+
+```
+crontab -l (claude) → crontab-capture.service (hourly)
+                    → /data/services/host-state/crontabs/claude.crontab
+                    → [nightly Restic run] → /mnt/backups/restic-repo
+```
+
+Runs hourly via a systemd **user** timer (`Persistent=true`, so a run missed
+while the host was down executes on the next boot). It exists because on
+2026-08-27 the claude crontab was destroyed along with `/home/claude` and the
+only surviving copy was `crontabs.txt` — a security-monitor *drift-detection*
+baseline that the documented rebaseline procedure deletes.
+
+The artifact lands under `/data/services/`, which is **already** a Restic source
+path, so the backup picks it up with no change to the source set. That is
+deliberate rather than incidental: `restic forget` runs without `--group-by` and
+so defaults to `host,paths`, meaning a fifth source path would put every future
+snapshot in a different path-group from the existing ones and permanently strand
+them from pruning.
+
+Scope is the **claude** crontab only — `crontab -u kgale -l` and
+`crontab -u root -l` both return permission denied to an unprivileged reader, so
+those remain uncovered and would require sudo.
+
+The capture refuses to overwrite a good artifact with an empty, failed, or
+suspiciously truncated read, because it runs on a timer and can therefore fire
+*during* the incident it guards against. A refusal writes an error to the
+freshness pointer rather than reporting success.
+
+Recovery is manual: a human reads the artifact, or restores it from a snapshot
+(which needs sudo — `/etc/restic/password` is root-only). Nothing reinstalls the
+crontab automatically; that would be a reconciler, which is #890's subject.
 
 ### Security Audit
 

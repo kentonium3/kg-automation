@@ -168,12 +168,32 @@ or whenever the automatic flow cannot run. Run as the `claude` user on
 office2 via `ssh office2-claude`. The `sg docker -c` wrapper supplies
 the docker group needed for the image diff.
 
+> ⚠️ **Archive or transcribe first — this deletes every baseline.**
+>
+> The `baselines/` directory is written for *drift detection*, not as a backup.
+> But some of its files are, incidentally, the only surviving copy of the host
+> state they fingerprint. On 2026-08-27 `crontabs.txt` was exactly that: after
+> `/home/claude` was destroyed, it held the sole recoverable copy of the `claude`
+> crontab, and running this procedure before transcribing it would have destroyed
+> that copy too (kentonium3/kg-automation#895).
+>
+> Before running the reset, take a copy you can read afterwards:
+>
+> ```bash
+> ssh office2-claude 'cp -a /data/services/security-monitor/baselines /tmp/baselines-$(date +%s)'
+> ```
+>
+> The `claude` crontab specifically is now captured independently into
+> `/data/services/host-state/crontabs/` and rides the nightly Restic backup, so
+> it no longer depends on this directory. Anything *else* here may still be a
+> last copy — check before you delete.
+
 ```bash
 ssh office2-claude 'rm /data/services/security-monitor/baselines/* && sg docker -c /data/services/security-monitor/scripts/audit.sh'
 ```
 
 Expected output on success: `Security audit YYYY-MM-DD: All clear` and
-14 baseline files freshly written in `baselines/`.
+15 baseline files freshly written in `baselines/`.
 
 ## Verifying the reset
 

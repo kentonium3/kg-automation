@@ -23,7 +23,6 @@
   "purpose_context": "This mission advances crontab backup coverage on feat/crontab-backup-coverage so stakeholders can track the work from mission creation onward.",
   "purpose_tldr": "crontab backup coverage",
   "slug": "crontab-backup-coverage-01M12V87",
-  "status_phase": "1",
   "target_branch": "feat/crontab-backup-coverage",
   "topology": "single_branch",
   "vcs": "git",

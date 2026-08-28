@@ -17,6 +17,8 @@ import json
 import os
 import subprocess
 import sys
+import tempfile
+from datetime import datetime, timezone
 from pathlib import Path
 
 # Ensure repo root is on sys.path so this script can be run directly
@@ -216,7 +218,61 @@ def format_results(results: list, as_json: bool = False) -> str:
     return "\n".join(lines) + summary
 
 
-def main():
+#: Durable freshness pointer (#895). NOT /tmp — the previous only trace of this
+#: job was /tmp/drift-check.log, which systemd-tmpfiles empties at every boot, and
+#: tests/canary/test_inventory_health_checks.py pins the set of components allowed
+#: to probe /tmp. Follows the established /data/services/openclaw/state/<component>/
+#: convention.
+LAST_TICK_PATH = "/data/services/openclaw/state/enforcement/last-tick.json"
+
+
+#: Set once the freshness pointer has been written this run, so the outer failure
+#: handler in main() does not double-write and does not overwrite a good pointer.
+_TICK_WRITTEN = {"done": False}
+
+
+def write_last_tick(path, *, status, exit_code, has_drift):
+    """Atomically record that this run happened, and how it ended.
+
+    ⚠ ``exit_code`` here means "did the RUNNER execute correctly", never "was the
+    result clean". This distinction is load-bearing. ``main()`` exits 1 when it
+    *finds* drift — a perfectly successful run — while the canary treats any
+    non-zero ``exit_code`` in a pointer as an explicit failure that short-circuits
+    ahead of freshness (scripts/canary/probes.py:267-269). Writing the process
+    exit code straight into this field would make every drift-finding run page as
+    a broken component, training the operator to ignore the alert. Drift is
+    reported through this script's own output and alerting path; ``has_drift``
+    below is diagnostic only and is deliberately named so it does NOT collide
+    with the canary's explicit-error scan (error/errors/cycle_error/exit_status).
+
+    Never fatal: losing the freshness signal beats crashing drift enforcement.
+    """
+    payload = {
+        "status": status,
+        "exit_code": exit_code,
+        "completed_at_utc": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "has_drift": has_drift,
+    }
+    try:
+        directory = os.path.dirname(path)
+        os.makedirs(directory, exist_ok=True)
+        fd, tmp_name = tempfile.mkstemp(prefix="last-tick.", suffix=".tmp", dir=directory)
+        try:
+            with os.fdopen(fd, "w", encoding="utf-8") as fh:
+                fh.write(json.dumps(payload, indent=2) + "\n")
+            os.replace(tmp_name, path)
+        except Exception:
+            try:
+                os.unlink(tmp_name)
+            except OSError:
+                pass
+            raise
+    except OSError:
+        return
+    _TICK_WRITTEN["done"] = True
+
+
+def _run():
     parser = argparse.ArgumentParser(description="Agent workspace drift enforcement")
     parser.add_argument(
         "command",
@@ -230,6 +286,11 @@ def main():
     )
     parser.add_argument("--dry-run", action="store_true", help="Show actions without executing")
     parser.add_argument("--json", action="store_true", dest="json_output", help="JSON output")
+    parser.add_argument(
+        "--last-tick-path",
+        default=LAST_TICK_PATH,
+        help="Where the freshness pointer is written (#895).",
+    )
     args = parser.parse_args()
 
     repo_root = get_repo_root()
@@ -296,12 +357,49 @@ def main():
     else:
         print(format_results(results))
 
-    # Return exit code: 0 = clean or remediated, 1 = drift (report), 2 = errors
+    # Return exit code: 0 = clean or remediated, 1 = drift (report), 2 = errors.
+    # These process exit codes are unchanged — callers and the crontab depend on
+    # them. What the freshness pointer records is a DIFFERENT question: whether
+    # the runner executed, not whether the result was clean. See write_last_tick.
     if actions is not None:
         has_errors = bool(actions.get("errors"))
-        sys.exit(2 if has_errors else 0)
+        code = 2 if has_errors else 0
+        write_last_tick(
+            args.last_tick_path,
+            status="error" if has_errors else "success",
+            exit_code=2 if has_errors else 0,
+            has_drift=None if has_errors else has_drift,
+        )
+        sys.exit(code)
     else:
+        # `report` mode: exit 1 means "ran fine, found drift" -> healthy pointer.
+        write_last_tick(
+            args.last_tick_path, status="success", exit_code=0, has_drift=has_drift
+        )
         sys.exit(1 if has_drift else 0)
+
+
+def main():
+    """Run the drift check, guaranteeing a freshness pointer on every exit path.
+
+    Post-review hardening (#895): the pointer was previously written only in the
+    normal exit block, so an early failure — a missing config via ``load_json``'s
+    ``sys.exit``, a JSON decode error, or an exception from detection or
+    remediation — would abort with no pointer at all. The canary would then see
+    only staleness, hours later, instead of an immediate explicit error. Any
+    escape now records ``status: error`` before propagating.
+    """
+    _TICK_WRITTEN["done"] = False
+    try:
+        _run()
+    except BaseException:
+        if not _TICK_WRITTEN["done"]:
+            # argparse failures happen before the flag path is reachable with a
+            # parsed value, so fall back to the default location.
+            write_last_tick(
+                LAST_TICK_PATH, status="error", exit_code=2, has_drift=None
+            )
+        raise
 
 
 if __name__ == "__main__":

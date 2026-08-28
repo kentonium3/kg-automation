@@ -362,7 +362,9 @@ still covers it.
 **Out-of-band exception (manual reset still required):** changes made
 directly on office2 — not through the manifest pipeline — are invisible
 to felix-deployer. The daily security audit surfaces these as drift;
-investigate and reset manually:
+investigate and reset manually. ⚠️ This deletes every baseline, and some are the
+only surviving copy of the host state they fingerprint — archive them first
+(see `docs/runbooks/security-baseline-ops.md`):
 
 ```bash
 ssh office2-claude 'rm /data/services/security-monitor/baselines/* && sg docker -c /data/services/security-monitor/scripts/audit.sh'

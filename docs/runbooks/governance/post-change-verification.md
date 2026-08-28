@@ -89,6 +89,10 @@ The full enumeration with affected baselines per surface is in `docs/design/arch
 
 **Reset procedure** (canonical):
 
+> ⚠️ This deletes every baseline. Some baselines are the only surviving copy of
+> the host state they fingerprint — archive them first. See
+> [security-baseline-ops.md](../security-baseline-ops.md#manual-reset-procedure-fallback).
+
 ```bash
 ssh office2-claude 'rm /data/services/security-monitor/baselines/* && sg docker -c /data/services/security-monitor/scripts/audit.sh'
 ```

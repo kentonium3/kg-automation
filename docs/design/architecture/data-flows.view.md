@@ -5,10 +5,10 @@ doc_type: guide
 level: reference
 status: approved
 owners: ["@kentonium3"]
-last_updated: '2026-07-11'
+last_updated: '2026-08-28'
 revision: v2.0
 audience: agents_and_humans
-updated_by: 'felix-canary-registry-01KX8T7B (#327: +observability subgraph — felix-canary + felix-trust-scan deterministic scanners sharing the #701 alert bus + #706 ledger) + restore-whatsapp-dm-reply-delivery-01KTVVHH (#588: +whatsapp_dm subgraph, +phone_wa input node) + #520 (felix-vikunja-sync-project-layer-and-url-config: +sync_driver subgraph, +url_config node)'
+updated_by: 'crontab-backup-coverage-01M12V87 (#895: +crontab-capture — claude crontab captured hourly into /data/services/host-state/, which the existing Restic run already covers; replaces the accidental dependency on the security-monitor crontabs.txt baseline) + felix-canary-registry-01KX8T7B (#327: +observability subgraph — felix-canary + felix-trust-scan deterministic scanners sharing the #701 alert bus + #706 ledger) + restore-whatsapp-dm-reply-delivery-01KTVVHH (#588: +whatsapp_dm subgraph, +phone_wa input node) + #520 (felix-vikunja-sync-project-layer-and-url-config: +sync_driver subgraph, +url_config node)'
 ---
 
 # data-flows.view
@@ -30,6 +30,9 @@ graph LR
         backup_repo[("Backup Repo<br/>/mnt/backups")]
         audit["Security Audit<br/>3AM daily"]
         baselines[("Baselines<br/>/data/services/security-monitor")]
+        crontab_src[("claude crontab<br/>/var/spool/cron")]
+        crontab_capture["crontab-capture.timer<br/>hourly, Persistent"]
+        crontab_artifact[("claude.crontab<br/>/data/services/host-state/")]
 
         subgraph doc_audit["Doc-Auditor (#343 scripts-first; Moment 0 + ledger added #362; cron path corrected #391)"]
             timer["felix-doc-auditor.timer<br/>OnCalendar=hourly"]
@@ -202,6 +205,9 @@ graph LR
     vault -->|"included in"| restic
     restic --> backup_repo
     audit --> baselines
+    crontab_src -->|"crontab -l, hourly"| crontab_capture
+    crontab_capture -->|"atomic write, on change only"| crontab_artifact
+    crontab_artifact -.->|"already inside an existing<br/>Restic source path"| restic
 
     timer -->|"systemd"| service
     service -->|"exec"| driver
