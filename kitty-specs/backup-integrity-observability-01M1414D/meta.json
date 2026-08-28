@@ -10,5 +10,7 @@
   "purpose_tldr": "backup integrity observability",
   "slug": "backup-integrity-observability-01M1414D",
   "target_branch": "feat/backup-integrity-observability",
-  "topology": "single_branch"
+  "topology": "single_branch",
+  "vcs": "git",
+  "vcs_locked_at": "2026-08-28T11:44:04.880946+00:00"
 }

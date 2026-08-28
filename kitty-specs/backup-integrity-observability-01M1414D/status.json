@@ -28,7 +28,8 @@
       "last_transition_at": "2026-08-28T12:08:17.012014+00:00",
       "model": "__resolved_model_absent__",
       "notes": [
-        "Ready for review"
+        "Ready for review",
+        "Codex review: 1 HIGH + 1 MEDIUM, both correct but scoped to WP02 (canary consumption), which a per-WP review cannot see. Its env-override assessment produced a genuine forward-looking finding, actioned: overrides are now intrinsically inert for privileged runs, so safety no longer depends on sudoers keeping env_reset/secure_path. Codex independently verified the 127 sentinel, the full exit-path trace, JSON validity, and backward compatibility for both pointer consumers. Analysis finding C1 closed — early-exit paths are executed by tests now, not read."
       ],
       "provider": "__resolved_provider_absent__",
       "review_result": {
