@@ -84,6 +84,18 @@
       "verdict": "in-mission",
       "wp": "WP01"
     },
+    "#899": {
+      "evidence_ref": "Closed. Cited as the rationale for keeping the capture out of /data/services/backup/ (mixed root/claude ownership in one service dir was the privesc shape) and for refusing a sudo capture path.",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": null,
+      "title": null,
+      "verdict": "verified-already-fixed",
+      "wp": null
+    },
     "#903": {
       "evidence_ref": "Follow-up: #903. Filed during this mission's planning and explicitly out of scope \u2014 restic-backup.sh is repo-tracked but hand-deployed, so repo/host divergence is unmonitored. Design avoids editing that file (C-004) to sidestep it.",
       "fr": null,
