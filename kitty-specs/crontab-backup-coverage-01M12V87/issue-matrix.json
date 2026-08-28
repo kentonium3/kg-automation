@@ -1,0 +1,137 @@
+{
+  "rows": {
+    "#492": {
+      "evidence_ref": "Cited as precedent only. #492 motivated formalizing signal-to-doc-map.json; this mission consumed that map to scope its architecture-doc targets (see plan.md Project Structure), which is the map working as intended.",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": null,
+      "title": null,
+      "verdict": "verified-already-fixed",
+      "wp": null
+    },
+    "#557": {
+      "evidence_ref": "Cited as the governing mechanism. The rebaseline obligation is live; this mission complies by relying on the repo-file signal from scripts/office2/*.timer, already matched by the systemd-user-units audited surface.",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": null,
+      "title": null,
+      "verdict": "verified-already-fixed",
+      "wp": null
+    },
+    "#818": {
+      "evidence_ref": "Commit 5ecd7d40. #818 raised expected_baseline_count 14->15 but left security-baseline-ops.md documenting 14; WP01 T004 corrected the stale prose. Live host and registry both confirm 15.",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": null,
+      "title": null,
+      "verdict": "fixed",
+      "wp": "WP01"
+    },
+    "#889": {
+      "evidence_ref": "Cited as evidence only. #889 (af37583a) moved the restic key out of the tree it protects; verified its repo copy is byte-identical to the live host file (md5 767da888...), which is how the hand-deploy gap #903 was discovered.",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": null,
+      "title": null,
+      "verdict": "verified-already-fixed",
+      "wp": null
+    },
+    "#890": {
+      "evidence_ref": "Out of scope by spec.md 'Out of Scope': placing the 5 legacy cron jobs under repo control / building a reconciler is #890's subject. This mission deliberately adds a systemd user timer instead of a 6th cron entry so it does not enlarge #890's surface.",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": "spec.md",
+      "title": "<fill at WP-implementation time>",
+      "verdict": "deferred-with-followup",
+      "wp": null
+    },
+    "#891": {
+      "evidence_ref": "Cited twice as precedent: the affirmative-health pattern this mission's health checks follow, and the manifest notes maxLength 2000 hazard WP03 must respect. Both already shipped (9ab02083, 24f89084).",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": null,
+      "title": null,
+      "verdict": "verified-already-fixed",
+      "wp": null
+    },
+    "#894": {
+      "evidence_ref": "Follow-up: #894. Owns the /tmp probe migration. This mission must not touch /tmp/drift-check.log or the crontab redirect; WP04 adds a durable pointer alongside instead, leaving #894's substrate move intact.",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": null,
+      "title": null,
+      "verdict": "deferred-with-followup",
+      "wp": null
+    },
+    "#895": {
+      "evidence_ref": "Mission issue. WP01 (5ecd7d40) closes FR-007; WP02-WP05 carry FR-001..FR-006.",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": "spec.md",
+      "title": "<fill at WP-implementation time>",
+      "verdict": "in-mission",
+      "wp": "WP01"
+    },
+    "#899": {
+      "evidence_ref": "Closed. Cited as the rationale for keeping the capture out of /data/services/backup/ (mixed root/claude ownership in one service dir was the privesc shape) and for refusing a sudo capture path.",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": null,
+      "title": null,
+      "verdict": "verified-already-fixed",
+      "wp": null
+    },
+    "#901": {
+      "evidence_ref": "Follow-up: #901. Underlying defect (entrypoint side effects applied before the applied-record is validated) is why WP03 must validate its manifest locally; not fixed here.",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": null,
+      "title": null,
+      "verdict": "deferred-with-followup",
+      "wp": null
+    },
+    "#903": {
+      "evidence_ref": "Follow-up: #903. Filed during this mission's planning and explicitly out of scope \u2014 restic-backup.sh is repo-tracked but hand-deployed, so repo/host divergence is unmonitored. Design avoids editing that file (C-004) to sidestep it.",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": "spec.md",
+      "title": "<fill at WP-implementation time>",
+      "verdict": "deferred-with-followup",
+      "wp": null
+    }
+  },
+  "schema_version": 1
+}

@@ -1,0 +1,130 @@
+{
+  "mission_slug": "crontab-backup-coverage-01M12V87",
+  "mission_number": "",
+  "mission_type": "software-dev",
+  "overall_verdict": "pass",
+  "criteria": [
+    {
+      "criterion_id": "FR-001",
+      "description": "The claude crontab is captured into a path the existing Restic backup already covers, with no change to the source set.",
+      "proof_type": "automated_test",
+      "evidence": "36c9d016 + 94cce5c0. Artifact path /data/services/host-state/crontabs/claude.crontab sits under /data/services, an existing Restic source path (scripts/office2/restic-backup.sh). tests/office2/crontab_capture/: test_captures_crontab_and_writes_pointer, test_first_run_is_never_a_shrink. No source path was added \u2014 see negative invariant NI-002.",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-08-28T02:10:00Z",
+      "notes": "Verified during WP review; see evidence."
+    },
+    {
+      "criterion_id": "FR-002",
+      "description": "Each capture lands before the nightly backup run, so the copy in a snapshot reflects the current schedule.",
+      "proof_type": "inspection",
+      "evidence": "c59c8008. scripts/office2/crontab-capture.timer sets OnCalendar=hourly with Persistent=true and RandomizedDelaySec=120; the Restic backup runs 0 4 * * * (daily). NARROWED after post-merge review: under normal uptime the hourly cadence means a capture precedes any given 04:00 backup, and Persistent=true replays a run missed while the host was down. This is a freshness property, NOT a strict ordering guarantee \u2014 nothing serialises the timer against the cron backup under boot/replay or failure timing. A hard guarantee would require an orchestrated pre-backup capture gate, which was not built and is not required by NFR-002 (a 24h recovery window). Live end-to-end confirmation is in quickstart.md and closes with SC-001/SC-002 after the deploy applies.",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-08-28T02:10:00Z",
+      "notes": "Evidence narrowed post-merge: the original wording claimed an ordering guarantee the mechanism does not provide."
+    },
+    {
+      "criterion_id": "FR-003",
+      "description": "The captured artifact is reinstallable as a working crontab without hand-editing; the body below the provenance header is byte-identical to crontab -l output.",
+      "proof_type": "automated_test",
+      "evidence": "94cce5c0. tests/office2/crontab_capture/: test_body_below_header_is_byte_identical, test_artifact_is_reinstallable (asserts every header line is comment-prefixed so `crontab <file>` accepts it), test_user_comments_in_body_are_preserved, test_crlf_is_preserved, test_missing_trailing_newline_is_preserved, test_non_utf8_bytes_survive, test_utf8_multibyte_survives, test_body_containing_the_sentinel_is_not_truncated. Byte identity is structural: the capture path is bytes-native end to end after the post-review fix.",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-08-28T02:10:00Z",
+      "notes": "Verified during WP review; see evidence."
+    },
+    {
+      "criterion_id": "FR-004",
+      "description": "A capture that reads an empty, failed, or suspiciously truncated crontab preserves the previous artifact and reports the anomaly rather than reporting success.",
+      "proof_type": "automated_test",
+      "evidence": "94cce5c0. tests/office2/crontab_capture/: test_empty_read_preserves_existing_artifact, test_failed_read_preserves_existing_artifact, test_force_does_not_bypass_empty_guard, test_suspicious_truncation_is_refused, test_modest_shrink_is_accepted, test_force_allows_a_large_shrink, test_first_run_is_never_a_shrink. Each refusal asserts both that the prior artifact is byte-unchanged AND that the pointer records status=error with a non-zero exit_code, so a refusal cannot read as healthy.",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-08-28T02:10:00Z",
+      "notes": "Verified during WP review; see evidence."
+    },
+    {
+      "criterion_id": "FR-005",
+      "description": "Capture success, failure, and staleness are observable through the existing health surface.",
+      "proof_type": "code_review_plus_execution_log",
+      "evidence": "94cce5c0 + e90af3b1. Pointer written on every run including refusals (test_summary_is_the_final_stdout_line, test_refusal_writes_error_to_stderr_and_summary_to_stdout, test_pointer_timestamp_actually_advances under a controlled clock). Registered in service-inventory.json as method=state-file, absolute state_path, max_age_seconds=7200. Verified against the REAL scripts.canary.probes.run_probe at review time: fresh/success -> ok=True stale=False; aged past bound -> stale=True; runner error -> ok=False. The check can therefore actually fail (#891 class).",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-08-28T02:10:00Z",
+      "notes": "Verified during WP review; see evidence."
+    },
+    {
+      "criterion_id": "FR-006",
+      "description": "drift_check.py is registered with a health check and staleness bound, and its liveness is not conflated with whether it found drift.",
+      "proof_type": "automated_test",
+      "evidence": "9cf0953a + e90af3b1. drift_check.py writes /data/services/openclaw/state/enforcement/last-tick.json on every exit path including early runner failures. tests/openclaw/enforcement/test_drift_check_pointer.py drives main() end to end: a report-mode run that FINDS drift still exits 1 while the pointer records success/exit_code=0/has_drift=true and is judged HEALTHY by the real run_probe; a missing config records status=error/exit_code=2 and is judged unhealthy. Registered with max_age_seconds=108000. Live probe check at review confirmed all four properties.",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-08-28T02:10:00Z",
+      "notes": "Verified during WP review; see evidence."
+    },
+    {
+      "criterion_id": "FR-007",
+      "description": "The rebaseline procedure warns, above its destructive step, that baselines may hold the only copy of host state.",
+      "proof_type": "doc_diff",
+      "evidence": "5ecd7d40. Warning added above the `rm baselines/*` command in all three operator-facing copies: docs/runbooks/security-baseline-ops.md (manual reset procedure), docs/runbooks/governance/post-change-verification.md, CLAUDE.md. Placement verified programmatically (warning line number < command line number in each file). Stale expected baseline count corrected 14 -> 15 (live host and registry both report 15; stale since #818). Historical copies under docs/diagnostics/ and kitty-specs/ deliberately untouched.",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-08-28T02:10:00Z",
+      "notes": "Verified during WP review; see evidence."
+    }
+  ],
+  "negative_invariants": [
+    {
+      "invariant_id": "NEG-001",
+      "description": "The rebaseline_command in audited-surfaces.json MUST still be the literal `rm baselines/* && sg docker -c audit.sh` form (spec C-001). Rewriting it \u2014 which issue #895 itself suggests, as an archive-instead-of-delete \u2014 would make rebaseline.py:585-586 fail its `rm_tokens[0] == 'rm'` assertion and fall back to [\"true\"], silently rendering every deferred-confirm rebaseline audit inconclusive.",
+      "verification_method": "custom_command",
+      "verification_command": "grep -q \"rm /data/services/security-monitor/baselines/\\\\* && sg docker\" docs/design/architecture/data/audited-surfaces.json",
+      "result": "confirmed_absent",
+      "evidence": "Command exited 0: ",
+      "verified_ref": "feat/crontab-backup-coverage",
+      "verified_surface_kind": "primary",
+      "provenance_origin": "recorded",
+      "notes": "FR-007 is therefore satisfied in prose copies only. Exit 0 = the parsed command is intact."
+    },
+    {
+      "invariant_id": "NEG-002",
+      "description": "No Restic source path MUST be added; /var/spool/cron in particular must NOT appear in the backup script (spec C-002, NFR-001). restic forget runs with no --group-by and defaults to host,paths, so a fifth source path would put every future snapshot in a different path-group from the existing ones, which would then match no retention policy and never be pruned again \u2014 silent and permanent.",
+      "verification_method": "grep_absence",
+      "verification_command": "/var/spool/cron",
+      "result": "confirmed_absent",
+      "evidence": "grep found zero matches",
+      "scope": "scripts/office2/restic-backup.sh",
+      "verified_ref": "feat/crontab-backup-coverage",
+      "verified_surface_kind": "primary",
+      "provenance_origin": "recorded",
+      "notes": "Scoped to the backup script: the path is named in the mission's own planning prose, which is discussion, not configuration."
+    },
+    {
+      "invariant_id": "NEG-003",
+      "description": "No component added or registered by this mission MUST probe a path under /tmp (spec NFR-004). /tmp is emptied at boot, so a probe there produces spurious staleness; tests/canary/test_inventory_health_checks.py pins the permitted set, and only obsidian-sync-heartbeat is grandfathered (owned by #894).",
+      "verification_method": "custom_command",
+      "verification_command": "python3 -m pytest tests/canary/test_inventory_health_checks.py -q",
+      "result": "confirmed_absent",
+      "evidence": "Command exited 0: .........                                                                [100%]\n9 passed in 0.07s",
+      "verified_ref": "feat/crontab-backup-coverage",
+      "verified_surface_kind": "primary",
+      "provenance_origin": "recorded",
+      "notes": "The guard is a pinned-set test, so it fails if either new entry introduces a /tmp probe."
+    },
+    {
+      "invariant_id": "NEG-004",
+      "description": "This mission MUST NOT write to any crontab (spec C-005). A crontab edit drifts crontabs.txt and invites the rebaseline whose rm destroys it \u2014 during exactly the window in which that baseline is still the only copy of the crontab. Choosing a systemd user timer over a sixth cron entry avoids this and also avoids enlarging the surface #890 exists to retire.",
+      "verification_method": "grep_absence",
+      "verification_command": "crontab -e",
+      "result": "confirmed_absent",
+      "evidence": "grep found zero matches",
+      "scope": "scripts/deploy scripts/office2",
+      "verified_ref": "feat/crontab-backup-coverage",
+      "verified_surface_kind": "primary",
+      "provenance_origin": "recorded",
+      "notes": "Reading via `crontab -l` is the capture's whole purpose and is permitted; only write forms are forbidden in the deploy surface."
+    }
+  ]
+}

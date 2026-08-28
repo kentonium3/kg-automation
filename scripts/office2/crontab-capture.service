@@ -1,0 +1,20 @@
+# Capture the claude crontab into Restic-backed-up storage (#895).
+#
+# On 2026-08-27 the claude crontab was destroyed with /home/claude and the only
+# surviving copy was a security-monitor drift baseline — a file written for drift
+# detection, not backup, and one the rebaseline procedure deletes. /var/spool/cron
+# is not in the Restic source set.
+#
+# This writes the crontab under /data/services/, which IS already a source path,
+# so no source path is added. See scripts/office2/crontab_capture.py.
+[Unit]
+Description=Capture the claude crontab into backed-up storage (#895)
+Documentation=https://github.com/kentonium3/kg-automation/issues/895
+
+[Service]
+Type=oneshot
+WorkingDirectory=/home/claude/kg-automation
+# Absolute interpreter path: office2 is python3-only and a bare `python` exits
+# 127, which has previously produced false cron-failure alerts.
+ExecStart=/usr/bin/python3 /home/claude/kg-automation/scripts/office2/crontab_capture.py
+Environment=PATH=/home/claude/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin

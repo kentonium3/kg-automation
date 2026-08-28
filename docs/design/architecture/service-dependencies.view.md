@@ -7,7 +7,7 @@ owners: [kgale]
 last_validated: 2026-07-09
 revision: v1.5
 audience: agents_and_humans
-updated_by: '#699'
+updated_by: 'crontab-backup-coverage-01M12V87 (#895: +Host-State Capture subgraph — crontab-capture produces into an existing Restic source path; agent-drift-check registered for health) + #699'
 tags: [309, 408, 518, 519, 520, 579, 679, 699]
 ---
 
@@ -71,6 +71,11 @@ graph LR
         digest["felix-core-digest<br/>Tier 3"]
     end
 
+    subgraph HostState["Host-State Capture (Tier 3, #895)"]
+        crontabcap["crontab-capture<br/>Tier 3<br/>(hourly, Persistent)"]
+        driftcheck["agent-drift-check<br/>Tier 3<br/>(daily 06:00)<br/>monitors agent-prompt-sync,<br/>not modelled in this view"]
+    end
+
     subgraph Sync["Sync Services (Tier 3)"]
         obsidian["obsidian-sync<br/>Tier 3"]
         secondbrain["second-brain-sync<br/>Tier 3<br/>🗑 RETIRED #712"]
@@ -119,6 +124,7 @@ graph LR
     habits -->|"reads base URL<br/>(TP-02/TP-03/TP-04, #519)"| url_config
     escalation -->|"reads base URL<br/>(TP-10, #519)"| url_config
     taskdet -->|"reads base URL<br/>(TP-12, #519)"| url_config
+    crontabcap -->|"produces-for<br/>(writes into an existing<br/>Restic source path, #895)"| restic
 ```
 
 ## Reading the Diagram

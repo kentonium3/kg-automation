@@ -1,0 +1,25 @@
+# Hourly capture of the claude crontab (#895).
+#
+# Hourly rather than daily: the snapshot copy refreshes only once per daily backup
+# regardless of cadence, so hourly does not improve restore-from-backup freshness.
+# It improves the PRIMARY recovery path — the live artifact under /data/, which
+# sits on a different tree from /home/claude and would have survived the
+# 2026-08-27 deletion intact. It is free because the helper rewrites the artifact
+# only when the content actually changed.
+#
+# Persistent=true is the reason this is a timer and not a sixth crontab entry:
+# a run missed while the host was down executes on the next boot. cron silently
+# skips it.
+[Unit]
+Description=Hourly claude crontab capture (#895)
+Documentation=https://github.com/kentonium3/kg-automation/issues/895
+
+[Timer]
+OnCalendar=hourly
+Persistent=true
+# Avoid contending with the top-of-hour cluster.
+RandomizedDelaySec=120
+Unit=crontab-capture.service
+
+[Install]
+WantedBy=timers.target
