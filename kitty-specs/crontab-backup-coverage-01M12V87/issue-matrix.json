@@ -1,7 +1,7 @@
 {
   "rows": {
     "#890": {
-      "evidence_ref": "<link or commit>",
+      "evidence_ref": "Out of scope by spec.md 'Out of Scope': placing the 5 legacy cron jobs under repo control / building a reconciler is #890's subject. This mission deliberately adds a systemd user timer instead of a 6th cron entry so it does not enlarge #890's surface.",
       "fr": null,
       "nfr": null,
       "repo": null,
@@ -9,7 +9,7 @@
       "scope": null,
       "source_file": "spec.md",
       "title": "<fill at WP-implementation time>",
-      "verdict": "unknown",
+      "verdict": "deferred-with-followup",
       "wp": null
     },
     "#895": {
