@@ -61,7 +61,7 @@
       "wp": null
     },
     "#902": {
-      "evidence_ref": "Second half of #902 \u2014 the reason the ten-hour prune failure was invisible. WP01 records prune_exit_code with a 127 not-attempted sentinel; WP02 teaches the canary to act on it with a {0} good-set.",
+      "evidence_ref": "Fixed. WP01 records prune_exit_code with a 127 never-attempted sentinel (tests execute the script's early-exit paths); WP02 makes the canary act on it with a {0} good-set and fails closed when a restic pointer has no parseable snapshot timestamp. Merged in backup-integrity-observability-01M1414D.",
       "fr": null,
       "nfr": null,
       "repo": null,
@@ -69,7 +69,7 @@
       "scope": null,
       "source_file": "spec.md",
       "title": "<fill at WP-implementation time>",
-      "verdict": "in-mission",
+      "verdict": "fixed",
       "wp": "WP01"
     },
     "#903": {
