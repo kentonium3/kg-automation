@@ -1,7 +1,7 @@
 {
-  "event_count": 5,
-  "last_event_id": "01M12X520RT9BD1PP6A781T233",
-  "materialized_at": "2026-08-28T00:43:40.440681+00:00",
+  "event_count": 7,
+  "last_event_id": "01M133NNQQHX3Q8BAXXPW3896Y",
+  "materialized_at": "2026-08-28T02:37:36.374543+00:00",
   "mission_number": "",
   "mission_slug": "crontab-backup-coverage-01M12V87",
   "mission_type": "software-dev",
@@ -12,17 +12,20 @@
     "claimed": 0,
     "done": 0,
     "for_review": 0,
-    "in_progress": 0,
+    "in_progress": 1,
     "in_review": 0,
-    "planned": 5
+    "planned": 4
   },
   "work_packages": {
     "WP01": {
-      "actor": "finalize-tasks",
+      "actor": "claude",
+      "agent": "claude",
       "force_count": 0,
-      "lane": "planned",
-      "last_event_id": "01M12X4KCV3NR7J0TPAS36KPDW",
-      "last_transition_at": "2026-08-28T00:43:25.467293+00:00"
+      "lane": "in_progress",
+      "last_event_id": "01M133NNQQHX3Q8BAXXPW3896Y",
+      "last_transition_at": "2026-08-28T02:37:36.374543+00:00",
+      "shell_pid": 20017,
+      "shell_pid_created_at": "1787884649.330418"
     },
     "WP02": {
       "actor": "finalize-tasks",
