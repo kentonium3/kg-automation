@@ -60,6 +60,18 @@
       "verdict": "deferred-with-followup",
       "wp": null
     },
+    "#891": {
+      "evidence_ref": "Cited twice as precedent: the affirmative-health pattern this mission's health checks follow, and the manifest notes maxLength 2000 hazard WP03 must respect. Both already shipped (9ab02083, 24f89084).",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": null,
+      "title": null,
+      "verdict": "verified-already-fixed",
+      "wp": null
+    },
     "#895": {
       "evidence_ref": "Mission issue. WP01 (5ecd7d40) closes FR-007; WP02-WP05 carry FR-001..FR-006.",
       "fr": null,
