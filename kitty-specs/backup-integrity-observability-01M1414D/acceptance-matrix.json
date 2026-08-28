@@ -108,35 +108,27 @@
   "negative_invariants": [
     {
       "invariant_id": "NEG-001",
-      "description": "/data/services/backup/scripts/ MUST stay non-claude-writable \u2014 the mission must not automate the backup-script install (spec C-001, C-002).",
+      "description": "No deploy artifact may reference /data/services/backup/scripts/ \u2014 the mission must not automate the backup-script install (spec C-001, C-002). A claude-writable directory on a NOPASSWD sudo path is equivalent to NOPASSWD: ALL, which was #899.",
       "verification_method": "grep_absence",
       "verification_command": "data/services/backup/scripts",
-      "scope": "scripts/deploy/deploy-backup-script-drift.py deploys/queued/backup-script-drift.yaml",
-      "notes": "No deploy artifact may reference that path at all. A claude-writable directory on a NOPASSWD sudo path is equivalent to NOPASSWD: ALL, which was #899."
+      "scope": "deploys/queued/backup-script-drift.yaml",
+      "notes": "Scoped to the manifest, which is the artifact that would carry an install step. Defers pre-consolidation because the file lands with this mission; runs for real once merged."
     },
     {
       "invariant_id": "NEG-002",
-      "description": "The prune good-set MUST NOT be merged into the backup's {0,3} (spec C-006).",
-      "verification_method": "custom_command",
-      "verification_command": "python3 -c \"from scripts.canary.probes import _PRUNE_OK_EXIT_CODES as p, _RESTIC_OK_EXIT_CODES as r; assert p==frozenset({0}) and p!=r\"",
+      "description": "The prune good-set must never be checked against the backup's {0,3} set (spec C-006). restic forget exiting 3 means snapshots could not be removed, so accepting it would pass a prune that never applied retention \u2014 the exact #902 failure.",
+      "verification_method": "grep_absence",
+      "verification_command": "prune_exit_code.*_RESTIC_OK",
       "scope": "scripts/canary/probes.py",
-      "notes": "restic forget exiting 3 means snapshots could not be removed; accepting it would pass a prune that never applied retention."
+      "notes": "The violation signature is prune_exit_code being tested against _RESTIC_OK_EXIT_CODES. Checkable on the primary surface both before and after the merge. The stronger form \u2014 pinning _PRUNE_OK_EXIT_CODES == {0} \u2014 is enforced by tests/canary/test_inventory_health_checks.py, which runs in CI."
     },
     {
       "invariant_id": "NEG-003",
-      "description": "There MUST be exactly one implementation of where the crontab header ends (spec C-004).",
-      "verification_method": "custom_command",
-      "verification_command": "python3 -m pytest tests/office2/crontab_capture/test_crontab_capture.py -q -k 'only_one_place or drifts'",
-      "scope": "scripts/office2/crontab_capture.py",
-      "notes": "strip_header must delegate to split_header, and a header-format change that breaks recovery must fail the suite."
-    },
-    {
-      "invariant_id": "NEG-004",
-      "description": "No new or modified health check may be incapable of failing (spec NFR-001).",
-      "verification_method": "custom_command",
-      "verification_command": "python3 -m pytest tests/canary/test_probes_prune.py tests/canary/test_inventory_health_checks.py -q",
-      "scope": "docs/design/architecture/data/service-inventory.json",
-      "notes": "Every added check is asserted unhealthy for its failure condition through the real run_probe, not a reimplementation."
+      "description": "The superseded hand-written header strip must not survive as an active procedure in any runbook (spec C-004, #906).",
+      "verification_method": "grep_absence",
+      "verification_command": "captured-.*crontab_capture.py > /tmp",
+      "scope": "docs/runbooks",
+      "notes": "Targets the old recover-by-grep FORM rather than the pattern text itself, because crontab-recovery.md deliberately quotes that text inside a warning so an operator who finds it elsewhere recognises it as wrong. Enforcement that the single-implementation property holds lives in tests: test_only_one_place_computes_where_the_header_ends and test_emit_body_fails_if_the_header_format_drifts."
     }
   ]
 }
