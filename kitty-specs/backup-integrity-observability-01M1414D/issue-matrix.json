@@ -13,7 +13,7 @@
       "wp": null
     },
     "#895": {
-      "evidence_ref": "<link or commit>",
+      "evidence_ref": "Predecessor mission, merged e2a72715 and live-verified. Its crontab_capture.py is the surface WP04 extends, and its quickstart carried the stale grep pattern that became #906.",
       "fr": null,
       "nfr": null,
       "repo": null,
@@ -21,7 +21,7 @@
       "scope": null,
       "source_file": "spec.md",
       "title": "<fill at WP-implementation time>",
-      "verdict": "unknown",
+      "verdict": "verified-already-fixed",
       "wp": null
     },
     "#899": {
