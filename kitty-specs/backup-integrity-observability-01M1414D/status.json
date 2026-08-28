@@ -119,7 +119,8 @@
       "last_transition_at": "2026-08-28T12:53:34.347762+00:00",
       "model": "__resolved_model_absent__",
       "notes": [
-        "Ready for review"
+        "Ready for review",
+        "Codex read-only review: 1 MEDIUM + 2 LOW, all accepted and fixed before approval. MEDIUM: split_header used startswith on the whole blob rather than requiring an exact first LINE, so a foreign file beginning with our header text and containing the sentinel later would be 'recognised' and emit only the tail — piped into 'crontab -' that installs a silently truncated crontab, strictly worse than a refusal. LOW: the emitter followed symlinks, and its output becomes executable schedule. LOW: the drift guard could pass vacuously via the missing-artifact refusal; it now asserts capture succeeded and the drifted artifact exists first. Codex verified correct: strip_header delegates without recomputing the boundary, capture stays tolerant while recovery is strict, the refusal set is complete, success-path stdout is only the body, byte fidelity for CRLF/non-UTF-8, and all 28 pre-existing tests unchanged. make test 6230 / 0 failed."
       ],
       "provider": "__resolved_provider_absent__",
       "review_result": {
