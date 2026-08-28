@@ -85,7 +85,17 @@ scripts/openclaw/enforcement/
 └── drift_check.py                # MODIFIED — emit a durable freshness pointer
 
 docs/design/architecture/data/
-└── service-inventory.json        # MODIFIED — register both components
+├── service-inventory.json        # MODIFIED — register both components
+└── data-flows.json               # MODIFIED — new producer->storage->consumer flow
+
+docs/design/architecture/
+├── service-inventory.md          # MODIFIED — narrative view of the above
+├── service-dependencies.view.md  # MODIFIED — new component in the dependency view
+├── data-flows.md                 # MODIFIED — narrative view
+└── data-flows.view.md            # MODIFIED — diagram view
+
+docs/
+└── INDEX.md                      # MODIFIED — runbook-modified signal
 
 docs/runbooks/
 ├── security-baseline-ops.md      # MODIFIED — FR-007 warning + stale count fix
@@ -156,9 +166,12 @@ can it be registered with a check that can actually fail.
 
 | Requirement | Test |
 |---|---|
-| FR-001 / FR-003 | Capture writes an artifact byte-identical to the injected `crontab -l` output, reinstallable as-is. |
+| FR-001 / FR-003 | The artifact **body below the provenance header** is byte-identical to the injected `crontab -l` output, and the file as written is directly reinstallable via `crontab <file>` (cron ignores leading comments). The whole file is deliberately *not* byte-identical — it carries a provenance header. |
+| FR-002 | The installed timer's interval is strictly shorter than the backup interval, asserted against the unit's `OnCalendar`, so a capture always precedes any given backup run. Verified end-to-end in quickstart by confirming the captured artifact present in the newest snapshot post-dates the previous backup. |
 | FR-004 | Given an empty or error-exit `crontab -l`, the prior artifact is preserved unchanged and the run reports the anomaly. |
 | FR-005 | The freshness pointer is written on success and carries a failure signal on failure; explicit-error fields are set so the canary's `_explicit_error` path trips. |
+| FR-006 (health/result separation) | A drift-check run that **finds drift** (process exit 1) writes `exit_code: 0`, `status: success`, `has_drift: true` and is judged **healthy** by `run_probe`; only a runner error (exit 2) is unhealthy. This is asserted through the real `scripts.canary.probes.run_probe`, not a hand-rolled mimic. |
+| FR-004 (shrink) | A successful read more than 50% smaller than the existing artifact is refused, the prior artifact preserved, and the anomaly reported; first run with no artifact is not refused. |
 | NFR-003 | Two consecutive runs over unchanged input leave the artifact's content and mtime untouched while refreshing the pointer. |
 | Atomicity | A simulated write failure leaves no partial artifact and no partial pointer (tmp + `os.replace`). |
 | Inventory | The two new/changed entries pass `validate_architecture_data.py --strict` and `tests/canary/test_inventory_health_checks.py`. |
@@ -187,7 +200,7 @@ can it be registered with a check that can actually fail.
 - **Purpose**: Give the daily agent-drift check a durable freshness signal and register it so its stall or disappearance is reported.
 - **Relevant requirements**: FR-006, NFR-004
 - **Affected surfaces**: `scripts/openclaw/enforcement/drift_check.py`, `docs/design/architecture/data/service-inventory.json`
-- **Sequencing/depends-on**: IC-01 (ordering discipline only; no technical dependency on IC-02)
+- **Sequencing/depends-on**: IC-01 only. There is no technical dependency on IC-02, so the honest dependency graph is `IC-01 -> {IC-02, IC-03}` and IC-02/IC-03 may proceed in either order or in parallel. Stated explicitly rather than implying a strict chain the code does not enforce.
 - **Risks**: Must not alter the existing crontab entry (C-003, and the whole point of C-005). The pointer belongs under `/data/services/openclaw/state/enforcement/`, following the established per-component state-directory convention — not `/tmp`. `max_age_seconds` sized as the 24h cycle plus slack, mirroring `security-monitor`'s 108000.
 
 ## Branch contract (restated)

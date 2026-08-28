@@ -127,3 +127,36 @@ adversarial pass to contest on that axis. The post-plan review checkpoint is run
 separately against the whole artifact set; its contested findings and their
 dispositions (`accepted` / `changed` / `deferred_with_rationale`) are recorded
 in the "Post-plan review" section appended below.
+
+## Post-plan review (Codex, read-only, 2026-08-28)
+
+Dispatched via `codex-review-readonly.sh` — no profile, `--sandbox read-only`,
+no write access to `.git/`. Seven findings, **all accepted and folded in**; none
+deferred, none dropped. The review independently re-verified four of the plan's
+load-bearing claims (restic source set and the absent `--group-by`; the
+`rebaseline.py` `["true"]` degradation; the canary `/tmp` pin; the
+`expected_baselines` omission precedent) — those are recorded as confirmed, not
+merely asserted.
+
+| # | Severity | Finding | Disposition |
+|---|---|---|---|
+| 1 | HIGH | FR-002 ("capture ahead of the backup") had no verification anywhere in the test matrix. | **changed** — added an FR-002 row asserting the timer interval is strictly shorter than the backup interval, plus an end-to-end snapshot check in quickstart. |
+| 2 | HIGH | Writing `drift_check.py`'s process exit code into the freshness pointer would make a healthy run that *found drift* (exit 1) read as a component failure, because `probes.py:267-269` treats any non-zero `exit_code` as an explicit error. | **changed** — data-model now defines `exit_code` as runner-execution health only, moves the result to a separate `has_drift` field, and pins the three-row exit mapping. A test asserts drift-found is healthy through the real `run_probe`. |
+| 3 | MEDIUM | FR-004 guarded only empty/failed reads; a non-empty *truncated* read could still replace a good artifact. | **changed** — added a shrink guard (>50% smaller body is refused) with first-run carve-out and a `--force` escape, plus a test. |
+| 4 | MEDIUM | The SC-004 staleness check in quickstart was not executable — it said "point a dry-run probe" at a fixture, but `scripts.canary.run` exposes no such flag. | **changed** — replaced with concrete `run_probe` invocations covering fresh, stale, and errored pointers, and added the inverse drift-found-is-healthy check. |
+| 5 | MEDIUM | Architecture-doc scope was too narrow: `signal-to-doc-map.json` requires the narrative and view surfaces for service/systemd changes, and the data-flow surfaces for a new producer→storage→consumer flow. | **changed** — added `service-inventory.md`, `service-dependencies.view.md`, `data-flows.{json,md,view.md}`, and `docs/INDEX.md` to the project structure. This is the #492 precedent that motivated the map; the query had to be run as `match.change_class`, not a top-level key. |
+| 6 | MEDIUM | The plan's test row said the artifact is byte-identical to `crontab -l`, contradicting the data model's provenance header. | **changed** — reworded to "body below the header is byte-identical", plus direct reinstallability. |
+| 7 | LOW | Sequencing was presented as a strict IC-01→IC-02→IC-03 chain, but IC-03 has no technical dependency on IC-02. | **changed** — dependency graph stated honestly as `IC-01 -> {IC-02, IC-03}`. |
+
+### Confirmed during review, worth recording
+
+- `systemd-user-units` in `audited-surfaces.json` already covers
+  `scripts/office2/*.service` and `scripts/office2/*.timer`, so the new units do
+  carry the repo-file signal that R-07's no-`expected_baselines` conclusion
+  depends on. R-07 stands.
+- Incidental gap, **not** fixed here: the `deploy-pipeline` surface lists
+  `scripts/deploy/*.sh` but not `*.py`, while nearly every real entrypoint in
+  `scripts/deploy/` is `.py`. This mission is unaffected (its manifest under
+  `deploys/queued/*.yaml` supplies the signal), but the pattern set looks like an
+  oversight from when `*.sh` was added. Worth a separate issue rather than an
+  opportunistic edit to a file this mission is otherwise constrained not to touch.

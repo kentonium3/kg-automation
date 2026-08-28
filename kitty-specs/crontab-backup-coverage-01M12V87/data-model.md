@@ -27,6 +27,16 @@ found in a snapshot months later:
 
 - The artifact is only ever replaced with a *non-empty* successful read. An
   empty or failed `crontab -l` leaves the previous content untouched (FR-004).
+- **Shrink guard.** A successful but suspiciously truncated read is also refused:
+  if a new body is more than 50% smaller than the existing artifact's body, the
+  artifact is preserved and the run reports the anomaly exactly as the empty
+  case does. `crontab -l` reading a local spool file is unlikely to return a
+  partial success, but "unlikely" is not an invariant, and the cost of the guard
+  is one comparison against a failure that silently destroys the thing this
+  mission exists to protect. A genuine large deletion is recovered by rerunning
+  with `--force`, which is logged.
+- First run, with no existing artifact, is not a shrink and is never refused;
+  only the empty/failed check applies.
 - Replacement is atomic — write to a sibling temp file, then `os.replace`.
 - The body below the header is byte-identical to `crontab -l` output, so the
   file is directly reinstallable (FR-003).
@@ -78,22 +88,42 @@ health-check method.
 **Written by**: `scripts/openclaw/enforcement/drift_check.py`, on every run.
 **Consumed by**: the felix-canary freshness probe.
 
-Follows the same field contract as (2), minus the artifact fields:
+Follows the same field contract as (2), minus the artifact fields, **plus a
+strict separation between runner health and drift result**:
 
 ```json
 {
   "status": "success",
   "exit_code": 0,
-  "completed_at_utc": "2026-08-28T06:00:11Z"
+  "completed_at_utc": "2026-08-28T06:00:11Z",
+  "has_drift": true
 }
 ```
+
+**The exit-code mapping is the load-bearing part of this design.**
+`drift_check.py:304` is `sys.exit(1 if has_drift else 0)`, and the canary treats
+any non-zero `exit_code` in a pointer as an explicit failure that short-circuits
+ahead of freshness (`probes.py:267-269`). Writing the process exit code straight
+into the pointer would therefore make a perfectly healthy run that merely *found
+drift* page as a broken component. The pointer's `exit_code` means "did the
+runner execute correctly", never "was the result clean":
+
+| Process exit | Meaning | `status` | pointer `exit_code` | `has_drift` |
+|---|---|---|---|---|
+| `0` | ran, no drift (or remediated) | `success` | `0` | `false` |
+| `1` | ran, drift found (`report` mode) | `success` | `0` | `true` |
+| `2` | runner errored | `error` | `2` | `null` |
 
 **Invariants**
 
 - Emitted for both the `check` and `report` subcommands, so the pointer reflects
   "the scheduled job ran", not "drift was found". Whether drift *exists* is a
   separate signal and must not be conflated with whether the check is alive —
-  that conflation is what #891 fixed elsewhere.
+  that conflation is what #891 fixed elsewhere, and inverting it here would
+  manufacture false alarms instead of false silence.
+- `has_drift` is diagnostic only and is deliberately **not** a field the canary's
+  explicit-error scan looks at. Drift itself is reported by the drift-check's own
+  alerting path, not by its liveness pointer.
 - Pointer-write failure never aborts the run; a lost freshness signal is
   preferable to a crashed drift check, matching the established convention.
 

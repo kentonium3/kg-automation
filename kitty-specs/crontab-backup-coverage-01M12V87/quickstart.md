@@ -83,21 +83,74 @@ Both components should appear with a definite verdict — not `unknown`.
 
 ## Verify staleness is actually detected (SC-004)
 
-A health check that cannot fail is worse than none (#891). Prove this one fails:
+A health check that cannot fail is worse than none (#891). Prove this one fails,
+using the real probe rather than a hand-rolled mimic. This never touches the live
+pointer — it builds a fixture in a temp dir and points a copy of the health-check
+config at it.
 
 ```bash
-ssh office2-claude 'python3 - <<PY
-import json, pathlib, datetime
-p = pathlib.Path("/data/services/host-state/last-tick.json")
-d = json.loads(p.read_text())
-d["completed_at_utc"] = (datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(hours=9)).isoformat()
-pathlib.Path("/tmp/stale-tick.json").write_text(json.dumps(d))
-print("wrote /tmp/stale-tick.json")
+ssh office2-claude 'cd /home/claude/kg-automation && python3 - <<PY
+import json, tempfile, pathlib
+from datetime import datetime, timedelta, timezone
+from scripts.canary.probes import run_probe
+
+now = datetime.now(timezone.utc)
+tmp = pathlib.Path(tempfile.mkdtemp())
+ptr = tmp / "last-tick.json"
+
+def check(p):
+    return {"method": "state-file", "state_path": str(p), "max_age_seconds": 7200}
+
+def read_state(path):
+    return json.loads(pathlib.Path(path).read_text())
+
+for label, age_h in (("fresh", 0.5), ("stale", 9)):
+    ptr.write_text(json.dumps({
+        "status": "success", "exit_code": 0,
+        "completed_at_utc": (now - timedelta(hours=age_h)).isoformat(),
+    }))
+    r = run_probe(check(ptr), now, http_get=None, run_cmd=None, read_state=read_state)
+    print(f"{label:6} -> ok={r.ok} stale={r.stale} evaluable={r.evaluable}")
+
+# explicit-error path: a runner failure must be unhealthy regardless of freshness
+ptr.write_text(json.dumps({
+    "status": "error", "exit_code": 2,
+    "completed_at_utc": now.isoformat(),
+}))
+r = run_probe(check(ptr), now, http_get=None, run_cmd=None, read_state=read_state)
+print(f"errored -> ok={r.ok} evidence={r.evidence}")
 PY'
 ```
 
-Point a dry-run probe at the stale copy and confirm it reports `stale`, then
-discard it. Do **not** overwrite the real pointer.
+Expected: `fresh` reports not-stale, `stale` reports `stale=True`, and the
+errored pointer is not ok. If `stale` comes back false, the check cannot fail and
+the registration is worthless.
+
+### Verify drift-found is not mistaken for unhealthy
+
+The inverse of the above, and the specific trap this mission avoids: the drift
+check exits `1` when it *finds* drift, which is a successful run. Confirm the
+pointer records that as healthy.
+
+```bash
+ssh office2-claude 'cd /home/claude/kg-automation && python3 - <<PY
+import json, pathlib
+from datetime import datetime, timezone
+from scripts.canary.probes import run_probe
+now = datetime.now(timezone.utc)
+p = pathlib.Path("/data/services/openclaw/state/enforcement/last-tick.json")
+d = json.loads(p.read_text())
+print("pointer:", {k: d.get(k) for k in ("status", "exit_code", "has_drift")})
+r = run_probe(
+    {"method": "state-file", "state_path": str(p), "max_age_seconds": 108000},
+    now, http_get=None, run_cmd=None,
+    read_state=lambda path: json.loads(pathlib.Path(path).read_text()),
+)
+print("verdict:", r.ok, r.evidence)
+PY'
+```
+
+`has_drift: true` with `exit_code: 0` must still read healthy.
 
 ## Using it in the incident
 
