@@ -73,7 +73,7 @@
       "wp": "WP01"
     },
     "#903": {
-      "evidence_ref": "Resolved as detection plus a written decision, not automation: automating the install would require making a NOPASSWD sudo directory claude-writable, recreating #899. Comparator ships in WP03; the decision is documented in WP05.",
+      "evidence_ref": "Fixed as detection plus a written decision. WP03 ships an observe-only comparator (O_NOFOLLOW, fail-closed inconclusive); WP05 records that the install stays manual because automating it would make a NOPASSWD sudo directory claude-writable, recreating #899.",
       "fr": null,
       "nfr": null,
       "repo": null,
@@ -81,7 +81,7 @@
       "scope": null,
       "source_file": "spec.md",
       "title": "<fill at WP-implementation time>",
-      "verdict": "in-mission",
+      "verdict": "fixed",
       "wp": "WP03"
     },
     "#906": {
