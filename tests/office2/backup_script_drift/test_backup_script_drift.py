@@ -260,3 +260,25 @@ def test_clean_run_that_cannot_record_exits_nonzero(pair, tmp_path, monkeypatch)
     rc = bsd.main(["--repo-path", str(a), "--deployed-path", str(b),
                    "--state-path", str(tmp_path / "tick.json")])
     assert rc == 2, "an unrecordable clean run must not report success"
+
+
+def test_default_state_path_is_not_in_the_root_owned_state_dir():
+    """Regression guard for the first deploy's post-verification failure.
+
+    The pointer was originally defaulted to
+    /data/services/backup/state/script-drift-last-tick.json. That directory is
+    root:root while this component runs as claude, so the write silently failed
+    and the deploy failed post-verification, re-applying every tick.
+
+    The lesson generalises past this one path: it is not enough to check that a
+    state path is inside the backup source set — the process that writes it has
+    to be able to write it. /data/services/backup/ itself is claude-owned, so a
+    sibling directory works.
+    """
+    assert "/state/" not in str(bsd.DEFAULT_STATE_PATH), (
+        "the backup service's state/ directory is root-owned; this component "
+        "runs as claude and cannot write there"
+    )
+    assert str(bsd.DEFAULT_STATE_PATH).startswith("/data/services/"), (
+        "the pointer must stay inside the Restic source set"
+    )

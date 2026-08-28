@@ -50,6 +50,8 @@ _UNIT_NAMES = ("backup-script-drift.service", "backup-script-drift.timer")
 _HELPER = _SOURCE_DIR / "backup_script_drift.py"
 _SYSTEMD_USER_DIR = Path.home() / ".config" / "systemd" / "user"
 _TIMER_UNIT = "backup-script-drift.timer"
+#: claude-writable; /data/services/backup/state/ is root:root.
+_STATE_DIR = Path("/data/services/backup/drift")
 _EXPECTED_USER = "claude"
 _EXPECTED_HOME = Path("/home/claude")
 
@@ -175,6 +177,14 @@ def apply() -> int:
     # checks for it. Without this the deploy fails *after* enabling, leaving the
     # manifest queued and re-applying every tick with no alert (#891/#901).
     # Exit 0 (match) and 1 (drift) both mean it worked; 2 means it could not.
+    try:
+        _STATE_DIR.mkdir(parents=True, exist_ok=True)
+        _STATE_DIR.chmod(0o755)
+        _emit("state_dir_ready", path=str(_STATE_DIR))
+    except OSError as exc:
+        _emit("state_dir_failed", path=str(_STATE_DIR), error=str(exc))
+        return 1
+
     rc, out, err = _run(["/usr/bin/python3", str(_HELPER)])
     if rc not in (0, 1):
         _emit("seed_run_failed", rc=rc, stdout=out, stderr=err,

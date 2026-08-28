@@ -3393,7 +3393,7 @@
       ],
       "health_check": {
         "method": "state-file",
-        "state_path": "/data/services/backup/state/script-drift-last-tick.json",
+        "state_path": "/data/services/backup/drift/script-drift-last-tick.json",
         "max_age_seconds": 108000,
         "success_status_values": [
           "success"

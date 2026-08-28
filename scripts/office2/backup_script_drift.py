@@ -43,7 +43,12 @@ from pathlib import Path
 
 DEFAULT_REPO_PATH = Path("/home/claude/kg-automation/scripts/office2/restic-backup.sh")
 DEFAULT_DEPLOYED_PATH = Path("/data/services/backup/scripts/backup.sh")
-DEFAULT_STATE_PATH = Path("/data/services/backup/state/script-drift-last-tick.json")
+#: NOT under /data/services/backup/state/ -- that directory is root:root and this
+#: component runs as claude, so writes there fail. The parent
+#: /data/services/backup/ IS claude-owned, so a sibling directory works and stays
+#: inside the Restic source set. Learned the hard way: the first deploy failed
+#: post-verification because the pointer could not be created at all.
+DEFAULT_STATE_PATH = Path("/data/services/backup/drift/script-drift-last-tick.json")
 
 MATCH = "match"
 DRIFT = "drift"

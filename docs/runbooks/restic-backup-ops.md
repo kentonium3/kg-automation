@@ -191,7 +191,7 @@ comparison daily and reports divergence without being asked.
 ### Reading the drift signal
 
 ```bash
-ssh office2-claude 'cat /data/services/backup/state/script-drift-last-tick.json'
+ssh office2-claude 'cat /data/services/backup/drift/script-drift-last-tick.json'
 ```
 
 | `verdict` | meaning |

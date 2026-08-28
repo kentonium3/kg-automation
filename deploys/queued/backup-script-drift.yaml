@@ -11,7 +11,7 @@ verification:
   post:
   - systemctl --user is-enabled backup-script-drift.timer
   - test -n "$(systemctl --user show backup-script-drift.timer -p NextElapseUSecRealtime --value)"
-  - test -f /data/services/backup/state/script-drift-last-tick.json
+  - test -f /data/services/backup/drift/script-drift-last-tick.json
 created_at: '2026-08-28T11:30:00Z'
 created_by: backup-integrity-observability-01M1414D
 notes: |
@@ -19,7 +19,7 @@ notes: |
   office2 (kentonium3/kg-automation#903, WP03). Compares the repo copy
   scripts/office2/restic-backup.sh against the deployed
   /data/services/backup/scripts/backup.sh and writes
-  /data/services/backup/state/script-drift-last-tick.json.
+  /data/services/backup/drift/script-drift-last-tick.json.
 
   WHY DETECTION AND NOT DEPLOYMENT. The obvious fix for #903 -- let this pipeline
   install backup.sh -- is REJECTED. The applier runs as claude, so installing
