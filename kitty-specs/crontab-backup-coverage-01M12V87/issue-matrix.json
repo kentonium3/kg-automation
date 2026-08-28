@@ -1,5 +1,17 @@
 {
   "rows": {
+    "#818": {
+      "evidence_ref": "Commit 5ecd7d40. #818 raised expected_baseline_count 14->15 but left security-baseline-ops.md documenting 14; WP01 T004 corrected the stale prose. Live host and registry both confirm 15.",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": null,
+      "title": null,
+      "verdict": "fixed",
+      "wp": "WP01"
+    },
     "#890": {
       "evidence_ref": "Out of scope by spec.md 'Out of Scope': placing the 5 legacy cron jobs under repo control / building a reconciler is #890's subject. This mission deliberately adds a systemd user timer instead of a 6th cron entry so it does not enlarge #890's surface.",
       "fr": null,
