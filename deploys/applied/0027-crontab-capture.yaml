@@ -12,39 +12,69 @@ verification:
   post:
   - systemctl --user is-enabled crontab-capture.timer
   - test -d /data/services/host-state/crontabs
-  - /usr/bin/python3 /home/claude/kg-automation/scripts/office2/crontab_capture.py --dry-run
+  - /usr/bin/python3 /home/claude/kg-automation/scripts/office2/crontab_capture.py
+    --dry-run
 created_at: '2026-08-28T00:37:21Z'
 created_by: crontab-backup-coverage-01M12V87
-notes: |
-  Installs the hourly claude-crontab capture as a systemd user timer on office2
+notes: 'Installs the hourly claude-crontab capture as a systemd user timer on office2
+
   (kentonium3/kg-automation#895, WP03). Runs scripts/office2/crontab_capture.py,
+
   which writes the crontab to /data/services/host-state/crontabs/ plus a
+
   freshness pointer at /data/services/host-state/last-tick.json.
 
+
   WHY THIS SHAPE. On 2026-08-27 the claude crontab was destroyed with
-  /home/claude and the only surviving copy was security-monitor's crontabs.txt
+
+  /home/claude and the only surviving copy was security-monitor''s crontabs.txt
+
   baseline -- a drift-detection artifact the rebaseline procedure deletes.
+
   /var/spool/cron is not in the Restic source set.
 
+
   NO NEW RESTIC SOURCE PATH. The capture lands under /data/services/, already a
+
   source path. restic forget in scripts/office2/restic-backup.sh runs with no
+
   --group-by, so it defaults to host,paths; a fifth source path would split the
+
   snapshot path-group and permanently strand the existing snapshots from
-  pruning. The backup's source set, schedule, retention, and script are
+
+  pruning. The backup''s source set, schedule, retention, and script are
+
   untouched -- restic-backup.sh is root-owned and hand-deployed (#903), so
+
   editing it would also reintroduce a manual sudo step.
 
+
   TIMER, NOT A SIXTH CRON ENTRY. Linger=yes and 15 user timers already run for
+
   claude; the crontab holds only the five legacy jobs #890 exists to retire.
+
   Persistent=true catches up a run missed while the host was down. This deploy
+
   therefore performs NO crontab edit and cannot drift crontabs.txt while that
+
   baseline is still the only copy of the crontab.
 
+
   REBASELINE: enabling the timer drifts systemd-user-units.txt and
+
   systemd-user-unit-contents.txt, but the unit files are tracked in the repo, so
+
   the observe-range auto-rebaseline covers them. expected_baselines is
+
   deliberately NOT declared -- that field is for runtime-CLI mutations with no
+
   repo-file signal (e.g. openclaw cron rm). Precedent: applied/0020.
 
+
   Tier 3 (installs a user timer + a stdlib helper; no backup-config, Tier 0/1/2
+
   action). The restic-recency pre-check is voluntary, not tier-mandated.
+
+  '
+apply_mode: manifest
+applied_at: '2026-08-28T04:05:32Z'
