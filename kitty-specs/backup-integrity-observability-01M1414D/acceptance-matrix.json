@@ -2,7 +2,7 @@
   "mission_slug": "backup-integrity-observability-01M1414D",
   "mission_number": "",
   "mission_type": "software-dev",
-  "overall_verdict": "pass",
+  "overall_verdict": "pass_pending_consolidation",
   "criteria": [
     {
       "criterion_id": "FR-001",
@@ -111,7 +111,11 @@
       "description": "No deploy artifact may reference /data/services/backup/scripts/ \u2014 the mission must not automate the backup-script install (spec C-001, C-002). A claude-writable directory on a NOPASSWD sudo path is equivalent to NOPASSWD: ALL, which was #899.",
       "verification_method": "grep_absence",
       "verification_command": "data/services/backup/scripts",
+      "result": "deferred_to_consolidation",
+      "evidence": "Scoped subject 'deploys/queued/backup-script-drift.yaml' is absent on the primary surface pre-consolidation; deferred to post-consolidation verification.",
       "scope": "deploys/queued/backup-script-drift.yaml",
+      "deferred_reason": "Scoped path(s) 'deploys/queued/backup-script-drift.yaml' do not exist on the primary surface at ref 'feat/backup-integrity-observability'; judging here would report a false still_present (FR-003). Deferred to the post-consolidation verification op.",
+      "deferred_to_phase": "POST_CONSOLIDATION",
       "notes": "Scoped to the manifest, which is the artifact that would carry an install step. Defers pre-consolidation because the file lands with this mission; runs for real once merged."
     },
     {
@@ -119,7 +123,12 @@
       "description": "The prune good-set must never be checked against the backup's {0,3} set (spec C-006). restic forget exiting 3 means snapshots could not be removed, so accepting it would pass a prune that never applied retention \u2014 the exact #902 failure.",
       "verification_method": "grep_absence",
       "verification_command": "prune_exit_code.*_RESTIC_OK",
+      "result": "confirmed_absent",
+      "evidence": "grep found zero matches",
       "scope": "scripts/canary/probes.py",
+      "verified_ref": "feat/backup-integrity-observability",
+      "verified_surface_kind": "primary",
+      "provenance_origin": "recorded",
       "notes": "The violation signature is prune_exit_code being tested against _RESTIC_OK_EXIT_CODES. Checkable on the primary surface both before and after the merge. The stronger form \u2014 pinning _PRUNE_OK_EXIT_CODES == {0} \u2014 is enforced by tests/canary/test_inventory_health_checks.py, which runs in CI."
     },
     {
@@ -127,7 +136,12 @@
       "description": "The superseded hand-written header strip must not survive as an active procedure in any runbook (spec C-004, #906).",
       "verification_method": "grep_absence",
       "verification_command": "captured-.*crontab_capture.py > /tmp",
+      "result": "confirmed_absent",
+      "evidence": "grep found zero matches",
       "scope": "docs/runbooks",
+      "verified_ref": "feat/backup-integrity-observability",
+      "verified_surface_kind": "primary",
+      "provenance_origin": "recorded",
       "notes": "Targets the old recover-by-grep FORM rather than the pattern text itself, because crontab-recovery.md deliberately quotes that text inside a warning so an operator who finds it elsewhere recognises it as wrong. Enforcement that the single-implementation property holds lives in tests: test_only_one_place_computes_where_the_header_ends and test_emit_body_fails_if_the_header_format_drifts."
     }
   ]
