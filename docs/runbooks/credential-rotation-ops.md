@@ -523,7 +523,7 @@ ssh office2-claude 'journalctl --user -u openclaw-gateway.service --since "5 min
 inside the tree it protects (`/home/claude` is a backup source, so deleting that
 home deleted the only on-disk copy of the key to every snapshot).
 **Risk tier**: 2 (application/state — encrypts the backup repository).
-**Expected duration**: 15 minutes (plus a successful test-restore).
+**Expected duration**: 20 minutes, including the test-restore in step 7.
 
 ### ⚠️ Run every step as the operator, not as `claude`
 
@@ -582,17 +582,29 @@ All steps run from `ssh office2-kgale`.
    and type the new passphrase:
 
    ```bash
-   sudo restic -r /mnt/backups/restic-repo snapshots --latest 1
+   sudo env -u RESTIC_PASSWORD -u RESTIC_PASSWORD_FILE -u RESTIC_PASSWORD_COMMAND \
+     restic -r /mnt/backups/restic-repo snapshots --latest 1
    ```
 
-   With no `--password-file` and no `RESTIC_PASSWORD`, restic prompts. This must
-   succeed. If it does not, stop: the new key was not added correctly, and the
+   The `env -u` clears every password source restic consults, so it *must* prompt
+   — otherwise it could silently authenticate with an inherited value and this
+   step would prove nothing. Type the new passphrase. This must succeed. If it does not, stop: the new key was not added correctly, and the
    old one is still the only way in.
 
 4. **Write the new passphrase to the password file**:
 
+   Confirm the file already exists with the expected mode, so `tee` cannot
+   create it under a permissive umask:
+
    ```bash
-   read -rs NEWPASS
+   sudo stat -c '%a %U:%G %n' /etc/restic/password
+   ```
+
+   Expect `600 root:root /etc/restic/password`. Then, with tracing off so the
+   expansion cannot be echoed:
+
+   ```bash
+   set +x; read -rsp 'New restic passphrase (input hidden): ' NEWPASS; echo
    ```
 
    ```bash
@@ -604,14 +616,14 @@ All steps run from `ssh office2-kgale`.
    ```
 
    ```bash
-   sudo chmod 600 /etc/restic/password && sudo chown root:root /etc/restic/password
+   sudo chown root:root /etc/restic/password && sudo chmod 600 /etc/restic/password
    ```
 
    `printf '%s'` without a trailing newline matches how the file was written by
    #888; restic tolerates a trailing newline but consistency avoids a needless
    diff in the security baseline.
 
-5. **Verify the RUNNING configuration — this gates step 6.**
+5. **Verify the RUNNING configuration — this gates everything after it.**
 
    ```bash
    sudo restic -r /mnt/backups/restic-repo --password-file /etc/restic/password snapshots --latest 1
@@ -631,19 +643,54 @@ All steps run from `ssh office2-kgale`.
 
 6. **Run a real backup before removing anything:**
 
+   Record what the pointer says *before* the run, so you can prove this
+   invocation advanced it:
+
    ```bash
-   sudo /data/services/backup/scripts/backup.sh 2>&1 | tail -5
+   sudo jq -r .snapshot_timestamp_utc /data/services/backup/state/last-backup.json
+   ```
+
+   Run the backup, preserving its exit status rather than the pipeline's:
+
+   ```bash
+   set -o pipefail; sudo /data/services/backup/scripts/backup.sh 2>&1 | tail -5; echo "exit=${PIPESTATUS[0]}"
    ```
 
    ```bash
    sudo jq '{restic_exit_code, prune_exit_code, snapshot_timestamp_utc}' /data/services/backup/state/last-backup.json
    ```
 
-   Expect `restic_exit_code: 0` and `prune_exit_code: 0`. A non-zero
-   `prune_exit_code` means retention did not run (#902) and must be resolved
-   before the old key is removed.
+   Require **all three**: `exit=0`, `restic_exit_code: 0` and
+   `prune_exit_code: 0`, and a `snapshot_timestamp_utc` **later than the one you
+   recorded above**. Without the last check a failed or interrupted run leaves
+   the previous successful pointer in place and the `jq` output looks fine — the
+   same read-a-stale-value trap that made #902 invisible for ten hours.
 
-7. **Only now, remove the old key:**
+   A non-zero `prune_exit_code` means retention did not run (#902). Resolve it
+   before removing the old key, so a retention problem is not discovered while
+   the repository has only one key.
+
+7. **Prove a restore, not just a listing.** Listing snapshots decrypts
+   repository *metadata*; it does not prove data is retrievable. For a procedure
+   whose failure mode is permanent data loss, do the stronger check:
+
+   ```bash
+   sudo restic -r /mnt/backups/restic-repo --password-file /etc/restic/password \
+     restore latest --target /root/rotation-restore-check --include /data/services/backup/state
+   ```
+
+   ```bash
+   sudo cat /root/rotation-restore-check/data/services/backup/state/last-backup.json
+   ```
+
+   The restored file must be readable and match what you saw above. Then clean
+   up:
+
+   ```bash
+   sudo rm -rf /root/rotation-restore-check
+   ```
+
+8. **Only now, remove the old key:**
 
    ```bash
    sudo restic -r /mnt/backups/restic-repo --password-file /etc/restic/password key list
@@ -679,7 +726,8 @@ Exactly one key should remain, and it should be the new one.
 - [ ] New passphrase verified by an interactive `restic snapshots` (step 3)
 - [ ] `/etc/restic/password` written via `read -rs` + `sudo tee`, mode 600, root-owned
 - [ ] **Running configuration verified** with `--password-file /etc/restic/password` (step 5)
-- [ ] A full `backup.sh` run succeeded with `restic_exit_code: 0` and `prune_exit_code: 0`
+- [ ] A full `backup.sh` run succeeded with exit 0, `restic_exit_code: 0`, `prune_exit_code: 0`, **and an advanced `snapshot_timestamp_utc`**
+- [ ] A restore from `latest` succeeded and the restored file was readable (step 7)
 - [ ] Old key removed, and `key list` shows exactly one key
 - [ ] Manifest updated per [final section](<#manifest-update-obligations>)
 
@@ -700,7 +748,7 @@ Exactly one key should remain, and it should be the new one.
   think. Most likely the paste did not register before EOF and `tee` truncated it
   (see the warning above), or a stray newline was introduced. The old key is
   still valid: rewrite the file with `read -rs` and repeat step 5. **Do not run
-  step 7.**
+  step 8.**
 - **Step 6 reports a non-zero `prune_exit_code`** → retention did not run. That
   is not caused by the rotation, but resolve it (#902) before removing the old
   key, so a retention problem is not discovered while the repository has only one
