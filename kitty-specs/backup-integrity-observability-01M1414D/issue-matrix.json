@@ -1,7 +1,7 @@
 {
   "rows": {
     "#889": {
-      "evidence_ref": "<link or commit>",
+      "evidence_ref": "Cited as evidence only: #889 (af37583a) changed scripts/office2/restic-backup.sh with no deploy manifest and the live file was hand-installed with sudo \u2014 which is the divergence-without-detection that #903 exists to make visible.",
       "fr": null,
       "nfr": null,
       "repo": null,
@@ -9,7 +9,7 @@
       "scope": null,
       "source_file": "spec.md",
       "title": "<fill at WP-implementation time>",
-      "verdict": "unknown",
+      "verdict": "verified-already-fixed",
       "wp": null
     },
     "#895": {
