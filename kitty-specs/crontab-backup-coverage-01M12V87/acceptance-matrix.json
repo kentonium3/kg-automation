@@ -77,40 +77,54 @@
   ],
   "negative_invariants": [
     {
-      "description": "docs/design/architecture/data/audited-surfaces.json rebaseline_command MUST remain byte-unchanged (spec C-001).",
-      "verification_method": "git diff over the mission range on that path returns empty, and no line matching the rebaseline command string appears in the diff. Checked at WP01 review. Rationale: rebaseline.py:585-586 asserts the first token is 'rm' and otherwise falls back to [\"true\"], which produces no output and makes every deferred-confirm audit inconclusive \u2014 so issue #895's own suggestion to rewrite it as an archive is unsafe as written (research R-02).",
-      "pass_fail": "pass",
-      "verified_by": "WP01 reviewer",
-      "verified_at": "2026-08-28T02:10:00Z",
-      "notes": "FR-007 is therefore satisfied in prose copies only.",
-      "invariant_id": "NEG-001"
+      "invariant_id": "NEG-001",
+      "description": "The rebaseline_command in audited-surfaces.json MUST still be the literal `rm baselines/* && sg docker -c audit.sh` form (spec C-001). Rewriting it \u2014 which issue #895 itself suggests, as an archive-instead-of-delete \u2014 would make rebaseline.py:585-586 fail its `rm_tokens[0] == 'rm'` assertion and fall back to [\"true\"], silently rendering every deferred-confirm rebaseline audit inconclusive.",
+      "verification_method": "custom_command",
+      "verification_command": "grep -q \"rm /data/services/security-monitor/baselines/\\\\* && sg docker\" docs/design/architecture/data/audited-surfaces.json",
+      "result": "confirmed_absent",
+      "evidence": "Command exited 0: ",
+      "verified_ref": "feat/crontab-backup-coverage",
+      "verified_surface_kind": "primary",
+      "provenance_origin": "recorded",
+      "notes": "FR-007 is therefore satisfied in prose copies only. Exit 0 = the parsed command is intact."
     },
     {
-      "description": "No Restic source path MUST be added; the set stays /data/services, /data/transcripts, /home/claude, /home/kgale (spec C-002, NFR-001).",
-      "verification_method": "scripts/office2/restic-backup.sh is unmodified by this mission and the capture writes under /data/services, an existing source path. Rationale: restic forget runs with no --group-by and defaults to host,paths, so a fifth path would put future snapshots in a different path-group from the existing ones, which would then match no retention policy and never be pruned again. A live single-path-group assertion is in quickstart.md.",
-      "pass_fail": "pass",
-      "verified_by": "WP03 reviewer",
-      "verified_at": "2026-08-28T02:10:00Z",
-      "notes": "This is why the issue's literal option 1 was rejected.",
-      "invariant_id": "NEG-002"
+      "invariant_id": "NEG-002",
+      "description": "No Restic source path MUST be added; /var/spool/cron in particular must NOT appear in the backup script (spec C-002, NFR-001). restic forget runs with no --group-by and defaults to host,paths, so a fifth source path would put every future snapshot in a different path-group from the existing ones, which would then match no retention policy and never be pruned again \u2014 silent and permanent.",
+      "verification_method": "grep_absence",
+      "verification_command": "/var/spool/cron",
+      "result": "confirmed_absent",
+      "evidence": "grep found zero matches",
+      "scope": "scripts/office2/restic-backup.sh",
+      "verified_ref": "feat/crontab-backup-coverage",
+      "verified_surface_kind": "primary",
+      "provenance_origin": "recorded",
+      "notes": "Scoped to the backup script: the path is named in the mission's own planning prose, which is discussion, not configuration."
     },
     {
-      "description": "No component added or registered by this mission MUST probe a path under /tmp (spec NFR-004).",
-      "verification_method": "tests/canary/test_inventory_health_checks.py (9 passed) pins the set of components probing /tmp \u2014 only obsidian-sync-heartbeat is grandfathered, owned by #894 \u2014 and passes with both new entries present. test_pointer_path_is_not_under_tmp asserts the drift-check pointer path directly.",
-      "pass_fail": "pass",
-      "verified_by": "WP05 reviewer",
-      "verified_at": "2026-08-28T02:10:00Z",
-      "notes": "/tmp is emptied at boot, so a probe there produces spurious staleness.",
-      "invariant_id": "NEG-003"
+      "invariant_id": "NEG-003",
+      "description": "No component added or registered by this mission MUST probe a path under /tmp (spec NFR-004). /tmp is emptied at boot, so a probe there produces spurious staleness; tests/canary/test_inventory_health_checks.py pins the permitted set, and only obsidian-sync-heartbeat is grandfathered (owned by #894).",
+      "verification_method": "custom_command",
+      "verification_command": "python3 -m pytest tests/canary/test_inventory_health_checks.py -q",
+      "result": "confirmed_absent",
+      "evidence": "Command exited 0: .........                                                                [100%]\n9 passed in 0.07s",
+      "verified_ref": "feat/crontab-backup-coverage",
+      "verified_surface_kind": "primary",
+      "provenance_origin": "recorded",
+      "notes": "The guard is a pinned-set test, so it fails if either new entry introduces a /tmp probe."
     },
     {
-      "description": "The claude crontab MUST NOT be edited by this mission (spec C-005).",
-      "verification_method": "The mission adds scripts/office2/crontab-capture.{service,timer} \u2014 a systemd user timer \u2014 and touches no crontab; the drift_check registration reuses its existing cron line unchanged. Rationale: a crontab edit drifts crontabs.txt and invites the rebaseline whose rm destroys it, during exactly the window in which that baseline is still the only copy of the crontab. Choosing a timer also avoids enlarging the surface #890 exists to retire.",
-      "pass_fail": "pass",
-      "verified_by": "WP03 reviewer",
-      "verified_at": "2026-08-28T02:10:00Z",
-      "notes": "This revised the pre-spec C->A->B sequencing rationale; recorded in plan.md.",
-      "invariant_id": "NEG-004"
+      "invariant_id": "NEG-004",
+      "description": "This mission MUST NOT write to any crontab (spec C-005). A crontab edit drifts crontabs.txt and invites the rebaseline whose rm destroys it \u2014 during exactly the window in which that baseline is still the only copy of the crontab. Choosing a systemd user timer over a sixth cron entry avoids this and also avoids enlarging the surface #890 exists to retire.",
+      "verification_method": "grep_absence",
+      "verification_command": "crontab -e",
+      "result": "confirmed_absent",
+      "evidence": "grep found zero matches",
+      "scope": "scripts/deploy scripts/office2",
+      "verified_ref": "feat/crontab-backup-coverage",
+      "verified_surface_kind": "primary",
+      "provenance_origin": "recorded",
+      "notes": "Reading via `crontab -l` is the capture's whole purpose and is permitted; only write forms are forbidden in the deploy surface."
     }
   ]
 }
