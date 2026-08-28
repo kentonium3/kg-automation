@@ -13,7 +13,7 @@
       "wp": null
     },
     "#895": {
-      "evidence_ref": "<link or commit>",
+      "evidence_ref": "Mission issue. WP01 (5ecd7d40) closes FR-007; WP02-WP05 carry FR-001..FR-006.",
       "fr": null,
       "nfr": null,
       "repo": null,
@@ -21,8 +21,8 @@
       "scope": null,
       "source_file": "spec.md",
       "title": "<fill at WP-implementation time>",
-      "verdict": "unknown",
-      "wp": null
+      "verdict": "in-mission",
+      "wp": "WP01"
     },
     "#903": {
       "evidence_ref": "<link or commit>",
