@@ -1,19 +1,19 @@
 {
-  "event_count": 29,
-  "last_event_id": "01M147Q1BGCXF81T41CS4KXKE9",
-  "materialized_at": "2026-08-28T13:07:29.776824+00:00",
+  "event_count": 30,
+  "last_event_id": "01M147QJ7MCF054GWRA32QB6DH",
+  "materialized_at": "2026-08-28T13:07:47.060598+00:00",
   "mission_number": "",
   "mission_slug": "backup-integrity-observability-01M1414D",
   "mission_type": "software-dev",
   "summary": {
-    "approved": 4,
+    "approved": 5,
     "blocked": 0,
     "canceled": 0,
     "claimed": 0,
     "done": 0,
     "for_review": 0,
     "in_progress": 0,
-    "in_review": 1,
+    "in_review": 0,
     "planned": 0
   },
   "work_packages": {
@@ -138,19 +138,24 @@
       }
     },
     "WP05": {
-      "actor": "claude",
+      "actor": "user",
       "agent": "claude",
       "agent_profile": "__resolved_profile_absent__",
       "agent_profile_version": "__resolved_profile_version_absent__",
       "force_count": 0,
-      "lane": "in_review",
-      "last_event_id": "01M147Q1BGCXF81T41CS4KXKE9",
-      "last_transition_at": "2026-08-28T13:07:29.776824+00:00",
+      "lane": "approved",
+      "last_event_id": "01M147QJ7MCF054GWRA32QB6DH",
+      "last_transition_at": "2026-08-28T13:07:47.060598+00:00",
       "model": "__resolved_model_absent__",
       "notes": [
         "Ready for review"
       ],
       "provider": "__resolved_provider_absent__",
+      "review_result": {
+        "reference": "Reviewed against the real probe rather than by reading JSON. All five properties of the new backup-script-drift check verified: match healthy; drift, inconclusive, AND an unrecognised status word all report ok=False; aged past bound reports stale. The unrecognised-word case is success_status_values doing its job — without the allow-list it would have passed as healthy (#891). Restic expected prose corrected to match WP02's code and now bound by a test (analysis finding I1), which is an out-of-map edit to tests/canary/ recorded in the commit. The prune-gating asymmetry is documented in both directions: component-health jq check tests prune, governance Tier-2 pre-flight deliberately does not and now says why. validate_docs OK; validate_architecture_data --strict OK; canary data guard 10 passed; make test 6280 / 0 failed.",
+        "reviewer": "Kent Gale",
+        "verdict": "approved"
+      },
       "role": "reviewer",
       "shell_pid": 15958,
       "shell_pid_created_at": "1787922441.545769",
