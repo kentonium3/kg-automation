@@ -116,7 +116,8 @@
       "last_transition_at": "2026-08-28T03:28:12.766866+00:00",
       "model": "__resolved_model_absent__",
       "notes": [
-        "Ready for review"
+        "Ready for review",
+        "Codex read-only review: 1 MEDIUM + 1 LOW, both accepted and fixed in 9cf0953a before approval. MEDIUM: pointer was written only in the normal exit block, so an early failure (load_json sys.exit, decode error, detection/remediation exception) aborted with no pointer at all — main() now records status=error/exit_code=2 on any escape, guarded by a written-flag. LOW: tests did not drive main(), so a regression copying the process exit code into the pointer would not have been caught; added an end-to-end test asserting report-mode drift still exits 1 while the pointer reads success/0/has_drift=true and is judged healthy by the real run_probe. Codex verified correct: the exit mapping across all three cases, no collision with the canary explicit-error keys, completed_at_utc as the right timestamp key, atomicity/cleanup, and that --last-tick-path does not disturb the existing crontab invocation. make test 6187 passed / 0 failed."
       ],
       "provider": "__resolved_provider_absent__",
       "review_result": {
