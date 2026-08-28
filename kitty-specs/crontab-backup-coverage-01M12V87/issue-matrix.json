@@ -108,6 +108,18 @@
       "verdict": "verified-already-fixed",
       "wp": null
     },
+    "#901": {
+      "evidence_ref": "Follow-up: #901. Underlying defect (entrypoint side effects applied before the applied-record is validated) is why WP03 must validate its manifest locally; not fixed here.",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": null,
+      "title": null,
+      "verdict": "deferred-with-followup",
+      "wp": null
+    },
     "#903": {
       "evidence_ref": "Follow-up: #903. Filed during this mission's planning and explicitly out of scope \u2014 restic-backup.sh is repo-tracked but hand-deployed, so repo/host divergence is unmonitored. Design avoids editing that file (C-004) to sidestep it.",
       "fr": null,
