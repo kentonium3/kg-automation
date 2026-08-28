@@ -12,6 +12,18 @@
       "verdict": "verified-already-fixed",
       "wp": null
     },
+    "#557": {
+      "evidence_ref": "Cited as the governing mechanism. The rebaseline obligation is live; this mission complies by relying on the repo-file signal from scripts/office2/*.timer, already matched by the systemd-user-units audited surface.",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": null,
+      "title": null,
+      "verdict": "verified-already-fixed",
+      "wp": null
+    },
     "#818": {
       "evidence_ref": "Commit 5ecd7d40. #818 raised expected_baseline_count 14->15 but left security-baseline-ops.md documenting 14; WP01 T004 corrected the stale prose. Live host and registry both confirm 15.",
       "fr": null,
