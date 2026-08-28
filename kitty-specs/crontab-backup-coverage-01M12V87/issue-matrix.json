@@ -1,5 +1,17 @@
 {
   "rows": {
+    "#492": {
+      "evidence_ref": "Cited as precedent only. #492 motivated formalizing signal-to-doc-map.json; this mission consumed that map to scope its architecture-doc targets (see plan.md Project Structure), which is the map working as intended.",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": null,
+      "title": null,
+      "verdict": "verified-already-fixed",
+      "wp": null
+    },
     "#818": {
       "evidence_ref": "Commit 5ecd7d40. #818 raised expected_baseline_count 14->15 but left security-baseline-ops.md documenting 14; WP01 T004 corrected the stale prose. Live host and registry both confirm 15.",
       "fr": null,
