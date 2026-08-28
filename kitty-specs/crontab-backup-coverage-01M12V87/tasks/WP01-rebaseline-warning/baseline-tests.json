@@ -1,0 +1,19 @@
+{
+  "wp_id": "WP01",
+  "captured_at": "2026-08-28T02:37:47Z",
+  "base_branch": "feat/crontab-backup-coverage",
+  "base_commit": "3b30c2463aa0a1373275aea517239d34349bed62",
+  "test_runner": "pytest",
+  "total": 1,
+  "passed": 0,
+  "failed": 1,
+  "skipped": 0,
+  "failures": [
+    {
+      "test": "<gate-coverage-junit>",
+      "error": "no JUnit XML artifact produced by the scoped run",
+      "file": "unknown"
+    }
+  ],
+  "source_identity": "GateCoverageScopeSource/junit_xml"
+}
