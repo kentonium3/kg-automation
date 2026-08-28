@@ -140,10 +140,15 @@
     "WP05": {
       "actor": "claude",
       "agent": "claude",
+      "agent_profile": "__resolved_profile_absent__",
+      "agent_profile_version": "__resolved_profile_version_absent__",
       "force_count": 0,
       "lane": "in_progress",
       "last_event_id": "01M146Y5KWAKFPZCGJCB6M45Y8",
       "last_transition_at": "2026-08-28T12:53:54.937888+00:00",
+      "model": "__resolved_model_absent__",
+      "provider": "__resolved_provider_absent__",
+      "role": "implementer",
       "shell_pid": 98089,
       "shell_pid_created_at": "1787921591.486681"
     }
