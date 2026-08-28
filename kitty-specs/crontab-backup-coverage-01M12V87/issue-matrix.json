@@ -25,7 +25,7 @@
       "wp": "WP01"
     },
     "#903": {
-      "evidence_ref": "<link or commit>",
+      "evidence_ref": "Filed during this mission's planning and explicitly out of scope: restic-backup.sh is repo-tracked but hand-deployed, so repo/host divergence is unmonitored. Design avoids editing that file (C-004) precisely to sidestep it.",
       "fr": null,
       "nfr": null,
       "repo": null,
@@ -33,7 +33,7 @@
       "scope": null,
       "source_file": "spec.md",
       "title": "<fill at WP-implementation time>",
-      "verdict": "unknown",
+      "verdict": "deferred-with-followup",
       "wp": null
     }
   },
