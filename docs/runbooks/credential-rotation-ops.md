@@ -518,91 +518,196 @@ ssh office2-claude 'journalctl --user -u openclaw-gateway.service --since "5 min
 
 **Host**: office2.
 **Consumers** (1): `backup.sh`.
-**Storage** (1): `/home/claude/.config/restic/password`.
+**Storage** (1): `/etc/restic/password` — root-owned, mode 600. Moved out of
+`/home/claude/.config/restic/password` by #888, because the key previously lived
+inside the tree it protects (`/home/claude` is a backup source, so deleting that
+home deleted the only on-disk copy of the key to every snapshot).
 **Risk tier**: 2 (application/state — encrypts the backup repository).
-**Expected duration**: 10 minutes (plus a successful test-restore).
+**Expected duration**: 15 minutes (plus a successful test-restore).
 
-**WARNING**: Rotating `restic-password` requires
-`restic key add` / `restic key remove` from the existing password. **Do not
-overwrite the password file** without first proving the new password works
-against the repository. If the file is overwritten with an incorrect
-password and the old password is lost, every snapshot in the repository
-becomes unrecoverable.
+### ⚠️ Run every step as the operator, not as `claude`
+
+This whole procedure is privileged. Two independent reasons, both verified:
+
+- `/etc/restic/password` is `root:root 0600`. The `claude` account cannot read
+  it, so it cannot supply the current password to any restic command.
+- **The repository itself has mixed ownership.** `backup.sh` runs as root via
+  `sudo`, so the snapshots and index files it writes are `root:root 0400` — 292
+  of them at last count. `restic` running as `claude` fails on them regardless of
+  password.
+
+An earlier version of this runbook used `ssh office2-claude` throughout. It could
+not have worked.
+
+### ⚠️ Never put the passphrase on a command line
+
+`echo`, `printf '%s' "<paste>"`, `export`, and here-strings all record the value
+into `~/.bash_history`. Use `read -rs`, or let `restic` prompt.
+
+Two gotchas learned during the 2026-07-22 Anthropic rotation:
+
+- `sudo install -m600 /dev/stdin FILE` **fails** — `install` re-opens `/dev/stdin`
+  as the switched user.
+- A bare interactive `sudo tee FILE` (paste, then Ctrl-D) **truncates on open**.
+  If the paste does not register before EOF it silently zeroes the file. For this
+  file that is unrecoverable, so `read -rs` first is not optional.
+
+### WARNING
+
+Rotating `restic-password` requires `restic key add` / `restic key remove` using
+the existing password. **Do not overwrite the password file** without first
+proving the new password works against the repository. If the file is overwritten
+with an incorrect password and the old password is lost, every snapshot becomes
+permanently unrecoverable — restic derives its master key from this passphrase
+and has no backdoor.
 
 ### Steps
 
-1. **Generate new passphrase** (in 1Password or via `openssl rand -base64 32`).
+All steps run from `ssh office2-kgale`.
 
-2. **Add the new key to the Restic repository** (keeps the old key active):
+1. **Generate the new passphrase** (1Password, or `openssl rand -base64 32`) and
+   record it in 1Password **before** touching the repository.
 
-   ```bash
-   ssh office2-claude
-   restic -r <repository-url> key add
-   ```
-
-   The `restic` CLI prompts for the current password (from
-   `~/.config/restic/password`) and then the new one. After this completes,
-   the repository has two valid keys.
-
-3. **Verify the new key works** by listing snapshots with the new password:
+2. **Add the new key to the repository**, keeping the old one active:
 
    ```bash
-   ssh office2-claude
-   RESTIC_PASSWORD="<paste-new-passphrase>" restic -r <repository-url> snapshots --latest 1
+   sudo restic -r /mnt/backups/restic-repo --password-file /etc/restic/password key add
    ```
 
-   This must succeed before proceeding.
+   `--password-file` supplies the *current* password; restic then prompts for the
+   new one twice. Nothing sensitive reaches the command line. The repository now
+   has two valid keys.
 
-4. **Overwrite the password file with the new passphrase**:
+3. **Prove the new key works — before writing it anywhere.** Let restic prompt,
+   and type the new passphrase:
 
    ```bash
-   ssh office2-claude
-   printf '%s' "<paste-new-passphrase>" > /home/claude/.config/restic/password
-   chmod 600 /home/claude/.config/restic/password
+   sudo restic -r /mnt/backups/restic-repo snapshots --latest 1
    ```
 
-5. **Remove the old key** from the repository once you've confirmed
-   `backup.sh` uses the new file:
+   With no `--password-file` and no `RESTIC_PASSWORD`, restic prompts. This must
+   succeed. If it does not, stop: the new key was not added correctly, and the
+   old one is still the only way in.
+
+4. **Write the new passphrase to the password file**:
 
    ```bash
-   ssh office2-claude
-   restic -r <repository-url> key list
-   # Identify the old key ID, then:
-   restic -r <repository-url> key remove <old-key-id>
+   read -rs NEWPASS
    ```
+
+   ```bash
+   printf '%s' "$NEWPASS" | sudo tee /etc/restic/password >/dev/null
+   ```
+
+   ```bash
+   unset NEWPASS
+   ```
+
+   ```bash
+   sudo chmod 600 /etc/restic/password && sudo chown root:root /etc/restic/password
+   ```
+
+   `printf '%s'` without a trailing newline matches how the file was written by
+   #888; restic tolerates a trailing newline but consistency avoids a needless
+   diff in the security baseline.
+
+5. **Verify the RUNNING configuration — this gates step 6.**
+
+   ```bash
+   sudo restic -r /mnt/backups/restic-repo --password-file /etc/restic/password snapshots --latest 1
+   ```
+
+   This is the check that matters. It proves the file `backup.sh` actually reads
+   opens the repository. Step 3 proved the *passphrase* works; this proves the
+   *deployed configuration* works, and those are different claims.
+
+   A previous version of this runbook removed the old key "once you've confirmed
+   `backup.sh` uses the new file" — confirmation by belief. Combined with a write
+   to a path nothing read, that would have deleted the only key the running
+   backup could use (#907).
+
+   **If this command fails, do not proceed.** The old key is still valid; fix the
+   file and repeat.
+
+6. **Run a real backup before removing anything:**
+
+   ```bash
+   sudo /data/services/backup/scripts/backup.sh 2>&1 | tail -5
+   ```
+
+   ```bash
+   sudo jq '{restic_exit_code, prune_exit_code, snapshot_timestamp_utc}' /data/services/backup/state/last-backup.json
+   ```
+
+   Expect `restic_exit_code: 0` and `prune_exit_code: 0`. A non-zero
+   `prune_exit_code` means retention did not run (#902) and must be resolved
+   before the old key is removed.
+
+7. **Only now, remove the old key:**
+
+   ```bash
+   sudo restic -r /mnt/backups/restic-repo --password-file /etc/restic/password key list
+   ```
+
+   ```bash
+   sudo restic -r /mnt/backups/restic-repo --password-file /etc/restic/password key remove <old-key-id>
+   ```
+
+   The row marked `*` is the key currently in use — that is the NEW one. Remove
+   the other.
 
 ### Per-consumer verification
 
 ```bash
-# Trigger a backup and verify it succeeds with the new password
-ssh office2-claude '/data/services/backup/scripts/backup.sh'
-# Expected: snapshot ID printed; no "wrong password" error
-
-# Verify Restic can read the most recent snapshot
-ssh office2-claude 'restic -r <repository-url> snapshots --latest 1'
+sudo restic -r /mnt/backups/restic-repo --password-file /etc/restic/password snapshots --latest 1
 ```
+
+```bash
+sudo jq '{restic_exit_code, prune_exit_code}' /data/services/backup/state/last-backup.json
+```
+
+```bash
+sudo restic -r /mnt/backups/restic-repo --password-file /etc/restic/password key list
+```
+
+Exactly one key should remain, and it should be the new one.
 
 ### GO criteria
 
-- [ ] New key added to repository via `restic key add`
-- [ ] New passphrase verified by listing snapshots with `RESTIC_PASSWORD` env
-- [ ] Password file overwritten with new passphrase, mode 600
-- [ ] `backup.sh` test run succeeds with the new password
-- [ ] Old key removed from repository
+- [ ] New passphrase recorded in 1Password **before** any repository change
+- [ ] New key added via `restic key add` (old key still active)
+- [ ] New passphrase verified by an interactive `restic snapshots` (step 3)
+- [ ] `/etc/restic/password` written via `read -rs` + `sudo tee`, mode 600, root-owned
+- [ ] **Running configuration verified** with `--password-file /etc/restic/password` (step 5)
+- [ ] A full `backup.sh` run succeeded with `restic_exit_code: 0` and `prune_exit_code: 0`
+- [ ] Old key removed, and `key list` shows exactly one key
 - [ ] Manifest updated per [final section](<#manifest-update-obligations>)
 
 ### NO-GO triggers
 
-- `restic key add` fails → confirm the current password file matches the
-  active repository key. If they don't match, the password file was already
-  rotated incorrectly at some prior point; recovery requires the original
-  passphrase.
-- Snapshot listing with new password fails → the new key was added but you
-  pasted the wrong passphrase to the verification step; re-list with the
-  correct value before overwriting the file.
-- Test backup fails after file overwrite → revert the file from the old
-  passphrase (if you still have it) and re-investigate; do not remove the
-  old key until the new path works end-to-end.
+- **`restic key add` fails with "wrong password or no key found"** → the
+  contents of `/etc/restic/password` no longer match any active repository key.
+  Do not proceed and do not overwrite anything. Recovery requires the original
+  passphrase from 1Password.
+- **`restic key add` fails with a permission error** → you are not root, or you
+  are on the `claude` account. The repository has mixed ownership (292 files are
+  `root:root 0400`, written by root-run backups), so every restic command here
+  must be `sudo` from `office2-kgale`.
+- **Step 3 interactive listing fails** → the new key was not added, or you typed
+  a different passphrase than you recorded. The old key is still the only way in;
+  fix this before touching the file.
+- **Step 5 fails after the file write** → the file does not contain what you
+  think. Most likely the paste did not register before EOF and `tee` truncated it
+  (see the warning above), or a stray newline was introduced. The old key is
+  still valid: rewrite the file with `read -rs` and repeat step 5. **Do not run
+  step 7.**
+- **Step 6 reports a non-zero `prune_exit_code`** → retention did not run. That
+  is not caused by the rotation, but resolve it (#902) before removing the old
+  key, so a retention problem is not discovered while the repository has only one
+  key.
+- **Any doubt at all about which key is which** → `key list` marks the key
+  currently in use with `*`. If the marked key is not the one you just added,
+  stop; removing the wrong key is unrecoverable.
 
 ---
 
