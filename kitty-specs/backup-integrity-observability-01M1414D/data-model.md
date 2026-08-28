@@ -65,6 +65,11 @@ pre-flight checks that read backup currency.
 | `drift` | Both present, contents differ | `error` | `1` |
 | `inconclusive` | Deployed copy missing or unreadable | `error` | `2` |
 
+Registration MUST declare `success_status_values: ["success"]`. Without an
+allow-list, `probes.py` treats `status` as a deny-list — any word it does not
+recognise as a failure passes. A future verdict word would then read healthy by
+default. This is the #891 affirmative-health rule.
+
 **Invariants**
 
 - `inconclusive` is never healthy. A comparator that cannot see the deployed copy
@@ -85,6 +90,19 @@ writer's own `strip_header()` rather than a hand-written pattern:
 ```
 python3 scripts/office2/crontab_capture.py --emit-body
 ```
+
+**One parser, not two.** Today's `strip_header()` returns its input unchanged
+when the first line does not match *and* when the first line matches but the
+sentinel is missing — it cannot tell a caller whether a header was recognised.
+Reusing it as-is would let `--emit-body` emit a headerless or truncated file as
+though it had been verified, which during recovery installs wrong content
+silently.
+
+So `strip_header()` is refactored into one shared parser returning both the body
+and whether a well-formed header was recognised. Capture keeps today's tolerant
+behaviour; `--emit-body` fails closed on unrecognised or malformed input. The
+point is to keep exactly one implementation — adding a second recogniser in the
+CLI path would recreate the coupling this mission exists to remove.
 
 **Invariants**
 

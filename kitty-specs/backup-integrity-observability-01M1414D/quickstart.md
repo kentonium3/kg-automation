@@ -13,11 +13,36 @@ design, not by omission.
 ssh office2-kgale
 ```
 
+**Verify the source before installing it.** The file lives in
+`/home/claude/kg-automation`, which the unprivileged `claude` account can write.
+Installing straight from there would let that account influence root-executed
+content — not the #899 escalation, but the same boundary weakened one step
+upstream. Check it against the commit you reviewed first:
+
+```
+cd /home/claude/kg-automation && git log --oneline -1 -- scripts/office2/restic-backup.sh
+```
+
+```
+git -C /home/claude/kg-automation diff --quiet HEAD -- scripts/office2/restic-backup.sh && echo "matches committed content" || echo "WORKING TREE DIFFERS — do not install"
+```
+
+Only if both agree with what you reviewed:
+
 ```
 sudo install -o root -g root -m 755 \
   /home/claude/kg-automation/scripts/office2/restic-backup.sh \
   /data/services/backup/scripts/backup.sh
 ```
+
+Then confirm what actually landed:
+
+```
+sudo md5sum /data/services/backup/scripts/backup.sh /home/claude/kg-automation/scripts/office2/restic-backup.sh
+```
+
+Both hashes must match. The drift comparator gives you this check
+independently on every run from then on.
 
 Until this runs, the comparator will correctly report `drift` — the repo leads
 the host. That is the tool working, not a fault.

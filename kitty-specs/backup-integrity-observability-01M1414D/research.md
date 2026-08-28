@@ -93,4 +93,34 @@ about its own mission.
 ## Adversarial evidence
 
 No dependency is added, upgraded, or removed, so the supply-chain decision set is
-empty. Post-plan review findings and dispositions are appended below.
+empty.
+
+## Post-plan review (Codex, read-only, 2026-08-28)
+
+Two independent Codex runs on the same artifacts. Seven distinct findings, **all
+accepted and folded in**; none deferred, none dropped. Both runs independently
+raised the install-source gap and the prune good-set, which is the strongest
+signal in the set.
+
+| # | Severity | Finding | Disposition |
+|---|---|---|---|
+| 1 | HIGH | The privileged `sudo install` sourced from `/home/claude/kg-automation`, a claude-writable checkout, installing as root into the NOPASSWD target. Protects the destination, weakens the same boundary at the source. | **changed** — FR-010 added; quickstart now verifies the source against the reviewed commit, checks the working tree is clean, and confirms the installed hash afterwards. Raised independently by both runs. |
+| 2 | HIGH | `_RESTIC_OK_EXIT_CODES` is `{0, 3}`; mirroring it for prune would accept exit 3, which for `forget` does not mean retention was applied. The backup script already treats only `0` as success. | **changed** — C-006 added pinning the prune good-set to `{0}`; plan corrected; tests must assert `3` is unhealthy. Raised independently by both runs. |
+| 3 | HIGH | Pre-existing: restic freshness falls through `TIMESTAMP_KEYS` from `snapshot_timestamp_utc` to `script_finished_at_utc`, so a pointer with a null snapshot timestamp reads healthy — contradicting the inventory's own `expected` prose. Verified through the real probe: `ok=True, stale=False`. | **changed** — folded in as FR-009/SC-007 rather than deferred. Not caused by this mission, but the same defect class in the same component; shipping "backup integrity observability" around it would be hollow. |
+| 4 | HIGH | `--emit-body` cannot fail closed by reusing today's `strip_header()`, which returns input unchanged both when no header matches and when the sentinel is missing — it cannot tell the caller whether a header was recognised. | **changed** — data-model now specifies refactoring to one shared parser returning body plus recognition, capture staying tolerant and the emitter failing closed. Run 2's framing was adopted over run 1's, because run 1's "add an emitter-level recogniser" would have created the second implementation this mission exists to remove. |
+| 5 | MEDIUM | The comparator's health check must declare `success_status_values: ["success"]`; without an allow-list `probes.py` treats `status` as a deny-list and an unrecognised verdict word passes as healthy. | **changed** — required in the data model (#891 affirmative-health rule). |
+| 6 | MEDIUM | Tier 3 manifests do not require a `verification` block, so a deploy that installs nothing can still pass. | **changed** — manifest declares `verification.post` regardless. |
+| 7 | MEDIUM | The signal-to-doc-map lookup missed `deploy-manifest-added` and `office2-service-deployment`. | **changed** — verified both exist with targets not in the plan; added. Note run 2 judged the doc coverage complete and was wrong here; run 1 was right, which is why the map was re-queried rather than either verdict taken on trust. |
+
+### Confirmed correct during review
+
+- The `127` sentinel, with a full failure-path trace: mount-check failure,
+  repo-inaccessible, backup failure, and killed-between-backup-and-prune all
+  report `prune_exit_code: 127` and are correctly unhealthy; backup exit 3 with a
+  clean prune stays healthy, consistent with existing semantics.
+- Backward compatibility: `_explicit_error` ignores absent keys, and
+  `snapshot.py`'s Tier-2 gate reads only `restic_exit_code` and timestamps, so
+  the new field is inert there.
+- The #899 argument against automating the deploy is correct, and the
+  comparator's *reads* of that directory do not weaken the boundary provided it
+  never writes there.

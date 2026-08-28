@@ -79,6 +79,8 @@ anywhere in the path.
 | FR-006 | Recover without a hand-written strip | As the operator, I want the capture helper itself to emit the reinstallable body, so recovery cannot drift from the header format. | Medium | Open |
 | FR-007 | Recovery procedure lives where an operator looks | As the operator, I want the crontab recovery procedure in a runbook rather than in a merged mission's planning artifact. | Medium | Open |
 | FR-008 | The backup script's deploy story is written down | As the operator, I want the chosen deployment story for `restic-backup.sh` recorded, including why it stays manual. | Medium | Open |
+| FR-009 | A backup with no snapshot is not healthy | As the operator, I want a backup pointer that reports an exit code but no snapshot timestamp to be unhealthy, rather than falling through to a different timestamp and reading fresh. | High | Open |
+| FR-010 | The privileged install has a trusted source | As the operator, I want to verify what I am about to install as root against a trusted reference before installing it, so an unprivileged account cannot influence root-executed content at the handoff. | High | Open |
 
 ### Non-Functional Requirements
 
@@ -97,6 +99,7 @@ anywhere in the path.
 | C-002 | Installing the backup script stays a privileged manual step | Following from C-001, the deploy story for `restic-backup.sh` is a manual `sudo install` by the operator. This mission makes divergence *visible*; it does not automate the install. | Technical | High | Open |
 | C-003 | New pointer fields must be readable by the explicit-error scan | A field the scan ignores is inert. Either use a scanned key or extend the scan; adding an unread field is not an acceptable outcome. | Technical | High | Open |
 | C-004 | One implementation of header stripping | The body emitter must reuse the same function the writer uses. A second implementation, in code or prose, is the defect being fixed. | Technical | High | Open |
+| C-006 | Prune success is `{0}` only | The prune good-set must NOT reuse `_RESTIC_OK_EXIT_CODES` (`{0, 3}`). That set exists because a restic *backup* exiting 3 still produced a snapshot; for `forget`, 3 does not mean retention was applied. The backup script itself already treats only `PRUNE_RC == 0` as success. | Technical | High | Open |
 | C-005 | Tier 3 | Helper changes, a comparator, a canary probe extension, and docs. The privileged install is the operator's step and is out of the pipeline. | Regulatory | Medium | Open |
 
 ### Key Entities
@@ -124,6 +127,10 @@ anywhere in the path.
   byte-identical to `crontab -l`.
 - **SC-005**: Changing the provenance header format without updating the emitter
   fails the test suite.
+- **SC-007**: A pointer carrying `restic_exit_code` with a null or absent
+  snapshot timestamp is reported unhealthy, not fresh-by-fall-through.
+- **SC-008**: The operator install procedure includes a verification of the
+  source against a trusted reference, and a confirmation of what actually landed.
 - **SC-006**: The deploy story for `restic-backup.sh` is written down, including
   the security reason it stays manual.
 
