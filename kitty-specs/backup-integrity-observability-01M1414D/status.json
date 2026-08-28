@@ -1,7 +1,7 @@
 {
-  "event_count": 10,
-  "last_event_id": "01M143DVKNZ1VFDJ0Z631ZF22G",
-  "materialized_at": "2026-08-28T11:52:34.675972+00:00",
+  "event_count": 11,
+  "last_event_id": "01M1445AJXBRMWEQG4289NBJGD",
+  "materialized_at": "2026-08-28T12:05:23.677740+00:00",
   "mission_number": "",
   "mission_slug": "backup-integrity-observability-01M1414D",
   "mission_type": "software-dev",
@@ -11,9 +11,9 @@
     "canceled": 0,
     "claimed": 0,
     "done": 0,
-    "for_review": 1,
+    "for_review": 0,
     "in_progress": 1,
-    "in_review": 0,
+    "in_review": 1,
     "planned": 3
   },
   "work_packages": {
@@ -23,17 +23,17 @@
       "agent_profile": "__resolved_profile_absent__",
       "agent_profile_version": "__resolved_profile_version_absent__",
       "force_count": 0,
-      "lane": "for_review",
-      "last_event_id": "01M143BDJ58WY5JHGQH1DA7T84",
-      "last_transition_at": "2026-08-28T11:51:14.757965+00:00",
+      "lane": "in_review",
+      "last_event_id": "01M1445AJXBRMWEQG4289NBJGD",
+      "last_transition_at": "2026-08-28T12:05:23.677740+00:00",
       "model": "__resolved_model_absent__",
       "notes": [
         "Ready for review"
       ],
       "provider": "__resolved_provider_absent__",
-      "role": "implementer",
-      "shell_pid": 22681,
-      "shell_pid_created_at": "1787917436.969835",
+      "role": "reviewer",
+      "shell_pid": 50215,
+      "shell_pid_created_at": "1787918715.715996",
       "subtasks": {
         "T001": "done",
         "T002": "done",
