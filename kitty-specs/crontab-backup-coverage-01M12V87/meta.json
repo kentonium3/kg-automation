@@ -10,5 +10,7 @@
   "purpose_tldr": "crontab backup coverage",
   "slug": "crontab-backup-coverage-01M12V87",
   "target_branch": "feat/crontab-backup-coverage",
-  "topology": "single_branch"
+  "topology": "single_branch",
+  "vcs": "git",
+  "vcs_locked_at": "2026-08-28T02:37:34.417123+00:00"
 }

@@ -28,7 +28,8 @@
       "last_transition_at": "2026-08-28T02:43:43.755748+00:00",
       "model": "__resolved_model_absent__",
       "notes": [
-        "Ready for review"
+        "Ready for review",
+        "Review passed: C-001 guard verified (audited-surfaces.json byte-identical, rebaseline command strings unchanged); warning above the destructive step in all 3 operator-facing files; stale baseline count 14->15 corrected; no docs/diagnostics or kitty-specs files touched; both blocking validators green."
       ],
       "provider": "__resolved_provider_absent__",
       "review_result": {
