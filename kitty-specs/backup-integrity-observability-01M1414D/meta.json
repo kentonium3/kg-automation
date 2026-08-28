@@ -1,4 +1,16 @@
 {
+  "acceptance_history": [
+    {
+      "acceptance_mode": "pr",
+      "accepted_at": "2026-08-28T13:10:53.494307+00:00",
+      "accepted_by": "kentgale",
+      "accepted_from_commit": "ceba90149d779bc43cbdc2da4b21e688107c0184"
+    }
+  ],
+  "acceptance_mode": "pr",
+  "accepted_at": "2026-08-28T13:10:53.494307+00:00",
+  "accepted_by": "kentgale",
+  "accepted_from_commit": "ceba90149d779bc43cbdc2da4b21e688107c0184",
   "created_at": "2026-08-28T11:12:28.252942+00:00",
   "flattened": false,
   "friendly_name": "backup integrity observability",
