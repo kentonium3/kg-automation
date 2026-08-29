@@ -160,7 +160,8 @@
       "last_transition_at": "2026-08-29T04:58:54.640447+00:00",
       "model": "__resolved_model_absent__",
       "notes": [
-        "Glossary four devices + four canonical terms; CLAUDE.md office4 row + ADR pointer; signal map now names hardware-inventory.json in the specific change class"
+        "Glossary four devices + four canonical terms; CLAUDE.md office4 row + ADR pointer; signal map now names hardware-inventory.json in the specific change class",
+        "Low-1 fixed: rich-form key list now exact (bios, cpu, disks, gpu, kernel, ram_gb), verified by re-deriving from the JSON. Low-2 confirmed a non-defect."
       ],
       "provider": "__resolved_provider_absent__",
       "review": null,
