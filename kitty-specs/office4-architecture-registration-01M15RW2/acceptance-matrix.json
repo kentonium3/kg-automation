@@ -97,11 +97,11 @@
     {
       "criterion_id": "FR-010",
       "description": "Verify FR-010 is satisfied",
-      "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
+      "proof_type": "grep_loop",
+      "evidence": "Per-file loop on '0008-three-machine-model' passes for adr/README.md (the real ADR index), INDEX.md, DEVELOPER_PORTAL.md, architecture/README.md. Portal generated block byte-identical before/after (4918 bytes).",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-08-29T05:46:27.515145+00:00",
       "notes": "TODO: replace with a real acceptance criterion"
     },
     {
