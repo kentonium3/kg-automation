@@ -189,7 +189,7 @@
     },
     "WP06": {
       "actor": "user",
-      "agent": "claude",
+      "agent": null,
       "agent_profile": "__resolved_profile_absent__",
       "agent_profile_version": "__resolved_profile_version_absent__",
       "force_count": 1,
@@ -201,6 +201,7 @@
         "Closeout complete: #909 corrected, full verification suite recorded, merge-safety analysis, --no-ff handoff documented"
       ],
       "provider": "__resolved_provider_absent__",
+      "review": null,
       "review_result": {
         "feedback_path": "/home/kgale/repos/kg-automation/kitty-specs/office4-architecture-registration-01M15RW2/tasks/WP06-closeout-verification/review-cycle-1.md",
         "reference": "review-cycle://office4-architecture-registration-01M15RW2/WP06-closeout-verification/review-cycle-1.md",
@@ -208,16 +209,16 @@
         "verdict": "changes_requested"
       },
       "role": "reviewer",
-      "shell_pid": 151471,
-      "shell_pid_created_at": "1787979995.24",
+      "shell_pid": null,
+      "shell_pid_created_at": null,
       "subtasks": {
-        "T025": "done",
-        "T026": "done",
-        "T027": "done",
-        "T028": "done",
-        "T029": "done",
-        "T030": "done",
-        "T031": "done"
+        "T025": "planned",
+        "T026": "planned",
+        "T027": "planned",
+        "T028": "planned",
+        "T029": "planned",
+        "T030": "planned",
+        "T031": "planned"
       }
     }
   }
