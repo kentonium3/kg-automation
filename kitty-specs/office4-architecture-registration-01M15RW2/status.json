@@ -199,7 +199,8 @@
       "last_transition_at": "2026-08-29T05:35:21.306134+00:00",
       "model": "__resolved_model_absent__",
       "notes": [
-        "Closeout complete: #909 corrected, full verification suite recorded, merge-safety analysis, --no-ff handoff documented"
+        "Closeout complete: #909 corrected, full verification suite recorded, merge-safety analysis, --no-ff handoff documented",
+        "Cycle 1 addressed: step 6 downgraded from a laundered PASS, F1/F2/F3 recorded, three overstatements corrected, two process notes added including the orchestrator's own rule breaches"
       ],
       "provider": "__resolved_provider_absent__",
       "review": null,
