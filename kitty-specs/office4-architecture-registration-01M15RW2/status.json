@@ -200,7 +200,8 @@
       "model": "__resolved_model_absent__",
       "notes": [
         "Closeout complete: #909 corrected, full verification suite recorded, merge-safety analysis, --no-ff handoff documented",
-        "Cycle 1 addressed: step 6 downgraded from a laundered PASS, F1/F2/F3 recorded, three overstatements corrected, two process notes added including the orchestrator's own rule breaches"
+        "Cycle 1 addressed: step 6 downgraded from a laundered PASS, F1/F2/F3 recorded, three overstatements corrected, two process notes added including the orchestrator's own rule breaches",
+        "Cycle 2 approved. All six cycle-1 items addressed; every corrected string independently verified; no new inaccuracy. Reviewer recomputed the unchanged claims (47 services, 285/282/3 links, 13/13 SC-005) and computed the full five-lane merge via commit-tree chaining — all clean, corrected text survives in the merged tree."
       ],
       "provider": "__resolved_provider_absent__",
       "review": null,
