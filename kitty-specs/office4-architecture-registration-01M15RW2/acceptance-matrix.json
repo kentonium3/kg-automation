@@ -57,11 +57,11 @@
     {
       "criterion_id": "FR-006",
       "description": "Verify FR-006 is satisfied",
-      "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
+      "proof_type": "json_assertion",
+      "evidence": "network.devices has 4 entries incl. office4/100.112.83.28/linux; all four IPs reconciled against live 'tailscale status'.",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-08-29T05:46:19.433069+00:00",
       "notes": "TODO: replace with a real acceptance criterion"
     },
     {
