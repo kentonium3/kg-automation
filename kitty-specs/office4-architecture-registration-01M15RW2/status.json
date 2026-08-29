@@ -1,7 +1,7 @@
 {
-  "event_count": 18,
-  "last_event_id": "01M15WE9EM8RWYNJDPBNC9KTGJ",
-  "materialized_at": "2026-08-29T04:28:57.684302+00:00",
+  "event_count": 19,
+  "last_event_id": "01M15WEJZNP469ATBEKS8YGSKZ",
+  "materialized_at": "2026-08-29T04:29:07.445762+00:00",
   "mission_number": "",
   "mission_slug": "office4-architecture-registration-01M15RW2",
   "mission_type": "documentation",
@@ -11,9 +11,9 @@
     "canceled": 0,
     "claimed": 0,
     "done": 0,
-    "for_review": 1,
+    "for_review": 0,
     "in_progress": 0,
-    "in_review": 1,
+    "in_review": 2,
     "planned": 3
   },
   "work_packages": {
@@ -80,14 +80,17 @@
       "agent_profile": "__resolved_profile_absent__",
       "agent_profile_version": "__resolved_profile_version_absent__",
       "force_count": 0,
-      "lane": "for_review",
-      "last_event_id": "01M15WE9EM8RWYNJDPBNC9KTGJ",
-      "last_transition_at": "2026-08-29T04:28:57.684302+00:00",
+      "lane": "in_review",
+      "last_event_id": "01M15WEJZNP469ATBEKS8YGSKZ",
+      "last_transition_at": "2026-08-29T04:29:07.445762+00:00",
       "model": "__resolved_model_absent__",
+      "notes": [
+        "Narrative views updated; prose reconciled against JSON; validate_docs OK"
+      ],
       "provider": "__resolved_provider_absent__",
-      "role": "implementer",
-      "shell_pid": 124578,
-      "shell_pid_created_at": "1787977638.41",
+      "role": "reviewer",
+      "shell_pid": 126117,
+      "shell_pid_created_at": "1787977745.61",
       "subtasks": {
         "T012": "done",
         "T013": "done",
