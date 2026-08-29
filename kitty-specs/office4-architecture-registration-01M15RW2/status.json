@@ -1,19 +1,19 @@
 {
-  "event_count": 43,
-  "last_event_id": "01M15XES8ABGYBV7VBF8AS4D8P",
-  "materialized_at": "2026-08-29T04:46:42.442061+00:00",
+  "event_count": 44,
+  "last_event_id": "01M15XNRWVP9DM3G9NYHDFSAEF",
+  "materialized_at": "2026-08-29T04:50:31.451680+00:00",
   "mission_number": "",
   "mission_slug": "office4-architecture-registration-01M15RW2",
   "mission_type": "documentation",
   "summary": {
-    "approved": 2,
+    "approved": 3,
     "blocked": 0,
     "canceled": 0,
     "claimed": 0,
     "done": 0,
     "for_review": 0,
     "in_progress": 0,
-    "in_review": 1,
+    "in_review": 0,
     "planned": 3
   },
   "work_packages": {
@@ -52,14 +52,14 @@
       }
     },
     "WP02": {
-      "actor": "claude",
+      "actor": "user",
       "agent": "claude",
       "agent_profile": "__resolved_profile_absent__",
       "agent_profile_version": "__resolved_profile_version_absent__",
       "force_count": 3,
-      "lane": "in_review",
-      "last_event_id": "01M15XES8ABGYBV7VBF8AS4D8P",
-      "last_transition_at": "2026-08-29T04:46:42.442061+00:00",
+      "lane": "approved",
+      "last_event_id": "01M15XNRWVP9DM3G9NYHDFSAEF",
+      "last_transition_at": "2026-08-29T04:50:31.451680+00:00",
       "model": "__resolved_model_absent__",
       "notes": [
         "ADR 0008 authored; all 5 citations verified; validate_docs OK",
@@ -70,9 +70,9 @@
       "provider": "__resolved_provider_absent__",
       "review": null,
       "review_result": {
-        "reference": "Cycle 3 F6-R fixed: corrupted sentence repaired, paragraph re-wrapped, verification now reads the rendered result rather than asserting on the replacement",
-        "reviewer": "user",
-        "verdict": "changes_requested"
+        "reference": "Cycle 4 approved. Corrupted sentence repaired and verified by reading the rendered result; whole-document doubled-word and stranded-quantifier sweep clean; 47/47 host distribution re-verified against live data; all cycle-2 items (canary arithmetic, Persistent=true examples, dated count) independently confirmed. Coherent end-to-end read.",
+        "reviewer": "Kent Gale",
+        "verdict": "approved"
       },
       "role": "reviewer",
       "shell_pid": 137955,
