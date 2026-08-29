@@ -36,8 +36,8 @@ A physical device, recorded at one of two detail levels.
 |---|---|---|---|
 | `hostname` | string | yes | Tailscale device name, matching the topology entry. |
 | `role` | string | yes | Short human phrase, e.g. "authoring and interaction endpoint". |
-| `hardware` | string | yes | Model description. |
-| `os` | string | yes | e.g. `Ubuntu 24.04 LTS`. |
+| `hardware` | string | yes | Real model, from `/sys/devices/virtual/dmi/id/{sys_vendor,product_name}` (world-readable, no sudo). Never the hostname. |
+| `os` | string | yes | Specific release, e.g. `Ubuntu 24.04 LTS`, `Linux Mint 22.3 (Ubuntu 24.04 noble base)`. Source of truth is `/etc/os-release` — **not** `uname -a`, whose kernel build string names Ubuntu even on a Mint host. |
 | `network` | object | yes | `{ tailscale_ip, tailscale_hostname }` for peers. |
 
 ### Rich form — the managed host (office2 only; office4 does NOT take this shape)
@@ -50,6 +50,11 @@ second managed host, which is the decision this mission records *against*.
 
 **Invariant H-2**: `hosts[].hostname` and `network.devices[].hostname` agree for every
 device present in both.
+
+**Invariant H-3 — the array is positionally consumed.** `docs/runbooks/ollama-ops.md:30`
+references `hosts[0].gpu`. office2 must remain `hosts[0]` for as long as any positional
+reference exists, so new entries are **appended**, never inserted. Nothing validates this;
+it is a convention a reordering edit would silently break.
 
 **Note on `os` divergence**: `network.devices[].os` uses a coarse family (`linux`) while
 `hosts[].os` uses a specific release (`Ubuntu 24.04 LTS`). This is existing convention —

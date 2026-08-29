@@ -53,20 +53,24 @@ kitty-specs/office4-architecture-registration-01M15RW2/
 ### Repository files this mission touches
 
 ```
+CLAUDE.md                                      # Platform table + ADR 0008 pointer  (FR-014)
 docs/
-├── INDEX.md                                   # register ADR 0008
-├── DEVELOPER_PORTAL.md                        # register ADR 0008
+├── INDEX.md                                   # add 0008 to the ADR list           (FR-010)
+├── DEVELOPER_PORTAL.md                        # pointer only — has NO ADR surface  (FR-010)
 ├── design/architecture/
-│   ├── README.md                              # register ADR 0008
-│   ├── physical-topology.md                   # narrative — add office4
-│   ├── security-posture.md                    # narrative — re-read for 4 devices
+│   ├── README.md                              # pointer only — has NO ADR surface  (FR-010)
+│   ├── glossary.md                            # 4 devices + 4 canonical terms      (FR-013)
+│   ├── physical-topology.md                   # narrative — add office4            (FR-009)
+│   ├── security-posture.md                    # narrative — 4-device access model  (FR-009)
 │   ├── adr/
-│   │   ├── 0004-tailscale-ssh-with-accept-acl.md   # REVIEW ONLY
-│   │   └── 0008-three-machine-model.md             # NEW
+│   │   ├── README.md                          # THE ADR INDEX — required           (FR-010)
+│   │   ├── 0004-tailscale-ssh-with-accept-acl.md   # REVIEW ONLY, affirm w/ RunSSH (FR-011)
+│   │   └── 0008-three-machine-model.md             # NEW                       (FR-001..005)
 │   └── data/
-│       ├── network-topology.json              # add network.devices[] entry
-│       └── hardware-inventory.json            # add hosts[] thin entry
-└── runbooks/phone-termius-setup.md            # REVIEW ONLY
+│       ├── network-topology.json              # network.devices[] entry            (FR-006)
+│       ├── hardware-inventory.json            # hosts[] thin entry (APPEND)        (FR-007)
+│       └── signal-to-doc-map.json             # add hardware-inventory to targets  (FR-015)
+└── runbooks/phone-termius-setup.md            # REVIEW ONLY                        (FR-011)
 ```
 
 `service-inventory.json` appears in no list above. That absence is deliberate and is
@@ -147,13 +151,14 @@ consequences), with frontmatter matching repo convention:
 
 | Spec criterion | How this plan satisfies it |
 |---|---|
-| SC-001 findability | ADR registered in three index surfaces (FR-010), so it is reachable from the documentation map, the portal, and the architecture README |
+| SC-001 findability | ADR registered in the actual ADR index plus `INDEX.md`, with pointers from the portal and architecture README (FR-010) |
 | SC-002 placement test | ADR section 3 states the test in applicable form, with both worked cases |
-| SC-003 four devices in both records | FR-006 and FR-007; verified by quickstart step 2 |
-| SC-004 zero service records | C-006; verified by quickstart step 3 as a positive check |
-| SC-005 eight doc targets | FR-009, FR-010, FR-011 — five updated, two affirmed, plus the ADR itself |
-| SC-006 validators + CI | Pre-commit gate runs both; Docs CI re-runs on push |
-| SC-007 issue corrected | FR-012 |
+| SC-003 four devices, all IPs live-checked | FR-006, FR-007; quickstart step 4 reconciles **all four** against `tailscale status`, not office4 alone |
+| SC-004 zero service records | C-006; quickstart step 3 is a positive assertion that fails if violated |
+| SC-005 every target accounted for | 8 map targets (6 updated + 2 affirmed) **plus 5 the map does not name** — `adr/README.md`, `hardware-inventory.json`, `glossary.md`, `CLAUDE.md`, `signal-to-doc-map.json`. FR-015 closes the map gap for one of them |
+| SC-006 validators | `.githooks` pre-commit runs both on every commit. Docs CI fires only on `main`, so it is satisfied at Kent's `feat → main` push — **not** at mission close |
+| SC-007 issue corrected | FR-012 — both the premise and the non-failing `--strict` verification step |
+| SC-008 no contradicting surface | FR-013, FR-014 |
 
 ## Charter Check
 
@@ -191,28 +196,36 @@ Concerns for `/spec-kitty.tasks` to translate into work packages. They are order
 dependency: the JSON edits are authoritative and should land before the narrative views
 that describe them (charter: JSON authoritative, markdown follows).
 
-**IC-1 — Architecture data registration.** Add office4 to `network.devices` in
-`network-topology.json` and a thin entry to `hosts` in `hardware-inventory.json`. Bump
-`last_updated` / `updated_by` on both, matching the existing convention. Verify
-`service-inventory.json` remains untouched. *(FR-006, FR-007, FR-008; C-003, C-006)*
+**IC-1 — Architecture data registration.** Add office4 to `network.devices` and a thin
+entry to `hosts`, **appending** so office2 stays `hosts[0]` (a runbook reads `hosts[0].gpu`).
+`os` from `/etc/os-release`, `hardware` from sysfs — never `uname -a`, never the hostname.
+Bump `last_updated`/`updated_by` on both; leave `schema_version` alone. Verify
+`service-inventory.json` untouched. *(FR-006, FR-007, FR-008; C-003, C-006)*
 
-**IC-2 — Author ADR 0008.** The decision record itself, with verified citations and
-frontmatter matching sibling ADRs. Largest single unit of judgement in the mission.
-*(FR-001 … FR-005; NFR-003, NFR-006)*
+**IC-2 — Author ADR 0008.** The decision record, with repo-root-relative citations, the
+`additionalProperties: false` strengthening, and the "defaults to office2's path" phrasing
+for `_tick.py`. Includes the FR-011 "Review-only affirmations" subsection. Largest single
+unit of judgement in the mission. *(FR-001…FR-005, FR-011; NFR-003, NFR-006)*
 
-**IC-3 — Narrative views.** Update `physical-topology.md` for four devices; re-read
-`security-posture.md` and correct any text that assumes three. *(FR-009)*
+**IC-3 — Narrative views.** `physical-topology.md` gains office4; `security-posture.md`
+corrected wherever it assumes three tailnet devices. *(FR-009)*
 
-**IC-4 — Registration and affirmation.** Register ADR 0008 in `docs/INDEX.md`,
-`docs/DEVELOPER_PORTAL.md`, and `docs/design/architecture/README.md`. Record explicit
-review-only affirmations for ADR-0004 and `phone-termius-setup.md`. *(FR-010, FR-011)*
+**IC-4 — ADR registration.** Add 0008 to `adr/README.md` (the real index) and `INDEX.md`'s
+ADR list; add a pointer — not an invented ADR list — to `DEVELOPER_PORTAL.md` and
+`architecture/README.md`, neither of which has any ADR surface today. *(FR-010)*
 
-**IC-5 — Issue correction.** Comment on #909 correcting the `hardware-inventory.json`
-premise and the success criterion built on it. *(FR-012, SC-007)*
+**IC-5 — Adjacent surfaces.** `glossary.md` (four devices + the four canonical terms),
+`CLAUDE.md` (Platform row + ADR pointer), and `signal-to-doc-map.json` (add
+`hardware-inventory.json` to `network-topology-changed`). The last one is what makes this
+mission fix the mechanism rather than the symptom. *(FR-013, FR-014, FR-015)*
 
-**IC-6 — Verification.** Run both validators, confirm the four-device and zero-service
-checks, and confirm the merge commit carries the `Rebaseline: not required` line.
-*(NFR-001, NFR-002, NFR-004, NFR-005; C-004)*
+**IC-6 — Issue correction.** Comment on #909 correcting the `hardware-inventory.json`
+premise and its `--strict`-less verification step. *(FR-012, SC-007)*
+
+**IC-7 — Verification.** Run both validators (`--strict` on the architecture one), the
+four-device reconciliation, the zero-service assertion, the per-file registration loop, and
+the human link/heading review. Hand off the `Rebaseline:` line to Kent's `feat → main`
+merge. *(NFR-001…NFR-006; C-004)*
 
 ## Risks & Dependencies
 
@@ -231,6 +244,17 @@ amendment, not a silent row addition.
 **R-4 — Nothing enforces the no-recognisable-checkout constraint.** It is documentation
 only. *Accepted*: mechanical enforcement would require the felix-deployer changes this
 mission explicitly excludes (C-002). Recorded in the ADR's consequences.
+
+**R-5 — No validator catches a wrong value in a correctly-shaped field.** The C-1/C-2
+payloads pass `validate_architecture_data.py --strict` with `OK (0 findings)` regardless of
+whether `os` and `hardware` are right. An earlier draft of this plan carried a verified-false
+OS string that would have landed silently. *Mitigation*: NFR-005 names a distinct source of
+truth per field, and quickstart step 4b is an explicit authoring-time attestation.
+
+**R-6 — Two spec thresholds were unfalsifiable and are now human checks.** Nothing in this
+repo validates links or heading hierarchy. *Mitigation*: NFR-004 and the affected quality
+gates are relabelled as reviewer actions with a named deliverable, rather than left reading
+as automated.
 
 **Dependencies**: none external. All edits are local files; both validators are already
 installed in the repo `.venv` (verified during specify, after the office4 setup fix in
