@@ -1,7 +1,7 @@
 {
-  "event_count": 28,
-  "last_event_id": "01M15WTKM0N107MFT76TFKWZAJ",
-  "materialized_at": "2026-08-29T04:35:41.312854+00:00",
+  "event_count": 29,
+  "last_event_id": "01M15WVD1GC8P831CGP9E0CV05",
+  "materialized_at": "2026-08-29T04:36:07.344107+00:00",
   "mission_number": "",
   "mission_slug": "office4-architecture-registration-01M15RW2",
   "mission_type": "documentation",
@@ -13,8 +13,8 @@
     "done": 0,
     "for_review": 1,
     "in_progress": 0,
-    "in_review": 2,
-    "planned": 3
+    "in_review": 1,
+    "planned": 4
   },
   "work_packages": {
     "WP01": {
@@ -29,7 +29,8 @@
       "model": "__resolved_model_absent__",
       "notes": [
         "T001-T005 complete; minimal textual edits, both validators green, service-inventory asserted untouched",
-        "Review passed. Independent re-derivation of os/hardware from /etc/os-release and sysfs matched byte-for-byte; the uname -a trap was confirmed present and not taken. Formatting fidelity clean (16 insertions/5 deletions; compact style and unicode escapes preserved). hosts[0]=office2 verified against the sole positional consumer (ollama-ops.md:30). Both validators green."
+        "Review passed. Independent re-derivation of os/hardware from /etc/os-release and sysfs matched byte-for-byte; the uname -a trap was confirmed present and not taken. Formatting fidelity clean (16 insertions/5 deletions; compact style and unicode escapes preserved). hosts[0]=office2 verified against the sole positional consumer (ollama-ops.md:30). Both validators green.",
+        "Cycle 1 fix: false 'exposes no port' claim removed from the authoritative JSON; sshd fact now stated positively and verified"
       ],
       "provider": "__resolved_provider_absent__",
       "review": null,
@@ -84,19 +85,25 @@
       }
     },
     "WP03": {
-      "actor": "claude",
+      "actor": "user",
       "agent": "claude",
       "agent_profile": "__resolved_profile_absent__",
       "agent_profile_version": "__resolved_profile_version_absent__",
-      "force_count": 0,
-      "lane": "in_review",
-      "last_event_id": "01M15WEJZNP469ATBEKS8YGSKZ",
-      "last_transition_at": "2026-08-29T04:29:07.445762+00:00",
+      "force_count": 1,
+      "lane": "planned",
+      "last_event_id": "01M15WVD1GC8P831CGP9E0CV05",
+      "last_transition_at": "2026-08-29T04:36:07.344107+00:00",
       "model": "__resolved_model_absent__",
       "notes": [
         "Narrative views updated; prose reconciled against JSON; validate_docs OK"
       ],
       "provider": "__resolved_provider_absent__",
+      "review_result": {
+        "feedback_path": "/home/kgale/repos/kg-automation/kitty-specs/office4-architecture-registration-01M15RW2/tasks/WP03-narrative-views/review-cycle-1.md",
+        "reference": "review-cycle://office4-architecture-registration-01M15RW2/WP03-narrative-views/review-cycle-1.md",
+        "reviewer": "user",
+        "verdict": "changes_requested"
+      },
       "role": "reviewer",
       "shell_pid": 126117,
       "shell_pid_created_at": "1787977745.61",
