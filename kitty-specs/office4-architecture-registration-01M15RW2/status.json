@@ -1,7 +1,7 @@
 {
-  "event_count": 62,
-  "last_event_id": "01M15YJZT7YWMAEBK7NZHYBPS3",
-  "materialized_at": "2026-08-29T05:06:28.807072+00:00",
+  "event_count": 63,
+  "last_event_id": "01M15YK7XMVKVPP7G5HSAE5Q6R",
+  "materialized_at": "2026-08-29T05:06:37.108529+00:00",
   "mission_number": "",
   "mission_slug": "office4-architecture-registration-01M15RW2",
   "mission_type": "documentation",
@@ -11,9 +11,9 @@
     "canceled": 0,
     "claimed": 0,
     "done": 0,
-    "for_review": 1,
+    "for_review": 0,
     "in_progress": 0,
-    "in_review": 0,
+    "in_review": 1,
     "planned": 0
   },
   "work_packages": {
@@ -188,14 +188,17 @@
       "agent_profile": "__resolved_profile_absent__",
       "agent_profile_version": "__resolved_profile_version_absent__",
       "force_count": 0,
-      "lane": "for_review",
-      "last_event_id": "01M15YJZT7YWMAEBK7NZHYBPS3",
-      "last_transition_at": "2026-08-29T05:06:28.807072+00:00",
+      "lane": "in_review",
+      "last_event_id": "01M15YK7XMVKVPP7G5HSAE5Q6R",
+      "last_transition_at": "2026-08-29T05:06:37.108529+00:00",
       "model": "__resolved_model_absent__",
+      "notes": [
+        "Closeout complete: #909 corrected, full verification suite recorded, merge-safety analysis, --no-ff handoff documented"
+      ],
       "provider": "__resolved_provider_absent__",
-      "role": "implementer",
-      "shell_pid": 148820,
-      "shell_pid_created_at": "1787979700.74",
+      "role": "reviewer",
+      "shell_pid": 151471,
+      "shell_pid_created_at": "1787979995.24",
       "subtasks": {
         "T025": "done",
         "T026": "done",
