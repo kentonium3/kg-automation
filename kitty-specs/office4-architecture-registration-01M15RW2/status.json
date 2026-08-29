@@ -1,7 +1,7 @@
 {
-  "event_count": 39,
-  "last_event_id": "01M15X70X2BYAN6J8ZW3V200MY",
-  "materialized_at": "2026-08-29T04:42:28.130239+00:00",
+  "event_count": 40,
+  "last_event_id": "01M15X78KBFH2VTXK05AK18NJY",
+  "materialized_at": "2026-08-29T04:42:36.011868+00:00",
   "mission_number": "",
   "mission_slug": "office4-architecture-registration-01M15RW2",
   "mission_type": "documentation",
@@ -11,9 +11,9 @@
     "canceled": 0,
     "claimed": 0,
     "done": 0,
-    "for_review": 1,
+    "for_review": 0,
     "in_progress": 0,
-    "in_review": 1,
+    "in_review": 2,
     "planned": 3
   },
   "work_packages": {
@@ -87,17 +87,18 @@
       }
     },
     "WP03": {
-      "actor": "user",
-      "agent": null,
+      "actor": "claude",
+      "agent": "claude",
       "agent_profile": "__resolved_profile_absent__",
       "agent_profile_version": "__resolved_profile_version_absent__",
       "force_count": 1,
-      "lane": "for_review",
-      "last_event_id": "01M15X70X2BYAN6J8ZW3V200MY",
-      "last_transition_at": "2026-08-29T04:42:28.130239+00:00",
+      "lane": "in_review",
+      "last_event_id": "01M15X78KBFH2VTXK05AK18NJY",
+      "last_transition_at": "2026-08-29T04:42:36.011868+00:00",
       "model": "__resolved_model_absent__",
       "notes": [
-        "Narrative views updated; prose reconciled against JSON; validate_docs OK"
+        "Narrative views updated; prose reconciled against JSON; validate_docs OK",
+        "Cycle 1 addressed: false exposure claims removed, sshd fact stated positively, duplicate bullets folded, claude-user sentence scoped to office2"
       ],
       "provider": "__resolved_provider_absent__",
       "review": null,
@@ -107,9 +108,9 @@
         "reviewer": "user",
         "verdict": "changes_requested"
       },
-      "role": "implementer",
-      "shell_pid": null,
-      "shell_pid_created_at": null,
+      "role": "reviewer",
+      "shell_pid": 135745,
+      "shell_pid_created_at": "1787978554.18",
       "subtasks": {
         "T012": "done",
         "T013": "done",
