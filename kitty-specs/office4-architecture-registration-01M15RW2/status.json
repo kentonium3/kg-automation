@@ -1,12 +1,12 @@
 {
-  "event_count": 67,
-  "last_event_id": "01M15Z8KER463NABZYCM7P6KNT",
-  "materialized_at": "2026-08-29T05:18:17.048942+00:00",
+  "event_count": 68,
+  "last_event_id": "01M15Z8NKZ2FNFWY9TXET9CXHG",
+  "materialized_at": "2026-08-29T05:18:19.263344+00:00",
   "mission_number": "",
   "mission_slug": "office4-architecture-registration-01M15RW2",
   "mission_type": "documentation",
   "summary": {
-    "approved": 4,
+    "approved": 3,
     "blocked": 0,
     "canceled": 0,
     "claimed": 0,
@@ -14,7 +14,7 @@
     "for_review": 1,
     "in_progress": 0,
     "in_review": 1,
-    "planned": 0
+    "planned": 1
   },
   "work_packages": {
     "WP01": {
@@ -66,7 +66,8 @@
         "Cycle 1 feedback addressed: worked case A replaced with restic-backup (verified no-catch-up plain cron vs Persistent=true timers), Alternatives Considered added, citation 2 rigor equalised, #910 reference, dated count",
         "Cycle 2 addressed: unrecoverability-not-undetectability rewrite, invalid Persistent=true example replaced, dated count actually applied this time",
         "Cycle 3 F6-R fixed: corrupted sentence repaired, paragraph re-wrapped, verification now reads the rendered result rather than asserting on the replacement",
-        "Cycle 4 approved. Corrupted sentence repaired and verified by reading the rendered result; whole-document doubled-word and stranded-quantifier sweep clean; 47/47 host distribution re-verified against live data; all cycle-2 items (canary arithmetic, Persistent=true examples, dated count) independently confirmed. Coherent end-to-end read."
+        "Cycle 4 approved. Corrupted sentence repaired and verified by reading the rendered result; whole-document doubled-word and stranded-quantifier sweep clean; 47/47 host distribution re-verified against live data; all cycle-2 items (canary arithmetic, Persistent=true examples, dated count) independently confirmed. Coherent end-to-end read.",
+        "Cycle 3: Q4 now answerable — 'recognisable path' defined, safe case stated explicitly, two constraints linked"
       ],
       "provider": "__resolved_provider_absent__",
       "review": null,
@@ -154,10 +155,10 @@
       "agent": "claude",
       "agent_profile": "__resolved_profile_absent__",
       "agent_profile_version": "__resolved_profile_version_absent__",
-      "force_count": 1,
-      "lane": "approved",
-      "last_event_id": "01M15YA8DXM9K6G32RYHDAVBVN",
-      "last_transition_at": "2026-08-29T05:01:42.718004+00:00",
+      "force_count": 2,
+      "lane": "planned",
+      "last_event_id": "01M15Z8NKZ2FNFWY9TXET9CXHG",
+      "last_transition_at": "2026-08-29T05:18:19.263344+00:00",
       "model": "__resolved_model_absent__",
       "notes": [
         "Glossary four devices + four canonical terms; CLAUDE.md office4 row + ADR pointer; signal map now names hardware-inventory.json in the specific change class",
