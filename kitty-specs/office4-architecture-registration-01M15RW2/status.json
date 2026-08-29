@@ -1,7 +1,7 @@
 {
-  "event_count": 53,
-  "last_event_id": "01M15Y13BMTP2ZVJJMPANSXCN8",
-  "materialized_at": "2026-08-29T04:56:42.612708+00:00",
+  "event_count": 54,
+  "last_event_id": "01M15Y494MSP9BAYKRRJ45BX4H",
+  "materialized_at": "2026-08-29T04:58:26.836434+00:00",
   "mission_number": "",
   "mission_slug": "office4-architecture-registration-01M15RW2",
   "mission_type": "documentation",
@@ -13,8 +13,8 @@
     "done": 0,
     "for_review": 0,
     "in_progress": 0,
-    "in_review": 1,
-    "planned": 1
+    "in_review": 0,
+    "planned": 2
   },
   "work_packages": {
     "WP01": {
@@ -150,19 +150,25 @@
       }
     },
     "WP05": {
-      "actor": "claude",
+      "actor": "user",
       "agent": "claude",
       "agent_profile": "__resolved_profile_absent__",
       "agent_profile_version": "__resolved_profile_version_absent__",
-      "force_count": 0,
-      "lane": "in_review",
-      "last_event_id": "01M15XW9BDG3B2BY3FB04552BM",
-      "last_transition_at": "2026-08-29T04:54:04.909325+00:00",
+      "force_count": 1,
+      "lane": "planned",
+      "last_event_id": "01M15Y494MSP9BAYKRRJ45BX4H",
+      "last_transition_at": "2026-08-29T04:58:26.836434+00:00",
       "model": "__resolved_model_absent__",
       "notes": [
         "Glossary four devices + four canonical terms; CLAUDE.md office4 row + ADR pointer; signal map now names hardware-inventory.json in the specific change class"
       ],
       "provider": "__resolved_provider_absent__",
+      "review_result": {
+        "feedback_path": "/home/kgale/repos/kg-automation/kitty-specs/office4-architecture-registration-01M15RW2/tasks/WP05-adjacent-surfaces/review-cycle-1.md",
+        "reference": "review-cycle://office4-architecture-registration-01M15RW2/WP05-adjacent-surfaces/review-cycle-1.md",
+        "reviewer": "user",
+        "verdict": "changes_requested"
+      },
       "role": "reviewer",
       "shell_pid": 144160,
       "shell_pid_created_at": "1787979238.54",
