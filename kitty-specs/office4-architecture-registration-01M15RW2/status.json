@@ -129,7 +129,8 @@
       "last_transition_at": "2026-08-29T04:56:42.612708+00:00",
       "model": "__resolved_model_absent__",
       "notes": [
-        "ADR 0008 registered in all four surfaces; portal pointer verified outside the generated block"
+        "ADR 0008 registered in all four surfaces; portal pointer verified outside the generated block",
+        "Approved. Generated portal block byte-identical before/after (4918 bytes) — verified by extraction, not line numbers. All five added links resolved from their containing directories. Table conventions followed over the prompt's literal where they conflicted. Both gates green; exactly four files."
       ],
       "provider": "__resolved_provider_absent__",
       "review_result": {
