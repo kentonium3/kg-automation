@@ -65,7 +65,8 @@
         "ADR 0008 authored; all 5 citations verified; validate_docs OK",
         "Cycle 1 feedback addressed: worked case A replaced with restic-backup (verified no-catch-up plain cron vs Persistent=true timers), Alternatives Considered added, citation 2 rigor equalised, #910 reference, dated count",
         "Cycle 2 addressed: unrecoverability-not-undetectability rewrite, invalid Persistent=true example replaced, dated count actually applied this time",
-        "Cycle 3 F6-R fixed: corrupted sentence repaired, paragraph re-wrapped, verification now reads the rendered result rather than asserting on the replacement"
+        "Cycle 3 F6-R fixed: corrupted sentence repaired, paragraph re-wrapped, verification now reads the rendered result rather than asserting on the replacement",
+        "Cycle 4 approved. Corrupted sentence repaired and verified by reading the rendered result; whole-document doubled-word and stranded-quantifier sweep clean; 47/47 host distribution re-verified against live data; all cycle-2 items (canary arithmetic, Persistent=true examples, dated count) independently confirmed. Coherent end-to-end read."
       ],
       "provider": "__resolved_provider_absent__",
       "review": null,
