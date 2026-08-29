@@ -117,11 +117,11 @@
     {
       "criterion_id": "FR-012",
       "description": "Verify FR-012 is satisfied",
-      "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
+      "proof_type": "external_action",
+      "evidence": "Comment posted: https://github.com/kentonium3/kg-automation/issues/909#issuecomment-5460474191 \u2014 corrects both the hardware-inventory premise and the non-failing --strict verification step. Citations independently checked.",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-08-29T05:46:31.542755+00:00",
       "notes": "TODO: replace with a real acceptance criterion"
     },
     {
