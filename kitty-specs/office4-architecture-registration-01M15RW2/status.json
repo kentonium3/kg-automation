@@ -151,7 +151,7 @@
     },
     "WP05": {
       "actor": "user",
-      "agent": "claude",
+      "agent": null,
       "agent_profile": "__resolved_profile_absent__",
       "agent_profile_version": "__resolved_profile_version_absent__",
       "force_count": 1,
@@ -163,6 +163,7 @@
         "Glossary four devices + four canonical terms; CLAUDE.md office4 row + ADR pointer; signal map now names hardware-inventory.json in the specific change class"
       ],
       "provider": "__resolved_provider_absent__",
+      "review": null,
       "review_result": {
         "feedback_path": "/home/kgale/repos/kg-automation/kitty-specs/office4-architecture-registration-01M15RW2/tasks/WP05-adjacent-surfaces/review-cycle-1.md",
         "reference": "review-cycle://office4-architecture-registration-01M15RW2/WP05-adjacent-surfaces/review-cycle-1.md",
@@ -170,14 +171,14 @@
         "verdict": "changes_requested"
       },
       "role": "reviewer",
-      "shell_pid": 144160,
-      "shell_pid_created_at": "1787979238.54",
+      "shell_pid": null,
+      "shell_pid_created_at": null,
       "subtasks": {
-        "T020": "done",
-        "T021": "done",
-        "T022": "done",
-        "T023": "done",
-        "T024": "done"
+        "T020": "planned",
+        "T021": "planned",
+        "T022": "planned",
+        "T023": "planned",
+        "T024": "planned"
       }
     },
     "WP06": {
