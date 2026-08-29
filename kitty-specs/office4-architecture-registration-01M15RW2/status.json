@@ -1,7 +1,7 @@
 {
-  "event_count": 9,
-  "last_event_id": "01M15VZ71Q0G9NAWJ3KN5GS182",
-  "materialized_at": "2026-08-29T04:20:43.703362+00:00",
+  "event_count": 10,
+  "last_event_id": "01M15VZXVQAS1TG89HG0M8YPGM",
+  "materialized_at": "2026-08-29T04:21:07.063869+00:00",
   "mission_number": "",
   "mission_slug": "office4-architecture-registration-01M15RW2",
   "mission_type": "documentation",
@@ -11,9 +11,9 @@
     "canceled": 0,
     "claimed": 0,
     "done": 0,
-    "for_review": 1,
+    "for_review": 0,
     "in_progress": 0,
-    "in_review": 0,
+    "in_review": 1,
     "planned": 5
   },
   "work_packages": {
@@ -23,14 +23,17 @@
       "agent_profile": "__resolved_profile_absent__",
       "agent_profile_version": "__resolved_profile_version_absent__",
       "force_count": 0,
-      "lane": "for_review",
-      "last_event_id": "01M15VZ71Q0G9NAWJ3KN5GS182",
-      "last_transition_at": "2026-08-29T04:20:43.703362+00:00",
+      "lane": "in_review",
+      "last_event_id": "01M15VZXVQAS1TG89HG0M8YPGM",
+      "last_transition_at": "2026-08-29T04:21:07.063869+00:00",
       "model": "__resolved_model_absent__",
+      "notes": [
+        "T001-T005 complete; minimal textual edits, both validators green, service-inventory asserted untouched"
+      ],
       "provider": "__resolved_provider_absent__",
-      "role": "implementer",
-      "shell_pid": 117421,
-      "shell_pid_created_at": "1787977094.79",
+      "role": "reviewer",
+      "shell_pid": 119366,
+      "shell_pid_created_at": "1787977265.21",
       "subtasks": {
         "T001": "done",
         "T002": "done",
