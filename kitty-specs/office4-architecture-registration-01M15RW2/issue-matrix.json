@@ -37,7 +37,7 @@
       "wp": "WP01"
     },
     "#917": {
-      "evidence_ref": "Referenced as precedent only \u2014 the undocumented codex account is cited as the drift class ADR 0008 guards against. Not resolved here; remains independently tracked.",
+      "evidence_ref": "Cited as precedent only \u2014 the undocumented codex account is the drift class ADR 0008 guards against. Follow-up: #917 remains open and owns the remediation.",
       "fr": null,
       "nfr": null,
       "repo": null,
