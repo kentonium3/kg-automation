@@ -37,7 +37,7 @@
       "wp": "WP01"
     },
     "#917": {
-      "evidence_ref": "<link or commit>",
+      "evidence_ref": "Referenced as precedent only \u2014 the undocumented codex account is cited as the drift class ADR 0008 guards against. Not resolved here; remains independently tracked.",
       "fr": null,
       "nfr": null,
       "repo": null,
@@ -45,7 +45,7 @@
       "scope": null,
       "source_file": "spec.md",
       "title": "<fill at WP-implementation time>",
-      "verdict": "unknown",
+      "verdict": "deferred-with-followup",
       "wp": null
     }
   },
