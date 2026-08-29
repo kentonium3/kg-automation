@@ -1,0 +1,19 @@
+{
+  "wp_id": "WP03",
+  "captured_at": "2026-08-29T04:27:23Z",
+  "base_branch": "feat/office4-architecture-registration",
+  "base_commit": "dd67411de2906f25d1411f85e5c1ac68fd30c9ac",
+  "test_runner": "pytest",
+  "total": 1,
+  "passed": 0,
+  "failed": 1,
+  "skipped": 0,
+  "failures": [
+    {
+      "test": "<gate-coverage-junit>",
+      "error": "no JUnit XML artifact produced by the scoped run",
+      "file": "unknown"
+    }
+  ],
+  "source_identity": "GateCoverageScopeSource/junit_xml"
+}
