@@ -27,11 +27,11 @@
     {
       "criterion_id": "FR-003",
       "description": "Verify FR-003 is satisfied",
-      "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
+      "proof_type": "code_citation_check",
+      "evidence": "Five repo-root-relative citations, each re-verified at its stated line by two independent reviewers: manifest-v1.schema.json:7 (additionalProperties:false), deploylock.py:37/:41, _tick.py:59/:404, rebaseline.py:49, tier.py:73.",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-08-29T05:46:13.463579+00:00",
       "notes": "TODO: replace with a real acceptance criterion"
     },
     {
