@@ -80,12 +80,26 @@ alone** — it is not handed to sshd, and `~/.ssh/authorized_keys` plays no part
 it would require browser re-auth (incompatible with Termius mobile). See
 [ADR-0004](<./adr/0004-tailscale-ssh-with-accept-acl.md>) for the decision rationale.
 
-The current ACL is `src: autogroup:member` → `dst: autogroup:self`, `users: [autogroup:nonroot, root]`.
+The current ACL is `src: autogroup:member` → `dst: autogroup:self`,
+`users: ["kgale", "claude", "codex"]`.
+
+Narrowed 2026-08-29 (#932). It previously read `users: [autogroup:nonroot, root]` — which
+granted **root on office2 to any tailnet device, with no key and no password**. `PermitRootLogin
+no` in `sshd_config` did not prevent it and never could: on path A the connection never reaches
+sshd. Naming the accounts also scopes per host without device tagging, since office2 has exactly
+these three and office4 has only `kgale`.
+
+The removal is now asserted rather than assumed. The tailnet policy carries an `sshTests` block
+(`"deny": ["root"]`), evaluated on every policy save, so reintroducing root fails the save. This
+matters because the policy's other `tests` block **cannot** validate SSH rules — per Tailscale's
+documentation `tests` covers network-level grants only.
 
 > **Consequence, stated plainly: membership of the tailnet is equivalent to a shell on office2
-> as any non-root user — including `claude`, the agent account — with no key and no password.**
-> Adding any device to the tailnet grants that access immediately, with no key-provisioning
-> step anywhere.
+> as `kgale`, `claude`, or `codex` — including the agent account — with no key and no
+> password.** Adding any device to the tailnet grants that access immediately, with no
+> key-provisioning step anywhere. This is deliberate (ADR-0004 chose `accept` over `check` so
+> Termius mobile would work), and it is the reason tailnet membership is itself a security
+> boundary. Root is no longer among the reachable accounts; the rest of the property stands.
 
 Verified 2026-08-29 from office4, which at the time held **no SSH private key at all**:
 

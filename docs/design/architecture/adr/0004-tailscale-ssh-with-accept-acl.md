@@ -161,6 +161,36 @@ re-auth that `check` mode requires — see "Tradeoffs" below.
   Reason: Termius mobile cannot complete browser re-auth; phone-recovery
   for #572 was blocked.
 
+- **2026-08-29** — `users` narrowed from `[autogroup:nonroot, root]` to
+  `["kgale", "claude", "codex"]` (#932). Reason: `root` in the users list gave **any tailnet
+  device a root shell on office2 with no key and no password**. `PermitRootLogin no` in
+  `sshd_config` did not prevent it and never could — Tailscale SSH terminates the connection
+  itself and never consults sshd, so that directive is not on this path. Verified before and
+  after from the MacBook with a deliberately nonexistent key file: `uid=0(root)` beforehand,
+  `tailscale: tailnet policy does not permit you to SSH as user "root"` afterwards. Naming the
+  accounts also scopes per host without device tagging (office2 has these three; office4 has
+  only `kgale`). The `action: accept` decision this ADR records is **unchanged**.
+
+  An `sshTests` block was added in the same edit (`"deny": ["root"]`) so the restriction is
+  asserted on every policy save rather than trusted. The policy's pre-existing `tests` block
+  could not cover it: per Tailscale's documentation, `tests` validates network-level grants
+  only, not `ssh` rules.
+
+- **2026-08-29 — erratum against ADR-0008** (#931). ADR-0008 §*Review-only affirmations*
+  justifies leaving this ADR unchanged on the grounds that office4's `RunSSH: false` makes
+  office4's tailnet membership immaterial to this ACL. **That reasoning is backwards in
+  direction.** `RunSSH: false` governs SSH *into* office4; what widened is office4's ability to
+  SSH *into* office2, which is governed by office2's `RunSSH: true` and this ACL's
+  `src: autogroup:member`. office4 joining the tailnet **did** materially widen who can reach
+  office2. ADR-0008's *conclusion* — that this ADR's decision is unchanged — remains correct;
+  only its stated reason is wrong. Recorded here rather than in ADR-0008 because ADR bodies are
+  frozen once approved (see `README.md`), and because `security-posture.md` designates this log
+  as where tailnet SSH-rule matters are recorded.
+
+  Worth noting how it survived review: two independent reviewers verified the `RunSSH: false`
+  citation and confirmed it true — which it is. Neither asked whether it was the *relevant*
+  fact. Verifying a citation is not the same as verifying the inference it supports.
+
 (Future ACL changes record here.)
 
 ## References
