@@ -67,7 +67,8 @@
         "Cycle 2 addressed: unrecoverability-not-undetectability rewrite, invalid Persistent=true example replaced, dated count actually applied this time",
         "Cycle 3 F6-R fixed: corrupted sentence repaired, paragraph re-wrapped, verification now reads the rendered result rather than asserting on the replacement",
         "Cycle 4 approved. Corrupted sentence repaired and verified by reading the rendered result; whole-document doubled-word and stranded-quantifier sweep clean; 47/47 host distribution re-verified against live data; all cycle-2 items (canary arithmetic, Persistent=true examples, dated count) independently confirmed. Coherent end-to-end read.",
-        "Cycle 3: Q4 now answerable — 'recognisable path' defined, safe case stated explicitly, two constraints linked"
+        "Cycle 3: Q4 now answerable — 'recognisable path' defined, safe case stated explicitly, two constraints linked",
+        "Cycle 4: false 'cannot exist' claim replaced with the true weaker form; /home/linuxbrew counterexample cited in-document; R-3 defaults-to qualifier restored; editorialising removed"
       ],
       "provider": "__resolved_provider_absent__",
       "review": null,
