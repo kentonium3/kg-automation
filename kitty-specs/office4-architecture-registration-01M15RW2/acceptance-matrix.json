@@ -47,11 +47,11 @@
     {
       "criterion_id": "FR-005",
       "description": "Verify FR-005 is satisfied",
-      "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
+      "proof_type": "document_inspection",
+      "evidence": "ADR records the remote-actor rationale for office2's claude user and why office4 inverts it. Verified: getent passwd claude/codex both return exit 2 on office4.",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-08-29T05:46:17.421150+00:00",
       "notes": "TODO: replace with a real acceptance criterion"
     },
     {
