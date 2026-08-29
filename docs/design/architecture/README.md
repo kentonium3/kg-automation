@@ -37,6 +37,7 @@ See [`docs/INDEX.md`](<../../INDEX.md>) for the complete listing of machine-read
 | [Post-Change Verification](../runbooks/governance/post-change-verification.md) | Post-change service health verification |
 | [Postmortems](../../issues/postmortems/) | Incident analysis records |
 | [Glossary](<./glossary.md>) | Canonical terms |
+| [ADR Index](<./adr/README.md>) | Architecture decision records — why options were chosen. Includes [ADR-0008](<./adr/0008-three-machine-model.md>), the three-machine model |
 
 ## Data Files
 

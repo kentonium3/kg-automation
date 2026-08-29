@@ -1,0 +1,227 @@
+{
+  "event_count": 96,
+  "last_event_id": "01M160YV3AV4KBHKM87SFFPAEF",
+  "materialized_at": "2026-08-29T05:47:54.346939+00:00",
+  "mission_number": "113",
+  "mission_slug": "office4-architecture-registration-01M15RW2",
+  "mission_type": "documentation",
+  "summary": {
+    "approved": 0,
+    "blocked": 0,
+    "canceled": 0,
+    "claimed": 0,
+    "done": 6,
+    "for_review": 0,
+    "in_progress": 0,
+    "in_review": 0,
+    "planned": 0
+  },
+  "work_packages": {
+    "WP01": {
+      "actor": "merge",
+      "agent": "claude",
+      "agent_profile": "__resolved_profile_absent__",
+      "agent_profile_version": "__resolved_profile_version_absent__",
+      "force_count": 1,
+      "lane": "done",
+      "last_event_id": "01M160YN6RPK2A488V9FTF2CX2",
+      "last_transition_at": "2026-08-29T05:47:48.312116+00:00",
+      "model": "__resolved_model_absent__",
+      "notes": [
+        "T001-T005 complete; minimal textual edits, both validators green, service-inventory asserted untouched",
+        "Review passed. Independent re-derivation of os/hardware from /etc/os-release and sysfs matched byte-for-byte; the uname -a trap was confirmed present and not taken. Formatting fidelity clean (16 insertions/5 deletions; compact style and unicode escapes preserved). hosts[0]=office2 verified against the sole positional consumer (ollama-ops.md:30). Both validators green.",
+        "Cycle 1 fix: false 'exposes no port' claim removed from the authoritative JSON; sshd fact now stated positively and verified",
+        "Cycle 2 approved. False 'exposes no port' claim removed; sshd fact stated positively. Reviewer proved tailnet reachability end-to-end from office2 (real banner + auth challenge through DROP-default ufw), closing the question cycle 1 left open. All cycle-1 properties intact: append order, thin form, schema_versions, formatting fidelity, service-inventory untouched. Both validators green."
+      ],
+      "provider": "__resolved_provider_absent__",
+      "review": null,
+      "review_result": {
+        "reference": "Cycle 2 approved. False 'exposes no port' claim removed; sshd fact stated positively. Reviewer proved tailnet reachability end-to-end from office2 (real banner + auth challenge through DROP-default ufw), closing the question cycle 1 left open. All cycle-1 properties intact: append order, thin form, schema_versions, formatting fidelity, service-inventory untouched. Both validators green.",
+        "reviewer": "Kent Gale",
+        "verdict": "approved"
+      },
+      "role": "reviewer",
+      "shell_pid": 131416,
+      "shell_pid_created_at": "1787978184.66",
+      "subtasks": {
+        "T001": "done",
+        "T002": "done",
+        "T003": "done",
+        "T004": "done",
+        "T005": "done"
+      }
+    },
+    "WP02": {
+      "actor": "merge",
+      "agent": "claude",
+      "agent_profile": "__resolved_profile_absent__",
+      "agent_profile_version": "__resolved_profile_version_absent__",
+      "force_count": 5,
+      "lane": "done",
+      "last_event_id": "01M160YPC51XBACTTMBM7X0MGE",
+      "last_transition_at": "2026-08-29T05:47:49.509968+00:00",
+      "model": "__resolved_model_absent__",
+      "notes": [
+        "ADR 0008 authored; all 5 citations verified; validate_docs OK",
+        "Cycle 1 feedback addressed: worked case A replaced with restic-backup (verified no-catch-up plain cron vs Persistent=true timers), Alternatives Considered added, citation 2 rigor equalised, #910 reference, dated count",
+        "Cycle 2 addressed: unrecoverability-not-undetectability rewrite, invalid Persistent=true example replaced, dated count actually applied this time",
+        "Cycle 3 F6-R fixed: corrupted sentence repaired, paragraph re-wrapped, verification now reads the rendered result rather than asserting on the replacement",
+        "Cycle 4 approved. Corrupted sentence repaired and verified by reading the rendered result; whole-document doubled-word and stranded-quantifier sweep clean; 47/47 host distribution re-verified against live data; all cycle-2 items (canary arithmetic, Persistent=true examples, dated count) independently confirmed. Coherent end-to-end read.",
+        "Cycle 3: Q4 now answerable — 'recognisable path' defined, safe case stated explicitly, two constraints linked",
+        "Cycle 4: false 'cannot exist' claim replaced with the true weaker form; /home/linuxbrew counterexample cited in-document; R-3 defaults-to qualifier restored; editorialising removed",
+        "Cycle 4 approved. False 'cannot exist' claim replaced with the true bounded form; every assertion re-verified on the live host (no claude user, no /home/claude, /home/linuxbrew counterexample, zero identity lookups in felix-deployer/ and lib/). Internal consistency restored across all four passages. Q4 still answerable — arguably better, since a reader previously told the breach was impossible had no reason to check."
+      ],
+      "provider": "__resolved_provider_absent__",
+      "review": null,
+      "review_result": {
+        "reference": "Cycle 4 approved. False 'cannot exist' claim replaced with the true bounded form; every assertion re-verified on the live host (no claude user, no /home/claude, /home/linuxbrew counterexample, zero identity lookups in felix-deployer/ and lib/). Internal consistency restored across all four passages. Q4 still answerable — arguably better, since a reader previously told the breach was impossible had no reason to check.",
+        "reviewer": "Kent Gale",
+        "verdict": "approved"
+      },
+      "role": "reviewer",
+      "shell_pid": 162457,
+      "shell_pid_created_at": "1787981135.5",
+      "subtasks": {
+        "T006": "done",
+        "T007": "done",
+        "T008": "done",
+        "T009": "done",
+        "T010": "done",
+        "T011": "done"
+      }
+    },
+    "WP03": {
+      "actor": "merge",
+      "agent": "claude",
+      "agent_profile": "__resolved_profile_absent__",
+      "agent_profile_version": "__resolved_profile_version_absent__",
+      "force_count": 1,
+      "lane": "done",
+      "last_event_id": "01M160YQJ60ZJQ5RY78H2EE8TR",
+      "last_transition_at": "2026-08-29T05:47:50.726296+00:00",
+      "model": "__resolved_model_absent__",
+      "notes": [
+        "Narrative views updated; prose reconciled against JSON; validate_docs OK",
+        "Cycle 1 addressed: false exposure claims removed, sshd fact stated positively, duplicate bullets folded, claude-user sentence scoped to office2",
+        "Cycle 2 approved. False SSH-exposure claims fixed at root: sshd fact stated positively, gate 1/gate 2 mapping verified against the actual definitions, negative confined to the measured RunSSH fact. All regressions hold; JSON byte-for-byte; validate_docs OK."
+      ],
+      "provider": "__resolved_provider_absent__",
+      "review": null,
+      "review_result": {
+        "reference": "Cycle 2 approved. False SSH-exposure claims fixed at root: sshd fact stated positively, gate 1/gate 2 mapping verified against the actual definitions, negative confined to the measured RunSSH fact. All regressions hold; JSON byte-for-byte; validate_docs OK.",
+        "reviewer": "Kent Gale",
+        "verdict": "approved"
+      },
+      "role": "reviewer",
+      "shell_pid": 135745,
+      "shell_pid_created_at": "1787978554.18",
+      "subtasks": {
+        "T012": "done",
+        "T013": "done",
+        "T014": "done"
+      }
+    },
+    "WP04": {
+      "actor": "merge",
+      "agent": "claude",
+      "agent_profile": "__resolved_profile_absent__",
+      "agent_profile_version": "__resolved_profile_version_absent__",
+      "force_count": 0,
+      "lane": "done",
+      "last_event_id": "01M160YRQDGVR7H69PPF390D0H",
+      "last_transition_at": "2026-08-29T05:47:51.917285+00:00",
+      "model": "__resolved_model_absent__",
+      "notes": [
+        "ADR 0008 registered in all four surfaces; portal pointer verified outside the generated block",
+        "Approved. Generated portal block byte-identical before/after (4918 bytes) — verified by extraction, not line numbers. All five added links resolved from their containing directories. Table conventions followed over the prompt's literal where they conflicted. Both gates green; exactly four files."
+      ],
+      "provider": "__resolved_provider_absent__",
+      "review_result": {
+        "reference": "Approved. Generated portal block byte-identical before/after (4918 bytes) — verified by extraction, not line numbers. All five added links resolved from their containing directories. Table conventions followed over the prompt's literal where they conflicted. Both gates green; exactly four files.",
+        "reviewer": "Kent Gale",
+        "verdict": "approved"
+      },
+      "role": "reviewer",
+      "shell_pid": 144160,
+      "shell_pid_created_at": "1787979238.54",
+      "subtasks": {
+        "T015": "done",
+        "T016": "done",
+        "T017": "done",
+        "T018": "done",
+        "T019": "done"
+      }
+    },
+    "WP05": {
+      "actor": "merge",
+      "agent": "claude",
+      "agent_profile": "__resolved_profile_absent__",
+      "agent_profile_version": "__resolved_profile_version_absent__",
+      "force_count": 3,
+      "lane": "done",
+      "last_event_id": "01M160YSWK2KGQEMJAYKNVEJS4",
+      "last_transition_at": "2026-08-29T05:47:53.107376+00:00",
+      "model": "__resolved_model_absent__",
+      "notes": [
+        "Glossary four devices + four canonical terms; CLAUDE.md office4 row + ADR pointer; signal map now names hardware-inventory.json in the specific change class",
+        "Low-1 fixed: rich-form key list now exact (bios, cpu, disks, gpu, kernel, ram_gb), verified by re-deriving from the JSON. Low-2 confirmed a non-defect.",
+        "Cycle 2 approved. Rich-form key list independently re-derived from the JSON and matches exactly (bios, cpu, disks, gpu, kernel, ram_gb). Low-2 disposition confirmed correct by first-hand check on office4. CORRECTION TO THE RECORD: the fix commit's body claims 'no .obsidian directory anywhere under /home/kgale' — there are six (the git-tracked docs/.obsidian vault config, replicated per lane worktree). The conclusion is unaffected and correct; the stated evidence was overbroad. Load-bearing facts that do hold: no ~/second-brain, Obsidian not installed.",
+        "Cycle 2: CLAUDE.md Obsidian Sync row now enumerates and names the office4 exclusion; no 'all devices' generalisation survives",
+        "Cycle 2, claimed legitimately this time (WP02 now approved). CLAUDE.md Obsidian Sync row enumerates and names the office4 exclusion; zero 'all devices' generalisations survive; both gates green.",
+        "Cycle 2 approved. Obsidian Sync row verified true by direct inspection on office4 (no second-brain vault, Obsidian not installed); docs/.obsidian and the apparmor stub both disposed of as red herrings. Zero surviving 'all devices' generalisations anywhere in the file. Table integrity byte-verified; one file, one line; frontmatter untouched; both gates green; all earlier WP05 deliverables intact."
+      ],
+      "provider": "__resolved_provider_absent__",
+      "review": null,
+      "review_result": {
+        "reference": "Cycle 2 approved. Obsidian Sync row verified true by direct inspection on office4 (no second-brain vault, Obsidian not installed); docs/.obsidian and the apparmor stub both disposed of as red herrings. Zero surviving 'all devices' generalisations anywhere in the file. Table integrity byte-verified; one file, one line; frontmatter untouched; both gates green; all earlier WP05 deliverables intact.",
+        "reviewer": "Kent Gale",
+        "verdict": "approved"
+      },
+      "role": "reviewer",
+      "shell_pid": 165095,
+      "shell_pid_created_at": "1787981428.19",
+      "subtasks": {
+        "T020": "done",
+        "T021": "done",
+        "T022": "done",
+        "T023": "done",
+        "T024": "done"
+      }
+    },
+    "WP06": {
+      "actor": "merge",
+      "agent": "claude",
+      "agent_profile": "__resolved_profile_absent__",
+      "agent_profile_version": "__resolved_profile_version_absent__",
+      "force_count": 1,
+      "lane": "done",
+      "last_event_id": "01M160YV3AV4KBHKM87SFFPAEF",
+      "last_transition_at": "2026-08-29T05:47:54.346939+00:00",
+      "model": "__resolved_model_absent__",
+      "notes": [
+        "Closeout complete: #909 corrected, full verification suite recorded, merge-safety analysis, --no-ff handoff documented",
+        "Cycle 1 addressed: step 6 downgraded from a laundered PASS, F1/F2/F3 recorded, three overstatements corrected, two process notes added including the orchestrator's own rule breaches",
+        "Cycle 2 approved. All six cycle-1 items addressed; every corrected string independently verified; no new inaccuracy. Reviewer recomputed the unchanged claims (47 services, 285/282/3 links, 13/13 SC-005) and computed the full five-lane merge via commit-tree chaining — all clean, corrected text survives in the merged tree."
+      ],
+      "provider": "__resolved_provider_absent__",
+      "review": null,
+      "review_result": {
+        "reference": "Cycle 2 approved. All six cycle-1 items addressed; every corrected string independently verified; no new inaccuracy. Reviewer recomputed the unchanged claims (47 services, 285/282/3 links, 13/13 SC-005) and computed the full five-lane merge via commit-tree chaining — all clean, corrected text survives in the merged tree.",
+        "reviewer": "Kent Gale",
+        "verdict": "approved"
+      },
+      "role": "reviewer",
+      "shell_pid": 168718,
+      "shell_pid_created_at": "1787981727.42",
+      "subtasks": {
+        "T025": "done",
+        "T026": "done",
+        "T027": "done",
+        "T028": "done",
+        "T029": "done",
+        "T030": "done",
+        "T031": "done"
+      }
+    }
+  }
+}

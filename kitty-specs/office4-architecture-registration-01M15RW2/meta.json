@@ -1,0 +1,54 @@
+{
+  "accept_commit": "6d6a6545121d51257918aaf7efacf22aceb9e323",
+  "acceptance_history": [
+    {
+      "accept_commit": "6d6a6545121d51257918aaf7efacf22aceb9e323",
+      "acceptance_mode": "pr",
+      "accepted_at": "2026-08-29T05:47:10.638535+00:00",
+      "accepted_by": "kgale",
+      "accepted_from_commit": "1494f632fc350971016db4c19a8780368446a890"
+    }
+  ],
+  "acceptance_mode": "pr",
+  "accepted_at": "2026-08-29T05:47:10.638535+00:00",
+  "accepted_by": "kgale",
+  "accepted_from_commit": "1494f632fc350971016db4c19a8780368446a890",
+  "baseline_merge_commit": "1f3b4b2f9837689ad996a294477ee6a4a3adf732",
+  "created_at": "2026-08-29T03:26:35.057326+00:00",
+  "documentation_state": {
+    "coverage_percentage": 0.0,
+    "divio_types_selected": [
+      "explanation",
+      "reference"
+    ],
+    "generators_configured": [
+      {
+        "config_path": "",
+        "language": "javascript",
+        "name": "jsdoc"
+      },
+      {
+        "config_path": "",
+        "language": "python",
+        "name": "sphinx"
+      }
+    ],
+    "iteration_mode": "mission-specific",
+    "last_audit_date": null,
+    "target_audience": "maintainer and future agent sessions"
+  },
+  "flattened": false,
+  "friendly_name": "Register office4 in the Architecture",
+  "mission_id": "01M15RW2HGNZH2N00P9CTB1RPR",
+  "mission_number": 113,
+  "mission_slug": "office4-architecture-registration-01M15RW2",
+  "mission_type": "documentation",
+  "purpose_context": "office4 is live on the tailnet and is now Kent's primary development machine, but it appears in no architecture document. The decisions that shaped the migration — office4 as an unmanaged peer, the attended/unattended split, and why it is deliberately not a felix-deployer target — exist only in a local plan file and GitHub issue comments. This mission writes those decisions into the durable architecture store so later sessions inherit the constraint instead of rediscovering it or violating it by accident.",
+  "purpose_tldr": "Record the three-machine architecture decision as an ADR and register office4 in the architecture data, so the office2/office4 boundary is documented rather than re-derived.",
+  "slug": "office4-architecture-registration-01M15RW2",
+  "source_description": "GitHub issue kentonium3/kg-automation#909 - Infra: office4 Phase 0 - ADR + architecture-data registration for the three-machine model",
+  "status_phase": "1",
+  "target_branch": "feat/office4-architecture-registration",
+  "topology": "single_branch",
+  "vcs": "git"
+}

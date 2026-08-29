@@ -50,3 +50,4 @@ ADRs are numbered sequentially (`0001-`, `0002-`, ...). Once approved, the body 
 | [0005](<./0005-vikunja-client-standards.md>) | Vikunja client standardization (base URL, token, timeout, error policy) | approved | 2026-06-10 |
 | [0006](<./0006-felix-component-lifecycle-status-contract.md>) | Felix component lifecycle status contract (declared status vs observed health) | approved | 2026-07-11 |
 | [0007](<./0007-retire-vikunja-felix-bot.md>) | Retire Vikunja felix-bot; single kent-token runtime identity | approved | 2026-07-23 |
+| [0008](<./0008-three-machine-model.md>) | Three-machine model; office2 managed, MacBook Pro and office4 unmanaged peers | approved | 2026-08-29 |

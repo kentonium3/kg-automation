@@ -37,10 +37,17 @@ authoritative work backlog.
 | Component | Role |
 |---|---|
 | MacBook Pro | Primary authoring and interaction |
-| office2 (Ubuntu 24.04 LTS) | Always-on hub — OpenClaw, Vikunja, inbox processor |
+| office4 (Linux Mint 22.3) | Kent's primary development machine — **attended, unmanaged peer**; not a deploy target |
+| office2 (Ubuntu 24.04 LTS) | Always-on hub — OpenClaw, Vikunja, inbox processor. The **only managed host** |
 | iPhone | Mobile capture (Wispr Flow) and task monitoring (Vikunja web UI) |
 | GitHub | Version control, CI validation on push |
-| Obsidian Sync | Vault sync across all devices including office2 |
+| Obsidian Sync | Vault sync across Mac, iPhone, and office2 (**not** office4 — no vault there) |
+
+**Which machine does what.** office2 is unattended; office4 is attended. Both are always-on,
+so uptime is not the distinguishing axis — attendedness is. Before placing any workload, read
+[ADR-0008](docs/design/architecture/adr/0008-three-machine-model.md): it records the
+three-machine model, the placement test, and why office4 is deliberately not a felix-deployer
+target.
 
 ## Server Access (office2)
 

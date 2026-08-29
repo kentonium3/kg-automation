@@ -1,0 +1,169 @@
+{
+  "mission_slug": "office4-architecture-registration-01M15RW2",
+  "mission_number": "",
+  "mission_type": "documentation",
+  "overall_verdict": "pass",
+  "criteria": [
+    {
+      "criterion_id": "FR-001",
+      "description": "Verify FR-001 is satisfied",
+      "proof_type": "document_inspection",
+      "evidence": "ADR 0008 at docs/design/architecture/adr/0008-three-machine-model.md records the three-machine model (office2 managed; MacBook Pro and office4 unmanaged peers). Verified in 5 review cycles.",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-08-29T05:46:09.433703+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-002",
+      "description": "Verify FR-002 is satisfied",
+      "proof_type": "document_inspection",
+      "evidence": "ADR section 'The governing principle' states office2-unattended/office4-attended, explicitly rejects uptime as the axis, and gives the ten-minute placement test with TWO worked cases (restic-backup -> office2; local model server -> office4). Worked case A was corrected once after it resolved the wrong way under its own test.",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-08-29T05:46:11.431484+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-003",
+      "description": "Verify FR-003 is satisfied",
+      "proof_type": "code_citation_check",
+      "evidence": "Five repo-root-relative citations, each re-verified at its stated line by two independent reviewers: manifest-v1.schema.json:7 (additionalProperties:false), deploylock.py:37/:41, _tick.py:59/:404, rebaseline.py:49, tier.py:73.",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-08-29T05:46:13.463579+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-004",
+      "description": "Verify FR-004 is satisfied",
+      "proof_type": "document_inspection",
+      "evidence": "Checkout constraint now defines 'felix-deployer-recognisable path' (the deployer's repo_root, by default /home/claude/kg-automation) and states explicitly that /home/kgale/repos/kg-automation is NOT a breach. A false 'cannot exist' claim was found and removed in cycle 4.",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-08-29T05:46:15.456552+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-005",
+      "description": "Verify FR-005 is satisfied",
+      "proof_type": "document_inspection",
+      "evidence": "ADR records the remote-actor rationale for office2's claude user and why office4 inverts it. Verified: getent passwd claude/codex both return exit 2 on office4.",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-08-29T05:46:17.421150+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-006",
+      "description": "Verify FR-006 is satisfied",
+      "proof_type": "json_assertion",
+      "evidence": "network.devices has 4 entries incl. office4/100.112.83.28/linux; all four IPs reconciled against live 'tailscale status'.",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-08-29T05:46:19.433069+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-007",
+      "description": "Verify FR-007 is satisfied",
+      "proof_type": "json_assertion",
+      "evidence": "hardware-inventory hosts has 4 entries; office4 appended (office2 remains hosts[0] for ollama-ops.md:30) in thin form with exactly 5 keys; os and hardware re-derived from /etc/os-release and sysfs by an independent reviewer.",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-08-29T05:46:21.462332+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-008",
+      "description": "Verify FR-008 is satisfied",
+      "proof_type": "negative_assertion",
+      "evidence": "service-inventory.json unmodified; all 47 entries host:office2; asserted positively so a violation would fail.",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-08-29T05:46:23.476366+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-009",
+      "description": "Verify FR-009 is satisfied",
+      "proof_type": "document_inspection",
+      "evidence": "physical-topology.md gains office4; security-posture.md scoped to office2 with a corrected SSH-exposure paragraph. A false 'expose no port' claim was found and fixed.",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-08-29T05:46:25.532029+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-010",
+      "description": "Verify FR-010 is satisfied",
+      "proof_type": "grep_loop",
+      "evidence": "Per-file loop on '0008-three-machine-model' passes for adr/README.md (the real ADR index), INDEX.md, DEVELOPER_PORTAL.md, architecture/README.md. Portal generated block byte-identical before/after (4918 bytes).",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-08-29T05:46:27.515145+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-011",
+      "description": "Verify FR-011 is satisfied",
+      "proof_type": "document_inspection",
+      "evidence": "ADR '### Review-only affirmations' covers adr/0004 (citing tailscale debug prefs -> RunSSH:false, re-run live by reviewers) and docs/runbooks/phone-termius-setup.md.",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-08-29T05:46:29.514486+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-012",
+      "description": "Verify FR-012 is satisfied",
+      "proof_type": "external_action",
+      "evidence": "Comment posted: https://github.com/kentonium3/kg-automation/issues/909#issuecomment-5460474191 \u2014 corrects both the hardware-inventory premise and the non-failing --strict verification step. Citations independently checked.",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-08-29T05:46:31.542755+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-013",
+      "description": "Verify FR-013 is satisfied",
+      "proof_type": "document_inspection",
+      "evidence": "glossary.md Tailscale entry names four devices; four canonical terms added (managed host, unmanaged peer, attended/unattended, thin entry) and checked for agreement with spec.md and ADR-0008; thin-entry rich-form key list corrected to the exact set.",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-08-29T05:46:33.515443+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-014",
+      "description": "Verify FR-014 is satisfied",
+      "proof_type": "document_inspection",
+      "evidence": "CLAUDE.md gains an office4 Platform row and an ADR-0008 pointer; no frontmatter added. A neighbouring 'all devices' claim that the new row falsified was found and fixed.",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-08-29T05:46:35.506702+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-015",
+      "description": "Verify FR-015 is satisfied",
+      "proof_type": "json_assertion",
+      "evidence": "signal-to-doc-map network-topology-changed doc_targets now names hardware-inventory.json; verified with the precise selector AND its inverse (path appears in no other entry).",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-08-29T05:46:37.536907+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    }
+  ],
+  "negative_invariants": [
+    {
+      "invariant_id": "C-006-office4-not-a-service-host",
+      "description": "office4 must never appear in service-inventory.json. Its absence is the file that actually carries the managed/unmanaged boundary, and adding it would assert the managed-host status ADR-0008 records against.",
+      "verification_method": "grep_absence",
+      "verification_command": "office4",
+      "result": "confirmed_absent",
+      "evidence": "grep found zero matches",
+      "scope": "docs/design/architecture/data/service-inventory.json"
+    }
+  ]
+}

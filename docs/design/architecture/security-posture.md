@@ -45,7 +45,22 @@ tags: [152, 575]
 | `claude` | `ssh office2-claude` (Mac), or `claude` host in Termius mobile | No | Agent operations — all automated actions. Humans connecting as `claude` is allowed for specific user-bound operations (e.g. `gog-reauth` weekly re-auth — see [phone-termius-setup runbook](<../../runbooks/phone-termius-setup.md>)) |
 | `kgale` | `ssh office2-kgale` (Mac), or `kgale` host in Termius mobile | Yes | Human operations — sudo commands, initial setup, emergency ops |
 
-**Agents must always use the claude user.** The kgale account is for human use only by autonomous agents. Humans (Kent) may use either user depending on the task. This ensures all agent actions are traceable.
+**Scope: this access model is office2's.** It is the only managed host, and the only
+machine with a split human/agent user model. The tailnet has four devices — office2, office4,
+the MacBook Pro and the iPhone — and the other three are unmanaged peers that run **no
+registered service** (none appears in `data/service-inventory.json`). office4 in particular is
+deliberately **kgale-only**: no `claude` or `codex` Unix user exists there, because the
+office2 `claude` user earns its keep by being a remote actor on a host it does not live on,
+and office4 inverts that premise. See [ADR-0008](<./adr/0008-three-machine-model.md>).
+
+**"Unmanaged" governs deployment, not exposure.** office4 does run standard sshd on port 22,
+reachable over the tailnet and authenticated by `~/.ssh/authorized_keys`. What it does *not*
+run is **Tailscale SSH** (`tailscale debug prefs` → `"RunSSH": false`), so of the two gates
+below, gate 1 is office2-only while gate 2 applies on office4 as well — with no tailnet ACL
+layer in front of it. Do not read "unmanaged peer" as "no attack surface"; office4's sshd
+posture is tracked separately in #926.
+
+**Agents must always use the claude user on office2.** The kgale account is for human use only by autonomous agents. Humans (Kent) may use either user depending on the task. This ensures all agent actions are traceable.
 
 **Sudo escalation**: When a command requires sudo, agents stop and present the command to Kent for manual execution.
 

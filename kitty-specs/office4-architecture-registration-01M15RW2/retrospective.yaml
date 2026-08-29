@@ -1,0 +1,268 @@
+schema_version: 1
+mission_id: 01M15RW2HGNZH2N00P9CTB1RPR
+mission_slug: office4-architecture-registration-01M15RW2
+mission_number: 113
+friendly_name: Register office4 in the Architecture
+mission_type: documentation
+target_branch: feat/office4-architecture-registration
+created_at: '2026-08-29T05:47:56.830551+00:00'
+created_by:
+  kind: runtime
+  id: spec-kitty-generator
+  display: Spec Kitty Generator
+provenance:
+  kind: runtime_post_completion
+  invoked_at: '2026-08-29T05:47:56.830551+00:00'
+  policy_resolved_from:
+    enabled: <default>
+    timing: <default>
+    failure_policy: <default>
+    write_record: <default>
+    generate_proposals: <default>
+    apply_proposals: <default>
+    permissions.write_record: <default>
+    permissions.inspect_mission_artifacts: <default>
+    permissions.propose_glossary_changes: <default>
+    permissions.propose_drg_changes: <default>
+    permissions.propose_doctrine_changes: <default>
+    permissions.apply_low_risk_changes: <default>
+    permissions.apply_structural_changes: <default>
+    precedence: <default>
+    generator: <default>
+policy_source:
+  enabled: <default>
+  timing: <default>
+  failure_policy: <default>
+  write_record: <default>
+  generate_proposals: <default>
+  apply_proposals: <default>
+  permissions.write_record: <default>
+  permissions.inspect_mission_artifacts: <default>
+  permissions.propose_glossary_changes: <default>
+  permissions.propose_drg_changes: <default>
+  permissions.propose_doctrine_changes: <default>
+  permissions.apply_low_risk_changes: <default>
+  permissions.apply_structural_changes: <default>
+  precedence: <default>
+  generator: <default>
+findings_status: has_findings
+helped:
+- id: h-001
+  category: implementation
+  summary: WP01 completed without rejection cycles
+  evidence_refs:
+  - e-011
+- id: h-002
+  category: implementation
+  summary: WP04 completed without rejection cycles
+  evidence_refs:
+  - e-011
+not_helpful:
+- id: n-016
+  category: doc
+  summary: analysis-report.md present with findings
+  evidence_refs:
+  - e-027
+  details: An analysis-report.md artifact is present for this mission. Review its findings to understand documented
+    issues and decisions.
+- id: n-011
+  category: implementation
+  summary: WP01 needed 2 implementation cycles
+  evidence_refs:
+  - e-022
+  details: WP WP01 entered in_progress 2 times. Multiple implementation cycles suggest rework not captured as a
+    documented review rejection; the WP scope or contract may need refinement.
+- id: n-012
+  category: implementation
+  summary: WP02 needed 5 implementation cycles
+  evidence_refs:
+  - e-023
+  details: WP WP02 entered in_progress 5 times. Multiple implementation cycles suggest rework not captured as a
+    documented review rejection; the WP scope or contract may need refinement.
+- id: n-013
+  category: implementation
+  summary: WP03 needed 2 implementation cycles
+  evidence_refs:
+  - e-024
+  details: WP WP03 entered in_progress 2 times. Multiple implementation cycles suggest rework not captured as a
+    documented review rejection; the WP scope or contract may need refinement.
+- id: n-014
+  category: implementation
+  summary: WP05 needed 4 implementation cycles
+  evidence_refs:
+  - e-025
+  details: WP WP05 entered in_progress 4 times. Multiple implementation cycles suggest rework not captured as a
+    documented review rejection; the WP scope or contract may need refinement.
+- id: n-015
+  category: implementation
+  summary: WP06 needed 2 implementation cycles
+  evidence_refs:
+  - e-026
+  details: WP WP06 entered in_progress 2 times. Multiple implementation cycles suggest rework not captured as a
+    documented review rejection; the WP scope or contract may need refinement.
+- id: n-006
+  category: process
+  summary: WP01 required 1 --force override(s) during workflow
+  evidence_refs:
+  - e-017
+  details: WP WP01 required 1 operator-driven --force lane transition(s). Force overrides typically indicate the runtime
+    guard failed or the operator routed around it; investigate the underlying cause.
+- id: n-007
+  category: process
+  summary: WP02 required 5 --force override(s) during workflow
+  evidence_refs:
+  - e-018
+  details: WP WP02 required 5 operator-driven --force lane transition(s). Force overrides typically indicate the runtime
+    guard failed or the operator routed around it; investigate the underlying cause.
+- id: n-008
+  category: process
+  summary: WP03 required 1 --force override(s) during workflow
+  evidence_refs:
+  - e-019
+  details: WP WP03 required 1 operator-driven --force lane transition(s). Force overrides typically indicate the runtime
+    guard failed or the operator routed around it; investigate the underlying cause.
+- id: n-005
+  category: process
+  summary: WP05 had 1 lane bounce(s) before approval
+  evidence_refs:
+  - e-016
+  details: WP WP05 moved backward across workflow lanes 1 time(s) outside the documented reviewer-feedback flow.
+- id: n-009
+  category: process
+  summary: WP05 required 3 --force override(s) during workflow
+  evidence_refs:
+  - e-020
+  details: WP WP05 required 3 operator-driven --force lane transition(s). Force overrides typically indicate the runtime
+    guard failed or the operator routed around it; investigate the underlying cause.
+- id: n-010
+  category: process
+  summary: WP06 required 1 --force override(s) during workflow
+  evidence_refs:
+  - e-021
+  details: WP WP06 required 1 operator-driven --force lane transition(s). Force overrides typically indicate the runtime
+    guard failed or the operator routed around it; investigate the underlying cause.
+- id: n-001
+  category: review_loop
+  summary: WP02 required 3 rejection cycle(s) before approval
+  evidence_refs:
+  - e-012
+  details: WP WP02 was sent back from review to planning 3 time(s).
+- id: n-002
+  category: review_loop
+  summary: WP03 required 1 rejection cycle(s) before approval
+  evidence_refs:
+  - e-013
+  details: WP WP03 was sent back from review to planning 1 time(s).
+- id: n-003
+  category: review_loop
+  summary: WP05 required 1 rejection cycle(s) before approval
+  evidence_refs:
+  - e-014
+  details: WP WP05 was sent back from review to planning 1 time(s).
+- id: n-004
+  category: review_loop
+  summary: WP06 required 1 rejection cycle(s) before approval
+  evidence_refs:
+  - e-015
+  details: WP WP06 was sent back from review to planning 1 time(s).
+gaps: []
+proposals: []
+evidence_refs:
+- id: e-001
+  kind: file
+  path: kitty-specs/office4-architecture-registration-01M15RW2/meta.json
+- id: e-002
+  kind: file
+  path: kitty-specs/office4-architecture-registration-01M15RW2/spec.md
+- id: e-003
+  kind: file
+  path: kitty-specs/office4-architecture-registration-01M15RW2/plan.md
+- id: e-004
+  kind: file
+  path: kitty-specs/office4-architecture-registration-01M15RW2/tasks.md
+- id: e-005
+  kind: file
+  path: kitty-specs/office4-architecture-registration-01M15RW2/tasks/WP01-architecture-data-registration.md
+- id: e-006
+  kind: file
+  path: kitty-specs/office4-architecture-registration-01M15RW2/tasks/WP02-author-adr-0008.md
+- id: e-007
+  kind: file
+  path: kitty-specs/office4-architecture-registration-01M15RW2/tasks/WP03-narrative-views.md
+- id: e-008
+  kind: file
+  path: kitty-specs/office4-architecture-registration-01M15RW2/tasks/WP04-adr-registration.md
+- id: e-009
+  kind: file
+  path: kitty-specs/office4-architecture-registration-01M15RW2/tasks/WP05-adjacent-surfaces.md
+- id: e-010
+  kind: file
+  path: kitty-specs/office4-architecture-registration-01M15RW2/tasks/WP06-closeout-verification.md
+- id: e-011
+  kind: file
+  path: kitty-specs/office4-architecture-registration-01M15RW2/status.events.jsonl
+- id: e-012
+  kind: event_range
+  path: kitty-specs/office4-architecture-registration-01M15RW2/status.events.jsonl
+  range: 01M15WHT2CCMVX0FPHR72BMKM9..01M15ZMA7JJK0R4XXY77D7PNXA
+- id: e-013
+  kind: event_range
+  path: kitty-specs/office4-architecture-registration-01M15RW2/status.events.jsonl
+  range: 01M15WVD1GC8P831CGP9E0CV05
+- id: e-014
+  kind: event_range
+  path: kitty-specs/office4-architecture-registration-01M15RW2/status.events.jsonl
+  range: 01M15Y494MSP9BAYKRRJ45BX4H..01M15ZBRXAR0DN8JBC635MZRQ7
+- id: e-015
+  kind: event_range
+  path: kitty-specs/office4-architecture-registration-01M15RW2/status.events.jsonl
+  range: 01M1600KSF0SH8G9WRSWB4WCAK
+- id: e-016
+  kind: event_range
+  path: kitty-specs/office4-architecture-registration-01M15RW2/status.events.jsonl
+  range: 01M15ZBRXAR0DN8JBC635MZRQ7
+- id: e-017
+  kind: event_range
+  path: kitty-specs/office4-architecture-registration-01M15RW2/status.events.jsonl
+  range: 01M15WSBNBATDF3CASW1T4P6S6
+- id: e-018
+  kind: event_range
+  path: kitty-specs/office4-architecture-registration-01M15RW2/status.events.jsonl
+  range: 01M15WHT2CCMVX0FPHR72BMKM9..01M15ZMA7JJK0R4XXY77D7PNXA
+- id: e-019
+  kind: event_range
+  path: kitty-specs/office4-architecture-registration-01M15RW2/status.events.jsonl
+  range: 01M15WVD1GC8P831CGP9E0CV05
+- id: e-020
+  kind: event_range
+  path: kitty-specs/office4-architecture-registration-01M15RW2/status.events.jsonl
+  range: 01M15Y494MSP9BAYKRRJ45BX4H..01M15ZBRXAR0DN8JBC635MZRQ7
+- id: e-021
+  kind: event_range
+  path: kitty-specs/office4-architecture-registration-01M15RW2/status.events.jsonl
+  range: 01M1600KSF0SH8G9WRSWB4WCAK
+- id: e-022
+  kind: event_range
+  path: kitty-specs/office4-architecture-registration-01M15RW2/status.events.jsonl
+  range: implementation_cycles
+- id: e-023
+  kind: event_range
+  path: kitty-specs/office4-architecture-registration-01M15RW2/status.events.jsonl
+  range: implementation_cycles
+- id: e-024
+  kind: event_range
+  path: kitty-specs/office4-architecture-registration-01M15RW2/status.events.jsonl
+  range: implementation_cycles
+- id: e-025
+  kind: event_range
+  path: kitty-specs/office4-architecture-registration-01M15RW2/status.events.jsonl
+  range: implementation_cycles
+- id: e-026
+  kind: event_range
+  path: kitty-specs/office4-architecture-registration-01M15RW2/status.events.jsonl
+  range: implementation_cycles
+- id: e-027
+  kind: file
+  path: kitty-specs/office4-architecture-registration-01M15RW2/analysis-report.md
+generator_version: '1.0'
+provenance_history: []

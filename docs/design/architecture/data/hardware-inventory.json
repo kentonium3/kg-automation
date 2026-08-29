@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
-  "last_updated": "2026-05-11",
-  "updated_by": "ops-gpu-install + #191 + #212",
+  "last_updated": "2026-08-29",
+  "updated_by": "ops-gpu-install + #191 + #212 + #909 (added office4 as a thin unmanaged-peer entry matching the kents-macbook-pro / iphone-14-pro-max shape; appended so office2 stays hosts[0] for the positional reference in docs/runbooks/ollama-ops.md; see ADR-0008)",
   "hosts": [
     {
       "hostname": "office2",
@@ -62,6 +62,16 @@
       "network": {
         "tailscale_ip": "100.109.208.6",
         "tailscale_hostname": "iphone-14-pro-max"
+      }
+    },
+    {
+      "hostname": "office4",
+      "role": "primary development machine",
+      "hardware": "Framework Desktop (AMD Ryzen AI Max 300 Series)",
+      "os": "Linux Mint 22.3 (Ubuntu 24.04 noble base)",
+      "network": {
+        "tailscale_ip": "100.112.83.28",
+        "tailscale_hostname": "office4"
       }
     }
   ]

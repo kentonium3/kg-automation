@@ -100,19 +100,20 @@ flowchart TB
 
 ## How Kent interacts with it
 
-Felix runs in three places and talks through several channels.
+Felix runs on one host and is reached from three other devices, through several channels.
 
 **Devices**:
 
 - **MacBook Pro** — primary authoring surface. Editing code, drafting specs, running spec-kitty workflows, reviewing diffs. Most of the system's *changes* originate here.
 - **office2 server** — always-on hub. Hosts Vikunja, the OpenClaw gateway, all scheduled agents (habits, inbox, escalation, observation digest), and the doc-audit driver (currently suspended). Most of the system's *actions* happen here.
+- **office4** — Kent's primary development machine (Framework Desktop, Linux Mint 22.3). Always-on but **attended**, and an *unmanaged peer*: it runs no registered service and is not a felix-deployer target. See [ADR-0008](<./architecture/adr/0008-three-machine-model.md>).
 - **iPhone** — mobile capture and monitoring. Wispr Flow for voice memos; Vikunja web UI for task state; WhatsApp for agent conversations.
 
 **Channels**:
 
 - **WhatsApp** — primary agent-to-Kent surface. Morning habit check-ins, escalation summaries, completion confirmations, ad-hoc queries (e.g., "skip strength training today").
 - **Vikunja** — task state of record. Habits, project tasks, escalation queue, completion history.
-- **Obsidian** — knowledge surface. The vault under `~/second-brain/` syncs across all devices (Mac, iPhone, office2). Agent activity logs, journal entries, and system documentation that lives outside this repo all flow through here.
+- **Obsidian** — knowledge surface. The vault under `~/second-brain/` syncs across Mac, iPhone, and office2 — **not** office4, which has no vault. Agent activity logs, journal entries, and system documentation that lives outside this repo all flow through here.
 - **GitHub** — version control and audit trail. The kg-automation repo holds the system's code, architecture docs, and the public dev-work issue queue.
 - **Spec-kitty** — the development workflow itself. Missions, work packages, review cycles, and merge discipline all run through it.
 
@@ -204,8 +205,8 @@ flowchart LR
 
 The components are documented in detail in `architecture/`. At the highest level:
 
-- **Hardware**: Mac, office2 (Ubuntu 24.04 LTS server, Dell XPS 8700, GPU-equipped as of 2026-05-08), iPhone
-- **Network**: Tailscale tailnet (`kentgale@gmail.com`) connecting all three; office2 reachable from anywhere
+- **Hardware**: Mac, office2 (Ubuntu 24.04 LTS server, Dell XPS 8700, GPU-equipped as of 2026-05-08), office4 (Framework Desktop, Linux Mint 22.3 — attended dev machine, not a managed host), iPhone
+- **Network**: Tailscale tailnet (`kentgale@gmail.com`) connecting all four devices; office2 reachable from anywhere
 - **Services on office2**: Vikunja (task DB), OpenClaw gateway (agent orchestrator), per-agent workspaces (felix-admin-habits, felix-admin-capture / inbox-agent, felix-admin-escalation, felix-admin-tasker), felix-doc-auditor driver (suspended), felix-core-digest, security-monitor, restic-backup
 - **Storage**: Vikunja SQLite (task state); JSONL state logs (`habits-history.jsonl`, drift-events-ledger, audit-events-ledger); the Obsidian vault; the `/data/` partition (2.7TB) for persistent service state
 - **Identities**: `kgale` (Kent's human account on office2), `claude` (the agent account on office2), `kg-felix-bot` (the GitHub identity for agent-attributed commits and issue actions)

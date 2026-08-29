@@ -1,0 +1,53 @@
+{
+  "rows": {
+    "#887": {
+      "evidence_ref": "Cited in spec.md Out of Scope only; the QA-pipeline move targets exe.dev, not office4. Follow-up: #887 remains open and owns that work.",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": "spec.md",
+      "title": "<fill at WP-implementation time>",
+      "verdict": "deferred-with-followup",
+      "wp": null
+    },
+    "#908": {
+      "evidence_ref": "Parent epic (office4 migration); this mission is Phase 0 only. Follow-up: #908 remains open and tracks the remaining children.",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": "spec.md",
+      "title": "<fill at WP-implementation time>",
+      "verdict": "deferred-with-followup",
+      "wp": null
+    },
+    "#909": {
+      "evidence_ref": "Merged to feat/office4-architecture-registration (mission 113). Merged-tree verification: 4/4 devices in network-topology.json and hardware-inventory.json with office2 still hosts[0]; 47/47 services host:office2, zero office4 entries (C-006 negative invariant confirmed_absent); ADR 0008 present and registered in all four index surfaces; both validators green. Issue corrected at https://github.com/kentonium3/kg-automation/issues/909#issuecomment-5460474191",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": "spec.md",
+      "title": "<fill at WP-implementation time>",
+      "verdict": "fixed",
+      "wp": "WP06"
+    },
+    "#917": {
+      "evidence_ref": "Cited as precedent only \u2014 the undocumented codex account is the drift class ADR 0008 guards against. Follow-up: #917 remains open and owns the remediation.",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": "spec.md",
+      "title": "<fill at WP-implementation time>",
+      "verdict": "deferred-with-followup",
+      "wp": null
+    }
+  },
+  "schema_version": 1
+}
