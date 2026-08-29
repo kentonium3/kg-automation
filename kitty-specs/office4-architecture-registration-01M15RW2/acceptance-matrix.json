@@ -17,11 +17,11 @@
     {
       "criterion_id": "FR-002",
       "description": "Verify FR-002 is satisfied",
-      "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
+      "proof_type": "document_inspection",
+      "evidence": "ADR section 'The governing principle' states office2-unattended/office4-attended, explicitly rejects uptime as the axis, and gives the ten-minute placement test with TWO worked cases (restic-backup -> office2; local model server -> office4). Worked case A was corrected once after it resolved the wrong way under its own test.",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-08-29T05:46:11.431484+00:00",
       "notes": "TODO: replace with a real acceptance criterion"
     },
     {
