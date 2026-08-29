@@ -54,18 +54,31 @@ target.
 | Connection | Command |
 |---|---|
 | SSH as claude | `ssh office2-claude` |
+| SSH as codex | `ssh office2-codex` |
+| SSH as kgale (human) | `ssh office2-kgale` |
 
 - **Local IP**: 192.168.1.158
 - **Tailscale IP**: 100.92.197.90
 - **Data drive**: `/data` (2.7TB)
-- SSH host aliases (`office2-claude`, `office2-kgale`) are defined in `~/.ssh/config` on **both** the Mac and office4 — the two machines agents run from. A machine without them resolves `office2-claude` as a literal hostname *and* falls back to the local username, silently defeating the claude-user rule above (kentonium3/kg-automation#929).
+- SSH host aliases (`office2-claude`, `office2-codex`, `office2-kgale`) are defined in `~/.ssh/config` on **office4**; the Mac has at least `office2-claude` and `office2-kgale`. A machine without them resolves `office2-claude` as a literal hostname *and* falls back to the local username, silently defeating the claude-user rule above (kentonium3/kg-automation#929).
+- Authentication on these aliases is **Tailscale SSH**, not keys — office2 has `RunSSH: true` and ADR-0004's `accept` ACL authorises on tailnet device identity. `authorized_keys` is not consulted over the tailnet; see [security-posture § SSH access](docs/design/architecture/security-posture.md) and #931.
 
-**Agents must always use `ssh office2-claude` — never `ssh office2-kgale`.
-The kgale account is for human use only. Agent actions must be traceable
-to the claude user.**
+**Each agent must use its own account — Claude Code via `ssh office2-claude`,
+Codex via `ssh office2-codex` — and never `ssh office2-kgale`. The kgale
+account is for human use only. Agent actions must be traceable to the agent
+that took them, which is why one agent must not borrow another's account
+any more than it borrows Kent's.**
 
-**The claude user does not have sudo access. If a command requires sudo,
-stop and present the command to Kent to run manually via `ssh office2-kgale`.**
+**Neither agent account has passwordless sudo** (verified 2026-08-29: `claude`,
+`codex` and `kgale` all return `sudo: a password is required`). If a command
+requires sudo, stop and present it to Kent to run manually via `ssh office2-kgale`.
+
+⚠️ The two agent accounts are **not** equivalent. `claude` is in the `docker` group
+and can write `/data/services/felix-deployer`; `codex` is in neither and cannot.
+This asymmetry is undocumented and may or may not be intentional — see #917. It does
+**not** affect deploys, which ride git rather than office2 write access: an agent
+authors a manifest under `deploys/queued/`, merges to `main`, and `felix-deployer`
+(running as `claude`) applies it within 5 minutes.
 
 **Windows is not a supported platform. Ignore any references to it.**
 **Dropbox is not used for coordination. Ignore any references to it.**
