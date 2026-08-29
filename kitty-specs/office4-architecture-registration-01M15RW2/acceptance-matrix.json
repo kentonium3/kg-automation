@@ -2,7 +2,7 @@
   "mission_slug": "office4-architecture-registration-01M15RW2",
   "mission_number": "",
   "mission_type": "documentation",
-  "overall_verdict": "pending",
+  "overall_verdict": "pass",
   "criteria": [
     {
       "criterion_id": "FR-001",
@@ -147,11 +147,11 @@
     {
       "criterion_id": "FR-015",
       "description": "Verify FR-015 is satisfied",
-      "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
+      "proof_type": "json_assertion",
+      "evidence": "signal-to-doc-map network-topology-changed doc_targets now names hardware-inventory.json; verified with the precise selector AND its inverse (path appears in no other entry).",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-08-29T05:46:37.536907+00:00",
       "notes": "TODO: replace with a real acceptance criterion"
     }
   ],
