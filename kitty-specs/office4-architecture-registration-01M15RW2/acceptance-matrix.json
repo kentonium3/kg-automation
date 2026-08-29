@@ -127,11 +127,11 @@
     {
       "criterion_id": "FR-013",
       "description": "Verify FR-013 is satisfied",
-      "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
+      "proof_type": "document_inspection",
+      "evidence": "glossary.md Tailscale entry names four devices; four canonical terms added (managed host, unmanaged peer, attended/unattended, thin entry) and checked for agreement with spec.md and ADR-0008; thin-entry rich-form key list corrected to the exact set.",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-08-29T05:46:33.515443+00:00",
       "notes": "TODO: replace with a real acceptance criterion"
     },
     {
