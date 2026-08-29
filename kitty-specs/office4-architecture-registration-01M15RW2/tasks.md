@@ -75,7 +75,7 @@ without disturbing the service inventory.
 **Independent test**: `network.devices` and `hosts` each contain four entries including
 office4; `service-inventory.json` is byte-identical to its pre-mission state.
 **Subtasks**: T001, T002, T003, T004, T005
-**Estimated prompt size**: ~230 lines
+**Estimated prompt size**: ~195 lines
 
 **Implementation sketch**: apply contract C-1 to `network-topology.json`; apply contract C-2
 to `hardware-inventory.json` by **appending** (a runbook reads `hosts[0].gpu`, so office2
@@ -98,7 +98,7 @@ hold, and why it has no agent Unix users.
 **Independent test**: a reader with no prior context answers contract C-5's five questions
 from the ADR alone.
 **Subtasks**: T006, T007, T008, T009, T010, T011
-**Estimated prompt size**: ~330 lines
+**Estimated prompt size**: ~215 lines
 
 **Implementation sketch**: create `0008-three-machine-model.md` with frontmatter matching
 ADR-0006/0007; write Context → Decision → governing principle → evidence → constraints →
@@ -118,7 +118,7 @@ than a wrong line of code. Use the phrasings research.md R-3 settled.
 `network-topology.json`.
 **Subtasks**: T012, T013, T014
 **Dependencies**: WP01
-**Estimated prompt size**: ~180 lines
+**Estimated prompt size**: ~125 lines
 
 **Risks**: `security-posture.md` may state the access model in prose that is true for three
 devices and subtly wrong for four. Read it whole rather than grepping for "three".
@@ -133,7 +133,7 @@ devices and subtly wrong for four. Read it whole rather than grepping for "three
 **Independent test**: the per-file loop in quickstart step 5 passes for all four files.
 **Subtasks**: T015, T016, T017, T018, T019
 **Dependencies**: WP02
-**Estimated prompt size**: ~240 lines
+**Estimated prompt size**: ~145 lines
 
 **Risks**: `DEVELOPER_PORTAL.md` lines 138–210 are a **generated** block whose staleness
 `validate_docs.py` checks. Editing inside it fails the commit gate. Two of the four files
@@ -152,7 +152,7 @@ this mission's near-miss.
 `hardware-inventory.json`.
 **Subtasks**: T020, T021, T022, T023, T024
 **Dependencies**: WP01, WP02
-**Estimated prompt size**: ~250 lines
+**Estimated prompt size**: ~165 lines
 
 **Risks**: `CLAUDE.md` is repo-root, not under `docs/` — do not add frontmatter it does not
 already have. The map edit is itself architecture data, so re-run the validator after it.
@@ -169,7 +169,7 @@ one obligation the mission cannot satisfy itself is handed off explicitly.
 or fail — for every quickstart step, with no step marked "not run".
 **Subtasks**: T025, T026, T027, T028, T029, T030, T031
 **Dependencies**: WP01, WP02, WP03, WP04, WP05
-**Estimated prompt size**: ~300 lines
+**Estimated prompt size**: ~185 lines
 
 **Implementation sketch**: run quickstart steps 1–6 and record each outcome; comment on
 #909; write the verification report; state in the handoff that C-004's `Rebaseline:` line

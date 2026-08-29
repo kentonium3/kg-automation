@@ -93,7 +93,7 @@ Done when neither file asserts a three-device tailnet, both agree with
 - **If you conclude no change is needed**, say so explicitly in your Activity Log entry with
   the reasoning. Silence is indistinguishable from not having looked.
 
-### Subtask T014 – Confirm narrative matches the authoritative JSON
+### Subtask T014 – Confirm narrative matches the authoritative JSON (NFR-002, C-003)
 
 - **Steps**: re-read both edited files against `network-topology.json` and
   `hardware-inventory.json`. Every device name, IP, and OS string in prose must match the

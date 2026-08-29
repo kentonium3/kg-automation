@@ -100,7 +100,7 @@ no step left as "not run", and #909 carries the correcting comment.
 - **Steps**: `gh issue comment 909 --repo kentonium3/kg-automation --body "..."`. Record the
   returned comment URL in the report.
 
-### Subtask T026 – Run both validators at their real postures
+### Subtask T026 – Run both validators at their real postures (NFR-001, NFR-002)
 
 - `python3 tooling/scripts/validate_architecture_data.py --strict` → expect `OK (0 findings)`
 - `python3 tooling/scripts/validate_docs.py` → expect `validate_docs: OK`
@@ -113,13 +113,26 @@ no step left as "not run", and #909 carries the correcting comment.
 - Expect `office2 100.92.197.90`, `kents-macbook-pro 100.71.19.66`,
   `iphone-14-pro-max 100.109.208.6`, `office4 100.112.83.28`.
 
-### Subtask T028 – Assert zero office4 service records
+### Subtask T028 – Assert zero office4 service records, and check the diff scope (C-001, C-002, C-006)
 
 - Run quickstart step 3. This is the one check in the mission that fails correctly in both
   directions — it would catch a violation rather than merely not-finding one.
 - Also run quickstart step 2 (four devices, four hosts, only office2 rich, hostnames agree).
+- **Then verify the constraints that are otherwise satisfied only by construction.** C-001
+  (Tier 4 — docs and architecture metadata only) and C-002 (no felix-deployer,
+  manifest-schema, lock-namespacing or baseline-registry change) are currently assumed
+  rather than checked. Assert the diff scope:
 
-### Subtask T029 – Human review of links and heading hierarchy
+  ```bash
+  git diff --name-only main...HEAD | grep -vE '^(docs/|CLAUDE\.md|kitty-specs/)' \
+    && { echo "OUT OF SCOPE: files outside docs/, CLAUDE.md, kitty-specs/"; exit 1; } \
+    || echo "OK: diff confined to documentation and mission artifacts"
+  ```
+
+  Any hit — particularly anything under `scripts/deploy/**` or `deploys/**` — means the
+  mission exceeded Tier 4 and must be reported, not waved through.
+
+### Subtask T029 – Human review of links and heading hierarchy (NFR-004)
 
 - **Nothing in this repo validates links or heading hierarchy** — `validate_docs.py` checks
   frontmatter, secrets, and the portal drift block only. These are genuinely manual.
@@ -129,7 +142,7 @@ no step left as "not run", and #909 carries the correcting comment.
 - **Record the count checked**, not just "passed" — an unquantified pass is indistinguishable
   from a skipped check.
 
-### Subtask T030 – Attest office4's `os` and `hardware` sources
+### Subtask T030 – Attest office4's `os` and `hardware` sources (NFR-005)
 
 - **Run on office4**:
   ```bash

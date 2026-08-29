@@ -162,7 +162,7 @@ not just a green check.
 - **Validation**: must print `OK: all 47 services on office2 only`. Also confirm
   `git status` shows the file unmodified.
 
-### Subtask T005 – Run the architecture validator
+### Subtask T005 – Run the architecture validator (NFR-001)
 
 - **Steps**: `python3 tooling/scripts/validate_architecture_data.py --strict`
 - **`--strict` is required.** Without it the validator is warn-only and exits 0

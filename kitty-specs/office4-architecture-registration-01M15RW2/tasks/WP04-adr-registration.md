@@ -107,7 +107,7 @@ four** files, and `validate_docs.py` exits 0.
   ADR index (`adr/README.md`) naming 0008, in whichever table or prose section fits. Do not
   create a new ADR table.
 
-### Subtask T019 – Verify registration
+### Subtask T019 – Verify registration (NFR-002)
 
 - **Steps**:
 

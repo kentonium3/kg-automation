@@ -130,7 +130,7 @@ Done when: the glossary names four tailnet devices and defines all four canonica
   `docs/design/architecture/data/hardware-inventory.json` to its `doc_targets` array.
 - Do **not** add it to a different change class. Do **not** restructure the file.
 
-### Subtask T024 – Verify
+### Subtask T024 – Verify (NFR-001, NFR-002)
 
 - **Steps**: run the precise assertion from [quickstart.md](../quickstart.md) step 5b — it
   selects the specific `network-topology-changed` entry, asserts exactly one exists, and

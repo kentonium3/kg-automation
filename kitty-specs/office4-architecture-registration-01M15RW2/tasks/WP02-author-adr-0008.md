@@ -85,7 +85,7 @@ And: `validate_docs.py` exits 0 (frontmatter is enforced), and every citation re
 
 ## Subtasks & Detailed Guidance
 
-### Subtask T006 – Create the file with sibling-matching frontmatter
+### Subtask T006 – Create the file with sibling-matching frontmatter (NFR-003)
 
 - **File**: `docs/design/architecture/adr/0008-three-machine-model.md` (new)
 - **Steps**: read `0007-retire-vikunja-felix-bot.md` and `0006-*.md` first and match their
@@ -136,7 +136,7 @@ And: `validate_docs.py` exits 0 (frontmatter is enforced), and every citation re
 - **Work both cases.** Give one concrete example that resolves to office2 and one that
   resolves to office4, so the test is demonstrated rather than merely asserted.
 
-### Subtask T009 – The five single-host citations
+### Subtask T009 – The five single-host citations (NFR-006)
 
 Use **repo-root-relative paths**. All five were verified (research.md R-3):
 
