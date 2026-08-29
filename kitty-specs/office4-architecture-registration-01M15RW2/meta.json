@@ -6,7 +6,18 @@
       "explanation",
       "reference"
     ],
-    "generators_configured": [],
+    "generators_configured": [
+      {
+        "config_path": "",
+        "language": "javascript",
+        "name": "jsdoc"
+      },
+      {
+        "config_path": "",
+        "language": "python",
+        "name": "sphinx"
+      }
+    ],
     "iteration_mode": "mission-specific",
     "last_audit_date": null,
     "target_audience": "maintainer and future agent sessions"
