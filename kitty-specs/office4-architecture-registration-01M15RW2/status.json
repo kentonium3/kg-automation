@@ -19,7 +19,7 @@
   "work_packages": {
     "WP01": {
       "actor": "user",
-      "agent": "claude",
+      "agent": null,
       "agent_profile": "__resolved_profile_absent__",
       "agent_profile_version": "__resolved_profile_version_absent__",
       "force_count": 1,
@@ -32,20 +32,21 @@
         "Review passed. Independent re-derivation of os/hardware from /etc/os-release and sysfs matched byte-for-byte; the uname -a trap was confirmed present and not taken. Formatting fidelity clean (16 insertions/5 deletions; compact style and unicode escapes preserved). hosts[0]=office2 verified against the sole positional consumer (ollama-ops.md:30). Both validators green."
       ],
       "provider": "__resolved_provider_absent__",
+      "review": null,
       "review_result": {
         "reference": "Review passed. Independent re-derivation of os/hardware from /etc/os-release and sysfs matched byte-for-byte; the uname -a trap was confirmed present and not taken. Formatting fidelity clean (16 insertions/5 deletions; compact style and unicode escapes preserved). hosts[0]=office2 verified against the sole positional consumer (ollama-ops.md:30). Both validators green.",
         "reviewer": "Kent Gale",
         "verdict": "approved"
       },
       "role": "reviewer",
-      "shell_pid": 119366,
-      "shell_pid_created_at": "1787977265.21",
+      "shell_pid": null,
+      "shell_pid_created_at": null,
       "subtasks": {
-        "T001": "done",
-        "T002": "done",
-        "T003": "done",
-        "T004": "done",
-        "T005": "done"
+        "T001": "planned",
+        "T002": "planned",
+        "T003": "planned",
+        "T004": "planned",
+        "T005": "planned"
       }
     },
     "WP02": {
