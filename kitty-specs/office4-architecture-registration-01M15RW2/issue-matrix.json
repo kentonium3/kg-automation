@@ -13,7 +13,7 @@
       "wp": null
     },
     "#908": {
-      "evidence_ref": "Parent epic (office4 migration). This mission is Phase 0 only; the epic remains open with its other children tracked separately.",
+      "evidence_ref": "Parent epic (office4 migration); this mission is Phase 0 only. Follow-up: #908 remains open and tracks the remaining children.",
       "fr": null,
       "nfr": null,
       "repo": null,
