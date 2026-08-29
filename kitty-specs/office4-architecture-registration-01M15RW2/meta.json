@@ -46,6 +46,7 @@
   "purpose_tldr": "Record the three-machine architecture decision as an ADR and register office4 in the architecture data, so the office2/office4 boundary is documented rather than re-derived.",
   "slug": "office4-architecture-registration-01M15RW2",
   "source_description": "GitHub issue kentonium3/kg-automation#909 - Infra: office4 Phase 0 - ADR + architecture-data registration for the three-machine model",
+  "status_phase": "1",
   "target_branch": "feat/office4-architecture-registration",
   "topology": "single_branch",
   "vcs": "git"
