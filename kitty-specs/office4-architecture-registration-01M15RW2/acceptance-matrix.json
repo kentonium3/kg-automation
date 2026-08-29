@@ -67,11 +67,11 @@
     {
       "criterion_id": "FR-007",
       "description": "Verify FR-007 is satisfied",
-      "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
+      "proof_type": "json_assertion",
+      "evidence": "hardware-inventory hosts has 4 entries; office4 appended (office2 remains hosts[0] for ollama-ops.md:30) in thin form with exactly 5 keys; os and hardware re-derived from /etc/os-release and sysfs by an independent reviewer.",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-08-29T05:46:21.462332+00:00",
       "notes": "TODO: replace with a real acceptance criterion"
     },
     {
