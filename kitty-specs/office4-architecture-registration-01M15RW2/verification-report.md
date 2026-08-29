@@ -29,7 +29,7 @@ choice worth revisiting next time, not a tool fault.
 | 4 | All four IPs match the live tailnet | **PASS** | `tailscale status` reconciled against `network-topology.json` — all four match, not office4 alone |
 | 4b | `os` / `hardware` provenance | **PASS** | `/etc/os-release` → `NAME="Linux Mint"`, `VERSION="22.3 (Zena)"`, **`UBUNTU_CODENAME=noble`** (that third line is what sources the recorded parenthetical); sysfs → `Framework` + `Desktop (AMD Ryzen AI Max 300 Series)`. Both match. `uname -a` deliberately not used |
 | 5 | ADR registered in all four surfaces | **PASS** | Per-file loop on `0008-three-machine-model` passed for `adr/README.md`, `INDEX.md`, `DEVELOPER_PORTAL.md`, `architecture/README.md` |
-| 5b | Adjacent surfaces | **PASS** | glossary names four devices + all four canonical terms; `CLAUDE.md` has the office4 row; signal map's `network-topology-changed` entry names `hardware-inventory.json` — verified with the precise selector **and its inverse** (path appears in no other entry) |
+| 5b | Adjacent surfaces | **PASS** (but incomplete — see PM-2) | glossary names four devices + all four canonical terms; `CLAUDE.md` has the office4 row; signal map's `network-topology-changed` entry names `hardware-inventory.json` — verified with the precise selector **and its inverse** (path appears in no other entry) |
 | 5c | Review-only affirmations | **PASS** | ADR 0008 `### Review-only affirmations` covers `adr/0004` (citing `RunSSH: false`) and `phone-termius-setup.md` |
 | 6 | ADR answers its five questions | **FAILED when finally run → since fixed** | This row first read PASS on the evidence "verified across four independent review cycles" — a citation of other work, not an execution of the step. Nobody had run it. When this report's reviewer did, **Q4 was not answerable**. See F1 |
 | 7 | `Rebaseline:` line on the integration commit | **NOT RUN — deferred by design** | Requires a `feat → main` merge that does not exist yet. See Handoff below |
@@ -112,6 +112,57 @@ and at Kent's push by CI.
 | **#926** | office4 sshd accepted password auth over the tailnet | **Remediated and closed by Kent during the mission**; re-probed and confirmed `publickey` only |
 | **#925** | `felix-vikunja-sync.timer` documents catch-up that `Persistent=` cannot provide without `OnCalendar=` | Found while the ADR was about to cite it as an example |
 | **#922 / #924 / #3795** | spec-kitty defects (specify Decision-Moment ordering; stale documentation-mission WP template) | #3795 filed upstream with approved copy |
+
+
+## Post-merge Codex review — FAIL, then fixed
+
+The mandatory post-merge review ran against the complete merged diff before the feature branch
+reached `main`, and returned **FAIL** with three blocking findings. All three were cross-WP or
+whole-diff problems that no per-work-package review could have seen. All were verified and
+fixed in a follow-up commit on the feature branch.
+
+**PM-1 — the ADR's placement test routed a real managed workload to office4.** The test asked
+only "annoyance or data loss?". Applied to `felix-deployer` — a five-minute systemd timer whose
+queue is durable under `deploys/queued/` — ten unwatched minutes lose nothing and cost only
+delay. "Recoverable" ⇒ **office4**, contradicting the same ADR's statement that office2 is the
+sole deployer target.
+
+The defect was structural: a binary recoverable/unrecoverable test silently assumes every
+candidate *may* be attended. The test is now two ordered questions — **(1) must this run when
+nobody is watching?** (if yes, office2, regardless of cost) then **(2) is ten unwatched minutes
+recoverable?** — and a third worked case (`felix-deployer`) was added showing why the ordering
+is load-bearing. This is the ADR's central contribution, and it was wrong.
+
+**PM-2 — three surviving three-device claims, and the mechanism fix did not cover them.**
+`docs/design/README.md:115` ("syncs across all devices"), `:208` ("connecting all three"), and
+`docs/design/architecture/service-inventory.md:214` ("across all three devices") all became
+false when office4 was registered — **the same defect class the mission had already fixed
+twice** (in `CLAUDE.md` and the glossary), in files nobody had looked at. `docs/design/README.md`
+also still listed three devices and opened "Felix runs in three places".
+
+Worse, `signal-to-doc-map.json`'s `network-topology-changed` entry routed neither file, so the
+next device addition would have repeated it exactly. Both files are now targets, and the
+rationale explicitly tells the next author to sweep for device counts and "all devices" / "all
+three" phrasing, which no validator checks.
+
+**This invalidated SC-008** ("no repo surface contradicts ADR 0008"), which was recorded as PASS
+above on the strength of checking only the surfaces the mission had touched. SC-008 is true
+again now — but it was false at the moment this report first claimed it, and the check that
+would have caught it was a repo-wide sweep the report never ran.
+
+**PM-3 — the issue-matrix `#909` row was still `in-mission`**, a non-terminal verdict the
+mission-review gate rejects. Flipped to `fixed` through the CLI seam with merged-tree evidence.
+
+**PM-4 (advisory, accepted)** — the three hard-named ADR-0008 pointers sit outside the ADR
+index's supersession convention. Already recorded as accepted debt above; unchanged.
+
+### What this says about the review chain
+
+Sixteen work-package review cycles passed this mission. The post-merge review, looking at the
+whole diff at once, still found that the ADR's central test gave the wrong answer for a real
+service and that three false claims survived in files no WP owned. Per-WP review is structurally
+incapable of seeing either: the first requires applying the test to workloads outside the
+mission's scope, the second requires looking at files the mission never touched.
 
 ## Findings raised BY this report's own review
 

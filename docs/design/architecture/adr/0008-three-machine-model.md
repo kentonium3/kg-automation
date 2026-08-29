@@ -75,11 +75,24 @@ working, so its failures are noticed in minutes.
 
 ### The placement test
 
-> **If this is down for ten minutes while nobody is watching, is the cost annoyance or data
-> loss?**
+Two questions, in order. The first is the gate; the second only breaks ties among what
+survives it.
+
+> **1. Must this run when nobody is watching?**
+> If yes → **office2**, regardless of what an outage costs.
 >
-> - **Data loss → office2.**
-> - **Annoyance → office4.**
+> **2. If it may run attended, then: ten unwatched minutes down — is the cost recoverable?**
+> - **Unrecoverable → office2.**
+> - **Recoverable → office4.**
+
+The ordering matters, and an earlier draft of this ADR had only question 2. That version
+failed on a real workload: `felix-deployer` holds a durable queue under `deploys/queued/`, so
+ten minutes down loses nothing and costs only delay — "recoverable", which question 2 alone
+routes to **office4**, contradicting this very ADR's statement that office2 is the sole
+deployer target. The defect was that a binary recoverable/unrecoverable test silently assumes
+every candidate workload *may* be attended. Question 1 makes that assumption explicit, and
+`felix-deployer` — which must apply merges to `main` whether or not Kent is at a keyboard —
+fails it immediately.
 
 **Worked case A — the nightly Restic backup.** `restic-backup` is `type: cron`, schedule
 `0 4 * * *`, and it lives in a *user* crontab, so anacron does not cover it either. Plain
@@ -92,17 +105,25 @@ The loss is not silent: `restic-backup` declares a 28-hour freshness bound
 (`max_age_seconds: 100800`) and `felix-canary` raises an ERROR when the pointer goes stale,
 so a missed 04:00 run surfaces around 08:00. **But detection is not recovery.** No later run
 recreates a snapshot that was never taken, and a human sitting at the machine at 04:10 could
-not have brought it back either — the window is simply gone. That is what makes it data loss
-rather than annoyance, and it is why the test asks about *unrecoverable* cost, not about
-whether anyone notices. **office2.**
+not have brought it back either — the window is simply gone. That is what makes the cost
+**unrecoverable** rather than merely annoying, and it is why question 2 asks about recovery,
+not about whether anyone notices. (It also fails question 1 — a 04:00 backup is unattended by
+definition — so it lands on office2 twice over.) **office2.**
 
-**Worked case B — a local model server for a coding session.** Ten unwatched minutes down
-means Kent's next completion fails and he restarts it, because he is sitting there. Nothing
-is lost. That is annoyance. **office4.**
+**Worked case B — a local model server for a coding session.** It exists only to serve a
+human who is present, so it passes question 1: it need not run unattended. Then question 2 —
+ten unwatched minutes down means Kent's next completion fails and he restarts it, because he
+is sitting there. Nothing is lost; the cost is recoverable. **office4.**
 
-The test is deliberately about the *unwatched* interval, not about how important the
-workload feels. Important work that fails loudly in front of a human is safer on office4
-than trivial work that fails silently.
+**Worked case C — `felix-deployer`.** It must apply merges to `main` on a five-minute timer
+whether or not anyone is present, so it fails question 1 and stops there. Note that question 2
+alone would have sent it to office4, since its queue is durable and an outage costs only
+delay — which is exactly why question 1 comes first. **office2.**
+
+Question 2 is deliberately about the *unwatched* interval, not about how important the
+workload feels. Important work that fails loudly in front of a human is safer on office4 than
+trivial work that fails silently. But question 1 outranks it: a workload with an unattended
+obligation belongs on office2 even when every individual failure would be cheap.
 
 ## Why office4 is deliberately not a managed host
 
