@@ -1,1 +1,0 @@
-/Users/kentgale/.claude/skills/spk-admin-git-workflow/SKILL.md

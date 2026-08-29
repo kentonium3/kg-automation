@@ -1,1 +1,0 @@
-/Users/kentgale/.claude/skills/spec-kitty-mission-review/references/mission-review-fr-trace-guide.md

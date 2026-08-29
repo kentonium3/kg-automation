@@ -1,1 +1,0 @@
-/Users/kentgale/.claude/skills/spk-doctrine-spdd-reasons/SKILL.md

@@ -1,1 +1,0 @@
-/Users/kentgale/.agents/skills/spec-kitty-git-workflow/references/git-operations-matrix.md

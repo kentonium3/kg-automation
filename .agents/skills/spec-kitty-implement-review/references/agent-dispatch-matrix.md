@@ -1,1 +1,0 @@
-/Users/kentgale/.agents/skills/spec-kitty-implement-review/references/agent-dispatch-matrix.md

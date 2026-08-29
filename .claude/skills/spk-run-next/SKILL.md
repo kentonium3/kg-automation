@@ -1,1 +1,0 @@
-/Users/kentgale/.claude/skills/spk-run-next/SKILL.md

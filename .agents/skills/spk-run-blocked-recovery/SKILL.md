@@ -1,1 +1,0 @@
-/Users/kentgale/.agents/skills/spk-run-blocked-recovery/SKILL.md

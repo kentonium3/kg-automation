@@ -1,1 +1,0 @@
-/Users/kentgale/.agents/skills/spk-start-agent-surface/SKILL.md

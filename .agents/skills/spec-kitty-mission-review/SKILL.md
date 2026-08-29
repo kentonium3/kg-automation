@@ -1,1 +1,0 @@
-/Users/kentgale/.agents/skills/spec-kitty-mission-review/SKILL.md

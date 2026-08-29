@@ -1,1 +1,0 @@
-/Users/kentgale/.agents/skills/spk-admin-git-workflow/SKILL.md

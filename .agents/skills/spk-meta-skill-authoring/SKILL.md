@@ -1,1 +1,0 @@
-/Users/kentgale/.agents/skills/spk-meta-skill-authoring/SKILL.md

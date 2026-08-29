@@ -1,1 +1,0 @@
-/Users/kentgale/.claude/skills/spk-gate-mission-review/SKILL.md

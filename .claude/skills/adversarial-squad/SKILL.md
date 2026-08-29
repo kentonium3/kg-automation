@@ -1,1 +1,0 @@
-/Users/kentgale/.claude/skills/adversarial-squad/SKILL.md

@@ -1,1 +1,0 @@
-/Users/kentgale/.agents/skills/spk-gate-retrospective/SKILL.md

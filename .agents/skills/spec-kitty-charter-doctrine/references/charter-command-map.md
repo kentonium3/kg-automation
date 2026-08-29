@@ -1,1 +1,0 @@
-/Users/kentgale/.agents/skills/spec-kitty-charter-doctrine/references/charter-command-map.md

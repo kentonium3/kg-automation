@@ -1,1 +1,0 @@
-/Users/kentgale/.claude/skills/spk-admin-setup-doctor/SKILL.md

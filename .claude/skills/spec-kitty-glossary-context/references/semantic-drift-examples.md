@@ -1,1 +1,0 @@
-/Users/kentgale/.claude/skills/spec-kitty-glossary-context/references/semantic-drift-examples.md

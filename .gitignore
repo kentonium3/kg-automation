@@ -70,7 +70,11 @@ kitty-ops/ops-index.jsonl
 .kittify/migrations/
 .kittify/logs/
 .agents/skills/
+.claude/skills/
 .kittify/skills-manifest.json
+
+# per-machine direnv config (absolute paths, venv activation)
+.envrc
 
 # spec-kitty 3.2.6 plugin-projection artifact (emitted by 'doctor tool-surfaces --fix'); see spec-kitty tracking issue
 /dist/

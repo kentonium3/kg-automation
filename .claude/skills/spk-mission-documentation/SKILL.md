@@ -1,1 +1,0 @@
-/Users/kentgale/.claude/skills/spk-mission-documentation/SKILL.md

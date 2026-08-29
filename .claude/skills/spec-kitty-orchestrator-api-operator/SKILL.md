@@ -1,1 +1,0 @@
-/Users/kentgale/.claude/skills/spec-kitty-orchestrator-api-operator/SKILL.md

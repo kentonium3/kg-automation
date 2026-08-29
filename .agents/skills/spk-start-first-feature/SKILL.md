@@ -1,1 +1,0 @@
-/Users/kentgale/.agents/skills/spk-start-first-feature/SKILL.md

@@ -1,1 +1,0 @@
-/Users/kentgale/.agents/skills/spk-doctrine-profile-load/SKILL.md
