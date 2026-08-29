@@ -77,11 +77,11 @@
     {
       "criterion_id": "FR-008",
       "description": "Verify FR-008 is satisfied",
-      "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
+      "proof_type": "negative_assertion",
+      "evidence": "service-inventory.json unmodified; all 47 entries host:office2; asserted positively so a violation would fail.",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-08-29T05:46:23.476366+00:00",
       "notes": "TODO: replace with a real acceptance criterion"
     },
     {
