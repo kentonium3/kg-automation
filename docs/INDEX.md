@@ -72,6 +72,7 @@ Immutable, dated records of *why* particular options were chosen over alternativ
 - [ADR-0005 — Vikunja client standardization (base URL, token, timeout, error policy)](<./design/architecture/adr/0005-vikunja-client-standards.md>) (approved 2026-06-10)
 - [ADR-0006 — Felix component lifecycle status contract (declared status vs observed health)](<./design/architecture/adr/0006-felix-component-lifecycle-status-contract.md>) (approved 2026-07-11)
 - [ADR-0007 — Retire Vikunja felix-bot; single kent-token runtime identity](<./design/architecture/adr/0007-retire-vikunja-felix-bot.md>) (approved 2026-07-23)
+- [ADR-0008 — Three-machine model; office2 managed, MacBook Pro and office4 unmanaged peers](<./design/architecture/adr/0008-three-machine-model.md>) (approved 2026-08-29)
 
 ### docs/design/architecture/data/ — Machine-readable state (JSON)
 

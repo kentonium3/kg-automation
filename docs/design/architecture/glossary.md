@@ -11,8 +11,13 @@ Canonical terms used across kg-automation documentation, code, and agent instruc
 
 | Term | Definition |
 |------|-----------|
-| **office2** | Ubuntu 24.04 LTS server (Dell XPS 8700). Always-on hub for all services. Tailscale IP: `100.92.197.90`. |
-| **Tailscale** | Mesh VPN providing encrypted connectivity between office2, Mac, and iPhone. All service access is Tailscale-only. Tailscale Serve provides HTTPS termination with auto-provisioned certs. |
+| **office2** | Ubuntu 24.04 LTS server (Dell XPS 8700). Always-on hub for all services, and the only **managed host** — the sole felix-deployer target. Tailscale IP: `100.92.197.90`. |
+| **office4** | Framework Desktop (AMD Ryzen AI Max 300 Series), Linux Mint 22.3. Kent's primary development machine — an **attended, unmanaged peer**. Always-on, but *not* a deploy target and runs no registered service. Tailscale IP: `100.112.83.28`. See [ADR-0008](<./adr/0008-three-machine-model.md>). |
+| **managed host** | A machine whose state Felix deploys to and audits. office2 alone. Defined by [ADR-0008](<./adr/0008-three-machine-model.md>) and the deploy/audit mechanisms — *not* by which machine happens to appear in an inventory file. |
+| **unmanaged peer** | A tailnet device Felix does not deploy to: the MacBook Pro, the iPhone, and office4. Governs *deployment*, not exposure — an unmanaged peer may still run services of its own. |
+| **attended / unattended** | Whether a human is present to notice a failure. The axis separating office4 (attended) from office2 (unattended), and the basis of ADR-0008's workload placement test. "Always-on" is **not** a synonym for unattended — office4 is always-on; that is precisely the point. |
+| **thin entry** | The reduced `hardware-inventory.json` record used for unmanaged peers — hostname, role, hardware, os, network. Contrasted with the rich form — `bios`, `cpu`, `disks`, `gpu`, `kernel`, `ram_gb` — that office2 alone carries. |
+| **Tailscale** | Mesh VPN providing encrypted connectivity between the four tailnet devices — office2, office4, the MacBook Pro, and the iPhone. All service access is Tailscale-only. Tailscale Serve provides HTTPS termination with auto-provisioned certs. |
 | **Vikunja** | Open-source task management system. Runs as Docker container on office2. Serves as the task store and web UI. Accessible at `https://office2.tail0f5f56.ts.net` via Tailscale Serve. |
 | **OpenClaw** | Orchestration and intelligence layer (planned, F002). Calls Anthropic API directly. Runs skills on office2. |
 | **Obsidian Sync** | Cloud sync service keeping the Obsidian vault consistent across Mac, iPhone, and office2. Daemon runs on office2 as `obsidian-sync.service`. |

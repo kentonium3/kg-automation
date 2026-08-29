@@ -39,7 +39,7 @@
   "flattened": false,
   "friendly_name": "Register office4 in the Architecture",
   "mission_id": "01M15RW2HGNZH2N00P9CTB1RPR",
-  "mission_number": null,
+  "mission_number": 113,
   "mission_slug": "office4-architecture-registration-01M15RW2",
   "mission_type": "documentation",
   "purpose_context": "office4 is live on the tailnet and is now Kent's primary development machine, but it appears in no architecture document. The decisions that shaped the migration — office4 as an unmanaged peer, the attended/unattended split, and why it is deliberately not a felix-deployer target — exist only in a local plan file and GitHub issue comments. This mission writes those decisions into the durable architecture store so later sessions inherit the constraint instead of rediscovering it or violating it by accident.",

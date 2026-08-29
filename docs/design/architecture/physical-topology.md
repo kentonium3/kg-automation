@@ -41,6 +41,22 @@ Authoritative data: [`data/hardware-inventory.json`](<./data/hardware-inventory.
 | Secure boot | Enabled | Canonical-signed nvidia driver works without MOK enrollment |
 | Console resolution | 800x600 (firmware ceiling) | UEFI hands the kernel a low-res framebuffer at POST and it cannot be overridden in OS — see issue #191 |
 
+### office4 — Development Machine
+
+| Attribute | Value |
+|-----------|-------|
+| Hardware | Framework Desktop (AMD Ryzen AI Max 300 Series) |
+| OS | Linux Mint 22.3 (Ubuntu 24.04 noble base) |
+| Tailscale IP | 100.112.83.28 |
+| Role | Kent's primary development machine — **attended**, unmanaged peer |
+
+office4 is always-on, but that is **not** what makes office2 the hub. The axis is
+attendedness: office2 runs unwatched, office4 runs where Kent is working. office4 is
+therefore **not a managed host** — it runs no registered service, is not a felix-deployer
+target, and has no `claude` or `codex` Unix user. See
+[ADR-0008](<./adr/0008-three-machine-model.md>) for the decision, the placement test for
+new workloads, and the constraints that follow.
+
 ### MacBook Pro — Authoring Endpoint
 
 | Attribute | Value |
@@ -73,7 +89,7 @@ this `:443` Serve is tailnet-only. **Funnel is separately ENABLED on `:8443`** �
 - Kent (Mac): `ssh office2-kgale` (kgale user, sudo available)
 - Kent (phone, Termius): two host entries, both via Tailscale → office2 sshd — `kgale` for general ops + `claude` for `gog-reauth` and other claude-user tasks. Termius SSH ID public key is in both users' `~/.ssh/authorized_keys`. Setup procedure: [phone-termius-setup runbook](<../../runbooks/phone-termius-setup.md>).
 - Host aliases defined in `~/.ssh/config` on Mac
-- **Tailscale SSH is enabled on office2** (`tailscale up --ssh`; confirmed via `tailscale debug prefs` showing `RunSSH: true`). tailscaled intercepts incoming SSH on port 22 of the Tailscale IP (100.92.197.90), applies the tailnet ACL, then passes through to sshd. Current ACL: `action: "accept"` for `autogroup:member` → `autogroup:self` → `autogroup:nonroot, root`. The change from `check` to `accept` is documented in [ADR-0004](<./adr/0004-tailscale-ssh-with-accept-acl.md>).
+- **Tailscale SSH is enabled on office2** (`tailscale up --ssh`; confirmed via `tailscale debug prefs` showing `RunSSH: true`). tailscaled intercepts incoming SSH on port 22 of the Tailscale IP (100.92.197.90), applies the tailnet ACL, then passes through to sshd. Current ACL: `action: "accept"` for `autogroup:member` → `autogroup:self` → `autogroup:nonroot, root`. The change from `check` to `accept` is documented in [ADR-0004](<./adr/0004-tailscale-ssh-with-accept-acl.md>). **This is office2-only** — office4 has Tailscale SSH off (`tailscale debug prefs` → `"RunSSH": false`), so tailscaled does not intercept port 22 there and the accept-passthrough has nothing to act on. office4's own sshd is still reachable over the tailnet, just without the ACL layer in front of it.
 
 ## Service Dependencies
 

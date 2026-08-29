@@ -1,7 +1,7 @@
 {
   "schema_version": "1.2",
-  "last_updated": "2026-08-22",
-  "updated_by": "#886 (registered the spec-kitty-qa QA Pipeline ports on office2 \u2014 qa-register :8788, qa-dispatch-webhook :3457, and the Tailscale Funnel on :8443 which is the host's only public-internet ingress; corrected the access rule that still claimed no services were publicly exposed) + #575-tailscale-ssh-docs",
+  "last_updated": "2026-08-29",
+  "updated_by": "#886 (registered the spec-kitty-qa QA Pipeline ports on office2 \u2014 qa-register :8788, qa-dispatch-webhook :3457, and the Tailscale Funnel on :8443 which is the host's only public-internet ingress; corrected the access rule that still claimed no services were publicly exposed) + #575-tailscale-ssh-docs + #909 (registered office4 \u2014 Kent's attended primary development machine \u2014 as the fourth tailnet device; office4 is an unmanaged peer and runs no registered service; Tailscale SSH is off there (RunSSH: false), so tailscale_ssh is unchanged. It does run standard sshd on :22 reachable over the tailnet, authenticated by authorized_keys \u2014 that is not a registered service, so port_assignments and access_rules are also unchanged; see ADR-0008)",
   "network": {
     "type": "tailscale",
     "tailnet_owner": "kentgale@",
@@ -9,7 +9,8 @@
     "devices": [
       {"hostname": "office2", "tailscale_ip": "100.92.197.90", "os": "linux"},
       {"hostname": "kents-macbook-pro", "tailscale_ip": "100.71.19.66", "os": "macOS"},
-      {"hostname": "iphone-14-pro-max", "tailscale_ip": "100.109.208.6", "os": "iOS"}
+      {"hostname": "iphone-14-pro-max", "tailscale_ip": "100.109.208.6", "os": "iOS"},
+      {"hostname": "office4", "tailscale_ip": "100.112.83.28", "os": "linux"}
     ]
   },
   "tailscale_ssh": {

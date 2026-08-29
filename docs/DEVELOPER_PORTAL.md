@@ -17,6 +17,12 @@ complete directory listing — every active markdown file grouped by directory �
 see [`./INDEX.md`](<./INDEX.md>); this portal complements that index rather than
 replacing it.
 
+**Which machine does what.** Felix runs on three machines, and only one of them is a
+deploy target. Before placing any workload, read
+[ADR-0008](<./design/architecture/adr/0008-three-machine-model.md>) — it records the
+office2/office4 boundary and the test for deciding where work belongs. The full decision
+record index is at [`./design/architecture/adr/README.md`](<./design/architecture/adr/README.md>).
+
 ---
 
 ## Quick-Start Onboarding
