@@ -1,31 +1,31 @@
 {
-  "event_count": 35,
-  "last_event_id": "01M15X379DX2VG9T2B4E6HM4ZN",
-  "materialized_at": "2026-08-29T04:40:23.597464+00:00",
+  "event_count": 36,
+  "last_event_id": "01M15X5BMGM9XNENRG0Q001SRQ",
+  "materialized_at": "2026-08-29T04:41:33.584911+00:00",
   "mission_number": "",
   "mission_slug": "office4-architecture-registration-01M15RW2",
   "mission_type": "documentation",
   "summary": {
-    "approved": 0,
+    "approved": 1,
     "blocked": 0,
     "canceled": 0,
     "claimed": 0,
     "done": 0,
     "for_review": 0,
     "in_progress": 0,
-    "in_review": 2,
+    "in_review": 1,
     "planned": 4
   },
   "work_packages": {
     "WP01": {
-      "actor": "claude",
+      "actor": "user",
       "agent": "claude",
       "agent_profile": "__resolved_profile_absent__",
       "agent_profile_version": "__resolved_profile_version_absent__",
       "force_count": 1,
-      "lane": "in_review",
-      "last_event_id": "01M15WVZRV2A80F9FDVVPGM00Q",
-      "last_transition_at": "2026-08-29T04:36:26.523493+00:00",
+      "lane": "approved",
+      "last_event_id": "01M15X5BMGM9XNENRG0Q001SRQ",
+      "last_transition_at": "2026-08-29T04:41:33.584911+00:00",
       "model": "__resolved_model_absent__",
       "notes": [
         "T001-T005 complete; minimal textual edits, both validators green, service-inventory asserted untouched",
@@ -35,7 +35,7 @@
       "provider": "__resolved_provider_absent__",
       "review": null,
       "review_result": {
-        "reference": "Review passed. Independent re-derivation of os/hardware from /etc/os-release and sysfs matched byte-for-byte; the uname -a trap was confirmed present and not taken. Formatting fidelity clean (16 insertions/5 deletions; compact style and unicode escapes preserved). hosts[0]=office2 verified against the sole positional consumer (ollama-ops.md:30). Both validators green.",
+        "reference": "Cycle 2 approved. False 'exposes no port' claim removed; sshd fact stated positively. Reviewer proved tailnet reachability end-to-end from office2 (real banner + auth challenge through DROP-default ufw), closing the question cycle 1 left open. All cycle-1 properties intact: append order, thin form, schema_versions, formatting fidelity, service-inventory untouched. Both validators green.",
         "reviewer": "Kent Gale",
         "verdict": "approved"
       },
