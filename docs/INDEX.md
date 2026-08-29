@@ -20,6 +20,7 @@ Master map for all active documentation under `docs/`. Referenced from
 
 ## Onboarding & Navigation
 
+- [docs/ README](<./README.md>) — thin signpost at the `docs/` root: names the two entry points (this index and the portal), what lives in each subdirectory, and the two editing conventions (JSON is authoritative; changes route through `signal-to-doc-map.json`). Exists so landing in `docs/` — or looking for a `README.md` by convention — is not a dead end (#931)
 - [Developer Portal](<./DEVELOPER_PORTAL.md>) — guided onboarding sitemap (start here for new agents and contributors)
 - [Doc Maintenance](<./runbooks/doc-maintenance.md>) — link conventions, runbook frontmatter, portal filter, and validator behavior
 

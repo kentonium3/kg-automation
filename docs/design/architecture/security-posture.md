@@ -64,14 +64,63 @@ posture is tracked separately in #926.
 
 **Sudo escalation**: When a command requires sudo, agents stop and present the command to Kent for manual execution.
 
-### SSH gates (two layers, in order)
+### SSH access to office2 — two *paths*, not two sequential gates
 
-SSH access to office2 passes through **two gates** in sequence:
+⚠️ This section previously described "two gates in sequence", with Tailscale SSH passing the
+connection "through to sshd". **That is wrong for the tailnet path**, and the distinction is
+material to anyone auditing who can reach this host. Corrected 2026-08-29 (#931).
 
-1. **Tailscale SSH** (network-layer ACL) — tailscaled on office2 intercepts SSH connections to port 22 on the Tailscale IP. With current ACL `action: "accept"`, the connection is allowed through to sshd. With `"check"` it would require browser re-auth (incompatible with Termius mobile). See [ADR-0004](<./adr/0004-tailscale-ssh-with-accept-acl.md>) for the decision rationale.
-2. **sshd** (authentication) — standard OpenSSH authentication using `~/.ssh/authorized_keys` per user. The Termius SSH ID public key (cloud-hosted) is installed in both `kgale`'s and `claude`'s `authorized_keys`.
+There are two independent paths to office2's port 22, and they enforce *different* things:
 
-**SSH key rotation impact**: Rotating a Mac-side SSH key affects only the standard sshd path. Tailscale SSH gating is independent of SSH keys. Termius mobile uses its own SSH ID, NOT any Mac key. The 2026-06-09 #575 rediscovery wasted ~30 min troubleshooting `authorized_keys` permissions before noticing this distinction — see [phone-termius-setup § Gotchas](<../../runbooks/phone-termius-setup.md>).
+**Path A — over the tailnet (`100.92.197.90:22`). Tailscale SSH terminates; keys are never consulted.**
+
+tailscaled on office2 (`RunSSH: true`) intercepts the connection and authorises it against the
+tailnet ACL. With `action: "accept"` the session is established **on tailnet device identity
+alone** — it is not handed to sshd, and `~/.ssh/authorized_keys` plays no part. With `"check"`
+it would require browser re-auth (incompatible with Termius mobile). See
+[ADR-0004](<./adr/0004-tailscale-ssh-with-accept-acl.md>) for the decision rationale.
+
+The current ACL is `src: autogroup:member` → `dst: autogroup:self`, `users: [autogroup:nonroot, root]`.
+
+> **Consequence, stated plainly: membership of the tailnet is equivalent to a shell on office2
+> as any non-root user — including `claude`, the agent account — with no key and no password.**
+> Adding any device to the tailnet grants that access immediately, with no key-provisioning
+> step anywhere.
+
+Verified 2026-08-29 from office4, which at the time held **no SSH private key at all**:
+
+```
+$ ssh -o BatchMode=yes -o IdentitiesOnly=yes -i /nonexistent office2-claude 'whoami'
+claude
+```
+
+**Path B — over the LAN (`192.168.1.158:22`). Real sshd; `authorized_keys` is enforced.**
+
+This path bypasses Tailscale SSH entirely and behaves like ordinary OpenSSH: per-user
+`~/.ssh/authorized_keys`, no tailnet ACL involved. The same command that succeeds on path A
+fails here:
+
+```
+$ ssh -o BatchMode=yes -o IdentitiesOnly=yes -i /nonexistent claude@192.168.1.158 'whoami'
+claude@192.168.1.158: Permission denied (publickey).
+```
+
+**Auditing implication.** Reading office2's `authorized_keys` files answers "who can reach this
+host **over the LAN**". It does **not** answer "who can reach this host", because path A does
+not consult them. To answer that question you must also read the tailnet ACL and the device
+list in [`data/network-topology.json`](<./data/network-topology.json>).
+
+**Unverified — Termius / iPhone.** The phone is a tailnet member, so path A's reasoning
+*should* apply to it and its SSH ID would then be unnecessary. But #575 spent ~30 minutes
+troubleshooting `authorized_keys` for Termius, which suggests path B semantics were in play.
+This has **not** been re-tested since, and the two accounts are not reconciled. Treat the
+Termius path as unconfirmed until someone checks it from the phone; see
+[phone-termius-setup § Gotchas](<../../runbooks/phone-termius-setup.md>).
+
+**SSH key rotation impact**: rotating a Mac-side SSH key affects **path B only**. Path A is
+independent of SSH keys entirely. Termius mobile uses its own SSH ID, NOT any Mac key — the
+2026-06-09 #575 rediscovery wasted ~30 min troubleshooting `authorized_keys` permissions before
+noticing that distinction.
 
 **ACL changes are tracked in [ADR-0004](<./adr/0004-tailscale-ssh-with-accept-acl.md>) § ACL changes log.** Any future change to the tailnet `ssh` rule (action, src/dst/users) must be recorded there. Undocumented changes are how the #575 docs-debt accumulated.
 
