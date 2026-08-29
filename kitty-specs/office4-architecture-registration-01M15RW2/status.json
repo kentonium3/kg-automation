@@ -1,7 +1,7 @@
 {
-  "event_count": 81,
-  "last_event_id": "01M15ZYCZ4Y9PM3V8VA6P5GDW7",
-  "materialized_at": "2026-08-29T05:30:11.300443+00:00",
+  "event_count": 82,
+  "last_event_id": "01M15ZZ0DZAQD0QVQEEESR1VDD",
+  "materialized_at": "2026-08-29T05:30:31.231085+00:00",
   "mission_number": "",
   "mission_slug": "office4-architecture-registration-01M15RW2",
   "mission_type": "documentation",
@@ -11,8 +11,8 @@
     "canceled": 0,
     "claimed": 0,
     "done": 0,
-    "for_review": 0,
-    "in_progress": 1,
+    "for_review": 1,
+    "in_progress": 0,
     "in_review": 1,
     "planned": 0
   },
@@ -153,14 +153,14 @@
       }
     },
     "WP05": {
-      "actor": "claude",
+      "actor": "user",
       "agent": null,
       "agent_profile": "__resolved_profile_absent__",
       "agent_profile_version": "__resolved_profile_version_absent__",
       "force_count": 3,
-      "lane": "in_progress",
-      "last_event_id": "01M15ZYCZ4Y9PM3V8VA6P5GDW7",
-      "last_transition_at": "2026-08-29T05:30:11.300443+00:00",
+      "lane": "for_review",
+      "last_event_id": "01M15ZZ0DZAQD0QVQEEESR1VDD",
+      "last_transition_at": "2026-08-29T05:30:31.231085+00:00",
       "model": "__resolved_model_absent__",
       "notes": [
         "Glossary four devices + four canonical terms; CLAUDE.md office4 row + ADR pointer; signal map now names hardware-inventory.json in the specific change class",
@@ -179,11 +179,11 @@
       "shell_pid": null,
       "shell_pid_created_at": null,
       "subtasks": {
-        "T020": "planned",
-        "T021": "planned",
-        "T022": "planned",
-        "T023": "planned",
-        "T024": "planned"
+        "T020": "done",
+        "T021": "done",
+        "T022": "done",
+        "T023": "done",
+        "T024": "done"
       }
     },
     "WP06": {
