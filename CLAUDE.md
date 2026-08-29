@@ -58,7 +58,7 @@ target.
 - **Local IP**: 192.168.1.158
 - **Tailscale IP**: 100.92.197.90
 - **Data drive**: `/data` (2.7TB)
-- SSH host aliases are defined in `~/.ssh/config` on the Mac
+- SSH host aliases (`office2-claude`, `office2-kgale`) are defined in `~/.ssh/config` on **both** the Mac and office4 — the two machines agents run from. A machine without them resolves `office2-claude` as a literal hostname *and* falls back to the local username, silently defeating the claude-user rule above (kentonium3/kg-automation#929).
 
 **Agents must always use `ssh office2-claude` — never `ssh office2-kgale`.
 The kgale account is for human use only. Agent actions must be traceable
