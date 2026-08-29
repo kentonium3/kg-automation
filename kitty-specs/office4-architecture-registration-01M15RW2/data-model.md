@@ -45,8 +45,12 @@ A physical device, recorded at one of two detail levels.
 Adds `cpu`, `ram_gb`, `kernel`, `gpu`, `bios`, `disks`, and a `network` that also carries
 `local_ip`. Reserved for the machine whose host state Felix actually manages and audits.
 
-**Invariant H-1**: exactly one host uses the rich form. Adding a second would assert a
-second managed host, which is the decision this mission records *against*.
+**Invariant H-1**: exactly one host uses the rich form today (office2). This is a
+**mission postcondition and a corroborating fact, not a definition** — record richness does
+not confer managed status, and documenting a peer's hardware in detail would not make it
+managed. Managed status is defined by ADR 0008 and the deploy/audit mechanisms. The
+invariant exists so a reviewer notices an unexplained second rich entry, not because the
+shape carries semantics.
 
 **Invariant H-2**: `hosts[].hostname` and `network.devices[].hostname` agree for every
 device present in both.
@@ -68,9 +72,11 @@ should touch minimally.
 
 **Not modified by this mission.** Documented here only to state the invariant.
 
-**Invariant S-1**: every entry has `host: office2`. All 47 currently do. This file, not
-the device record, is what carries the managed/unmanaged boundary — which is what makes
-registering office4 in the hardware inventory safe.
+**Invariant S-1**: every entry has `host: office2`. All 47 currently do. This is
+**corroborating evidence of the current design, not the definition** of the boundary — a
+managed host could temporarily run zero registered services without ceasing to be managed.
+What makes registering office4 in the hardware inventory safe is that *neither* inventory
+defines management authority; ADR 0008 does.
 
 ---
 

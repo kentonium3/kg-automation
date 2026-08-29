@@ -19,9 +19,11 @@ applicable rather than left as aspirational placeholder text.
 ## Technical Context
 
 **Language/Version**: Python 3.12.3 (repo `.venv`; validators only — this mission ships no application code)
-**Primary Dependencies**: PyYAML 6.0.3 and jsonschema (already in `requirements.txt`); no new dependency is added
+**Primary Dependencies**: PyYAML 6.0.3, imported by `validate_docs.py` only. `validate_architecture_data.py` is **standard-library only**. `jsonschema` is in `requirements.txt` but is used by neither validator. No new dependency is added
 **Storage**: Flat files in the repo — Markdown under `docs/`, JSON under `docs/design/architecture/data/`
-**Testing**: `tooling/scripts/validate_architecture_data.py --strict` and `tooling/scripts/validate_docs.py`, run by the `.githooks` pre-commit gate and by Docs CI
+**Testing**: `tooling/scripts/validate_architecture_data.py --strict` and `tooling/scripts/validate_docs.py`, run by the `.githooks` pre-commit gate and by Docs CI. Precisely what they cover:
+`validate_docs.py` = frontmatter enums + a secret scan + a **developer-portal runbook-filter drift check** (lines 266–289); it does **not** check links.
+`validate_architecture_data.py --strict` = blocks on non-advisory findings; rollout-advisory rules such as `max-age-missing` are reported but still do not affect exit status, so "strict" does not mean "every finding blocks"
 **Target Platform**: The repository itself. Nothing deploys; office4 is not a deploy target, which is the substance of the decision being recorded
 **Project Type**: Documentation / architecture metadata
 **Performance Goals**: Not applicable — no runtime component. The relevant budget is the pre-commit gate, ~4s for both validators
@@ -156,7 +158,7 @@ consequences), with frontmatter matching repo convention:
 | SC-003 four devices, all IPs live-checked | FR-006, FR-007; quickstart step 4 reconciles **all four** against `tailscale status`, not office4 alone |
 | SC-004 zero service records | C-006; quickstart step 3 is a positive assertion that fails if violated |
 | SC-005 every target accounted for | 8 map targets (6 updated + 2 affirmed) **plus 5 the map does not name** — `adr/README.md`, `hardware-inventory.json`, `glossary.md`, `CLAUDE.md`, `signal-to-doc-map.json`. FR-015 closes the map gap for one of them |
-| SC-006 validators | `.githooks` pre-commit runs both on every commit. Docs CI fires only on `main`, so it is satisfied at Kent's `feat → main` push — **not** at mission close |
+| SC-006 validators | `.githooks` pre-commit runs both on every commit. Docs CI fires only on `main`, so it is satisfied at Kent's `feat → main` push — **not** at mission close. That integration MUST be `--no-ff` so a commit exists to carry C-004's `Rebaseline:` line |
 | SC-007 issue corrected | FR-012 — both the premise and the non-failing `--strict` verification step |
 | SC-008 no contradicting surface | FR-013, FR-014 |
 
@@ -192,9 +194,28 @@ security-impacting dependency decision is made.
 
 ## Implementation Concerns
 
-Concerns for `/spec-kitty.tasks` to translate into work packages. They are ordered by
-dependency: the JSON edits are authoritative and should land before the narrative views
-that describe them (charter: JSON authoritative, markdown follows).
+Concerns for `/spec-kitty.tasks` to translate into work packages.
+
+**Dependency graph — must be carried into WP frontmatter, not left implied:**
+
+| Concern | Depends on | Why |
+|---|---|---|
+| IC-1 | — | Authoritative JSON lands first (charter: JSON authoritative, markdown follows) |
+| IC-2 | — | The ADR is independent prose; can run parallel to IC-1 |
+| IC-3 | IC-1 | Narrative views describe the JSON they follow |
+| IC-4 | IC-2 | Registration needs the ADR's final filename to exist |
+| IC-5 | IC-1, IC-2 | glossary/CLAUDE.md reference the ADR; the map edit is architecture data |
+| IC-6 | IC-1 | The issue comment must match the payload actually implemented |
+| IC-7 | IC-1…IC-6 | Verification runs only once every deliverable exists |
+
+**Ownership guidance for task slicing:**
+
+- **IC-6 and IC-7 own no files.** IC-6 is an external action (a GitHub comment); IC-7 is
+  read-only verification. Neither should be given `owned_files`, or they will collide with
+  the packages that actually edit those files.
+- **FR-011's review-only targets (`adr/0004`, `phone-termius-setup.md`) must not appear in
+  any `owned_files` list.** They are read, not edited; the affirmation itself is written
+  into ADR 0008, which IC-2 owns.
 
 **IC-1 — Architecture data registration.** Add office4 to `network.devices` and a thin
 entry to `hosts`, **appending** so office2 stays `hosts[0]` (a runbook reads `hosts[0].gpu`).
@@ -212,7 +233,11 @@ corrected wherever it assumes three tailnet devices. *(FR-009)*
 
 **IC-4 — ADR registration.** Add 0008 to `adr/README.md` (the real index) and `INDEX.md`'s
 ADR list; add a pointer — not an invented ADR list — to `DEVELOPER_PORTAL.md` and
-`architecture/README.md`, neither of which has any ADR surface today. *(FR-010)*
+`architecture/README.md`, neither of which has any ADR surface today.
+⚠️ `DEVELOPER_PORTAL.md` lines 138–210 are a **generated** block
+(`<!-- begin:runbook-filter (generated; do not edit) -->`) whose staleness `validate_docs.py`
+actively checks. The pointer goes **outside** that block; hand-editing inside it fails the
+commit gate. *(FR-010)*
 
 **IC-5 — Adjacent surfaces.** `glossary.md` (four devices + the four canonical terms),
 `CLAUDE.md` (Platform row + ADR pointer), and `signal-to-doc-map.json` (add
@@ -238,8 +263,9 @@ reviewer reading only #909 will see a success criterion being violated. *Mitigat
 FR-012 corrects the issue, and research.md records the evidence and Kent's approval.
 
 **R-3 — A future session adds a service on office4.** Nothing mechanically prevents it.
-*Mitigation*: the ADR frames the exclusion as a revisitable decision requiring an ADR
-amendment, not a silent row addition.
+*Mitigation*: the ADR frames the exclusion as a revisitable decision requiring a
+**superseding ADR** — not an in-place amendment (ADRs are immutable once approved, per
+`adr/README.md`) and not a silent row addition.
 
 **R-4 — Nothing enforces the no-recognisable-checkout constraint.** It is documentation
 only. *Accepted*: mechanical enforcement would require the felix-deployer changes this

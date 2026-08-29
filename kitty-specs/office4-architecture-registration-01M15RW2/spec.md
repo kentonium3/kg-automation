@@ -117,7 +117,10 @@ the architecture store, and the reconciliation finds no gaps.
 - **A future mission puts a service on office4.** That would contradict the
   `service-inventory.json` exclusion. The ADR must make clear that the exclusion
   is a *decision that can be revisited*, not an invariant of the schema — but
-  revisiting it means amending the ADR, not quietly adding a row.
+  revisiting it means **authoring a new ADR that supersedes the affected decision
+  in ADR 0008**, not quietly adding a row and not editing 0008 in place.
+  `docs/design/architecture/adr/README.md` states the rule: ADRs are immutable once
+  approved; superseded decisions get a new ADR that references the prior one.
 - **#909's own success criteria are internally inconsistent.** The issue asserts
   the Mac is absent from `hardware-inventory.json`; it is not. The spec resolves
   this in favour of verified reality (FR-007) and corrects the issue (FR-012).
@@ -137,7 +140,7 @@ the architecture store, and the reconciliation finds no gaps.
 | FR-007 | `hardware-inventory.json` MUST gain an office4 entry under `hosts` at the *thin* detail level (hostname, role, hardware, os, network), with `os` `Linux Mint 22.3 (Ubuntu 24.04 noble base)` and `hardware` `Framework Desktop (AMD Ryzen AI Max 300 Series)`. | Ready |
 | FR-008 | office4 MUST remain absent from `service-inventory.json`, and that absence MUST be verified as a positive outcome rather than assumed. | Ready |
 | FR-009 | The narrative views MUST be updated: `physical-topology.md` gains office4; `security-posture.md` is corrected wherever its text assumes three tailnet devices. | Ready |
-| FR-010 | ADR 0008 MUST be added to the **ADR index** at `docs/design/architecture/adr/README.md` (required — it is the file that actually lists ADRs) and to the ADR list in `docs/INDEX.md`. `docs/DEVELOPER_PORTAL.md` and `docs/design/architecture/README.md` contain no ADR surface, so for those two "register" means adding a single pointer to the ADR index, not an ADR list they do not have. | Ready |
+| FR-010 | ADR 0008 MUST be added to the **ADR index** at `docs/design/architecture/adr/README.md` (required — it is the file that actually lists ADRs) and to the ADR list in `docs/INDEX.md`. `docs/DEVELOPER_PORTAL.md` and `docs/design/architecture/README.md` contain no ADR surface, so for those two "register" means adding a single pointer to the ADR index, not an ADR list they do not have. ⚠️ `DEVELOPER_PORTAL.md` lines 138–210 are a **generated** runbook-filter block (`<!-- begin:runbook-filter (generated; do not edit) -->`) whose staleness `validate_docs.py` checks — the pointer MUST go outside it. | Ready |
 | FR-011 | Review-only targets (`adr/0004-tailscale-ssh-with-accept-acl.md`, `docs/runbooks/phone-termius-setup.md`) MUST be affirmed as changed or unchanged **in a named destination** — a "Review-only affirmations" subsection of ADR 0008's Consequences — so a reader can tell "read and unchanged" from "never opened". The ADR-0004 affirmation MUST cite the `tailscale debug prefs` → `"RunSSH": false` evidence. | Ready |
 | FR-012 | Issue #909 MUST receive a comment correcting (a) the `hardware-inventory.json` premise and the success criterion built on it, and (b) its post-change verification step, which invokes `validate_architecture_data.py` without `--strict` and therefore cannot fail. | Ready |
 | FR-013 | `docs/design/architecture/glossary.md` MUST be updated: its `Tailscale` entry MUST name four devices rather than "office2, Mac, and iPhone", and it MUST gain entries for the four canonical terms in Domain Language below. | Ready |
@@ -162,7 +165,7 @@ the architecture store, and the reconciliation finds no gaps.
 | C-001 | Tier 4 (Auto-Commit). The mission changes documentation and architecture metadata only — no host, service, credential, port, or network change. office4 is already on the tailnet; this records that fact, it does not create it. | Ready |
 | C-002 | No felix-deployer, manifest-schema, lock-namespacing, or baseline-registry change. Making office4 a managed host is a design change across five subsystems and is out of scope. | Ready |
 | C-003 | JSON files are authoritative; markdown views follow. Where the two disagree, the JSON wins. | Ready |
-| C-004 | No rebaseline is required — architecture-data JSON is not an audited surface per `audited-surfaces.json`. The line `Rebaseline: not required — documentation and architecture metadata only` MUST be recorded on **Kent's `feat → main` merge commit**, not the mission's internal merge: `spec-kitty merge` exposes no commit-message option, and amending its commit would be a prohibited manual git workaround. Verification therefore sits outside the mission's own gate. | Ready |
+| C-004 | No rebaseline is required — architecture-data JSON is not an audited surface per `audited-surfaces.json`. The line `Rebaseline: not required — documentation and architecture metadata only` MUST be recorded on the **`feat → main` integration commit**, which MUST be created with `git merge --no-ff` so that a commit exists to carry it. A fast-forward would produce no such commit, and `spec-kitty merge` exposes no commit-message option (amending its commit would be a prohibited manual git workaround). Verification checks both the message **and** that the commit has two parents, so an ordinary one-parent commit cannot satisfy it. This sits outside the mission's own gate by design. | Ready |
 | C-005 | `kitty-specs/` and `.kittify/` are spec-kitty-owned and MUST NOT be hand-edited; all changes flow through spec-kitty commands. | Ready |
 | C-006 | office4 MUST NOT be added to `service-inventory.json` in this mission. Adding it would imply managed-host status, which is precisely the decision being recorded against. | Ready |
 
@@ -188,8 +191,13 @@ this mission rather than only within it:
 - **Signal-to-doc map** — `signal-to-doc-map.json`, which enumerates the doc
   targets a change class must address; the source of this mission's eight targets.
 - **Device record vs service record** — `hardware-inventory.json` lists every
-  tailnet device; `service-inventory.json` lists only what office2 runs. The
-  managed/unmanaged boundary is carried by the second, not the first.
+  tailnet device; `service-inventory.json` lists only what office2 runs. Neither
+  file *defines* managed status: **ADR 0008 and the deploy/audit mechanisms do.**
+  The all-office2 service inventory and the single rich hardware record are
+  corroborating facts and mission postconditions, not semantic classifiers — a
+  managed host could temporarily run zero services, and documenting a peer's
+  hardware in detail would not make it managed. Treating inventory contents as the
+  definition would let a later documentation edit appear to change architecture.
 
 ## Success Criteria *(mandatory)*
 

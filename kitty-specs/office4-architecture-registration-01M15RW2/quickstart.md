@@ -117,14 +117,24 @@ grep -n "office4" docs/design/architecture/glossary.md CLAUDE.md
 ```
 
 ```bash
-python3 -c "
+python3 - <<'EOF'
 import json
-m = json.load(open('docs/design/architecture/data/signal-to-doc-map.json'))
-hits = [e for e in m.get('mappings', m.get('entries', [])) if 'hardware-inventory.json' in json.dumps(e)]
-assert hits, 'hardware-inventory.json still missing from the signal-to-doc map'
-print('OK: map now names hardware-inventory.json')
-"
+m = json.load(open("docs/design/architecture/data/signal-to-doc-map.json"))
+entries = m if isinstance(m, list) else next(v for v in m.values() if isinstance(v, list))
+hits = [e for e in entries
+        if e.get("match", {}).get("source") == "mission-architecture-impact"
+        and e.get("match", {}).get("change_class") == "network-topology-changed"]
+assert len(hits) == 1, f"expected exactly 1 network-topology-changed entry, got {len(hits)}"
+targets = hits[0]["doc_targets"]
+want = "docs/design/architecture/data/hardware-inventory.json"
+assert want in targets, f"{want} missing from network-topology-changed doc_targets: {targets}"
+print("OK: network-topology-changed now names hardware-inventory.json")
+EOF
 ```
+
+A looser search for *any* mention of `hardware-inventory.json` anywhere in the map would
+pass even if the path were added to the wrong change class — which is the failure this
+check exists to catch.
 
 `glossary.md` must name four devices in its `Tailscale` entry and define all four canonical
 terms; `CLAUDE.md`'s Platform table must include office4.
@@ -159,11 +169,22 @@ leaving the document:
 the mission merges to `feat/office4-architecture-registration`, not `main`. The line rides
 **Kent's `feat → main` merge commit**. Run this after that merge, on `main`:
 
+The integration must be `git merge --no-ff`, or no commit exists to carry the line.
+Run on `main` after that merge:
+
 ```bash
 git log -1 --format=%B | grep -i "^Rebaseline:"
 ```
 
-Must read `Rebaseline: not required — documentation and architecture metadata only`.
+```bash
+test "$(git rev-list --parents -n1 HEAD | wc -w)" -eq 3 \
+  && echo "OK: two-parent merge commit" || { echo "NOT a merge commit"; exit 1; }
+```
+
+The second check matters: without it a fast-forward or squash leaves an ordinary
+one-parent commit that the message grep could still pass on, so the requirement would look
+satisfied while the merge commit it names never existed. Must read
+`Rebaseline: not required — documentation and architecture metadata only`.
 Do **not** amend the spec-kitty merge commit to satisfy this — that is a prohibited manual
 git workaround.
 

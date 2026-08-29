@@ -218,10 +218,18 @@ highest-traffic surface asserting the opposite defeats the mission's stated purp
 
 Load-bearing, because two spec thresholds were written against capabilities that do not exist.
 
-**`tooling/scripts/validate_docs.py` does not check links.** Its docstring: *"Lightweight:
-only checks frontmatter and secrets."* Zero occurrences of "link" in the file. It validates
-required frontmatter keys, four enums, `owners`/`revision` formats, and runs a secret scan.
-There is no lychee, no markdown-link-check, and no link step in `.github/workflows/docs-ci.yml`.
+**`tooling/scripts/validate_docs.py` does not check links.** Zero occurrences of "link" in
+the file. There is no lychee, no markdown-link-check, and no link step in
+`.github/workflows/docs-ci.yml`.
+
+Its docstring — *"Lightweight: only checks frontmatter and secrets"* — is itself slightly
+stale, and repeating it uncritically would understate the tool. It validates required
+frontmatter keys, four enums, `owners`/`revision` formats, runs a secret scan, **and** at
+lines 266–289 runs a **developer-portal runbook-filter drift check**, failing with
+"Developer portal runbook-filter block is stale." This matters directly: IC-4 edits
+`docs/DEVELOPER_PORTAL.md`, whose lines 138–210 are a generated block marked
+`<!-- begin:runbook-filter (generated; do not edit) -->`. Any pointer added to that file
+must go outside the block.
 NFR-004's "0 broken links reported by the docs validator" was therefore satisfiable by a
 tool structurally incapable of reporting one. The same applies to the "heading hierarchy"
 quality gate.
@@ -232,6 +240,11 @@ real gates both pass `--strict` — `.githooks/pre-commit:40` and `docs-ci.yml:3
 (`--strict --github`). NFR-001's threshold omitted `--strict`, making it another check that
 cannot fail. #909's post-change verification has the identical defect and is corrected in
 the same comment FR-012 requires.
+
+**Dependency correction**: `validate_architecture_data.py` imports only the standard
+library (`argparse`, `json`, `sys`, `dataclasses`, `datetime`, `pathlib`, `typing`). Only
+`validate_docs.py` needs PyYAML. `jsonschema` sits in `requirements.txt` but is used by
+neither validator — the plan's first draft claimed otherwise.
 
 **What the validators *do* catch, verified**: `front_matter()` calls
 `err('Missing YAML front-matter', p)` when the fence is absent, so NFR-003 is not vacuous.
@@ -269,12 +282,29 @@ time by `.githooks/pre-commit:40-41`, which runs both validators on every commit
 
 ## R-11 — provenance of these corrections
 
-R-3 (refinements), R-4 (the OS correction), R-7, R-8, R-9, R-10, and the `hosts[0]`
-invariant in data-model.md all originate in the **mandatory post-plan adversarial review**.
-Codex was unauthenticated on office4 at the time (kg-automation#923), so the standing Opus
-fallback ran instead; Codex was authorised afterwards and re-reviewed the corrected
-artifacts. Every claim above was independently re-verified against the working tree or the
-live host before being folded in — the review was treated as a lead, not as authority.
+The **mandatory post-plan review checkpoint ran twice**, and both passes are recorded here
+because the second found what the first missed.
+
+**Pass 1 — Opus fallback (reviewer-renata).** Codex was unauthenticated on office4 at the
+time (kg-automation#923), so the standing fallback ran. 6 blocking, 8 high, 5 advisory.
+Origin of R-3's refinements, R-4's OS correction, R-7, R-8, R-9, R-10, and data-model H-3.
+
+**Pass 2 — Codex, on the corrected artifacts.** Kent authorised Codex mid-mission; it was
+run against the already-corrected artifacts rather than the originals, so it functioned as
+a genuinely independent second lens instead of re-reporting pass 1. It returned 3 blocking
+and 3 advisory, all new:
+
+| Finding | Correction |
+|---|---|
+| Managed status was being *derived* from service-inventory contents and record richness | Neither defines it; ADR 0008 and the deploy/audit mechanisms do. Both are corroborating facts. Rewrote spec Key Entities, data-model H-1 and S-1 |
+| Artifacts said a future service on office4 means "amending" ADR 0008 | ADRs are immutable once approved (`adr/README.md`); the correct action is a **superseding** ADR |
+| C-004 assigned the `Rebaseline:` line to a merge commit that a fast-forward would never create | `feat → main` must be `--no-ff`, and verification now checks two parents as well as the message |
+| IC dependency graph was implied, not stated | Explicit dependency table added to plan.md, plus ownership guidance keeping IC-6/IC-7 and review-only files out of `owned_files` |
+| The signal-map check passed on *any* mention of `hardware-inventory.json` | Now asserts membership in the specific `network-topology-changed` entry |
+| Validator descriptions overstated and understated in different places | Corrected above in this section |
+
+Every claim from both passes was independently re-verified against the working tree or the
+live host before being folded in — each review was treated as a lead, not as authority.
 
 ---
 

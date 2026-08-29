@@ -134,7 +134,7 @@ Measured ADR references per file, so "register" means something different in eac
 |---|---|---|
 | `docs/design/architecture/adr/README.md` | 5 | **Required.** This is the ADR Index — a table of 0001–0007 with title, status, date. Add a 0008 row. Omitting this leaves the index permanently stale. |
 | `docs/INDEX.md` | 14 | Add 0008 to the ADR list (lines 63–74). |
-| `docs/DEVELOPER_PORTAL.md` | 0 | **No ADR surface exists.** Add a single pointer to the ADR index — do not invent an ADR list. |
+| `docs/DEVELOPER_PORTAL.md` | 0 | **No ADR surface exists.** Add a single pointer to the ADR index — do not invent an ADR list. ⚠️ Lines 138–210 are a generated block (`<!-- begin:runbook-filter (generated; do not edit) -->`); `validate_docs.py:266-289` fails the commit if it goes stale. Put the pointer **outside** it. |
 | `docs/design/architecture/README.md` | 0 | **No ADR surface exists.** Its tables are Documents / Data Files / Schema Contracts. Add a single pointer to the ADR index. |
 
 ## C-7 — Adjacent-surface edits (approved scope addition)
@@ -168,6 +168,9 @@ Decision `01M15TBPHB2JRXFD5ZZCQC0PHN`.
   so today the authoritative file is the wrong one.
 - Re-run `validate_architecture_data.py --strict` afterwards — this file is itself
   architecture data.
+- Verify membership in the **specific** `network-topology-changed` entry
+  (`match.source == "mission-architecture-impact"`), not merely that the path appears
+  somewhere in the map.
 
 ## C-8 — Where the `Rebaseline:` line goes
 
@@ -181,7 +184,12 @@ So the line
 Rebaseline: not required — documentation and architecture metadata only
 ```
 
-rides **Kent's `feat → main` merge commit**. Do not amend the spec-kitty merge commit —
-that is a prohibited manual git workaround. Do not put it on a work-package commit — a
-`git log -1` check would not find it. This is outside the mission's own gate by design;
-say so in the handoff rather than leaving it implicit.
+rides the **`feat → main` integration commit**, which must be created with
+`git merge --no-ff`. A fast-forward creates no commit to annotate, and a squash changes the
+message mechanics — so the strategy is part of the requirement, not an implementation
+detail. Verification checks the message **and** that `HEAD` has two parents.
+
+Do not amend the spec-kitty merge commit — that is a prohibited manual git workaround. Do
+not put the line on a work-package commit — a `git log -1` check would not find it. This
+sits outside the mission's own gate by design; say so in the handoff rather than leaving it
+implicit.
