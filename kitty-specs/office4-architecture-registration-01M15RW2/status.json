@@ -1,7 +1,7 @@
 {
-  "event_count": 77,
-  "last_event_id": "01M15ZNT0QJVT04E9PEACK8A4Z",
-  "materialized_at": "2026-08-29T05:25:29.751395+00:00",
+  "event_count": 78,
+  "last_event_id": "01M15ZP2AEPGJFTBSF5DYTYR9K",
+  "materialized_at": "2026-08-29T05:25:38.254244+00:00",
   "mission_number": "",
   "mission_slug": "office4-architecture-registration-01M15RW2",
   "mission_type": "documentation",
@@ -11,9 +11,9 @@
     "canceled": 0,
     "claimed": 0,
     "done": 0,
-    "for_review": 1,
+    "for_review": 0,
     "in_progress": 0,
-    "in_review": 1,
+    "in_review": 2,
     "planned": 1
   },
   "work_packages": {
@@ -52,14 +52,14 @@
       }
     },
     "WP02": {
-      "actor": "user",
-      "agent": null,
+      "actor": "claude",
+      "agent": "claude",
       "agent_profile": "__resolved_profile_absent__",
       "agent_profile_version": "__resolved_profile_version_absent__",
       "force_count": 5,
-      "lane": "for_review",
-      "last_event_id": "01M15ZNT0QJVT04E9PEACK8A4Z",
-      "last_transition_at": "2026-08-29T05:25:29.751395+00:00",
+      "lane": "in_review",
+      "last_event_id": "01M15ZP2AEPGJFTBSF5DYTYR9K",
+      "last_transition_at": "2026-08-29T05:25:38.254244+00:00",
       "model": "__resolved_model_absent__",
       "notes": [
         "ADR 0008 authored; all 5 citations verified; validate_docs OK",
@@ -78,9 +78,9 @@
         "reviewer": "user",
         "verdict": "changes_requested"
       },
-      "role": "implementer",
-      "shell_pid": null,
-      "shell_pid_created_at": null,
+      "role": "reviewer",
+      "shell_pid": 162457,
+      "shell_pid_created_at": "1787981135.5",
       "subtasks": {
         "T006": "done",
         "T007": "done",
