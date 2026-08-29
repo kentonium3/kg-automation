@@ -9,6 +9,9 @@ requirement_refs:
 planning_base_branch: feat/office4-architecture-registration
 merge_target_branch: feat/office4-architecture-registration
 branch_strategy: Planning artifacts for this mission were generated on feat/office4-architecture-registration. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into feat/office4-architecture-registration unless the human explicitly redirects the landing branch.
+base_branch: kitty/mission-office4-architecture-registration-01M15RW2
+base_commit: dd3fe303e578cdfb61bcc2d0aa250a3eb6dcafab
+created_at: '2026-08-29T04:18:17.582476+00:00'
 subtasks:
 - T001
 - T002
