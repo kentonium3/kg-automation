@@ -28,7 +28,8 @@
       "last_transition_at": "2026-08-29T04:26:58.231883+00:00",
       "model": "__resolved_model_absent__",
       "notes": [
-        "T001-T005 complete; minimal textual edits, both validators green, service-inventory asserted untouched"
+        "T001-T005 complete; minimal textual edits, both validators green, service-inventory asserted untouched",
+        "Review passed. Independent re-derivation of os/hardware from /etc/os-release and sysfs matched byte-for-byte; the uname -a trap was confirmed present and not taken. Formatting fidelity clean (16 insertions/5 deletions; compact style and unicode escapes preserved). hosts[0]=office2 verified against the sole positional consumer (ollama-ops.md:30). Both validators green."
       ],
       "provider": "__resolved_provider_absent__",
       "review_result": {
