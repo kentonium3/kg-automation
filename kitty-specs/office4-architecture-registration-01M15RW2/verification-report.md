@@ -27,11 +27,11 @@ choice worth revisiting next time, not a tool fault.
 | 2 | 4 devices / 4 hosts / office2 rich + `hosts[0]` | **PASS** | `['office2','kents-macbook-pro','iphone-14-pro-max','office4']` in both records; office2 the only entry with `disks`/`bios` |
 | 3 | Zero office4 service records | **PASS** | All **47** services `host: office2`. Positive assertion, would fail if violated |
 | 4 | All four IPs match the live tailnet | **PASS** | `tailscale status` reconciled against `network-topology.json` — all four match, not office4 alone |
-| 4b | `os` / `hardware` provenance | **PASS** | `/etc/os-release` → `NAME="Linux Mint" VERSION="22.3 (Zena)"`; sysfs → `Framework` + `Desktop (AMD Ryzen AI Max 300 Series)`. Both match the recorded values. `uname -a` deliberately not used |
+| 4b | `os` / `hardware` provenance | **PASS** | `/etc/os-release` → `NAME="Linux Mint"`, `VERSION="22.3 (Zena)"`, **`UBUNTU_CODENAME=noble`** (that third line is what sources the recorded parenthetical); sysfs → `Framework` + `Desktop (AMD Ryzen AI Max 300 Series)`. Both match. `uname -a` deliberately not used |
 | 5 | ADR registered in all four surfaces | **PASS** | Per-file loop on `0008-three-machine-model` passed for `adr/README.md`, `INDEX.md`, `DEVELOPER_PORTAL.md`, `architecture/README.md` |
 | 5b | Adjacent surfaces | **PASS** | glossary names four devices + all four canonical terms; `CLAUDE.md` has the office4 row; signal map's `network-topology-changed` entry names `hardware-inventory.json` — verified with the precise selector **and its inverse** (path appears in no other entry) |
 | 5c | Review-only affirmations | **PASS** | ADR 0008 `### Review-only affirmations` covers `adr/0004` (citing `RunSSH: false`) and `phone-termius-setup.md` |
-| 6 | ADR answers its five questions | **PASS** | Verified across four independent review cycles |
+| 6 | ADR answers its five questions | **FAILED when finally run → since fixed** | This row first read PASS on the evidence "verified across four independent review cycles" — a citation of other work, not an execution of the step. Nobody had run it. When this report's reviewer did, **Q4 was not answerable**. See F1 |
 | 7 | `Rebaseline:` line on the integration commit | **NOT RUN — deferred by design** | Requires a `feat → main` merge that does not exist yet. See Handoff below |
 | — | Diff scope (C-001 Tier 4, C-002) | **PASS** | All five lanes confined to `docs/`, `CLAUDE.md`, `kitty-specs/`. Nothing under `scripts/deploy/**` or `deploys/**` |
 | — | Links introduced by this mission resolve | **PASS** | 285 relative links swept across the 12 changed files; **282 resolve**. The 3 that fail are pre-existing (base lines 36-38 of `architecture/README.md`), not introduced here — filed as **#927** |
@@ -85,8 +85,8 @@ Rebaseline: not required — documentation and architecture metadata only
 ```
 
 **It must be created with `git merge --no-ff`.** A fast-forward produces no commit to carry
-the line, and `spec-kitty merge` exposes no commit-message option (`--strategy`, `--target`,
-`--delete-branch`, `--remove-worktree`, `--push`, `--dry-run`, `--json` only). Amending
+the line, and `spec-kitty merge` exposes no commit-message option (16 flags; none of them
+sets a message — every one was checked). Amending
 spec-kitty's merge commit would be a prohibited manual git workaround.
 
 Verify after that merge, on `main` — **both** checks, because the message grep alone would
@@ -113,6 +113,59 @@ and at Kent's push by CI.
 | **#925** | `felix-vikunja-sync.timer` documents catch-up that `Persistent=` cannot provide without `OnCalendar=` | Found while the ADR was about to cite it as an example |
 | **#922 / #924 / #3795** | spec-kitty defects (specify Decision-Moment ordering; stale documentation-mission WP template) | #3795 filed upstream with approved copy |
 
+## Findings raised BY this report's own review
+
+Both blocking findings were cases of the mission's standard not being applied to itself.
+Recorded rather than fixed here, per this WP's scope rule — report it, let the owning WP fix
+it. All three below have since been fixed.
+
+**F1 — Q4 of the ADR's five questions was not answerable (owner: WP02).** The constraint
+turned on "felix-deployer-recognisable path" and never defined it. The only in-document
+referent was `/home/claude/kg-automation`, which the adjacent constraint makes impossible on
+office4 — while office4 holds a checkout at `/home/kgale/repos/kg-automation`, the tree this
+report was produced in. A reader could not determine whether that was a breach. For a
+constraint with no mechanical enforcement, being unactionable is the whole failure.
+
+It survived four review cycles because step 6 above was recorded PASS on borrowed evidence.
+**That is the more important half of this finding:** the check that would have caught it was
+the one this report declined to actually run.
+
+**F2 — adding the office4 row to `CLAUDE.md` made a neighbouring line false (owner: WP05).**
+The Platform table's `Obsidian Sync` row read "across **all devices** including office2";
+inserting office4 four rows above made that generalisation sweep in a machine with no vault.
+WP05 had established that fact and applied it correctly to the glossary, then missed it in the
+file it was editing. Step 5b passed `CLAUDE.md` on the narrow "does the table include office4"
+test — satisfied, and beside the point, since FR-014 exists so the repo's highest-traffic file
+does not contradict the decision.
+
+**F3 — the fix for F1 introduced a false claim of its own (owner: WP02).** Cycle 3 asserted
+the two office4 constraints were "mutually reinforcing" — that with no `claude` user the
+recognised path *cannot exist*. False: directory existence is independent of the passwd
+database, office4 itself carries `/home/linuxbrew` with no `linuxbrew` user, and
+`felix-deployer/` and `lib/` contain zero identity lookups. It also contradicted three
+downstream statements that the ADR is the *only* barrier. In a document arguing it is the sole
+guard, telling the reader a breach is impossible is exactly the belief that stops anyone
+checking.
+
+Provenance worth recording: that reasoning originated in **this mission's own review
+feedback**, and was then implemented faithfully. Fidelity to bad feedback does not rescue it.
+
+## Two process notes
+
+**The Quality Gate is literally unmet, on one reading.** spec.md's Quality Gates say "No
+broken relative links in the touched files." There are three, in a touched file. The table
+row above uses NFR-004's narrower wording — links *introduced or edited by this mission* — 
+which passes. Both readings are stated here rather than the convenient one being quietly
+chosen. The three are pre-existing and filed as #927.
+
+**The orchestrator broke a rule, twice.** During WP05's cycle-2 fix and again while correcting
+this report, `action implement` was **refused** (`dependencies_not_satisfied`) and the work
+proceeded anyway, because the claim and the edit were issued in one shell invocation that did
+not halt on a non-zero exit. Both were reverted and re-done after a verified claim. The
+underlying tool gap — the dependency gate is enforced by `implement` but not by `move-task
+--to for_review` — is filed as **#928**. The tool being lenient does not excuse it; the
+refusals were unambiguous.
+
 ## Corrections to this mission's own record
 
 Recorded because the mission's standard should apply to itself:
@@ -124,7 +177,7 @@ Recorded because the mission's standard should apply to itself:
 2. **WP03's approved text says office4's sshd posture "is tracked separately in #926."** #926
    is now closed and remediated. The sentence remains accurate — the issue records the
    posture — but a reader may expect it open. Not worth reopening an approved WP.
-3. **The two ADR pointers in `DEVELOPER_PORTAL.md` and `architecture/README.md` hard-name
+3. **Three ADR pointers — `DEVELOPER_PORTAL.md`, `architecture/README.md` and `CLAUDE.md` — hard-name
    ADR-0008** and sit outside the ADR index's supersession convention. If 0008 is ever
    superseded they go stale silently. This is a debt the WP prompt created by asking for 0008
    to be named, not a deviation from it.
