@@ -153,6 +153,9 @@
       "last_event_id": "01M15XVXA136TZDYV8S2Y7W6K4",
       "last_transition_at": "2026-08-29T04:53:52.577450+00:00",
       "model": "__resolved_model_absent__",
+      "notes": [
+        "Glossary four devices + four canonical terms; CLAUDE.md office4 row + ADR pointer; signal map now names hardware-inventory.json in the specific change class"
+      ],
       "provider": "__resolved_provider_absent__",
       "role": "implementer",
       "shell_pid": 141664,
