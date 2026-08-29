@@ -1,7 +1,7 @@
 {
-  "event_count": 42,
-  "last_event_id": "01M15XEQ6795PE45XXDSQXEZ5V",
-  "materialized_at": "2026-08-29T04:46:40.327108+00:00",
+  "event_count": 43,
+  "last_event_id": "01M15XES8ABGYBV7VBF8AS4D8P",
+  "materialized_at": "2026-08-29T04:46:42.442061+00:00",
   "mission_number": "",
   "mission_slug": "office4-architecture-registration-01M15RW2",
   "mission_type": "documentation",
@@ -11,9 +11,9 @@
     "canceled": 0,
     "claimed": 0,
     "done": 0,
-    "for_review": 1,
+    "for_review": 0,
     "in_progress": 0,
-    "in_review": 0,
+    "in_review": 1,
     "planned": 3
   },
   "work_packages": {
@@ -52,19 +52,20 @@
       }
     },
     "WP02": {
-      "actor": "user",
+      "actor": "claude",
       "agent": "claude",
       "agent_profile": "__resolved_profile_absent__",
       "agent_profile_version": "__resolved_profile_version_absent__",
       "force_count": 3,
-      "lane": "for_review",
-      "last_event_id": "01M15XEQ6795PE45XXDSQXEZ5V",
-      "last_transition_at": "2026-08-29T04:46:40.327108+00:00",
+      "lane": "in_review",
+      "last_event_id": "01M15XES8ABGYBV7VBF8AS4D8P",
+      "last_transition_at": "2026-08-29T04:46:42.442061+00:00",
       "model": "__resolved_model_absent__",
       "notes": [
         "ADR 0008 authored; all 5 citations verified; validate_docs OK",
         "Cycle 1 feedback addressed: worked case A replaced with restic-backup (verified no-catch-up plain cron vs Persistent=true timers), Alternatives Considered added, citation 2 rigor equalised, #910 reference, dated count",
-        "Cycle 2 addressed: unrecoverability-not-undetectability rewrite, invalid Persistent=true example replaced, dated count actually applied this time"
+        "Cycle 2 addressed: unrecoverability-not-undetectability rewrite, invalid Persistent=true example replaced, dated count actually applied this time",
+        "Cycle 3 F6-R fixed: corrupted sentence repaired, paragraph re-wrapped, verification now reads the rendered result rather than asserting on the replacement"
       ],
       "provider": "__resolved_provider_absent__",
       "review": null,
@@ -74,8 +75,8 @@
         "verdict": "changes_requested"
       },
       "role": "reviewer",
-      "shell_pid": 134045,
-      "shell_pid_created_at": "1787978421.74",
+      "shell_pid": 137955,
+      "shell_pid_created_at": "1787978798.28",
       "subtasks": {
         "T006": "done",
         "T007": "done",
