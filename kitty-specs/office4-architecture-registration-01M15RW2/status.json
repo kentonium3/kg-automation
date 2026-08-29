@@ -1,7 +1,7 @@
 {
-  "event_count": 25,
-  "last_event_id": "01M15WSBNBATDF3CASW1T4P6S6",
-  "materialized_at": "2026-08-29T04:35:00.395913+00:00",
+  "event_count": 27,
+  "last_event_id": "01M15WSNFSNHTR8WKPKTY19NQY",
+  "materialized_at": "2026-08-29T04:35:10.457095+00:00",
   "mission_number": "",
   "mission_slug": "office4-architecture-registration-01M15RW2",
   "mission_type": "documentation",
@@ -12,20 +12,20 @@
     "claimed": 0,
     "done": 0,
     "for_review": 0,
-    "in_progress": 0,
+    "in_progress": 1,
     "in_review": 2,
-    "planned": 4
+    "planned": 3
   },
   "work_packages": {
     "WP01": {
-      "actor": "user",
+      "actor": "claude",
       "agent": null,
       "agent_profile": "__resolved_profile_absent__",
       "agent_profile_version": "__resolved_profile_version_absent__",
       "force_count": 1,
-      "lane": "planned",
-      "last_event_id": "01M15WSBNBATDF3CASW1T4P6S6",
-      "last_transition_at": "2026-08-29T04:35:00.395913+00:00",
+      "lane": "in_progress",
+      "last_event_id": "01M15WSNFSNHTR8WKPKTY19NQY",
+      "last_transition_at": "2026-08-29T04:35:10.457095+00:00",
       "model": "__resolved_model_absent__",
       "notes": [
         "T001-T005 complete; minimal textual edits, both validators green, service-inventory asserted untouched",
@@ -38,7 +38,7 @@
         "reviewer": "Kent Gale",
         "verdict": "approved"
       },
-      "role": "reviewer",
+      "role": "implementer",
       "shell_pid": null,
       "shell_pid_created_at": null,
       "subtasks": {
