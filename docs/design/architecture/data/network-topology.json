@@ -1,7 +1,7 @@
 {
   "schema_version": "1.2",
   "last_updated": "2026-08-29",
-  "updated_by": "#886 (registered the spec-kitty-qa QA Pipeline ports on office2 \u2014 qa-register :8788, qa-dispatch-webhook :3457, and the Tailscale Funnel on :8443 which is the host's only public-internet ingress; corrected the access rule that still claimed no services were publicly exposed) + #575-tailscale-ssh-docs + #909 (registered office4 \u2014 Kent's attended primary development machine \u2014 as the fourth tailnet device; office4 is an unmanaged peer and runs no registered service; Tailscale SSH is off there (RunSSH: false), so tailscale_ssh is unchanged. It does run standard sshd on :22 reachable over the tailnet, authenticated by authorized_keys \u2014 that is not a registered service, so port_assignments and access_rules are also unchanged; see ADR-0008)",
+  "updated_by": "#886 (registered the spec-kitty-qa QA Pipeline ports on office2 \u2014 qa-register :8788, qa-dispatch-webhook :3457, and the Tailscale Funnel on :8443 which is the host's only public-internet ingress; corrected the access rule that still claimed no services were publicly exposed) + #575-tailscale-ssh-docs + #909 (registered office4 \u2014 Kent's attended primary development machine \u2014 as the fourth tailnet device; office4 is an unmanaged peer and runs no registered service; Tailscale SSH is off there (RunSSH: false), so tailscale_ssh is unchanged. It does run standard sshd on :22 reachable over the tailnet, authenticated by authorized_keys \u2014 that is not a registered service, so port_assignments and access_rules are also unchanged; see ADR-0008) + #932/#931 (narrowed acl_users to three named accounts, removing root \u2014 Tailscale SSH honoured it in bypass of PermitRootLogin no; enabled Tailscale SSH on office4 so both hosts use one mechanism; corrected the notes field, which described a passthrough to sshd that does not occur)",
   "network": {
     "type": "tailscale",
     "tailnet_owner": "kentgale@",
@@ -14,15 +14,15 @@
     ]
   },
   "tailscale_ssh": {
-    "enabled_on": ["office2"],
-    "verified_via": "tailscale debug prefs (RunSSH: true)",
+    "enabled_on": ["office2", "office4"],
+    "verified_via": "tailscale debug prefs (RunSSH: true) on both hosts; office4 enabled 2026-08-29. Cross-machine check: office2 \u2192 office4 as kgale with no key succeeds; as root the ACL refuses.",
     "acl_action": "accept",
     "acl_source": "autogroup:member",
     "acl_destination": "autogroup:self",
-    "acl_users": ["autogroup:nonroot", "root"],
+    "acl_users": ["kgale", "claude", "codex"],
     "acl_managed_at": "https://login.tailscale.com/admin/acls",
     "decision_record": "docs/design/architecture/adr/0004-tailscale-ssh-with-accept-acl.md",
-    "notes": "tailscaled intercepts SSH connections to port 22 on the Tailscale IP. With action: 'accept', the connection is passed through to standard sshd for auth via authorized_keys. ACL changes are logged in ADR-0004."
+    "notes": "tailscaled intercepts SSH connections to port 22 on the Tailscale IP. With action: 'accept' it TERMINATES the connection and authorises on tailnet device identity \u2014 it does NOT pass through to sshd, and authorized_keys is never consulted on this path. Two consequences: (1) sshd directives do not govern it, which is why PermitRootLogin no did not stop root until root was removed from acl_users (#932); (2) tailnet membership alone grants a shell as any account listed in acl_users, with no key and no password (#931). The LAN path (192.168.1.158, 192.168.1.97) is unaffected and still enforces authorized_keys. ACL changes are logged in ADR-0004."
   },
   "port_assignments": [
     {
