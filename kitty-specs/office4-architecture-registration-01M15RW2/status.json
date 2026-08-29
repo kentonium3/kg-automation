@@ -1,7 +1,7 @@
 {
-  "event_count": 15,
-  "last_event_id": "01M15WAMSQ750EMZ1D431VW117",
-  "materialized_at": "2026-08-29T04:26:58.231883+00:00",
+  "event_count": 17,
+  "last_event_id": "01M15WBBESR20SSERMGFPJM715",
+  "materialized_at": "2026-08-29T04:27:21.433612+00:00",
   "mission_number": "",
   "mission_slug": "office4-architecture-registration-01M15RW2",
   "mission_type": "documentation",
@@ -12,9 +12,9 @@
     "claimed": 0,
     "done": 0,
     "for_review": 0,
-    "in_progress": 0,
+    "in_progress": 1,
     "in_review": 1,
-    "planned": 4
+    "planned": 3
   },
   "work_packages": {
     "WP01": {
@@ -75,11 +75,14 @@
       }
     },
     "WP03": {
-      "actor": "finalize-tasks",
+      "actor": "claude",
+      "agent": "claude",
       "force_count": 0,
-      "lane": "planned",
-      "last_event_id": "01M15VK035MV3J4FDX9SNHJQA0",
-      "last_transition_at": "2026-08-29T04:14:03.365207+00:00"
+      "lane": "in_progress",
+      "last_event_id": "01M15WBBESR20SSERMGFPJM715",
+      "last_transition_at": "2026-08-29T04:27:21.433612+00:00",
+      "shell_pid": 124578,
+      "shell_pid_created_at": "1787977638.41"
     },
     "WP04": {
       "actor": "finalize-tasks",
