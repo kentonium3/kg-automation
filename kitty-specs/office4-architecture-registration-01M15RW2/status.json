@@ -163,7 +163,8 @@
       "notes": [
         "Glossary four devices + four canonical terms; CLAUDE.md office4 row + ADR pointer; signal map now names hardware-inventory.json in the specific change class",
         "Low-1 fixed: rich-form key list now exact (bios, cpu, disks, gpu, kernel, ram_gb), verified by re-deriving from the JSON. Low-2 confirmed a non-defect.",
-        "Cycle 2 approved. Rich-form key list independently re-derived from the JSON and matches exactly (bios, cpu, disks, gpu, kernel, ram_gb). Low-2 disposition confirmed correct by first-hand check on office4. CORRECTION TO THE RECORD: the fix commit's body claims 'no .obsidian directory anywhere under /home/kgale' — there are six (the git-tracked docs/.obsidian vault config, replicated per lane worktree). The conclusion is unaffected and correct; the stated evidence was overbroad. Load-bearing facts that do hold: no ~/second-brain, Obsidian not installed."
+        "Cycle 2 approved. Rich-form key list independently re-derived from the JSON and matches exactly (bios, cpu, disks, gpu, kernel, ram_gb). Low-2 disposition confirmed correct by first-hand check on office4. CORRECTION TO THE RECORD: the fix commit's body claims 'no .obsidian directory anywhere under /home/kgale' — there are six (the git-tracked docs/.obsidian vault config, replicated per lane worktree). The conclusion is unaffected and correct; the stated evidence was overbroad. Load-bearing facts that do hold: no ~/second-brain, Obsidian not installed.",
+        "Cycle 2: CLAUDE.md Obsidian Sync row now enumerates and names the office4 exclusion; no 'all devices' generalisation survives"
       ],
       "provider": "__resolved_provider_absent__",
       "review": null,
