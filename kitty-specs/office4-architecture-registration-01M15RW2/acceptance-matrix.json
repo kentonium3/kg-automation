@@ -155,5 +155,15 @@
       "notes": "TODO: replace with a real acceptance criterion"
     }
   ],
-  "negative_invariants": []
+  "negative_invariants": [
+    {
+      "invariant_id": "C-006-office4-not-a-service-host",
+      "description": "office4 must never appear in service-inventory.json. Its absence is the file that actually carries the managed/unmanaged boundary, and adding it would assert the managed-host status ADR-0008 records against.",
+      "verification_method": "grep_absence",
+      "verification_command": "office4",
+      "result": "confirmed_absent",
+      "evidence": "grep found zero matches",
+      "scope": "docs/design/architecture/data/service-inventory.json"
+    }
+  ]
 }
