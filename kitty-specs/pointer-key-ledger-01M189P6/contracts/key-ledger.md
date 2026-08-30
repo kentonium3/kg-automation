@@ -176,6 +176,20 @@ would defeat the guard there entirely.
 Without the bound, `age = now - ts` is negative, never exceeds any budget, and a skewed clock pins the
 component fresh forever.
 
+**The guard is deliberately GLOBAL, not ledger-scoped.** It lives in the shared freshness path, so it
+applies to every freshness-probed component — all 17 — whether or not that component declares a
+ledger. The reason is that the defect it closes has nothing to do with ledgers: a negative age never
+exceeds any bound, for any component. Scoping it to ledgered components would leave the other 16
+pinnable-fresh-forever by a clock skew, which is the condition the guard exists to make impossible.
+
+The compatibility consequence, stated honestly: a ledger-free component emitting a timestamp more than
+five minutes in the future previously read *fresh* and now reads *not fresh*. That is the intended
+correction, not a regression. All 17 components were audited before this was accepted — every one
+emits a self-reported completion or start timestamp written by the producer at run time, under its own
+control. None emits a scheduled or next-run time (that shape belongs to the separate
+`openclaw-cron-state` method, which is not in this set and has its own schedule-aware logic), so no
+component legitimately future-dates and none will false-alarm.
+
 ## Structural rules (enforced by `validate_architecture_data.py`)
 
 1. `key_ledger`, when present, contains only `adjudicated`, `diagnostic_only`, and
