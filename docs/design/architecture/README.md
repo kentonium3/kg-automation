@@ -33,9 +33,9 @@ See [`docs/INDEX.md`](<../../INDEX.md>) for the complete listing of machine-read
 | [Security Posture](<./security-posture.md>) | Tailscale-only, supply chain, privacy |
 | [Change Control](<./change-control.md>) | Update protocol after each feature |
 | [Service Dependencies Diagram](<./service-dependencies.view.md>) | Visual map of service dependency graph |
-| [Pre-Flight Checklist](../runbooks/governance/pre-flight-checklist.md) | Change control pre-flight assessment |
-| [Post-Change Verification](../runbooks/governance/post-change-verification.md) | Post-change service health verification |
-| [Postmortems](../../issues/postmortems/) | Incident analysis records |
+| [Pre-Flight Checklist](<../../runbooks/governance/pre-flight-checklist.md>) | Change control pre-flight assessment |
+| [Post-Change Verification](<../../runbooks/governance/post-change-verification.md>) | Post-change service health verification |
+| [Incident Postmortem Template](<../../runbooks/governance/incident-postmortem-template.md>) | Template for incident analysis records |
 | [Glossary](<./glossary.md>) | Canonical terms |
 | [ADR Index](<./adr/README.md>) | Architecture decision records — why options were chosen. Includes [ADR-0008](<./adr/0008-three-machine-model.md>), the three-machine model |
 
