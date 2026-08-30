@@ -29,7 +29,54 @@ set -euo pipefail
 REPO_ROOT="$(git rev-parse --show-toplevel)"
 cd "$REPO_ROOT"
 
-PY="${PYTHON:-python3}"
+# Resolve an interpreter that can actually RUN the validators (#935).
+#
+# `validate_docs.py` needs PyYAML; `validate_architecture_data.py` is stdlib-only.
+# The system `python3` carries PyYAML on some machines and not others — office4's
+# does not — so hardcoding `python3` made this hook pass on one dev machine and
+# abort EVERY commit on another, including the commits spec-kitty makes internally.
+#
+# Order: an explicit $PYTHON override, then the repo's own venv (the environment
+# this repo declares for itself), then the system interpreter. The first candidate
+# that can import the validators' dependency wins, so the hook is self-healing
+# rather than dependent on any one machine's site-packages. `.venv` is untracked
+# and may be absent; a missing candidate is skipped, never fatal.
+#
+# Generalisation worth keeping: an absolute interpreter path baked into checked-in
+# repo config is a latent single-machine assumption. `.vscode/settings.json` had
+# the same defect (d6eddb9d) — prefer resolution over assertion.
+resolve_python() {
+  local candidates=()
+  if [[ -n "${PYTHON:-}" ]]; then
+    candidates+=("$PYTHON")
+  fi
+  candidates+=("$REPO_ROOT/.venv/bin/python" "python3")
+
+  local candidate
+  for candidate in "${candidates[@]}"; do
+    if command -v "$candidate" >/dev/null 2>&1 \
+       && "$candidate" -c 'import yaml' >/dev/null 2>&1; then
+      printf '%s\n' "$candidate"
+      return 0
+    fi
+  done
+  return 1
+}
+
+if ! PY="$(resolve_python)"; then
+  echo
+  echo "❌ pre-commit: no usable Python interpreter — commit ABORTED." >&2
+  echo "   This is a MISSING DEPENDENCY, not a doc-validation finding." >&2
+  echo "   The doc validators need PyYAML. Tried, in order:" >&2
+  echo "     \$PYTHON        = ${PYTHON:-<unset>}" >&2
+  echo "     repo venv      = $REPO_ROOT/.venv/bin/python" >&2
+  echo "     system         = python3" >&2
+  echo "   Fix: build the repo venv —" >&2
+  echo "     uv venv && uv pip install -r requirements.txt" >&2
+  echo "   or install PyYAML for your system python3." >&2
+  exit 1
+fi
+
 fail=0
 
 echo ">>> pre-commit: doc validation (see #678; skip with --no-verify)"
