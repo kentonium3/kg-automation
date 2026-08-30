@@ -110,36 +110,6 @@ INTEGRITY_PASSED=null
 LAST_INTEGRITY_CHECK_UTC=null   # carried forward below, then possibly set by
                                  # the Sunday integrity block (T002)
 
-# Carry the last-known-good integrity-check timestamp forward from the prior
-# state document, before this run's document is written. Every backup
-# failure path exits before the weekly check block, so without this a run of
-# bad Sundays would silently reset the field to null every week instead of
-# accumulating the gap (see the header comment). Must fail soft: a missing
-# or corrupt prior document must leave the null default and must not abort
-# the run.
-if [ -f "$STATE_FILE" ]; then
-    # jq both validates and encodes: the retained value is accepted only if
-    # it is a JSON string matching the timestamp shape this script itself
-    # emits (script_finished_at_utc et al.), and $v is then let through as
-    # jq's own encoding -- never hand-built with shell quotes, so a value
-    # containing a literal `"` cannot produce an unparseable document. A
-    # parse error on the prior document itself (corrupt file) makes jq emit
-    # nothing, so PRIOR_INTEGRITY_CHECK_UTC_JSON stays empty and the `null`
-    # default above is left untouched.
-    if PRIOR_INTEGRITY_CHECK_UTC_JSON=$(jq -c '
-            (.last_integrity_check_utc // null) as $v
-            | if ($v | type) == "string"
-                and ($v | test("^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"))
-              then $v
-              else null
-              end
-        ' "$STATE_FILE" 2>/dev/null) \
-        && [ -n "$PRIOR_INTEGRITY_CHECK_UTC_JSON" ]; then
-        LAST_INTEGRITY_CHECK_UTC="$PRIOR_INTEGRITY_CHECK_UTC_JSON"
-    fi
-    unset PRIOR_INTEGRITY_CHECK_UTC_JSON
-fi
-
 log() { echo "[$(date '+%H:%M:%S')] $1" | tee -a "$LOGFILE"; }
 
 write_state_pointer() {
@@ -272,7 +242,59 @@ EOF
     log "State pointer written: ts=$snapshot_ts_json rc=$BACKUP_RC"
 }
 
+# Post-merge review of #934, Finding 3: the trap is installed HERE -- before
+# the prior-state read below, not after it (as it previously was). Every
+# sentinel this function reads (BACKUP_RC, PRUNE_RC, INTEGRITY_RUN,
+# INTEGRITY_PASSED, LAST_INTEGRITY_CHECK_UTC) is already set to its
+# "not yet run" value above, so the trap is safe to fire from this point
+# onward no matter what happens next. The read that follows parses an
+# uncontrolled prior document with jq; previously it ran before the trap
+# existed, so a pathological or corrupt prior document (partial write, disk
+# error) that made jq hang or consume excess memory could take the run down
+# BEFORE any failure pointer was ever written -- the one state this
+# pointer design exists to make impossible. (The state directory is
+# root-owned, so this is not really attacker-controlled; the realistic
+# trigger is corruption, not an adversary. Still worth closing.)
 trap write_state_pointer EXIT
+
+# Carry the last-known-good integrity-check timestamp forward from the prior
+# state document, before this run's document is written. Every backup
+# failure path exits before the weekly check block, so without this a run of
+# bad Sundays would silently reset the field to null every week instead of
+# accumulating the gap (see the header comment). Must fail soft: a missing
+# or corrupt prior document must leave the null default and must not abort
+# the run.
+#
+# Post-merge review of #934, Finding 3: also fail soft on a document that
+# reads fine but is pathological -- reject anything over a small size
+# ceiling before parsing at all (the real document is well under 1 KB;
+# 64 KB is generous), and bound the parse itself with a short timeout. Both
+# fall through to the untouched `null` default exactly like a missing or
+# corrupt document does today; the trap above -- not this block -- is what
+# now guarantees a pointer either way.
+if [ -f "$STATE_FILE" ] \
+    && [ "$(stat -c%s "$STATE_FILE" 2>/dev/null || echo 65537)" -le 65536 ]; then
+    # jq both validates and encodes: the retained value is accepted only if
+    # it is a JSON string matching the timestamp shape this script itself
+    # emits (script_finished_at_utc et al.), and $v is then let through as
+    # jq's own encoding -- never hand-built with shell quotes, so a value
+    # containing a literal `"` cannot produce an unparseable document. A
+    # parse error on the prior document itself (corrupt file) makes jq emit
+    # nothing, so PRIOR_INTEGRITY_CHECK_UTC_JSON stays empty and the `null`
+    # default above is left untouched.
+    if PRIOR_INTEGRITY_CHECK_UTC_JSON=$(timeout 5 jq -c '
+            (.last_integrity_check_utc // null) as $v
+            | if ($v | type) == "string"
+                and ($v | test("^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"))
+              then $v
+              else null
+              end
+        ' "$STATE_FILE" 2>/dev/null) \
+        && [ -n "$PRIOR_INTEGRITY_CHECK_UTC_JSON" ]; then
+        LAST_INTEGRITY_CHECK_UTC="$PRIOR_INTEGRITY_CHECK_UTC_JSON"
+    fi
+    unset PRIOR_INTEGRITY_CHECK_UTC_JSON
+fi
 
 echo "=== Backup: $DATE ===" > "$LOGFILE"
 

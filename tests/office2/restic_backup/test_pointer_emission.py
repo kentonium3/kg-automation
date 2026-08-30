@@ -334,6 +334,22 @@ def test_last_integrity_check_utc_null_when_prior_value_is_not_a_string(env, bad
     assert ptr["last_integrity_check_utc"] is None
 
 
+def test_last_integrity_check_utc_null_on_oversized_prior_document(env):
+    """Post-merge review of #934, Finding 3: an oversized prior document must
+    not be parsed at all -- fail soft to null, same as a missing or corrupt
+    document, and the run must still complete. The real document is well
+    under 1 KB; the script's ceiling is 64 KB, so pad well past it.
+    """
+    _e, state = env
+    state.mkdir(parents=True, exist_ok=True)
+    oversized = json.dumps({"last_integrity_check_utc": "2026-08-01T00:00:00Z", "pad": "x" * 100_000})
+    (state / "last-backup.json").write_text(oversized)
+
+    proc, ptr = run(env)
+    assert proc.returncode == 0
+    assert ptr["last_integrity_check_utc"] is None
+
+
 def test_files_processed_happy_path(env):
     """T003: emits the stub's file count on a successful stats call."""
     _, ptr = run(env, STUB_FILE_COUNT=4242)
