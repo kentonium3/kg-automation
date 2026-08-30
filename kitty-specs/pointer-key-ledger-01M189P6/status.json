@@ -143,6 +143,9 @@
       "last_event_id": "01M18KPX62VGHXB95TT2B13AHG",
       "last_transition_at": "2026-08-30T05:54:06.146303+00:00",
       "model": "__resolved_model_absent__",
+      "notes": [
+        "Ready for review. ruff exit 0. make test PY=.venv/bin/python: 6423 passed, 43 skipped, 1 xfailed, 1 pre-existing failure (#933 test_observe_called_with_pulled_range, not touched). All 4 floors enforced+tested in ledger_reconcile.py + test_ledger_reconciliation.py: (1) non-empty selection + fires-when-empty test, (2) selection==ledger-declaring set (not subset) + fixture negative, (3) restic-backup hardcoded pin (producers, not keys), (4) harness floors (process outcome/doc-absent/parse/empty-keys) each distinct. Self-sabotage before commit, all reverted: undeclared producer key -> red naming it; phantom ledger key -> red naming it; ledger deletion -> 9 tests red. Early-exit paths (mount/repo-inaccessible/backup-failure) assert evaluator verdicts (unhealthy on restic_exit_code), not reconciliation, per contract's key-set-invariant reasoning; happy path asserted healthy. Reuse test drives a fictitious tmp_path producer through BOTH assert_reconciles and evaluate() with zero changes to either, plus undeclared-key and bad-value failure modes. No component/host/producer-specific names in ledger_reconcile.py."
+      ],
       "provider": "__resolved_provider_absent__",
       "role": "implementer",
       "shell_pid": 702794,
