@@ -1,7 +1,7 @@
 {
-  "event_count": 59,
-  "last_event_id": "01M18N12V42TVM3K93G830BBDR",
-  "materialized_at": "2026-08-30T06:17:08.196386+00:00",
+  "event_count": 60,
+  "last_event_id": "01M18N2K9W6VGEZYZXNGHKK31Q",
+  "materialized_at": "2026-08-30T06:17:57.820965+00:00",
   "mission_number": "",
   "mission_slug": "pointer-key-ledger-01M189P6",
   "mission_type": "software-dev",
@@ -11,9 +11,9 @@
     "canceled": 0,
     "claimed": 0,
     "done": 0,
-    "for_review": 1,
+    "for_review": 0,
     "in_progress": 0,
-    "in_review": 0,
+    "in_review": 1,
     "planned": 0
   },
   "work_packages": {
@@ -184,14 +184,14 @@
       }
     },
     "WP06": {
-      "actor": "user",
-      "agent": null,
-      "agent_profile": "curator-carla",
+      "actor": "codex",
+      "agent": "codex",
+      "agent_profile": "reviewer-renata",
       "agent_profile_version": "1.0",
       "force_count": 1,
-      "lane": "for_review",
-      "last_event_id": "01M18N12V42TVM3K93G830BBDR",
-      "last_transition_at": "2026-08-30T06:17:08.196386+00:00",
+      "lane": "in_review",
+      "last_event_id": "01M18N2K9W6VGEZYZXNGHKK31Q",
+      "last_transition_at": "2026-08-30T06:17:57.820965+00:00",
       "model": "__resolved_model_absent__",
       "notes": [
         "Docs + drift caveat + operator handoff done: restic-backup-ops.md documents the 14-key schema v2, the key ledger (adjudicated vs diagnostic_only, the four new keys incl. last_integrity_check_utc vs integrity_check_run), the prominent repo-copy-vs-deployed-producer drift caveat with check command, and a what-this-does-not-cover note (R-001, #937); new Operator handoff section with the install command, why-manual facts, Tier-2 pre-flight, sequencing-consequence warning, and post-install verification. INDEX.md gained the previously-missing restic-backup-ops.md entry (found via signal-to-doc-map.json lookup, not guessed). validate_docs.py + full test suite pass (only the pre-existing #933 failure). Rebaseline verified not required (42 files, none audited). Note: service-added-or-modified class in signal-to-doc-map.json also names service-inventory.md/service-dependencies.view.md/felix-capability-roadmap.md, which are out of WP06's owned_files and untouched by any WP so far -- flagged for review, not edited.",
@@ -205,9 +205,9 @@
         "reviewer": "user",
         "verdict": "changes_requested"
       },
-      "role": "implementer",
-      "shell_pid": null,
-      "shell_pid_created_at": null,
+      "role": "reviewer",
+      "shell_pid": 791071,
+      "shell_pid_created_at": "1788070675.64",
       "subtasks": {
         "T030": "done",
         "T031": "done",
