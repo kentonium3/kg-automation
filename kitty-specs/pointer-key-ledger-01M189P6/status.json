@@ -185,7 +185,7 @@
     },
     "WP06": {
       "actor": "user",
-      "agent": "codex",
+      "agent": null,
       "agent_profile": "reviewer-renata",
       "agent_profile_version": "1.0",
       "force_count": 1,
@@ -197,6 +197,7 @@
         "Docs + drift caveat + operator handoff done: restic-backup-ops.md documents the 14-key schema v2, the key ledger (adjudicated vs diagnostic_only, the four new keys incl. last_integrity_check_utc vs integrity_check_run), the prominent repo-copy-vs-deployed-producer drift caveat with check command, and a what-this-does-not-cover note (R-001, #937); new Operator handoff section with the install command, why-manual facts, Tier-2 pre-flight, sequencing-consequence warning, and post-install verification. INDEX.md gained the previously-missing restic-backup-ops.md entry (found via signal-to-doc-map.json lookup, not guessed). validate_docs.py + full test suite pass (only the pre-existing #933 failure). Rebaseline verified not required (42 files, none audited). Note: service-added-or-modified class in signal-to-doc-map.json also names service-inventory.md/service-dependencies.view.md/felix-capability-roadmap.md, which are out of WP06's owned_files and untouched by any WP so far -- flagged for review, not edited."
       ],
       "provider": "__resolved_provider_absent__",
+      "review": null,
       "review_result": {
         "feedback_path": "/home/kgale/repos/kg-automation/kitty-specs/pointer-key-ledger-01M189P6/tasks/WP06-docs-and-handoff/review-cycle-1.md",
         "reference": "review-cycle://pointer-key-ledger-01M189P6/WP06-docs-and-handoff/review-cycle-1.md",
@@ -204,13 +205,13 @@
         "verdict": "changes_requested"
       },
       "role": "reviewer",
-      "shell_pid": 772255,
-      "shell_pid_created_at": "1788070224.17",
+      "shell_pid": null,
+      "shell_pid_created_at": null,
       "subtasks": {
-        "T030": "done",
-        "T031": "done",
-        "T032": "done",
-        "T033": "done"
+        "T030": "planned",
+        "T031": "planned",
+        "T032": "planned",
+        "T033": "planned"
       }
     }
   }

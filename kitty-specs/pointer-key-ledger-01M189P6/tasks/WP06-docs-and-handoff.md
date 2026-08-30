@@ -31,6 +31,7 @@ owned_files:
 - docs/runbooks/restic-backup-ops.md
 - docs/INDEX.md
 - docs/DEVELOPER_PORTAL.md
+- docs/design/felix-capability-roadmap.md
 role: implementer
 tags: []
 tracker_refs: []
