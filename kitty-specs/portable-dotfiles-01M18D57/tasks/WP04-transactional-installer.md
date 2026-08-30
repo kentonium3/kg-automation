@@ -5,6 +5,7 @@ dependencies:
 - WP02
 - WP03
 requirement_refs:
+- C-003
 - C-006
 - FR-003
 - FR-014
@@ -24,7 +25,7 @@ history:
 - at: '2026-08-30T04:39:38.714264+00:00'
   actor: system
   action: Prompt generated via /spec-kitty.tasks
-agent_profile: ''
+agent_profile: implementer-ivan
 authoritative_surface: dotfiles/install.sh
 create_intent:
 - dotfiles/install.sh
@@ -32,7 +33,7 @@ execution_mode: code_change
 model: ''
 owned_files:
 - dotfiles/install.sh
-role: ''
+role: implementer
 tags: []
 task_type: implement
 tracker_refs: []

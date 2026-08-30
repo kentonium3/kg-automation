@@ -16,7 +16,7 @@ history:
 - at: '2026-08-30T04:39:38.714264+00:00'
   actor: system
   action: Prompt generated via /spec-kitty.tasks
-agent_profile: ''
+agent_profile: 'curator-carla'
 authoritative_surface: docs/runbooks/
 create_intent:
 - docs/runbooks/new-machine-bootstrap.md
@@ -26,7 +26,7 @@ owned_files:
 - docs/runbooks/new-machine-bootstrap.md
 - docs/INDEX.md
 - docs/DEVELOPER_PORTAL.md
-role: ''
+role: 'curator'
 tags: []
 task_type: implement
 tracker_refs: []

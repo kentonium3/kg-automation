@@ -25,7 +25,7 @@ history:
 - at: '2026-08-30T04:39:38.714264+00:00'
   actor: system
   action: Prompt generated via /spec-kitty.tasks
-agent_profile: ''
+agent_profile: 'implementer-ivan'
 authoritative_surface: dotfiles/core/
 create_intent:
 - dotfiles/core/
@@ -36,7 +36,7 @@ owned_files:
 - dotfiles/core/zshrc
 - dotfiles/core/zprofile
 - dotfiles/core/bashrc
-role: ''
+role: 'implementer'
 tags: []
 task_type: implement
 tracker_refs: []

@@ -15,14 +15,14 @@ history:
 - at: '2026-08-30T04:39:38.714264+00:00'
   actor: system
   action: Prompt generated via /spec-kitty.tasks
-agent_profile: ''
+agent_profile: 'curator-carla'
 authoritative_surface: dotfiles/bin/
 create_intent: []
 execution_mode: code_change
 model: ''
 owned_files:
 - dotfiles/bin/
-role: ''
+role: 'curator'
 tags: []
 task_type: implement
 tracker_refs: []

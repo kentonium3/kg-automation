@@ -16,7 +16,7 @@ history:
 - at: '2026-08-30T04:39:38.714264+00:00'
   actor: system
   action: Prompt generated via /spec-kitty.tasks
-agent_profile: ''
+agent_profile: 'implementer-ivan'
 authoritative_surface: dotfiles/machines/
 create_intent:
 - dotfiles/machines/
@@ -25,7 +25,7 @@ model: ''
 owned_files:
 - dotfiles/machines/kg_macbook_pro/local.zsh
 - dotfiles/machines/kg_office4/local.zsh
-role: ''
+role: 'implementer'
 tags: []
 task_type: implement
 tracker_refs: []
