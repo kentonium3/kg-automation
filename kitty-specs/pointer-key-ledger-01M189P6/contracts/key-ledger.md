@@ -113,6 +113,17 @@ cannot be extended by a downstream implementer inventing a field.
 **`suppress_until_utc` is how FR-019's first-run exemption is expressed** — declaratively, with an
 explicit expiry, set by whoever stands up a new backup.
 
+**A malformed `suppress_until_utc` does not suppress.** If the value is absent, unparseable, or not a
+timestamp, the modifier is ignored and the predicate is evaluated normally. It must **not** yield
+`unknown`.
+
+The reasoning matters more than the rule. `unknown` is not a neutral outcome: upstream, a *first-seen*
+`unknown` is recorded without alerting. So if malformed suppression metadata produced `unknown`, a
+single typo in a ledger would silently switch off a live health rule — and the silence would look
+exactly like health. That is the defect this whole contract exists to abolish, reachable through the
+contract's own escape hatch. Suppression is an operator's deliberate, dated exemption; anything that
+is not a valid one is not an exemption at all.
+
 It was tempting to infer "this repository is new" from the other emitted keys instead. That was
 rejected: every available signal a new repository produces, a **wiped** repository can also produce,
 and conflating those two is precisely the failure `snapshot_count` exists to catch. An operator

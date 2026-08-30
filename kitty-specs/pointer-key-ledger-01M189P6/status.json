@@ -87,7 +87,7 @@
     },
     "WP03": {
       "actor": "user",
-      "agent": "codex",
+      "agent": null,
       "agent_profile": "reviewer-renata",
       "agent_profile_version": "1.0",
       "force_count": 1,
@@ -99,6 +99,7 @@
         "Ready for review: scripts/canary/ledger.py + tests/canary/test_ledger_eval.py (56 tests). evaluate(document, ledger, now) iterates the declared adjudicated map, not the document. Type-identity membership closes bool/int collision both directions. Absence unconditional-unhealthy for every predicate form. minimum supports unmeasured_is_unknown and suppress_until_utc (FR-019, both directions tested). freshness recognised+deferred via FreshnessObligation for WP04. Never raises (outer try/except + defensive isinstance guards throughout). Full suite: 6391 passed/43 skipped/1 xfailed, only pre-existing #933 failure, no new failures. ruff check exit 0. Grep for restic/office2/office4/snapshot_/integrity_ in both files: no hits."
       ],
       "provider": "__resolved_provider_absent__",
+      "review": null,
       "review_result": {
         "feedback_path": "/home/kgale/repos/kg-automation/kitty-specs/pointer-key-ledger-01M189P6/tasks/WP03-ledger-evaluator/review-cycle-1.md",
         "reference": "review-cycle://pointer-key-ledger-01M189P6/WP03-ledger-evaluator/review-cycle-1.md",
@@ -106,14 +107,14 @@
         "verdict": "changes_requested"
       },
       "role": "reviewer",
-      "shell_pid": 679411,
-      "shell_pid_created_at": "1788067967.04",
+      "shell_pid": null,
+      "shell_pid_created_at": null,
       "subtasks": {
-        "T012": "done",
-        "T013": "done",
-        "T014": "done",
-        "T015": "done",
-        "T016": "done"
+        "T012": "planned",
+        "T013": "planned",
+        "T014": "planned",
+        "T015": "planned",
+        "T016": "planned"
       }
     },
     "WP04": {
