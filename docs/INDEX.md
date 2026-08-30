@@ -148,6 +148,7 @@ All three runbooks are also listed under *Agent-executable* below.
 
 ### Human and mixed-audience runbooks
 
+- [Restic Backup Operations](<./runbooks/restic-backup-ops.md>) — office2 nightly GFS backup: pointer schema (`schema_version: 2`, fourteen keys) and the `health_check.key_ledger` that adjudicates it (pointer-key-ledger-01M189P6, #934), the drift caveat binding the ledger to the repo copy rather than the deployed producer, operator handoff for installing the schema-v2 producer, manual restore/verification procedures, and retention policy.
 - [Agent Workspace Reconciliation](<./runbooks/agent-workspace-reconciliation.md>) — drift enforcement, factory-default lifecycle, last-author-wins strategy
 - [office2 Deploy Paths — Surface Partition](<./runbooks/deploy/office2-deploy-paths.md>) — *Reference* — which of office2's deploy mechanisms delivers which change: the felix-deployer manifest pipeline (crons/units/config/lib), agent-prompt-sync + agent-skill-sync (prompt/skill content), and self-pull (helper scripts). Surface-partition table, slug→deploy-dir map, the drift-check-is-not-a-deploy-path clarification (#766), and the open audit-parity recommendation. Reconciles the two paths (#636)
 - [Deploy Discipline (canonical)](<./runbooks/deploy/discipline.md>) — manifest-driven deploys to office2 via the felix-deployer applier; entrypoint shape, tier policy, verification commands, failure handling, rebaseline obligation

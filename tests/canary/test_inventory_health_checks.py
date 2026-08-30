@@ -259,34 +259,76 @@ def test_no_near_miss_success_allowlist_key(targets):
 
 
 def test_restic_expected_prose_describes_the_prune_rule(inventory_targets=None):
-    """Bind the restic `expected` prose to the code that implements it.
+    """Bind the restic `expected` prose to the ledger, not to a substring.
 
-    Analysis finding I1: this mission fixes two unenforced couplings (#906's
-    prose-vs-code header stripping, #902's pointer-vs-probe) and would otherwise
-    have created a third — the inventory's `expected` text and
-    `_explicit_error`'s behaviour agree only if a reviewer notices.
+    Analysis finding I1 (pre-pointer-key-ledger-01M189P6): this mission's
+    predecessor fixed two unenforced couplings (#906's prose-vs-code header
+    stripping, #902's pointer-vs-probe) and would otherwise have created a
+    third — the inventory's `expected` text and `_explicit_error`'s behaviour
+    agreed only if a reviewer noticed. The original form of this test guarded
+    that with a substring check: `expected` must mention `prune_exit_code` and
+    `snapshot_timestamp_utc`, and the prune good-set (a `probes.py` module
+    constant) must still equal `{0}`.
 
-    A substring check is weak, but it is exactly strong enough to catch the shape
-    that actually occurred: code gains a rule, prose is not updated, and the
-    declaration quietly becomes false.
+    pointer-key-ledger-01M189P6/WP02 (#934) made `health_check.key_ledger`
+    the single authoritative, machine-validated description of restic-backup's
+    adjudication — the exact coupling this test was written to protect against
+    — and reduced `expected` to name the ledger as authoritative rather than
+    restate its rules in prose. A substring check against prose that no longer
+    states the rules would pass trivially and stop meaning anything, which is
+    the same defect class this test exists to catch, just moved one level up.
+    So the test is now rewritten to bind prose -> ledger -> behaviour: it
+    asserts the ledger exists, that its declared `prune_exit_code` good-set is
+    exactly `{0}` and `script_finished_at_utc` is declared `diagnostic_only`
+    (the two facts the original test's docstring called out by name), and that
+    `expected` points at the ledger as authoritative. This is strictly
+    stronger than the substring form — it fails if the ledger's declared
+    good-set drifts, not merely if a word goes missing from prose — and
+    replaces it as a deliberate strengthening, not an erosion.
+
+    Per research.md R3, this deliberately does NOT assert equality against
+    `probes.py`'s `_PRUNE_OK_EXIT_CODES` / `_RESTIC_OK_EXIT_CODES` module
+    constants: once the ledger is authoritative for a ledger-declaring
+    component, those constants no longer govern it, so an equality test would
+    make editing a dead constant silently mutate live adjudication.
     """
     import json
     from pathlib import Path
-
-    from scripts.canary.probes import _PRUNE_OK_EXIT_CODES
 
     inv = json.loads(
         (Path(__file__).resolve().parents[2]
          / "docs/design/architecture/data/service-inventory.json").read_text()
     )
     entry = next(s for s in inv["services"] if s.get("name") == "restic-backup")
-    expected = entry["health_check"]["expected"]
+    hc = entry["health_check"]
+    expected = hc["expected"]
 
-    assert "prune_exit_code" in expected, (
-        "probes.py checks prune_exit_code but the restic-backup `expected` prose "
-        "does not mention it — the declaration is now false"
+    ledger = hc.get("key_ledger")
+    assert ledger is not None, (
+        "restic-backup no longer declares a health_check.key_ledger — the "
+        "expected prose points at it as authoritative and has nothing to "
+        "fall back on without it"
     )
-    assert _PRUNE_OK_EXIT_CODES == frozenset({0}), (
-        "the prune good-set changed; update the inventory prose to match"
+
+    prune_predicate = ledger["adjudicated"]["prune_exit_code"]
+    assert prune_predicate["good_values"] == [0], (
+        "the ledger's declared prune_exit_code good-set changed from {0} — "
+        "this is a deliberately narrower set than restic_exit_code's {0, 3} "
+        "(a named prior regression, #902, was merging the two) and any "
+        "change here should be a deliberate, reviewed decision"
     )
-    assert "snapshot_timestamp_utc" in expected
+
+    diagnostic_only = ledger["diagnostic_only"]
+    assert "script_finished_at_utc" in diagnostic_only, (
+        "script_finished_at_utc must stay diagnostic_only — it was once a "
+        "freshness fallback and a run producing no snapshot read fresh "
+        "through it (#902/FR-009); promoting it back to adjudicated risks "
+        "reopening that regression"
+    )
+
+    assert "key_ledger" in expected or "ledger" in expected.lower(), (
+        "the restic-backup `expected` prose must name the ledger as "
+        "authoritative, not restate its rules independently — two "
+        "authoritative descriptions of the same rules is the exact defect "
+        "this mission exists to retire"
+    )

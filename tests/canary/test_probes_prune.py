@@ -18,22 +18,47 @@ from scripts.canary.probes import run_probe
 
 MAX_AGE = 100800  # the restic-backup registration's bound
 
+REPO_ROOT = Path(__file__).resolve().parents[2]
+REAL_INVENTORY = REPO_ROOT / "docs" / "design" / "architecture" / "data" / "service-inventory.json"
+
 
 @pytest.fixture
 def judge(tmp_path):
     now = datetime.now(timezone.utc)
     ptr = tmp_path / "last-backup.json"
 
-    def _judge(payload: dict):
+    def _judge(payload: dict, *, key_ledger: dict | None = None):
         ptr.write_text(json.dumps(payload))
+        hc = {"method": "state-file", "state_path": str(ptr), "max_age_seconds": MAX_AGE}
+        if key_ledger is not None:
+            hc["key_ledger"] = key_ledger
         return run_probe(
-            {"method": "state-file", "state_path": str(ptr), "max_age_seconds": MAX_AGE},
-            now, http_get=None, run_cmd=None,
+            hc, now, http_get=None, run_cmd=None,
             read_state=lambda p: json.loads(Path(p).read_text()),
         )
 
     _judge.now = now
     return _judge
+
+
+@pytest.fixture(scope="module")
+def real_restic_ledger():
+    """The REAL restic-backup ``key_ledger``, loaded from the actual
+    ``service-inventory.json`` -- never a hand-rolled copy (SC-007). A copy
+    would drift from what actually ships and prove nothing about the
+    configuration the reviewer will attach by hand. Same loading pattern as
+    ``tests/canary/test_inventory_health_checks.py``.
+    """
+    inv = json.loads(REAL_INVENTORY.read_text())
+    entry = next(s for s in inv["services"] if s.get("name") == "restic-backup")
+    ledger = entry["health_check"]["key_ledger"]
+    # Sanity-pin the two facts the parameterised scenarios below rely on, so
+    # a silent edit to the real ledger can't make these tests pass for the
+    # wrong reason (review guidance #3: "a test that passes because the
+    # ledger was never loaded proves nothing").
+    assert ledger["adjudicated"]["snapshot_timestamp_utc"]["anchor"] is True
+    assert ledger["adjudicated"]["prune_exit_code"]["good_values"] == [0]
+    return ledger
 
 
 def fresh(now, **extra):
@@ -44,6 +69,54 @@ def fresh(now, **extra):
     }
     base.update(extra)
     return base
+
+
+def fresh_ledgered(now, **extra):
+    """A document satisfying every ADJUDICATED key in the real restic-backup
+    ledger -- the baseline the T023 (SC-007) scenarios below start from and
+    then deliberately break one field of. Unlike ``fresh()``, this must
+    supply every adjudicated key: with a ledger attached, an absent
+    adjudicated key is unhealthy regardless of predicate (contract
+    "Absence"), so an incomplete baseline would make a scenario fail for the
+    wrong reason.
+    """
+    ts = now.strftime("%Y-%m-%dT%H:%M:%SZ")
+    base = {
+        "schema_version": 2,
+        "restic_exit_code": 0,
+        "prune_exit_code": 0,
+        "integrity_check_passed": True,
+        "snapshot_timestamp_utc": ts,
+        "last_integrity_check_utc": ts,
+        "snapshot_count": 5,
+        "files_processed": 100,
+        "source_roots_present": True,
+        "repo_fs_free_bytes": 107_374_182_400,  # 100 GiB, well above the 50 GiB minimum
+        # diagnostic_only keys -- not adjudicated, present for realism/parity
+        # with fresh()'s snapshot_id.
+        "snapshot_id": "deadbeef",
+        "script_finished_at_utc": ts,
+    }
+    base.update(extra)
+    return base
+
+
+def _payload(now, with_ledger: bool, **overrides):
+    """Build the scenario payload for either configuration, sharing the
+    override application so a scenario's edit is expressed exactly once."""
+    base = fresh_ledgered(now) if with_ledger else fresh(now)
+    base.update(overrides)
+    return base
+
+
+#: The two configurations every SC-007 scenario below must pass under.
+_WITH_LEDGER = pytest.mark.parametrize(
+    "with_ledger", [False, True], ids=["ledger_free", "real_ledger"]
+)
+
+
+def _ledger_for(with_ledger: bool, real_restic_ledger: dict) -> dict | None:
+    return real_restic_ledger if with_ledger else None
 
 
 # --------------------------------------------------------------------------- #
@@ -62,19 +135,28 @@ def test_failed_prune_is_unhealthy(judge):
     assert "prune_exit_code" in r.evidence
 
 
-def test_prune_exit_3_is_unhealthy(judge):
+@_WITH_LEDGER
+def test_prune_exit_3_is_unhealthy(judge, real_restic_ledger, with_ledger):
     """The trap: 3 is acceptable for a BACKUP, never for a prune.
 
     A careless implementation reuses _RESTIC_OK_EXIT_CODES ({0, 3}) and silently
-    accepts a prune that did not apply retention.
+    accepts a prune that did not apply retention. SC-007 (T023): must hold both
+    ledger-free (legacy _explicit_error) and with the real ledger attached
+    (prune_exit_code's declared good_values is {0}, deliberately narrower than
+    restic_exit_code's {0, 3} -- #902).
     """
-    r = judge(fresh(judge.now, prune_exit_code=3))
+    payload = _payload(judge.now, with_ledger, prune_exit_code=3)
+    r = judge(payload, key_ledger=_ledger_for(with_ledger, real_restic_ledger))
     assert not r.ok, f"prune_exit_code=3 must be unhealthy: {r.evidence}"
 
 
-def test_prune_never_attempted_is_unhealthy(judge):
-    """127 = the run exited before the prune. Retention did not happen."""
-    r = judge(fresh(judge.now, prune_exit_code=127))
+@_WITH_LEDGER
+def test_prune_never_attempted_is_unhealthy(judge, real_restic_ledger, with_ledger):
+    """127 = the run exited before the prune. Retention did not happen.
+    SC-007 (T023): must hold ledger-free and with the real ledger attached.
+    """
+    payload = _payload(judge.now, with_ledger, prune_exit_code=127)
+    r = judge(payload, key_ledger=_ledger_for(with_ledger, real_restic_ledger))
     assert not r.ok, f"an unattempted prune must not read healthy: {r.evidence}"
 
 
@@ -94,10 +176,15 @@ def test_legacy_pointer_without_prune_field_stays_healthy(judge):
     assert r.ok and not r.stale
 
 
-def test_backup_warning_with_clean_prune_stays_healthy(judge):
-    """restic_exit_code 3 is still acceptable — existing backup semantics."""
-    r = judge(fresh(judge.now, restic_exit_code=3, prune_exit_code=0))
-    assert r.ok
+@_WITH_LEDGER
+def test_backup_warning_with_clean_prune_stays_healthy(judge, real_restic_ledger, with_ledger):
+    """restic_exit_code 3 is still acceptable — existing backup semantics.
+    SC-007 (T023): must hold ledger-free and with the real ledger attached
+    (restic_exit_code's declared good_values is {0, 3}).
+    """
+    payload = _payload(judge.now, with_ledger, restic_exit_code=3, prune_exit_code=0)
+    r = judge(payload, key_ledger=_ledger_for(with_ledger, real_restic_ledger))
+    assert r.ok, f"restic_exit_code=3 must stay healthy: {r.evidence}"
 
 
 def test_backup_failure_still_unhealthy(judge):
@@ -109,18 +196,26 @@ def test_backup_failure_still_unhealthy(judge):
 # FR-009: no snapshot timestamp must not fall through and read fresh
 # --------------------------------------------------------------------------- #
 
-def test_null_snapshot_timestamp_is_unhealthy(judge):
-    """Regression guard.
+@_WITH_LEDGER
+def test_null_snapshot_timestamp_is_unhealthy(judge, real_restic_ledger, with_ledger):
+    """Regression guard -- THE named #902/FR-009 regression, re-asserted
+    with the real ledger attached (SC-007, T023 point 3): a run that produces
+    no snapshot, with restic_exit_code=0 and a fresh script_finished_at_utc,
+    must read unhealthy in BOTH configurations.
 
-    Before this change the freshness probe fell through TIMESTAMP_KEYS to
+    Before FR-009 the freshness probe fell through TIMESTAMP_KEYS to
     ``script_finished_at_utc``, so a run that produced no snapshot reported
     ok=True, stale=False — while the inventory asserted the snapshot timestamp
-    must be non-null.
+    must be non-null. WP04's first-draft ledger integration would have
+    reopened exactly this by suppressing the whole ``restic_exit_code``
+    rule-block (timestamp guard included) once the ledger declared
+    ``restic_exit_code`` -- this is the test the post-plan review named to
+    prove that stayed closed.
     """
-    payload = fresh(judge.now, prune_exit_code=0)
+    payload = _payload(judge.now, with_ledger, prune_exit_code=0)
     payload["snapshot_timestamp_utc"] = None
     payload["script_finished_at_utc"] = judge.now.strftime("%Y-%m-%dT%H:%M:%SZ")
-    r = judge(payload)
+    r = judge(payload, key_ledger=_ledger_for(with_ledger, real_restic_ledger))
     assert not r.ok, f"a backup with no snapshot must not read healthy: {r.evidence}"
 
 
@@ -166,28 +261,35 @@ def test_non_restic_pointer_without_snapshot_ts_is_unaffected(judge):
     assert r.ok
 
 
-def test_unparseable_snapshot_timestamp_is_unhealthy(judge):
-    """Regression guard (post-review).
+@_WITH_LEDGER
+def test_unparseable_snapshot_timestamp_is_unhealthy(judge, real_restic_ledger, with_ledger):
+    """Regression guard (post-review). SC-007 (T023): must hold ledger-free
+    and with the real ledger attached.
 
     A first attempt at FR-009 checked only that the value was a non-empty
     string. A malformed-but-truthy timestamp passed that guard and then fell
     through TIMESTAMP_KEYS to ``script_finished_at_utc``, reading healthy — the
-    same hole, one step narrower. "Usable" must mean parseable.
+    same hole, one step narrower. "Usable" must mean parseable. With the
+    ledger attached, the anchor-resolution path (T021) must reject it the
+    same way rather than falling through to another TIMESTAMP_KEYS candidate.
     """
-    payload = fresh(judge.now, prune_exit_code=0)
+    payload = _payload(judge.now, with_ledger, prune_exit_code=0)
     payload["snapshot_timestamp_utc"] = "not-a-date"
     payload["script_finished_at_utc"] = judge.now.strftime("%Y-%m-%dT%H:%M:%SZ")
-    r = judge(payload)
+    r = judge(payload, key_ledger=_ledger_for(with_ledger, real_restic_ledger))
     assert not r.ok, f"an unparseable snapshot timestamp must not read healthy: {r.evidence}"
 
 
-def test_numeric_snapshot_timestamp_is_unhealthy(judge):
+@_WITH_LEDGER
+def test_numeric_snapshot_timestamp_is_unhealthy(judge, real_restic_ledger, with_ledger):
     """Truthy, wrong type, would previously have failed the isinstance check
-    but is worth pinning now that the guard is parse-based."""
-    payload = fresh(judge.now, prune_exit_code=0)
+    but is worth pinning now that the guard is parse-based. SC-007 (T023):
+    must hold ledger-free and with the real ledger attached."""
+    payload = _payload(judge.now, with_ledger, prune_exit_code=0)
     payload["snapshot_timestamp_utc"] = 1787900000
     payload["script_finished_at_utc"] = judge.now.strftime("%Y-%m-%dT%H:%M:%SZ")
-    assert not judge(payload).ok
+    r = judge(payload, key_ledger=_ledger_for(with_ledger, real_restic_ledger))
+    assert not r.ok, f"a numeric snapshot timestamp must not read healthy: {r.evidence}"
 
 
 def test_felix_health_check_shaped_pointer_is_unaffected(judge):
