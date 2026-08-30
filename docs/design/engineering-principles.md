@@ -2,10 +2,10 @@
 title: kg-automation Engineering Principles
 doc_type: standard
 status: approved
-last_updated: '2026-06-19'
-last_validated: '2026-06-19'
+last_updated: '2026-08-30'
+last_validated: '2026-08-30'
 owners: [kgale]
-version: '1.1'
+version: '1.2'
 tags: [architecture, principles, governance]
 ---
 
@@ -121,3 +121,57 @@ require a Restic snapshot ≤24h, the daily security audit and felix-deployer ar
 the drift safety nets, and any new stateful dependency documents how it is
 restored. A component whose loss is unrecoverable and undocumented is a latent
 outage.
+
+## 14. A Check Must Distinguish "Verified False" From "Could Not Check"
+
+The dominant defect class in verification code: an assertion that reports green
+when it merely failed to look. It is the same end state as no check at all, but
+worse — it buys false confidence and suppresses the investigation that would have
+found the problem.
+
+Real instances, all shipped and all caught only by adversarial review (#911,
+portable-dotfiles): every assertion was *relative*, so a machine with no package
+manager on PATH scored 6/6 PASS; the verifier ran under the config it was
+auditing, so an `exit 0` there produced no output and exit 0 — the gate satisfied
+*by* the breakage; "no probe output" compared equal to "no probe output" and
+reported "all three agree"; `--only` with an unknown id ran nothing and exited 0;
+a drift check passed when it could not reach the remote; a remote probe *skipped*
+green for a reachable host whose shell was broken, which was the exact divergence
+it existed to catch.
+
+**Applying it.** For every assertion ask: *what machine state would make this
+report PASS or SKIP while the property is violated?* Make "could not check" a
+failure, not a pass and not a silent skip. Anchor to an absolute expectation
+rather than internal consistency — three shells agreeing with each other agree
+perfectly on being uniformly broken. A SKIP must name precisely what went
+unverified. And beware the mirror failure: a check that is *always* red, because
+a permanently red gate stops being read and ends in the same place.
+
+This is the second time this pattern has been recorded (see also the 2026-08-27
+run, where five instances appeared in a single day). Treat it as the first thing
+to hunt for when reviewing any helper whose exit status gates something.
+
+## 15. Never Operate on `$HOME` Without Setting It Explicitly
+
+Any script that reads or writes `$HOME` gets `env HOME=<fixture>` on **every**
+invocation, including the one-off verification dashed off at the end. Unset is
+not safe either: zsh repopulates `$HOME` from the password database.
+
+This is written from damage. During #911 a generated `restore.sh` was run without
+`HOME` set while testing against a throwaway fixture; it executed against the real
+home and destroyed four dotfiles. One was reconstructed from documented evidence
+and is not byte-exact — that content is gone.
+
+**Applying it.** Build the guard into the artifact, not just the habit: a script
+that mutates `$HOME` should record the home it was generated for and refuse
+another, and any force override should list what it will destroy and require
+confirmation. Two corollaries, both learned the same day:
+
+- **Reconcile before you replace.** Before swapping any config file, diff the live
+  one against its replacement and decide explicitly what carries over. Doing this
+  found six items a swap would have dropped silently; not doing it is what cost
+  the unrecoverable file.
+- **A fixture that differs in the load-bearing way proves nothing.** A rehearsal
+  reported the wrong interpreter and failed — caused entirely by the fixture
+  lacking the one path the design depends on. Link in whatever the config
+  references, or the rehearsal is theatre.

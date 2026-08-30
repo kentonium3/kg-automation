@@ -454,12 +454,13 @@ for the full documentation standards principle.
 Two governing documents sit between the Felix Constitution (broad governance)
 and individual feature specs:
 
-- [`docs/design/engineering-principles.md`](docs/design/engineering-principles.md) — the 13 ratified
+- [`docs/design/engineering-principles.md`](docs/design/engineering-principles.md) — the 15 ratified
   principles covering runtime state, deterministic work, integration boundaries,
   JSON validation, test discipline, privacy enforcement, active-surface hygiene,
   suspension as an operational state, observability per feature, guardrail
-  preference, idempotency, producer/consumer decoupling, and single-point-of-failure
-  recovery. Read these before designing new features or scoping new
+  preference, idempotency, producer/consumer decoupling, single-point-of-failure
+  recovery, checks that distinguish verified-false from could-not-check, and
+  never operating on `$HOME` without setting it explicitly. Read these before designing new features or scoping new
   infrastructure work.
 - [`docs/design/helper-script-conventions.md`](docs/design/helper-script-conventions.md) — the
   approved three-tier model (helper / library / skill), invocation-surface
