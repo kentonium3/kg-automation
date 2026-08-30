@@ -10,6 +10,9 @@ requirement_refs:
 - C-002
 - FR-009
 - FR-010
+planning_base_branch: feat/portable-dotfiles
+merge_target_branch: feat/portable-dotfiles
+branch_strategy: Planning artifacts for this mission were generated on feat/portable-dotfiles. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into feat/portable-dotfiles unless the human explicitly redirects the landing branch.
 subtasks:
 - T042
 - T043
@@ -22,14 +25,15 @@ history:
 - at: '2026-08-30T04:39:38.714264+00:00'
   actor: system
   action: Prompt generated via /spec-kitty.tasks
-agent_profile: 'implementer-ivan'
-authoritative_surface: dotfiles/
-create_intent: []
+agent_profile: implementer-ivan
+authoritative_surface: dotfiles/docs/
+create_intent:
+- dotfiles/docs/cutover-office4.md
 execution_mode: code_change
 model: ''
 owned_files:
-- dotfiles/install.sh
-role: 'implementer'
+- dotfiles/docs/cutover-office4.md
+role: implementer
 tags: []
 task_type: implement
 tracker_refs: []

@@ -6,6 +6,9 @@ dependencies:
 requirement_refs:
 - FR-002
 - FR-006
+planning_base_branch: feat/portable-dotfiles
+merge_target_branch: feat/portable-dotfiles
+branch_strategy: Planning artifacts for this mission were generated on feat/portable-dotfiles. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into feat/portable-dotfiles unless the human explicitly redirects the landing branch.
 subtasks:
 - T013
 - T014
@@ -16,16 +19,17 @@ history:
 - at: '2026-08-30T04:39:38.714264+00:00'
   actor: system
   action: Prompt generated via /spec-kitty.tasks
-agent_profile: 'implementer-ivan'
+agent_profile: implementer-ivan
 authoritative_surface: dotfiles/machines/
 create_intent:
-- dotfiles/machines/
+- dotfiles/machines/kg_macbook_pro/local.zsh
+- dotfiles/machines/kg_office4/local.zsh
 execution_mode: code_change
 model: ''
 owned_files:
 - dotfiles/machines/kg_macbook_pro/local.zsh
 - dotfiles/machines/kg_office4/local.zsh
-role: 'implementer'
+role: implementer
 tags: []
 task_type: implement
 tracker_refs: []

@@ -1,0 +1,187 @@
+{
+  "version": 1,
+  "mission_slug": "portable-dotfiles-01M18D57",
+  "mission_id": "01M18D57WVS84AWCRKBHYQRWBT",
+  "mission_branch": "kitty/mission-portable-dotfiles-01M18D57",
+  "target_branch": "feat/portable-dotfiles",
+  "lanes": [
+    {
+      "lane_id": "lane-a",
+      "wp_ids": [
+        "WP01"
+      ],
+      "write_scope": [
+        "dotfiles/.gitignore",
+        "dotfiles/README.md",
+        "dotfiles/secrets.example"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "app-shell"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    },
+    {
+      "lane_id": "lane-b",
+      "wp_ids": [
+        "WP02"
+      ],
+      "write_scope": [
+        "dotfiles/core/bashrc",
+        "dotfiles/core/zprofile",
+        "dotfiles/core/zshenv",
+        "dotfiles/core/zshrc"
+      ],
+      "predicted_surfaces": [
+        "api"
+      ],
+      "depends_on_lanes": [
+        "lane-a"
+      ],
+      "parallel_group": 1
+    },
+    {
+      "lane_id": "lane-c",
+      "wp_ids": [
+        "WP03"
+      ],
+      "write_scope": [
+        "dotfiles/machines/kg_macbook_pro/local.zsh",
+        "dotfiles/machines/kg_office4/local.zsh"
+      ],
+      "predicted_surfaces": [
+        "api"
+      ],
+      "depends_on_lanes": [
+        "lane-b"
+      ],
+      "parallel_group": 2
+    },
+    {
+      "lane_id": "lane-e",
+      "wp_ids": [
+        "WP05",
+        "WP06"
+      ],
+      "write_scope": [
+        "dotfiles/bin/verify-shell-env"
+      ],
+      "predicted_surfaces": [
+        "api"
+      ],
+      "depends_on_lanes": [
+        "lane-a",
+        "lane-b"
+      ],
+      "parallel_group": 2
+    },
+    {
+      "lane_id": "lane-f",
+      "wp_ids": [
+        "WP07"
+      ],
+      "write_scope": [
+        "dotfiles/docs/script-inventory.md"
+      ],
+      "predicted_surfaces": [
+        "api"
+      ],
+      "depends_on_lanes": [
+        "lane-b"
+      ],
+      "parallel_group": 2
+    },
+    {
+      "lane_id": "lane-d",
+      "wp_ids": [
+        "WP04"
+      ],
+      "write_scope": [
+        "dotfiles/install.sh"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "legacy-cleanup"
+      ],
+      "depends_on_lanes": [
+        "lane-b",
+        "lane-c"
+      ],
+      "parallel_group": 3
+    },
+    {
+      "lane_id": "lane-g",
+      "wp_ids": [
+        "WP08"
+      ],
+      "write_scope": [
+        "dotfiles/docs/cutover-office4.md"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "artifact-rendering",
+        "legacy-cleanup"
+      ],
+      "depends_on_lanes": [
+        "lane-d",
+        "lane-e",
+        "lane-f"
+      ],
+      "parallel_group": 4
+    },
+    {
+      "lane_id": "lane-h",
+      "wp_ids": [
+        "WP09"
+      ],
+      "write_scope": [
+        "dotfiles/docs/cutover-macbook.md"
+      ],
+      "predicted_surfaces": [
+        "api"
+      ],
+      "depends_on_lanes": [
+        "lane-g"
+      ],
+      "parallel_group": 5
+    },
+    {
+      "lane_id": "lane-i",
+      "wp_ids": [
+        "WP10"
+      ],
+      "write_scope": [
+        "docs/DEVELOPER_PORTAL.md",
+        "docs/INDEX.md",
+        "docs/runbooks/new-machine-bootstrap.md"
+      ],
+      "predicted_surfaces": [
+        "api"
+      ],
+      "depends_on_lanes": [
+        "lane-h"
+      ],
+      "parallel_group": 6
+    }
+  ],
+  "computed_at": "2026-08-30T05:24:53.707005+00:00",
+  "computed_from": "dependency_graph+ownership",
+  "planning_artifact_wps": [],
+  "planning_commit_sha": "09f1a62d43b9d711302062b2ec686be073870ec3",
+  "collapse_report": {
+    "events": [
+      {
+        "wp_a": "WP05",
+        "wp_b": "WP06",
+        "rule": "write_scope_overlap",
+        "evidence": "overlapping globs: 'dotfiles/bin/verify-shell-env' vs 'dotfiles/bin/verify-shell-env'; WP06 depends on WP05"
+      }
+    ],
+    "total_merges": 1,
+    "independent_wps_collapsed": 0,
+    "by_rule": {
+      "write_scope_overlap": 1
+    }
+  }
+}
