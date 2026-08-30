@@ -72,6 +72,18 @@
       "verdict": "deferred-with-followup",
       "wp": null
     },
+    "#935": {
+      "evidence_ref": "FIXED during this mission, though outside its scope. The pre-commit hook resolved its interpreter to a uv-managed python3 shim lacking PyYAML, aborting every commit on office4. Fixed in 67643066 on main; the linked-worktree follow-on gap was fixed in 230f4939 (tracked as #939). Taken as a rung-4 direct fix because it blocked the mission vehicle itself - every work-package commit runs in a lane worktree.",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": null,
+      "title": null,
+      "verdict": "fixed",
+      "wp": null
+    },
     "#937": {
       "evidence_ref": "Deliberately deferred by spec C-005 and tracked by FR-011. This mission enforces the ledger for the backup producers only; the other 16 pointer-emitting components have no deterministic execution harness (several emit from OpenClaw agent steps), so a ledger for them would be a hand-maintained list - the defect, relocated. #937 was filed during this mission and is blocked by it.",
       "fr": null,
