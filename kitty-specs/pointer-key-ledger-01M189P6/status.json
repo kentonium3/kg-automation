@@ -55,10 +55,15 @@
     "WP02": {
       "actor": "claude",
       "agent": "claude",
+      "agent_profile": "python-pedro",
+      "agent_profile_version": "1.0",
       "force_count": 0,
       "lane": "in_progress",
       "last_event_id": "01M18GBD1AMEYR8P8BEEK3DYAA",
       "last_transition_at": "2026-08-30T04:55:23.434118+00:00",
+      "model": "__resolved_model_absent__",
+      "provider": "__resolved_provider_absent__",
+      "role": "implementer",
       "shell_pid": 587648,
       "shell_pid_created_at": "1788065721.19"
     },
