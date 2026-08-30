@@ -60,8 +60,12 @@ flowchart TB
 
 ## Technical Context
 
-**Language/Version**: Python 3.11 — CI pins 3.11 while both hosts run 3.12.3, so 3.12-only syntax
-passes locally and reddens CI. Producer changes are bash (`/bin/bash`), restic 0.16.4.
+**Language/Version**: Python 3.11 — **CI pins 3.11**, office2 runs 3.12.3, and the repo venv on
+office4 is 3.12.3. Note office4's bare `python3` is a uv-managed **3.13.15** in `~/.local/bin` that
+shadows the system 3.12.3 (#935); the repo venv is the interpreter that matters here, but a bare
+`python3` on that host is neither the system Python nor the venv. Target 3.11-compatible syntax: a
+3.12-or-later construct passes every local check and reddens CI. Producer changes are bash
+(`/bin/bash`), restic 0.16.4.
 **Primary Dependencies**: None added. Standard library only. Producer uses `jq`, `df`, and restic
 subcommands already present.
 **Storage**: Declaration in `docs/design/architecture/data/service-inventory.json`. Runtime input is

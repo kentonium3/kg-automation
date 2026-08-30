@@ -65,9 +65,12 @@ lists, one predicate per key, non-empty reasons, at most one `freshness`, and th
 `reconciliation_harness` exists on disk. It cannot check whether the ledger matches the producer; that
 is the test's job. Neither substitutes for the other.
 
-> **office4 note:** the pre-commit hook resolves `PY="${PYTHON:-python3}"` and office4's system
-> `python3` has no `pyyaml`, so commits fail there until kentonium3/kg-automation#935 lands. Prefix
-> with `PYTHON=/home/kgale/repos/kg-automation/.venv/bin/python` meanwhile.
+> **office4 note (resolved).** The hook used to take a bare `python3`, which on office4 resolves to
+> a uv-managed CPython 3.13 in `~/.local/bin` that shadows the system interpreter and carries no
+> PyYAML — so every commit aborted. Fixed in `67643066` (kentonium3/kg-automation#935): the hook now
+> resolves `$PYTHON` → the repo venv → `python3` and takes the first that can import the
+> dependency. **No `PYTHON=` prefix is needed.** If you build a fresh clone, create the venv
+> (`uv venv && uv pip install -r requirements.txt`) or ensure your `python3` has PyYAML.
 
 ## Install the producer on office2 (operator step — Kent only)
 
