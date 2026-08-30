@@ -13,11 +13,18 @@
 #   and Vikunja have settled. Without this delay the first post-boot tick
 #   would race the Tailscale connection.
 #
-# Why Persistent=true:
-#   If office2 was off when a tick was supposed to fire, run ONE catch-up
-#   tick on resume. The driver tolerates a stale freshness pointer (the
-#   next cycle covers the gap via the Vikunja /tasks/all?updated_since
-#   delta poll).
+# Why there is no Persistent=:
+#   `Persistent=` only has effect on a timer with `OnCalendar=` — it replays a
+#   *calendar* elapse that was missed while the machine was off. This timer is
+#   monotonic (`OnUnitInactiveSec=`), so there is no calendar elapse to replay
+#   and the setting would do nothing. It was set here until #925, with a comment
+#   promising a catch-up tick that systemd never provided.
+#
+#   What actually covers downtime: `OnBootSec=120s` fires a tick 2 minutes after
+#   boot, and the driver is delta-based (Vikunja `updated_since`), so the first
+#   tick after resume picks up everything that changed while office2 was off.
+#   The recovery property is real — it just comes from OnBootSec and the delta
+#   poll, not from Persistent=.
 #
 # Operator deploy:
 #   systemctl --user enable --now felix-vikunja-sync.timer
@@ -30,7 +37,6 @@ Documentation=file:///home/claude/kg-automation/docs/runbooks/sync-driver-ops.md
 OnUnitInactiveSec=300s
 OnBootSec=120s
 Unit=felix-vikunja-sync.service
-Persistent=true
 
 [Install]
 WantedBy=timers.target
