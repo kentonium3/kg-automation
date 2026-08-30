@@ -23,6 +23,12 @@ deploy target. Before placing any workload, read
 office2/office4 boundary and the test for deciding where work belongs. The full decision
 record index is at [`./design/architecture/adr/README.md`](<./design/architecture/adr/README.md>).
 
+**Working on office4?** If you are a *work-account* agent (`kent@spec-kitty.ai`) in one of the
+`~/repos/spec-kitty*` clones, start with
+[office4 Work-Hat Environment](<./runbooks/office4-work-hat-environment.md>) — hat routing, SSH
+semantics, venv build recipes, and what is not yet configured there. A work-hat session on office4
+has no memory tree of its own, so that runbook is the handoff.
+
 ---
 
 ## Quick-Start Onboarding
@@ -176,6 +182,7 @@ local validation and CI.
 - [Obsidian Vault (kg-automation/docs)](<./runbooks/obsidian.md>)
 - [office2 Deploy Paths — Surface Partition (reference)](<./runbooks/deploy/office2-deploy-paths.md>)
 - [office2 OS Maintenance (Ubuntu package updates)](<./runbooks/office2-os-maintenance.md>)
+- [office4 Work-Hat Environment](<./runbooks/office4-work-hat-environment.md>)
 - [Ollama Operations Runbook](<./runbooks/ollama-ops.md>)
 - [OpenClaw Agent Setup](<./runbooks/openclaw-agent-setup.md>)
 - [OpenClaw Ecosystem Upgrade](<./runbooks/openclaw-ecosystem-upgrade.md>)
