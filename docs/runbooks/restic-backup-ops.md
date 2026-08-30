@@ -22,7 +22,7 @@ unit or timer, so `systemctl status` will not find it.
 |---|---|
 | Script (canonical source) | [`scripts/office2/restic-backup.sh`](../../scripts/office2/restic-backup.sh) |
 | Script (deployed) | `/data/services/backup/scripts/backup.sh` on office2 |
-| Restic repo | `/mnt/backups/restic-repo` on office2 (2.7 TB drive at `/mnt/backups`) |
+| Restic repo | `/mnt/backups/restic-repo` on office2 — a **916 GB external USB drive**, ext4, `LABEL=backups`, `/dev/sdd1`, mounted at `/mnt/backups` with `nofail` (verified 2026-08-29). **Not** the 2.7 TB internal SATA disk, which is `/dev/sda1` at `/data`. |
 | Password file | `/etc/restic/password` (root-owned 0600; moved out of `/home/claude/.config/restic/` by #888 because the key lived inside the tree it protects) |
 | Daily logs | `/data/services/backup/logs/backup-YYYY-MM-DD.log` |
 | Health pointer | `/data/services/backup/state/last-backup.json` |
