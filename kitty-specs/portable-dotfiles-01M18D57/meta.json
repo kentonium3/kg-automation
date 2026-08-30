@@ -1,0 +1,14 @@
+{
+  "created_at": "2026-08-30T03:59:35.837665+00:00",
+  "flattened": false,
+  "friendly_name": "Portable shell config across both machines",
+  "mission_id": "01M18D57WVS84AWCRKBHYQRWBT",
+  "mission_number": null,
+  "mission_slug": "portable-dotfiles-01M18D57",
+  "mission_type": "software-dev",
+  "purpose_context": "The account router that decides whether a session runs as kent@spec-kitty.ai or kent@intentional.biz currently exists in exactly two untracked files. Four defects surfaced during the office4 migration, all found by testing rather than reading: a work repo silently routed to the personal account; brew captured python3 at 3.14 via a transitive node dependency; direnv was hooked into bash on a machine whose login shell is zsh; and PATH set in .zprofile was invisible to the SSH invocations that drive office4. Each was 'it works in the shell I happened to test'. The durable fix is one versioned source plus a verification helper, not tidier files.",
+  "purpose_tldr": "Extract shell configuration into the private kentonium3/dotfiles repo so the Mac and office4 read one versioned source, and add a helper that asserts the whole shell environment rather than trusting it.",
+  "slug": "portable-dotfiles-01M18D57",
+  "target_branch": "feat/portable-dotfiles",
+  "topology": "single_branch"
+}
