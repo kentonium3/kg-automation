@@ -10,5 +10,7 @@
   "purpose_tldr": "Make every field a backup writes about its own health actually get read, so a repository proven corrupt can never report healthy.",
   "slug": "pointer-key-ledger-01M189P6",
   "target_branch": "feat/934-pointer-key-ledger",
-  "topology": "single_branch"
+  "topology": "single_branch",
+  "vcs": "git",
+  "vcs_locked_at": "2026-08-30T04:12:37.337312+00:00"
 }
