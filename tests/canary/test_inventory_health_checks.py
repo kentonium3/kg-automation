@@ -39,10 +39,6 @@ POINTER_METHODS = frozenset({"tick-signal-file", "signal-file", "state-file"})
 #: needs to be here, so a migrated component cannot leave dead scaffolding
 #: behind (the repo's no-vestiges rule).
 PENDING_POINTER_MIGRATION: dict[str, str] = {
-    # Its log lines DO lead with an ISO-8601 token (datefmt is explicit), so the
-    # bound is live and this entry works today. The rewrite is owned by the
-    # substrate move off /tmp.
-    "obsidian-sync-heartbeat": "#894",
     # Made fail-closed in #891 (grep + -o short-iso + a rolling 25h window).
     # Its max_age_seconds is still not the binding constraint — the journalctl
     # window is — which is exactly why the pointer migration is still owed.
@@ -129,15 +125,17 @@ def test_declared_success_values_are_non_empty_strings(targets):
 
 def test_no_alert_eligible_target_probes_a_volatile_path(targets):
     """/tmp is emptied at boot, so a probe target there produces a spurious
-    alert on every reboot (#894). Tracked, not yet clean."""
+    alert on every reboot. #894 drained the last offender
+    (obsidian-sync-heartbeat, moved to a state-file pointer under
+    /data/services/); this set must stay empty."""
     offenders = sorted(
         t.component_id
         for t in targets
         if "/tmp/" in str((t.health_check or {}).get("endpoint") or (t.health_check or {}).get("state_path") or "")
     )
-    assert offenders == ["obsidian-sync-heartbeat"], (
-        "the set of components probing a path under /tmp changed; #894 owns "
-        f"draining it to empty. Found: {offenders}"
+    assert offenders == [], (
+        "a component now probes a path under /tmp, which is emptied at every "
+        f"boot and produces a spurious alert per reboot (#894). Found: {offenders}"
     )
 
 
@@ -154,11 +152,7 @@ FAIL_OPEN_FINAL_STAGES = frozenset({
 
 #: Separate from PENDING_POINTER_MIGRATION on purpose — an exemption from the
 #: pointer rule must not also excuse a fail-open endpoint.
-PENDING_FAIL_CLOSED_ENDPOINT: dict[str, str] = {
-    # `tail -5 /tmp/sync-heartbeat.log` — fails closed only incidentally, when
-    # the file is missing. Owned by the substrate move.
-    "obsidian-sync-heartbeat": "#894",
-}
+PENDING_FAIL_CLOSED_ENDPOINT: dict[str, str] = {}
 
 
 def _final_stage(endpoint: str) -> str:
