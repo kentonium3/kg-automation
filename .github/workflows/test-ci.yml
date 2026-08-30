@@ -22,12 +22,28 @@ on:
 jobs:
   pytest:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # The versions actually in play, per kentonium3/kg-automation#920:
+        #   3.12 - what office2 RUNS. Helpers under scripts/** are read live
+        #          from the office2 checkout, so merging to main IS the deploy;
+        #          there is no staging step between a green CI run and
+        #          production execution. This is the version that must be green.
+        #   3.13 - what both development machines run (Mac, and office4's bare
+        #          python3). Catches a dev-only failure before it costs a
+        #          debugging session.
+        # 3.11 was the previous pin and is deliberately dropped: nothing in the
+        # fleet runs it and no requires-python declares it, so exercising it was
+        # not coverage. fail-fast is off so one version failing still reports
+        # the other.
+        python-version: ['3.12', '3.13']
     steps:
       - uses: actions/checkout@v5
 
       - uses: actions/setup-python@v6
         with:
-          python-version: '3.11'
+          python-version: ${{ matrix.python-version }}
 
       - name: Install dependencies
         run: |
