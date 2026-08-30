@@ -1,7 +1,7 @@
 # Specification Quality Checklist: Backup Pointer Key Ledger
 
 **Purpose**: Validate specification completeness and quality before proceeding to planning
-**Created**: 2026-08-30
+**Created**: 2026-08-30 · **Revalidated**: 2026-08-30 against spec.md v2
 **Feature**: [spec.md](../spec.md)
 
 ## Content Quality
@@ -35,27 +35,40 @@
 
 ## Notes
 
-Validation pass 1: all items pass. Specific checks worth recording, because two of them
-are where a spec of this shape usually fails:
+**Validation pass 2 (v2), after the post-plan review.** All items pass. Pass 1 also reported all
+items passing, which is the useful record here: the checklist is necessary and was not sufficient.
+Three independent review lenses then found ~39 issues in the artifact it had just certified,
+including a live regression. Recording that so the checklist is not mistaken for a quality gate —
+it verifies *form*, and the review verifies *substance*.
 
-- **Technology-agnostic success criteria.** SC-001 through SC-006 are stated as operator-visible
-  outcomes (detected within 20 minutes, zero undeclared keys, zero false alerts across a week's
-  seven document shapes) rather than as properties of any module, function, or language. The
-  20-minute figure in SC-001 and NFR-001 derives from the health runner's existing 15-minute
-  evaluation interval plus run time; it is a system fact, not an implementation choice this
-  mission makes.
-- **Requirements vs. mechanism.** The mission is inherently about a mechanism, so the risk was
-  writing the mechanism's design into the spec. FR-003 through FR-006 state the *properties*
-  required — every key declared, keys derived from real emission, undeclared key fails, stale
-  declaration fails — and leave where the ledger lives and how the test executes the producer to
-  plan. FR-004 is the one place a near-implementation constraint is deliberate: "derived from a
-  real execution" is a requirement, not a design preference, because a hand-maintained list is the
-  exact defect being retired and a conforming implementation cannot use one.
+Items whose v1 pass was wrong, and why they now genuinely pass:
 
-Two scope boundaries are recorded as constraints rather than left implicit, since both were
-explicit user decisions during discovery: C-005 (only the backup producers are enforced in this
-mission; the other 16 pointer-emitting components are routed to a follow-up via FR-011) and C-007
-(the second machine's ledger is not authored here, because its producer does not yet exist and an
-unverifiable declaration would reproduce the defect class this mission retires).
+- **"Requirements are testable and unambiguous"** — v1 passed this while FR-008 specified no
+  tolerance value at all ("beyond the tolerated margin"), which is not executable. v2 states 5
+  minutes with a derivation, along with every other previously-unstated threshold (9-day integrity
+  bound, 50 GiB free-space floor from live measurement, snapshot floor of 2 with first-run
+  suppression).
+- **"Success criteria are measurable"** — v1's SC-001 asserted a 20-minute detection latency that
+  no offline test can observe and whose only live demonstration would require corrupting the single
+  backup copy. v2 splits it: the *decision* is the measured criterion, the *latency* is a stated
+  derivation from the 15-minute interval.
+- **"Scope is clearly bounded"** — v1 passed this while never naming the three keys it declined to
+  adopt, so a reader could not learn that three of four catastrophic conditions stayed green. v2
+  opens with a *What this mission does not close* table. After the decision to close all four legs,
+  that table records only the one that genuinely remains (the unwatched alerter), promoted to a
+  named risk R-001 rather than an assumption.
+- **"Edge cases are identified"** — v1 missed the two that mattered most: the integrity check
+  *silently stopping* (distinct from "not run today"), and an adjudicated key being *absent* versus
+  present-and-null.
 
-No items require spec updates before `/spec-kitty.plan`.
+Two conventions worth stating, since both look like violations of the first checklist section:
+
+- **FR-004 ("derived from a real execution") is deliberately near-implementation.** It is a
+  requirement, not a design preference: a hand-maintained key list is the exact defect being
+  retired, so a conforming implementation cannot use one.
+- **NFR-006 (evaluator totality) names a runtime behaviour.** Also deliberate: a raised exception is
+  caught upstream and mapped to `unknown`, and a first-seen `unknown` does not alert — so an
+  evaluator that throws converts a detected corruption into silence. Without stating it, the
+  mission's own mechanism could reproduce the failure it fixes.
+
+No items require spec updates before `/spec-kitty.tasks`.
