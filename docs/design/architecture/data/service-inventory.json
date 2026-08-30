@@ -2991,8 +2991,8 @@
     {
       "name": "felix-vikunja-sync-driver",
       "type": "systemd_user_timer",
-      "schedule": "OnUnitInactiveSec=300s; OnBootSec=120s; Persistent=true",
-      "schedule_note": "5 minutes after the previous tick exits; first tick 2 minutes after boot; catch-up on resume",
+      "schedule": "OnUnitInactiveSec=300s; OnBootSec=120s",
+      "schedule_note": "5 minutes after the previous tick exits; first tick 2 minutes after boot. NO calendar catch-up: this is a monotonic timer, and Persistent= only replays a missed OnCalendar= elapse, so it had no effect and was removed (#925). Downtime is covered instead by OnBootSec firing 2 minutes after resume plus the driver being delta-based (Vikunja updated_since), so the first tick after boot picks up whatever changed while office2 was off.",
       "script": "/home/claude/kg-automation/scripts/sync/driver.py",
       "exec_start": "cd /home/claude/kg-automation && python3 -m scripts.sync.driver",
       "host": "office2",
