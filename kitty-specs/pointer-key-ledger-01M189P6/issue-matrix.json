@@ -13,7 +13,7 @@
       "wp": null
     },
     "#919": {
-      "evidence_ref": "<link or commit>",
+      "evidence_ref": "Cited as cost-of-nothing context only, never claimed as fixed. #919 records that neither host has an off-site backup copy; this mission makes corruption of the single copy DETECTABLE (FR-001, FR-012) but does not create a second copy. Off-site replication remains open under #919.",
       "fr": null,
       "nfr": null,
       "repo": null,
@@ -21,7 +21,7 @@
       "scope": null,
       "source_file": "spec.md",
       "title": "<fill at WP-implementation time>",
-      "verdict": "unknown",
+      "verdict": "deferred-with-followup",
       "wp": null
     },
     "#937": {
