@@ -14,6 +14,9 @@ requirement_refs:
 planning_base_branch: feat/934-pointer-key-ledger
 merge_target_branch: feat/934-pointer-key-ledger
 branch_strategy: Planning artifacts for this mission were generated on feat/934-pointer-key-ledger. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into feat/934-pointer-key-ledger unless the human explicitly redirects the landing branch.
+base_branch: kitty/mission-pointer-key-ledger-01M189P6
+base_commit: 8001891dfec98027d15463b0e143da793a223300
+created_at: '2026-08-30T05:22:44.518529+00:00'
 subtasks:
 - T012
 - T013
