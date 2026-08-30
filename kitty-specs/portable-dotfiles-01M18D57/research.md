@@ -98,6 +98,24 @@ No security-impacting *dependency* decision was made, so the dependency-focused 
 
 No contested finding was dropped.
 
+## R-007 — Post-plan Codex review dispositions
+
+Read-only adversarial pass over spec, plan, research, data-model and both contracts (2026-08-30, `codex exec --sandbox read-only`, no profile). Seven findings — five High, two Medium. **All seven changed the design**; none was deferred or dropped.
+
+| # | Finding | Disposition |
+|---|---|---|
+| F1 | **Installer reversible but not transactional.** Backup-then-replace-one-at-a-time can leave a mixed old/new environment if it fails between entries — on the machine you are logged into, or on office4 reached only through the shell being replaced. | **changed** — FR-003 rewritten to require preflight, manifest, and a restoring trap; NFR-005 and SC-012 added; installer-contract rewritten around a transaction. |
+| F2 | **Rollback underspecified and probably wrong.** `cp -a backup/. ~/` copies *through* a live symlink into the clone, and cannot delete an entry that did not exist before install (`.bashrc`). A backup of existing files cannot describe absence. | **changed** — FR-014 added: manifest records prior type/target/mode/**absence**; a generated `restore.sh` removes managed entries first, restores, then deletes what was absent. quickstart's incorrect command replaced. |
+| F3 | **Secrets ordering makes a fresh machine fail verification for the wrong reason.** quickstart ran `verify-shell-env` before `~/.config/secrets` existed; the contract for missing secrets was undefined. | **changed** — FR-015 added: startup tolerates absence silently; A13 asserts presence, mode 600, and required names as its **own** failure class. quickstart resequenced. |
+| F4 | **`zsh -c` is a simulation, not the acceptance scenario.** The spec names `ssh office4-kgale 'cmd'`; local `zsh -c` shares the shell mode but not sshd, PAM, login-shell selection, or non-TTY behaviour. | **changed** — A12 added as a real remote probe, reported separately, with explicit SKIP (never a silent pass) when unreachable. FR-008 amended. |
+| F5 | **A5/A6 were fakeable.** Observing a banner or env var does not prove which account `claude` authenticates as, and "is a glob, not an enumeration" is not mechanically checkable unless the representation is constrained. Written aspirationally. | **changed** — FR-016 added: router exposes a pure `claude_account_for_path`; work-repo patterns held in an inspectable array. A6 now fails a bare literal duplicating an existing glob. |
+| F6 | **`~/bin` and `~/helper-scripts` remain unmanaged** while on PATH, holding load-bearing scripts (`claim_and_run.sh` reads `KG_PLATFORM`; `codex-review*.sh` serve the review checkpoints). An unmanaged copy can shadow a managed one and diverge. | **changed** — FR-017 and IC-08 added: inventory each, bring in or scope out **explicitly**, and assert the resolved path either way (A14). Scoping out is fine; doing so silently is not. |
+| F7 | **Machine detection brittle.** Hostname case, FQDN form, rename, or rebuild can select the wrong override. | **changed** — `--platform` override required; ambiguous detection must refuse rather than guess; a local untracked identity file is written on success. |
+
+**Also noted and accepted**: the claim that dangling symlinks "degrade gracefully" is an assumption, not a measurement, and must be *tested* on both zsh builds rather than asserted. Folded into IC-06's verification rather than left as prose.
+
+The reviewer judged the `.zshenv` placement and the bash-parity scope sound, and the local-symlink decision defensible for drift prevention.
+
 ## Open questions
 
 None. All clarifications raised during specify and plan were resolved before this document was written; `spec.md` contains no `[NEEDS CLARIFICATION]` markers.

@@ -152,18 +152,18 @@ docs/DEVELOPER_PORTAL.md                 # register
 ### IC-04 — Installer
 
 - **Purpose**: Symlink `$HOME` entries into the clone after a dated backup, detect the platform, and write `KG_PLATFORM`.
-- **Relevant requirements**: FR-003, FR-013, NFR-001, NFR-003, C-006
-- **Affected surfaces**: `install.sh`
+- **Relevant requirements**: FR-003, FR-013, FR-014, NFR-001, NFR-003, NFR-005, C-006
+- **Affected surfaces**: `install.sh`, generated `restore.sh`
 - **Sequencing/depends-on**: IC-02, IC-03
-- **Risks**: Must be idempotent — a second run must not stack PATH entries or nest backups. Must never create a symlink with an absolute path inside a tracked file. Must refuse to clobber an existing non-symlink without backing it up first.
+- **Risks**: **Must be transactional, not merely reversible.** Post-plan review found the original design could leave a mixed old/new environment if it failed between entries — on the machine you are logged into, or on office4 reached only through the shell being replaced. Requires preflight, a manifest recording prior type/target/mode/**absence**, and a restoring trap. The manifest is what makes rollback correct: a backup of existing files cannot describe a `.bashrc` that did not previously exist, and `cp -a backup/. ~/` would copy *through* a live symlink into the clone. Platform detection is a convenience only — `--platform` overrides, ambiguity refuses.
 
 ### IC-05 — Environment assertion helper
 
 - **Purpose**: Assert every guaranteed property, including the clone's own git state. This is the mission's structural intervention.
-- **Relevant requirements**: FR-008, NFR-002, NFR-004
+- **Relevant requirements**: FR-008, FR-015, FR-016, NFR-002, NFR-004
 - **Affected surfaces**: `bin/verify-shell-env`
 - **Sequencing/depends-on**: IC-01 (contract only) — deliberately **not** blocked on IC-02/03, so it can capture the pre-change baseline per directive 034
-- **Risks**: Must spawn all three invocation types rather than inspecting the current one; must run on both platforms; exit status is the contract. A helper that only checks the shell it is running in reproduces the exact blind spot this mission exists to close.
+- **Risks**: Must spawn all three invocation types rather than inspecting the current one. **`zsh -c` is not `ssh host 'cmd'`** — it shares the shell mode but not sshd, PAM, login-shell selection, or non-TTY behaviour, so a real remote probe (A12) is required. Routing must be asserted through a pure `claude_account_for_path` function (FR-016), because a banner or env var does not prove which account `claude` authenticates as. A6 is only mechanically checkable if the router holds its patterns in an inspectable array. Missing secrets must be its own failure (A13), never surfacing as a routing failure.
 
 ### IC-06 — Cutover of both machines
 
@@ -173,10 +173,18 @@ docs/DEVELOPER_PORTAL.md                 # register
 - **Sequencing/depends-on**: IC-04, IC-05
 - **Risks**: Highest-risk concern — it changes live shells. Run the helper *before* to capture baseline and *after* to prove parity. office4 must be done with a second session open. The Mac is the machine the mission is executing on, so its cutover is last.
 
+### IC-08 — PATH-adjacent script inventory
+
+- **Purpose**: Decide, per script, whether it is managed by the repo or explicitly out of scope — and assert the outcome either way.
+- **Relevant requirements**: FR-017, A14
+- **Affected surfaces**: `~/bin`, `~/helper-scripts`, `dotfiles/bin/`
+- **Sequencing/depends-on**: IC-02 (PATH slots must exist first)
+- **Risks**: `~/bin` and `~/helper-scripts` are on PATH and hold load-bearing scripts — `claim_and_run.sh` already reads `KG_PLATFORM`, and `codex-review*.sh` are used by the review checkpoints. Leaving them unmanaged lets an unmanaged copy shadow a managed one and diverge between machines, which undermines the mission's central claim of one source of truth. Scoping out is acceptable; scoping out *silently* is not.
+
 ### IC-07 — Bootstrap runbook and registration
 
 - **Purpose**: Document bringing up a machine from nothing, including the private-repo authentication step that must precede fetching any config.
-- **Relevant requirements**: FR-011
+- **Relevant requirements**: FR-011, FR-015
 - **Affected surfaces**: `docs/runbooks/new-machine-bootstrap.md`, `docs/INDEX.md`, `docs/DEVELOPER_PORTAL.md`
 - **Sequencing/depends-on**: IC-06 (document what was actually done, not what was intended)
-- **Risks**: The auth-before-config ordering is easy to omit and makes the runbook unusable on a genuinely fresh machine.
+- **Risks**: The auth-before-config ordering is easy to omit and makes the runbook unusable on a genuinely fresh machine. The secrets step must also be sequenced: post-plan review found the original quickstart ran `verify-shell-env` **before** `~/.config/secrets` existed, which would report a routing failure for a missing-secrets cause.

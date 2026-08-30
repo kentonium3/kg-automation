@@ -30,22 +30,28 @@ Order matters — the repo is **private**, so authentication precedes configurat
 ```bash
 gh auth login                                   # 1. auth FIRST
 git clone git@github.com:kentonium3/dotfiles ~/repos/dotfiles
-~/repos/dotfiles/install.sh                     # 2. backs up, then links
-exec zsh                                        # 3. new shell
-verify-shell-env                                # 4. prove it
+~/repos/dotfiles/install.sh                     # 2. preflight, manifest, backup, link
+cp ~/repos/dotfiles/secrets.example ~/.config/secrets   # 3. fill in values
+chmod 600 ~/.config/secrets
+exec zsh                                        # 4. new shell
+verify-shell-env                                # 5. prove it
 ```
 
-Then create `~/.config/secrets` using `secrets.example` as the shape — names only; that file is never committed and stays mode 600.
+**Secrets come before verification, not after.** Startup tolerates the file's absence silently, but `verify-shell-env` asserts it exists with mode 600 and defines every name in `secrets.example` — so running it first reports a failure whose cause is simply "not created yet".
+
+Add `--platform kg_office4` to `install.sh` if hostname detection is ambiguous; it refuses rather than guessing.
 
 ## Rollback
 
 The installer's backup is independent of the repo, so this works even if the clone is gone:
 
 ```bash
-ls -d ~/.dotfiles-backup-*        # pick the timestamp
-cp -a ~/.dotfiles-backup-<ts>/. ~/
+ls -d ~/.dotfiles-backup-*             # pick the timestamp
+~/.dotfiles-backup-<ts>/restore.sh     # generated per install; self-contained
 exec zsh
 ```
+
+Do **not** use `cp -a ~/.dotfiles-backup-<ts>/. ~/`. It copies *through* live symlinks into the clone, and cannot delete entries that did not exist before the install — `.bashrc`, typically. `restore.sh` reads the manifest, removes managed entries first, restores prior type and mode, and deletes what was absent.
 
 ## Gotchas
 

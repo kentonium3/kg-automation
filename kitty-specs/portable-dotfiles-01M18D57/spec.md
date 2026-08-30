@@ -60,6 +60,11 @@ As Kent, I want a documented bootstrap path, so that a third machine — or a re
 - What happens when the installer runs twice? It must be idempotent and must not stack duplicate PATH entries.
 - What happens when the dotfiles clone is deleted or moved? `$HOME` symlinks dangle and zsh starts with defaults — a degraded but usable shell, recoverable from the dated backup without the repo.
 - What happens when a local edit is never pushed, or the other machine is never pulled? The helper must fail, because the clone is dirty or behind `origin`.
+- What happens when the installer fails partway — after `.zshenv` is swapped but before `.zshrc`? The trap must restore every entry, not leave a mixed environment.
+- What happens when `.bashrc` did not exist before install? Rollback must **delete** it, not leave an orphan the backup cannot describe.
+- What happens when `~/.config/secrets` is absent on a fresh machine? Startup must stay silent; the helper reports it as a distinct failure rather than a routing failure.
+- What happens when hostname case, FQDN form, or a rebuild changes detection? `--platform` must override, and ambiguous detection must refuse rather than guess.
+- What happens when an unmanaged `~/bin` script shadows a managed one? Either it is in scope, or its resolved path is asserted.
 - What happens on a new machine with no git credentials? The repo is private, so bootstrap must authenticate before it can fetch shell config at all.
 
 ## Requirements *(mandatory)*
@@ -70,15 +75,19 @@ As Kent, I want a documented bootstrap path, so that a third machine — or a re
 |----|-------|------------|----------|--------|
 | FR-001 | Versioned source | As Kent, I want shell config held in the private `kentonium3/dotfiles` repo so that it is versioned, reviewable, and backed up. | High | Open |
 | FR-002 | Core plus per-machine override | As Kent, I want a shared core and a per-machine override keyed on `KG_PLATFORM` so that legitimate machine differences do not fork the whole config. | High | Open |
-| FR-003 | Symlink install with backup | As Kent, I want an installer that symlinks `$HOME` entries to the local clone, after taking a dated backup, so that editing either path edits one file and the repo cannot go stale. | High | Open |
+| FR-003 | Transactional symlink install | As Kent, I want the installer to preflight every target, write a backup **manifest**, then swap entries with a trap that restores on any failure, so that a partial failure cannot leave a mixed old/new environment on the machine I am logged into. It must accept `--platform` to override auto-detection and refuse to proceed on ambiguous detection. | High | Open |
 | FR-004 | Account router preserved | As Kent, I want the router carried over with its globbed work-repo list and explanatory comment intact so that work sessions cannot silently use the personal account. | High | Open |
 | FR-005 | Composed, deduplicated PATH | As Kent, I want PATH composed from documented slots and deduplicated so that precedence is declared rather than an artifact of append order. | High | Open |
 | FR-006 | Per-invocation-type placement | As Kent, I want office4's PATH in `.zshenv` so that shells driven by `ssh host 'cmd'` resolve tools identically to interactive ones. | High | Open |
 | FR-007 | direnv hook placement | As Kent, I want the direnv hook in `.zshrc` so that it loads for interactive shells, which is the only context `precmd` hooks apply to. | Medium | Open |
-| FR-008 | Environment assertion helper | As Kent or an agent, I want `bin/verify-shell-env` to assert routing, PATH order, interpreter version, direnv, all three invocation types, **and that the dotfiles clone is clean and not behind `origin`**, so that misconfiguration and unpushed drift are both caught deliberately. | High | Open |
+| FR-008 | Environment assertion helper | As Kent or an agent, I want `bin/verify-shell-env` to assert routing, PATH order, interpreter version, direnv, all three local invocation types, **a real end-to-end `ssh office4-kgale 'cmd'` probe** (local `zsh -c` simulates the shell mode but not sshd, PAM, login-shell selection, or non-TTY behaviour), the router API over sampled paths, and that the dotfiles clone is clean and not behind `origin` — so that misconfiguration, untested remote behaviour, and unpushed drift are all caught deliberately. | High | Open |
 | FR-009 | Retire stopgap blocks | As Kent, I want office4's five stopgap blocks removed and the stale `.bashrc`/`.profile` pair reconciled so that no machine carries undocumented config. | High | Open |
 | FR-010 | Drop non-portable items | As Kent, I want macOS-only scripts, the launchd job, the unguarded brew eval, and three dangling paths dropped or replaced so that the core runs cleanly on both platforms. | Medium | Open |
 | FR-011 | Bootstrap runbook | As Kent, I want a new-machine bootstrap runbook registered in `INDEX.md` and `DEVELOPER_PORTAL.md` so that a rebuild does not repeat office4's hand-built history. | Medium | Open |
+| FR-014 | Manifest-based rollback | As Kent, I want rollback driven by a manifest recording each managed path's prior **type, target, mode, and absence**, so that restore removes managed symlinks first, restores what existed, and deletes what did not — rather than copying over a live symlink. | High | Open |
+| FR-015 | Secrets contract | As Kent, I want startup to tolerate a missing `~/.config/secrets` silently, and the helper to assert its presence, mode 600, and required variable names, so that a fresh machine does not emit errors before the file exists and routing is never silently degraded by its absence. | High | Open |
+| FR-016 | Router observable API | As an agent, I want the router to expose a pure `claude_account_for_path <path>` function and to hold its work-repo patterns in an inspectable array, so that routing can be asserted over sampled paths rather than inferred from a banner. | High | Open |
+| FR-017 | PATH-adjacent script inventory | As Kent, I want every PATH entry and shell-referenced helper inventoried, and each either brought into the repo or explicitly scoped out with its resolved path asserted, so that unmanaged `~/bin` and `~/helper-scripts` cannot shadow managed ones or diverge between machines. | Medium | Open |
 | FR-013 | Minimal bash parity | As Kent, I want a thin `~/.bashrc` setting the same PATH as zsh so that `#!/bin/bash` scripts and `bash -lc` resolve the same interpreters an interactive session does. | Medium | Open |
 | FR-012 | Secrets shape documented | As Kent or an agent, I want a `secrets.example` naming the variables `~/.config/secrets` must define, with no values, so that a new machine knows what to create and an agent knows what to look for. | Medium | Open |
 
@@ -89,6 +98,7 @@ As Kent, I want a documented bootstrap path, so that a third machine — or a re
 | NFR-001 | Offline installer | The installer performs zero network fetches beyond cloning or pulling the dotfiles repo itself; count of other network calls is 0. | Security | High | Open |
 | NFR-002 | Cross-platform helper | `verify-shell-env` runs on macOS 26 (Intel) and Linux Mint 22.3; exit status is the contract — 0 when every assertion passes, non-zero naming the first failure otherwise. | Portability | High | Open |
 | NFR-003 | Repo-independent rollback | The dated backup restores the previous shell config in a single command with the dotfiles repo absent from disk. | Reliability | High | Open |
+| NFR-005 | Install atomicity | A failed install leaves the machine in exactly its pre-install state: 0 managed entries changed, verified by running the installer with an induced mid-run failure and confirming `verify-shell-env` output is byte-identical to the pre-run baseline. | Reliability | High | Open |
 | NFR-004 | Silent login | A login shell on either machine emits 0 bytes on stderr — no Homebrew error on Linux, no missing-path noise on macOS. | Reliability | Medium | Open |
 
 ### Constraints
@@ -125,3 +135,7 @@ As Kent, I want a documented bootstrap path, so that a third machine — or a re
 - **SC-009**: Editing an installed file and running `git status` in the dotfiles clone shows the change with 0 extra steps — no copy, sync, or re-install required.
 - **SC-010**: `verify-shell-env` exits non-zero when the clone is dirty or behind `origin`, and 0 when it is clean and current.
 - **SC-011**: `#!/bin/bash` scripts and interactive zsh resolve the same `python3` on both machines.
+- **SC-012**: An install failure induced at any of 3 distinct points leaves `verify-shell-env --verbose` output byte-identical to the pre-install baseline.
+- **SC-013**: Rollback correctly restores 3 prior states — file present, symlink present, and file **absent** — verified per managed entry.
+- **SC-014**: `verify-shell-env` run from the Mac performs a real `ssh office4-kgale` probe and reports it as a distinct assertion from the local shell-mode checks.
+- **SC-015**: `claude_account_for_path` returns the correct tree for 100% of sampled paths, including a `spec-kitty-*` repo that does not yet exist.
