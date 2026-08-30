@@ -20,12 +20,25 @@
     "WP01": {
       "actor": "claude",
       "agent": "claude",
+      "agent_profile": "__resolved_profile_absent__",
+      "agent_profile_version": "__resolved_profile_version_absent__",
       "force_count": 1,
       "lane": "planned",
       "last_event_id": "01M18J7QQ0QHEFBEDZF6MGZTZQ",
       "last_transition_at": "2026-08-30T05:28:20.448642+00:00",
-      "shell_pid": 95417,
-      "shell_pid_created_at": "1788067563.023666"
+      "model": "__resolved_model_absent__",
+      "provider": "__resolved_provider_absent__",
+      "review": null,
+      "role": "implementer",
+      "shell_pid": null,
+      "shell_pid_created_at": null,
+      "subtasks": {
+        "T001": "planned",
+        "T002": "planned",
+        "T003": "planned",
+        "T004": "planned",
+        "T005": "planned"
+      }
     },
     "WP02": {
       "actor": "finalize-tasks",

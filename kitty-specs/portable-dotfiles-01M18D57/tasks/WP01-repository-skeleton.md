@@ -11,6 +11,9 @@ requirement_refs:
 planning_base_branch: feat/portable-dotfiles
 merge_target_branch: feat/portable-dotfiles
 branch_strategy: Planning artifacts for this mission were generated on feat/portable-dotfiles. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into feat/portable-dotfiles unless the human explicitly redirects the landing branch.
+base_branch: kitty/mission-portable-dotfiles-01M18D57
+base_commit: 09c7b2d387ac03c33f6791c5d9530cc29ff37630
+created_at: '2026-08-30T05:26:20.710984+00:00'
 subtasks:
 - T001
 - T002

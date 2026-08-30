@@ -10,5 +10,7 @@
   "purpose_tldr": "Extract shell configuration into the private kentonium3/dotfiles repo so the Mac and office4 read one versioned source, and add a helper that asserts the whole shell environment rather than trusting it.",
   "slug": "portable-dotfiles-01M18D57",
   "target_branch": "feat/portable-dotfiles",
-  "topology": "single_branch"
+  "topology": "single_branch",
+  "vcs": "git",
+  "vcs_locked_at": "2026-08-30T05:26:19.203496+00:00"
 }
