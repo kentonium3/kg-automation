@@ -1,7 +1,7 @@
 {
-  "event_count": 41,
-  "last_event_id": "01M18K12YM32109VWS5AA77G7C",
-  "materialized_at": "2026-08-30T05:42:11.156280+00:00",
+  "event_count": 43,
+  "last_event_id": "01M18K178CJB5JYCEZQKCZ0FPT",
+  "materialized_at": "2026-08-30T05:42:15.563673+00:00",
   "mission_number": "",
   "mission_slug": "pointer-key-ledger-01M189P6",
   "mission_type": "software-dev",
@@ -12,9 +12,9 @@
     "claimed": 0,
     "done": 0,
     "for_review": 0,
-    "in_progress": 0,
+    "in_progress": 1,
     "in_review": 0,
-    "planned": 3
+    "planned": 2
   },
   "work_packages": {
     "WP01": {
@@ -119,11 +119,14 @@
       }
     },
     "WP04": {
-      "actor": "finalize-tasks",
+      "actor": "claude",
+      "agent": "claude",
       "force_count": 0,
-      "lane": "planned",
-      "last_event_id": "01M18DHPENY72ZN6MS9Q58R57Z",
-      "last_transition_at": "2026-08-30T04:06:23.957122+00:00"
+      "lane": "in_progress",
+      "last_event_id": "01M18K178CJB5JYCEZQKCZ0FPT",
+      "last_transition_at": "2026-08-30T05:42:15.563673+00:00",
+      "shell_pid": 701709,
+      "shell_pid_created_at": "1788068529.14"
     },
     "WP05": {
       "actor": "finalize-tasks",
