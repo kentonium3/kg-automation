@@ -830,8 +830,8 @@ attention. Until #327 lands, manual journal grep is the safety net.
 `DOC_AUDIT_DEBUG_DRIFT_PAYLOADS=1` (exact match) enables raw-response logging
 at each `_RetrySchemaError` raise site in `scripts/doc_audit/judgment/drift_interpretation.py`.
 Off by default — enable only for diagnostic capture, never in steady-state production.
-See [`../diagnostics/drift-interpretation-payload-shape.md`](<../diagnostics/drift-interpretation-payload-shape.md>)
-for the captured-payload analysis (mission #404 follow-up).
+The captured-payload analysis contemplated as a #404 follow-up was never written;
+capture the payloads and read them directly if you need that detail.
 
 ---
 

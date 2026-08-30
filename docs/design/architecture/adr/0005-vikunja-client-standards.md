@@ -157,8 +157,8 @@ Successful responses with empty bodies (typical for DELETE 204) parse to an empt
 
 ## References
 
-- [`scripts/common/vikunja_client.py`](../../../scripts/common/vikunja_client.py) — the shipped client (314 lines)
-- [`scripts/common/vikunja_config.py`](../../../scripts/common/vikunja_config.py) — the URL helper (95 lines)
+- [`scripts/common/vikunja_client.py`](../../../../scripts/common/vikunja_client.py) — the shipped client (314 lines)
+- [`scripts/common/vikunja_config.py`](../../../../scripts/common/vikunja_config.py) — the URL helper (95 lines)
 - [Architecture review F-004](https://github.com/kentonium3/kg-automation/blob/main/docs/research/kg-automation-architecture-review/findings.md#f-004--vikunja-integration-lacks-a-shared-client-and-urltoken-configuration-boundary) — finding that triggered the epic
 - kentonium3/kg-automation#531 — Epic
 - kentonium3/kg-automation#541 — this ADR's tracking issue (closes via this ADR)

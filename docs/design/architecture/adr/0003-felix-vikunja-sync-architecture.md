@@ -227,8 +227,8 @@ an unresolved design decision. Deferred per C-006.
 
 ## References
 
-- **Research spec**: [kitty-specs/felix-vikunja-sync-architecture-research-01KT7Q15/spec.md](../../../kitty-specs/felix-vikunja-sync-architecture-research-01KT7Q15/spec.md)
-- **Research plan**: [kitty-specs/felix-vikunja-sync-architecture-research-01KT7Q15/plan.md](../../../kitty-specs/felix-vikunja-sync-architecture-research-01KT7Q15/plan.md)
+- **Research spec**: [kitty-specs/felix-vikunja-sync-architecture-research-01KT7Q15/spec.md](../../../../kitty-specs/felix-vikunja-sync-architecture-research-01KT7Q15/spec.md)
+- **Research plan**: [kitty-specs/felix-vikunja-sync-architecture-research-01KT7Q15/plan.md](../../../../kitty-specs/felix-vikunja-sync-architecture-research-01KT7Q15/plan.md)
 - **Operator recommendation** (explainer): [docs/research/felix-vikunja-sync-architecture/recommendation.md](<../../../research/felix-vikunja-sync-architecture/recommendation.md>)
 - **Findings synthesis**: [docs/research/felix-vikunja-sync-architecture/findings.md](<../../../research/felix-vikunja-sync-architecture/findings.md>)
 - **Per-RQ findings**:

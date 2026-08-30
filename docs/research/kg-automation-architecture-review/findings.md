@@ -53,7 +53,7 @@ the team's real backlog and this report. Details:
 
 - `docs/constitution/FELIX-CONSTITUTION.md` says the absolute boundary is
   `~/second-brain/notes/04-Growth/_private/`.
-- [scripts/openclaw/agents/felix-admin-tasker/AGENTS.md](/Users/kentgale/repos/kg-automation/scripts/openclaw/agents/felix-admin-tasker/AGENTS.md:65)
+- [`scripts/openclaw/agents/felix-admin-tasker/AGENTS.md`](<../../../scripts/openclaw/agents/felix-admin-tasker/AGENTS.md>) (line 65)
   still says `~/second-brain/notes/02-Growth/_private/`.
 - Live read-only office2 probe found the same stale `02-Growth/_private`
   reference deployed in `/data/services/openclaw/tasker-agent/AGENTS.md`,
