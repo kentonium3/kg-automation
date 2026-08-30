@@ -55,7 +55,7 @@ import argparse
 import json
 import sys
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, datetime
 from pathlib import Path
 from typing import Any, Iterable
 
@@ -228,6 +228,26 @@ def _parse_iso_date(value: Any) -> date | None:
         return None
     try:
         return date.fromisoformat(value.strip())
+    except ValueError:
+        return None
+
+
+def _parse_iso_instant(value: Any) -> datetime | None:
+    """Parse an ISO-8601 instant (a full timestamp, not just a date).
+
+    Used only by ``check_key_ledger`` to validate ``suppress_until_utc``.
+    Mirrors ``scripts/canary/ledger.py``'s ``_parse_iso`` (reimplemented
+    locally rather than imported so this validator stays dependency-free of
+    the canary package): a trailing ``Z`` is normalized to ``+00:00``;
+    anything non-string or unparseable returns ``None`` rather than raising.
+    """
+    if not isinstance(value, str):
+        return None
+    text = value.strip()
+    if text.endswith("Z"):
+        text = text[:-1] + "+00:00"
+    try:
+        return datetime.fromisoformat(text)
     except ValueError:
         return None
 
@@ -472,7 +492,13 @@ def check_key_ledger(entry: dict, file: str) -> Iterable[Finding]:
                 ),
             )
 
-        # Rule 5 — malformed predicate value shape.
+        # Rule 5 — malformed predicate value shape. This validates the
+        # predicate FIELDS' values, not just their names/presence: a modifier
+        # allow-list check alone lets `"anchor": "true"` (a string) through,
+        # which the runtime treats as "no anchor" — a declared freshness
+        # obligation with no bound that silently accepts any timestamp
+        # (post-merge review of #934, Finding 1). Every branch below checks
+        # value, not just key membership.
         if chosen == "good_values":
             value = predicate["good_values"]
             if not isinstance(value, list) or not value or not all(
@@ -492,8 +518,95 @@ def check_key_ledger(entry: dict, file: str) -> Iterable[Finding]:
                     file=file, entity=label, rule="key-ledger-minimum-malformed",
                     detail=f"adjudicated key {akey!r} minimum must be a number, got {value!r}",
                 )
-        elif chosen == "freshness" and predicate.get("anchor") is True:
-            anchor_count += 1
+
+            if "unmeasured_is_unknown" in predicate:
+                unmeasured = predicate["unmeasured_is_unknown"]
+                if not isinstance(unmeasured, bool):
+                    yield Finding(
+                        file=file, entity=label, rule="key-ledger-unmeasured-is-unknown-malformed",
+                        detail=(
+                            f"adjudicated key {akey!r} unmeasured_is_unknown must be a boolean, "
+                            f"got {unmeasured!r}"
+                        ),
+                    )
+
+            if "suppress_until_utc" in predicate:
+                suppress = predicate["suppress_until_utc"]
+                if not isinstance(suppress, str) or _parse_iso_instant(suppress) is None:
+                    yield Finding(
+                        file=file, entity=label, rule="key-ledger-suppress-until-malformed",
+                        detail=(
+                            f"adjudicated key {akey!r} suppress_until_utc must be a string that "
+                            f"parses as an ISO-8601 instant, got {suppress!r}"
+                        ),
+                    )
+
+        elif chosen == "freshness":
+            fvalue = predicate["freshness"]
+            if fvalue is not True:
+                yield Finding(
+                    file=file, entity=label, rule="key-ledger-freshness-malformed",
+                    detail=(
+                        f"adjudicated key {akey!r} freshness must be the literal boolean "
+                        f"true, got {fvalue!r}"
+                    ),
+                )
+
+            if "anchor" in predicate:
+                anchor_value = predicate["anchor"]
+                if not isinstance(anchor_value, bool):
+                    yield Finding(
+                        file=file, entity=label, rule="key-ledger-anchor-malformed",
+                        detail=(
+                            f"adjudicated key {akey!r} anchor must be a boolean (True or "
+                            f"False, never a string); got {anchor_value!r}"
+                        ),
+                    )
+                elif anchor_value is True:
+                    anchor_count += 1
+
+            own_max_age = predicate.get("max_age_seconds")
+            own_max_age_usable = False
+            if "max_age_seconds" in predicate:
+                if (
+                    isinstance(own_max_age, bool)
+                    or not isinstance(own_max_age, (int, float))
+                    or own_max_age <= 0
+                ):
+                    yield Finding(
+                        file=file, entity=label, rule="key-ledger-freshness-max-age-malformed",
+                        detail=(
+                            f"adjudicated key {akey!r} max_age_seconds must be a positive "
+                            f"number and not a bool, got {own_max_age!r}"
+                        ),
+                    )
+                else:
+                    own_max_age_usable = True
+
+            # Effective-bound check: a freshness predicate must resolve to a
+            # bound from SOMEWHERE — its own max_age_seconds or the
+            # health_check's — or it accepts any parseable timestamp as
+            # fresh forever (runtime's `_ledger_freshness_result` "no
+            # freshness anchor declared" / unbounded-obligation path). A
+            # legitimate liveness-only ledger key must be declared as such
+            # explicitly, not arrived at by omission; today's contract has
+            # no such declaration, so omission is always a finding.
+            hc_max_age = hc.get("max_age_seconds")
+            hc_max_age_usable = (
+                isinstance(hc_max_age, (int, float))
+                and not isinstance(hc_max_age, bool)
+                and hc_max_age > 0
+            )
+            if not own_max_age_usable and not hc_max_age_usable:
+                yield Finding(
+                    file=file, entity=label, rule="key-ledger-freshness-no-bound",
+                    detail=(
+                        f"adjudicated key {akey!r} freshness predicate resolves to no "
+                        "effective bound (no usable own max_age_seconds and "
+                        "health_check.max_age_seconds is absent or malformed); this "
+                        "silently accepts any parseable timestamp as fresh"
+                    ),
+                )
 
     # Rule 7 — at most one key declares freshness with anchor: true. Any
     # number of keys may carry freshness with their own max_age_seconds;

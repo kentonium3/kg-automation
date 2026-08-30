@@ -441,3 +441,211 @@ def test_well_formed_reconciliation_harness_naming_an_existing_path_is_not_flagg
     }
     doc = _doc(_entry(ledger))
     assert _rules(_validate(doc)) == []
+
+
+# --------------------------------------------------------------------------- #
+# Post-merge review of #934, Finding 1 — the validator must check predicate
+# MODIFIER VALUES, not just their names. A malformed value (e.g.
+# `"anchor": "true"`, a string) previously passed a name-only allow-list
+# check, then read as "no anchor" at runtime — a freshness obligation with no
+# bound that silently accepts any parseable timestamp.
+# --------------------------------------------------------------------------- #
+
+def _entry_without_hc_bound(key_ledger, *, method="state-file"):
+    """Like ``_entry``, but the health_check carries NO max_age_seconds of its
+    own — used to test the "no effective bound anywhere" case, which ``_entry``'s
+    default 100800s hc-level bound would otherwise mask.
+    """
+    return {
+        "last_updated": "2026-08-30",
+        "services": [
+            {
+                "name": "fixture-component-no-hc-bound",
+                "type": "cron",
+                "status": "active",
+                "health_check": {"method": method, "key_ledger": key_ledger},
+            }
+        ],
+    }
+
+
+def test_anchor_string_true_is_flagged():
+    # The exact case from the finding: "true" (a JSON string), not the
+    # literal boolean, so the validator must check the VALUE's type.
+    ledger = {
+        "reconciliation_harness": _EXISTING_PATH,
+        "adjudicated": {"snapshot_timestamp_utc": {"freshness": True, "anchor": "true"}},
+    }
+    doc = _doc(_entry(ledger))
+    assert "key-ledger-anchor-malformed" in _rules(_validate(doc))
+
+
+def test_anchor_boolean_true_is_not_flagged():
+    ledger = {
+        "reconciliation_harness": _EXISTING_PATH,
+        "adjudicated": {"snapshot_timestamp_utc": {"freshness": True, "anchor": True}},
+    }
+    doc = _doc(_entry(ledger))
+    assert "key-ledger-anchor-malformed" not in _rules(_validate(doc))
+
+
+def test_freshness_field_string_value_is_flagged():
+    ledger = {
+        "reconciliation_harness": _EXISTING_PATH,
+        "adjudicated": {"snapshot_timestamp_utc": {"freshness": "true", "anchor": True}},
+    }
+    doc = _doc(_entry(ledger))
+    assert "key-ledger-freshness-malformed" in _rules(_validate(doc))
+
+
+def test_freshness_field_boolean_true_is_not_flagged():
+    ledger = {
+        "reconciliation_harness": _EXISTING_PATH,
+        "adjudicated": {"snapshot_timestamp_utc": {"freshness": True, "anchor": True}},
+    }
+    doc = _doc(_entry(ledger))
+    assert "key-ledger-freshness-malformed" not in _rules(_validate(doc))
+
+
+def test_freshness_max_age_seconds_bool_is_flagged():
+    ledger = {
+        "reconciliation_harness": _EXISTING_PATH,
+        "adjudicated": {
+            "last_integrity_check_utc": {"freshness": True, "max_age_seconds": True},
+        },
+    }
+    doc = _doc(_entry(ledger))
+    assert "key-ledger-freshness-max-age-malformed" in _rules(_validate(doc))
+
+
+def test_freshness_max_age_seconds_non_number_is_flagged():
+    ledger = {
+        "reconciliation_harness": _EXISTING_PATH,
+        "adjudicated": {
+            "last_integrity_check_utc": {"freshness": True, "max_age_seconds": "777600"},
+        },
+    }
+    doc = _doc(_entry(ledger))
+    assert "key-ledger-freshness-max-age-malformed" in _rules(_validate(doc))
+
+
+def test_freshness_max_age_seconds_negative_is_flagged():
+    ledger = {
+        "reconciliation_harness": _EXISTING_PATH,
+        "adjudicated": {
+            "last_integrity_check_utc": {"freshness": True, "max_age_seconds": -1},
+        },
+    }
+    doc = _doc(_entry(ledger))
+    assert "key-ledger-freshness-max-age-malformed" in _rules(_validate(doc))
+
+
+def test_freshness_max_age_seconds_valid_is_not_flagged():
+    ledger = {
+        "reconciliation_harness": _EXISTING_PATH,
+        "adjudicated": {
+            "last_integrity_check_utc": {"freshness": True, "max_age_seconds": 777600},
+        },
+    }
+    doc = _doc(_entry(ledger))
+    assert "key-ledger-freshness-max-age-malformed" not in _rules(_validate(doc))
+
+
+def test_unmeasured_is_unknown_non_bool_is_flagged():
+    ledger = {
+        "reconciliation_harness": _EXISTING_PATH,
+        "adjudicated": {
+            "snapshot_count": {"minimum": 2, "unmeasured_is_unknown": "true"},
+        },
+    }
+    doc = _doc(_entry(ledger))
+    assert "key-ledger-unmeasured-is-unknown-malformed" in _rules(_validate(doc))
+
+
+def test_unmeasured_is_unknown_bool_is_not_flagged():
+    ledger = {
+        "reconciliation_harness": _EXISTING_PATH,
+        "adjudicated": {
+            "snapshot_count": {"minimum": 2, "unmeasured_is_unknown": True},
+        },
+    }
+    doc = _doc(_entry(ledger))
+    assert "key-ledger-unmeasured-is-unknown-malformed" not in _rules(_validate(doc))
+
+
+def test_suppress_until_utc_non_string_is_flagged():
+    ledger = {
+        "reconciliation_harness": _EXISTING_PATH,
+        "adjudicated": {
+            "snapshot_count": {"minimum": 2, "suppress_until_utc": 20260930},
+        },
+    }
+    doc = _doc(_entry(ledger))
+    assert "key-ledger-suppress-until-malformed" in _rules(_validate(doc))
+
+
+def test_suppress_until_utc_unparseable_string_is_flagged():
+    ledger = {
+        "reconciliation_harness": _EXISTING_PATH,
+        "adjudicated": {
+            "snapshot_count": {"minimum": 2, "suppress_until_utc": "not-a-timestamp"},
+        },
+    }
+    doc = _doc(_entry(ledger))
+    assert "key-ledger-suppress-until-malformed" in _rules(_validate(doc))
+
+
+def test_suppress_until_utc_well_formed_is_not_flagged():
+    ledger = {
+        "reconciliation_harness": _EXISTING_PATH,
+        "adjudicated": {
+            "snapshot_count": {"minimum": 2, "suppress_until_utc": "2026-09-30T00:00:00Z"},
+        },
+    }
+    doc = _doc(_entry(ledger))
+    assert "key-ledger-suppress-until-malformed" not in _rules(_validate(doc))
+
+
+def test_freshness_predicate_with_no_bound_anywhere_is_flagged():
+    # No key-level max_age_seconds AND no hc-level max_age_seconds (the
+    # anchor case: even the anchor must resolve to a bound — the runtime
+    # "no freshness anchor declared" / unbounded-obligation path silently
+    # accepts any parseable timestamp).
+    ledger = {
+        "reconciliation_harness": _EXISTING_PATH,
+        "adjudicated": {"snapshot_timestamp_utc": {"freshness": True, "anchor": True}},
+    }
+    doc = _doc(_entry_without_hc_bound(ledger))
+    assert "key-ledger-freshness-no-bound" in _rules(_validate(doc))
+
+
+def test_non_anchor_freshness_predicate_with_no_bound_anywhere_is_flagged():
+    ledger = {
+        "reconciliation_harness": _EXISTING_PATH,
+        "adjudicated": {"last_integrity_check_utc": {"freshness": True}},
+    }
+    doc = _doc(_entry_without_hc_bound(ledger))
+    assert "key-ledger-freshness-no-bound" in _rules(_validate(doc))
+
+
+def test_freshness_predicate_bound_by_hc_level_max_age_is_not_flagged():
+    # No own max_age_seconds, but the health_check's covers it — legal
+    # (contract: "uses the health_check's max_age_seconds unless the
+    # predicate carries its own").
+    ledger = {
+        "reconciliation_harness": _EXISTING_PATH,
+        "adjudicated": {"snapshot_timestamp_utc": {"freshness": True, "anchor": True}},
+    }
+    doc = _doc(_entry(ledger))  # _entry supplies hc.max_age_seconds=100800
+    assert "key-ledger-freshness-no-bound" not in _rules(_validate(doc))
+
+
+def test_freshness_predicate_bound_by_own_max_age_is_not_flagged():
+    ledger = {
+        "reconciliation_harness": _EXISTING_PATH,
+        "adjudicated": {
+            "last_integrity_check_utc": {"freshness": True, "max_age_seconds": 777600},
+        },
+    }
+    doc = _doc(_entry_without_hc_bound(ledger))
+    assert "key-ledger-freshness-no-bound" not in _rules(_validate(doc))
