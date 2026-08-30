@@ -21,7 +21,10 @@
   },
   "markdownlint.run": "onSave",
 
-  "python.defaultInterpreterPath": "/usr/local/bin/python3",
+  // Repo-relative so it resolves on every machine (Mac and office4 alike).
+  // A hardcoded absolute path here was a macOS-only Homebrew path and failed
+  // to resolve on Linux.
+  "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
 
   // Exclude spec-kitty worktrees from file watching to prevent FSEvents
   // overflow during worktree removal, which crashes VS Code (SIGTERM).
