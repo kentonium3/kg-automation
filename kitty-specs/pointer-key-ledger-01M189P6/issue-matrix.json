@@ -1,0 +1,101 @@
+{
+  "rows": {
+    "#492": {
+      "evidence_ref": "Cited as PRECEDENT, not fixed here. Referenced in plan.md/WP06 as the reason the signal-to-doc-map lookup is mandatory when updating navigation docs. Closed independently.",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": null,
+      "title": null,
+      "verdict": "verified-already-fixed",
+      "wp": null
+    },
+    "#746": {
+      "evidence_ref": "Cited as PRECEDENT, not fixed here. Referenced in research R8 as the established precedent for a repo-side change reaching office2 via the existing checkout pull with no deploys/queued manifest. Closed independently.",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": null,
+      "title": null,
+      "verdict": "verified-already-fixed",
+      "wp": null
+    },
+    "#902": {
+      "evidence_ref": "Cited as PRECEDENT and defect-class origin, not fixed here. #902 added prune_exit_code and wrote constraint C-003 forbidding unread pointer fields; this mission exists because C-003 was enforced by review rather than by a test and missed the field already present. Its own fix is closed; this mission generalises it.",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": null,
+      "title": null,
+      "verdict": "verified-already-fixed",
+      "wp": null
+    },
+    "#906": {
+      "evidence_ref": "Cited as PRECEDENT, not fixed here. Referenced in research R5 and WP01 as the sibling defect that hid in the producer's early-exit branches and survived code review, which is why the executing test harness exists. Closed independently.",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": null,
+      "title": null,
+      "verdict": "verified-already-fixed",
+      "wp": null
+    },
+    "#913": {
+      "evidence_ref": "Out of scope by spec C-007. #913 is a downstream CONSUMER of this mission's contract, not something it fixes: office4's producer does not exist yet, so a ledger declared for it now could not be verified by the enforcing test, and an unverifiable declaration is the defect class this mission retires. #913 authors office4's ledger against the shared mechanism after this merges.",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": "spec.md",
+      "title": "<fill at WP-implementation time>",
+      "verdict": "deferred-with-followup",
+      "wp": null
+    },
+    "#919": {
+      "evidence_ref": "Cited as cost-of-nothing context only, never claimed as fixed. #919 records that neither host has an off-site backup copy; this mission makes corruption of the single copy DETECTABLE (FR-001, FR-012) but does not create a second copy. Off-site replication remains open under #919.",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": "spec.md",
+      "title": "<fill at WP-implementation time>",
+      "verdict": "deferred-with-followup",
+      "wp": null
+    },
+    "#935": {
+      "evidence_ref": "FIXED during this mission, though outside its scope. The pre-commit hook resolved its interpreter to a uv-managed python3 shim lacking PyYAML, aborting every commit on office4. Fixed in 67643066 on main; the linked-worktree follow-on gap was fixed in 230f4939 (tracked as #939). Taken as a rung-4 direct fix because it blocked the mission vehicle itself - every work-package commit runs in a lane worktree.",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": null,
+      "title": null,
+      "verdict": "fixed",
+      "wp": null
+    },
+    "#937": {
+      "evidence_ref": "Deliberately deferred by spec C-005 and tracked by FR-011. This mission enforces the ledger for the backup producers only; the other 16 pointer-emitting components have no deterministic execution harness (several emit from OpenClaw agent steps), so a ledger for them would be a hand-maintained list - the defect, relocated. #937 was filed during this mission and is blocked by it.",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": "spec.md",
+      "title": "<fill at WP-implementation time>",
+      "verdict": "deferred-with-followup",
+      "wp": null
+    }
+  },
+  "schema_version": 1
+}

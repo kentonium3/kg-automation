@@ -1,0 +1,199 @@
+{
+  "mission_slug": "pointer-key-ledger-01M189P6",
+  "mission_number": "",
+  "mission_type": "software-dev",
+  "overall_verdict": "pass",
+  "criteria": [
+    {
+      "criterion_id": "FR-001",
+      "description": "FR-001 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "tests/canary/test_ledger_eval.py + tests/canary/test_probes_ledger.py \u2014 a false integrity verdict yields unhealthy with evidence naming the key; adjudicated via the declared good-set [true, null].",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator)",
+      "verified_at": "2026-08-30T06:19:27Z",
+      "notes": ""
+    },
+    {
+      "criterion_id": "FR-002",
+      "description": "FR-002 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "tests/canary/test_ledger_eval.py \u2014 a present null (the six non-Sunday days) reads healthy; asserted alongside the false/true cases.",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator)",
+      "verified_at": "2026-08-30T06:19:27Z",
+      "notes": ""
+    },
+    {
+      "criterion_id": "FR-003",
+      "description": "FR-003 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "tests/architecture/test_key_ledger_rules.py \u2014 all 8 structural rules incl. every emitted key declared exactly once; plus tests/office2/restic_backup/test_ledger_reconciliation.py reconciling declared vs actually-emitted keys.",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator)",
+      "verified_at": "2026-08-30T06:19:27Z",
+      "notes": ""
+    },
+    {
+      "criterion_id": "FR-004",
+      "description": "FR-004 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "tests/office2/restic_backup/test_ledger_reconciliation.py \u2014 the emitted key set is derived by EXECUTING the producer under stubbed effects, never from a hand-written list.",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator)",
+      "verified_at": "2026-08-30T06:19:27Z",
+      "notes": ""
+    },
+    {
+      "criterion_id": "FR-005",
+      "description": "FR-005 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "tests/office2/restic_backup/test_ledger_reconciliation.py \u2014 an undeclared emitted key fails, naming it. Independently reproduced by the reviewer with its own sabotage key.",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator)",
+      "verified_at": "2026-08-30T06:19:27Z",
+      "notes": ""
+    },
+    {
+      "criterion_id": "FR-006",
+      "description": "FR-006 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "tests/office2/restic_backup/test_ledger_reconciliation.py \u2014 a declared key the producer no longer emits fails, naming the stale declaration. Independently reproduced by the reviewer.",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator)",
+      "verified_at": "2026-08-30T06:19:27Z",
+      "notes": ""
+    },
+    {
+      "criterion_id": "FR-007",
+      "description": "FR-007 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "tests/canary/test_ledger_eval.py \u2014 an absent adjudicated key is unhealthy for EVERY predicate form, including when null is in its good_values.",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator)",
+      "verified_at": "2026-08-30T06:19:27Z",
+      "notes": ""
+    },
+    {
+      "criterion_id": "FR-008",
+      "description": "FR-008 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "tests/canary/test_probes_ledger.py \u2014 5-minute future-skew bound, strict >, boundary-tested across Z / offset / naive forms.",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator)",
+      "verified_at": "2026-08-30T06:19:27Z",
+      "notes": ""
+    },
+    {
+      "criterion_id": "FR-009",
+      "description": "FR-009 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "tests/architecture/test_key_ledger_rules.py \u2014 diagnostic_only entries require a non-empty reason; empty/missing reason yields a finding.",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator)",
+      "verified_at": "2026-08-30T06:19:27Z",
+      "notes": ""
+    },
+    {
+      "criterion_id": "FR-010",
+      "description": "FR-010 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "tests/canary/test_ledger_reuse.py \u2014 a fictitious producer script with a different key set and different good-sets is driven through BOTH shared modules (assert_reconciles and evaluate) with zero edits to either.",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator)",
+      "verified_at": "2026-08-30T06:19:27Z",
+      "notes": ""
+    },
+    {
+      "criterion_id": "FR-011",
+      "description": "FR-011 is satisfied",
+      "proof_type": "manual_verification",
+      "evidence": "docs/runbooks/restic-backup-ops.md documents the adoption path; #937 tracks the 16 remaining pointer-emitting components and is blocked by this mission.",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator)",
+      "verified_at": "2026-08-30T06:19:27Z",
+      "notes": ""
+    },
+    {
+      "criterion_id": "FR-012",
+      "description": "FR-012 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "tests/office2/restic_backup/test_pointer_emission.py \u2014 8 last_integrity_check_utc tests: carry-forward across a skipped and a FAILED Sunday, set only on a passing check, null on missing/corrupt/quote-bearing/non-string prior document.",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator)",
+      "verified_at": "2026-08-30T06:19:27Z",
+      "notes": ""
+    },
+    {
+      "criterion_id": "FR-013",
+      "description": "FR-013 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "tests/office2/restic_backup/test_pointer_emission.py \u2014 files_processed happy path and null-on-stats-failure.",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator)",
+      "verified_at": "2026-08-30T06:19:27Z",
+      "notes": ""
+    },
+    {
+      "criterion_id": "FR-014",
+      "description": "FR-014 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "tests/office2/restic_backup/test_pointer_emission.py \u2014 8 source_roots_present tests: true/false/null incl. paths json-null, paths absent, malformed snapshot JSON, wrong-shape paths, and non-string entries.",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator)",
+      "verified_at": "2026-08-30T06:19:27Z",
+      "notes": ""
+    },
+    {
+      "criterion_id": "FR-015",
+      "description": "FR-015 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "tests/office2/restic_backup/test_pointer_emission.py \u2014 repo_fs_free_bytes happy path and null-on-df-failure; floor 50 GiB derived from the live volume (916 GiB, 864 GiB free).",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator)",
+      "verified_at": "2026-08-30T06:19:27Z",
+      "notes": ""
+    },
+    {
+      "criterion_id": "FR-016",
+      "description": "FR-016 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "tests/office2/restic_backup/test_pointer_emission.py snapshot_count null when the count query yields nothing (emission side) + tests/canary/test_ledger_eval.py unmeasured_is_unknown yielding unknown rather than unhealthy (adjudication side).",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator)",
+      "verified_at": "2026-08-30T06:19:27Z",
+      "notes": ""
+    },
+    {
+      "criterion_id": "FR-017",
+      "description": "FR-017 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "tests/architecture/test_key_ledger_rules.py reconciliation_harness required and well-formed (presence+shape) + tests/office2/restic_backup/test_ledger_reconciliation.py asserting the declared harness path EXISTS and is the one that produced the reconciled document.",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator)",
+      "verified_at": "2026-08-30T06:19:27Z",
+      "notes": ""
+    },
+    {
+      "criterion_id": "FR-018",
+      "description": "FR-018 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "tests/canary/test_probes_ledger.py \u2014 the key declared freshness+anchor is the anchor actually judged; a fresh higher-priority TIMESTAMP_KEYS candidate does not displace a stale declared anchor.",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator)",
+      "verified_at": "2026-08-30T06:19:27Z",
+      "notes": ""
+    },
+    {
+      "criterion_id": "FR-019",
+      "description": "FR-019 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "tests/canary/test_ledger_eval.py \u2014 suppress_until_utc suppresses before the instant and not after; a MALFORMED value does not suppress and must not yield unknown.",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator)",
+      "verified_at": "2026-08-30T06:19:27Z",
+      "notes": ""
+    }
+  ],
+  "negative_invariants": []
+}

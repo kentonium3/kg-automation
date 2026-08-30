@@ -68,6 +68,9 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Any
 
+from scripts.canary.ledger import FreshnessObligation
+from scripts.canary.ledger import evaluate as _ledger_evaluate
+
 # --------------------------------------------------------------------------- #
 # Freshness timestamp candidate keys (the T012 design callout).
 #
@@ -158,6 +161,25 @@ _OPENCLAW_CRON_METHOD = "openclaw-cron-state"
 # at its scheduled instant is not falsely flagged. Overridable per health_check
 # via ``grace_seconds``.
 _DEFAULT_CRON_GRACE_SECONDS: float = 900.0
+
+# Future-dating bound for a resolved freshness timestamp (T022,
+# pointer-key-ledger-01M189P6/WP04). Deliberately the SAME value as
+# ``_FUTURE_SKEW_TOLERANCE`` in ``scripts/deploy/lib/snapshot.py`` -- that
+# module guards this exact same field (``snapshot_timestamp_utc``) on this
+# exact same document (the restic ``last-backup.json`` pointer) for the
+# Tier-2 deploy pre-flight gate, and two consumers of one file must not
+# silently disagree about when it is trustworthy. Reference it by name
+# (``_FUTURE_SKEW_TOLERANCE``) if this value ever needs to change so the
+# sibling gets updated in the same change.
+#
+# Independently sound regardless of the sibling: the tightest
+# ``max_age_seconds`` across the inventory today is 600s (agent-prompt-sync,
+# felix-deployer, felix-vikunja-sync-driver), so this tolerance must stay
+# well below that or the guard is defeated for those components -- 5 minutes
+# (300s) clears that with room to spare. Without this bound, ``age = now -
+# ts`` for a future-dated timestamp is negative, never exceeds any budget,
+# and a skewed clock pins the component fresh forever.
+_FUTURE_SKEW_TOLERANCE: timedelta = timedelta(minutes=5)
 
 
 @dataclass(frozen=True)
@@ -273,16 +295,31 @@ def _explicit_error(
         code = pointer["restic_exit_code"]
         if isinstance(code, int) and code not in _RESTIC_OK_EXIT_CODES:
             return f"restic_exit_code={code}"
-        # A restic pointer that reports an exit code but no snapshot timestamp
-        # must not fall through to another TIMESTAMP_KEYS candidate and read
-        # fresh (#902/FR-009). Before this, ``script_finished_at_utc`` would
-        # satisfy the freshness probe for a run that produced no snapshot at
-        # all, while the inventory asserted the snapshot timestamp must be
-        # non-null. Scoped to restic pointers so no other component is affected.
-        # "Usable" means PARSEABLE, not merely non-empty. A truthy but malformed
-        # value (e.g. "not-a-date") would otherwise pass this guard and then fall
-        # through TIMESTAMP_KEYS to script_finished_at_utc, reopening the very
-        # hole this closes -- verified against the real probe before fixing.
+    # A restic pointer that reports an exit code but no snapshot timestamp must
+    # not fall through to another TIMESTAMP_KEYS candidate and read fresh
+    # (#902/FR-009). Before this, ``script_finished_at_utc`` would satisfy the
+    # freshness probe for a run that produced no snapshot at all, while the
+    # inventory asserted the snapshot timestamp must be non-null. Scoped to
+    # restic pointers (gated on ``restic_exit_code`` presence, same as before)
+    # so no other component is affected. "Usable" means PARSEABLE, not merely
+    # non-empty. A truthy but malformed value (e.g. "not-a-date") would
+    # otherwise pass a bare-truthiness guard and then fall through
+    # TIMESTAMP_KEYS to script_finished_at_utc, reopening the very hole this
+    # closes -- verified against the real probe before fixing.
+    #
+    # (pointer-key-ledger-01M189P6/WP04, T019) This rule used to be NESTED
+    # inside the ``restic_exit_code`` branch above, immediately after the
+    # exit-code check. It has been lifted out to stand on its own, still
+    # gated on the same ``"restic_exit_code" in pointer`` condition so
+    # behaviour is unchanged. Reason: a rule that lives inside another rule's
+    # presence test cannot be reasoned about, suppressed, or overridden
+    # per-key -- and the ledger-authoritative wiring this WP adds is exactly a
+    # per-key precedence model. Nesting it meant "suppress the legacy
+    # restic_exit_code check because the ledger declares that key" would
+    # silently delete this snapshot-timestamp guard too, reopening
+    # #902/FR-009 for a component that carries a ledger. Standing alone, the
+    # ledger-authoritative branch can skip only the key it actually declares.
+    if "restic_exit_code" in pointer:
         snapshot_ts = pointer.get("snapshot_timestamp_utc")
         if _parse_iso(snapshot_ts) is None:
             return "restic pointer has no usable snapshot_timestamp_utc"
@@ -405,35 +442,238 @@ def _probe_systemd_status(
     )
 
 
-def _probe_freshness(
-    health_check: dict[str, Any],
-    now: datetime,
-    *,
-    http_get: HttpGet,
-    run_cmd: RunCmd,
-    read_state: ReadState,
+def _freshness_verdict(
+    key: str, ts: datetime, max_age: float | None, now: datetime
 ) -> ProbeResult:
-    """Freshness pointer probe (the T012 design callout).
+    """Decide the final ``ProbeResult`` for one resolved ``(key, ts)``
+    freshness pair.
 
-    Reads the pointer JSON via ``read_state``, resolves its authoritative
-    timestamp via :data:`TIMESTAMP_KEYS`, honors explicit error fields, and
-    judges staleness against ``max_age_seconds`` when present.
+    Shared tail for both the legacy :data:`TIMESTAMP_KEYS` path and the
+    ledger-anchor path (T020/T021), so the future-skew guard (T022) and the
+    ``max_age_seconds`` bound are judged identically everywhere a probe
+    resolves a timestamp to *the* freshness anchor. A non-anchor ledger
+    ``freshness`` key does NOT go through this helper — see
+    :func:`_ledger_freshness_result`, which folds its non-conformance into
+    ``unhealthy`` rather than the ``stale`` bucket used here.
+
+    Future-skew guard checked FIRST, before the ``max_age is None``
+    liveness-only branch and before the bound comparison: without this,
+    ``now - ts`` for a future-dated ``ts`` is negative and never exceeds any
+    budget, so a corrupted/skewed timestamp reads fresh forever — including
+    in the liveness-only case, which has no budget to defeat but still
+    benefits from flagging an impossible timestamp. See
+    :data:`_FUTURE_SKEW_TOLERANCE` for the value and why it matches
+    ``scripts/deploy/lib/snapshot.py``.
+
+    NOTE (T018): ``ts`` may be a NAIVE datetime — an ISO-8601 string with no
+    UTC offset parses that way (see :func:`_parse_iso`). ``ts - now`` (or
+    ``now - ts`` below) then raises ``TypeError`` (naive vs aware
+    comparison), exactly as the pre-existing bound check always has. This is
+    deliberate, not an oversight introduced by the guard: the dispatcher
+    (:func:`run_probe`) catches any exception a handler raises and maps it
+    to ``unknown`` (INV-D). A first-seen ``unknown`` does not alert, so this
+    function does not attempt to rescue a naive timestamp — it only must not
+    introduce a NEW way to reach that surface silently, and letting the
+    comparison raise here (same as before) satisfies that.
     """
-    # Pointer path resolved WP02-style: state_path first, else endpoint.
-    path = health_check.get("state_path") or health_check.get("endpoint")
-    if not path:
-        return _unevaluable("freshness pointer has no state_path/endpoint")
-
-    pointer = read_state(path)
-
-    if not isinstance(pointer, dict):
-        # A JSONL log or non-object payload — cannot interpret as a flat
-        # pointer. Honest unknown (agent-prompt-sync reads this way by design).
-        return _unevaluable(
-            f"freshness pointer is not a JSON object ({type(pointer).__name__})"
+    skew = ts - now
+    if skew > _FUTURE_SKEW_TOLERANCE:
+        return ProbeResult(
+            ok=True, stale=True, evaluable=True,
+            evidence=(
+                f"ts {key}={ts.isoformat()} is future-dated by "
+                f"{skew.total_seconds():.0f}s (> "
+                f"{int(_FUTURE_SKEW_TOLERANCE.total_seconds())}s tolerance)"
+            ),
+        )
+    if max_age is None:
+        # Freshness cannot be judged (WP01's validator warns on the omission).
+        # Fall back to liveness-only: the pointer read and parsed, so ok.
+        return ProbeResult(
+            ok=True, stale=False, evaluable=True,
+            evidence=f"pointer readable, ts {key}={ts.isoformat()} "
+                     "(no max_age_seconds → liveness only)",
         )
 
-    # Explicit error signal wins over freshness (restic_exit_code / errors).
+    age = now - ts
+    stale = age > timedelta(seconds=max_age)
+    return ProbeResult(
+        ok=True, stale=stale, evaluable=True,
+        evidence=(
+            f"ts {key}={ts.isoformat()}, age {age.total_seconds():.0f}s "
+            f"vs max_age {max_age}s → {'stale' if stale else 'fresh'}"
+        ),
+    )
+
+
+def _ledger_freshness_result(
+    freshness_pending: tuple[FreshnessObligation, ...],
+    health_check: dict[str, Any],
+    now: datetime,
+) -> ProbeResult:
+    """Resolve every ``freshness`` obligation WP03's evaluator deferred.
+
+    Contract §"Freshness: the anchor, and other bounded keys":
+
+    * The declared **anchor** (contract rule 7: at most one per ledger) is
+      resolved specifically via :func:`_freshness_verdict` and drives the
+      component's staleness verdict (``stale=True``/``False``) — never a
+      fall-through to :data:`TIMESTAMP_KEYS` (T021; #902's general form: an
+      absent or unparseable anchor is unhealthy, full stop).
+    * A **non-anchor** ``freshness`` key (e.g. ``last_integrity_check_utc``)
+      is adjudicated against its own bound but folds ANY non-conformance
+      (unparseable, exceeded bound, future-dated) into ``unhealthy`` — there
+      is no separate "stale" bucket for it: "a stale verification makes the
+      component unhealthy while the component's freshness is still measured
+      from the backup timestamp."
+    * No declared anchor → nothing left to adjudicate here; the caller's
+      adjudicated-keys pass (:func:`_probe_freshness_with_ledger`) already
+      decided health.
+
+    Iterates ``freshness_pending`` in the order WP03 collected it (the
+    ledger's ``adjudicated`` map's declaration order).
+    """
+    anchor: FreshnessObligation | None = None
+    for obligation in freshness_pending:
+        if obligation.anchor:
+            anchor = obligation
+            continue
+
+        bound = (
+            obligation.max_age_seconds
+            if obligation.max_age_seconds is not None
+            else health_check.get("max_age_seconds")
+        )
+        ts = _parse_iso(obligation.value)
+        if ts is None:
+            return ProbeResult(
+                ok=False, stale=False, evaluable=True,
+                evidence=(
+                    f"{obligation.key}={obligation.value!r} is not a "
+                    "usable timestamp"
+                ),
+            )
+        skew = ts - now
+        if skew > _FUTURE_SKEW_TOLERANCE:
+            return ProbeResult(
+                ok=False, stale=False, evaluable=True,
+                evidence=(
+                    f"{obligation.key}={ts.isoformat()} is future-dated by "
+                    f"{skew.total_seconds():.0f}s"
+                ),
+            )
+        if bound is not None and (now - ts) > timedelta(seconds=bound):
+            return ProbeResult(
+                ok=False, stale=False, evaluable=True,
+                evidence=(
+                    f"{obligation.key}={ts.isoformat()}, age "
+                    f"{(now - ts).total_seconds():.0f}s exceeds max_age "
+                    f"{bound}s"
+                ),
+            )
+
+    if anchor is None:
+        return ProbeResult(
+            ok=True, stale=False, evaluable=True,
+            evidence="ledger adjudicated keys satisfied; "
+                     "no freshness anchor declared",
+        )
+
+    anchor_ts = _parse_iso(anchor.value)
+    if anchor_ts is None:
+        # T021: an adjudicated key ABSENT from the document is already
+        # unhealthy via WP03's evaluator, before this function ever runs. An
+        # anchor PRESENT but unparseable gets the same unhealthy verdict for
+        # the same reason, and must never fall through to another
+        # TIMESTAMP_KEYS candidate — that fall-through is #902's general
+        # form, which is the exact defect this whole WP exists to close.
+        return ProbeResult(
+            ok=False, stale=False, evaluable=True,
+            evidence=(
+                f"ledger anchor {anchor.key}={anchor.value!r} is not a "
+                "usable timestamp"
+            ),
+        )
+
+    anchor_bound = (
+        anchor.max_age_seconds
+        if anchor.max_age_seconds is not None
+        else health_check.get("max_age_seconds")
+    )
+    return _freshness_verdict(anchor.key, anchor_ts, anchor_bound, now)
+
+
+def _probe_freshness_with_ledger(
+    pointer: dict[str, Any],
+    ledger: dict[str, Any],
+    health_check: dict[str, Any],
+    now: datetime,
+) -> ProbeResult:
+    """Adjudicate ``pointer`` against a declared ``key_ledger`` (WP03's
+    evaluator), then resolve freshness for the declared anchor (T020/T021).
+
+    The evaluator's verdict is authoritative for **every key it declares**
+    (contract Obligation 1) — legacy :func:`_explicit_error` conventions
+    apply only to keys the ledger does **not** declare (neither adjudicated
+    nor diagnostic_only). Never lets the evaluator's result raise or bypass:
+    WP03's :func:`~scripts.canary.ledger.evaluate` is total (NFR-006) and
+    this function reads only :class:`~scripts.canary.ledger.LedgerResult`'s
+    own dataclass fields — no ``[...]`` indexing into predicate dicts, no
+    assumed shapes.
+    """
+    result = _ledger_evaluate(pointer, ledger, now=now)
+
+    if result.outcome == "unhealthy":
+        return ProbeResult(
+            ok=False, stale=False, evaluable=True, evidence=result.evidence,
+        )
+    if result.outcome == "unknown":
+        return _unevaluable(result.evidence)
+
+    # result.outcome == "ok": every ADJUDICATED key satisfied its predicate.
+    # Legacy field-convention checks apply only to keys the ledger declares
+    # nowhere at all (contract Obligation 1 step 3, "not per key" — a
+    # well-formed ledger's reconciliation harness (Obligation 2) already
+    # guarantees every real producer key is either adjudicated or
+    # diagnostic_only, so this is a defensive no-op for a conforming ledger,
+    # not a live carve-out).
+    adjudicated = ledger.get("adjudicated")
+    diagnostic_only = ledger.get("diagnostic_only")
+    declared_keys = (
+        (set(adjudicated) if isinstance(adjudicated, dict) else set())
+        | (set(diagnostic_only) if isinstance(diagnostic_only, dict) else set())
+    )
+    undeclared = {k: v for k, v in pointer.items() if k not in declared_keys}
+
+    declared_success = health_check.get("success_status_values")
+    success_values = (
+        frozenset(v.lower() for v in declared_success if isinstance(v, str))
+        if isinstance(declared_success, list) and declared_success
+        else None
+    )
+    err = _explicit_error(undeclared, success_values)
+    if err is not None:
+        return ProbeResult(
+            ok=False, stale=False, evaluable=True,
+            evidence=f"explicit error in pointer: {err}",
+        )
+
+    return _ledger_freshness_result(result.freshness_pending, health_check, now)
+
+
+def _probe_freshness_legacy(
+    pointer: dict[str, Any],
+    health_check: dict[str, Any],
+    now: datetime,
+) -> ProbeResult:
+    """The ledger-free freshness path — byte-for-byte the pre-WP04 behaviour
+    (T020 step 3), except that both this path and the ledger path now run
+    through the shared :func:`_freshness_verdict` tail, which adds the
+    future-skew guard (T022; deliberately applies to every freshness-probed
+    component, ledgered or not) but reproduces every prior evidence string
+    verbatim for a non-future-dated timestamp. 16 components depend on this
+    staying unchanged.
+    """
     declared = health_check.get("success_status_values")
     success_values = (
         frozenset(v.lower() for v in declared if isinstance(v, str))
@@ -458,24 +698,49 @@ def _probe_freshness(
 
     key, ts = resolved
     max_age = health_check.get("max_age_seconds")
-    if max_age is None:
-        # Freshness cannot be judged (WP01's validator warns on the omission).
-        # Fall back to liveness-only: the pointer read and parsed, so ok.
-        return ProbeResult(
-            ok=True, stale=False, evaluable=True,
-            evidence=f"pointer readable, ts {key}={ts.isoformat()} "
-                     "(no max_age_seconds → liveness only)",
+    return _freshness_verdict(key, ts, max_age, now)
+
+
+def _probe_freshness(
+    health_check: dict[str, Any],
+    now: datetime,
+    *,
+    http_get: HttpGet,
+    run_cmd: RunCmd,
+    read_state: ReadState,
+) -> ProbeResult:
+    """Freshness pointer probe (the T012 design callout; ledger-aware since
+    T020).
+
+    Reads the pointer JSON via ``read_state``. When ``health_check`` declares
+    a ``key_ledger`` (mirrors how ``success_status_values`` is already read
+    and passed down), dispatches to :func:`_probe_freshness_with_ledger` —
+    WP03's evaluator is authoritative for every key it declares, and the
+    declared freshness anchor (if any) is resolved specifically rather than
+    via :data:`TIMESTAMP_KEYS`. Otherwise resolves the authoritative
+    timestamp via :data:`TIMESTAMP_KEYS`, honors explicit error fields, and
+    judges staleness against ``max_age_seconds`` when present — unchanged
+    for the 16 components with no ledger.
+    """
+    # Pointer path resolved WP02-style: state_path first, else endpoint.
+    path = health_check.get("state_path") or health_check.get("endpoint")
+    if not path:
+        return _unevaluable("freshness pointer has no state_path/endpoint")
+
+    pointer = read_state(path)
+
+    if not isinstance(pointer, dict):
+        # A JSONL log or non-object payload — cannot interpret as a flat
+        # pointer. Honest unknown (agent-prompt-sync reads this way by design).
+        return _unevaluable(
+            f"freshness pointer is not a JSON object ({type(pointer).__name__})"
         )
 
-    age = now - ts
-    stale = age > timedelta(seconds=max_age)
-    return ProbeResult(
-        ok=True, stale=stale, evaluable=True,
-        evidence=(
-            f"ts {key}={ts.isoformat()}, age {age.total_seconds():.0f}s "
-            f"vs max_age {max_age}s → {'stale' if stale else 'fresh'}"
-        ),
-    )
+    ledger = health_check.get("key_ledger")
+    if isinstance(ledger, dict):
+        return _probe_freshness_with_ledger(pointer, ledger, health_check, now)
+
+    return _probe_freshness_legacy(pointer, health_check, now)
 
 
 def _probe_log_scan(

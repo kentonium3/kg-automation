@@ -1,0 +1,80 @@
+{
+  "entries": [
+    {
+      "created_at": "2026-08-30T03:01:01.546406Z",
+      "decision_id": "01M189SZZA92JDKH86N3CDCQRN",
+      "final_answer": "adopt-rules-on-existing-fields: declare all 10 emitted keys; adjudicate integrity_check_passed (true|null good, false unhealthy), snapshot_count (>1 on an established repo, catching a wiped-and-reinitialised repo), and add a future-dating guard to the existing snapshot_timestamp_utc freshness rule; restic_exit_code {0,3} and prune_exit_code {0} keep their current good-sets. schema_version, snapshot_id, repo_size_bytes, script_finished_at_utc and integrity_check_run are declared diagnostic_only. NO change to scripts/office2/restic-backup.sh - every rule reads a field the producer already emits, so no Tier-2 producer deploy. Adding files_processed / source_roots_present / repo_fs_free_bytes to office2 is explicitly out of scope for this mission.",
+      "input_key": "office2_adjudication_depth",
+      "mission_id": "01M189P6KMJPHQ4ZPPNR25MGR8",
+      "mission_slug": "pointer-key-ledger-01M189P6",
+      "opened_by": "cli",
+      "options": [
+        "minimum-integrity-only",
+        "adopt-rules-on-existing-fields",
+        "full-parity-add-new-fields",
+        "Other"
+      ],
+      "origin_flow": "specify",
+      "other_answer": false,
+      "question": "For office2's ledger, how many of the v0.2 adjudication rules are adopted now: only integrity_check_passed (rest diagnostic_only), also the rules office2's already-emitted fields can support (snapshot_count wipe-detection, future-dated timestamp guard), or also add the fields office2 does not yet emit (files_processed, source_roots_present, repo_fs_free_bytes) for full parity?",
+      "rationale": null,
+      "resolved_at": "2026-08-30T03:02:22.420437Z",
+      "resolved_by": null,
+      "slot_key": "specify.ledger.office2-adjudication-depth",
+      "status": "resolved",
+      "step_id": null,
+      "summary_json": null
+    },
+    {
+      "created_at": "2026-08-30T03:03:08.460133Z",
+      "decision_id": "01M189XVXC2X5785PSY8WK4H8C",
+      "final_answer": "backup-pointers-only-mechanism-generic: the contract and its enforcing test helper are built GENERICALLY so any pointer-emitting component can adopt them by declaring a ledger, but enforcement in this mission covers only the restic backup pointers - office2's now, office4's when #913 builds its producer. The other 16 pointer-emitting components in service-inventory.json get a documented adoption path plus a follow-up issue; they are explicitly out of scope here because 16 of them have no deterministic execution harness and several emit from OpenClaw agent steps, so enforcing them would mean building harnesses as the bulk of the work and would degrade the test into asserting a hand-maintained key list - the very defect the contract replaces.",
+      "input_key": "enforcement_surface",
+      "mission_id": "01M189P6KMJPHQ4ZPPNR25MGR8",
+      "mission_slug": "pointer-key-ledger-01M189P6",
+      "opened_by": "cli",
+      "options": [
+        "backup-pointers-only-mechanism-generic",
+        "all-17-pointer-components",
+        "Other"
+      ],
+      "origin_flow": "specify",
+      "other_answer": false,
+      "question": "Which producers must have a declared key ledger enforced by the test in THIS mission: only the backup pointers (office2 restic now, office4 restic via #913), or all 17 pointer-emitting components in the service inventory?",
+      "rationale": null,
+      "resolved_at": "2026-08-30T03:06:35.841112Z",
+      "resolved_by": null,
+      "slot_key": "specify.ledger.enforcement-surface",
+      "status": "resolved",
+      "step_id": null,
+      "summary_json": null
+    },
+    {
+      "created_at": "2026-08-30T03:17:21.283379Z",
+      "decision_id": "01M18AQWR3EM9SPD8KWYSFMH7W",
+      "final_answer": "inventory-health-check-block: the key ledger is declared as machine-readable data inside each component's existing health_check block in docs/design/architecture/data/service-inventory.json, with adjudicated keys carrying explicit good-sets and a diagnostic_only list. The adjudication rules currently written as English prose in health_check.expected become data. probes.py stays convention-generic and reads the declared ledger rather than gaining any component-keyed table, preserving its stated 'do NOT special-case component names' invariant and following the precedent set by success_status_values in #891. The existing blocking architecture-data CI validator is extended to cover the new structure. Consequence to carry into #913: office4's ledger becomes a component entry carrying host: office4, and the inventory has zero office4 entries today, so that placement is confirmed by #913 and is not decided here.",
+      "input_key": "ledger_home",
+      "mission_id": "01M189P6KMJPHQ4ZPPNR25MGR8",
+      "mission_slug": "pointer-key-ledger-01M189P6",
+      "opened_by": "cli",
+      "options": [
+        "inventory-health-check-block",
+        "dedicated-pointer-ledgers-json",
+        "python-declaration-module",
+        "Other"
+      ],
+      "origin_flow": "plan",
+      "other_answer": false,
+      "question": "Where does the per-producer key ledger live: as machine-readable data inside service-inventory.json's health_check block (converting the existing 'expected' prose to data), as a dedicated pointer-ledgers.json under architecture/data covering both hosts, or as a Python declaration module in scripts/canary/?",
+      "rationale": null,
+      "resolved_at": "2026-08-30T03:18:02.521487Z",
+      "resolved_by": null,
+      "slot_key": "plan.contract.ledger-home",
+      "status": "resolved",
+      "step_id": null,
+      "summary_json": null
+    }
+  ],
+  "mission_id": "01M189P6KMJPHQ4ZPPNR25MGR8",
+  "version": 1
+}

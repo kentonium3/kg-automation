@@ -1,0 +1,32 @@
+{
+  "accept_commit": "beeb980c909cb6cf92da2107161544f5a4a31491",
+  "acceptance_history": [
+    {
+      "accept_commit": "beeb980c909cb6cf92da2107161544f5a4a31491",
+      "acceptance_mode": "pr",
+      "accepted_at": "2026-08-30T06:19:37.056028+00:00",
+      "accepted_by": "claude",
+      "accepted_from_commit": "9ac758f382fc075390dbbff8a4a34239506115d9"
+    }
+  ],
+  "acceptance_mode": "pr",
+  "accepted_at": "2026-08-30T06:19:37.056028+00:00",
+  "accepted_by": "claude",
+  "accepted_from_commit": "9ac758f382fc075390dbbff8a4a34239506115d9",
+  "baseline_merge_commit": "675ea5eef419cbc2704ff4ae65cacc245d723d69",
+  "created_at": "2026-08-30T02:58:57.269166+00:00",
+  "flattened": false,
+  "friendly_name": "Backup Pointer Key Ledger",
+  "mission_id": "01M189P6KMJPHQ4ZPPNR25MGR8",
+  "mission_number": null,
+  "mission_slug": "pointer-key-ledger-01M189P6",
+  "mission_type": "software-dev",
+  "purpose_context": "The nightly backup records ten facts about each run, including the weekly integrity verdict from restic check. Six of those ten are written and then ignored by every health surface that exists, so a backup whose repository has been proven corrupt still reports healthy and nobody is told until a restore is attempted and fails. This mission replaces the habit of remembering to read each new field with a contract: every field a backup emits must be declared either as one that decides health, with an explicit definition of good, or as one kept only for diagnosis. A test reads the fields the backup actually emits and fails if any of them is undeclared. The same contract is built once and used by both machines that run backups, so the rule cannot drift apart between them.",
+  "purpose_tldr": "Make every field a backup writes about its own health actually get read, so a repository proven corrupt can never report healthy.",
+  "slug": "pointer-key-ledger-01M189P6",
+  "status_phase": "1",
+  "target_branch": "feat/934-pointer-key-ledger",
+  "topology": "single_branch",
+  "vcs": "git",
+  "vcs_locked_at": "2026-08-30T04:12:37.337312+00:00"
+}

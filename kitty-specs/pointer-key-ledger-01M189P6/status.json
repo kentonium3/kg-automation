@@ -1,0 +1,219 @@
+{
+  "event_count": 67,
+  "last_event_id": "01M18N6BQXEQCW8ZZRM5V88VPQ",
+  "materialized_at": "2026-08-30T06:20:01.149537+00:00",
+  "mission_number": "",
+  "mission_slug": "pointer-key-ledger-01M189P6",
+  "mission_type": "software-dev",
+  "summary": {
+    "approved": 0,
+    "blocked": 0,
+    "canceled": 0,
+    "claimed": 0,
+    "done": 6,
+    "for_review": 0,
+    "in_progress": 0,
+    "in_review": 0,
+    "planned": 0
+  },
+  "work_packages": {
+    "WP01": {
+      "actor": "merge",
+      "agent": "codex",
+      "agent_profile": "reviewer-renata",
+      "agent_profile_version": "1.0",
+      "force_count": 2,
+      "lane": "done",
+      "last_event_id": "01M18N654WDYZ88TF8Q7KSZ5PV",
+      "last_transition_at": "2026-08-30T06:19:54.396644+00:00",
+      "model": "__resolved_model_absent__",
+      "notes": [
+        "Ready for review. Adds last_integrity_check_utc (carried forward, set only on a passing weekly check), files_processed, source_roots_present, repo_fs_free_bytes; guards snapshot_count; bumps schema_version to 2. SOURCE_ROOTS defined once, shared by the backup invocation and the presence check. All additions fail soft to JSON null; EXIT trap unmoved. The final 14-key set was verified by EXECUTING the script under stubbed restic/mountpoint/du/df/date (never by reading the heredoc). Lint: uvx ruff check tests/office2/restic_backup/test_pointer_emission.py -> exit 0. Tests: 25/25 in tests/office2/restic_backup/. Full suite: 6295 passed, 43 skipped, 1 xfailed, 1 pre-existing unrelated failure (tests/deploy/test_tick_rebaseline.py, tracked as kentonium3/kg-automation#938) -- no new failures. Commit 7a922f02.",
+        "Cycle 2: fixed carry-forward JSON (jq validates+encodes instead of shell quoting), source_roots_present now distinguishes jq eval failure from a real false (emits null vs false), and the 14-key/valid-JSON assertion is parameterized across the happy path + 3 early-exit paths. New tests: quote-bearing and non-string prior last_integrity_check_utc values, malformed snapshot JSON and wrong-shape paths for source_roots_present. Full suite: 6304 passed, 43 skipped, 1 xfailed, 1 pre-existing failure (test_observe_called_with_pulled_range, #938, unrelated). ruff clean.",
+        "Cycle 3: removed the // [] default on .paths in the source_roots_present jq filter (line 179) so absent/JSON-null paths falls through to empty -> null instead of [] -> false; documented the decision to let index() evaluate non-string entries in a paths array rather than treat them as malformed; added 3 tests (null, absent, non-string-junk); black-box verified paths:null emits source_roots_present:null; 37/37 WP01 tests pass, full suite 6307 passed / 1 pre-existing failure (#938) / 43 skipped / 1 xfailed; ruff clean.",
+        "Review passed (codex, cycle 3/3, advisory; verdict recorded by orchestrator). All three cycle-1 findings fixed and independently re-verified. Codex black-box probed the real script across all six source_roots_present cases; orchestrator independently probed the same jq filter and matched. 37/37 scoped, full suite 6307 passed with only the known pre-existing #938 failure."
+      ],
+      "provider": "__resolved_provider_absent__",
+      "review": null,
+      "review_result": {
+        "reference": "Review passed (codex, cycle 3/3, advisory; verdict recorded by orchestrator). All three cycle-1 findings fixed and independently re-verified. Codex black-box probed the real script across all six source_roots_present cases; orchestrator independently probed the same jq filter and matched. 37/37 scoped, full suite 6307 passed with only the known pre-existing #938 failure.",
+        "reviewer": "Kent Gale",
+        "verdict": "approved"
+      },
+      "role": "reviewer",
+      "shell_pid": 575904,
+      "shell_pid_created_at": "1788065381.85",
+      "subtasks": {
+        "T001": "done",
+        "T002": "done",
+        "T003": "done",
+        "T004": "done",
+        "T005": "done",
+        "T006": "done"
+      }
+    },
+    "WP02": {
+      "actor": "merge",
+      "agent": "codex",
+      "agent_profile": "reviewer-renata",
+      "agent_profile_version": "1.0",
+      "force_count": 1,
+      "lane": "done",
+      "last_event_id": "01M18N66H7RP56V1CQSTE5F2WG",
+      "last_transition_at": "2026-08-30T06:19:55.815831+00:00",
+      "model": "__resolved_model_absent__",
+      "notes": [
+        "Ready for review. All 8 key_ledger structural rules implemented + red-first tested (tests/architecture/test_key_ledger_rules.py, 24 tests). restic-backup's 14-key ledger declared and verified against the live producer by execution. expected/note prose reduced to point at the ledger; prose-binding test rewritten to bind prose->ledger->behaviour (research.md R3: no equality vs probes.py constants). Rule 8 updated per contract e9df2666 (presence+shape only, not file existence) after I found and reported the WP02/WP05 circular-dependency deadlock the original existence-check created; Kent revised the contract and directed the fix, applied here. validate_architecture_data.py --strict: 0 findings on real tree (both before and after ledger). Full suite: 6331 passed, only the known pre-existing #933 (test_observe_called_with_pulled_range) failing. uvx ruff check on touched .py files: 0 new findings (2 pre-existing in validate_architecture_data.py, left per review guidance).",
+        "Cycle 2: fixed the single review-cycle-1 defect — hc.get('key_ledger') is None collapsed absent vs present-null into the same early return, so 'key_ledger': null validated clean. Now gated on '\"key_ledger\" not in hc' so the existing isinstance(dict) check catches null/string/list. Added 4 tests (null/string/[] -> key-ledger-shape finding; absent -> still no finding, the 16-component guard). Everything the reviewer confirmed passing in cycle 1 (34 tests, --strict 0 findings, rule 8 cases, 10+4 keys, prose-binding test) is untouched. validate_architecture_data.py --strict: 0 findings on real tree. Full suite: 6335 passed, only the known pre-existing #933 (test_observe_called_with_pulled_range). uvx ruff check: 0 new findings (2 pre-existing in validate_architecture_data.py, left per review guidance).",
+        "Review passed (codex, cycle 2/2, advisory; verdict recorded by orchestrator). Cycle-1 finding fixed: key_ledger present-as-null now yields key-ledger-shape instead of validating clean, with the absent-field guard confirmed intact (16 ledger-free components depend on it). Reviewer probed null/string/list/absent directly, ran 212 tests, and - the check that went unverified in cycle 1 - EXECUTED the producer under /dev/shm stubs and reconciled 14 emitted keys against 14 declared with no difference in either direction. Real-tree --strict: 0 findings. Validator gated on entry.get('health_check'); rule 8 presence/shape only; duplicate classification, predicate count, modifier allow-lists, anchor uniqueness and diagnostic reasons all enforced; prose-binding test strengthened and independent of probes.py constants; #902 rationales preserved."
+      ],
+      "provider": "__resolved_provider_absent__",
+      "review": null,
+      "review_result": {
+        "reference": "Review passed (codex, cycle 2/2, advisory; verdict recorded by orchestrator). Cycle-1 finding fixed: key_ledger present-as-null now yields key-ledger-shape instead of validating clean, with the absent-field guard confirmed intact (16 ledger-free components depend on it). Reviewer probed null/string/list/absent directly, ran 212 tests, and - the check that went unverified in cycle 1 - EXECUTED the producer under /dev/shm stubs and reconciled 14 emitted keys against 14 declared with no difference in either direction. Real-tree --strict: 0 findings. Validator gated on entry.get('health_check'); rule 8 presence/shape only; duplicate classification, predicate count, modifier allow-lists, anchor uniqueness and diagnostic reasons all enforced; prose-binding test strengthened and independent of probes.py constants; #902 rationales preserved.",
+        "reviewer": "Kent Gale",
+        "verdict": "approved"
+      },
+      "role": "reviewer",
+      "shell_pid": 655604,
+      "shell_pid_created_at": "1788067185.14",
+      "subtasks": {
+        "T007": "done",
+        "T008": "done",
+        "T009": "done",
+        "T010": "done",
+        "T011": "done"
+      }
+    },
+    "WP03": {
+      "actor": "merge",
+      "agent": "codex",
+      "agent_profile": "reviewer-renata",
+      "agent_profile_version": "1.0",
+      "force_count": 1,
+      "lane": "done",
+      "last_event_id": "01M18N67TYRCK2P2Y7JR65W3TW",
+      "last_transition_at": "2026-08-30T06:19:57.150057+00:00",
+      "model": "__resolved_model_absent__",
+      "notes": [
+        "Ready for review: scripts/canary/ledger.py + tests/canary/test_ledger_eval.py (56 tests). evaluate(document, ledger, now) iterates the declared adjudicated map, not the document. Type-identity membership closes bool/int collision both directions. Absence unconditional-unhealthy for every predicate form. minimum supports unmeasured_is_unknown and suppress_until_utc (FR-019, both directions tested). freshness recognised+deferred via FreshnessObligation for WP04. Never raises (outer try/except + defensive isinstance guards throughout). Full suite: 6391 passed/43 skipped/1 xfailed, only pre-existing #933 failure, no new failures. ruff check exit 0. Grep for restic/office2/office4/snapshot_/integrity_ in both files: no hits.",
+        "Cycle 2: fixed review-cycle-1 REJECT finding. Malformed suppress_until_utc (non-timestamp string, non-string int, explicit null) now falls through to the ordinary minimum verdict instead of returning unknown -- unknown is not neutral (first-seen unknown is ledgered without alerting), so a typo could otherwise silently disable a live health rule. Added 7 explicit tests (3 malformed-shapes x failing-minimum=unhealthy, 3 x passing-minimum=ok, 1 absent-key baseline); all prior passing behavior (genericity, totality, bool/int collisions, absence, unknown-distinct-from-ok, declaration-iteration, freshness deferral, diagnostic_only, unmeasured_is_unknown, valid-timestamp suppression incl. boundary) untouched and still green. 63 tests total (was 56), all passing. Full suite: 6398 passed/43 skipped/1 xfailed, only pre-existing #933 failure, no new failures. ruff check exit 0. Genericity grep clean. Commit a7524cc4.",
+        "Review passed (codex, cycle 2/2, advisory; verdict recorded by orchestrator). Cycle-1 defect fixed: a malformed or absent suppress_until_utc now declines to suppress and evaluates the predicate normally, instead of returning unknown - which mattered because a first-seen unknown does not alert, so a typo could silently disable a live health rule. Reviewer probed all suppression cases directly, confirmed membership semantics, and ran 2087 hostile-input calls with NOTHING raised (NFR-006 totality). 247 scoped tests pass. Genericity grep clean; probes.py untouched; only the two owned files changed; new hostile tests assert specific outcomes rather than mere non-raising."
+      ],
+      "provider": "__resolved_provider_absent__",
+      "review": null,
+      "review_result": {
+        "reference": "Review passed (codex, cycle 2/2, advisory; verdict recorded by orchestrator). Cycle-1 defect fixed: a malformed or absent suppress_until_utc now declines to suppress and evaluates the predicate normally, instead of returning unknown - which mattered because a first-seen unknown does not alert, so a typo could silently disable a live health rule. Reviewer probed all suppression cases directly, confirmed membership semantics, and ran 2087 hostile-input calls with NOTHING raised (NFR-006 totality). 247 scoped tests pass. Genericity grep clean; probes.py untouched; only the two owned files changed; new hostile tests assert specific outcomes rather than mere non-raising.",
+        "reviewer": "Kent Gale",
+        "verdict": "approved"
+      },
+      "role": "reviewer",
+      "shell_pid": 698125,
+      "shell_pid_created_at": "1788068406.69",
+      "subtasks": {
+        "T012": "done",
+        "T013": "done",
+        "T014": "done",
+        "T015": "done",
+        "T016": "done"
+      }
+    },
+    "WP04": {
+      "actor": "merge",
+      "agent": "codex",
+      "agent_profile": "reviewer-renata",
+      "agent_profile_version": "1.0",
+      "force_count": 0,
+      "lane": "done",
+      "last_event_id": "01M18N6945G3HM8X3WT4BJ8VD7",
+      "last_transition_at": "2026-08-30T06:19:58.469758+00:00",
+      "model": "__resolved_model_absent__",
+      "notes": [
+        "T019 proven a no-op (247/247 canary tests unchanged, zero test files touched before ledger wiring). Evaluator wired into _probe_freshness: ledger authoritative for declared keys, legacy _explicit_error only for keys the ledger declares nowhere. Anchor binding resolves the declared freshness key specifically (never TIMESTAMP_KEYS fall-through); non-anchor freshness keys fold non-conformance into unhealthy. 5-min future-skew guard (_FUTURE_SKEW_TOLERANCE) matches scripts/deploy/lib/snapshot.py's constant, shared via _freshness_verdict across both paths. T023: FR-009 scenarios parameterised ledger_free + real_ledger (loaded from service-inventory.json) in test_probes_prune.py -- verified by hand that a naive TIMESTAMP_KEYS-fallback variant fails these tests, confirming they catch the #902 regression. New tests/canary/test_probes_ledger.py covers T017/T018. make test: 6415 passed, 43 skipped, 1 xfailed, 1 pre-existing unrelated failure (#933). ruff check exit 0 on all four owned files.",
+        "APPROVED BY ORCHESTRATOR OVERRIDE of a codex REJECT. Recording the disagreement explicitly.\n\nCodex confirmed the substance: it hand-built the #902/FR-009 regression against the shipped code with restic-backup's REAL ledger loaded, and null / 'not-a-date' / numeric anchors ALL read unhealthy with no fall-through to another TIMESTAMP_KEYS candidate. Anchor binding, non-anchor bounds, the strict 300s skew boundary, naive-timestamp handling, malformed-ledger totality and outcome mapping all correct. Ledger-free path produced identical verdicts AND identical evidence vs the parent implementation. 264 canary tests pass. Scope clean.\n\nIt rejected on PROCESS only: T019's refactor and the ledger wiring landed in one commit (2e0105f0), so the no-op proof existed only in the implementer's report rather than in inspectable history.\n\nTwo reasons for the override. First, my WP04 prompt required the refactor to be done FIRST and proven a no-op; it never required a separate commit, so this is an unstated requirement. Second and decisive: I produced the missing evidence directly and more strongly. I extracted _explicit_error from 2e0105f0^ (parent) and from the shipped tree and ran a differential test over 2520 generated pointer shapes - exit codes incl. None/str/bool/float, timestamps incl. null/unparseable/numeric/dict/offset forms, prune codes, and the errors/error/status/exit_status/cycle_error conventions, plus pointers carrying NO restic_exit_code at all. Result: 0 mismatches. The refactor is provably behaviour-preserving, which is the ONLY thing the commit ordering was instrumental in establishing. A separate commit would merely have shown the suite green at that point; this shows the two implementations are functionally indistinguishable.\n\nAlso noted: the implementer independently proved its own T023 regression tests can FAIL, by temporarily patching in the naive-wrong integration (fall through to TIMESTAMP_KEYS instead of the anchor) and confirming 3 real_ledger tests went red on exactly the null/unparseable/numeric timestamp cases. A regression test nobody has watched fail is unverified; this one was verified."
+      ],
+      "provider": "__resolved_provider_absent__",
+      "review_result": {
+        "reference": "APPROVED BY ORCHESTRATOR OVERRIDE of a codex REJECT. Recording the disagreement explicitly.\n\nCodex confirmed the substance: it hand-built the #902/FR-009 regression against the shipped code with restic-backup's REAL ledger loaded, and null / 'not-a-date' / numeric anchors ALL read unhealthy with no fall-through to another TIMESTAMP_KEYS candidate. Anchor binding, non-anchor bounds, the strict 300s skew boundary, naive-timestamp handling, malformed-ledger totality and outcome mapping all correct. Ledger-free path produced identical verdicts AND identical evidence vs the parent implementation. 264 canary tests pass. Scope clean.\n\nIt rejected on PROCESS only: T019's refactor and the ledger wiring landed in one commit (2e0105f0), so the no-op proof existed only in the implementer's report rather than in inspectable history.\n\nTwo reasons for the override. First, my WP04 prompt required the refactor to be done FIRST and proven a no-op; it never required a separate commit, so this is an unstated requirement. Second and decisive: I produced the missing evidence directly and more strongly. I extracted _explicit_error from 2e0105f0^ (parent) and from the shipped tree and ran a differential test over 2520 generated pointer shapes - exit codes incl. None/str/bool/float, timestamps incl. null/unparseable/numeric/dict/offset forms, prune codes, and the errors/error/status/exit_status/cycle_error conventions, plus pointers carrying NO restic_exit_code at all. Result: 0 mismatches. The refactor is provably behaviour-preserving, which is the ONLY thing the commit ordering was instrumental in establishing. A separate commit would merely have shown the suite green at that point; this shows the two implementations are functionally indistinguishable.\n\nAlso noted: the implementer independently proved its own T023 regression tests can FAIL, by temporarily patching in the naive-wrong integration (fall through to TIMESTAMP_KEYS instead of the anchor) and confirming 3 real_ledger tests went red on exactly the null/unparseable/numeric timestamp cases. A regression test nobody has watched fail is unverified; this one was verified.",
+        "reviewer": "Kent Gale",
+        "verdict": "approved"
+      },
+      "role": "reviewer",
+      "shell_pid": 746946,
+      "shell_pid_created_at": "1788069396.22",
+      "subtasks": {
+        "T017": "done",
+        "T018": "done",
+        "T019": "done",
+        "T020": "done",
+        "T021": "done",
+        "T022": "done",
+        "T023": "done"
+      }
+    },
+    "WP05": {
+      "actor": "merge",
+      "agent": "codex",
+      "agent_profile": "reviewer-renata",
+      "agent_profile_version": "1.0",
+      "force_count": 0,
+      "lane": "done",
+      "last_event_id": "01M18N6ADAHT31FH1MGBHEC1QX",
+      "last_transition_at": "2026-08-30T06:19:59.786128+00:00",
+      "model": "__resolved_model_absent__",
+      "notes": [
+        "Ready for review. ruff exit 0. make test PY=.venv/bin/python: 6423 passed, 43 skipped, 1 xfailed, 1 pre-existing failure (#933 test_observe_called_with_pulled_range, not touched). All 4 floors enforced+tested in ledger_reconcile.py + test_ledger_reconciliation.py: (1) non-empty selection + fires-when-empty test, (2) selection==ledger-declaring set (not subset) + fixture negative, (3) restic-backup hardcoded pin (producers, not keys), (4) harness floors (process outcome/doc-absent/parse/empty-keys) each distinct. Self-sabotage before commit, all reverted: undeclared producer key -> red naming it; phantom ledger key -> red naming it; ledger deletion -> 9 tests red. Early-exit paths (mount/repo-inaccessible/backup-failure) assert evaluator verdicts (unhealthy on restic_exit_code), not reconciliation, per contract's key-set-invariant reasoning; happy path asserted healthy. Reuse test drives a fictitious tmp_path producer through BOTH assert_reconciles and evaluate() with zero changes to either, plus undeclared-key and bad-value failure modes. No component/host/producer-specific names in ledger_reconcile.py.",
+        "Review passed (codex, cycle 1, advisory; verdict recorded by orchestrator). Reviewer INDEPENDENTLY reproduced all three sabotage cases using its own key names (codex_undeclared_key, codex_phantom_declaration) rather than trusting the implementer's report: undeclared emitted key fails naming the key; phantom ledger declaration fails naming the stale entry; deleted ledger fails via the hardcoded producer pin. All four floors enforced (non-empty selection with a test proving the assertion fires, selection EQUALS the ledger-declaring set, producer pin with its producers-vs-keys rationale, and four distinct harness failure modes). Harness existence + binding - moved here from validator rule 8 - enforced. Early-exit paths assert evaluator VERDICTS rather than pointless key-set reconciliation; happy path still reads healthy. Both reuse paths covered by a real fictitious producer script through assert_reconciles AND evaluate(). Genericity grep clean. 309 scoped tests."
+      ],
+      "provider": "__resolved_provider_absent__",
+      "review_result": {
+        "reference": "Review passed (codex, cycle 1, advisory; verdict recorded by orchestrator). Reviewer INDEPENDENTLY reproduced all three sabotage cases using its own key names (codex_undeclared_key, codex_phantom_declaration) rather than trusting the implementer's report: undeclared emitted key fails naming the key; phantom ledger declaration fails naming the stale entry; deleted ledger fails via the hardcoded producer pin. All four floors enforced (non-empty selection with a test proving the assertion fires, selection EQUALS the ledger-declaring set, producer pin with its producers-vs-keys rationale, and four distinct harness failure modes). Harness existence + binding - moved here from validator rule 8 - enforced. Early-exit paths assert evaluator VERDICTS rather than pointless key-set reconciliation; happy path still reads healthy. Both reuse paths covered by a real fictitious producer script through assert_reconciles AND evaluate(). Genericity grep clean. 309 scoped tests.",
+        "reviewer": "Kent Gale",
+        "verdict": "approved"
+      },
+      "role": "reviewer",
+      "shell_pid": 740692,
+      "shell_pid_created_at": "1788069305.94",
+      "subtasks": {
+        "T024": "done",
+        "T025": "done",
+        "T026": "done",
+        "T027": "done",
+        "T028": "done",
+        "T029": "done"
+      }
+    },
+    "WP06": {
+      "actor": "merge",
+      "agent": "codex",
+      "agent_profile": "reviewer-renata",
+      "agent_profile_version": "1.0",
+      "force_count": 1,
+      "lane": "done",
+      "last_event_id": "01M18N6BQXEQCW8ZZRM5V88VPQ",
+      "last_transition_at": "2026-08-30T06:20:01.149537+00:00",
+      "model": "__resolved_model_absent__",
+      "notes": [
+        "Docs + drift caveat + operator handoff done: restic-backup-ops.md documents the 14-key schema v2, the key ledger (adjudicated vs diagnostic_only, the four new keys incl. last_integrity_check_utc vs integrity_check_run), the prominent repo-copy-vs-deployed-producer drift caveat with check command, and a what-this-does-not-cover note (R-001, #937); new Operator handoff section with the install command, why-manual facts, Tier-2 pre-flight, sequencing-consequence warning, and post-install verification. INDEX.md gained the previously-missing restic-backup-ops.md entry (found via signal-to-doc-map.json lookup, not guessed). validate_docs.py + full test suite pass (only the pre-existing #933 failure). Rebaseline verified not required (42 files, none audited). Note: service-added-or-modified class in signal-to-doc-map.json also names service-inventory.md/service-dependencies.view.md/felix-capability-roadmap.md, which are out of WP06's owned_files and untouched by any WP so far -- flagged for review, not edited.",
+        "Cycle-1 fix: felix-capability-roadmap.md is now WP06-owned (extended by reviewer). Amended the #902/#903/#906 row to state it closed three instances of the unread-pointer-field shape, not the class -- it left integrity_check_passed unread (a proven-corrupt repository read healthy everywhere), which is exactly why #934 exists. Added a #934 row, status In progress (mission not yet merged -- did not claim Shipped), describing the ledger mechanism, the four new schema-v2 keys, three of the four office4 v0.2 catastrophic conditions closed, and the stated limits (R-001 unwatched alerter, #937's 16 unledgered components, manual install unchanged from the #902 row). Everything the cycle-1 review confirmed passing (runbook guarantee framing, drift caveat, schema table, operator handoff, INDEX.md fix, deferral of service-inventory.md/service-dependencies.view.md) is untouched. validate_docs.py OK; make test 6423 passed / 1 pre-existing #933 failure only; rebaseline re-verified not required (43 files, none audited).",
+        "Review passed (codex, cycle 2/2, advisory; verdict recorded by orchestrator). Cycle-1 gap closed: the roadmap's #902/#903/#906 row no longer reads as closing the defect class - it now names the unswept integrity_check_passed and the proven-corrupt-reads-healthy consequence - and a #934 row describes the bidirectional ledger, the four schema-v2 keys, and the BOUNDED guarantee (silent inertness impossible; reviewed diagnostic_only remains a legitimate escape hatch). Arithmetic verified consistent: corrupting repository (incl. verification silently ceasing), empty/partial capture, and disk pressure closed; the dead alerter remains open. Limits name R-001 and #937; the manual install is referenced as an existing decision, not re-presented as new. Status '/ In progress' judged honest pre-merge by both reviewer and orchestrator independently - flip to Shipped at merge close-out, not before. Runbook, INDEX.md, DEVELOPER_PORTAL.md and the architecture-doc deferrals did not regress. validate_docs: OK."
+      ],
+      "provider": "__resolved_provider_absent__",
+      "review": null,
+      "review_result": {
+        "reference": "Review passed (codex, cycle 2/2, advisory; verdict recorded by orchestrator). Cycle-1 gap closed: the roadmap's #902/#903/#906 row no longer reads as closing the defect class - it now names the unswept integrity_check_passed and the proven-corrupt-reads-healthy consequence - and a #934 row describes the bidirectional ledger, the four schema-v2 keys, and the BOUNDED guarantee (silent inertness impossible; reviewed diagnostic_only remains a legitimate escape hatch). Arithmetic verified consistent: corrupting repository (incl. verification silently ceasing), empty/partial capture, and disk pressure closed; the dead alerter remains open. Limits name R-001 and #937; the manual install is referenced as an existing decision, not re-presented as new. Status '/ In progress' judged honest pre-merge by both reviewer and orchestrator independently - flip to Shipped at merge close-out, not before. Runbook, INDEX.md, DEVELOPER_PORTAL.md and the architecture-doc deferrals did not regress. validate_docs: OK.",
+        "reviewer": "Kent Gale",
+        "verdict": "approved"
+      },
+      "role": "reviewer",
+      "shell_pid": 791071,
+      "shell_pid_created_at": "1788070675.64",
+      "subtasks": {
+        "T030": "done",
+        "T031": "done",
+        "T032": "done",
+        "T033": "done"
+      }
+    }
+  }
+}
