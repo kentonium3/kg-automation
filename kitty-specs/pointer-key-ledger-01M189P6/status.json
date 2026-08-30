@@ -1,31 +1,31 @@
 {
-  "event_count": 20,
-  "last_event_id": "01M18G11VH03VGG20A736DZX45",
-  "materialized_at": "2026-08-30T04:49:44.305446+00:00",
+  "event_count": 21,
+  "last_event_id": "01M18GA7S3Q04PXKWGJHRFVVB8",
+  "materialized_at": "2026-08-30T04:54:45.283897+00:00",
   "mission_number": "",
   "mission_slug": "pointer-key-ledger-01M189P6",
   "mission_type": "software-dev",
   "summary": {
-    "approved": 0,
+    "approved": 1,
     "blocked": 0,
     "canceled": 0,
     "claimed": 0,
     "done": 0,
     "for_review": 0,
     "in_progress": 0,
-    "in_review": 1,
+    "in_review": 0,
     "planned": 5
   },
   "work_packages": {
     "WP01": {
-      "actor": "codex",
+      "actor": "user",
       "agent": "codex",
       "agent_profile": "reviewer-renata",
       "agent_profile_version": "1.0",
       "force_count": 2,
-      "lane": "in_review",
-      "last_event_id": "01M18G11VH03VGG20A736DZX45",
-      "last_transition_at": "2026-08-30T04:49:44.305446+00:00",
+      "lane": "approved",
+      "last_event_id": "01M18GA7S3Q04PXKWGJHRFVVB8",
+      "last_transition_at": "2026-08-30T04:54:45.283897+00:00",
       "model": "__resolved_model_absent__",
       "notes": [
         "Ready for review. Adds last_integrity_check_utc (carried forward, set only on a passing weekly check), files_processed, source_roots_present, repo_fs_free_bytes; guards snapshot_count; bumps schema_version to 2. SOURCE_ROOTS defined once, shared by the backup invocation and the presence check. All additions fail soft to JSON null; EXIT trap unmoved. The final 14-key set was verified by EXECUTING the script under stubbed restic/mountpoint/du/df/date (never by reading the heredoc). Lint: uvx ruff check tests/office2/restic_backup/test_pointer_emission.py -> exit 0. Tests: 25/25 in tests/office2/restic_backup/. Full suite: 6295 passed, 43 skipped, 1 xfailed, 1 pre-existing unrelated failure (tests/deploy/test_tick_rebaseline.py, tracked as kentonium3/kg-automation#938) -- no new failures. Commit 7a922f02.",
@@ -35,10 +35,9 @@
       "provider": "__resolved_provider_absent__",
       "review": null,
       "review_result": {
-        "feedback_path": "/home/kgale/repos/kg-automation/kitty-specs/pointer-key-ledger-01M189P6/tasks/WP01-producer-new-keys/review-cycle-2.md",
-        "reference": "review-cycle://pointer-key-ledger-01M189P6/WP01-producer-new-keys/review-cycle-2.md",
-        "reviewer": "user",
-        "verdict": "changes_requested"
+        "reference": "Review passed (codex, cycle 3/3, advisory; verdict recorded by orchestrator). All three cycle-1 findings fixed and independently re-verified. Codex black-box probed the real script across all six source_roots_present cases; orchestrator independently probed the same jq filter and matched. 37/37 scoped, full suite 6307 passed with only the known pre-existing #938 failure.",
+        "reviewer": "Kent Gale",
+        "verdict": "approved"
       },
       "role": "reviewer",
       "shell_pid": 575904,
