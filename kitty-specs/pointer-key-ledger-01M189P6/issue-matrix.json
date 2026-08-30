@@ -12,6 +12,18 @@
       "verdict": "verified-already-fixed",
       "wp": null
     },
+    "#746": {
+      "evidence_ref": "Cited as PRECEDENT, not fixed here. Referenced in research R8 as the established precedent for a repo-side change reaching office2 via the existing checkout pull with no deploys/queued manifest. Closed independently.",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": null,
+      "title": null,
+      "verdict": "verified-already-fixed",
+      "wp": null
+    },
     "#913": {
       "evidence_ref": "Out of scope by spec C-007. #913 is a downstream CONSUMER of this mission's contract, not something it fixes: office4's producer does not exist yet, so a ledger declared for it now could not be verified by the enforcing test, and an unverifiable declaration is the defect class this mission retires. #913 authors office4's ledger against the shared mechanism after this merges.",
       "fr": null,
