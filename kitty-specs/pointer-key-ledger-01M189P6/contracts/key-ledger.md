@@ -183,8 +183,20 @@ component fresh forever.
    `freshness` predicate with their own `max_age_seconds`; only the *anchor* must be unique, because
    only the anchor answers "is this component stale?". v1 forbade more than one `freshness` key
    outright, which contradicted its own ledger — see *Freshness: the anchor, and other bounded keys*.
-8. **`reconciliation_harness` is required when `key_ledger` is present**, and the path must exist on
-   disk. This is what makes Obligation 2 a gate rather than a wish.
+8. **`reconciliation_harness` is required when `key_ledger` is present** and must be a non-empty,
+   repo-relative path string. The validator checks **presence and shape only** — it does **not**
+   check that the file exists.
+
+   > **Why not existence?** Revised 2026-08-30 after WP02 hit the deadlock this rule created. The
+   > validator runs whole-tree in the pre-commit hook on *every* commit, so an existence check makes
+   > every commit fail for the entire window between the ledger landing and its harness landing — and
+   > since the harness must reconcile against a declared ledger, that window cannot be closed by
+   > reordering. It is circular by construction.
+   >
+   > It is also the wrong layer. A file existing proves nothing about whether it reconciles anything.
+   > The binding that matters — *this ledger was reconciled against its producer's real output* — is
+   > asserted by Obligation 2's test, which cannot pass without genuinely doing it. Structure is the
+   > validator's job; truth is the test's. Rule 8 originally conflated them.
 
 These constrain only the new structure; every existing ledger-free component stays valid. **Implementation
 note**: the validator walks *every nested dict*, so per-key predicate objects will each be yielded as an
@@ -222,6 +234,10 @@ For every component declaring a ledger:
 4. **Fail if the set of components being reconciled is empty**, or does not equal the set of
    ledger-declaring components in the inventory. An empty selection is a green suite with zero
    assertions executed.
+4b. **Fail if a declared `reconciliation_harness` path does not exist**, and assert that the harness
+   named by a component's ledger is the one that actually produced the emitted document reconciled
+   against it. This is the existence check moved down from structural rule 8 — enforced here, where a
+   missing or wrong harness fails loudly instead of blocking every unrelated commit.
 5. **Fail if a ledger is deleted.** One hardcoded pin asserts `restic-backup` declares a ledger. That is
    a hand-maintained list — of *producers* (2, changing yearly), not of *keys* (14, changing per
    commit). The asymmetry is deliberate and is why it is acceptable here and refused there.

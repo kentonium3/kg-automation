@@ -94,7 +94,13 @@ exists.
    key; malformed `good_values` (empty array) and malformed `minimum` (non-numeric); a ledger on a
    non-pointer `health_check` method; **two keys declaring `freshness` with `anchor: true`**; a
    **modifier field outside its predicate's allow-list**; and a `key_ledger` whose
-   `reconciliation_harness` is missing or names a path that does not exist.
+   `reconciliation_harness` is missing, empty, or not a string.
+
+   **Rule 8 checks presence and SHAPE ONLY — not file existence.** (Revised 2026-08-30: an
+   existence check deadlocks, because the harness file is WP05's and WP05 depends on WP02, and the
+   validator runs whole-tree in the pre-commit hook so it would fail *every* commit in the window.
+   The existence-and-binding check moved to WP05's reconciliation, which is the layer that can
+   actually prove the harness reconciles something.)
    
    Note the two rules that changed after `/spec-kitty.analyze` found the contract contradicting
    itself: rule 4 constrains **predicate** fields only and explicitly permits allow-listed
@@ -115,8 +121,8 @@ exists.
    functions over iterated objects, with findings accumulated. Match that shape exactly; do not
    introduce a JSON-Schema dependency.
 2. Add one check function covering the contract's eight rules, gated on `entry.get("health_check")`.
-3. For the `reconciliation_harness` existence check, resolve the path **relative to the repo root**,
-   not the current working directory — the validator runs from CI, from the hook, and by hand.
+3. Do **not** implement a file-existence check for `reconciliation_harness` — presence and shape
+   only. WP05 owns the existence-and-binding assertion.
 4. Findings must name the component and the offending key. A finding that says only "invalid ledger"
    is not actionable.
 
@@ -200,7 +206,7 @@ inventories inline rather than mutating the real one.
 - [ ] All eight structural rules enforced, each with a failing-first test.
 - [ ] A ledger-free component still validates clean (the over-broad-rule guard).
 - [ ] `restic-backup` declares all fourteen keys with the contract's predicates and reasons.
-- [ ] `reconciliation_harness` is present and its existence is validated.
+- [ ] `reconciliation_harness` is present and well-formed (shape only; existence is WP05's).
 - [ ] `expected` and `note` point at the ledger and no longer restate or stale-enumerate it.
 - [ ] The prose-binding test is *stronger* than before, not removed.
 - [ ] `validate_architecture_data.py --strict` → 0 findings; `make test` ≥ 6324 passing.
@@ -217,3 +223,7 @@ inventories inline rather than mutating the real one.
    reject — those are the two failure modes named above.
 5. Verify the fourteen declared keys match what WP01 actually emits. Do not take the count on trust;
    run the producer.
+
+## Activity Log
+
+- 2026-08-30T05:07:13Z – claude – shell_pid=587648 – Blocked: T009's reconciliation_harness (contract rule 8, tests/office2/restic_backup/test_ledger_reconciliation.py) is required to EXIST on disk for --strict to report 0 findings, but that file is exclusively WP05's create_intent/owned_files, and WP05 depends on WP02 (cannot run first). Confirmed empirically: --strict on the real tree now reports 1 finding (key-ledger-harness-not-found), which also breaks a pre-existing, out-of-WP02-scope test (tests/tooling/test_validate_architecture_data_max_age.py::test_strict_gate_on_real_tree_does_not_block) whose own docstring says it mirrors the repo's pre-commit hook. So the pre-commit hook itself would reject a commit of WP02's work as authored. T007/T008 (rules+tests) and T009-T011 (ledger authorship + prose reduction + rewritten prose-binding test) are complete, correct per contract, and independently verified, but NOT committed pending a decision: (a) authorize a minimal placeholder reconciliation-harness stub in WP02 (outside its stated file scope) for WP05 to expand, (b) resequence so WP05's harness file (or a stub) lands before/with WP02, or (c) some other resolution. STOPPING per explicit instruction rather than silently working around (e.g. weakening rule 8, or creating the WP05-owned file unprompted).

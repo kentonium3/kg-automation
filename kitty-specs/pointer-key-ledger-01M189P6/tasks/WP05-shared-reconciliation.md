@@ -105,6 +105,13 @@ nothing, and the certification would be trusted. The specific weak versions to r
    reasonably ask.
 4. Assert that removing the ledger fails the suite (simulate with a fixture inventory, not by editing
    the real one).
+5. **Assert every declared `reconciliation_harness` path exists on disk**, and that the harness named
+   by a component's ledger is the one that actually produced the document being reconciled. This
+   moved here from the validator's structural rule 8 (revised 2026-08-30): an existence check in the
+   validator deadlocked, because it runs whole-tree in the pre-commit hook and would fail every
+   commit between a ledger landing and its harness landing — a window that cannot be reordered away,
+   since a harness must reconcile against a ledger that already exists. Here it fails loudly and
+   proves something the validator never could: not that a file exists, but that it reconciled.
 
 ### T026 — Tests: the harness must prove it produced something
 
