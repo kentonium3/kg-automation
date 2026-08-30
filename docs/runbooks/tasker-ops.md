@@ -346,4 +346,4 @@ and JSONL records. The boundary is the content's physical absence, not an in-rep
 - **Enrichment module**: `scripts/enrichment/` (record_completion, reconcile_completions, derive_state, schema)
 - **Pre-flight checklist**: [`governance/pre-flight-checklist.md`](<./governance/pre-flight-checklist.md>)
 - **Task-intelligence skill ops**: [`task-intelligence-ops.md`](<./task-intelligence-ops.md>)
-- **ADR**: [`docs/design/architecture/decisions/0002-state-log-migration.md`](../design/architecture/decisions/0002-state-log-migration.md)
+- **ADR**: [`ADR-0002 — Felix ↔ Vikunja task model`](<../design/architecture/adr/0002-felix-vikunja-task-model.md>) — the JSONL state model this runbook operates; the migration itself is recorded in [#310](https://github.com/kentonium3/kg-automation/issues/310)

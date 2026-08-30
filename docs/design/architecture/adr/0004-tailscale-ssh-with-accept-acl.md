@@ -142,7 +142,7 @@ re-auth that `check` mode requires — see "Tradeoffs" below.
 ## Consequences
 
 - Operator-facing setup for phone Termius is documented in
-  [`docs/runbooks/phone-termius-setup.md`](../../runbooks/phone-termius-setup.md)
+  [`docs/runbooks/phone-termius-setup.md`](../../../runbooks/phone-termius-setup.md)
 - Network topology data (`data/network-topology.json`) gains an explicit
   `tailscale_ssh` block recording the enablement + ACL summary
 - Security posture (`security-posture.md`) gains a note that Tailscale SSH
@@ -195,7 +195,7 @@ re-auth that `check` mode requires — see "Tradeoffs" below.
 
 ## References
 
-- [`docs/runbooks/phone-termius-setup.md`](../../runbooks/phone-termius-setup.md) — operator runbook
+- [`docs/runbooks/phone-termius-setup.md`](../../../runbooks/phone-termius-setup.md) — operator runbook
 - [`docs/design/architecture/data/network-topology.json`](<../data/network-topology.json>) — machine-readable network state
 - [`docs/design/architecture/security-posture.md`](<../security-posture.md>) — broader security model
 - kentonium3/kg-automation#575 — originating docs-debt issue

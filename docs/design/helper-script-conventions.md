@@ -425,7 +425,7 @@ When existing prompt-heavy logic gets refactored to a helper, the change must be
 - [Felix Constitution Directive 6](<../constitution/FELIX-CONSTITUTION.md>) — The principle this document operationalizes
 - [#281](https://github.com/kentonium3/kg-automation/issues/281) — Parent epic
 - [`felix-d6-survey.md`](<./architecture/felix-d6-survey.md>) — Phase 1 survey informing the conventions
-- [`feedback_scripts_vs_llm.md`](../../../.claude/projects/-Users-kentgale-repos-kg-automation/memory/feedback_scripts_vs_llm.md) — Memory note grounding the principle
+- `feedback_scripts_vs_llm` — agent-memory note grounding the principle (agent memory is per-machine and outside the repo, so it is cited rather than linked)
 - Reference helpers cited throughout:
   - `scripts/inbox/prescan.py`, `handle_parse_failures.py`, `handle_marker_cleanup.py`, `inject_parse_error_marker.py`
   - `scripts/doc_audit/helpers/handle_audit_routing.py`, `scripts/doc_audit/helpers/handle_drift_events.py`
