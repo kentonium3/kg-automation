@@ -47,6 +47,15 @@ paths by construction — reconciliation itself is driven once (scenario 1);
 scenarios 2 and 3 exercise ``scripts.canary.ledger.evaluate`` over their
 emitted documents, which is where their *values* (not their key sets) are
 adjudicated.
+
+Two further scenarios (review cycle 2) drive a REAL — not monkeypatched —
+unwritable ``--state-file`` directory (:func:`_make_blocked_state_path`, a
+parent path that is itself a regular file, so ``os.makedirs`` raises for
+real) through both the process-down and the normal exit path, proving
+``save_state`` failing there no longer (a) skips the pointer write, (b)
+skips the heartbeat's real work, or (c) changes the documented exit code —
+the exact hole a fixture that always supplies a writable state directory
+cannot surface on its own.
 """
 
 from __future__ import annotations
@@ -221,6 +230,81 @@ def test_sync_process_down_reads_unhealthy(env):
     result = evaluate(document, REAL_LEDGERS["obsidian-sync-heartbeat"], now=NOW)
     assert result.outcome == "unhealthy"
     assert "sync_process_running" in result.evidence
+
+
+def _make_blocked_state_path(tmp_path: Path) -> Path:
+    """A state-file path whose PARENT is a regular file, not a directory.
+
+    ``os.makedirs(os.path.dirname(state_file), exist_ok=True)`` then raises
+    ``FileExistsError`` (an ``OSError`` subclass) -- a REAL failure, not a
+    monkeypatched one, and one that (unlike ``chmod 0o500``) reproduces
+    reliably even when the test runs as root, where permission bits are
+    bypassed. Exercises the same failure class an unwritable or disk-full
+    directory would raise from the identical call site.
+    """
+    blocked_parent = tmp_path / "blocked-state"
+    blocked_parent.write_text("not a directory")
+    return blocked_parent / "heartbeat-state.json"
+
+
+def test_unwritable_state_dir_process_down_still_writes_pointer_and_exits_2(env, tmp_path):
+    """#892/#894 review cycle 2 finding: with the state directory unwritable,
+    the sync-process-down path previously raised straight out of
+    ``save_state``, skipped the pointer write entirely, and exited 1 instead
+    of the documented 2 -- leaving the PREVIOUS pointer sitting there fresh
+    and healthy until it aged out. ``env``'s own fixture always supplies a
+    writable state directory (that's why this didn't surface originally);
+    this test breaks it for real (:func:`_make_blocked_state_path`), leaving
+    the pointer directory writable so success there is not a tautology."""
+    base_env, paths = env
+    custom_paths = dict(paths)
+    custom_paths["state_file"] = _make_blocked_state_path(tmp_path)
+    custom_paths["pointer_file"] = tmp_path / "ok-state" / "last-tick.json"
+
+    proc, text = run((base_env, custom_paths), running=False)
+
+    # (c) the documented exit code survives the instrumentation failure.
+    assert proc.returncode == 2, proc.stderr
+    # Sanity: the failure was actually hit, not dodged by some other path.
+    assert "Failed to save state" in proc.stderr, proc.stderr
+    # (a) the heartbeat's real work on this path -- alerting -- still ran.
+    assert "Alert sent via WhatsApp" in proc.stderr, proc.stderr
+    # (b) the pointer write was still attempted, and succeeded (only the
+    # state-file path is broken; the pointer path is fine).
+    assert text is not None, "pointer was not written despite the fix"
+    document = json.loads(text)
+    assert document["sync_process_running"] is False
+    result = evaluate(document, REAL_LEDGERS["obsidian-sync-heartbeat"], now=NOW)
+    assert result.outcome == "unhealthy"
+    assert "sync_process_running" in result.evidence
+
+
+def test_unwritable_state_dir_normal_path_still_writes_pointer_and_exits_0(env, tmp_path):
+    """Same finding, the normal (non early-return) exit -- the ordering the
+    review called out as also able to crash a run *after* its vault write
+    had already succeeded, reporting failure for a run whose real work was
+    fine. A state-save failure alone must not change the exit code."""
+    base_env, paths = env
+    custom_paths = dict(paths)
+    custom_paths["state_file"] = _make_blocked_state_path(tmp_path)
+    custom_paths["pointer_file"] = tmp_path / "ok-state" / "last-tick.json"
+
+    proc, text = run((base_env, custom_paths), running=True)
+
+    # (c) a state-persistence failure alone must not turn a good run bad.
+    assert proc.returncode == 0, proc.stderr
+    # Sanity: the failure was actually hit, not dodged by some other path.
+    assert "Failed to save state" in proc.stderr, proc.stderr
+    # (a) the heartbeat's actual work -- the vault write -- still completed.
+    assert "Wrote heartbeat:" in proc.stderr, proc.stderr
+    heartbeat_path = custom_paths["vault"] / "00-System" / "sync-heartbeat.md"
+    assert heartbeat_path.exists(), "vault heartbeat write did not complete"
+    # (b) the pointer write was still attempted, and succeeded.
+    assert text is not None, "pointer was not written despite the fix"
+    document = json.loads(text)
+    assert document["sync_process_running"] is True
+    result = evaluate(document, REAL_LEDGERS["obsidian-sync-heartbeat"], now=NOW)
+    assert result.outcome == "ok", result.evidence
 
 
 def test_propagation_failure_crossing_threshold_reads_unhealthy(env):

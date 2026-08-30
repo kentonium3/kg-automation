@@ -208,6 +208,54 @@ def write_pointer(
         logger.error("Failed to write tick pointer %s: %s", pointer_file, exc)
 
 
+def _persist_tick(
+    *,
+    state_file: str,
+    state: dict,
+    pointer_file: str,
+    sync_process_running: bool,
+    consecutive_failures: int,
+    max_failures: int,
+    heartbeat_age_minutes: float | None,
+    vault_path: str,
+) -> None:
+    """Persist the failure-counter state, then the asserted-state pointer.
+
+    Two INDEPENDENT fail-soft boundaries (#892/#894 review cycle 2 finding).
+    ``save_state`` is NOT fail-soft on its own (an unwritable/uncreatable
+    state directory raises straight out of ``os.makedirs``/``open``) — with
+    a bare sequential call, that raise skipped ``write_pointer`` entirely and
+    propagated out of ``main()``, turning the documented sync-process-down
+    exit(2) into an uncaught-exception exit(1) with NO pointer written. With
+    no pointer written, the *previous* pointer sits there reading fresh and
+    healthy until it ages out — exactly the stale-pointer window this whole
+    change exists to close. The same ordering could also crash a normal run
+    *after* its vault write had already succeeded, reporting failure for a
+    run whose real work was fine.
+
+    So: catch broadly (not just ``OSError``) around ``save_state`` — the
+    counter is disposable (it resets once on the #894 cutover already; a
+    dropped increment here is the same class of loss, not a new one) and
+    losing it must never cost the pointer write or the caller's documented
+    exit code — and write the pointer from ``finally``, so it is attempted
+    whether or not ``save_state`` raised, and whatever it raised.
+    """
+    try:
+        save_state(state_file, state)
+    except Exception as exc:  # noqa: BLE001 — deliberately broad, see docstring
+        logger.error("Failed to save state %s: %s", state_file, exc)
+    finally:
+        write_pointer(
+            pointer_file,
+            sync_process_running=sync_process_running,
+            propagation_ok=consecutive_failures < max_failures,
+            consecutive_failures=consecutive_failures,
+            max_failures=max_failures,
+            heartbeat_age_minutes=heartbeat_age_minutes,
+            vault_path=vault_path,
+        )
+
+
 def send_alert(message: str, dry_run: bool = False) -> bool:
     """Send WhatsApp alert via openclaw agent --deliver."""
     if dry_run:
@@ -270,11 +318,11 @@ def main():
         state["consecutive_failures"] = state.get("consecutive_failures", 0) + 1
         state["last_check"] = _utc_now_iso()
         if not args.dry_run:
-            save_state(args.state_file, state)
-            write_pointer(
-                args.pointer_file,
+            _persist_tick(
+                state_file=args.state_file,
+                state=state,
+                pointer_file=args.pointer_file,
                 sync_process_running=False,
-                propagation_ok=state["consecutive_failures"] < args.max_failures,
                 consecutive_failures=state["consecutive_failures"],
                 max_failures=args.max_failures,
                 heartbeat_age_minutes=None,
@@ -346,11 +394,11 @@ def main():
     state["last_written"] = new_ts
     state["last_check"] = now.strftime("%Y-%m-%dT%H:%M:%SZ")
     if not args.dry_run:
-        save_state(args.state_file, state)
-        write_pointer(
-            args.pointer_file,
+        _persist_tick(
+            state_file=args.state_file,
+            state=state,
+            pointer_file=args.pointer_file,
             sync_process_running=True,
-            propagation_ok=state.get("consecutive_failures", 0) < args.max_failures,
             consecutive_failures=state.get("consecutive_failures", 0),
             max_failures=args.max_failures,
             heartbeat_age_minutes=heartbeat_age_minutes,
