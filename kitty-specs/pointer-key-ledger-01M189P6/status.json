@@ -128,6 +128,9 @@
       "last_event_id": "01M18KT1J1QMCWGA40QJEETG36",
       "last_transition_at": "2026-08-30T05:55:48.930019+00:00",
       "model": "__resolved_model_absent__",
+      "notes": [
+        "T019 proven a no-op (247/247 canary tests unchanged, zero test files touched before ledger wiring). Evaluator wired into _probe_freshness: ledger authoritative for declared keys, legacy _explicit_error only for keys the ledger declares nowhere. Anchor binding resolves the declared freshness key specifically (never TIMESTAMP_KEYS fall-through); non-anchor freshness keys fold non-conformance into unhealthy. 5-min future-skew guard (_FUTURE_SKEW_TOLERANCE) matches scripts/deploy/lib/snapshot.py's constant, shared via _freshness_verdict across both paths. T023: FR-009 scenarios parameterised ledger_free + real_ledger (loaded from service-inventory.json) in test_probes_prune.py -- verified by hand that a naive TIMESTAMP_KEYS-fallback variant fails these tests, confirming they catch the #902 regression. New tests/canary/test_probes_ledger.py covers T017/T018. make test: 6415 passed, 43 skipped, 1 xfailed, 1 pre-existing unrelated failure (#933). ruff check exit 0 on all four owned files."
+      ],
       "provider": "__resolved_provider_absent__",
       "role": "implementer",
       "shell_pid": 701709,
