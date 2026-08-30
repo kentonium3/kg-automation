@@ -1,0 +1,134 @@
+{
+  "version": 1,
+  "mission_slug": "pointer-key-ledger-01M189P6",
+  "mission_id": "01M189P6KMJPHQ4ZPPNR25MGR8",
+  "mission_branch": "kitty/mission-pointer-key-ledger-01M189P6",
+  "target_branch": "feat/934-pointer-key-ledger",
+  "lanes": [
+    {
+      "lane_id": "lane-a",
+      "wp_ids": [
+        "WP01"
+      ],
+      "write_scope": [
+        "scripts/office2/restic-backup.sh",
+        "tests/office2/restic_backup/test_pointer_emission.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "legacy-cleanup",
+        "workspace"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    },
+    {
+      "lane_id": "lane-b",
+      "wp_ids": [
+        "WP02"
+      ],
+      "write_scope": [
+        "docs/design/architecture/data/service-inventory.json",
+        "tests/architecture/test_key_ledger_rules.py",
+        "tests/canary/test_inventory_health_checks.py",
+        "tooling/scripts/validate_architecture_data.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "legacy-cleanup",
+        "workspace"
+      ],
+      "depends_on_lanes": [
+        "lane-a"
+      ],
+      "parallel_group": 1
+    },
+    {
+      "lane_id": "lane-c",
+      "wp_ids": [
+        "WP03"
+      ],
+      "write_scope": [
+        "scripts/canary/ledger.py",
+        "tests/canary/test_ledger_eval.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "artifact-rendering",
+        "workspace"
+      ],
+      "depends_on_lanes": [
+        "lane-b"
+      ],
+      "parallel_group": 2
+    },
+    {
+      "lane_id": "lane-d",
+      "wp_ids": [
+        "WP04"
+      ],
+      "write_scope": [
+        "scripts/canary/probes.py",
+        "tests/canary/test_probes.py",
+        "tests/canary/test_probes_ledger.py",
+        "tests/canary/test_probes_prune.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "legacy-cleanup",
+        "workspace"
+      ],
+      "depends_on_lanes": [
+        "lane-c"
+      ],
+      "parallel_group": 3
+    },
+    {
+      "lane_id": "lane-e",
+      "wp_ids": [
+        "WP05"
+      ],
+      "write_scope": [
+        "tests/canary/ledger_reconcile.py",
+        "tests/canary/test_ledger_reuse.py",
+        "tests/office2/restic_backup/test_ledger_reconciliation.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "legacy-cleanup",
+        "workspace"
+      ],
+      "depends_on_lanes": [
+        "lane-b",
+        "lane-c"
+      ],
+      "parallel_group": 3
+    },
+    {
+      "lane_id": "lane-f",
+      "wp_ids": [
+        "WP06"
+      ],
+      "write_scope": [
+        "docs/DEVELOPER_PORTAL.md",
+        "docs/INDEX.md",
+        "docs/runbooks/restic-backup-ops.md"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "app-shell",
+        "legacy-cleanup",
+        "workspace"
+      ],
+      "depends_on_lanes": [
+        "lane-b",
+        "lane-e"
+      ],
+      "parallel_group": 4
+    }
+  ],
+  "computed_at": "2026-08-30T04:06:26.933413+00:00",
+  "computed_from": "dependency_graph+ownership",
+  "planning_artifact_wps": [],
+  "planning_commit_sha": "30c4b8c09ff7e36ee26de91837cc03966ed5d0e3"
+}
