@@ -58,6 +58,9 @@ As Kent, I want a documented bootstrap path, so that a third machine — or a re
 - What happens when a transitive package dependency installs a competing `python3`? PATH precedence must be explicit, so the intended interpreter wins regardless of install order.
 - What happens when a future repo joins the employer namespace? The glob must route it without an edit.
 - What happens when the installer runs twice? It must be idempotent and must not stack duplicate PATH entries.
+- What happens when the dotfiles clone is deleted or moved? `$HOME` symlinks dangle and zsh starts with defaults — a degraded but usable shell, recoverable from the dated backup without the repo.
+- What happens when a local edit is never pushed, or the other machine is never pulled? The helper must fail, because the clone is dirty or behind `origin`.
+- What happens on a new machine with no git credentials? The repo is private, so bootstrap must authenticate before it can fetch shell config at all.
 
 ## Requirements *(mandatory)*
 
@@ -67,15 +70,16 @@ As Kent, I want a documented bootstrap path, so that a third machine — or a re
 |----|-------|------------|----------|--------|
 | FR-001 | Versioned source | As Kent, I want shell config held in the private `kentonium3/dotfiles` repo so that it is versioned, reviewable, and backed up. | High | Open |
 | FR-002 | Core plus per-machine override | As Kent, I want a shared core and a per-machine override keyed on `KG_PLATFORM` so that legitimate machine differences do not fork the whole config. | High | Open |
-| FR-003 | Copy-on-install with backup | As Kent, I want an installer that copies repo to `$HOME` after taking a dated backup so that a bad edit cannot strand me on a remote machine. | High | Open |
+| FR-003 | Symlink install with backup | As Kent, I want an installer that symlinks `$HOME` entries to the local clone, after taking a dated backup, so that editing either path edits one file and the repo cannot go stale. | High | Open |
 | FR-004 | Account router preserved | As Kent, I want the router carried over with its globbed work-repo list and explanatory comment intact so that work sessions cannot silently use the personal account. | High | Open |
 | FR-005 | Composed, deduplicated PATH | As Kent, I want PATH composed from documented slots and deduplicated so that precedence is declared rather than an artifact of append order. | High | Open |
 | FR-006 | Per-invocation-type placement | As Kent, I want office4's PATH in `.zshenv` so that shells driven by `ssh host 'cmd'` resolve tools identically to interactive ones. | High | Open |
 | FR-007 | direnv hook placement | As Kent, I want the direnv hook in `.zshrc` so that it loads for interactive shells, which is the only context `precmd` hooks apply to. | Medium | Open |
-| FR-008 | Environment assertion helper | As Kent or an agent, I want `bin/verify-shell-env` to assert routing, PATH order, interpreter version, direnv, and all three invocation types so that misconfiguration is caught deliberately. | High | Open |
+| FR-008 | Environment assertion helper | As Kent or an agent, I want `bin/verify-shell-env` to assert routing, PATH order, interpreter version, direnv, all three invocation types, **and that the dotfiles clone is clean and not behind `origin`**, so that misconfiguration and unpushed drift are both caught deliberately. | High | Open |
 | FR-009 | Retire stopgap blocks | As Kent, I want office4's five stopgap blocks removed and the stale `.bashrc`/`.profile` pair reconciled so that no machine carries undocumented config. | High | Open |
 | FR-010 | Drop non-portable items | As Kent, I want macOS-only scripts, the launchd job, the unguarded brew eval, and three dangling paths dropped or replaced so that the core runs cleanly on both platforms. | Medium | Open |
 | FR-011 | Bootstrap runbook | As Kent, I want a new-machine bootstrap runbook registered in `INDEX.md` and `DEVELOPER_PORTAL.md` so that a rebuild does not repeat office4's hand-built history. | Medium | Open |
+| FR-013 | Minimal bash parity | As Kent, I want a thin `~/.bashrc` setting the same PATH as zsh so that `#!/bin/bash` scripts and `bash -lc` resolve the same interpreters an interactive session does. | Medium | Open |
 | FR-012 | Secrets shape documented | As Kent or an agent, I want a `secrets.example` naming the variables `~/.config/secrets` must define, with no values, so that a new machine knows what to create and an agent knows what to look for. | Medium | Open |
 
 ### Non-Functional Requirements
@@ -96,7 +100,7 @@ As Kent, I want a documented bootstrap path, so that a third machine — or a re
 | C-003 | No new package sources | No brew tap, pip index, npm registry, or MCP plugin is introduced. | Security | High | Open |
 | C-004 | Repo stays private | `kentonium3/dotfiles` remains private; kg-automation is public and must not gain shell config. | Security | High | Open |
 | C-005 | Routing unchanged | No change to which repos map to which account beyond the glob fix already applied on 2026-08-29. | Technical | High | Open |
-| C-006 | Copy, not symlink | Installation copies files; it must not install absolute symlinks. 144 committed absolute symlinks broke on office4 during this migration with no supported recovery path. | Technical | High | Open |
+| C-006 | Local symlinks, never committed | Installation creates symlinks from `$HOME` into the **local** clone. It must never commit a symlink, nor create one with an absolute path baked into a tracked file — 144 committed absolute symlinks broke on office4 during this migration with no supported recovery path. Locally-created symlinks into a local clone are a different mechanism and are the point: one file, so the repo cannot go stale. | Technical | High | Open |
 
 ### Key Entities
 
@@ -118,3 +122,6 @@ As Kent, I want a documented bootstrap path, so that a third machine — or a re
 - **SC-006**: A login shell emits 0 bytes on stderr on both machines.
 - **SC-007**: Rollback restores the prior config in 1 command with the dotfiles repo deleted from disk.
 - **SC-008**: `git commit` succeeds in kg-automation on office4, exercising the `.githooks` gate that requires the direnv-provided venv.
+- **SC-009**: Editing an installed file and running `git status` in the dotfiles clone shows the change with 0 extra steps — no copy, sync, or re-install required.
+- **SC-010**: `verify-shell-env` exits non-zero when the clone is dirty or behind `origin`, and 0 when it is clean and current.
+- **SC-011**: `#!/bin/bash` scripts and interactive zsh resolve the same `python3` on both machines.
