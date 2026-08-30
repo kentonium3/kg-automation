@@ -29,6 +29,20 @@ set -euo pipefail
 REPO_ROOT="$(git rev-parse --show-toplevel)"
 cd "$REPO_ROOT"
 
+# In a LINKED WORKTREE (spec-kitty lane worktrees, `git worktree add`), REPO_ROOT
+# is the worktree's own root, which has no .venv — virtualenvs are not
+# per-worktree. The venv lives in the main checkout: the parent of the shared git
+# dir. Resolved at script scope so both the candidate list and the failure message
+# can use it.
+MAIN_CHECKOUT=""
+_common_dir="$(git rev-parse --git-common-dir 2>/dev/null || true)"
+if [[ -n "$_common_dir" ]]; then
+  _parent="$(cd "$(dirname "$_common_dir")" 2>/dev/null && pwd || true)"
+  if [[ -n "$_parent" && "$_parent" != "$REPO_ROOT" ]]; then
+    MAIN_CHECKOUT="$_parent"
+  fi
+fi
+
 # Resolve an interpreter that can actually RUN the validators (#935).
 #
 # `validate_docs.py` needs PyYAML; `validate_architecture_data.py` is stdlib-only.
@@ -50,7 +64,14 @@ resolve_python() {
   if [[ -n "${PYTHON:-}" ]]; then
     candidates+=("$PYTHON")
   fi
-  candidates+=("$REPO_ROOT/.venv/bin/python" "python3")
+  candidates+=("$REPO_ROOT/.venv/bin/python")
+  # Without this, the hook finds no usable interpreter from any worktree and
+  # blocks every commit made there — which is every work-package commit in a
+  # spec-kitty mission.
+  if [[ -n "$MAIN_CHECKOUT" ]]; then
+    candidates+=("$MAIN_CHECKOUT/.venv/bin/python")
+  fi
+  candidates+=("python3")
 
   local candidate
   for candidate in "${candidates[@]}"; do
@@ -70,6 +91,9 @@ if ! PY="$(resolve_python)"; then
   echo "   The doc validators need PyYAML. Tried, in order:" >&2
   echo "     \$PYTHON        = ${PYTHON:-<unset>}" >&2
   echo "     repo venv      = $REPO_ROOT/.venv/bin/python" >&2
+  if [[ -n "$MAIN_CHECKOUT" ]]; then
+    echo "     main checkout  = $MAIN_CHECKOUT/.venv/bin/python (linked worktree)" >&2
+  fi
   echo "     system         = python3" >&2
   echo "   Fix: build the repo venv —" >&2
   echo "     uv venv && uv pip install -r requirements.txt" >&2
