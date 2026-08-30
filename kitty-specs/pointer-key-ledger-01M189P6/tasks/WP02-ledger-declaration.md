@@ -89,8 +89,16 @@ exists.
    unknown member key; `adjudicated` not an object; `diagnostic_only` entry missing a non-empty
    `reason`; a key in **both** lists; zero predicates on an adjudicated key; two predicates on one
    key; malformed `good_values` (empty array) and malformed `minimum` (non-numeric); a ledger on a
-   non-pointer `health_check` method; two keys carrying `freshness`; and a `key_ledger` whose
+   non-pointer `health_check` method; **two keys declaring `freshness` with `anchor: true`**; a
+   **modifier field outside its predicate's allow-list**; and a `key_ledger` whose
    `reconciliation_harness` is missing or names a path that does not exist.
+   
+   Note the two rules that changed after `/spec-kitty.analyze` found the contract contradicting
+   itself: rule 4 constrains **predicate** fields only and explicitly permits allow-listed
+   **modifiers** (`anchor`, `max_age_seconds`, `unmeasured_is_unknown`, `suppress_until_utc`), and
+   rule 7 constrains only the **anchor**, not every `freshness` key. Two keys legitimately carry
+   `freshness` in this ledger. Implement from the contract's *Predicate modifiers* table — do not
+   infer the vocabulary, and do not let a downstream WP extend it.
 3. Write the **negative** cases too, and treat them as equally important: a component with no
    `key_ledger` validates clean, and a well-formed ledger validates clean. These are what stop an
    over-broad rule from reddening the repo.

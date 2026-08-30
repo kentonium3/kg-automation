@@ -21,7 +21,10 @@ test, not by the validator: the validator cannot know what a producer emits, whi
 exists.
 **L3** — a declared ledger has a registered harness. Without this, a ledger is a hand-maintained list
 and the mechanism is decorative (research R15).
-**L4** — at most one key carries `freshness`.
+**L4** — at most one key declares `freshness` with `anchor: true`. Several keys may carry a
+`freshness` predicate with their own bound; only the *anchor* — the key answering "is this component
+stale?" — must be unique. Conflating these two made the v2 contract self-contradicting, caught by
+`/spec-kitty.analyze`.
 
 ### Predicate
 
@@ -29,7 +32,7 @@ and the mechanism is decorative (research R15).
 |---|---|---|
 | Membership | `good_values` | value in list, matched by type identity **and** value |
 | Floor | `minimum` (+ optional `unmeasured_is_unknown`) | value is a real number and `>= minimum` |
-| Freshness | `freshness` (+ optional `max_age_seconds`) | **this key** resolves, parses, is within bound, and is not >5 min future-dated |
+| Freshness | `freshness` (+ optional `anchor`, `max_age_seconds`) | **this key** resolves, parses, is within bound, and is not >5 min future-dated |
 
 **P1** — exactly one predicate field per key.
 **P2** — membership is evaluated with **no type pre-filter**. A value of an unexpected type is not in
@@ -63,10 +66,10 @@ guard fixed, schema bumped to 2.
 | `schema_version` | adjudicated | `good_values: [2]` | The one key whose purpose is to announce the contract changed; pinning it forces a deliberate ledger review on a bump |
 | `restic_exit_code` | adjudicated | `good_values: [0, 3]` | 3 = warnings but a snapshot was produced |
 | `prune_exit_code` | adjudicated | `good_values: [0]` | `forget` exiting 3 gives no snapshot guarantee. **Never merge with the set above** |
-| `snapshot_timestamp_utc` | adjudicated | `freshness` (28 h) | Authoritative anchor; parseable, in-budget, not future-dated |
+| `snapshot_timestamp_utc` | adjudicated | `freshness` **anchor** (28 h) | The staleness anchor; parseable, in-budget, not future-dated |
 | `integrity_check_passed` | adjudicated | `good_values: [true, null]` | The reported defect. `null` = not run today = healthy |
 | `snapshot_count` | adjudicated | `minimum: 2`, unmeasured→unknown | A wiped-and-reinitialised repo yields one snapshot and otherwise reads all-green |
-| **`last_integrity_check_utc`** | adjudicated | `freshness` (9 d) | **NEW.** Detects the check *silently stopping* — invisible in v1 |
+| **`last_integrity_check_utc`** | adjudicated | `freshness` (9 d, **not** anchor) | **NEW.** Detects the check *silently stopping* — invisible in v1. Bounded for its own recency; the component's staleness is still measured from the backup timestamp |
 | **`files_processed`** | adjudicated | `minimum: 1` | **NEW.** An empty capture otherwise reads healthy |
 | **`source_roots_present`** | adjudicated | `good_values: [true]` | **NEW.** A partial capture otherwise reads healthy |
 | **`repo_fs_free_bytes`** | adjudicated | `minimum: 50 GiB` | **NEW.** The approach to a full volume otherwise has no signal |

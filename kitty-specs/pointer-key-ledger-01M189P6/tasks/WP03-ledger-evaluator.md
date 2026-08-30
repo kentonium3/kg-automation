@@ -9,6 +9,8 @@ requirement_refs:
 - FR-007
 - FR-016
 - FR-019
+- NFR-002
+- NFR-004
 planning_base_branch: feat/934-pointer-key-ledger
 merge_target_branch: feat/934-pointer-key-ledger
 branch_strategy: Planning artifacts for this mission were generated on feat/934-pointer-key-ledger. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into feat/934-pointer-key-ledger unless the human explicitly redirects the landing branch.
@@ -157,15 +159,17 @@ operator is standing the thing up and is most primed to dismiss its alerts. #913
 repository imminently, so this is not hypothetical.
 
 **Steps**:
-1. Support an optional suppression clause on the `minimum` predicate, expressed **declaratively in the
-   ledger** — not as a special case for `snapshot_count` in code. The evaluator must stay free of
-   key names.
-2. Suggested shape: `"suppress_when": {"key": "<other key>", "absent_or_null": true}` or an explicit
-   `first_run_grace` on the predicate. Pick one, document the choice in the module docstring, and add
-   it to `contracts/key-ledger.md` § *Adjudication predicates* so the contract stays the authority.
-3. If you extend the contract's predicate vocabulary, WP02's validator rules must accept the new
-   field — coordinate by updating the contract; do **not** edit WP02's files (they are outside your
-   ownership).
+1. The clause is **already defined** — `suppress_until_utc`, a `minimum` modifier in the contract's
+   *Predicate modifiers* table. You are consuming a settled vocabulary, not inventing one. (This was
+   changed after `/spec-kitty.analyze`: the original prompt asked you to invent the clause, but the
+   validator that must accept it is owned by WP02 and runs first, so an invented field would have
+   been rejected and you could not have fixed it without editing another WP's files.)
+2. Implement it generically: when the predicate carries `suppress_until_utc` and the evaluation
+   instant is before it, the predicate is **not evaluated** and contributes nothing to the verdict.
+   No key names in code.
+3. Note *why* the contract chose an explicit dated exemption over inferring "new repository" from
+   other keys: every signal a new repository produces, a **wiped** repository can also produce, and
+   conflating them defeats the very rule `snapshot_count` exists to enforce.
 4. Test both directions: suppressed on a genuine first run, and **not** suppressed on an established
    repository reporting 1 (which is the wipe case the rule exists to catch). Getting this backwards
    would silently disable the wipe detection.

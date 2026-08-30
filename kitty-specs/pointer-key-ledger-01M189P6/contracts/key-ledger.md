@@ -22,13 +22,13 @@ valid; a required field would block every unrelated inventory change. Absence me
   "state_path": "/data/services/backup/state/last-backup.json",
   "max_age_seconds": 100800,
   "key_ledger": {
-    "reconciliation_harness": "tests/office2/restic_backup/test_pointer_emission.py",
+    "reconciliation_harness": "tests/office2/restic_backup/test_ledger_reconciliation.py",
     "adjudicated": {
       "schema_version":           { "good_values": [2] },
       "restic_exit_code":         { "good_values": [0, 3] },
       "prune_exit_code":          { "good_values": [0] },
       "integrity_check_passed":   { "good_values": [true, null] },
-      "snapshot_timestamp_utc":   { "freshness": true },
+      "snapshot_timestamp_utc":   { "freshness": true, "anchor": true },
       "last_integrity_check_utc": { "freshness": true, "max_age_seconds": 777600 },
       "snapshot_count":           { "minimum": 2, "unmeasured_is_unknown": true },
       "files_processed":          { "minimum": 1 },
@@ -51,7 +51,8 @@ became the silent answer to a question nobody had written down.
 
 ## Adjudication predicates
 
-Exactly one predicate per adjudicated key.
+Exactly one predicate field per adjudicated key, plus any modifiers from that predicate's allow-list
+(see *Predicate modifiers* below).
 
 | Predicate | Meaning | Healthy when |
 |---|---|---|
@@ -94,9 +95,49 @@ not unhealthy — the producer is saying "I could not measure this", which is ne
 good" nor "measured and bad". Without this, a transient failure of the producer's count query raises a
 false alarm on a healthy backup (research R16).
 
-### Freshness binds to its key (v1 made this decorative)
+### Predicate modifiers (the allow-list)
 
-When a ledger declares `freshness` on key K, **K is the anchor**. The probe must resolve K
+A predicate object carries **exactly one predicate field** — that is what rule 4 constrains — plus
+zero or more **modifier** fields drawn from that predicate's allow-list. Modifiers are not predicates
+and do not violate rule 4. Anything outside the allow-list is a structural error, so the vocabulary
+cannot be extended by a downstream implementer inventing a field.
+
+| Predicate | Permitted modifiers | Meaning |
+|---|---|---|
+| `good_values` | *(none)* | — |
+| `minimum` | `unmeasured_is_unknown` | a present `null` yields **unknown** rather than unhealthy |
+| | `suppress_until_utc` | an ISO-8601 instant; the predicate is **not evaluated** before it |
+| `freshness` | `anchor` | this key is the component's staleness anchor (see below) |
+| | `max_age_seconds` | a bound for this key, overriding the `health_check`'s |
+
+**`suppress_until_utc` is how FR-019's first-run exemption is expressed** — declaratively, with an
+explicit expiry, set by whoever stands up a new backup.
+
+It was tempting to infer "this repository is new" from the other emitted keys instead. That was
+rejected: every available signal a new repository produces, a **wiped** repository can also produce,
+and conflating those two is precisely the failure `snapshot_count` exists to catch. An operator
+setting a dated exemption cannot be mimicked by a failure, and it expires on its own. office2 does not
+need one (14 snapshots); #913 sets one when standing up office4.
+
+### Freshness: the anchor, and other bounded keys
+
+**Two different things are being expressed and v1 conflated them**, which made the contract
+self-contradicting: its Shape declared `freshness` on two keys while its own structural rule 7
+forbade more than one.
+
+- **The anchor** — the key that answers "is this component stale?". Exactly one, marked
+  `"anchor": true`, and it feeds the component's staleness verdict.
+- **Other recency-bounded keys** — keys with their own `max_age_seconds` that are adjudicated for
+  their own recency but are *not* the component's staleness anchor.
+  `last_integrity_check_utc` is one: a stale verification makes the component unhealthy, but the
+  component's *freshness* is still measured from the backup timestamp.
+
+So `snapshot_timestamp_utc` carries `anchor: true`; `last_integrity_check_utc` carries a
+`max_age_seconds` and no anchor. Both are legal, and rule 7 now constrains only the anchor.
+
+### The anchor binds to its key (v1 made this decorative)
+
+When a ledger declares `freshness` with `anchor: true` on key K, **K is the anchor**. The probe must resolve K
 specifically and must not fall through the module's ordered candidate list, which is the fallback for
 ledger-free components only.
 
@@ -106,7 +147,8 @@ the two agree by accident of list order. They will not agree for a producer emit
 higher-priority candidate key — the declaration would be a false statement that reconciliation,
 validation, and runtime all pass.
 
-**At most one `freshness` predicate per ledger.** v1 permitted several with no resolution rule.
+**At most one anchor per ledger** (rule 7). A non-anchor `freshness` key is adjudicated against its
+own `max_age_seconds` but never becomes the staleness anchor.
 
 `freshness` uses the `health_check`'s `max_age_seconds` unless the predicate carries its own — which
 `last_integrity_check_utc` does (777600 s = 9 days: a weekly cadence tolerating one late or skipped run
@@ -131,11 +173,16 @@ component fresh forever.
    with a non-empty reason.
 3. **No key appears in both.** A hard error, never a precedence rule — a precedence rule silently picks
    a winner, and the point of the contract is that placement is a stated decision.
-4. Exactly one recognised predicate per adjudicated key. Zero is undecidable, two is ambiguous.
+4. Exactly one recognised **predicate** field per adjudicated key — zero is undecidable, two is
+   ambiguous. **Modifier** fields are permitted alongside it, but only those on that predicate's
+   allow-list (see *Predicate modifiers*); an unrecognised field is a structural error.
 5. `good_values` is a non-empty array of JSON scalars or `null`; `minimum` is a number.
 6. A ledger may only appear on a `health_check` whose method reads a JSON document
    (`state-file`, `tick-signal-file`, `signal-file`).
-7. **At most one key carries the `freshness` predicate.**
+7. **At most one key declares `freshness` with `anchor: true`.** Any number of keys may carry a
+   `freshness` predicate with their own `max_age_seconds`; only the *anchor* must be unique, because
+   only the anchor answers "is this component stale?". v1 forbade more than one `freshness` key
+   outright, which contradicted its own ledger — see *Freshness: the anchor, and other bounded keys*.
 8. **`reconciliation_harness` is required when `key_ledger` is present**, and the path must exist on
    disk. This is what makes Obligation 2 a gate rather than a wish.
 

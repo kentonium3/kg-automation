@@ -6,7 +6,11 @@ dependencies:
 requirement_refs:
 - FR-008
 - FR-018
+- NFR-001
+- NFR-002
 - NFR-003
+- NFR-004
+- NFR-005
 - NFR-006
 planning_base_branch: feat/934-pointer-key-ledger
 merge_target_branch: feat/934-pointer-key-ledger
@@ -145,12 +149,16 @@ changing, the refactor was not behaviour-preserving — back it out and try agai
 ### T021 — Bind freshness resolution to the declared key
 
 **Steps**:
-1. When the ledger declares a `freshness` predicate on key K, resolve **K** specifically: parse it,
+1. When the ledger declares `freshness` with **`anchor: true`** on key K, resolve **K** specifically: parse it,
    apply its bound (the predicate's own `max_age_seconds` if present, else the `health_check`'s), and
    do **not** fall through `TIMESTAMP_KEYS`.
 2. If K is absent or unparseable, that is unhealthy per WP03's absence rule — it must **not** fall
    through to another candidate key. This is the #902 hazard in its general form.
 3. `TIMESTAMP_KEYS` remains the resolution path for ledger-free components, untouched.
+4. A `freshness` key **without** `anchor` (here, `last_integrity_check_utc`) is adjudicated against
+   its own `max_age_seconds` but is **not** the staleness anchor — a stale verification makes the
+   component unhealthy while the component's freshness is still measured from the backup timestamp.
+   Two keys legitimately carry `freshness`; only one carries `anchor`.
 
 ### T022 — The future-skew guard
 

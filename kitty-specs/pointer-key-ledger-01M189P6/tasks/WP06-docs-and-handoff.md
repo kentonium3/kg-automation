@@ -5,6 +5,7 @@ dependencies:
 - WP02
 - WP05
 requirement_refs:
+- C-002
 - FR-011
 planning_base_branch: feat/934-pointer-key-ledger
 merge_target_branch: feat/934-pointer-key-ledger

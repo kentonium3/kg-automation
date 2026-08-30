@@ -9,6 +9,9 @@ requirement_refs:
 - FR-005
 - FR-006
 - FR-010
+- NFR-001
+- NFR-002
+- NFR-005
 planning_base_branch: feat/934-pointer-key-ledger
 merge_target_branch: feat/934-pointer-key-ledger
 branch_strategy: Planning artifacts for this mission were generated on feat/934-pointer-key-ledger. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into feat/934-pointer-key-ledger unless the human explicitly redirects the landing branch.
