@@ -42,3 +42,8 @@ notes: "Reconciles a repo-vs-deployed drift on both felix-vikunja-sync user unit
   Tier 3: user units under the claude account; no Tier 0/1/2 action.\n"
 apply_mode: manifest
 applied_at: '2026-08-31T19:48:33Z'
+rebaseline:
+  outcome: unexpected_drift
+  at_utc: '2026-08-31T19:48:37Z'
+  unexpected:
+  - systemd-user-unit-contents.txt
