@@ -136,14 +136,36 @@ writes the watermark for subsequent ticks.
 
 ### Manifest `expected_baselines` declaration
 
-The observe range only sees drift that has a **repo-file signal**. A deploy
-that mutates state via a runtime CLI with no tracked-file change — e.g. an
-`openclaw cron rm` that drifts `openclaw-cron.txt` without touching any
-`openclaw.json` — produces no matched audited surface, so reconcile would
-classify the resulting drift as `unexpected_drift`.
+The observe range only sees drift that has a repo-file signal **in the commit
+range this tick pulled**. That is a narrower test than "the file is tracked",
+and the difference is the usual reason a well-formed deploy gets alerted on.
 
-For those CLI-mutation deploys, the manifest declares the baselines it will
-drift via an optional `expected_baselines` field:
+**Declare `expected_baselines` whenever the deploy will drift a baseline that
+the pulled range does not itself signal.** Two cases do this:
+
+1. **Runtime-CLI mutation, no tracked file at all** — e.g. an `openclaw cron rm`
+   that drifts `openclaw-cron.txt` without touching any `openclaw.json`.
+
+2. **A deploy that installs tracked files which changed in an *earlier* commit.**
+   The files are in the repo, but this range only carries the manifest and the
+   entrypoint, so no audited surface matches and reconcile classifies the drift
+   as `unexpected_drift`.
+
+   ⚠ Case 2 is easy to get wrong, and has been. On 2026-08-31 the
+   `felix-vikunja-sync-unit-reconcile` manifest reasoned "both unit files are
+   tracked in the repo, so the observe-range auto-rebaseline covers it" and
+   declared nothing. The units had been changed by #925 several commits earlier;
+   the deploy's own commit touched only `deploys/queued/` and `scripts/deploy/`.
+   The pending token's `matched_files` therefore held just the manifest — which
+   maps to `deploy-pipeline`, not the systemd surface — and the deploy raised a
+   `rebaseline/unexpected_drift` error for a one-line, entirely intended change.
+   **Ask "does *this commit* change a file on the drifting surface?", not "is the
+   file tracked?"**
+
+Reconciling drift a previous commit introduced is exactly case 2, so a
+drift-reconciliation deploy should essentially always declare its baselines.
+
+The manifest declares them via an optional `expected_baselines` field:
 
 ```yaml
 audited_surface: true
