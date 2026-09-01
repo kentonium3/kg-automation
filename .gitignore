@@ -26,6 +26,11 @@ docs/.obsidian/plugins/**/.cache/
 # VS Code workspace state (local editor preference)
 .vscode/tasks.json
 __pycache__/
+# Never repo content. Plain hygiene -- note this does NOT affect check_doc_links,
+# which enumerates with `git ls-files --cached` and so consults tracked-ness, not
+# ignore rules. Added while auditing #959: of the scratch names that checker used
+# to carry, node_modules was the only one absent from this file.
+node_modules/
 # Temporary prompt files and scratch
 temp/
 
