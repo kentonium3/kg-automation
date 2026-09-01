@@ -24,6 +24,10 @@ SCRIPT = Path(__file__).resolve().parents[3] / "scripts" / "office2" / "restic-b
 # The real `date` binary, resolved once before PATH is overridden, so the
 # `date` stub below can delegate everything except day-of-week to it.
 REAL_DATE = shutil.which("date")
+# Same reason as REAL_DATE: resolved before PATH is overridden, so the
+# stubs below can delegate to the genuine binary (#960).
+REAL_STAT = shutil.which("stat") or ""
+REAL_TIMEOUT = shutil.which("timeout") or ""
 
 # Mirrors the SOURCE_ROOTS array defined once in the script (T004): the
 # default snapshot the restic stub reports carries every configured root, so
@@ -62,6 +66,40 @@ def env(tmp_path):
     logs = tmp_path / "logs"
 
     _stub(bin_dir, "mountpoint", 'exit "${STUB_MOUNT_RC:-0}"')
+    # `stat -c%s` (GNU) and `timeout` (GNU coreutils) are used by the state-pointer
+    # block the tests below assert on. Neither exists in BSD/macOS userland, and
+    # the failure is silent in the worst way: `stat -c%s` errors, the script's
+    # `|| echo 65537` fallback fires, 65537 > the 65536 ceiling, and the ENTIRE
+    # carry-forward block is skipped. Every assertion that the value is null then
+    # passes for the wrong reason (#960).
+    #
+    # Stubbed here rather than made portable in the script, for the same reason
+    # `du`, `df`, `restic` and `mountpoint` are stubbed: this harness is already
+    # the platform simulator, and restic-backup.sh is a root-privileged nightly
+    # backup that should not grow branches to suit a developer laptop. Note the
+    # script has two further GNU-isms (`du -sb`, `df -B1 --output=avail`) that
+    # this suite never sees precisely because they are stubbed -- so this suite
+    # is not, and cannot be, a portability check for the script.
+    #
+    # Both prefer the real binary, following the `date` stub below, so on Linux/CI
+    # the genuine GNU call is what runs. They differ in what they do when it is
+    # missing: `stat` TRANSLATES (-c%s -> the BSD -f%z spelling, the idiom already
+    # used in-repo at scripts/openclaw/install.sh:55), whereas `timeout` DROPS the
+    # bound and runs the command unbounded -- there is no BSD equivalent to
+    # translate to. That is acceptable only because the sole call site is
+    # `timeout 5 jq` over a document this script itself wrote, already bounded by
+    # the 64 KB size ceiling.
+    _stub(bin_dir, "stat", f'''
+if [ "$1" = "-c%s" ]; then
+    [ -n "$STUB_STAT_FAIL" ] && exit 1
+    {REAL_STAT} -c%s "$2" 2>/dev/null || {REAL_STAT} -f%z "$2"
+    exit $?
+fi
+exec {REAL_STAT} "$@"''')
+    _stub(bin_dir, "timeout", '''
+if [ -n "$REAL_TIMEOUT" ] && [ -x "$REAL_TIMEOUT" ]; then exec "$REAL_TIMEOUT" "$@"; fi
+shift
+exec "$@"''')
     _stub(bin_dir, "du", 'echo "1024\t$2"')
     # restic dispatches on its first arg (and, for `snapshots`, whether
     # `--latest` is present) so each call can be tuned independently.
@@ -128,6 +166,7 @@ exec {REAL_DATE} "$@"''')
 
     e = dict(os.environ)
     e["PATH"] = f"{bin_dir}:{e['PATH']}"
+    e["REAL_TIMEOUT"] = REAL_TIMEOUT
     e["LOG_DIR"] = str(logs)
     e["STATE_DIR"] = str(state)
     e["BACKUP_MOUNT"] = str(tmp_path / "mnt")
@@ -278,6 +317,28 @@ def test_last_integrity_check_utc_carries_forward_across_a_failed_sunday(env):
     assert second_ptr["integrity_check_passed"] is False
 
 
+# ---------------------------------------------------------------------------
+# LIVENESS DEPENDENCY -- read before touching the tests below (#960).
+#
+# Everything from here to test_files_processed_happy_path asserts that
+# `last_integrity_check_utc` is None. That is also exactly what a DEAD
+# carry-forward block produces, so none of these tests can tell "the guard
+# rejected bad input" from "the block never ran". For eight months on macOS the
+# block did not run at all -- `stat -c%s` is GNU-only -- and all of them passed.
+#
+# What keeps them honest is the small set of tests that require the block to
+# execute and produce a value:
+#   * test_last_integrity_check_utc_carries_forward_when_not_checked_today
+#   * test_last_integrity_check_utc_carries_forward_across_a_failed_sunday
+#   * test_last_integrity_check_utc_carries_forward_from_a_large_but_valid_document
+#
+# If those are ever skipped or deleted -- in particular via a
+# skipif(sys.platform == "darwin") reflex when they go red on a Mac -- the tests
+# below silently revert to passing for the wrong reason, with nothing flagging
+# it. Fix the platform, do not skip the witnesses.
+# ---------------------------------------------------------------------------
+
+
 def test_last_integrity_check_utc_null_on_corrupt_prior_document(env):
     """T002: the one place a naive jq call could take the backup down.
 
@@ -346,6 +407,54 @@ def test_last_integrity_check_utc_null_on_oversized_prior_document(env):
     (state / "last-backup.json").write_text(oversized)
 
     proc, ptr = run(env)
+    assert proc.returncode == 0
+    assert ptr["last_integrity_check_utc"] is None
+
+
+def test_last_integrity_check_utc_carries_forward_from_a_large_but_valid_document(env):
+    """The size guard must be two-sided: reject above the ceiling, ACCEPT below it.
+
+    Every other size assertion in this file is one-sided -- they all assert
+    `is None`, which is what a guard that rejects *everything* also produces.
+    Mutation-tested during the #960 review: tightening the ceiling from 65536 to
+    512 (a 128x change that would stop the real ~455-byte document from ever
+    carrying forward) was caught by NO test in this module. The real document is
+    ~455 bytes and the oversized fixture is ~100 KB, so nothing pinned anything
+    in the 143x range between them.
+
+    ~60 KB: comfortably under the 64 KB ceiling, far above the real document, and
+    far above any plausible tightened bound.
+    """
+    _e, state = env
+    state.mkdir(parents=True, exist_ok=True)
+    carried = "2026-08-01T00:00:00Z"
+    large_but_valid = json.dumps({"last_integrity_check_utc": carried, "pad": "x" * 60_000})
+    assert 512 < len(large_but_valid) < 65_536, "fixture must sit under the ceiling"
+    (state / "last-backup.json").write_text(large_but_valid)
+
+    proc, ptr = run(env)
+    assert proc.returncode == 0
+    assert ptr["last_integrity_check_utc"] == carried, (
+        "a valid document under the ceiling must carry forward; None here means "
+        "the guard rejected it (ceiling too tight, or the size probe failed)"
+    )
+
+
+def test_the_size_probe_failing_is_treated_as_too_big(env):
+    """`stat` failing is encoded as 65537 -- 'could not measure' becomes 'too big'.
+
+    That conflation is deliberate (fail soft on an unreadable pointer) but it is
+    the reason #960 was invisible: on macOS `stat -c%s` errored on every run and
+    the block silently stopped executing. Pinning it means a future change to the
+    fallback is a visible decision rather than an accident.
+    """
+    _e, state = env
+    state.mkdir(parents=True, exist_ok=True)
+    (state / "last-backup.json").write_text(
+        json.dumps({"last_integrity_check_utc": "2026-08-01T00:00:00Z"})
+    )
+
+    proc, ptr = run(env, STUB_STAT_FAIL="1")
     assert proc.returncode == 0
     assert ptr["last_integrity_check_utc"] is None
 

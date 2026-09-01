@@ -210,6 +210,10 @@ def test_restic_backup_harness_is_this_file():
 # the `date` stub can delegate everything except day-of-week to it (mirrors
 # WP01's tests/office2/restic_backup/test_pointer_emission.py).
 REAL_DATE = shutil.which("date")
+# Same reason as REAL_DATE: resolved before PATH is overridden, so the
+# stubs below can delegate to the genuine binary (#960).
+REAL_STAT = shutil.which("stat") or ""
+REAL_TIMEOUT = shutil.which("timeout") or ""
 
 
 def _stub(path: Path, name: str, body: str) -> None:
@@ -230,6 +234,40 @@ def env(tmp_path):
     logs = tmp_path / "logs"
 
     _stub(bin_dir, "mountpoint", 'exit "${STUB_MOUNT_RC:-0}"')
+    # `stat -c%s` (GNU) and `timeout` (GNU coreutils) are used by the state-pointer
+    # block the tests below assert on. Neither exists in BSD/macOS userland, and
+    # the failure is silent in the worst way: `stat -c%s` errors, the script's
+    # `|| echo 65537` fallback fires, 65537 > the 65536 ceiling, and the ENTIRE
+    # carry-forward block is skipped. Every assertion that the value is null then
+    # passes for the wrong reason (#960).
+    #
+    # Stubbed here rather than made portable in the script, for the same reason
+    # `du`, `df`, `restic` and `mountpoint` are stubbed: this harness is already
+    # the platform simulator, and restic-backup.sh is a root-privileged nightly
+    # backup that should not grow branches to suit a developer laptop. Note the
+    # script has two further GNU-isms (`du -sb`, `df -B1 --output=avail`) that
+    # this suite never sees precisely because they are stubbed -- so this suite
+    # is not, and cannot be, a portability check for the script.
+    #
+    # Both prefer the real binary, following the `date` stub below, so on Linux/CI
+    # the genuine GNU call is what runs. They differ in what they do when it is
+    # missing: `stat` TRANSLATES (-c%s -> the BSD -f%z spelling, the idiom already
+    # used in-repo at scripts/openclaw/install.sh:55), whereas `timeout` DROPS the
+    # bound and runs the command unbounded -- there is no BSD equivalent to
+    # translate to. That is acceptable only because the sole call site is
+    # `timeout 5 jq` over a document this script itself wrote, already bounded by
+    # the 64 KB size ceiling.
+    _stub(bin_dir, "stat", f'''
+if [ "$1" = "-c%s" ]; then
+    [ -n "$STUB_STAT_FAIL" ] && exit 1
+    {REAL_STAT} -c%s "$2" 2>/dev/null || {REAL_STAT} -f%z "$2"
+    exit $?
+fi
+exec {REAL_STAT} "$@"''')
+    _stub(bin_dir, "timeout", '''
+if [ -n "$REAL_TIMEOUT" ] && [ -x "$REAL_TIMEOUT" ]; then exec "$REAL_TIMEOUT" "$@"; fi
+shift
+exec "$@"''')
     _stub(bin_dir, "du", 'echo "1024\t$2"')
     _stub(bin_dir, "restic", '''
 case "$1" in
@@ -274,6 +312,7 @@ exec {REAL_DATE} "$@"''')
 
     e = dict(os.environ)
     e["PATH"] = f"{bin_dir}:{e['PATH']}"
+    e["REAL_TIMEOUT"] = REAL_TIMEOUT
     e["LOG_DIR"] = str(logs)
     e["STATE_DIR"] = str(state)
     e["BACKUP_MOUNT"] = str(tmp_path / "mnt")
