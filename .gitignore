@@ -76,6 +76,13 @@ kitty-ops/ops-index.jsonl
 # per-machine direnv config (absolute paths, venv activation)
 .envrc
 
+# The repo's own Python environment (#958). Machine-local and never committed.
+# This is the interpreter the repo DECLARES for itself: .githooks/pre-commit
+# resolves it ahead of the system python3, and .vscode/settings.json points
+# python.defaultInterpreterPath at it. Build it with:
+#   uv venv --python "$(command -v python3)" && uv pip install -r requirements.txt
+.venv/
+
 # spec-kitty 3.2.6 plugin-projection artifact (emitted by 'doctor tool-surfaces --fix'); see spec-kitty tracking issue
 /dist/
 
