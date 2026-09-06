@@ -52,6 +52,27 @@ protocols are linked, not inlined.
   authoring spec/plan/tasks/matrix artifacts through the workflow, and committing
   workflow-generated status files from the primary checkout, are expected parts of the flow.
 
+## Spec-Kitty build identification — the version string identifies NOTHING (HIGH-STAKES)
+- **Never** use a version string to say which spec-kitty build or which repository line is installed —
+  not `spec-kitty --version`, not `pyproject.toml`, not `.kittify/metadata.yaml`, not a PyPI listing,
+  not a project `CLAUDE.md` orientation banner. Two installs both reporting `3.2.6rc2` were **323
+  commits apart**. Identify the build from its provenance record and cite the tuple: **line, SHA, how
+  it got here**.
+- **We are always ahead of the last official release; that is the steady state, not an exception.**
+  The installed build matches a published release on exactly one day — release day, when we
+  deliberately run the release-path upgrade *as a test of the release path*. "Version is X, therefore
+  build is Y" is wrong on every other day.
+- **Numbers do not identify a line.** Multiple spec-kitty lines with disjoint history publish
+  overlapping numbers; a cross-repo `compare` between them returns 404, not a distance. Resolve by SHA
+  lookup in each repo — HTTP 422 "No commit found" is the test for absence.
+- `spec-kitty upgrade`, and plain `pipx upgrade` / `uv tool upgrade`, follow the semver path and **fail
+  silently** — a pin plus `--force` is mandatory, and a successful-looking run is not evidence the
+  build moved.
+- Full procedure (installer paths, the three provenance cases, line resolution):
+  `~/repos/spec-kitty-qa/docs/runbooks/spec-kitty-upgrade.md` (v1.3+). Also asserted in
+  `~/.claude/CLAUDE.md`. If that runbook's paths do not match the machine you are on, **that is the
+  bug — fix the runbook**; never fall back to `--version`.
+
 ## Spec-Kitty (and sibling tooling) issue reporting
 - Follow the dual-track runbook `~/repos/kg-automation/docs/runbooks/spec-kitty-bug-reporting.md`.
   Do NOT file upstream ad-hoc. Flow: file the INTERNAL status tracker as a

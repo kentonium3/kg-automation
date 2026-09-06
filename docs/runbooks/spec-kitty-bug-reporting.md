@@ -57,10 +57,11 @@ pinned tag. Format the Versions/Environment line as:
 Get the SHA:
 - **git/`main` install:** from pip's `direct_url.json` →
   `python3 -c "import glob,json; f=glob.glob('$HOME/.local/pipx/venvs/spec-kitty-cli/lib/python*/site-packages/spec_kitty_cli-*.dist-info/direct_url.json')[0]; print(json.load(open(f))['vcs_info']['commit_id'][:9])"`
-- **pinned tag:** the tag's commit SHA (recorded in `reference_speckitty_version_history.md`).
+- **pinned tag:** the tag's commit SHA, resolved with `gh api repos/<org>/<repo>/git/ref/tags/<tag>`.
 
-This 9-char SHA goes in **both** the internal issue and the embedded upstream draft (see the off-`main`
-install path in `spec-kitty-init-in-existing-repo.md § 3.2b`). The full 40-char commit may be mentioned
+This 9-char SHA goes in **both** the internal issue and the embedded upstream draft. Resolve it per
+`~/repos/spec-kitty-qa/docs/runbooks/spec-kitty-upgrade.md` §1a/§1b, and name the repository **line**
+alongside it (§2a) — a version number identifies neither the build nor the line. The full 40-char commit may be mentioned
 once for reference in the internal issue, but the short form is the identifier everywhere else.
 
 ## Lifecycle (v1.3, 2026-06-08)

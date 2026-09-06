@@ -6,13 +6,18 @@ status: active
 last_validated: 2026-08-21
 ---
 
-# Spec-Kitty — Per-Repo Version-Drift Sweep
+# Spec-Kitty — Per-Repo Migration-Bookkeeping Sweep
 
-Operational checklist for keeping every spec-kitty-initialized repo on the same
-template version as the installed CLI. This is the **fleet-sweep** layer; the
-per-repo mechanical upgrade steps live in
-[`spec-kitty-init-in-existing-repo.md` § 3 Upgrade](spec-kitty-init-in-existing-repo.md#3-upgrade)
-and are not duplicated here.
+> **Retitled and rescoped 2026-09-02.** This was "Version-Drift Sweep", built around a helper that
+> compared version strings. **That helper has been deleted** and the framing it encoded was wrong:
+> a repo's `.kittify/metadata.yaml` stamp is **migration bookkeeping, not build identity**, and
+> "same version as the installed CLI" is not a goal — we deliberately run ahead of the last release.
+> Canonical build-identification and upgrade procedure now lives in
+> `~/repos/spec-kitty-qa/docs/runbooks/spec-kitty-upgrade.md`; read its §0 rules before using this file.
+
+Operational checklist for keeping each spec-kitty-initialized repo's **migration bookkeeping**
+current. This is the **fleet-sweep** layer; the per-repo mechanical upgrade steps live in the
+canonical runbook above and are not duplicated here.
 
 ## Why this exists (kentonium3/kg-automation#599)
 
@@ -25,45 +30,31 @@ the #597 friction class (protected-branch refusals, split-authority traps, merge
 crashes). Before this sweep existed there was **no automatic surfacing** of the
 gap; drift was caught only by ad-hoc operator vigilance.
 
-## The drift-check helper (automatic surfacing)
+## The drift-check helper — DELETED 2026-09-02
 
-`scripts/spec_kitty/check_version_drift.py` is the deterministic detector. It
-discovers standalone kittified repos under a root, reads each recorded
-`spec_kitty.version`, compares to the expected (installed-CLI) version, and
-reports drift. **Detection only — it never runs `spec-kitty upgrade`.**
+`scripts/spec_kitty/check_version_drift.py` and its test have been removed.
 
-```bash
-cd /Users/kentgale/repos/kg-automation && python3 -m scripts.spec_kitty.check_version_drift
-```
+**Why.** Its entire contract was a semver comparison — recorded `spec_kitty.version` against
+`spec-kitty --version` — which identifies nothing. It produced whole-fleet false positives on every
+bump (**14/14 repos flagged** on 2026-08-21, expected `3.2.6rc3` vs recorded `3.2.6`, with no repo
+having changed), and under two repository lines publishing overlapping numbers its false-positive
+rate goes to 100%. A detector documented with a warning that its output is meaningless is worse than
+no detector: it trains you to ignore an alert.
 
-- Default `--repos-root` is the parent of this checkout (`~/repos`); override with
-  `--repos-root DIR`.
-- Default expected version is parsed from `spec-kitty --version`; override with
-  `--expected-version 3.2.6` (useful when pre-staging an upgrade).
-- `--json` emits a machine-readable report (for a future trigger to consume).
-- **Exit codes:** `0` = no drift, `1` = drift found, `2` = usage/IO error. The
-  non-zero-on-drift contract is what lets a scheduler alert on it.
+**What to do instead.** There are two independent questions and they must not be conflated:
 
-> **⚠ The semver signal is not authoritative (2026-08-21).** The helper compares recorded
-> `spec_kitty.version` strings against `spec-kitty --version`, which is meaningless while the CLI
-> tracks upstream `main`: `main` carries the *next* release's string, so a bump from a `3.2.6`
-> main build to a `3.2.6rc3` main build makes **every** repo report `[drift]` without any repo
-> having changed. Observed immediately after the 2026-08-21 bump: **14/14 drifted**, expected
-> `3.2.6rc3` vs recorded `3.2.6`.
->
-> Do not treat that output as a work list, and do not reason about version strings at all. The
-> operating rule is: **ignore the semver signal and install the latest build on `main`** — see
-> [`spec-kitty-init-in-existing-repo.md` § 3.2b](spec-kitty-init-in-existing-repo.md#32b-upgrade-off-main-the-default-channel).
-> The helper's genuine signal is a repo *materially* behind (e.g. `spec-kitty-telescope` at
-> `3.2.0rc33`), not a suffix mismatch. The upstream fix — build/SHA-aware comparison so a newer
-> build within the same version is recognised — is tracked as
-> **Priivacy-ai/spec-kitty#2617** (`enhancement`, P1). The tracker milestone reads `3.2.x`, but
-> Stijn committed to Kent directly that it lands in **3.2.7** — treat that as the real schedule;
-> the milestone field just hasn't been narrowed. Related: #2771 (Build Identity contract, P2,
-> unmilestoned).
+1. **Is the installed CLI behind?** Compare commits, never versions — `spec-kitty-upgrade.md`
+   §1 (which build is installed) then §2/§2a (which line, and how far behind its `main`).
+2. **Is a repo's migration bookkeeping stuck?** Ask the repo, one at a time:
+   ```bash
+   spec-kitty upgrade --project --dry-run < /dev/null
+   ```
+   Cheap, non-mutating, and it answers directly. A repo can also be *stranded* — stamped above every
+   migration target that exists, so no build can reach it. That is a bookkeeping state, **not** a
+   claim about the CLI; see the canonical runbook's "A repo can be *stranded*" section.
 
-Discovery excludes hidden/scratch dirs (e.g. a `.autopilot-wt` worktree) and
-linked git worktrees (`.git` is a file), so the count reflects independent repos.
+⚠ Upstream **Priivacy-ai/spec-kitty#2617** (build/SHA-aware version reporting) and **#2771**
+(Build Identity contract) are the real fixes. Until one lands, there is nothing to automate here.
 
 ## The sweep (run after any CLI bump, and periodically)
 
@@ -79,11 +70,13 @@ linked git worktrees (`.git` is a file), so the count reflects independent repos
    done
    ```
    Empty output = safe. Do **not** upgrade a repo with an open mission worktree.
-3. **Upgrade** each safe, drifted repo per
-   [`spec-kitty-init-in-existing-repo.md` § 3.3](spec-kitty-init-in-existing-repo.md#33-roll-the-bump-into-each-repo)
-   (`spec-kitty upgrade --project --dry-run`, then `--project --yes`). Mind the
-   § 3.4 soft-blockers (SNAPSHOT_DRIFT, dirty `kitty-specs/`).
-4. **Re-run the helper** to confirm zero drift (exit `0`).
+3. **Upgrade** each safe repo whose dry-run reports pending migrations, per
+   `~/repos/spec-kitty-qa/docs/runbooks/spec-kitty-upgrade.md` § 4
+   (`spec-kitty upgrade --project --dry-run < /dev/null`, then `--project --yes < /dev/null`).
+   Mind the soft-blockers there (SNAPSHOT_DRIFT, dirty `kitty-specs/`), and note that
+   `< /dev/null` is load-bearing — it makes the mission-state repair auto-decline.
+4. **Re-run the dry-run** on each repo to confirm it reports up to date. There is no fleet-wide
+   exit code any more, and that is deliberate — see the deleted-helper section above.
 
 ## Repo inventory (discover live; do not trust a static list)
 
@@ -123,7 +116,9 @@ scheduler need only run it and alert on exit `1`.
 
 ## References
 
-- [`spec-kitty-init-in-existing-repo.md`](spec-kitty-init-in-existing-repo.md) — install / init / **per-repo upgrade mechanics** (authoritative).
-- `scripts/spec_kitty/check_version_drift.py` — the drift-check helper.
-- Memory: `feedback_no_mid_feature_upgrades`, `reference_speckitty_version_history`.
+- `~/repos/spec-kitty-qa/docs/runbooks/spec-kitty-upgrade.md` — **authoritative** for build
+  identification (§0/§1/§2a) and per-repo project state (§4). Replaces the retired
+  `spec-kitty-init-in-existing-repo.md` (deleted 2026-09-02; recoverable from git history).
+- Memory: `feedback_no_mid_feature_upgrades`. (`reference_speckitty_version_history` is a historical
+  upgrade log — **not** a build-identification reference.)
 - kentonium3/kg-automation#599 (this routine), #597 (friction exhibit).

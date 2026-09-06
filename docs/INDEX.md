@@ -169,7 +169,9 @@ All three runbooks are also listed under *Agent-executable* below.
 
 - [Spec-Kitty Mission Review Cycle](<./runbooks/spec-kitty-review-cycle.md>) — full mission arc with the two mandatory independent Codex review checkpoints (post-plan + post-merge); how they complement `analyze` and `mission-review`
 - [Spec-Kitty Bug Reporting](<./runbooks/spec-kitty-bug-reporting.md>) — dual-track workflow for filing tooling bugs: internal kg-automation issue tracks status, slim external paste doc goes upstream
-- [Spec-Kitty Install Guide](<./runbooks/spec-kitty-init-in-existing-repo.md>) — historical, setup already complete
+- Spec-Kitty install / init / upgrade — **retired 2026-09-02.** Canonical procedure is now
+  `~/repos/spec-kitty-qa/docs/runbooks/spec-kitty-upgrade.md`. The old guide was pipx- and
+  Mac-shaped and prescribed the semver upgrade path; recover it from git history if needed.
 
 ### Non-runbook content in runbooks/
 
