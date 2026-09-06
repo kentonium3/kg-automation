@@ -56,6 +56,17 @@
       "tool_key": "claude"
     },
     {
+      "file_hash": "f087cc97448daabdb3954991b5c669e12192e4ba36902d63afc38dff68c59b02",
+      "format": "claude-agent",
+      "output_path": ".claude/agents/reviewer-renata.md",
+      "profile_urn": "agent_profile:reviewer-renata",
+      "projection_version": 1,
+      "source_hash": "7dfd88cc2667ebd5a253556dd1737053c4d1789c223107f0ed6edb540c18244f",
+      "source_layer": "builtin",
+      "source_path": "${SPEC_KITTY_PACKS_ROOT}/built-in/agent_profiles/reviewer-renata.agent.yaml",
+      "tool_key": "claude"
+    },
+    {
       "file_hash": "6a591ac83639e2007b7fa29b4057c6fc56256af2016e41292c49fc22f3391de6",
       "format": "claude-agent",
       "output_path": ".claude/agents/scribe-sally.md",
