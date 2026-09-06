@@ -95,7 +95,11 @@ SKIP_DIRS = {'.git', 'node_modules', '.venv', '_templates', '.obsidian',
              '.obsidian-shared', '_templater-scripts', 'archive', '.kittify',
              'kitty-specs', '.agents', '.claude', '.codex', '.codex-tmp-home',
              '.gemini', '.github', 'scripts', 'research', 'diagnostics',
-             '.pytest_cache', 'temp', 'tests', '.worktrees'}
+             '.pytest_cache', 'temp', 'tests', '.worktrees', 'dist'}
+# 'dist' is gitignored generated output. spec-kitty 3.2.6 projects managed tool
+# surfaces into dist/spec-kitty-plugins/ (see kentonium3/kg-automation#962); those
+# files can never be committed, so holding them to our frontmatter contract only
+# blocks commits. Deliberately NOT added to SECRET_SCAN_SKIP_DIRS below.
 
 # Directories the SECRET scanner skips. NOTE: 'archive' is intentionally
 # NOT in this set — archived docs are still committed to the public repo
