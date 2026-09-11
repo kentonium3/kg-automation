@@ -1,4 +1,12 @@
 docs/**/*.md text eol=lf
+
+# Obsidian config is JSON and is shared across macOS and Windows per
+# docs/runbooks/obsidian.md. Pin it to LF so checkout and commit behaviour comes
+# from the repo rather than each machine's core.autocrlf, which is currently
+# supplied only by a system-scope Git for Windows default on office3.
+# Mirrors the docs/**/*.md rule above.
+docs/.obsidian/**/*.json text eol=lf
+docs/.obsidian-shared/**/*.json text eol=lf
 kitty-specs/**/status.events.jsonl merge=spec-kitty-event-log
 kitty-specs/**/status.json linguist-generated=true
 kitty-specs/**/status.events.jsonl linguist-generated=true
