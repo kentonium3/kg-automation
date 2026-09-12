@@ -191,6 +191,30 @@ re-auth that `check` mode requires — see "Tradeoffs" below.
   citation and confirmed it true — which it is. Neither asked whether it was the *relevant*
   fact. Verifying a citation is not the same as verifying the inference it supports.
 
+- **2026-08-29 — Tailscale SSH enabled on office4** (#932); logged here 2026-09-11 (#972).
+  `RunSSH` was turned on for office4 so both hosts use one mechanism, rather than office2 using
+  Tailscale SSH while office4 relied on `authorized_keys` alone. The `ssh` rule itself is
+  **unchanged** — no action, src, dst or users field moved — but the rule's *reach* did: with
+  `src: autogroup:member` and `users: ["kgale", "claude", "codex"]`, any tailnet member device
+  now gets a keyless shell on office4 as `kgale`, the only account it has.
+
+  **Logged late, and that had a cost.** The enablement was captured in `network-topology.json`
+  the same day but not here, so `security-posture.md` and `physical-topology.md` went on
+  asserting `RunSSH: false` for two weeks. Both were corrected on 2026-09-11 (#972). A reader
+  of either doc would have concluded office4 was reachable only via `authorized_keys`.
+
+  **ADR-0008's `RunSSH: false` block is now historical, not wrong.** § *Review-only
+  affirmations* cites that value as proof office4's membership was immaterial to this ACL. The
+  citation was accurate on 2026-08-28 and superseded the next day. ADR bodies are frozen, so it
+  stays as written and this entry is the pointer. Note the compounding: the erratum above
+  already found that section's *reasoning* backwards in direction, and the fact it rested on
+  has since expired too.
+
+  Verified 2026-09-11 from office3, a Windows tailnet member with no key material and no
+  `authorized_keys` entry on office4:
+  `ssh -o BatchMode=yes kgale@100.112.83.28 'whoami'` returned `kgale`. A keyless `BatchMode`
+  login cannot succeed on the `authorized_keys` path.
+
 (Future ACL changes record here.)
 
 ## References

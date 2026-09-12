@@ -57,12 +57,19 @@ deliberately **kgale-only**: no `claude` or `codex` Unix user exists there, beca
 office2 `claude` user earns its keep by being a remote actor on a host it does not live on,
 and office4 inverts that premise. See [ADR-0008](<./adr/0008-three-machine-model.md>).
 
-**"Unmanaged" governs deployment, not exposure.** office4 does run standard sshd on port 22,
-reachable over the tailnet and authenticated by `~/.ssh/authorized_keys`. What it does *not*
-run is **Tailscale SSH** (`tailscale debug prefs` → `"RunSSH": false`), so of the two gates
-below, gate 1 is office2-only while gate 2 applies on office4 as well — with no tailnet ACL
-layer in front of it. Do not read "unmanaged peer" as "no attack surface"; office4's sshd
-posture is tracked separately in #926.
+**"Unmanaged" governs deployment, not exposure.** office4 runs standard sshd on port 22 **and**
+Tailscale SSH (`tailscale debug prefs` → `"RunSSH": true`, enabled 2026-08-29 by #932 so both
+hosts use one mechanism). Both paths described below therefore apply to office4 as well as to
+office2. Over the tailnet, membership alone grants a shell as `kgale` — the only account office4
+has — with no key and no password. Over the LAN, `authorized_keys` still governs. Do not read
+"unmanaged peer" as "no attack surface"; office4's sshd posture is tracked separately in #926.
+
+> **Corrected 2026-09-11 (#972).** This paragraph previously said office4 does *not* run
+> Tailscale SSH, citing `"RunSSH": false`. That was true when written and stopped being true on
+> 2026-08-29. `data/network-topology.json` recorded the change; this document did not, so it
+> understated who can reach office4 and how. Verified from office3 on 2026-09-11: a `BatchMode`
+> login as `kgale` from a client with no private key and no `authorized_keys` entry succeeded,
+> which is only possible if tailscaled terminates the connection.
 
 **Agents must always use the claude user on office2.** The kgale account is for human use only by autonomous agents. Humans (Kent) may use either user depending on the task. This ensures all agent actions are traceable.
 
