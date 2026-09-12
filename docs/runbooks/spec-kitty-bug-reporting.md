@@ -4,9 +4,9 @@ doc_type: runbook
 audience: agents_and_humans
 status: approved
 created: 2026-05-28
-last_validated: 2026-07-21
-last_updated: '2026-07-21'
-version: v1.5
+last_validated: 2026-09-11
+last_updated: '2026-09-11'
+version: v1.6
 owners: [kgale]
 ---
 
@@ -47,22 +47,91 @@ fields the maintainer benefits from.
 
 ## Build-ID convention
 
-Always identify the spec-kitty build by a **9-character short SHA**, not just the version string — the
-version (`3.2.6`) is not granular enough when the CLI is built from `main`/`dev` (which moves) or a
-pinned tag. Format the Versions/Environment line as:
+Always identify the spec-kitty build by a **9-character short SHA**, not just the version string —
+the version (`3.2.7`) is not granular enough when the CLI is built from `main`/`dev` (which moves)
+or a pinned tag. Format the Versions/Environment line as:
 
-- **Released tag:** `spec-kitty-cli X.Y.Z (pinned tag SHA <9char>)` — e.g. `3.2.5 (pinned tag SHA 724edc488)`.
+- **Released tag:** `spec-kitty-cli X.Y.Z (pinned tag SHA <9char>)` — e.g. `3.2.7 (pinned tag SHA fb4e8fa98)`.
 - **Off-`main` build:** `spec-kitty-cli X.Y.Z (main build, SHA <9char>)` — e.g. `3.2.6 (main build, SHA 1cb51fb32)`.
 
-Get the SHA:
-- **git/`main` install:** from pip's `direct_url.json` →
-  `python3 -c "import glob,json; f=glob.glob('$HOME/.local/pipx/venvs/spec-kitty-cli/lib/python*/site-packages/spec_kitty_cli-*.dist-info/direct_url.json')[0]; print(json.load(open(f))['vcs_info']['commit_id'][:9])"`
-- **pinned tag:** the tag's commit SHA, resolved with `gh api repos/<org>/<repo>/git/ref/tags/<tag>`.
+### Step 1 — identify the install shape
 
-This 9-char SHA goes in **both** the internal issue and the embedded upstream draft. Resolve it per
-`~/repos/spec-kitty-qa/docs/runbooks/spec-kitty-upgrade.md` §1a/§1b, and name the repository **line**
-alongside it (§2a) — a version number identifies neither the build nor the line. The full 40-char commit may be mentioned
-once for reference in the internal issue, but the short form is the identifier everywhere else.
+Resolution differs by how the CLI was installed, so establish this before reaching for a command:
+
+```bash
+uv tool list                         # a uv-managed tool install and its version
+pipx list                            # a pipx install
+python -m pip show spec-kitty-cli    # a pip install, and its Location
+```
+
+A `uv tool list` entry showing a plain version with no VCS reference is a **PyPI release install** —
+use Step 2. Anything installed from a git URL or an editable clone is an off-`main` build; those
+shapes are out of scope here (see the scope note below).
+
+### Step 2 — released tag (uv tool + PyPI wheel)
+
+This is the shape the personal/customer environment runs: `uv tool install spec-kitty-cli` fetches a
+**PyPI wheel of a tagged release**. The wheel carries no commit reference — there is no
+`direct_url.json` `vcs_info` to read — so resolve the SHA from the upstream tag:
+
+macOS / Linux:
+
+```bash
+git ls-remote --tags https://github.com/spec-kitty/spec-kitty.git | grep '3\.2\.7'
+```
+
+Windows PowerShell (`grep` does not exist there — Git for Windows ships it only inside Git Bash):
+
+```powershell
+git ls-remote --tags https://github.com/spec-kitty/spec-kitty.git | Select-String '3\.2\.7'
+```
+
+Either way the output is the same two lines:
+
+```text
+ed7ccb10a861f3ad0e7b5ffe082e4e822e1cefca   refs/tags/v3.2.7      <- annotated tag OBJECT, not the build
+fb4e8fa9810d053e31d94e9ccc71259b4946c7db   refs/tags/v3.2.7^{}   <- the COMMIT, this is the build ID
+```
+
+Take the first 9 characters of the `^{}` line: `fb4e8fa98`.
+
+**Do not use `gh api repos/<org>/<repo>/git/ref/tags/<tag>` for this.** spec-kitty release tags are
+*annotated*, so that endpoint returns the tag object's SHA rather than the commit it points at — for
+`v3.2.7` it reports `ed7ccb10a`, which identifies no build. If you prefer `gh`, use the tags list
+endpoint, whose `.commit.sha` already dereferences to the commit:
+
+```bash
+gh api repos/spec-kitty/spec-kitty/tags --jq '.[] | select(.name=="v3.2.7") | .commit.sha[0:9]'
+```
+
+On Windows PowerShell, let PowerShell do the filtering — its native-argument quoting mangles the
+`--jq` expression above:
+
+```powershell
+gh api repos/spec-kitty/spec-kitty/tags | ConvertFrom-Json |
+  Where-Object { $_.name -eq 'v3.2.7' } |
+  ForEach-Object { $_.commit.sha.Substring(0,9) }
+```
+
+### Scope note (v1.6)
+
+Only the **uv tool + PyPI release** shape is documented above, because that is what the
+personal/customer environment runs. pipx + git build, uv + git build, and editable clones are all
+valid shapes for QA work and will be documented alongside the QA testing profile rather than here.
+
+### Where the SHA goes
+
+The 9-char SHA goes in **both** the internal issue and the embedded upstream draft, and the
+repository **line** must be named alongside it — a version number identifies neither the build nor
+the line. The full 40-char commit may be mentioned once for reference in the internal issue, but the
+short form is the identifier everywhere else.
+
+Upstream now lives at **`spec-kitty/spec-kitty`** (formerly `Priivacy-ai/spec-kitty`).
+
+For the other install shapes and the upgrade procedure, see the **`spec-kitty-qa`** repo,
+`docs/runbooks/spec-kitty-upgrade.md` §1a/§1b. Refer to it by repo name: clone roots differ per
+machine (`~/repos/` on the Mac and office4; `~/Vaults-repos/` on office3, where it is not yet
+cloned), so a home-relative path in this runbook would be wrong somewhere.
 
 ## Lifecycle (v1.3, 2026-06-08)
 
@@ -111,6 +180,21 @@ once for reference in the internal issue, but the short form is the identifier e
                         labels upstream-filed → upstream-pending-release →
                         upstream-released and close the kg-automation issue.
 ```
+
+### v1.6 change note (2026-09-11)
+
+Rewrote the **Build-ID convention**. The section's `gh api .../git/ref/tags/<tag>` command returned
+the wrong identifier: spec-kitty release tags are annotated, so that endpoint yields the tag
+object's SHA rather than the commit — for `v3.2.7`, `ed7ccb10a` instead of `fb4e8fa98`. Any report
+filed using the section as written would have carried a SHA identifying no build. Replaced it with
+`git ls-remote --tags` plus the `^{}` dereference, added a correct `gh` tags-list alternative and a
+PowerShell form, and added an explicit install-shape identification step. The prior text also
+assumed a pipx install at a Unix path (`$HOME/.local/pipx/venvs/...`), covering neither the `uv tool`
+installs now in use nor Windows; scope is now narrowed deliberately to the uv-tool + PyPI-release
+shape, with other shapes deferred to the QA testing profile. The `spec-kitty-qa` cross-reference is
+by repo name rather than a home-relative path, since clone roots differ per machine. Both templates
+were refreshed to match: the external template still described the paste-file workflow deprecated by
+v1.3, and neither template prompted for the build SHA.
 
 ### v1.5 change note (2026-07-21)
 
@@ -221,13 +305,13 @@ Every embedded upstream draft MUST end with a footer block of the form:
 ```markdown
 ---
 
-**Authored by**: Kent Gale (kentonium3/kg-automation) & Claude Code (Claude Opus 4.7), YYYY-MM-DD.
+**Authored by**: Kent Gale (kentonium3/kg-automation) & Claude Code (Claude Opus 5), YYYY-MM-DD.
 **Submission approved by**: Kent Gale (kentonium3/kg-automation), YYYY-MM-DD.
 **Local tracking**: kentonium3/kg-automation#NNN.
 ```
 
 Field rules:
-- **Authored by** — Kent's real name + GH org/repo identifier `(kentonium3/kg-automation)` so upstream maintainers can resolve the operator without guesswork, joined with `&` to the drafting agent's identity. Agent identity should include the specific model (e.g. `Claude Code (Claude Opus 4.7)`, `Codex (gpt-5.5)`, `Antigravity (gemini-2.5-pro)`). Date is the day the draft was authored.
+- **Authored by** — Kent's real name + GH org/repo identifier `(kentonium3/kg-automation)` so upstream maintainers can resolve the operator without guesswork, joined with `&` to the drafting agent's identity. Agent identity should include the specific model (e.g. `Claude Code (Claude Opus 5)`, `Codex (gpt-5.5)`, `Antigravity (gemini-2.5-pro)`). Date is the day the draft was authored.
 - **Submission approved by** — Kent's real name + GH org/repo identifier, repeated. This line is the operator-in-the-loop approval declaration. Date is the day of upstream filing (typically same day or one day after authoring).
 - **Local tracking** — direct link back to the kentonium3/kg-automation tracking issue, so upstream maintainers can navigate to our internal context if useful.
 

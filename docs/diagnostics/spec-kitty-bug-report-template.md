@@ -6,7 +6,7 @@ status: active
 # Bug Report: {short title}
 
 **Date**: YYYY-MM-DD
-**Spec-Kitty Version**: {x.y.z}
+**Spec-Kitty Build**: {X.Y.Z (pinned tag SHA <9char>) or X.Y.Z (main build, SHA <9char>)}
 **Reporter**: {name} (via {agent or tool})
 **Priority**: {Critical | High | Medium | Low} — {one-line impact}
 **Status**: {PENDING INVESTIGATION | READY TO FILE | FILED #issue | FIXED in version}
@@ -68,10 +68,17 @@ Option C: {fallback / defensive option}
 
 ## Environment
 
-- OS: {e.g., macOS Darwin 25.3.0}
+- OS: {e.g., macOS Darwin 25.3.0 / Windows 11 26200}
 - Python: {e.g., 3.13.12}
-- spec-kitty-cli: {version}
+- spec-kitty-cli: {X.Y.Z (pinned tag SHA <9char>) or X.Y.Z (main build, SHA <9char>)}
+- Install method: {e.g., uv tool install from PyPI / pipx from git main}
 - Feature: {feature-slug where bug observed}
+
+<!--
+The 9-char build SHA is MANDATORY - a bare version string does not identify
+a build. Resolve it per the Build-ID convention in
+runbooks/spec-kitty-bug-reporting.md, and name the repository line alongside it.
+-->
 
 ## Open Questions
 
