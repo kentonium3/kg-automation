@@ -4,28 +4,28 @@
       "agents": [
         "codex"
       ],
-      "content_hash": "ac5600960b61e996b437d0ec1007c2db22696835ab7c249a8a05fd21e52a1330",
+      "content_hash": "dca634c59cb767a55e38d637b99c9362ff5f4bb703b4d21437b4d9c362d3fbbf",
       "installed_at": "2026-06-16T19:41:52.425601+00:00",
       "path": ".agents/skills/spec-kitty.accept/SKILL.md",
-      "spec_kitty_version": "3.2.0rc45"
+      "spec_kitty_version": "4.0.0rc1"
     },
     {
       "agents": [
         "codex"
       ],
-      "content_hash": "af1847494b47ea7e8d5af77665d98944d8331ace9d478843141630573d1eb30e",
+      "content_hash": "c6eb1683deff6e48dca29033d0a690ecef427b42a50c9a7d8a9bcf53d1e6d6f8",
       "installed_at": "2026-06-06T16:35:05.018615+00:00",
       "path": ".agents/skills/spec-kitty.analyze/SKILL.md",
-      "spec_kitty_version": "3.2.0rc45"
+      "spec_kitty_version": "4.0.0rc1"
     },
     {
       "agents": [
         "codex"
       ],
-      "content_hash": "232a65d59a84837058e205bc8b74a392445eac18e9938b825ea985cb79035605",
+      "content_hash": "0a71ebea19a44983bd1ec335c51a78eaef6b50c8275223717e6407b95d10ec8d",
       "installed_at": "2026-06-06T16:35:05.038921+00:00",
       "path": ".agents/skills/spec-kitty.charter/SKILL.md",
-      "spec_kitty_version": "3.2.0rc45"
+      "spec_kitty_version": "4.0.0rc1"
     },
     {
       "agents": [
@@ -40,10 +40,10 @@
       "agents": [
         "codex"
       ],
-      "content_hash": "9c1e8c933d42876a4435c52331cdf91b14838e2f6ef17179b85b5e5ecc12aeab",
+      "content_hash": "74581eb4d52074f660a0496764fa3e7cd1d01828d24f0c974c4c56bdac7fa6a4",
       "installed_at": "2026-06-06T16:35:05.052653+00:00",
       "path": ".agents/skills/spec-kitty.implement/SKILL.md",
-      "spec_kitty_version": "3.2.0rc45"
+      "spec_kitty_version": "4.0.0rc1"
     },
     {
       "agents": [
@@ -58,10 +58,10 @@
       "agents": [
         "codex"
       ],
-      "content_hash": "1f353b189246030b3006ba77e4815039e329d9f92d38ef63d42b7c436c73c0f9",
+      "content_hash": "0666626d3a879634ee6f648c0c66baed38c7efa567ff62943aa820a5ccc8b107",
       "installed_at": "2026-06-06T16:35:05.055131+00:00",
       "path": ".agents/skills/spec-kitty.plan/SKILL.md",
-      "spec_kitty_version": "3.2.0rc45"
+      "spec_kitty_version": "4.0.0rc1"
     },
     {
       "agents": [
@@ -76,19 +76,19 @@
       "agents": [
         "codex"
       ],
-      "content_hash": "1dd18ba0763e10208dac0ed673e9535712376eac372423bb6fcef1aa8f35beee",
+      "content_hash": "ac0dff79ae43cece29efaef6be658998a895f694380dbfd483d8848fb64a1753",
       "installed_at": "2026-06-06T16:35:05.059031+00:00",
       "path": ".agents/skills/spec-kitty.review/SKILL.md",
-      "spec_kitty_version": "3.2.0rc45"
+      "spec_kitty_version": "4.0.0rc1"
     },
     {
       "agents": [
         "codex"
       ],
-      "content_hash": "026d1929f3b3edf7b050b1e5bae84572153b4e09e428a21c8b93d0a26d49f54a",
+      "content_hash": "69c3dd921bc25fd992b64e8849fa7a9fb746c57a2702ce4a9a5915bcb0e100ba",
       "installed_at": "2026-06-06T16:35:05.062480+00:00",
       "path": ".agents/skills/spec-kitty.specify/SKILL.md",
-      "spec_kitty_version": "3.2.0rc45"
+      "spec_kitty_version": "4.0.0rc1"
     },
     {
       "agents": [
@@ -121,19 +121,19 @@
       "agents": [
         "codex"
       ],
-      "content_hash": "ca13b2125a1c64ead4726c037f24a6928c4380a59f988f7c3ded78fc8f474617",
+      "content_hash": "dd6f5e8884dbfd6b7ad387dc26138e3c50762a6d64bca6d0b6553c3edb96df5f",
       "installed_at": "2026-06-06T16:35:05.071129+00:00",
       "path": ".agents/skills/spec-kitty.tasks-packages/SKILL.md",
-      "spec_kitty_version": "3.2.0rc45"
+      "spec_kitty_version": "4.0.0rc1"
     },
     {
       "agents": [
         "codex"
       ],
-      "content_hash": "4eb0f91351435c8d85e3e4bf59c2c6b2299f3579d491256fdffd32a76b4ec404",
+      "content_hash": "250ae22dc79e81989a46c0a8ab8c92376a6fc726877fc565507c4de466026fec",
       "installed_at": "2026-06-06T16:35:05.065755+00:00",
       "path": ".agents/skills/spec-kitty.tasks/SKILL.md",
-      "spec_kitty_version": "3.2.0rc45"
+      "spec_kitty_version": "4.0.0rc1"
     }
   ],
   "schema_version": 1
