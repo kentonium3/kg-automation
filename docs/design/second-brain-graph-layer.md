@@ -296,6 +296,52 @@ All edges carry `valid_from` / `valid_until` automatically via Graphiti's bi-tem
 | `GOVERNED_BY` | Decision | Principle | The Decision was constrained by / cited this Principle |
 | `VIOLATES` | Task/Project | Principle | Agent-detected tension between a proposed action and a Principle |
 
+### Edge attribute models & wiring
+
+Most edges carry **no custom attributes** — their meaning is the type itself, and
+bi-temporal validity comes free from Graphiti. Four edges carry attributes:
+
+```python
+class ConflictsWith(BaseModel):
+    """Agent-detected scheduling conflict."""
+    basis: str = ""                          # what collides (e.g. "18h demanded vs 15h capacity")
+    window_start: Optional[str] = None       # ISO date
+    window_end: Optional[str] = None
+
+class TradesOff(BaseModel):
+    """Agent-detected tension between Outcomes."""
+    basis: str = ""
+
+class Decided(BaseModel):
+    """Disposition this Decision applied to the target node."""
+    disposition: str = ""                    # committed | postponed | displaced | abandoned
+
+class Violates(BaseModel):
+    """Detected Principle tension; severity comes from Principle.strictness, not here."""
+    note: str = ""
+```
+
+Wiring intent (implementer verifies exact API shape against the pinned graphiti-core —
+the doc states design intent, not engine mechanics):
+
+- `entity_types`: all nine models, keyed by their class names, passed to `add_episode`.
+- `edge_type_map`: keyed by (source-type, target-type) name pairs per the table above.
+  `CONTAINS` registers for (Project, Project), (Project, Task), and (Task, Task).
+  `DECIDED` registers Decision → each tier type it may touch; enumerate pairs explicitly
+  rather than relying on any generic-pair fallback until the fallback behavior is
+  verified on the pinned version.
+- **Authority rule:** where a flag and an edge encode the same fact, the **edge is
+  authoritative** and the flag is derived (`Task.is_shared` ⇐ existence of `SHARED_BY`
+  edges). Writers maintain the edge; the flag may lag or be dropped entirely.
+
+### Graph namespace (group_id)
+
+Spike/prototype data uses a dedicated `group_id` (`spike-692`) so it can never mingle
+with future real Lattice data. The production namespace strategy is **deliberately
+undecided**: #844 hit errors with group-scoped search (had to run unscoped), so the
+single-group vs multi-group decision waits on a retest against current
+graphiti-core/FalkorDB versions.
+
 ---
 
 ## Life-Coach Agent Reasoning Model
