@@ -261,6 +261,14 @@ class Decision(BaseModel):
     rationale: str = ""
     decided_at: Optional[str] = None         # ISO datetime
     options_considered: list[str] = []
+
+
+class Capacity(BaseModel):
+    """Measured availability constraint — a fact, not a preference.
+    The quantity the reasoning loop uses for step-6 arithmetic; the *value*
+    protecting that time (if any) is a separate Principle for step-7 checks."""
+    description: str = ""
+    hours_per_week: Optional[float] = None
 ```
 
 ---
@@ -295,6 +303,7 @@ All edges carry `valid_from` / `valid_until` automatically via Graphiti's bi-tem
 | `SCOPED_TO` | Principle | Purpose/Domain | Principle applies only within this Purpose/Domain (absence = global) |
 | `GOVERNED_BY` | Decision | Principle | The Decision was constrained by / cited this Principle |
 | `VIOLATES` | Task/Project | Principle | Agent-detected tension between a proposed action and a Principle |
+| `CONSTRAINS` | Capacity | Purpose/Domain | Capacity bounds work in this scope (absence = global) |
 
 ### Edge attribute models & wiring
 
@@ -324,23 +333,38 @@ class Violates(BaseModel):
 Wiring intent (implementer verifies exact API shape against the pinned graphiti-core —
 the doc states design intent, not engine mechanics):
 
-- `entity_types`: all nine models, keyed by their class names, passed to `add_episode`.
+- `entity_types`: all ten models, keyed by their class names, passed to `add_episode`.
 - `edge_type_map`: keyed by (source-type, target-type) name pairs per the table above.
   `CONTAINS` registers for (Project, Project), (Project, Task), and (Task, Task).
-  `DECIDED` registers Decision → each tier type it may touch; enumerate pairs explicitly
-  rather than relying on any generic-pair fallback until the fallback behavior is
-  verified on the pinned version.
+  `DECIDED` registers Decision → **{Purpose, Domain, Outcome, Objective, Project, Task,
+  Commitment} — seven pairs, deliberately excluding Principle**: (Decision, Principle)
+  must have exactly one candidate edge name (`GOVERNED_BY`) so extraction never has to
+  choose, and amending a Principle is a Kent re-seed event, not a graph-recorded
+  Decision. Enumerate pairs explicitly rather than relying on any generic-pair fallback
+  until the fallback behavior is verified on the pinned version.
+- **Principles never attach statically to Tasks/Projects.** Applicability is computed at
+  reasoning time (loop step 7) from global Principles plus `SCOPED_TO` edges along the
+  traversed chain; `GOVERNED_BY`/`VIOLATES` record *events*, not standing attachments.
 - **Authority rule:** where a flag and an edge encode the same fact, the **edge is
   authoritative** and the flag is derived (`Task.is_shared` ⇐ existence of `SHARED_BY`
   edges). Writers maintain the edge; the flag may lag or be dropped entirely.
 
 ### Graph namespace (group_id)
 
-Spike/prototype data uses a dedicated `group_id` (`spike-692`) so it can never mingle
-with future real Lattice data. The production namespace strategy is **deliberately
-undecided**: #844 hit errors with group-scoped search (had to run unscoped), so the
-single-group vs multi-group decision waits on a retest against current
-graphiti-core/FalkorDB versions.
+Spike/prototype data uses a dedicated `group_id` (`spike_692`) so it can never mingle
+with future real Lattice data.
+
+**Naming rule: `group_id` uses `[A-Za-z0-9_]` only — underscores, never hyphens.**
+Measured on graphiti-core 0.30.2 + FalkorDB 4.20.1 (2026-09-15, #974): a hyphenated
+group_id silently disables BM25 edge full-text (the escaped query `@group_id:"x\-y"`
+returns 0 keyword hits) while hybrid search still returns vector hits — keyword recall
+disappears with **no error surfaced**. Two further operational facts from the same
+retest: on FalkorDB each group_id is its own graph, and **unscoped `search()` does not
+span groups** — consumers must always pass `group_ids` explicitly. Group-scoped search
+itself works; #844's "had to run unscoped" is superseded by this measurement.
+
+The production single-group vs multi-group strategy remains open, but is now a design
+choice rather than an engine limitation.
 
 ---
 
@@ -353,7 +377,7 @@ The life-coach agent operates on this graph to perform trade-off reasoning. Its 
 3. Retrieve all Tasks and Projects scheduled for the relevant time window
 4. Traverse each competing node upward to its Outcome; compare `priority_rank` and `target_date` urgency
 5. Retrieve active Commitments for the time window (fixed points)
-6. Calculate available effort: window capacity minus Commitments minus existing scheduled work
+6. Calculate available effort: window capacity (from applicable `Capacity` nodes — global plus those `CONSTRAINS`-scoped to the traversed Purpose/Domain) minus Commitments minus existing scheduled work
 7. **Check applicable Principles** (global + those `SCOPED_TO` the traversed Purpose/Domain): does the proposed action violate any? A **hard** violation is never auto-handled — it surfaces regardless of priority; a **soft** violation is weighed against the action's value. Record the check via `GOVERNED_BY` (and `VIOLATES` when detected).
 8. Determine fit: does the proposed node fit without displacing higher-priority work?
 9. If no fit: identify the lowest-priority scheduled item whose Outcome ranks below the proposed node's Outcome
