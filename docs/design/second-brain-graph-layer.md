@@ -3,7 +3,7 @@ title: "Second Brain Graph Layer — Design"
 doc_type: design
 status: draft
 owners: ["@kentonium3"]
-last_updated: '2026-07-20'
+last_updated: '2026-09-15'
 audience: agents_and_humans
 ---
 
@@ -109,7 +109,7 @@ FalkorDB is preferred over Neo4j for this deployment:
 
 4. **Many-to-many is allowed upward.** A single Outcome can serve multiple Purposes. A single Objective can be advanced by multiple Projects. This reflects reality — work often serves more than one master — while keeping the hierarchy structurally enforced.
 
-5. **Decisions are first-class nodes.** Every trade-off conversation that reaches a resolution is ingested as an episode and creates a durable `DECIDED` relationship. Future conflicts can be checked against past decisions.
+5. **Decisions are first-class nodes.** Every trade-off conversation that reaches a resolution is ingested as an episode, from which a **Decision entity** is extracted; the Decision carries durable `DECIDED` (and `GOVERNED_BY`) edges to the nodes it bears on, and the source episode remains linked to it via Graphiti's built-in `MENTIONS` edge. Future conflicts can be checked against past decisions.
 
 6. **Principles are a first-class, cross-cutting constraint axis** (Kent, 2026-07-20). Where the Purpose→…→Task hierarchy *directs* decisions (what/why you pursue), **Principles *constrain*** them (how you decide — the values, standards, and non-negotiables the boss will or won't accept). A Principle is definitional-tier (slow-changing, like Purpose) and cross-cutting (not in the hierarchy, like Commitment). It is seeded explicitly and is the least-duplicable element in the system — the deepest moat. See [`executive-assistant-architecture.md`](executive-assistant-architecture.md) §6 for the EA framing that motivated adding this type.
 
@@ -159,6 +159,14 @@ A cross-cutting **constraint** on decisions — a value, standard, or non-negoti
 
 ### Pydantic Entity Models
 
+> **Reserved-field rule (graphiti-core):** custom entity types supply *type-specific
+> attributes only*. Graphiti's `EntityNode` already owns `uuid`, `name`, `group_id`,
+> `labels`, `created_at`, `name_embedding`, `summary`, and `attributes`; redeclaring any
+> of these in a custom type fails `validate_entity_types` at `add_episode` time. The node's
+> canonical name is `EntityNode.name` — the models below therefore declare no `name` field.
+> `description` is deliberately kept as an authored, definitional attribute, distinct from
+> the engine-generated rolling digest in `EntityNode.summary`.
+
 ```python
 from pydantic import BaseModel
 from typing import Optional
@@ -180,20 +188,17 @@ class StrictnessEnum(str, Enum):
 
 class Purpose(BaseModel):
     """Immutable life-level why. Changes are life events."""
-    name: str
     description: str
     core_values: list[str] = []
 
 
 class Domain(BaseModel):
     """Persistent life area. Not time-bounded. Routing layer."""
-    name: str
     description: str
 
 
 class Outcome(BaseModel):
     """Concrete, time-bounded end state. Measurable."""
-    name: str
     description: str
     target_date: Optional[str] = None       # ISO date
     success_criteria: str = ""
@@ -203,7 +208,6 @@ class Outcome(BaseModel):
 
 class Objective(BaseModel):
     """Intermediate result required to reach an Outcome."""
-    name: str
     description: str
     target_date: Optional[str] = None
     success_criteria: str = ""
@@ -213,7 +217,6 @@ class Objective(BaseModel):
 
 class Project(BaseModel):
     """Coordinated body of work. Self-similar — can contain sub-Projects."""
-    name: str
     description: str
     target_date: Optional[str] = None
     status: StatusEnum = StatusEnum.ACTIVE
@@ -223,7 +226,6 @@ class Project(BaseModel):
 
 class Task(BaseModel):
     """Discrete, schedulable unit of action. Self-similar — can contain sub-Tasks."""
-    name: str
     description: str = ""
     due_date: Optional[str] = None
     scheduled_date: Optional[str] = None
@@ -237,7 +239,6 @@ class Task(BaseModel):
 
 class Commitment(BaseModel):
     """Hard temporal constraint. Fixed point for scheduling."""
-    name: str
     description: str = ""
     datetime: str                           # ISO datetime
     duration_hours: Optional[float] = None
@@ -248,11 +249,18 @@ class Commitment(BaseModel):
 class Principle(BaseModel):
     """Cross-cutting definitional constraint — a value, standard, or non-negotiable.
     Governs *how* decisions are made, not *what* is pursued. Slow-changing."""
-    name: str
     description: str
     rationale: str = ""                      # why this matters to Kent
     strictness: StrictnessEnum = StrictnessEnum.HARD
     is_global: bool = True                   # False = scoped via SCOPED_TO edges
+
+
+class Decision(BaseModel):
+    """A resolved trade-off, extracted from its decision episode.
+    First-class per guiding principle 5; the raw episode stays linked via MENTIONS."""
+    rationale: str = ""
+    decided_at: Optional[str] = None         # ISO datetime
+    options_considered: list[str] = []
 ```
 
 ---
@@ -260,6 +268,13 @@ class Principle(BaseModel):
 ### Edge Types
 
 All edges carry `valid_from` / `valid_until` automatically via Graphiti's bi-temporal model.
+
+> **Episode boundary (graphiti-core):** typed custom edges exist only between *entity*
+> nodes (`edge_type_map` is keyed by entity-type pairs). Episodes are `EpisodicNode`s,
+> whose only outbound link is the built-in untyped `MENTIONS` edge. Decision-bearing
+> episodes therefore yield an extracted **Decision entity** (above), which carries the
+> typed `DECIDED` / `GOVERNED_BY` edges; provenance back to the raw episode rides
+> `MENTIONS`. Rows below name entity→entity edges only.
 
 | Edge | From | To | Meaning |
 |---|---|---|---|
@@ -276,9 +291,9 @@ All edges carry `valid_from` / `valid_until` automatically via Graphiti's bi-tem
 | `GATES` | Commitment | Task/Project | Commitment is a prerequisite for this node |
 | `CONFLICTS_WITH` | Task | Task | Agent-detected scheduling conflict |
 | `TRADES_OFF` | Outcome | Outcome | Agent-detected tension between Outcomes |
-| `DECIDED` | Episode | any | Decision recorded with timestamp and rationale |
+| `DECIDED` | Decision | any | This Decision resolved the fate of this node (timestamp + rationale live on the Decision entity) |
 | `SCOPED_TO` | Principle | Purpose/Domain | Principle applies only within this Purpose/Domain (absence = global) |
-| `GOVERNED_BY` | Episode | Principle | A decision was constrained by / cited this Principle |
+| `GOVERNED_BY` | Decision | Principle | The Decision was constrained by / cited this Principle |
 | `VIOLATES` | Task/Project | Principle | Agent-detected tension between a proposed action and a Principle |
 
 ---
@@ -297,7 +312,7 @@ The life-coach agent operates on this graph to perform trade-off reasoning. Its 
 8. Determine fit: does the proposed node fit without displacing higher-priority work?
 9. If no fit: identify the lowest-priority scheduled item whose Outcome ranks below the proposed node's Outcome
 10. Surface the conflict: "You have [A] by [date], which needs [B]. This week also has [C] and [D] at [hours]. [E] would require displacing [F] (serving Outcome [X], priority [N]). Postpone E or trade off F?"
-11. Ingest the decision as an episode → creates `DECIDED` edge (and `GOVERNED_BY` edges to any Principles that bore on it) with timestamp and rationale
+11. Ingest the decision as an episode → a `Decision` entity is extracted carrying `DECIDED` edges (and `GOVERNED_BY` edges to any Principles that bore on it) with timestamp and rationale; the episode stays linked via `MENTIONS`
 
 Past decisions are retrievable: "You've deferred E four times since March. Either commit to it or explicitly abandon it."
 
