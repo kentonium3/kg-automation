@@ -77,6 +77,12 @@ LightRAG is optimized for static or slowly-evolving document corpora — strong 
 
 Graphiti implements a **bi-temporal model**: every graph edge carries explicit validity intervals (`valid_from`, `valid_until`). When a fact changes, the old relationship is invalidated — not deleted. The full history is preserved and queryable at any point in time. This is not a nice-to-have for a life-management second brain; it is the core requirement.
 
+> **Scope caveat (measured, 2026-09-15, #974):** the bi-temporal model versions
+> **relationships only**. Node *attributes* (e.g. `Task.scheduled_date`) are overwritten
+> in place with no history. History for state changes therefore comes from the episode
+> log, not from attribute versioning — see the *state vs history representation rule*
+> under §Edge attribute models & wiring.
+
 Additional selection factors:
 
 - Native Anthropic API support (alongside OpenAI, Gemini, Groq)
@@ -304,6 +310,7 @@ All edges carry `valid_from` / `valid_until` automatically via Graphiti's bi-tem
 | `GOVERNED_BY` | Decision | Principle | The Decision was constrained by / cited this Principle |
 | `VIOLATES` | Task/Project | Principle | Agent-detected tension between a proposed action and a Principle |
 | `CONSTRAINS` | Capacity | Purpose/Domain | Capacity bounds work in this scope (absence = global) |
+| `DUE_BY` | Task/Project | Commitment | This node's hard deadline is this Commitment (task-side source, matching the upward-pointing convention) |
 
 ### Edge attribute models & wiring
 
@@ -347,7 +354,27 @@ the doc states design intent, not engine mechanics):
   traversed chain; `GOVERNED_BY`/`VIOLATES` record *events*, not standing attachments.
 - **Authority rule:** where a flag and an edge encode the same fact, the **edge is
   authoritative** and the flag is derived (`Task.is_shared` ⇐ existence of `SHARED_BY`
-  edges). Writers maintain the edge; the flag may lag or be dropped entirely.
+  edges; `Task.due_date` ⇐ its `DUE_BY` Commitment when one exists — attribute-only due
+  dates remain valid for soft dates that never earned a Commitment). Writers maintain
+  the edge; the flag may lag or be dropped entirely.
+
+### State vs history representation rule
+
+**Node attributes hold current state only; history lives in the episode log.**
+Graphiti's bi-temporal intervals version *edges*, not attributes — a rewritten
+`scheduled_date` leaves no trace. So any state change whose history matters (reschedule,
+defer, status change) is recorded by the writing adapter as **one episode per event**
+(`reference_time` = when it happened, `MENTIONS` linking the affected node), plus a
+`Decision` node with `DECIDED` edges when an actual decision was made. A state change
+*without* a Decision is deliberately distinguishable from one *with* — the bare-event
+pattern ("deferred 4× and never decided anything") is itself a coaching signal.
+This is not a spike workaround: proof-ladder rung 2 is adapters writing events into the
+Lattice, and §Integration already routes Vikunja task events in as episodes.
+
+**Discovery contract for scope-free nodes:** a global `Capacity` (no `CONSTRAINS` edge)
+is intentionally not traversal-reachable; reasoning-loop step 6 finds it by **typed-label
+lookup**, not by walking edges. Retrieval configurations that only search edges will miss
+edgeless nodes (measured in #974) — consumers must include node search.
 
 ### Graph namespace (group_id)
 
