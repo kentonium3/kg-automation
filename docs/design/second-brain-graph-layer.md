@@ -380,6 +380,32 @@ strangler-fig adoption — the mature pattern for iterating safely on production
 
 ### Design spike (do first, throwaway, zero prod contact)
 
+> **STATUS (2026-09-15): the spike RAN as #844** (mission
+> `life-lattice-viability-spike-01KY37JY`, closed 2026-07-22, live on office2, torn down).
+> Outcomes per item — full detail in
+> [`kitty-specs/life-lattice-viability-spike-01KY37JY/findings.md`](../../kitty-specs/life-lattice-viability-spike-01KY37JY/findings.md):
+>
+> 1. **office2 fit — PASS** (+~112 MB host idle, no contention).
+> 2. **Temporal-reasoning payoff — split verdict.** The *reasoning* is GO (Kent, blinded:
+>    "clearly valuable"). The *graph substrate* is NO-GO/inconclusive at small static
+>    scale: the default-config graph arm lost 0/4 blinded comparisons to a flat-context
+>    baseline. Caveats bound this (untuned retrieval, Q4 under-seeded, **typed
+>    `entity_types` untested** — findings "Threats to validity"). **Build direction for
+>    #692 is OPEN — Kent is deciding** (structured-context-first vs re-test graph at
+>    scale). The decisive test is **#849** (dynamic/scale regime, tuned retrieval + typed
+>    entities vs vector-RAG baseline), gated on Kent's scenario stories.
+> 3. **Privacy/extraction — posture set for spike-grade work:** Claude extraction
+>    (Anthropic API; episode text crosses the Tailscale boundary), local FastEmbed
+>    embedder + local reranker (no OpenAI; Anthropic has no embeddings API). Real-vault
+>    ingest remains hard-gated per #696.
+> 4. **Ontology fit — significant friction in default config:** with no custom
+>    `entity_types`, Graphiti flattened everything to generic `Entity` nodes and the
+>    upward hierarchy survived only as fragile extracted edges. Typed-entity
+>    configuration is the open half — being exercised by the office4 prototype
+>    (felix-graph-692 run) as #849 graph-arm prep.
+>
+> The item list below is retained as the original spike definition (historical record).
+
 Time-boxed investigation to kill the four make-or-break unknowns *before* committing to the
 full #693→#698 build:
 
@@ -409,6 +435,11 @@ full #693→#698 build:
    to the #367 hierarchy-research question, on a slice rather than by exhaustive survey).
 
 ### Proof-feature ladder (each rung: parallel on prod, additive, reversible, one proof point)
+
+> **Contingency (2026-09-15):** the ladder below presumes the graph build proceeds. Per the
+> #844 verdict, that is not yet decided — the ladder, the #693→#698 sequencing, and the
+> membrane-topology question are all contingent on Kent's open build-direction decision and
+> on #849's outcome. Retained as the plan-of-record *if* the graph path is taken.
 
 1. **Read-only, hand-seeded, queried only by Kent** via MCP in Claude Desktop — zero Felix
    involvement. *Proof: can it answer "why this task?"*
