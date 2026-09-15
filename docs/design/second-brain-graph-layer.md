@@ -131,6 +131,15 @@ The "why I exist / what I'm for" level. Immutable or near-immutable. Changes rep
 #### DOMAIN
 A persistent life area that groups Outcomes. Not time-bounded. Serves as a routing and grouping layer — prevents all Outcomes from hanging directly off Purpose nodes and gives the life-coach agent a natural partition for capacity reasoning.
 
+**Domains carry no edge to Purpose — by design (2026-09-15, #974).** Domain is the
+*where* axis; Purpose is the *why* axis; the why-chain is single-sourced through
+Outcomes (`Outcome -SERVES-> Purpose`). A Domain's purpose-affinity is **derived** —
+the Purposes served by the Outcomes that `BELONGS_TO` it — never asserted, because
+Domains genuinely span Purposes and an asserted edge could disagree with the
+Outcome-level truth. An empty or ambiguous derivation is a coaching signal, not a
+modeling gap. Seed data and extraction wording must not assert Domain→Purpose
+relations; the post-extraction validator rejects them as unregistered pairs.
+
 *Examples:* Intentional LLC, Physical Conditioning, Business Acquisition, Felix/Second Brain
 
 #### OUTCOME
@@ -352,6 +361,14 @@ the doc states design intent, not engine mechanics):
 - **Principles never attach statically to Tasks/Projects.** Applicability is computed at
   reasoning time (loop step 7) from global Principles plus `SCOPED_TO` edges along the
   traversed chain; `GOVERNED_BY`/`VIOLATES` record *events*, not standing attachments.
+- **The `edge_type_map` is advisory, not enforced** (measured on graphiti-core 0.30.2,
+  #974: unregistered-pair edges are stored as-is). Therefore any **extraction** path
+  MUST run a **post-extraction validator** before results are trusted: reject or
+  quarantine edges on unregistered (source-type, target-type, name) triples, and flag
+  near-duplicate entity names across tiers (the dominant residual failure mode —
+  identically-named objective/project/deadline nodes). Structured adapters writing
+  typed nodes/edges directly do not need the validator; they are the preferred write
+  path and cost no LLM calls.
 - **Authority rule:** where a flag and an edge encode the same fact, the **edge is
   authoritative** and the flag is derived (`Task.is_shared` ⇐ existence of `SHARED_BY`
   edges; `Task.due_date` ⇐ its `DUE_BY` Commitment when one exists — attribute-only due
@@ -498,8 +515,16 @@ strangler-fig adoption — the mature pattern for iterating safely on production
 > 4. **Ontology fit — significant friction in default config:** with no custom
 >    `entity_types`, Graphiti flattened everything to generic `Entity` nodes and the
 >    upward hierarchy survived only as fragile extracted edges. Typed-entity
->    configuration is the open half — being exercised by the office4 prototype
->    (felix-graph-692 run) as #849 graph-arm prep.
+>    configuration was the open half — **closed by #974** (typed-entity spike,
+>    office4, closed 2026-09-15): the corrected ontology loads and direct typed
+>    writes work at $0; anchored episode expansion recovers full defer history;
+>    node+edge hybrid retrieval recovers edgeless facts that edge-only search
+>    misses; typed Capacity beats bare text. LLM extraction is input-sensitive —
+>    labels went 18/30 → 29/30 and edges 3/22 → 19/22 only with tier-definition
+>    instructions plus templated wording (local Qwen3-Next-80B; free prose
+>    unproven, #849 tests it) — and `edge_type_map` is not enforced, so extraction
+>    requires the post-extraction validator (§Edge attribute models & wiring).
+>    Full findings + reusable harness: kentonium3/kg-automation#974.
 >
 > The item list below is retained as the original spike definition (historical record).
 
