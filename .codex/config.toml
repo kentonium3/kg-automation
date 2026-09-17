@@ -1,0 +1,9 @@
+[mcp_servers.filesystem]
+command = "npx"
+args = [
+    "-y",
+    "@modelcontextprotocol/server-filesystem",
+]
+
+[mcp_servers.filesystem.env]
+ALLOWED_DIRECTORIES = ".,docs,ai-agents,systems"
