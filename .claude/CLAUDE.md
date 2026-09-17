@@ -1,5 +1,5 @@
 <!-- spec-kitty:orientation -->
-**Spec Kitty v4.0.0rc1** — project: kg-automation (healthy)
+**Spec Kitty v4.0.0rc3** — project: kg-automation (healthy)
 
 Two usage patterns:
 - **Full mission** (spec → plan → tasks → implement → review → merge):
