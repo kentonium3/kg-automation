@@ -126,7 +126,24 @@ FalkorDB is preferred over Neo4j for this deployment:
 #### PURPOSE
 The "why I exist / what I'm for" level. Immutable or near-immutable. Changes represent life events, not planning events. No due date. No status in the task sense.
 
-*Examples:* "Build wealth through AI-leveraged operations as a solo operator," "Radical personal transformation and growth"
+A Purpose is **not** the purpose *of* a particular Outcome — it is the purpose *from which*
+Outcomes are derived, and it sits above Outcome in the chain (Kent, 2026-09-16). A Purpose
+statement can read like an ambitious Outcome statement; the tiers are told apart by shape,
+not by tone:
+
+| | date | measure of done | status | 
+|---|---|---|---|
+| **Purpose** | none | none | none |
+| **Outcome** | required | required | tracked |
+| **Domain** | never | never | none (it is a container) |
+
+*Examples:* "I wish to be financially independent so that I have the freedom to do what I
+want with my time and so I can financially support causes I believe in," "to be a great
+father to my children," "Build wealth through AI-leveraged operations as a solo operator"
+
+> **Why this matters operationally (#974):** on ambiguous episode text, LLM extraction typed
+> 2 of 3 Purposes as Domains. Seeding and any adapter-rendered text must make the shape
+> explicit — state a Purpose with no date and no measure — or the tier collapses on ingest.
 
 #### DOMAIN
 A persistent life area that groups Outcomes. Not time-bounded. Serves as a routing and grouping layer — prevents all Outcomes from hanging directly off Purpose nodes and gives the life-coach agent a natural partition for capacity reasoning.
@@ -504,10 +521,12 @@ strangler-fig adoption — the mature pattern for iterating safely on production
 >    "clearly valuable"). The *graph substrate* is NO-GO/inconclusive at small static
 >    scale: the default-config graph arm lost 0/4 blinded comparisons to a flat-context
 >    baseline. Caveats bound this (untuned retrieval, Q4 under-seeded, **typed
->    `entity_types` untested** — findings "Threats to validity"). **Build direction for
->    #692 is OPEN — Kent is deciding** (structured-context-first vs re-test graph at
->    scale). The decisive test is **#849** (dynamic/scale regime, tuned retrieval + typed
->    entities vs vector-RAG baseline), gated on Kent's scenario stories.
+>    `entity_types` untested** — findings "Threats to validity"). **Build direction DECIDED
+>    2026-09-16 (Kent): pursue the graph, with adapters as the writers** — see the
+>    Build-direction decision below. The remaining open question is not affordability but
+>    whether graph-mediated retrieval earns its complexity at scale, which is **#849**
+>    (dynamic/scale regime, tuned retrieval + typed entities vs a vector-RAG baseline),
+>    gated on Kent's scenario stories.
 > 3. **Privacy/extraction — posture set for spike-grade work:** Claude extraction
 >    (Anthropic API; episode text crosses the Tailscale boundary), local FastEmbed
 >    embedder + local reranker (no OpenAI; Anthropic has no embeddings API). Real-vault
@@ -555,6 +574,28 @@ full #693→#698 build:
    early.
 4. **Ontology fit** — does hand-seeding reveal friction in the tier model? (empirical answer
    to the #367 hierarchy-research question, on a slice rather than by exhaustive survey).
+
+### Build-direction decision (Kent, 2026-09-16)
+
+**Pursue the graph, with adapters as the writers.** Kent's steer on where cycles go: *"If
+we're going to spend cycles I'd rather spend them figuring out if the end goal is going to
+work."* So plumbing is minimised and validation of the end goal is prioritised.
+
+What the decision rests on (#974, measured, $0):
+- Structured adapters write typed nodes and edges **directly, with no LLM** — verified by a
+  tripwire client recording zero LLM calls. Exact structure, no extraction risk, no cost.
+- Deadlines are **adapter-written `Commitment` nodes with `DUE_BY`**; extraction never
+  produced one, collapsing every deadline into its deliverable.
+- LLM extraction is confined to genuinely unstructured content, and runs **locally at $0**
+  on office4 for templated, one-relation-per-sentence text (29/30 labels, 19/22 edges, 5/6
+  strict chains on a local 80B-A3B model). **Free prose remains unproven** (ambiguous
+  wording: 18/30, 3/22, 0/6).
+- The cost objection that shelved this epic applies only to the extraction half, and even
+  that half now has a local, no-cost path.
+
+What this decision does **not** settle: whether graph-mediated retrieval beats the best
+non-graph baseline at scale. #974 measured mechanisms on 34–36 nodes, where a retrieval
+budget of 50 returns the whole graph. **#849 is the gate** and it is the priority spend.
 
 ### Proof-feature ladder (each rung: parallel on prod, additive, reversible, one proof point)
 
