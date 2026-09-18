@@ -38,10 +38,10 @@
       "criterion_id": "FR-004",
       "description": "Permitted statuses depend on doc_type: a decision may use `superseded`, an ordinary doc may not, and `active` is invalid for a decision.",
       "proof_type": "automated_test",
-      "evidence": "test_validator_scoping.py::test_decision_may_use_superseded / ::test_ordinary_doc_may_not_use_superseded / ::test_decision_may_not_use_active; conditional JSON Schema proven in test_generator.py.",
+      "evidence": "test_validator_scoping.py decision-may-use-superseded / ordinary-may-not / decision-may-not-use-active; conditional JSON Schema proven in test_generator.py",
       "pass_fail": "pass",
       "verified_by": "claude-office4",
-      "verified_at": "2026-09-18T23:55:00Z",
+      "verified_at": "2026-09-18T23:54:32.720370+00:00",
       "notes": "Verified in lane-e, which has all six work packages merged."
     },
     {
