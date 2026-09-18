@@ -88,10 +88,10 @@
       "criterion_id": "FR-009",
       "description": "The ADR README records the doctrine \u2014 three separated roles, the status table, no partially_superseded, and the entry-lives-in-its-own-ADR rule.",
       "proof_type": "automated_test",
-      "evidence": "docs/design/architecture/adr/README.md; test_adr_corpus.py::test_indexes_carry_no_parenthetical_state asserts both index tables no longer smuggle state.",
+      "evidence": "docs/design/architecture/adr/README.md doctrine; test_adr_corpus.py::test_indexes_carry_no_parenthetical_state",
       "pass_fail": "pass",
       "verified_by": "claude-office4",
-      "verified_at": "2026-09-18T23:55:00Z",
+      "verified_at": "2026-09-18T23:54:46.502273+00:00",
       "notes": "Verified in lane-e, which has all six work packages merged."
     },
     {
