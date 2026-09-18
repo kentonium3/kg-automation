@@ -13,7 +13,9 @@ requirement_refs:
 planning_base_branch: feat/adr-first-class-statuses
 merge_target_branch: feat/adr-first-class-statuses
 branch_strategy: Planning artifacts for this mission were generated on feat/adr-first-class-statuses. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into feat/adr-first-class-statuses unless the human explicitly redirects the landing branch.
-created_at: '2026-09-18T18:45:00Z'
+base_branch: kitty/mission-adr-first-class-statuses-01M2TVSP
+base_commit: cf97254947c9ac9874c1c6ee78025094266b2f25
+created_at: '2026-09-18T22:50:21.217000+00:00'
 subtasks:
 - T012
 - T013
