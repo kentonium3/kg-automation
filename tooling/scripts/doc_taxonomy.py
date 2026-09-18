@@ -268,7 +268,8 @@ def load_taxonomy(path: Path | str | None = None) -> Taxonomy:
         )
 
     # Every other top-level list is an ordinary vocabulary. `level` carries
-    # mixed str/int entries today, so it is validated for shape only.
+    # mixed str/int entries today, so it goes through the mixed validator —
+    # different rules, not fewer.
     vocabularies: dict[str, tuple] = {_DEFAULT_KEY: default_statuses, _DOC_TYPE_KEY: doc_types}
     for key, raw in data.items():
         if key in (_DEFAULT_KEY, _DOC_TYPE_KEY, _SCOPED_KEY):
