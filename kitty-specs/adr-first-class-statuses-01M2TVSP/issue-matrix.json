@@ -1,5 +1,17 @@
 {
   "rows": {
+    "#10": {
+      "evidence_ref": "NOT a GitHub issue reference. Scraper false positive: these are review-finding numbers ('review finding #10') cited in this mission's own artifacts. No such issue exists in kentonium3/kg-automation.",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": null,
+      "title": null,
+      "verdict": "deferred-with-followup",
+      "wp": "WP01"
+    },
     "#507": {
       "evidence_ref": "Closed epic, cited as evidence for ADR-0003's standing: it shipped via #518/#519/#520 and sync-driver-ops.md documents the driver as live.",
       "fr": null,
