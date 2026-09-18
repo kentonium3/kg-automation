@@ -18,7 +18,7 @@ _%>
 ---
 id: <%* tR += id %>
 title: <%* tR += title %>
-doc_type: guide
+doc_type: decision
 level: reference
 status: draft
 owners:
@@ -45,3 +45,24 @@ audience: agents_and_humans
 
 ## Links
 - …
+
+<!--
+  Decision log (#987). The DECISION above is frozen once approved; this log is
+  append-only and carries NO authority — it records that authority was
+  exercised elsewhere. An entry about THIS ADR belongs here, not in the ADR it
+  cross-references. Frontmatter `status` is the authoritative standing.
+
+  Types: erratum (a stated reason is wrong, the conclusion stands) · amendment
+  (a detail changed, the decision stands) · superseded-by (pairs with
+  `status: superseded`) · context (a referenced fact changed).
+
+  Escape any literal pipe in a cell as \| .
+
+  | Date | Type | By | Summary | Refs |
+  |---|---|---|---|---|
+  | 2026-01-01 | erratum | name | one line | ADR-00NN, #123 |
+-->
+
+## Decision log
+
+*No entries.*
