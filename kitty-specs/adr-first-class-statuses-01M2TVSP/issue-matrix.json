@@ -1,5 +1,17 @@
 {
   "rows": {
+    "#507": {
+      "evidence_ref": "Closed epic, cited as evidence for ADR-0003's standing: it shipped via #518/#519/#520 and sync-driver-ops.md documents the driver as live.",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": null,
+      "title": null,
+      "verdict": "verified-already-fixed",
+      "wp": "WP01"
+    },
     "#986": {
       "evidence_ref": "RFC on inference provider/model flexibility; referenced because ADR-0009 points at ADR-0004's legacy log. Its own substance is open on #986 and untouched here.",
       "fr": null,
