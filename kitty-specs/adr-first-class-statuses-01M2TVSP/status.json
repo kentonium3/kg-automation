@@ -127,6 +127,9 @@
       "last_event_id": "01M2VD1RH8B2C86JJBD8DGWAEK",
       "last_transition_at": "2026-09-18T23:18:57.832308+00:00",
       "model": "__resolved_model_absent__",
+      "notes": [
+        "Template emits doc_type: decision + empty log; teaches the contract; 9 regression tests"
+      ],
       "provider": "__resolved_provider_absent__",
       "role": "implementer",
       "shell_pid": 2441635,
