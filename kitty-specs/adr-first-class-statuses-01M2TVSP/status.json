@@ -1,7 +1,7 @@
 {
-  "event_count": 32,
-  "last_event_id": "01M2VBSDQ5AM4PDTNKT57D4GF6",
-  "materialized_at": "2026-09-18T22:56:56.037714+00:00",
+  "event_count": 33,
+  "last_event_id": "01M2VCVXPCGM84J4CEQ218BX6D",
+  "materialized_at": "2026-09-18T23:15:46.508169+00:00",
   "mission_number": "",
   "mission_slug": "adr-first-class-statuses-01M2TVSP",
   "mission_type": "software-dev",
@@ -11,9 +11,9 @@
     "canceled": 0,
     "claimed": 0,
     "done": 0,
-    "for_review": 1,
+    "for_review": 0,
     "in_progress": 0,
-    "in_review": 0,
+    "in_review": 1,
     "planned": 3
   },
   "work_packages": {
@@ -86,20 +86,20 @@
       }
     },
     "WP03": {
-      "actor": "claude",
+      "actor": "user",
       "agent": "claude",
       "agent_profile": "__resolved_profile_absent__",
       "agent_profile_version": "__resolved_profile_version_absent__",
       "force_count": 0,
-      "lane": "for_review",
-      "last_event_id": "01M2VBSDQ5AM4PDTNKT57D4GF6",
-      "last_transition_at": "2026-09-18T22:56:56.037714+00:00",
+      "lane": "in_review",
+      "last_event_id": "01M2VCVXPCGM84J4CEQ218BX6D",
+      "last_transition_at": "2026-09-18T23:15:46.508169+00:00",
       "model": "__resolved_model_absent__",
       "notes": [
         "Scoped status + decision-log validation; 19 behavioural tests; suite 6591"
       ],
       "provider": "__resolved_provider_absent__",
-      "role": "implementer",
+      "role": "reviewer",
       "shell_pid": 2336457,
       "shell_pid_created_at": "1789771817.16",
       "subtasks": {
