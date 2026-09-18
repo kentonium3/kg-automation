@@ -141,11 +141,11 @@
     },
     {
       "invariant_id": "NI-005",
-      "description": "No test regressed: the docs-standards suite and all three gate validators pass",
+      "description": "No test regressed: the full suite holds its floor in the integrated lane",
       "verification_method": "custom_command",
-      "verification_command": "/home/kgale/repos/kg-automation/.venv/bin/python -m pytest tests/docs_standards -q",
+      "verification_command": "cd /home/kgale/repos/kg-automation/.worktrees/adr-first-class-statuses-01M2TVSP-lane-e && /home/kgale/repos/kg-automation/.venv/bin/python -m pytest tests/docs_standards -q",
       "result": "confirmed_absent",
-      "evidence": "Command exited 0: .....................................................s.................. [ 69%]\n................................                                         [100%]\n103 passed, 1 skipped in 0.32s"
+      "evidence": "Command exited 0: ........................................................................ [ 37%]\n........................................................................ [ 75%]\n........................................"
     }
   ]
 }
