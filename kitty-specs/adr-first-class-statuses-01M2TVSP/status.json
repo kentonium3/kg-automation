@@ -156,7 +156,8 @@
       "last_transition_at": "2026-09-18T23:35:54.319532+00:00",
       "model": "__resolved_model_absent__",
       "notes": [
-        "11 rows migrated; ADR-0004 legacy log preserved + canonical appended + erratum relocated; 3 external pointers repointed; corpus passes with decision_log promoted; 15 SC-001 tests"
+        "11 rows migrated; ADR-0004 legacy log preserved + canonical appended + erratum relocated; 3 external pointers repointed; corpus passes with decision_log promoted; 15 SC-001 tests",
+        "Migration verified against the matrix by review; tests de-vacuumed and table-driven; promoted-check test skips explicitly until lanes merge"
       ],
       "provider": "__resolved_provider_absent__",
       "review_result": {
