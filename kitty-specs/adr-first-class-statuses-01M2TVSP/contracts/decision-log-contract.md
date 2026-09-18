@@ -34,6 +34,27 @@ Last section of the ADR, heading `## Decision log`. **Required in every ADR**; e
 4. **Never contradicts the frozen body** (C-002).
 5. `superseded-by` and `status: superseded` are set together; neither is meaningful alone.
 
+## Optional blockquote preamble (added 2026-09-18, found by WP06)
+
+A `## Decision log` section may open with a **blockquote note** before the table:
+
+```markdown
+## Decision log
+
+> **Note.** Why this log exists, or anything a reader needs before the rows.
+
+| Date | Type | By | Summary | Refs |
+|---|---|---|---|---|
+```
+
+Only blockquotes, only *before* the table. Arbitrary prose is still rejected, and so is anything
+after the table — trailing content would make the table's end ambiguous.
+
+This was found by WP06's end-to-end check once the lanes merged: ADR-0004's canonical log needs a
+note explaining the legacy/canonical split, and "table and nothing else" forbade it. Moving that one
+note would have been the smaller fix, but every future author wanting to annotate a log hits the
+same wall. A `>` line can never be confused with a `|` row, so the allowance costs no ambiguity.
+
 ## Escaping (narrowed 2026-09-18, review cycle 3)
 
 A literal `|` inside any cell **must be escaped as `\|`** — including inside a code span. Only `\|`
