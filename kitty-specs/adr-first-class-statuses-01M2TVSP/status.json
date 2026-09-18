@@ -1,19 +1,19 @@
 {
-  "event_count": 48,
-  "last_event_id": "01M2VEZADW37FM7JGYB0V2CA35",
-  "materialized_at": "2026-09-18T23:52:35.004567+00:00",
+  "event_count": 49,
+  "last_event_id": "01M2VEZCZ39JSPTCKJ73BG22K6",
+  "materialized_at": "2026-09-18T23:52:37.603667+00:00",
   "mission_number": "",
   "mission_slug": "adr-first-class-statuses-01M2TVSP",
   "mission_type": "software-dev",
   "summary": {
-    "approved": 5,
+    "approved": 6,
     "blocked": 0,
     "canceled": 0,
     "claimed": 0,
     "done": 0,
     "for_review": 0,
     "in_progress": 0,
-    "in_review": 1,
+    "in_review": 0,
     "planned": 0
   },
   "work_packages": {
@@ -183,14 +183,19 @@
       "agent_profile": "__resolved_profile_absent__",
       "agent_profile_version": "__resolved_profile_version_absent__",
       "force_count": 0,
-      "lane": "in_review",
-      "last_event_id": "01M2VEZADW37FM7JGYB0V2CA35",
-      "last_transition_at": "2026-09-18T23:52:35.004567+00:00",
+      "lane": "approved",
+      "last_event_id": "01M2VEZCZ39JSPTCKJ73BG22K6",
+      "last_transition_at": "2026-09-18T23:52:37.603667+00:00",
       "model": "__resolved_model_absent__",
       "notes": [
         "Gates enabled and proven; decision_log promoted; blockquote preamble allowed (found by end-to-end check); suite 6675"
       ],
       "provider": "__resolved_provider_absent__",
+      "review_result": {
+        "reference": "2 review cycles: 5 findings + 2 restated, all closed or documented as accepted with reasoning; gate proven by staling a file; 192 tests",
+        "reviewer": "Kent Gale",
+        "verdict": "approved"
+      },
       "role": "reviewer",
       "shell_pid": 2527277,
       "shell_pid_created_at": "1789774563.5",
