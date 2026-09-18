@@ -3,7 +3,7 @@ title: "Second Brain Graph Layer — Design"
 doc_type: design
 status: draft
 owners: ["@kentonium3"]
-last_updated: '2026-09-17'
+last_updated: '2026-09-18'
 audience: agents_and_humans
 ---
 
@@ -187,6 +187,36 @@ A cross-cutting **constraint** on decisions — a value, standard, or non-negoti
 
 *Examples:* "Never commit secrets or bypass a governance gate for expediency," "Protect deep-work mornings — no meetings before noon," "Reversible internal actions are autonomous; irreversible/outbound actions require preview"
 
+#### PERSON — *PROPOSED 2026-09-18, stability: directional (Kent to ratify)*
+A human Kent deals with — the **who** axis, beside why (Purpose), what (Outcome→Task), and
+when (temporal edges). Cross-cutting like Commitment, Principle, and Capacity: **not a
+hierarchy tier**, and exempt from guiding principle 2 (a Person has no upward edge to a
+Purpose; that rule governs work nodes). Kent himself is **not** a node — the ego is implicit,
+otherwise every edge would sprout a Kent endpoint. A Person is a **hub**: edges point *at* it
+(`COMMITTED_TO`, `INVOLVES`); nothing is sourced from it, because people do not direct Kent's
+work — Purposes do.
+
+Why it exists: three of the six hard cases Kent scoped for #849 (dropped ball, cross-channel
+identity, stakeholder pattern) are *relational* and inexpressible without a who; and
+cross-episode entity resolution — the one graph mechanism neither #844 nor #974 exercised —
+needs something to resolve *across*.
+
+**Identity-resolution rule.** A Person carries an `aliases` list — every handle they appear
+under (email address, Slack display name, calendar invitee spelling). Structured adapters
+resolve handle → Person against that list **before writing** (deterministic, $0). The
+extraction path relies on Graphiti's entity dedup plus the post-extraction near-duplicate
+check, and a merge is committed **only on evidence**: production aliases are added by adapter
+configuration or a Decision-grade confirmation, never by LLM name similarity alone. #849's
+Arc D near-miss trap (a *different* person with a similar handle who must not be merged) is
+the measurement of whether that policy can ever loosen.
+
+**Privacy.** A Person node is PII by construction. Adding the *type* widens nothing: #849 uses
+a fictional cast, and any real-person data is gated by the #696 privacy gate and the
+physical-exclusion rule (§Rollout → Design spike, item 3). The local-extraction path (inside
+the tailnet, $0) is the favourable one for such content. Do not read the type as permission.
+
+*Examples:* a client principal (email + calendar), a collaborator (Slack), a family member.
+
 ---
 
 ### Pydantic Entity Models
@@ -301,6 +331,25 @@ class Capacity(BaseModel):
     protecting that time (if any) is a separate Principle for step-7 checks."""
     description: str = ""
     hours_per_week: Optional[float] = None
+
+
+class RelationshipEnum(str, Enum):
+    CLIENT = "client"
+    COLLABORATOR = "collaborator"
+    FAMILY = "family"
+    PEER = "peer"
+    VENDOR = "vendor"
+    OTHER = "other"
+
+
+class Person(BaseModel):
+    """PROPOSED (2026-09-18, directional). A human Kent deals with — the who axis.
+    Cross-cutting hub, never a hierarchy tier; Kent is not a node. See §Tier
+    Definitions → PERSON for the identity-resolution and privacy rules."""
+    description: str = ""                    # who they are to Kent
+    relationship: RelationshipEnum = RelationshipEnum.OTHER
+    organisation: Optional[str] = None
+    aliases: list[str] = []                  # every handle: email, Slack display, calendar spelling
 ```
 
 ---
@@ -337,6 +386,8 @@ All edges carry `valid_from` / `valid_until` automatically via Graphiti's bi-tem
 | `VIOLATES` | Task/Project | Principle | Agent-detected tension between a proposed action and a Principle |
 | `CONSTRAINS` | Capacity | Purpose/Domain | Capacity bounds work in this scope (absence = global) |
 | `DUE_BY` | Task/Project | Commitment | This node's hard deadline is this Commitment (task-side source, matching the upward-pointing convention) |
+| `COMMITTED_TO` | Commitment | Person | *Proposed.* The Person this Commitment was made to (its counterparty); attributed — see `CommittedTo` |
+| `INVOLVES` | Task/Project | Person | *Proposed.* This Person is a stakeholder in this node |
 
 ### Edge attribute models & wiring
 
@@ -361,12 +412,18 @@ class Decided(BaseModel):
 class Violates(BaseModel):
     """Detected Principle tension; severity comes from Principle.strictness, not here."""
     note: str = ""
+
+class CommittedTo(BaseModel):
+    """PROPOSED. Where and how the commitment to this Person was made."""
+    channel: str = ""                        # email | slack | calendar | in_person | other
+    made_at: Optional[str] = None            # ISO datetime, if distinct from the episode's reference_time
 ```
 
 Wiring intent (implementer verifies exact API shape against the pinned graphiti-core —
 the doc states design intent, not engine mechanics):
 
-- `entity_types`: all ten models, keyed by their class names, passed to `add_episode`.
+- `entity_types`: all eleven models (ten accepted + the proposed `Person`), keyed by their
+  class names, passed to `add_episode`.
 - `edge_type_map`: keyed by (source-type, target-type) name pairs per the table above.
   `CONTAINS` registers for (Project, Project), (Project, Task), and (Task, Task).
   `DECIDED` registers Decision → **{Purpose, Domain, Outcome, Objective, Project, Task,
@@ -389,8 +446,14 @@ the doc states design intent, not engine mechanics):
 - **Authority rule:** where a flag and an edge encode the same fact, the **edge is
   authoritative** and the flag is derived (`Task.is_shared` ⇐ existence of `SHARED_BY`
   edges; `Task.due_date` ⇐ its `DUE_BY` Commitment when one exists — attribute-only due
-  dates remain valid for soft dates that never earned a Commitment). Writers maintain
+  dates remain valid for soft dates that never earned a Commitment;
+  `Commitment.counterparty` ⇐ its `COMMITTED_TO` Person — *proposed*). Writers maintain
   the edge; the flag may lag or be dropped entirely.
+- **Unmaterialised-commitment pattern** (*proposed*, with `Person`): a Commitment carrying a
+  `COMMITTED_TO` edge but **no inbound `DUE_BY` / `GATES` / `BLOCKS`** from any Task or
+  Project is a promise that never became work — the structural form of #849's "dropped
+  ball". It is one Cypher pattern, distinct from the retrieval form (the promise never
+  entered the Lattice at all and lives only in the episode log); #849 should test both.
 
 ### State vs history representation rule
 
@@ -626,6 +689,8 @@ budget of 50 returns the whole graph. **#849 is the gate** and it is the priorit
 ### Named risks to hold
 
 - **Privacy / exposure** (LLM extraction of sensitive episodes) — hard gate; spike item 3.
+  The proposed `Person` type makes PII a first-class node; real-person data stays behind
+  the same gate (§Tier Definitions → PERSON).
 - **Lattice becoming a silent load-bearing dependency** — mitigated by advisory/derived +
   adapters canonical.
 - **Backup gap** — graph-data backup is unresolved (see Infrastructure → Backup); resolve
