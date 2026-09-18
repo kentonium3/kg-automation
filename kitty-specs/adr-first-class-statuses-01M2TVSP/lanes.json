@@ -1,0 +1,130 @@
+{
+  "version": 1,
+  "mission_slug": "adr-first-class-statuses-01M2TVSP",
+  "mission_id": "01M2TVSPCJ6PR4N5ZMW7PYQ17N",
+  "mission_branch": "kitty/mission-adr-first-class-statuses-01M2TVSP",
+  "target_branch": "feat/adr-first-class-statuses",
+  "lanes": [
+    {
+      "lane_id": "lane-a",
+      "wp_ids": [
+        "WP01"
+      ],
+      "write_scope": [
+        "docs/design/standards/allowed-values.json",
+        "tests/docs_standards/__init__.py",
+        "tests/docs_standards/test_doc_taxonomy.py",
+        "tooling/scripts/doc_taxonomy.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "legacy-cleanup"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    },
+    {
+      "lane_id": "lane-b",
+      "wp_ids": [
+        "WP02"
+      ],
+      "write_scope": [
+        "docs/design/standards/doc-standards.md",
+        "docs/design/standards/frontmatter.schema.json",
+        "tests/docs_standards/test_generator.py",
+        "tooling/scripts/generate_doc_standards.py"
+      ],
+      "predicted_surfaces": [
+        "api"
+      ],
+      "depends_on_lanes": [
+        "lane-a"
+      ],
+      "parallel_group": 1
+    },
+    {
+      "lane_id": "lane-d",
+      "wp_ids": [
+        "WP04"
+      ],
+      "write_scope": [
+        "docs/_templates/decision.md",
+        "tests/docs_standards/test_adr_template.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "artifact-rendering"
+      ],
+      "depends_on_lanes": [
+        "lane-a"
+      ],
+      "parallel_group": 1
+    },
+    {
+      "lane_id": "lane-c",
+      "wp_ids": [
+        "WP03"
+      ],
+      "write_scope": [
+        "tests/docs_standards/test_decision_log.py",
+        "tests/docs_standards/test_validator_scoping.py",
+        "tooling/scripts/validate_docs.py"
+      ],
+      "predicted_surfaces": [
+        "api"
+      ],
+      "depends_on_lanes": [
+        "lane-a",
+        "lane-b"
+      ],
+      "parallel_group": 2
+    },
+    {
+      "lane_id": "lane-planning",
+      "wp_ids": [
+        "WP05"
+      ],
+      "write_scope": [
+        "docs/INDEX.md",
+        "docs/design/architecture/adr/**",
+        "docs/design/architecture/data/signal-to-doc-map.json",
+        "docs/design/architecture/security-posture.md",
+        "docs/design/research/felix-workspace-api-vs-gog-681.md"
+      ],
+      "predicted_surfaces": [
+        "planning"
+      ],
+      "depends_on_lanes": [
+        "lane-a",
+        "lane-d"
+      ],
+      "parallel_group": 2
+    },
+    {
+      "lane_id": "lane-e",
+      "wp_ids": [
+        "WP06"
+      ],
+      "write_scope": [
+        ".githooks/pre-commit",
+        ".github/workflows/docs-ci.yml"
+      ],
+      "predicted_surfaces": [
+        "api"
+      ],
+      "depends_on_lanes": [
+        "lane-b",
+        "lane-c",
+        "lane-d",
+        "lane-planning"
+      ],
+      "parallel_group": 3
+    }
+  ],
+  "computed_at": "2026-09-18T21:59:44.547532+00:00",
+  "computed_from": "dependency_graph+ownership",
+  "planning_artifact_wps": [
+    "WP05"
+  ],
+  "planning_commit_sha": "82ae5dfc1b0f4a263b93054fafae67f347b0a932"
+}
