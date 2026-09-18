@@ -1,7 +1,7 @@
 {
-  "event_count": 42,
-  "last_event_id": "01M2VDPYG846WKJSSN230B5FE4",
-  "materialized_at": "2026-09-18T23:30:32.072780+00:00",
+  "event_count": 43,
+  "last_event_id": "01M2VE0QKHSQFR2MRH474QFAYH",
+  "materialized_at": "2026-09-18T23:35:52.689731+00:00",
   "mission_number": "",
   "mission_slug": "adr-first-class-statuses-01M2TVSP",
   "mission_type": "software-dev",
@@ -11,9 +11,9 @@
     "canceled": 0,
     "claimed": 0,
     "done": 0,
-    "for_review": 1,
+    "for_review": 0,
     "in_progress": 0,
-    "in_review": 0,
+    "in_review": 1,
     "planned": 1
   },
   "work_packages": {
@@ -146,17 +146,20 @@
       }
     },
     "WP05": {
-      "actor": "claude",
+      "actor": "user",
       "agent": "claude",
       "agent_profile": "__resolved_profile_absent__",
       "agent_profile_version": "__resolved_profile_version_absent__",
       "force_count": 0,
-      "lane": "for_review",
-      "last_event_id": "01M2VDPYG846WKJSSN230B5FE4",
-      "last_transition_at": "2026-09-18T23:30:32.072780+00:00",
+      "lane": "in_review",
+      "last_event_id": "01M2VE0QKHSQFR2MRH474QFAYH",
+      "last_transition_at": "2026-09-18T23:35:52.689731+00:00",
       "model": "__resolved_model_absent__",
+      "notes": [
+        "11 rows migrated; ADR-0004 legacy log preserved + canonical appended + erratum relocated; 3 external pointers repointed; corpus passes with decision_log promoted; 15 SC-001 tests"
+      ],
       "provider": "__resolved_provider_absent__",
-      "role": "implementer",
+      "role": "reviewer",
       "shell_pid": 2485570,
       "shell_pid_created_at": "1789773961.98",
       "subtasks": {
