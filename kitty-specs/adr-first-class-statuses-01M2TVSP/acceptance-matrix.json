@@ -48,10 +48,10 @@
       "criterion_id": "FR-005",
       "description": "allowed-values.json is the single enforced source; the schema and the narrative status list are generated from it, and the loader is fail-closed.",
       "proof_type": "automated_test",
-      "evidence": "generate_doc_standards.py --check passes; test_doc_taxonomy.py 41 cases (every malformed shape raises); test_generator.py idempotency + region-scoping.",
+      "evidence": "generate_doc_standards.py --check passes; test_doc_taxonomy.py 41 fail-closed cases; test_generator.py idempotency and region-scoping",
       "pass_fail": "pass",
       "verified_by": "claude-office4",
-      "verified_at": "2026-09-18T23:55:00Z",
+      "verified_at": "2026-09-18T23:54:35.491631+00:00",
       "notes": "Verified in lane-e, which has all six work packages merged."
     },
     {
