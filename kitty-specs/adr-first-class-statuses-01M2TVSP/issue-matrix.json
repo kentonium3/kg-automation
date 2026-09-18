@@ -1,5 +1,17 @@
 {
   "rows": {
+    "#988": {
+      "evidence_ref": "doc_type taxonomy drift; deliberately scoped out of this mission by Kent 2026-09-18 to avoid doubling the blast radius on allowed-values.json, which gates every commit. Filed as #988 to run after this merges and reuse this generator.",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": null,
+      "title": null,
+      "verdict": "deferred-with-followup",
+      "wp": "WP01"
+    },
     "#989": {
       "evidence_ref": "Pre-existing failure on main, reproduced on a clean tree before this mission changed anything; diagnosed to a stale test asserting the pre-#685 observe contract; filed as #989",
       "fr": null,
