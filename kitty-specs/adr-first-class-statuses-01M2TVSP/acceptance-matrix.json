@@ -2,7 +2,7 @@
   "mission_slug": "adr-first-class-statuses-01M2TVSP",
   "mission_number": "",
   "mission_type": "software-dev",
-  "overall_verdict": "fail",
+  "overall_verdict": "pending",
   "criteria": [
     {
       "criterion_id": "FR-001",
@@ -108,12 +108,12 @@
   "negative_invariants": [
     {
       "invariant_id": "NI-001",
-      "description": "partially_superseded never exists \u2014 not in frontmatter, not as prose in an index",
+      "description": "No document carries status: partially_superseded (the word appears only in the README's prohibition)",
       "verification_method": "grep_absence",
-      "verification_command": "partially_superseded",
-      "result": "still_present",
-      "evidence": "grep found matches: docs/design/architecture/adr/README.md:  `partially_superseded` does not exist and must not be added. A partial change is a **log entry**,",
-      "scope": "docs/design/architecture/adr docs/INDEX.md"
+      "verification_command": "status: partially_superseded",
+      "result": "confirmed_absent",
+      "evidence": "grep found zero matches",
+      "scope": "docs"
     },
     {
       "invariant_id": "NI-002",
