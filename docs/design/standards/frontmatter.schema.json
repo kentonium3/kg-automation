@@ -42,10 +42,12 @@
       "type": "string",
       "enum": [
         "draft",
+        "proposed",
         "in_review",
         "approved",
         "deprecated",
-        "archived"
+        "archived",
+        "active"
       ],
       "description": "Document lifecycle status"
     },

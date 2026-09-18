@@ -32,6 +32,7 @@
   ],
   "status": [
     "draft",
+    "proposed",
     "in_review",
     "approved",
     "deprecated",

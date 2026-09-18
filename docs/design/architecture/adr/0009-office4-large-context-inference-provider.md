@@ -1,7 +1,7 @@
 ---
 title: ADR-0009 — Large-context inference on office4 as a best-effort provider behind a per-function fallback seam
 doc_type: reference
-status: in_review
+status: proposed
 owners: ["@kentonium3"]
 last_updated: '2026-09-18'
 version: v1.0
