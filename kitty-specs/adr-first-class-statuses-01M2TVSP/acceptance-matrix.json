@@ -133,11 +133,11 @@
     },
     {
       "invariant_id": "NI-004",
-      "description": "The generator never writes outside its own region, and never produces output from fallbacks",
-      "verification_method": "automated_test",
-      "verification_command": "pytest tests/docs_standards/test_generator.py",
-      "result": "pending",
-      "evidence": "Unknown verification method: automated_test"
+      "description": "The generator never writes outside its own region and never produces output from fallbacks",
+      "verification_method": "custom_command",
+      "verification_command": "/home/kgale/repos/kg-automation/.venv/bin/python -m pytest tests/docs_standards/test_generator.py -q",
+      "result": "still_present",
+      "evidence": "Command exited 4: ERROR: file or directory not found: tests/docs_standards/test_generator.py"
     },
     {
       "invariant_id": "NI-005",
