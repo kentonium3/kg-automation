@@ -1,7 +1,7 @@
 ---
 title: ADR-0003 — Felix ↔ Vikunja sync architecture
-doc_type: reference
-status: draft
+doc_type: decision
+status: approved
 extends: 0002-felix-vikunja-task-model
 extended_decisions: [Q3, Q4, Q5, Q7, Q10]
 owners: ["@kentonium3"]
@@ -244,3 +244,9 @@ an unresolved design decision. Deferred per C-006.
 - **Observability framework spike**: [#516 — Felix-wide observability framework](https://github.com/kentonium3/kg-automation/issues/516)
 - **Base ADR**: [ADR-0002 — Felix ↔ Vikunja task model](<./0002-felix-vikunja-task-model.md>)
 - **Format precedent**: [ADR-0001 — Google Workspace via gog](<./0001-google-workspace-via-gog.md>)
+
+## Decision log
+
+| Date | Type | By | Summary | Refs |
+|---|---|---|---|---|
+| 2026-06-09 | amendment | Kent | Promoted from Draft to Approved; the #508 operator-review condition set in the body was met on 2026-06-06. | #508, #507 |

@@ -1,6 +1,6 @@
 ---
 title: ADR-0009 — Large-context inference on office4 as a best-effort provider behind a per-function fallback seam
-doc_type: reference
+doc_type: decision
 status: proposed
 owners: ["@kentonium3"]
 last_updated: '2026-09-18'
@@ -172,5 +172,9 @@ rather than satisfying it, and makes an unattended system depend on an attended 
 - [#692](https://github.com/kentonium3/kg-automation/issues/692) — Second Brain Graph Layer epic
 - [#696](https://github.com/kentonium3/kg-automation/issues/696) — privacy gate
 - [ADR-0008](<./0008-three-machine-model.md>) — three-machine model; the placement test this ADR extends
-- [ADR-0004](<./0004-tailscale-ssh-with-accept-acl.md>) — Tailscale SSH accept ACL; its ACL changes log is where tailnet SSH-rule matters are recorded
+- [ADR-0004](<./0004-tailscale-ssh-with-accept-acl.md>) — Tailscale SSH accept ACL; its Decision log is where tailnet SSH-rule matters are recorded
 - `docs/design/architecture/data/service-inventory.json`, `network-topology.json`, `hardware-inventory.json`
+
+## Decision log
+
+*No entries.*

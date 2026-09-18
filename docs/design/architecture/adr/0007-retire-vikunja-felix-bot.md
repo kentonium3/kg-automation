@@ -1,6 +1,6 @@
 ---
 title: ADR-0007 — Retire Vikunja felix-bot; single kent-token runtime identity
-doc_type: reference
+doc_type: decision
 status: approved
 owners: ["@kentonium3"]
 last_updated: '2026-07-23'
@@ -98,3 +98,7 @@ Keep `felix-bot` for writes and `kent` for config/reads. Rejected: #715 already 
 (Future amendments record here.)
 </content>
 </invoke>
+
+## Decision log
+
+*No entries.*

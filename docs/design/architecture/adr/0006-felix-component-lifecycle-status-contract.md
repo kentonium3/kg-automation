@@ -1,6 +1,6 @@
 ---
 title: ADR-0006 — Felix component lifecycle status contract (declared status vs observed health)
-doc_type: reference
+doc_type: decision
 status: approved
 owners: ["@kentonium3"]
 last_updated: '2026-07-11'
@@ -216,3 +216,7 @@ actually turned off* — so a suspended component is never mistaken for a silent
 ## Decision changes
 
 (Future amendments record here.)
+
+## Decision log
+
+*No entries.*

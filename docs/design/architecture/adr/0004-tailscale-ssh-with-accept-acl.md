@@ -1,6 +1,6 @@
 ---
 title: ADR-0004 — Enable Tailscale SSH on office2 with `accept` ACL
-doc_type: reference
+doc_type: decision
 status: approved
 owners: ["@kentonium3"]
 last_updated: '2026-06-09'
@@ -225,3 +225,21 @@ re-auth that `check` mode requires — see "Tradeoffs" below.
 - kentonium3/kg-automation#575 — originating docs-debt issue
 - Tailscale SSH docs: <https://tailscale.com/kb/1193/tailscale-ssh>
 - Tailscale ACL `ssh` reference: <https://tailscale.com/kb/1337/policy-syntax#ssh>
+
+## Decision log
+
+> **This is the canonical log for ADR-0004.** The frozen `## ACL changes log` section above predates
+> the decision-log contract (#987) and is preserved verbatim as body content — it is history, not a
+> mistake. **New entries go here, not there.** `security-posture.md`, `signal-to-doc-map.json` and
+> ADR-0009 have been updated to point at this section.
+>
+> The entries below are the ones that are about **ADR-0004 itself**, carried forward and mapped to the
+> contract's `Type` vocabulary. The 2026-08-29 erratum that lived in the legacy section was about
+> **ADR-0008** and has been seeded into ADR-0008's own log, where a reader of that ADR will actually
+> find it — the defect this mission exists to fix, in the one place it had already been solved.
+
+| Date | Type | By | Summary | Refs |
+|---|---|---|---|---|
+| 2026-06-09 | amendment | Kent | ACL action changed from `check` to `accept`; Termius mobile could not complete browser re-auth and phone recovery was blocked. | #572 |
+| 2026-08-29 | amendment | Kent | `users` narrowed from `[autogroup:nonroot, root]` to the three named accounts; `root` in the list gave any tailnet device a root shell that `PermitRootLogin no` could not prevent. An `sshTests` block now asserts the restriction on every policy save. | #932 |
+| 2026-08-29 | context | Kent | Tailscale SSH enabled on office4 so both hosts use one mechanism; the `ssh` rule is unchanged but its reach is not. Logged 2026-09-11. | #932, #972 |
