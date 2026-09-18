@@ -2,7 +2,7 @@
   "mission_slug": "adr-first-class-statuses-01M2TVSP",
   "mission_number": "",
   "mission_type": "software-dev",
-  "overall_verdict": "fail",
+  "overall_verdict": "pass",
   "criteria": [
     {
       "criterion_id": "FR-001",
@@ -133,11 +133,11 @@
     },
     {
       "invariant_id": "NI-004",
-      "description": "The generator never writes outside its own region and never produces output from fallbacks",
+      "description": "The generator never writes outside its own region and never produces output from fallbacks (verified in the integrated lane; pre-merge the planning checkout lacks WP02)",
       "verification_method": "custom_command",
-      "verification_command": "/home/kgale/repos/kg-automation/.venv/bin/python -m pytest tests/docs_standards/test_generator.py -q",
-      "result": "still_present",
-      "evidence": "Command exited 4: ERROR: file or directory not found: tests/docs_standards/test_generator.py"
+      "verification_command": "cd /home/kgale/repos/kg-automation/.worktrees/adr-first-class-statuses-01M2TVSP-lane-e && /home/kgale/repos/kg-automation/.venv/bin/python -m pytest tests/docs_standards/test_generator.py -q",
+      "result": "confirmed_absent",
+      "evidence": "Command exited 0: .........................................                                [100%]\n41 passed in 0.28s"
     },
     {
       "invariant_id": "NI-005",
