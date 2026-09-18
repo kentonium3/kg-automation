@@ -188,7 +188,8 @@
       "last_transition_at": "2026-09-18T23:52:37.603667+00:00",
       "model": "__resolved_model_absent__",
       "notes": [
-        "Gates enabled and proven; decision_log promoted; blockquote preamble allowed (found by end-to-end check); suite 6675"
+        "Gates enabled and proven; decision_log promoted; blockquote preamble allowed (found by end-to-end check); suite 6675",
+        "2 review cycles: 5 findings + 2 restated, all closed or documented as accepted with reasoning; gate proven by staling a file; 192 tests"
       ],
       "provider": "__resolved_provider_absent__",
       "review_result": {
