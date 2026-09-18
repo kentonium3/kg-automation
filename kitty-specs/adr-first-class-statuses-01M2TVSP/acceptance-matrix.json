@@ -68,10 +68,10 @@
       "criterion_id": "FR-007",
       "description": "Frontmatter is authoritative for standing; new ADRs carry no body Status line.",
       "proof_type": "automated_test",
-      "evidence": "docs/_templates/decision.md emits one frontmatter block with doc_type: decision and no body Status line; test_adr_template.py renders the template and runs the real validator over the result with decision_log promoted.",
+      "evidence": "docs/_templates/decision.md emits one frontmatter with doc_type: decision and no body Status line; test_adr_template.py renders it and runs the real validator with decision_log promoted",
       "pass_fail": "pass",
       "verified_by": "claude-office4",
-      "verified_at": "2026-09-18T23:55:00Z",
+      "verified_at": "2026-09-18T23:54:40.988295+00:00",
       "notes": "Verified in lane-e, which has all six work packages merged."
     },
     {
