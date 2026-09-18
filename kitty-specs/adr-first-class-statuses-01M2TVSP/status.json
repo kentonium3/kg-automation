@@ -96,7 +96,8 @@
       "last_transition_at": "2026-09-18T23:15:48.986680+00:00",
       "model": "__resolved_model_absent__",
       "notes": [
-        "Scoped status + decision-log validation; 19 behavioural tests; suite 6591"
+        "Scoped status + decision-log validation; 19 behavioural tests; suite 6591",
+        "3 review cycles: 6 findings + 5 follow-on defects closed; grammar narrowed rather than parser widened; 31 behavioural tests; suite 6608"
       ],
       "provider": "__resolved_provider_absent__",
       "review_result": {
