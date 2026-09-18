@@ -36,6 +36,18 @@
       "verdict": "verified-already-fixed",
       "wp": "WP01"
     },
+    "#681": {
+      "evidence_ref": "RFC #681 is the other doc_type: decision document in the repo. WP05 migrates it alongside the nine ADRs (matrix row 10).",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": null,
+      "title": null,
+      "verdict": "in-mission",
+      "wp": "WP05"
+    },
     "#986": {
       "evidence_ref": "RFC on inference provider/model flexibility; referenced because ADR-0009 points at ADR-0004's legacy log. Its own substance is open on #986 and untouched here.",
       "fr": null,
