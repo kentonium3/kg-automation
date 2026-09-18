@@ -3,7 +3,7 @@ title: "Second Brain Graph Layer — Design"
 doc_type: design
 status: draft
 owners: ["@kentonium3"]
-last_updated: '2026-09-15'
+last_updated: '2026-09-17'
 audience: agents_and_humans
 ---
 
@@ -599,10 +599,13 @@ budget of 50 returns the whole graph. **#849 is the gate** and it is the priorit
 
 ### Proof-feature ladder (each rung: parallel on prod, additive, reversible, one proof point)
 
-> **Contingency (2026-09-15):** the ladder below presumes the graph build proceeds. Per the
-> #844 verdict, that is not yet decided — the ladder, the #693→#698 sequencing, and the
-> membrane-topology question are all contingent on Kent's open build-direction decision and
-> on #849's outcome. Retained as the plan-of-record *if* the graph path is taken.
+> **Status (2026-09-17):** the ladder below is the **plan-of-record**. The contingency
+> recorded here on 2026-09-15 (build direction undecided after #844) was resolved by the
+> Build-direction decision above (Kent, 2026-09-16: pursue the graph, adapters as the
+> writers). What remains gated on **#849** is not *whether* to climb the ladder but whether
+> graph-mediated retrieval earns its complexity at scale — which bears on rung 3's
+> reasoning arm, not on rungs 1–2. The #693→#698 sequencing and the membrane-topology
+> question are still open scheduling/ingest decisions, not build-direction ones.
 
 1. **Read-only, hand-seeded, queried only by Kent** via MCP in Claude Desktop — zero Felix
    involvement. *Proof: can it answer "why this task?"*
@@ -637,7 +640,10 @@ budget of 50 returns the whole graph. **#849 is the gate** and it is the priorit
 
 1. **Initial ontology seeding:** Does Kent define Purpose/Principle/Outcome/Domain nodes manually as a structured exercise before vault ingest, or does the first ingest attempt to extract them from existing notes? Recommendation: manual seeding first — these are definitional and too important to leave to LLM extraction from potentially inconsistent source material. **Principles especially** are authored by Kent, never extracted.
 
-2. **Vikunja sync direction:** One-way (Vikunja → Graphiti) or bidirectional? Bidirectional introduces write-back complexity. Start one-way.
+2. **Vikunja sync direction:** ~~One-way (Vikunja → Graphiti) or bidirectional?~~ **Decided
+   (2026-09-16, with the build direction): one-way, adapters → Lattice.** Adapters are the
+   writers of typed nodes/edges and remain canonical for their own domain; write-back stays
+   gated per §Rollout → *Where the risk actually is* until a specific write path is proven.
 
 3. **Privacy boundary:** Graphiti graph content will include sensitive life-planning data. Confirm vault content privacy posture before connecting any cloud-hosted LLM for extraction. This may accelerate the local LLM evaluation currently deferred pending observability data.
 
