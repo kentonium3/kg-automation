@@ -2,16 +2,16 @@
   "mission_slug": "adr-first-class-statuses-01M2TVSP",
   "mission_number": "",
   "mission_type": "software-dev",
-  "overall_verdict": "pass",
+  "overall_verdict": "pending",
   "criteria": [
     {
       "criterion_id": "FR-001",
       "description": "Every doc_type: decision document carries a `## Decision log` section, and the validator enforces its grammar.",
       "proof_type": "automated_test",
-      "evidence": "tests/docs_standards/test_adr_corpus.py::test_every_adr_has_a_decision_log_and_it_is_last (9 ADRs) + test_validator_scoping.py decision-log cases; validate_docs.py passes with decision_log promoted to a blocker.",
+      "evidence": "test_adr_corpus.py::test_every_adr_has_a_decision_log_and_it_is_last across 9 ADRs; validate_docs.py passes with decision_log promoted to a blocker",
       "pass_fail": "pass",
       "verified_by": "claude-office4",
-      "verified_at": "2026-09-18T23:55:00Z",
+      "verified_at": "2026-09-18T23:54:24.421119+00:00",
       "notes": "Verified in lane-e, which has all six work packages merged."
     },
     {
@@ -109,7 +109,10 @@
     {
       "invariant_id": "NI-001",
       "description": "`partially_superseded` never exists \u2014 not in frontmatter, not as prose in an index.",
-      "evidence": "test_adr_corpus.py::test_no_adr_carries_partially_superseded across all nine ADRs; the status is absent from allowed-values.json.",
+      "verification_method": "automated_test",
+      "verification_command": null,
+      "result": "pending",
+      "evidence": "Unknown verification method: automated_test",
       "pass_fail": "pass",
       "verified_by": "claude-office4",
       "verified_at": "2026-09-18T23:55:00Z"
@@ -117,7 +120,10 @@
     {
       "invariant_id": "NI-002",
       "description": "Frontmatter validation never reaches spec-kitty-owned trees, while secret scanning still covers kitty-specs/.",
-      "evidence": "test_validator_scoping.py::test_spec_kitty_trees_are_never_frontmatter_validated and ::test_secret_scanning_still_covers_kitty_specs. The second guards the dangerous misreading: a literal 'never walk' test would have disabled secret coverage.",
+      "verification_method": "automated_test",
+      "verification_command": null,
+      "result": "pending",
+      "evidence": "Unknown verification method: automated_test",
       "pass_fail": "pass",
       "verified_by": "claude-office4",
       "verified_at": "2026-09-18T23:55:00Z"
@@ -125,7 +131,10 @@
     {
       "invariant_id": "NI-003",
       "description": "ADR bodies are frozen \u2014 migration touches frontmatter and appends a section only.",
-      "evidence": "test_adr_corpus.py::test_adr0004_legacy_log_is_preserved_verbatim compares the frozen ACL-changes section byte-for-byte against its pre-migration revision.",
+      "verification_method": "automated_test",
+      "verification_command": null,
+      "result": "pending",
+      "evidence": "Unknown verification method: automated_test",
       "pass_fail": "pass",
       "verified_by": "claude-office4",
       "verified_at": "2026-09-18T23:55:00Z"
@@ -133,7 +142,10 @@
     {
       "invariant_id": "NI-004",
       "description": "The generator never writes outside its own region, and never silently produces output from fallbacks.",
-      "evidence": "test_generator.py prose-preservation, sentinel strictness (missing/duplicate/partial/reversed/fenced/inline), foreign-allOf preservation, and fail-closed-on-malformed-source.",
+      "verification_method": "automated_test",
+      "verification_command": null,
+      "result": "pending",
+      "evidence": "Unknown verification method: automated_test",
       "pass_fail": "pass",
       "verified_by": "claude-office4",
       "verified_at": "2026-09-18T23:55:00Z"
@@ -141,7 +153,10 @@
     {
       "invariant_id": "NI-005",
       "description": "The suite floor is held: no test regressed.",
-      "evidence": "6682 passed in lane-e against a 6490 baseline (+192). The single failure, tests/deploy/test_tick_rebaseline.py, is pre-existing on main and tracked as #989 \u2014 reproduced on a clean main before this mission changed anything.",
+      "verification_method": "automated_test",
+      "verification_command": null,
+      "result": "pending",
+      "evidence": "Unknown verification method: automated_test",
       "pass_fail": "pass",
       "verified_by": "claude-office4",
       "verified_at": "2026-09-18T23:55:00Z"
