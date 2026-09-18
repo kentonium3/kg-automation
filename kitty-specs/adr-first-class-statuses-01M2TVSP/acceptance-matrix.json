@@ -117,11 +117,11 @@
     },
     {
       "invariant_id": "NI-002",
-      "description": "Frontmatter validation never reaches spec-kitty trees, while secret scanning still covers kitty-specs/",
+      "description": "Frontmatter validation never reaches spec-kitty trees, while secret scanning still covers kitty-specs/ (verified in the integrated lane; pre-merge the planning checkout lacks WP03)",
       "verification_method": "custom_command",
-      "verification_command": "/home/kgale/repos/kg-automation/.venv/bin/python -m pytest tests/docs_standards/test_validator_scoping.py -k 'spec_kitty_trees or secret_scanning' -q",
-      "result": "still_present",
-      "evidence": "Command exited 4: ERROR: file or directory not found: tests/docs_standards/test_validator_scoping.py"
+      "verification_command": "cd /home/kgale/repos/kg-automation/.worktrees/adr-first-class-statuses-01M2TVSP-lane-e && /home/kgale/repos/kg-automation/.venv/bin/python -m pytest tests/docs_standards/test_validator_scoping.py -k 'spec_kitty_trees or secret_scanning' -q",
+      "result": "confirmed_absent",
+      "evidence": "Command exited 0: ..                                                                       [100%]\n2 passed, 39 deselected in 0.09s"
     },
     {
       "invariant_id": "NI-003",
