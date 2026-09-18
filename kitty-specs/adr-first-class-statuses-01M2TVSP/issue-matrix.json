@@ -1,5 +1,17 @@
 {
   "rows": {
+    "#986": {
+      "evidence_ref": "RFC on inference provider/model flexibility; referenced because ADR-0009 points at ADR-0004's legacy log. Its own substance is open on #986 and untouched here.",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": null,
+      "title": null,
+      "verdict": "deferred-with-followup",
+      "wp": "WP01"
+    },
     "#988": {
       "evidence_ref": "doc_type taxonomy drift; deliberately scoped out of this mission by Kent 2026-09-18 to avoid doubling the blast radius on allowed-values.json, which gates every commit. Filed as #988 to run after this merges and reuse this generator.",
       "fr": null,
