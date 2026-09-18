@@ -132,14 +132,11 @@
     },
     {
       "invariant_id": "NI-004",
-      "description": "The generator never writes outside its own region, and never silently produces output from fallbacks.",
+      "description": "The generator never writes outside its own region, and never produces output from fallbacks",
       "verification_method": "automated_test",
-      "verification_command": null,
+      "verification_command": "pytest tests/docs_standards/test_generator.py",
       "result": "pending",
-      "evidence": "Unknown verification method: automated_test",
-      "pass_fail": "pass",
-      "verified_by": "claude-office4",
-      "verified_at": "2026-09-18T23:55:00Z"
+      "evidence": "Unknown verification method: automated_test"
     },
     {
       "invariant_id": "NI-005",
