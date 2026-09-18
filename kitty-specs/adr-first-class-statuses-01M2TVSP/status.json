@@ -128,7 +128,8 @@
       "last_transition_at": "2026-09-18T23:24:20.184639+00:00",
       "model": "__resolved_model_absent__",
       "notes": [
-        "Template emits doc_type: decision + empty log; teaches the contract; 9 regression tests"
+        "Template emits doc_type: decision + empty log; teaches the contract; 9 regression tests",
+        "Blocker fixed: shadowing template frontmatter removed (verified against runbook/handbook/base convention); tests rewritten to render-and-validate with decision_log promoted; sibling defect in user-story.md recorded on #988"
       ],
       "provider": "__resolved_provider_absent__",
       "review_result": {
