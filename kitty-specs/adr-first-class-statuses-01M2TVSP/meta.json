@@ -11,5 +11,7 @@
   "purpose_tldr": "Give ADRs a status set that maps to their real lifecycle, scope status values by doc_type, and generate the unenforced status copies from the one enforced source so the taxonomy cannot drift.",
   "slug": "adr-first-class-statuses-01M2TVSP",
   "target_branch": "feat/adr-first-class-statuses",
-  "topology": "single_branch"
+  "topology": "single_branch",
+  "vcs": "git",
+  "vcs_locked_at": "2026-09-18T22:06:49.209551+00:00"
 }

@@ -19,7 +19,7 @@
   "work_packages": {
     "WP01": {
       "actor": "user",
-      "agent": "claude",
+      "agent": null,
       "agent_profile": "__resolved_profile_absent__",
       "agent_profile_version": "__resolved_profile_version_absent__",
       "force_count": 1,
@@ -31,6 +31,7 @@
         "WP01 complete: scoped status data + fail-closed loader; 19 new tests; repo-wide validation unchanged; suite 6509 passed"
       ],
       "provider": "__resolved_provider_absent__",
+      "review": null,
       "review_result": {
         "feedback_path": "/home/kgale/repos/kg-automation/kitty-specs/adr-first-class-statuses-01M2TVSP/tasks/WP01-taxonomy-loader/review-cycle-1.md",
         "reference": "review-cycle://adr-first-class-statuses-01M2TVSP/WP01-taxonomy-loader/review-cycle-1.md",
@@ -38,8 +39,8 @@
         "verdict": "changes_requested"
       },
       "role": "reviewer",
-      "shell_pid": 2187911,
-      "shell_pid_created_at": "1789769409.41",
+      "shell_pid": null,
+      "shell_pid_created_at": null,
       "subtasks": {
         "T001": "done",
         "T002": "done",
