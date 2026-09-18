@@ -2,7 +2,7 @@
   "mission_slug": "adr-first-class-statuses-01M2TVSP",
   "mission_number": "",
   "mission_type": "software-dev",
-  "overall_verdict": "pending",
+  "overall_verdict": "fail",
   "criteria": [
     {
       "criterion_id": "FR-001",
@@ -109,10 +109,11 @@
     {
       "invariant_id": "NI-001",
       "description": "partially_superseded never exists \u2014 not in frontmatter, not as prose in an index",
-      "verification_method": "automated_test",
-      "verification_command": "pytest tests/docs_standards/test_adr_corpus.py -k partially_superseded",
-      "result": "pending",
-      "evidence": "Unknown verification method: automated_test"
+      "verification_method": "grep_absence",
+      "verification_command": "partially_superseded",
+      "result": "still_present",
+      "evidence": "grep found matches: docs/design/architecture/adr/README.md:  `partially_superseded` does not exist and must not be added. A partial change is a **log entry**,",
+      "scope": "docs/design/architecture/adr docs/INDEX.md"
     },
     {
       "invariant_id": "NI-002",
