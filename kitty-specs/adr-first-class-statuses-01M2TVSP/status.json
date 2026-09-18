@@ -1,7 +1,7 @@
 {
-  "event_count": 4,
-  "last_event_id": "01M2V8GKEBGAG8HJ282Y6GV81X",
-  "materialized_at": "2026-09-18T21:59:41.259814+00:00",
+  "event_count": 5,
+  "last_event_id": "01M2V8GMGZMMSPFN5HVEC22HB4",
+  "materialized_at": "2026-09-18T21:59:42.367200+00:00",
   "mission_number": "",
   "mission_slug": "adr-first-class-statuses-01M2TVSP",
   "mission_type": "software-dev",
@@ -14,7 +14,7 @@
     "for_review": 0,
     "in_progress": 0,
     "in_review": 0,
-    "planned": 4
+    "planned": 5
   },
   "work_packages": {
     "WP01": {
@@ -44,6 +44,13 @@
       "lane": "planned",
       "last_event_id": "01M2V8GKEBGAG8HJ282Y6GV81X",
       "last_transition_at": "2026-09-18T21:59:41.259814+00:00"
+    },
+    "WP05": {
+      "actor": "finalize-tasks",
+      "force_count": 0,
+      "lane": "planned",
+      "last_event_id": "01M2V8GMGZMMSPFN5HVEC22HB4",
+      "last_transition_at": "2026-09-18T21:59:42.367200+00:00"
     }
   }
 }
