@@ -1,0 +1,15 @@
+{
+  "created_at": "2026-09-18T18:17:27.721744+00:00",
+  "flattened": false,
+  "friendly_name": "ADRs as first-class docs: lifecycle-mapped statuses and a generated status taxonomy",
+  "mid8": "01M2TVSP",
+  "mission_id": "01M2TVSPCJ6PR4N5ZMW7PYQ17N",
+  "mission_number": null,
+  "mission_slug": "adr-first-class-statuses-01M2TVSP",
+  "mission_type": "software-dev",
+  "purpose_context": "Drafting ADR-0009 was rejected by the pre-commit validator for a status the ADR README itself documents as valid. Investigation found three files enumerating doc status with only one enforced (two had already drifted), a fourth divergent set in the ADR README, and ADR lifecycle states — superseded, partially superseded, has-erratum — that the taxonomy cannot express and that are currently smuggled into prose in a separate index file. Kent ruled 2026-09-18 that ADRs are now first-class persistent-memory and coordination artifacts and need statuses matching their lifecycle. Tracked as kentonium3/kg-automation#987.",
+  "purpose_tldr": "Give ADRs a status set that maps to their real lifecycle, scope status values by doc_type, and generate the unenforced status copies from the one enforced source so the taxonomy cannot drift.",
+  "slug": "adr-first-class-statuses-01M2TVSP",
+  "target_branch": "feat/adr-first-class-statuses",
+  "topology": "single_branch"
+}
