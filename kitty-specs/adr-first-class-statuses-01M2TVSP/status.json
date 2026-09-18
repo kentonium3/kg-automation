@@ -62,7 +62,8 @@
       "last_transition_at": "2026-09-18T22:40:53.059372+00:00",
       "model": "__resolved_model_absent__",
       "notes": [
-        "Generator complete: conditional schema, exact bootstrap, 22 tests; suite 6553"
+        "Generator complete: conditional schema, exact bootstrap, 22 tests; suite 6553",
+        "Cycle 1 addressed: M1 marked-clause ownership, M2 section-scoped bootstrap, M3 standalone-line sentinels, m4 deep preservation test; 69 tests"
       ],
       "provider": "__resolved_provider_absent__",
       "review": null,
