@@ -156,3 +156,89 @@ def test_scoped_value_duplicates_raise(tmp_path):
     payload = {**VALID, "status_by_doc_type": {"decision": ["draft", "draft"]}}
     with pytest.raises(TaxonomyError, match="duplicate entries"):
         load_taxonomy(_write(tmp_path, payload))
+
+
+# --------------------------------------------------------------------------
+# Regressions from review feedback #1 (Codex, 2026-09-18)
+# --------------------------------------------------------------------------
+
+
+def test_duplicate_top_level_keys_raise(tmp_path):
+    """F2: json.loads is last-value-wins; the key a human reads first would not
+    be the one enforced."""
+    raw = '{"doc_type": ["runbook"], "status": ["draft"], "status": ["approved"]}'
+    with pytest.raises(TaxonomyError, match="duplicate key 'status'"):
+        load_taxonomy(_write(tmp_path, None, raw=raw))
+
+
+def test_duplicate_nested_keys_raise(tmp_path):
+    """F2: the hook must apply at every nesting level, not just the top."""
+    raw = (
+        '{"doc_type": ["decision"], "status": ["draft"], '
+        '"status_by_doc_type": {"decision": ["draft"], "decision": ["approved"]}}'
+    )
+    with pytest.raises(TaxonomyError, match="duplicate key 'decision'"):
+        load_taxonomy(_write(tmp_path, None, raw=raw))
+
+
+@pytest.mark.parametrize("constant", ["NaN", "Infinity", "-Infinity"])
+def test_non_standard_json_constants_raise(tmp_path, constant):
+    """F3: Python accepts these; JSON does not define them."""
+    raw = '{"doc_type": ["runbook"], "status": ["draft"], "level": [%s]}' % constant
+    with pytest.raises(TaxonomyError, match="non-standard JSON constant"):
+        load_taxonomy(_write(tmp_path, None, raw=raw))
+
+
+def test_invalid_utf8_raises_taxonomy_error(tmp_path):
+    """F4: UnicodeDecodeError is a ValueError, so it escaped the OSError handler."""
+    p = tmp_path / "allowed-values.json"
+    p.write_bytes(b'{"status": ["dr\xff\xfeaft"], "doc_type": ["runbook"]}')
+    with pytest.raises(TaxonomyError, match="not valid UTF-8"):
+        load_taxonomy(p)
+
+
+@pytest.mark.parametrize("token", ["draft ", " draft", "draft\t"])
+def test_non_canonical_token_raises(tmp_path, token):
+    """F5: a whitespace variant no document can match, and it evades dedup."""
+    with pytest.raises(TaxonomyError, match="leading or trailing whitespace"):
+        load_taxonomy(_write(tmp_path, {**VALID, "status": ["approved", token]}))
+
+
+def test_taxonomy_is_immutable(tmp_path):
+    """F6: a caller able to mutate this bypasses every invariant above."""
+    t = load_taxonomy(_write(tmp_path, VALID))
+    with pytest.raises(AttributeError):
+        t.default_statuses = ()
+    with pytest.raises(AttributeError):
+        del t.doc_types
+    with pytest.raises(AttributeError):
+        t.scoped_statuses.clear()
+
+
+def test_all_vocabularies_are_exposed(tmp_path):
+    """F7: consumers must never need to parse the source file themselves."""
+    payload = {**VALID, "audience": ["agents", "humans"], "level": ["overview", 1]}
+    t = load_taxonomy(_write(tmp_path, payload))
+    assert t.allowed("audience") == ("agents", "humans")
+    assert t.allowed("level") == ("overview", 1)  # mixed types tolerated by design
+    assert t.allowed("status") == t.default_statuses
+    with pytest.raises(TaxonomyError, match="no vocabulary named"):
+        t.allowed("nonesuch")
+
+
+def test_errors_name_the_source_file(tmp_path):
+    """F8: an error that does not say which file is nearly useless in a hook."""
+    p = _write(tmp_path, {**VALID, "status": []})
+    with pytest.raises(TaxonomyError) as exc:
+        load_taxonomy(p)
+    assert str(p) in str(exc.value)
+
+
+def test_absent_scope_map_is_valid_shape(tmp_path):
+    """F1 (downgraded): absence is valid *shape*. Which doc_types carry
+    overrides is content policy, guarded by test_the_real_repo_taxonomy_loads,
+    not by structural validation here."""
+    payload = {k: v for k, v in VALID.items() if k != "status_by_doc_type"}
+    t = load_taxonomy(_write(tmp_path, payload))
+    assert t.statuses_for("decision") == t.default_statuses
+    assert t.is_scoped("decision") is False
