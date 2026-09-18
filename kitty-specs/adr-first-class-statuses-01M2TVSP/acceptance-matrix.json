@@ -58,10 +58,10 @@
       "criterion_id": "FR-006",
       "description": "The contract survives --no-verify: the freshness check runs in CI as well as the pre-commit hook.",
       "proof_type": "automated_test",
-      "evidence": "test_gate_wiring.py asserts the hook runs --check AND feeds `fail`, CI runs it, and CI triggers cover push-to-main. Proven live: staling frontmatter.schema.json failed --check (exit 1, named the file) and failed the hook; restoring cleared both.",
+      "evidence": "test_gate_wiring.py (hook runs --check and feeds fail; CI runs it; triggers cover push-to-main). Proven live: staling the schema failed --check and the hook; restoring cleared both",
       "pass_fail": "pass",
       "verified_by": "claude-office4",
-      "verified_at": "2026-09-18T23:55:00Z",
+      "verified_at": "2026-09-18T23:54:38.256640+00:00",
       "notes": "Verified in lane-e, which has all six work packages merged."
     },
     {
