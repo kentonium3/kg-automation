@@ -1,3 +1,13 @@
+---
+affected_files: []
+cycle_number: 1
+mission_slug: adr-first-class-statuses-01M2TVSP
+reproduction_command:
+reviewed_at: '2026-09-18T22:16:23Z'
+reviewer_agent: user
+wp_id: WP01
+---
+
 # WP01 review feedback #1 — REQUEST CHANGES
 
 **Reviewer**: Codex (read-only sandbox, no profile, advisory) · **Verdict recorded by**: orchestrator

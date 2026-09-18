@@ -1,7 +1,7 @@
 {
-  "event_count": 6,
-  "last_event_id": "01M2V8GNKVP4KGT5EK3K1X47YV",
-  "materialized_at": "2026-09-18T21:59:43.483383+00:00",
+  "event_count": 11,
+  "last_event_id": "01M2V9F5XBK35MNHGQGRYT96T6",
+  "materialized_at": "2026-09-18T22:16:23.211734+00:00",
   "mission_number": "",
   "mission_slug": "adr-first-class-statuses-01M2TVSP",
   "mission_type": "software-dev",
@@ -18,11 +18,36 @@
   },
   "work_packages": {
     "WP01": {
-      "actor": "finalize-tasks",
-      "force_count": 0,
+      "actor": "user",
+      "agent": null,
+      "agent_profile": "__resolved_profile_absent__",
+      "agent_profile_version": "__resolved_profile_version_absent__",
+      "force_count": 1,
       "lane": "planned",
-      "last_event_id": "01M2V8GG547D9J075PVV7335JE",
-      "last_transition_at": "2026-09-18T21:59:37.893009+00:00"
+      "last_event_id": "01M2V9F5XBK35MNHGQGRYT96T6",
+      "last_transition_at": "2026-09-18T22:16:23.211734+00:00",
+      "model": "__resolved_model_absent__",
+      "notes": [
+        "WP01 complete: scoped status data + fail-closed loader; 19 new tests; repo-wide validation unchanged; suite 6509 passed"
+      ],
+      "provider": "__resolved_provider_absent__",
+      "review": null,
+      "review_result": {
+        "feedback_path": "/home/kgale/repos/kg-automation/kitty-specs/adr-first-class-statuses-01M2TVSP/tasks/WP01-taxonomy-loader/review-cycle-1.md",
+        "reference": "review-cycle://adr-first-class-statuses-01M2TVSP/WP01-taxonomy-loader/review-cycle-1.md",
+        "reviewer": "user",
+        "verdict": "changes_requested"
+      },
+      "role": "reviewer",
+      "shell_pid": null,
+      "shell_pid_created_at": null,
+      "subtasks": {
+        "T001": "done",
+        "T002": "done",
+        "T003": "done",
+        "T004": "done",
+        "T005": "done"
+      }
     },
     "WP02": {
       "actor": "finalize-tasks",
