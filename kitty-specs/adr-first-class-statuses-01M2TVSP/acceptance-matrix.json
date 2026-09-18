@@ -18,10 +18,10 @@
       "criterion_id": "FR-002",
       "description": "An entry lives in the ADR it is ABOUT. The originating defect \u2014 ADR-0008's erratum filed in ADR-0004's log \u2014 is corrected by relocation, not duplication.",
       "proof_type": "automated_test",
-      "evidence": "test_adr_corpus.py::test_adr0008_surfaces_its_own_erratum and ::test_the_relocated_erratum_is_not_duplicated_as_a_canonical_row (structural: ADR-0004's canonical log carries exactly its three authorised rows and no erratum).",
+      "evidence": "test_adr_corpus.py::test_adr0008_surfaces_its_own_erratum + ::test_the_relocated_erratum_is_not_duplicated_as_a_canonical_row (structural)",
       "pass_fail": "pass",
       "verified_by": "claude-office4",
-      "verified_at": "2026-09-18T23:55:00Z",
+      "verified_at": "2026-09-18T23:54:27.191579+00:00",
       "notes": "Verified in lane-e, which has all six work packages merged."
     },
     {
