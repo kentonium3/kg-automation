@@ -116,14 +116,11 @@
     },
     {
       "invariant_id": "NI-002",
-      "description": "Frontmatter validation never reaches spec-kitty-owned trees, while secret scanning still covers kitty-specs/.",
+      "description": "Frontmatter validation never reaches spec-kitty trees, while secret scanning still covers kitty-specs/",
       "verification_method": "automated_test",
-      "verification_command": null,
+      "verification_command": "pytest tests/docs_standards/test_validator_scoping.py -k 'spec_kitty_trees or secret_scanning'",
       "result": "pending",
-      "evidence": "Unknown verification method: automated_test",
-      "pass_fail": "pass",
-      "verified_by": "claude-office4",
-      "verified_at": "2026-09-18T23:55:00Z"
+      "evidence": "Unknown verification method: automated_test"
     },
     {
       "invariant_id": "NI-003",
