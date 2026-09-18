@@ -1,7 +1,7 @@
 {
-  "event_count": 11,
-  "last_event_id": "01M2V9F5XBK35MNHGQGRYT96T6",
-  "materialized_at": "2026-09-18T22:16:23.211734+00:00",
+  "event_count": 12,
+  "last_event_id": "01M2V9PCAKMB5ZXG6PZT2VJJTA",
+  "materialized_at": "2026-09-18T22:20:19.155965+00:00",
   "mission_number": "",
   "mission_slug": "adr-first-class-statuses-01M2TVSP",
   "mission_type": "software-dev",
@@ -9,12 +9,12 @@
     "approved": 0,
     "blocked": 0,
     "canceled": 0,
-    "claimed": 0,
+    "claimed": 1,
     "done": 0,
     "for_review": 0,
     "in_progress": 0,
     "in_review": 0,
-    "planned": 6
+    "planned": 5
   },
   "work_packages": {
     "WP01": {
@@ -23,9 +23,9 @@
       "agent_profile": "__resolved_profile_absent__",
       "agent_profile_version": "__resolved_profile_version_absent__",
       "force_count": 1,
-      "lane": "planned",
-      "last_event_id": "01M2V9F5XBK35MNHGQGRYT96T6",
-      "last_transition_at": "2026-09-18T22:16:23.211734+00:00",
+      "lane": "claimed",
+      "last_event_id": "01M2V9PCAKMB5ZXG6PZT2VJJTA",
+      "last_transition_at": "2026-09-18T22:20:19.155965+00:00",
       "model": "__resolved_model_absent__",
       "notes": [
         "WP01 complete: scoped status data + fail-closed loader; 19 new tests; repo-wide validation unchanged; suite 6509 passed"
@@ -38,7 +38,7 @@
         "reviewer": "user",
         "verdict": "changes_requested"
       },
-      "role": "reviewer",
+      "role": "implementer",
       "shell_pid": null,
       "shell_pid_created_at": null,
       "subtasks": {
