@@ -140,4 +140,58 @@ dispositions (`accepted` / `changed` / `deferred_with_rationale`) are appended b
 
 ### Dispositions
 
-*(populated by the post-plan review)*
+Post-plan Codex review run 2026-09-18 (read-only sandbox, no profile) against `spec.md` + `plan.md` +
+`research.md` + `data-model.md` + `contracts/`. 13 findings: 4 blocking, 7 material, 2 minor. **Every
+checkable factual claim was independently verified before disposition** — all verified true, including
+two that contradicted this document. Nothing dropped.
+
+| # | Severity | Finding | Disposition |
+|---|---|---|---|
+| 1 | blocking | R-01's premise "`decision` is used by nothing" is false | **changed** — see R-01 correction below |
+| 2 | blocking | A flat `status.enum` cannot express `doc_type`-scoped sets | **accepted** — generator must emit conditional schema |
+| 3 | blocking | ADR-0004's existing `## ACL changes log` is undispositioned | **accepted** — explicit migration design required |
+| 4 | blocking | No per-ADR migration matrix; corpus self-disagrees | **accepted** — 9-row matrix required |
+| 5 | material | No component owns decision-log validation | **accepted** — assigned to `validate_docs.py` |
+| 6 | material | Sentinel bootstrap is circular / impossible as specified | **accepted** — bootstrap mode + strict pair rules |
+| 7 | material | Taxonomy loader falls back silently on malformed input | **accepted** — must be fail-closed |
+| 8 | material | "Type is the only machine-read column" contradicts validating date/shape/pairing | **accepted** — split semantic enum from structural parse |
+| 9 | material | `docs/_templates/decision.md` omitted from affected surfaces | **accepted** — added |
+| 10 | material | "never walk" could disable secret scanning | **accepted** — reworded to "never frontmatter-validate" |
+| 11 | material | No commit-safe migration ordering | **accepted** — ordering prescribed in plan |
+| 12 | minor | The R-07 CI-trigger defect does not exist | **changed** — see R-07 correction below |
+| 13 | minor | NFR-004 over-broad | **accepted** — scoped to status-membership failures |
+
+---
+
+## R-01 CORRECTION (post-plan review finding #1)
+
+**What R-01 got wrong.** It asserted `doc_type: decision` "is used by nothing". **False, verified**:
+`docs/design/research/felix-workspace-api-vs-gog-681.md` carries `doc_type: decision`. It is RFC #681.
+
+**Why it matters.** R-01's resolution assumed `decision` was free to claim for ADRs exclusively.
+
+**Corrected resolution (Kent, 2026-09-18).** `decision` is **not** ADR-exclusive and does not need to
+be. An RFC is a decision document — arguably a *more* correct use of `decision` than the ADRs' current
+`reference`. Reclassifying it would make the taxonomy less accurate. ADRs and RFCs are siblings with
+near-identical lifecycles (`draft → proposed → approved → superseded / deprecated`), so the scoped
+status set serves both unchanged, and **no discriminator is needed at all**.
+
+**Consequence**: the decision-log requirement applies to every `doc_type: decision` document, ADRs and
+RFCs alike — an RFC benefits from append-only history for the same reason an ADR does. RFC #681 becomes
+a migration target alongside the nine ADRs (status `draft` is already valid; it needs the log section).
+
+**Also surfaced, deliberately out of scope**: `divio-classification.md` documents 11 doc types and
+omits `decision`, `design`, `project`, `research` and `standard`; 17 distinct values are in live use; a
+Templater expression leaks as a literal value. Same "enforced source + drifting copies" disease one
+field over. Filed as **#988**, to be done *after* this mission so it reuses this generator rather than
+building a second mechanism.
+
+## R-07 CORRECTION (post-plan review finding #12)
+
+**What R-07 got wrong.** It recommended adding a `push`-to-`main` trigger so mission merges would not
+bypass the gate. **Verified**: `.github/workflows/docs-ci.yml` already triggers on `push: [main]`,
+`pull_request: [main]` and `workflow_dispatch`. There is no trigger defect.
+
+**Corrected**: the reasoning about spec-kitty merges not firing `pull_request` remains true and worth
+recording, but it is already handled. IC-06 becomes "add a generator `--check` step to the existing
+job", not "fix the triggers".
