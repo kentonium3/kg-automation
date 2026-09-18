@@ -1,19 +1,19 @@
 {
-  "event_count": 43,
-  "last_event_id": "01M2VE0QKHSQFR2MRH474QFAYH",
-  "materialized_at": "2026-09-18T23:35:52.689731+00:00",
+  "event_count": 44,
+  "last_event_id": "01M2VE0S6FDZA5BPPG14HN8574",
+  "materialized_at": "2026-09-18T23:35:54.319532+00:00",
   "mission_number": "",
   "mission_slug": "adr-first-class-statuses-01M2TVSP",
   "mission_type": "software-dev",
   "summary": {
-    "approved": 4,
+    "approved": 5,
     "blocked": 0,
     "canceled": 0,
     "claimed": 0,
     "done": 0,
     "for_review": 0,
     "in_progress": 0,
-    "in_review": 1,
+    "in_review": 0,
     "planned": 1
   },
   "work_packages": {
@@ -151,14 +151,19 @@
       "agent_profile": "__resolved_profile_absent__",
       "agent_profile_version": "__resolved_profile_version_absent__",
       "force_count": 0,
-      "lane": "in_review",
-      "last_event_id": "01M2VE0QKHSQFR2MRH474QFAYH",
-      "last_transition_at": "2026-09-18T23:35:52.689731+00:00",
+      "lane": "approved",
+      "last_event_id": "01M2VE0S6FDZA5BPPG14HN8574",
+      "last_transition_at": "2026-09-18T23:35:54.319532+00:00",
       "model": "__resolved_model_absent__",
       "notes": [
         "11 rows migrated; ADR-0004 legacy log preserved + canonical appended + erratum relocated; 3 external pointers repointed; corpus passes with decision_log promoted; 15 SC-001 tests"
       ],
       "provider": "__resolved_provider_absent__",
+      "review_result": {
+        "reference": "Migration verified against the matrix by review; tests de-vacuumed and table-driven; promoted-check test skips explicitly until lanes merge",
+        "reviewer": "Kent Gale",
+        "verdict": "approved"
+      },
       "role": "reviewer",
       "shell_pid": 2485570,
       "shell_pid_created_at": "1789773961.98",
