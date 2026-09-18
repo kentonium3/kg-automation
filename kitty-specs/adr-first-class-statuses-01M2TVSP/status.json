@@ -63,7 +63,8 @@
       "model": "__resolved_model_absent__",
       "notes": [
         "Generator complete: conditional schema, exact bootstrap, 22 tests; suite 6553",
-        "Cycle 1 addressed: M1 marked-clause ownership, M2 section-scoped bootstrap, M3 standalone-line sentinels, m4 deep preservation test; 69 tests"
+        "Cycle 1 addressed: M1 marked-clause ownership, M2 section-scoped bootstrap, M3 standalone-line sentinels, m4 deep preservation test; 69 tests",
+        "3 review cycles: 4 findings + 3 follow-on defects, all closed or narrowed with stated reasoning; 82 tests; suite 6572"
       ],
       "provider": "__resolved_provider_absent__",
       "review": null,
