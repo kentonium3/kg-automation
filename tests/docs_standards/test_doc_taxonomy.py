@@ -242,3 +242,73 @@ def test_absent_scope_map_is_valid_shape(tmp_path):
     t = load_taxonomy(_write(tmp_path, payload))
     assert t.statuses_for("decision") == t.default_statuses
     assert t.is_scoped("decision") is False
+
+
+# --------------------------------------------------------------------------
+# Regressions from review feedback #2 — the mixed-type vocabulary
+# --------------------------------------------------------------------------
+
+MIXED = {"doc_type": ["runbook"], "status": ["draft"], "level": ["overview", 1]}
+
+
+def test_mixed_vocabulary_keeps_both_string_and_int(tmp_path):
+    """`level` legitimately holds "1" and 1; both must survive as distinct."""
+    payload = {**MIXED, "level": ["overview", "1", 1, "2", 2]}
+    t = load_taxonomy(_write(tmp_path, payload))
+    assert t.allowed("level") == ("overview", "1", 1, "2", 2)
+
+
+def test_mixed_vocabulary_rejects_containers(tmp_path):
+    """The F6 bypass: a nested container would stay mutable through allowed()."""
+    payload = {**MIXED, "level": ["overview", {"nested": [1]}]}
+    with pytest.raises(TaxonomyError, match="must be a string or integer"):
+        load_taxonomy(_write(tmp_path, payload))
+
+
+def test_mixed_vocabulary_rejects_nested_list(tmp_path):
+    payload = {**MIXED, "level": ["overview", [1, 2]]}
+    with pytest.raises(TaxonomyError, match="must be a string or integer"):
+        load_taxonomy(_write(tmp_path, payload))
+
+
+def test_mixed_vocabulary_rejects_bool(tmp_path):
+    """bool is an int subclass and True == 1, so it would collide silently."""
+    payload = {**MIXED, "level": ["overview", True]}
+    with pytest.raises(TaxonomyError, match="must be a string or integer"):
+        load_taxonomy(_write(tmp_path, payload))
+
+
+def test_mixed_vocabulary_rejects_whitespace(tmp_path):
+    """The F5 bypass: `level` skipped the canonical-token rule entirely."""
+    payload = {**MIXED, "level": [" overview"]}
+    with pytest.raises(TaxonomyError, match="leading or trailing whitespace"):
+        load_taxonomy(_write(tmp_path, payload))
+
+
+def test_mixed_vocabulary_rejects_blank(tmp_path):
+    payload = {**MIXED, "level": ["overview", "   "]}
+    with pytest.raises(TaxonomyError, match="blank entry"):
+        load_taxonomy(_write(tmp_path, payload))
+
+
+def test_mixed_vocabulary_rejects_duplicates(tmp_path):
+    payload = {**MIXED, "level": ["overview", "overview"]}
+    with pytest.raises(TaxonomyError, match="duplicate entries"):
+        load_taxonomy(_write(tmp_path, payload))
+
+
+def test_mixed_vocabulary_duplicate_check_is_type_aware(tmp_path):
+    """"1" and 1 are different values; only a true repeat is a duplicate."""
+    ok = {**MIXED, "level": ["1", 1]}
+    assert load_taxonomy(_write(tmp_path, ok)).allowed("level") == ("1", 1)
+    dup = {**MIXED, "level": [1, 1]}
+    with pytest.raises(TaxonomyError, match="duplicate entries"):
+        load_taxonomy(_write(tmp_path, dup))
+
+
+def test_everything_reachable_through_allowed_is_immutable(tmp_path):
+    """With containers rejected by type, nothing nested survives to be mutated."""
+    t = load_taxonomy(_write(tmp_path, {**MIXED, "level": ["overview", 1]}))
+    for key in t.vocabularies:
+        for entry in t.allowed(key):
+            assert isinstance(entry, (str, int)) and not isinstance(entry, bool)

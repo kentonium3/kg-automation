@@ -35,8 +35,9 @@ _DEFAULT_KEY = "status"
 _SCOPED_KEY = "status_by_doc_type"
 #: Key holding the permitted doc_type vocabulary.
 _DOC_TYPE_KEY = "doc_type"
-#: Vocabularies whose entries may legitimately be non-string (`level` carries
-#: both "1" and 1 today), validated separately from the string vocabularies.
+#: Vocabularies whose entries may legitimately be non-string. `level` carries
+#: both "1" and 1 today, which is why it needs a *different* validator — not no
+#: validator (review cycle 2).
 _MIXED_KEYS = ("level",)
 
 
@@ -98,6 +99,54 @@ def _require_vocabulary(raw: object, *, key: str, source: Path) -> tuple[str, ..
     duplicates: set[str] = set()
     for v in values:
         (duplicates if v in seen else seen).add(v)
+    if duplicates:
+        raise TaxonomyError(
+            f"{source}: '{key}' contains duplicate entries: {', '.join(sorted(duplicates))}"
+        )
+
+    return tuple(values)
+
+
+def _require_mixed_vocabulary(raw: object, *, key: str, source: Path) -> tuple:
+    """Validate a vocabulary whose entries may be `str` or `int`.
+
+    `level` legitimately holds both ``"1"`` and ``1``, so string-only validation
+    cannot apply. Everything else still does: no containers, no bools, canonical
+    strings, no duplicates. Rejecting containers by type also means nothing
+    nested survives into the frozen `Taxonomy`, so immutability holds without a
+    deep copy (review cycle 2).
+    """
+    if not isinstance(raw, list):
+        raise TaxonomyError(f"{source}: '{key}' must be a list, got {type(raw).__name__}")
+    if not raw:
+        raise TaxonomyError(f"{source}: '{key}' must not be empty")
+
+    values: list = []
+    for item in raw:
+        # bool is an int subclass and True == 1, so it would collide with a
+        # legitimate numeric level while reading as a different value.
+        if isinstance(item, bool) or not isinstance(item, (str, int)):
+            raise TaxonomyError(
+                f"{source}: '{key}' entry {item!r} must be a string or integer, "
+                f"got {type(item).__name__}"
+            )
+        if isinstance(item, str):
+            if not item.strip():
+                raise TaxonomyError(f"{source}: '{key}' contains a blank entry")
+            if item != item.strip():
+                raise TaxonomyError(
+                    f"{source}: '{key}' entry {item!r} has leading or trailing whitespace"
+                )
+        values.append(item)
+
+    # Compare on (type, value) so "1" and 1 stay distinct and both legal.
+    seen: set[tuple[str, object]] = set()
+    duplicates: set[str] = set()
+    for v in values:
+        marker = (type(v).__name__, v)
+        if marker in seen:
+            duplicates.add(repr(v))
+        seen.add(marker)
     if duplicates:
         raise TaxonomyError(
             f"{source}: '{key}' contains duplicate entries: {', '.join(sorted(duplicates))}"
@@ -224,12 +273,8 @@ def load_taxonomy(path: Path | str | None = None) -> Taxonomy:
     for key, raw in data.items():
         if key in (_DEFAULT_KEY, _DOC_TYPE_KEY, _SCOPED_KEY):
             continue
-        if not isinstance(raw, list):
-            raise TaxonomyError(f"{source}: '{key}' must be a list, got {type(raw).__name__}")
-        if not raw:
-            raise TaxonomyError(f"{source}: '{key}' must not be empty")
         if key in _MIXED_KEYS:
-            vocabularies[key] = tuple(raw)
+            vocabularies[key] = _require_mixed_vocabulary(raw, key=key, source=source)
         else:
             vocabularies[key] = _require_vocabulary(raw, key=key, source=source)
 
