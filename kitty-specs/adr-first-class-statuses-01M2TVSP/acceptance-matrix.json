@@ -140,14 +140,11 @@
     },
     {
       "invariant_id": "NI-005",
-      "description": "The suite floor is held: no test regressed.",
+      "description": "The suite floor is held: no test regressed",
       "verification_method": "automated_test",
-      "verification_command": null,
+      "verification_command": "make test",
       "result": "pending",
-      "evidence": "Unknown verification method: automated_test",
-      "pass_fail": "pass",
-      "verified_by": "claude-office4",
-      "verified_at": "2026-09-18T23:55:00Z"
+      "evidence": "Unknown verification method: automated_test"
     }
   ]
 }
