@@ -1,0 +1,17 @@
+{
+  "rows": {
+    "#989": {
+      "evidence_ref": "Pre-existing failure on main, reproduced on a clean tree before this mission changed anything; diagnosed to a stale test asserting the pre-#685 observe contract; filed as #989",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": null,
+      "title": null,
+      "verdict": "deferred-with-followup",
+      "wp": "WP01"
+    }
+  },
+  "schema_version": 1
+}
