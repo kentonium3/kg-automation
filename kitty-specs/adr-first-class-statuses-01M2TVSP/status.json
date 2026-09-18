@@ -29,7 +29,8 @@
       "model": "__resolved_model_absent__",
       "notes": [
         "WP01 complete: scoped status data + fail-closed loader; 19 new tests; repo-wide validation unchanged; suite 6509 passed",
-        "Review feedback #1 addressed: 7 findings fixed + 13 regression tests; F1 downgraded with evidence; suite 6522 passed"
+        "Review feedback #1 addressed: 7 findings fixed + 13 regression tests; F1 downgraded with evidence; suite 6522 passed",
+        "Cycle 2 addressed: mixed-type vocabulary now validated (closes F5/F6/new defect by construction); F9 rejected with reasoning; 41 tests; suite 6531"
       ],
       "provider": "__resolved_provider_absent__",
       "review": null,
