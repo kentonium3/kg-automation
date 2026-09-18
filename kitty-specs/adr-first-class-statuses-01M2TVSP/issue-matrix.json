@@ -24,6 +24,18 @@
       "verdict": "verified-already-fixed",
       "wp": "WP01"
     },
+    "#557": {
+      "evidence_ref": "Rebaseline obligation. Charter Check records it as N/A for this mission: tooling/ and docs/ are not audited surfaces.",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": null,
+      "title": null,
+      "verdict": "verified-already-fixed",
+      "wp": "WP01"
+    },
     "#986": {
       "evidence_ref": "RFC on inference provider/model flexibility; referenced because ADR-0009 points at ADR-0004's legacy log. Its own substance is open on #986 and untouched here.",
       "fr": null,
