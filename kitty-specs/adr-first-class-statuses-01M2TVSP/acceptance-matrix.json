@@ -124,14 +124,11 @@
     },
     {
       "invariant_id": "NI-003",
-      "description": "ADR bodies are frozen \u2014 migration touches frontmatter and appends a section only.",
+      "description": "ADR bodies are frozen \u2014 migration touches frontmatter and appends a section only",
       "verification_method": "automated_test",
-      "verification_command": null,
+      "verification_command": "pytest tests/docs_standards/test_adr_corpus.py -k legacy_log_is_preserved_verbatim",
       "result": "pending",
-      "evidence": "Unknown verification method: automated_test",
-      "pass_fail": "pass",
-      "verified_by": "claude-office4",
-      "verified_at": "2026-09-18T23:55:00Z"
+      "evidence": "Unknown verification method: automated_test"
     },
     {
       "invariant_id": "NI-004",
