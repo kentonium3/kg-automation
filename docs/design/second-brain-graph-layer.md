@@ -157,6 +157,16 @@ Outcome-level truth. An empty or ambiguous derivation is a coaching signal, not 
 modeling gap. Seed data and extraction wording must not assert Domain→Purpose
 relations; the post-extraction validator rejects them as unregistered pairs.
 
+**Kent's operating contexts are Domains (2026-09-18, from the #849 four-contexts note).** The
+four parallel surfaces Kent works across — personal, Intentional, spec-kitty, PointerHealth —
+each with its own calendar and mail system, are modelled as Domains on the *work* side: an
+Outcome `BELONGS_TO` the context it lives in. The **account or system a message arrived
+through** is *episode provenance* (the episode's `source_description`), not a node — the same
+person can reach Kent through several of them, which is what the `Person.aliases` list
+absorbs. `Capacity` with no `CONSTRAINS` edge is global, so it is the one resource all four
+contexts contend for; a **cross-context collision** (#849 Arc A) is therefore a
+Domain-partitioned read against a single Capacity, and needs no new entity type.
+
 *Examples:* Intentional LLC, Physical Conditioning, Business Acquisition, Felix/Second Brain
 
 #### OUTCOME
@@ -187,7 +197,7 @@ A cross-cutting **constraint** on decisions — a value, standard, or non-negoti
 
 *Examples:* "Never commit secrets or bypass a governance gate for expediency," "Protect deep-work mornings — no meetings before noon," "Reversible internal actions are autonomous; irreversible/outbound actions require preview"
 
-#### PERSON — *PROPOSED 2026-09-18, stability: directional (Kent to ratify)*
+#### PERSON *(added 2026-09-18; ratified by Kent the same day on #849)*
 A human Kent deals with — the **who** axis, beside why (Purpose), what (Outcome→Task), and
 when (temporal edges). Cross-cutting like Commitment, Principle, and Capacity: **not a
 hierarchy tier**, and exempt from guiding principle 2 (a Person has no upward edge to a
@@ -343,7 +353,7 @@ class RelationshipEnum(str, Enum):
 
 
 class Person(BaseModel):
-    """PROPOSED (2026-09-18, directional). A human Kent deals with — the who axis.
+    """A human Kent deals with — the who axis (ratified 2026-09-18, #849).
     Cross-cutting hub, never a hierarchy tier; Kent is not a node. See §Tier
     Definitions → PERSON for the identity-resolution and privacy rules."""
     description: str = ""                    # who they are to Kent
@@ -386,8 +396,8 @@ All edges carry `valid_from` / `valid_until` automatically via Graphiti's bi-tem
 | `VIOLATES` | Task/Project | Principle | Agent-detected tension between a proposed action and a Principle |
 | `CONSTRAINS` | Capacity | Purpose/Domain | Capacity bounds work in this scope (absence = global) |
 | `DUE_BY` | Task/Project | Commitment | This node's hard deadline is this Commitment (task-side source, matching the upward-pointing convention) |
-| `COMMITTED_TO` | Commitment | Person | *Proposed.* The Person this Commitment was made to (its counterparty); attributed — see `CommittedTo` |
-| `INVOLVES` | Task/Project | Person | *Proposed.* This Person is a stakeholder in this node |
+| `COMMITTED_TO` | Commitment | Person | The Person this Commitment was made to (its counterparty); attributed — see `CommittedTo` |
+| `INVOLVES` | Task/Project | Person | This Person is a stakeholder in this node |
 
 ### Edge attribute models & wiring
 
@@ -414,7 +424,7 @@ class Violates(BaseModel):
     note: str = ""
 
 class CommittedTo(BaseModel):
-    """PROPOSED. Where and how the commitment to this Person was made."""
+    """Where and how the commitment to this Person was made."""
     channel: str = ""                        # email | slack | calendar | in_person | other
     made_at: Optional[str] = None            # ISO datetime, if distinct from the episode's reference_time
 ```
@@ -422,8 +432,7 @@ class CommittedTo(BaseModel):
 Wiring intent (implementer verifies exact API shape against the pinned graphiti-core —
 the doc states design intent, not engine mechanics):
 
-- `entity_types`: all eleven models (ten accepted + the proposed `Person`), keyed by their
-  class names, passed to `add_episode`.
+- `entity_types`: all eleven models, keyed by their class names, passed to `add_episode`.
 - `edge_type_map`: keyed by (source-type, target-type) name pairs per the table above.
   `CONTAINS` registers for (Project, Project), (Project, Task), and (Task, Task).
   `DECIDED` registers Decision → **{Purpose, Domain, Outcome, Objective, Project, Task,
@@ -447,9 +456,9 @@ the doc states design intent, not engine mechanics):
   authoritative** and the flag is derived (`Task.is_shared` ⇐ existence of `SHARED_BY`
   edges; `Task.due_date` ⇐ its `DUE_BY` Commitment when one exists — attribute-only due
   dates remain valid for soft dates that never earned a Commitment;
-  `Commitment.counterparty` ⇐ its `COMMITTED_TO` Person — *proposed*). Writers maintain
+  `Commitment.counterparty` ⇐ its `COMMITTED_TO` Person). Writers maintain
   the edge; the flag may lag or be dropped entirely.
-- **Unmaterialised-commitment pattern** (*proposed*, with `Person`): a Commitment carrying a
+- **Unmaterialised-commitment pattern** (with `Person`): a Commitment carrying a
   `COMMITTED_TO` edge but **no inbound `DUE_BY` / `GATES` / `BLOCKS`** from any Task or
   Project is a promise that never became work — the structural form of #849's "dropped
   ball". It is one Cypher pattern, distinct from the retrieval form (the promise never
@@ -660,6 +669,16 @@ What this decision does **not** settle: whether graph-mediated retrieval beats t
 non-graph baseline at scale. #974 measured mechanisms on 34–36 nodes, where a retrieval
 budget of 50 returns the whole graph. **#849 is the gate** and it is the priority spend.
 
+**Cost shape is a scored axis, and today's number is a lower bound (Kent, 2026-09-18).** The
+flat baseline's per-query cost scales with the corpus; the graph's scales with the answer, because
+it pays once to structure and assembles a small context per question. #849 therefore scores
+input-tokens-per-correct-answer alongside correctness. Because the corpus only grows once the
+Outcome→commitment→action chain is in use, a cost gap measured now **understates** the eventual
+gap, and a "graph does not pay off yet" reading would be regime-bound the way #844's was — the
+findings must say so before the run, not after. Inference cost as the practical capacity limit is
+the motivating context of RFC #986 (per-function provider/model seam) and ADR-0009 (office4
+large-context inference); this design leaves that seam open and hardcodes no provider.
+
 ### Proof-feature ladder (each rung: parallel on prod, additive, reversible, one proof point)
 
 > **Status (2026-09-17):** the ladder below is the **plan-of-record**. The contingency
@@ -689,7 +708,7 @@ budget of 50 returns the whole graph. **#849 is the gate** and it is the priorit
 ### Named risks to hold
 
 - **Privacy / exposure** (LLM extraction of sensitive episodes) — hard gate; spike item 3.
-  The proposed `Person` type makes PII a first-class node; real-person data stays behind
+  The `Person` type makes PII a first-class node; real-person data stays behind
   the same gate (§Tier Definitions → PERSON).
 - **Lattice becoming a silent load-bearing dependency** — mitigated by advisory/derived +
   adapters canonical.
