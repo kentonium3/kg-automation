@@ -51,3 +51,4 @@ ADRs are numbered sequentially (`0001-`, `0002-`, ...). Once approved, the body 
 | [0006](<./0006-felix-component-lifecycle-status-contract.md>) | Felix component lifecycle status contract (declared status vs observed health) | approved | 2026-07-11 |
 | [0007](<./0007-retire-vikunja-felix-bot.md>) | Retire Vikunja felix-bot; single kent-token runtime identity | approved | 2026-07-23 |
 | [0008](<./0008-three-machine-model.md>) | Three-machine model; office2 managed, MacBook Pro and office4 unmanaged peers | approved (erratum in [0004](<./0004-tailscale-ssh-with-accept-acl.md>) ACL changes log) | 2026-08-29 |
+| [0009](<./0009-office4-large-context-inference-provider.md>) | Large-context inference on office4 as a best-effort provider behind a per-function fallback seam | **proposed** | 2026-09-18 |

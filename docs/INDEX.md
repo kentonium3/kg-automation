@@ -73,6 +73,7 @@ Immutable, dated records of *why* particular options were chosen over alternativ
 - [ADR-0006 — Felix component lifecycle status contract (declared status vs observed health)](<./design/architecture/adr/0006-felix-component-lifecycle-status-contract.md>) (approved 2026-07-11)
 - [ADR-0007 — Retire Vikunja felix-bot; single kent-token runtime identity](<./design/architecture/adr/0007-retire-vikunja-felix-bot.md>) (approved 2026-07-23)
 - [ADR-0008 — Three-machine model; office2 managed, MacBook Pro and office4 unmanaged peers](<./design/architecture/adr/0008-three-machine-model.md>) (approved 2026-08-29)
+- [ADR-0009 — Large-context inference on office4 as a best-effort provider behind a per-function fallback seam](<./design/architecture/adr/0009-office4-large-context-inference-provider.md>) (proposed 2026-09-18)
 
 ### docs/design/architecture/data/ — Machine-readable state (JSON)
 
