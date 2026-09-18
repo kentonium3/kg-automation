@@ -98,10 +98,10 @@
       "criterion_id": "FR-010",
       "description": "The two known amendments are seeded in the documents they concern.",
       "proof_type": "automated_test",
-      "evidence": "test_adr_corpus.py::test_adr0002_surfaces_its_own_dead_decision (Q6 -> ADR-0007, typed `amendment` not `superseded-by`) and ::test_adr0008_surfaces_its_own_erratum.",
+      "evidence": "test_adr_corpus.py::test_adr0002_surfaces_its_own_dead_decision and ::test_adr0008_surfaces_its_own_erratum",
       "pass_fail": "pass",
       "verified_by": "claude-office4",
-      "verified_at": "2026-09-18T23:55:00Z",
+      "verified_at": "2026-09-18T23:54:49.236935+00:00",
       "notes": "Verified in lane-e, which has all six work packages merged."
     }
   ],
