@@ -22,56 +22,96 @@
       "force_count": 0,
       "lane": "done",
       "last_event_id": "01KY94QJ5K9CQY2ZZHE1RN7ME7",
-      "last_transition_at": "2026-07-24T04:04:27.956107+00:00"
+      "last_transition_at": "2026-07-24T04:04:27.956107+00:00",
+      "review_result": {
+        "reference": "Review passed: token seam correct, SC-001/SC-002 satisfied, tests green",
+        "reviewer": "Kent Gale",
+        "verdict": "approved"
+      }
     },
     "WP02": {
       "actor": "merge",
       "force_count": 0,
       "lane": "done",
       "last_event_id": "01KY94QY3HX55DJ1NXHRV2FYF5",
-      "last_transition_at": "2026-07-24T04:04:40.177447+00:00"
+      "last_transition_at": "2026-07-24T04:04:40.177447+00:00",
+      "review_result": {
+        "reference": "read-site seam resolution (args.X or get_vikunja_token_path()) preserves early-exit ordering + dry-run; grep clean in 6 files; 755 pass",
+        "reviewer": "Kent Gale",
+        "verdict": "approved"
+      }
     },
     "WP03": {
       "actor": "merge",
       "force_count": 0,
       "lane": "done",
       "last_event_id": "01KY94R9Y8CQM9A8ZV4EYXD6H8",
-      "last_transition_at": "2026-07-24T04:04:52.296541+00:00"
+      "last_transition_at": "2026-07-24T04:04:52.296541+00:00",
+      "review_result": {
+        "reference": "grep clean in 4 files, behavior-preserving (read_token/PATCH/comment flows untouched), 383 pass",
+        "reviewer": "Kent Gale",
+        "verdict": "approved"
+      }
     },
     "WP04": {
       "actor": "merge",
       "force_count": 0,
       "lane": "done",
       "last_event_id": "01KY94RNN84QYPE11VBETA0E6Q",
-      "last_transition_at": "2026-07-24T04:05:04.296621+00:00"
+      "last_transition_at": "2026-07-24T04:05:04.296621+00:00",
+      "review_result": {
+        "reference": "sync preamble cycle_error preserved: catch widened to (OSError,VikunjaConfigError), phase/exit_code/token unchanged + byte-identical parity test; fetch unchanged; credhealth seam+redaction; 258 pass",
+        "reviewer": "Kent Gale",
+        "verdict": "approved"
+      }
     },
     "WP05": {
       "actor": "merge",
       "force_count": 0,
       "lane": "done",
       "last_event_id": "01KY94S17NE2M3C36W20YW31V0",
-      "last_transition_at": "2026-07-24T04:05:16.149138+00:00"
+      "last_transition_at": "2026-07-24T04:05:16.149138+00:00",
+      "review_result": {
+        "reference": "swallow-branch removed→fail-loud RouteSomedayError (names task id), network-error-surfaces test added, unprovisioned-degrade preserved; validate_refs resolves via get_vikunja_token_path (no independent literal); 30 pass",
+        "reviewer": "Kent Gale",
+        "verdict": "approved"
+      }
     },
     "WP06": {
       "actor": "merge",
       "force_count": 0,
       "lane": "done",
       "last_event_id": "01KY94SDGW4HAJCKBGT6S3KPYZ",
-      "last_transition_at": "2026-07-24T04:05:28.732626+00:00"
+      "last_transition_at": "2026-07-24T04:05:28.732626+00:00",
+      "review_result": {
+        "reference": "ADR-0007 accepted + ADR-0002 superseded; credential-manifest vikunja-api retired/runtime:false/dormant, kent sole runtime; narrative docs reconciled; validate_architecture_data + validate_docs green",
+        "reviewer": "Kent Gale",
+        "verdict": "approved"
+      }
     },
     "WP07": {
       "actor": "merge",
       "force_count": 0,
       "lane": "done",
       "last_event_id": "01KY94SQKEYP7BA76BAYGV1BEV",
-      "last_transition_at": "2026-07-24T04:05:39.054747+00:00"
+      "last_transition_at": "2026-07-24T04:05:39.054747+00:00",
+      "review_result": {
+        "reference": "Comment/doc-only verified (scan_inbox no logic change; token is None invariant intact); #831 SKILL v2.4.0+health-check fixed against live /info; 30 tests pass",
+        "reviewer": "Kent Gale",
+        "verdict": "approved"
+      }
     },
     "WP08": {
       "actor": "merge",
       "force_count": 0,
       "lane": "done",
       "last_event_id": "01KY94T1Q640Z1ECRJ0N6V48NA",
-      "last_transition_at": "2026-07-24T04:05:49.414849+00:00"
+      "last_transition_at": "2026-07-24T04:05:49.414849+00:00",
+      "review_result": {
+        "reference": "cutover_verify read-only (grep-audited: no post/put/patch/delete), token via get_vikunja_token_path, inverse-probe/connectivity/task-delta, 18 pass",
+        "reviewer": "Kent Gale",
+        "verdict": "approved"
+      }
     }
   }
 }

@@ -22,49 +22,84 @@
       "force_count": 0,
       "lane": "done",
       "last_event_id": "01KY2SGETMESGQMGC2Y72WJ65Z",
-      "last_transition_at": "2026-07-21T16:52:54.228826+00:00"
+      "last_transition_at": "2026-07-21T16:52:54.228826+00:00",
+      "review_result": {
+        "reference": "Review passed: validator + all 5 wiring points cleanly removed (243-line delete, grep-clean, no scope creep). FR-001 DoD met.",
+        "reviewer": "Kent Gale",
+        "verdict": "approved"
+      }
     },
     "WP02": {
       "actor": "merge",
       "force_count": 0,
       "lane": "done",
       "last_event_id": "01KY2SGPKR8237TX4RMAQP7527",
-      "last_transition_at": "2026-07-21T16:53:02.200325+00:00"
+      "last_transition_at": "2026-07-21T16:53:02.200325+00:00",
+      "review_result": {
+        "reference": "Review passed: Inv A+D + constants removed cleanly, Inv B/C (output-discipline, runtime-env) intact, 78 tests pass, no other consumers of removed constants. FR-002 met.",
+        "reviewer": "Kent Gale",
+        "verdict": "approved"
+      }
     },
     "WP03": {
       "actor": "merge",
       "force_count": 0,
       "lane": "done",
       "last_event_id": "01KY2SGXYGBR8NB4DM0X794G1W",
-      "last_transition_at": "2026-07-21T16:53:09.712981+00:00"
+      "last_transition_at": "2026-07-21T16:53:09.712981+00:00",
+      "review_result": {
+        "reference": "Review passed: clean-sweep verified — hard_fail keeps ~/second-brain + /second-brain redaction (dropped only bare _private), mark_processed keeps inbox-root ALLOW + refuse-outside-inbox, classify_content/prescan refusals cleanly deleted, 148/755 tests pass, is_private untouched. FR-007/008/NFR-003 met.",
+        "reviewer": "Kent Gale",
+        "verdict": "approved"
+      }
     },
     "WP04": {
       "actor": "merge",
       "force_count": 0,
       "lane": "done",
       "last_event_id": "01KY2SHTQ995AV7E6PW86ZCKMZ",
-      "last_transition_at": "2026-07-21T16:53:39.178003+00:00"
+      "last_transition_at": "2026-07-21T16:53:39.178003+00:00",
+      "review_result": {
+        "reference": "Review passed: _private red-line removed from all 7 agents (per-agent owner files matched IC-03, confirmed by grep); only red-line removed (84 del/4 clause-repairs), no non-privacy content touched; validate_workspace 15 pass. FR-003 met.",
+        "reviewer": "Kent Gale",
+        "verdict": "approved"
+      }
     },
     "WP05": {
       "actor": "merge",
       "force_count": 0,
       "lane": "done",
       "last_event_id": "01KY2SH53BCRR41K9AZ6HW980M",
-      "last_transition_at": "2026-07-21T16:53:17.035490+00:00"
+      "last_transition_at": "2026-07-21T16:53:17.035490+00:00",
+      "review_result": {
+        "reference": "Review passed: _private absolute rule removed from CLAUDE.md/CODEX.md/ai-agents/constitution; general repo boundary preserved (verified); physical-exclusion note added. FR-004 met.",
+        "reviewer": "Kent Gale",
+        "verdict": "approved"
+      }
     },
     "WP06": {
       "actor": "merge",
       "force_count": 0,
       "lane": "done",
       "last_event_id": "01KY2SHC8M630BQ9PHHWEWKYCN",
-      "last_transition_at": "2026-07-21T16:53:24.372384+00:00"
+      "last_transition_at": "2026-07-21T16:53:24.372384+00:00",
+      "review_result": {
+        "reference": "Review passed: 13 docs reframed to physical exclusion, service-inventory.json well-formed (arch-data OK), validate_docs OK, no stale claims of deleted classify_content/prescan behavior (cross-WP consistent with WP03). FR-005 met.",
+        "reviewer": "Kent Gale",
+        "verdict": "approved"
+      }
     },
     "WP07": {
       "actor": "merge",
       "force_count": 0,
       "lane": "done",
       "last_event_id": "01KY2SHKJ5KP0G5Y1P047RZH4R",
-      "last_transition_at": "2026-07-21T16:53:31.845844+00:00"
+      "last_transition_at": "2026-07-21T16:53:31.845844+00:00",
+      "review_result": {
+        "reference": "Review passed: #692/#696 graph-ingest model reframed to verify-not-present physical exclusion in both design docs; #696 forward-consistent; validate_docs OK. FR-006 met.",
+        "reviewer": "Kent Gale",
+        "verdict": "approved"
+      }
     }
   }
 }

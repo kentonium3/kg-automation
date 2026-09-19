@@ -22,7 +22,12 @@
       "force_count": 0,
       "lane": "done",
       "last_event_id": "01KXH2725XMP81SR5BK7KWCFA8",
-      "last_transition_at": "2026-07-14T19:38:43.773797+00:00"
+      "last_transition_at": "2026-07-14T19:38:43.773797+00:00",
+      "review_result": {
+        "reference": "reviewer-renata APPROVE: all 10 checks pass, both invariants preserved, 469 tests green",
+        "reviewer": "Kent Gale",
+        "verdict": "approved"
+      }
     }
   }
 }

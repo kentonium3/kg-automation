@@ -22,35 +22,60 @@
       "force_count": 3,
       "lane": "done",
       "last_event_id": "01KXKTVXF8RMZQYHYFAQWNWNRN",
-      "last_transition_at": "2026-07-15T21:28:01.769041+00:00"
+      "last_transition_at": "2026-07-15T21:28:01.769041+00:00",
+      "review_result": {
+        "reference": "Codex APPROVE of additions (VikunjaRefUnprovisioned + declared_projects/declared_labels); 52 tests",
+        "reviewer": "Kent Gale",
+        "verdict": "approved"
+      }
     },
     "WP02": {
       "actor": "merge",
       "force_count": 0,
       "lane": "done",
       "last_event_id": "01KXKTW6048HF17D89DW3R6EKB",
-      "last_transition_at": "2026-07-15T21:28:10.500443+00:00"
+      "last_transition_at": "2026-07-15T21:28:10.500443+00:00",
+      "review_result": {
+        "reference": "Codex APPROVE: pure validate() via public accessors; ≤2 calls; unreachable distinct from clean; 17 tests",
+        "reviewer": "Kent Gale",
+        "verdict": "approved"
+      }
     },
     "WP03": {
       "actor": "merge",
       "force_count": 0,
       "lane": "done",
       "last_event_id": "01KXKTWE6P3V5XQW21WSCX0MYQ",
-      "last_transition_at": "2026-07-15T21:28:18.902944+00:00"
+      "last_transition_at": "2026-07-15T21:28:18.902944+00:00",
+      "review_result": {
+        "reference": "Codex APPROVE: project-id consumers migrated; 757 tests; greps clean; SC-002 fail-loud confirmed",
+        "reviewer": "Kent Gale",
+        "verdict": "approved"
+      }
     },
     "WP04": {
       "actor": "merge",
       "force_count": 0,
       "lane": "done",
       "last_event_id": "01KXKTWPC5DST6GSSAC52MKSF5",
-      "last_transition_at": "2026-07-15T21:28:27.269260+00:00"
+      "last_transition_at": "2026-07-15T21:28:27.269260+00:00",
+      "review_result": {
+        "reference": "Codex APPROVE: graceful degrade on unprovisioned felix:ignore (only VikunjaRefUnprovisioned caught); private-set on seam; 49+242 tests",
+        "reviewer": "Kent Gale",
+        "verdict": "approved"
+      }
     },
     "WP05": {
       "actor": "merge",
       "force_count": 3,
       "lane": "done",
       "last_event_id": "01KXKTWXHE6JXZCY3YTDHT1NDG",
-      "last_transition_at": "2026-07-15T21:28:34.606119+00:00"
+      "last_transition_at": "2026-07-15T21:28:34.606119+00:00",
+      "review_result": {
+        "reference": "ARBITER decision after 3 review cycles (operator-confirmed). Both substantive defects fixed + Codex-verified: enrichment reconcile hardcoded id migrated to seam, orchestrator broken import repaired (216 security tests). SC-001 gate is green over the entire real runtime surface and catches all realistic regression forms (by-title, UPPERCASE/typed/container/multiline id constants, dict resolution fields, bare /projects|/labels listing). Cycle-3 residual (dict(kw=)/subscript/lowercase-annotated forms) are theoretical, absent from the codebase, diminishing-returns; the lowercase form conflicts with the legitimate param-default negative control. Acceptance criteria (zero real by-title/hardcoded-id runtime lookups) met.",
+        "reviewer": "Kent Gale",
+        "verdict": "approved"
+      }
     }
   }
 }

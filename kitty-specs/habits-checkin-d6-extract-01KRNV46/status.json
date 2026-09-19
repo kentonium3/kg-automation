@@ -22,35 +22,40 @@
       "force_count": 3,
       "lane": "approved",
       "last_event_id": "01KRPD50XW21T0GZ6JEG8J2HM7",
-      "last_transition_at": "2026-05-15T18:07:34.332488+00:00"
+      "last_transition_at": "2026-05-15T18:07:34.332488+00:00",
+      "review_result": null
     },
     "WP02": {
       "actor": "user",
       "force_count": 3,
       "lane": "approved",
       "last_event_id": "01KRPDTFRMCBCR17HJHWRCM3VF",
-      "last_transition_at": "2026-05-15T18:19:17.652588+00:00"
+      "last_transition_at": "2026-05-15T18:19:17.652588+00:00",
+      "review_result": null
     },
     "WP03": {
       "actor": "user",
       "force_count": 3,
       "lane": "approved",
       "last_event_id": "01KRPE9K2FJA421WKRCY6KVAWC",
-      "last_transition_at": "2026-05-15T18:27:32.559927+00:00"
+      "last_transition_at": "2026-05-15T18:27:32.559927+00:00",
+      "review_result": null
     },
     "WP04": {
       "actor": "user",
       "force_count": 3,
       "lane": "approved",
       "last_event_id": "01KRPEPEJXQR3AEVBE9EPCB5D4",
-      "last_transition_at": "2026-05-15T18:34:33.949867+00:00"
+      "last_transition_at": "2026-05-15T18:34:33.949867+00:00",
+      "review_result": null
     },
     "WP05": {
       "actor": "user",
       "force_count": 3,
       "lane": "approved",
       "last_event_id": "01KRPFJPGZB6VMP69QHD2APBF1",
-      "last_transition_at": "2026-05-15T18:49:59.583961+00:00"
+      "last_transition_at": "2026-05-15T18:49:59.583961+00:00",
+      "review_result": null
     }
   }
 }

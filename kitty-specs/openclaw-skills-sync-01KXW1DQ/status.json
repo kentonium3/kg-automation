@@ -22,28 +22,48 @@
       "force_count": 0,
       "lane": "done",
       "last_event_id": "01KXW687A9DDS1SEWNRR7NT5YM",
-      "last_transition_at": "2026-07-19T03:20:54.857645+00:00"
+      "last_transition_at": "2026-07-19T03:20:54.857645+00:00",
+      "review_result": {
+        "reference": "reviewer-renata APPROVE; M1/L1/L3/L4 folded; 38 tests green; issue-matrix filled.",
+        "reviewer": "Kent Gale",
+        "verdict": "approved"
+      }
     },
     "WP02": {
       "actor": "merge",
       "force_count": 0,
       "lane": "done",
       "last_event_id": "01KXW68EWFQXV933PRXMBJMECF",
-      "last_transition_at": "2026-07-19T03:21:02.607577+00:00"
+      "last_transition_at": "2026-07-19T03:21:02.607577+00:00",
+      "review_result": {
+        "reference": "Comparator reviewed: independent of sync, exit contract + orphan + backup-ignore covered by 16 tests; smoke green. Canary wiring in WP04.",
+        "reviewer": "Kent Gale",
+        "verdict": "approved"
+      }
     },
     "WP03": {
       "actor": "merge",
       "force_count": 0,
       "lane": "done",
       "last_event_id": "01KXW68NDPBY2Z0E0Q24QAHYM5",
-      "last_transition_at": "2026-07-19T03:21:09.302600+00:00"
+      "last_transition_at": "2026-07-19T03:21:09.302600+00:00",
+      "review_result": {
+        "reference": "Hard enable gate verified: smoke-before-enable, XDG_RUNTIME_DIR, loud failure, no sudo. Manifest schema-valid. systemd-analyze runs on office2 at deploy.",
+        "reviewer": "Kent Gale",
+        "verdict": "approved"
+      }
     },
     "WP04": {
       "actor": "merge",
       "force_count": 0,
       "lane": "done",
       "last_event_id": "01KXW68W2XDA0DKZ6EA287QA5D",
-      "last_transition_at": "2026-07-19T03:21:16.125641+00:00"
+      "last_transition_at": "2026-07-19T03:21:16.125641+00:00",
+      "review_result": {
+        "reference": "Audited-surface globs verified to match new units + deploy script; service entry wires independent drift check as canary probe; validators green. Post-merge Codex is the whole-diff backstop.",
+        "reviewer": "Kent Gale",
+        "verdict": "approved"
+      }
     }
   }
 }

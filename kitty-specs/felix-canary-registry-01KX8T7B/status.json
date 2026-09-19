@@ -22,49 +22,84 @@
       "force_count": 0,
       "lane": "done",
       "last_event_id": "01KX98GVZ0HBZ64YC4E6RVFW67",
-      "last_transition_at": "2026-07-11T18:55:01.089208+00:00"
+      "last_transition_at": "2026-07-11T18:55:01.089208+00:00",
+      "review_result": {
+        "reference": "APPROVE (reviewer-renata): all 6 DoD items pass; strict exit 0; 82 tests green.",
+        "reviewer": "reviewer-renata",
+        "verdict": "approved"
+      }
     },
     "WP02": {
       "actor": "merge",
       "force_count": 0,
       "lane": "done",
       "last_event_id": "01KX98GY55VW67MFGZAPTE6290",
-      "last_transition_at": "2026-07-11T18:55:03.333328+00:00"
+      "last_transition_at": "2026-07-11T18:55:03.333328+00:00",
+      "review_result": {
+        "reference": "APPROVE (reviewer-renata): all 7 DoD pass; pointer order + gap gating + SERVICE_TYPES match verified; 20 tests.",
+        "reviewer": "reviewer-renata",
+        "verdict": "approved"
+      }
     },
     "WP03": {
       "actor": "merge",
       "force_count": 0,
       "lane": "done",
       "last_event_id": "01KX98H18F863E4ECRV3D1WT36",
-      "last_transition_at": "2026-07-11T18:55:06.511198+00:00"
+      "last_transition_at": "2026-07-11T18:55:06.511198+00:00",
+      "review_result": {
+        "reference": "APPROVE (reviewer-renata): all 6 DoD pass; gate-before-probe + never-raises proven; restic probe coordination honored; pure.",
+        "reviewer": "reviewer-renata",
+        "verdict": "approved"
+      }
     },
     "WP04": {
       "actor": "merge",
       "force_count": 0,
       "lane": "done",
       "last_event_id": "01KX98H2VM80JE6B6NPH8DVXNZ",
-      "last_transition_at": "2026-07-11T18:55:08.148401+00:00"
+      "last_transition_at": "2026-07-11T18:55:08.148401+00:00",
+      "review_result": {
+        "reference": "APPROVE (reviewer-renata, re-review): F5 fix correct + scoped; F7 intact; no regressions; 98 tests; no silent-never-paged path.",
+        "reviewer": "reviewer-renata",
+        "verdict": "approved"
+      }
     },
     "WP05": {
       "actor": "merge",
       "force_count": 0,
       "lane": "done",
       "last_event_id": "01KX98GZQ89QFMCN49M22F54XV",
-      "last_transition_at": "2026-07-11T18:55:04.936957+00:00"
+      "last_transition_at": "2026-07-11T18:55:04.936957+00:00",
+      "review_result": {
+        "reference": "APPROVE (reviewer-renata): all 5 DoD pass; FR-007+FR-010; strict exit 0; surgical diff.",
+        "reviewer": "reviewer-renata",
+        "verdict": "approved"
+      }
     },
     "WP06": {
       "actor": "merge",
       "force_count": 0,
       "lane": "done",
       "last_event_id": "01KX98H4DEMWHAB0KBGV2HXP6P",
-      "last_transition_at": "2026-07-11T18:55:09.742870+00:00"
+      "last_transition_at": "2026-07-11T18:55:09.742870+00:00",
+      "review_result": {
+        "reference": "APPROVE (reviewer-renata): all 6 DoD pass; ExecStart guard + OnFailure + enable-last F9 gate all test-proven; fixes #711 hazard.",
+        "reviewer": "reviewer-renata",
+        "verdict": "approved"
+      }
     },
     "WP07": {
       "actor": "merge",
       "force_count": 0,
       "lane": "done",
       "last_event_id": "01KX98H5WXQQEK860PJ0B02RTA",
-      "last_transition_at": "2026-07-11T18:55:11.261685+00:00"
+      "last_transition_at": "2026-07-11T18:55:11.261685+00:00",
+      "review_result": {
+        "reference": "APPROVE (reviewer-renata): all 5 DoD pass; runbook accurate vs shipped code; linked from INDEX+PORTAL; DEC-007 valid; no JSON edit.",
+        "reviewer": "reviewer-renata",
+        "verdict": "approved"
+      }
     }
   }
 }

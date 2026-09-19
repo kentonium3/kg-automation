@@ -22,42 +22,72 @@
       "force_count": 0,
       "lane": "done",
       "last_event_id": "01KXVRAXZDP17CXFQN3TTP4XHV",
-      "last_transition_at": "2026-07-18T23:17:43.533964+00:00"
+      "last_transition_at": "2026-07-18T23:17:43.533964+00:00",
+      "review_result": {
+        "reference": "Review passed (reviewer-renata): 85 tests green; no-duration vocab locked",
+        "reviewer": "Kent Gale",
+        "verdict": "approved"
+      }
     },
     "WP02": {
       "actor": "merge",
       "force_count": 0,
       "lane": "done",
       "last_event_id": "01KXVRB8YWR8C7A38TYK5AGW0J",
-      "last_transition_at": "2026-07-18T23:17:54.780331+00:00"
+      "last_transition_at": "2026-07-18T23:17:54.780331+00:00",
+      "review_result": {
+        "reference": "Review passed (reviewer-renata): 67 tests green; timed path byte-identical",
+        "reviewer": "Kent Gale",
+        "verdict": "approved"
+      }
     },
     "WP03": {
       "actor": "merge",
       "force_count": 1,
       "lane": "done",
       "last_event_id": "01KXVRBHPZ2Q9K4ZY2ZC37QKPA",
-      "last_transition_at": "2026-07-18T23:18:03.743763+00:00"
+      "last_transition_at": "2026-07-18T23:18:03.743763+00:00",
+      "review_result": {
+        "reference": "Arbiter override: cycle-2 reviewer-renata APPROVE (mutation-verified) supersedes cycle-1 REJECT; fix 64cbede2. Override required by review-artifact gate (#574/#1817 class, approve-gate variant on 3.2.6).",
+        "reviewer": "Kent Gale",
+        "verdict": "approved"
+      }
     },
     "WP04": {
       "actor": "merge",
       "force_count": 0,
       "lane": "done",
       "last_event_id": "01KXVRBT0MTSRQJ3J76ZYK4M3D",
-      "last_transition_at": "2026-07-18T23:18:12.244989+00:00"
+      "last_transition_at": "2026-07-18T23:18:12.244989+00:00",
+      "review_result": {
+        "reference": "Review passed (reviewer-renata, mutation-verified): 8 integration tests, real transaction, all 4 groups incl. FR-007 mark-fail marker; 488 tests green",
+        "reviewer": "Kent Gale",
+        "verdict": "approved"
+      }
     },
     "WP05": {
       "actor": "merge",
       "force_count": 0,
       "lane": "done",
       "last_event_id": "01KXVRC1YQKSQZ65GCEMZCP5F4",
-      "last_transition_at": "2026-07-18T23:18:20.375119+00:00"
+      "last_transition_at": "2026-07-18T23:18:20.375119+00:00",
+      "review_result": {
+        "reference": "Review passed (reviewer-renata): Step 3c shape matches is_eligible; Step 1a exact entry point; ask-first C-005 intact; 78 tests + validators green",
+        "reviewer": "Kent Gale",
+        "verdict": "approved"
+      }
     },
     "WP06": {
       "actor": "merge",
       "force_count": 0,
       "lane": "done",
       "last_event_id": "01KXVRCADVHJZ8ZAEERXMWTFY4",
-      "last_transition_at": "2026-07-18T23:18:29.051803+00:00"
+      "last_transition_at": "2026-07-18T23:18:29.051803+00:00",
+      "review_result": {
+        "reference": "Review passed (reviewer-renata): doc matches shipped code zero-drift; validators green; discoverable",
+        "reviewer": "Kent Gale",
+        "verdict": "approved"
+      }
     }
   }
 }

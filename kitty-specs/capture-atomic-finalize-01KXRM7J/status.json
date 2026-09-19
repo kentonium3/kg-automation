@@ -22,35 +22,60 @@
       "force_count": 0,
       "lane": "done",
       "last_event_id": "01KXRTZZS1NG9YXKPNZVF3R7FM",
-      "last_transition_at": "2026-07-17T20:06:27.362084+00:00"
+      "last_transition_at": "2026-07-17T20:06:27.362084+00:00",
+      "review_result": {
+        "reference": "Review passed (reviewer-renata): block-keyed routing log, backward-compatible, 56+370 tests green.",
+        "reviewer": "Kent Gale",
+        "verdict": "approved"
+      }
     },
     "WP02": {
       "actor": "merge",
       "force_count": 0,
       "lane": "done",
       "last_event_id": "01KXRV0AGA9K0Q4Z6WBNKWGJ40",
-      "last_transition_at": "2026-07-17T20:06:38.346618+00:00"
+      "last_transition_at": "2026-07-17T20:06:38.346618+00:00",
+      "review_result": {
+        "reference": "Review passed (reviewer-renata, adversarial): note-level finalize; retry-no-double-create + state-machine + journal-idempotency all confirmed; 400 tests green. 3 residual contract-scoped risks recorded (dup-create window→follow-up; verbatim-content→WP04; substring-provenance→follow-up).",
+        "reviewer": "Kent Gale",
+        "verdict": "approved"
+      }
     },
     "WP03": {
       "actor": "merge",
       "force_count": 0,
       "lane": "done",
       "last_event_id": "01KXRV0HP47J4M5BS70PN0ADWN",
-      "last_transition_at": "2026-07-17T20:06:45.700504+00:00"
+      "last_transition_at": "2026-07-17T20:06:45.700504+00:00",
+      "review_result": {
+        "reference": "Review passed (reviewer-renata): health rail + D9 dedup-shift; mid-flight reconciliation invariant confirmed; zero false positives; 385 tests green.",
+        "reviewer": "Kent Gale",
+        "verdict": "approved"
+      }
     },
     "WP04": {
       "actor": "merge",
       "force_count": 0,
       "lane": "done",
       "last_event_id": "01KXRV0S16W1WNKSG85FR52E5R",
-      "last_transition_at": "2026-07-17T20:06:53.222496+00:00"
+      "last_transition_at": "2026-07-17T20:06:53.222496+00:00",
+      "review_result": {
+        "reference": "Review passed (reviewer-renata): note-level single-finalize; no mark-processed path outside finalize; verbatim-content load-bearing note present; invariants verbatim; AGENTS.md trimmed to 21015B.",
+        "reviewer": "Kent Gale",
+        "verdict": "approved"
+      }
     },
     "WP05": {
       "actor": "merge",
       "force_count": 0,
       "lane": "done",
       "last_event_id": "01KXRV0ZVT4D88NE5T01BQ9BK5",
-      "last_transition_at": "2026-07-17T20:07:00.218512+00:00"
+      "last_transition_at": "2026-07-17T20:07:00.218512+00:00",
+      "review_result": {
+        "reference": "Review passed (reviewer-renata, cycle 1 fix verified): docs sync accurate to shipped behavior; github_issue provenance overclaim corrected (existence-verified); validate_architecture_data green; no manifest needed; rebaseline not-required. Commit e4264010 (swept review-lock.json removed).",
+        "reviewer": "Kent Gale",
+        "verdict": "approved"
+      }
     }
   }
 }

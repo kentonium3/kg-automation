@@ -22,7 +22,12 @@
       "force_count": 0,
       "lane": "done",
       "last_event_id": "01KXEE36VKVVX4WXBMKT82WCFQ",
-      "last_transition_at": "2026-07-13T19:08:37.107944+00:00"
+      "last_transition_at": "2026-07-13T19:08:37.107944+00:00",
+      "review_result": {
+        "reference": "Review passed (reviewer-renata): all 8 criteria green; main ok:true; AGENTS 11586B<12K; six routes + load-bearing rules preserved; timelog-in-AGENTS correct per committed guard",
+        "reviewer": "Kent Gale",
+        "verdict": "approved"
+      }
     }
   }
 }

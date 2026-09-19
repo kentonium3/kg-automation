@@ -22,28 +22,48 @@
       "force_count": 0,
       "lane": "done",
       "last_event_id": "01KXAAVBZHT93H2VRHCT4AMPZ8",
-      "last_transition_at": "2026-07-12T04:54:56.753680+00:00"
+      "last_transition_at": "2026-07-12T04:54:56.753680+00:00",
+      "review_result": {
+        "reference": "reviewer-renata APPROVE: config seam correct, mutation-tested, no dead code/hardcoded-13, label→NotImplementedError",
+        "reviewer": "Kent Gale",
+        "verdict": "approved"
+      }
     },
     "WP02": {
       "actor": "merge",
       "force_count": 0,
       "lane": "done",
       "last_event_id": "01KXAAVDMHGC8CF5G1M0G7XMF5",
-      "last_transition_at": "2026-07-12T04:54:58.449863+00:00"
+      "last_transition_at": "2026-07-12T04:54:58.449863+00:00",
+      "review_result": {
+        "reference": "reviewer-renata APPROVE: §1 fidelity intact, H8/H9 correct, surgical audited-surface edit, 198+72 tests pass",
+        "reviewer": "Kent Gale",
+        "verdict": "approved"
+      }
     },
     "WP03": {
       "actor": "merge",
       "force_count": 0,
       "lane": "done",
       "last_event_id": "01KXAAVF4BNTG127WEFJSB5GB1",
-      "last_transition_at": "2026-07-12T04:54:59.979855+00:00"
+      "last_transition_at": "2026-07-12T04:54:59.979855+00:00",
+      "review_result": {
+        "reference": "reviewer-renata APPROVE: FR-006 predicate holds across all non-confirmed shapes; --self-test can't leak delivered; H4 tick + M11 units correct",
+        "reviewer": "Kent Gale",
+        "verdict": "approved"
+      }
     },
     "WP04": {
       "actor": "merge",
       "force_count": 0,
       "lane": "done",
       "last_event_id": "01KXAAVGDCQ5S8ERRAX991YPQ8",
-      "last_transition_at": "2026-07-12T04:55:01.292387+00:00"
+      "last_transition_at": "2026-07-12T04:55:01.292387+00:00",
+      "review_result": {
+        "reference": "reviewer-renata APPROVE: transactional cutover safe (aborts, no partial producers), M12 complete, manifest correct, allowlist fix correct, 745 tests pass",
+        "reviewer": "Kent Gale",
+        "verdict": "approved"
+      }
     }
   }
 }

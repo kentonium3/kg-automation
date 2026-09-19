@@ -22,7 +22,8 @@
       "force_count": 2,
       "lane": "done",
       "last_event_id": "01KP45FWEQ1QQYWSP7K8WVR345",
-      "last_transition_at": "2026-04-13T19:35:58.167162+00:00"
+      "last_transition_at": "2026-04-13T19:35:58.167162+00:00",
+      "review_result": null
     },
     "WP02": {
       "actor": "merge",

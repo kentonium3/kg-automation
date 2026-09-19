@@ -22,14 +22,16 @@
       "force_count": 1,
       "lane": "approved",
       "last_event_id": "01KS0G9WCXQ8Z780JTJ2YZ97MA",
-      "last_transition_at": "2026-05-19T16:15:03.581931+00:00"
+      "last_transition_at": "2026-05-19T16:15:03.581931+00:00",
+      "review_result": null
     },
     "WP02": {
       "actor": "user",
       "force_count": 1,
       "lane": "approved",
       "last_event_id": "01KS0HAYMK97P3P7E6EEHN10NN",
-      "last_transition_at": "2026-05-19T16:33:07.219208+00:00"
+      "last_transition_at": "2026-05-19T16:33:07.219208+00:00",
+      "review_result": null
     }
   }
 }

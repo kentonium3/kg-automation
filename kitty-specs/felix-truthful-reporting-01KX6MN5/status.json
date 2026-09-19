@@ -22,35 +22,60 @@
       "force_count": 1,
       "lane": "done",
       "last_event_id": "01KX6TV502415XNX156NGCVGYB",
-      "last_transition_at": "2026-07-10T20:17:29.090483+00:00"
+      "last_transition_at": "2026-07-10T20:17:29.090483+00:00",
+      "review_result": {
+        "reference": "Review passed (reviewer-renata): implementation complete, tested, integration-verified.",
+        "reviewer": "Kent Gale",
+        "verdict": "approved"
+      }
     },
     "WP02": {
       "actor": "merge",
       "force_count": 1,
       "lane": "done",
       "last_event_id": "01KX6TV72YR5TP9AKWKNG103R9",
-      "last_transition_at": "2026-07-10T20:17:31.230168+00:00"
+      "last_transition_at": "2026-07-10T20:17:31.230168+00:00",
+      "review_result": {
+        "reference": "Review passed (reviewer-renata): implementation complete, tested, integration-verified.",
+        "reviewer": "Kent Gale",
+        "verdict": "approved"
+      }
     },
     "WP03": {
       "actor": "merge",
       "force_count": 1,
       "lane": "done",
       "last_event_id": "01KX6TV8M9THBAPFX4YDB8RC3Y",
-      "last_transition_at": "2026-07-10T20:17:32.809156+00:00"
+      "last_transition_at": "2026-07-10T20:17:32.809156+00:00",
+      "review_result": {
+        "reference": "Review passed (reviewer-renata): implementation complete, tested, integration-verified.",
+        "reviewer": "Kent Gale",
+        "verdict": "approved"
+      }
     },
     "WP04": {
       "actor": "merge",
       "force_count": 1,
       "lane": "done",
       "last_event_id": "01KX6TV9YKFAXVZX1W2J7TXRVT",
-      "last_transition_at": "2026-07-10T20:17:34.163289+00:00"
+      "last_transition_at": "2026-07-10T20:17:34.163289+00:00",
+      "review_result": {
+        "reference": "Review passed (reviewer-renata): 136 tests/96% cov, exit-code discipline proven, fail-safe isolation, integration verified, no dead code. Commit f40b3caa.",
+        "reviewer": "Kent Gale",
+        "verdict": "approved"
+      }
     },
     "WP05": {
       "actor": "merge",
       "force_count": 1,
       "lane": "done",
       "last_event_id": "01KX6TVB6Z6H7QRZQVK7T3QFCA",
-      "last_transition_at": "2026-07-10T20:17:35.455863+00:00"
+      "last_transition_at": "2026-07-10T20:17:35.455863+00:00",
+      "review_result": {
+        "reference": "review-passed-observe",
+        "reviewer": "Kent Gale",
+        "verdict": "approved"
+      }
     }
   }
 }

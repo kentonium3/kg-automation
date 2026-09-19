@@ -22,42 +22,72 @@
       "force_count": 0,
       "lane": "done",
       "last_event_id": "01KXS98M3JRNS355GB02VD9Z6R",
-      "last_transition_at": "2026-07-18T00:15:50.386967+00:00"
+      "last_transition_at": "2026-07-18T00:15:50.386967+00:00",
+      "review_result": {
+        "reference": "reviewer-renata APPROVE: 12 kent-owned labels ids 18-29 on seam; validator+354 tests green",
+        "reviewer": "Kent Gale",
+        "verdict": "approved"
+      }
     },
     "WP02": {
       "actor": "merge",
       "force_count": 0,
       "lane": "done",
       "last_event_id": "01KXS98X8YCQ86YH6THC7HY6YD",
-      "last_transition_at": "2026-07-18T00:15:59.774761+00:00"
+      "last_transition_at": "2026-07-18T00:15:59.774761+00:00",
+      "review_result": {
+        "reference": "reviewer-renata APPROVE: felix-bot read, immutable per-digest_id record + overwrite guard, f:4 exclusion, SC-009, 29 tests",
+        "reviewer": "Kent Gale",
+        "verdict": "approved"
+      }
     },
     "WP03": {
       "actor": "merge",
       "force_count": 0,
       "lane": "done",
       "last_event_id": "01KXS9951PD77QG6AJMZWRYWZX",
-      "last_transition_at": "2026-07-18T00:16:07.734707+00:00"
+      "last_transition_at": "2026-07-18T00:16:07.734707+00:00",
+      "review_result": {
+        "reference": "reviewer-renata APPROVE: sparse parser + seam resolution + real fallback guard, 58 tests green",
+        "reviewer": "Kent Gale",
+        "verdict": "approved"
+      }
     },
     "WP04": {
       "actor": "merge",
       "force_count": 1,
       "lane": "done",
       "last_event_id": "01KXS99BN3P0KE37Q63WCP2XN2",
-      "last_transition_at": "2026-07-18T00:16:14.499097+00:00"
+      "last_transition_at": "2026-07-18T00:16:14.499097+00:00",
+      "review_result": {
+        "reference": "reviewer-renata APPROVE (cycle 2): kent-token family-replace, Tier-2 matrix, per-line statuses, closes #750; 128 tests",
+        "reviewer": "Kent Gale",
+        "verdict": "approved"
+      }
     },
     "WP05": {
       "actor": "merge",
       "force_count": 0,
       "lane": "done",
       "last_event_id": "01KXS99JDKH4JEC9YTAF7RWRKJ",
-      "last_transition_at": "2026-07-18T00:16:21.428054+00:00"
+      "last_transition_at": "2026-07-18T00:16:21.428054+00:00",
+      "review_result": {
+        "reference": "reviewer-renata APPROVE: capture scan+digest + main apply-reply wiring faithful to helpers; .tmpl parity; 268 tests",
+        "reviewer": "Kent Gale",
+        "verdict": "approved"
+      }
     },
     "WP06": {
       "actor": "merge",
       "force_count": 0,
       "lane": "done",
       "last_event_id": "01KXS99SGGM5DMKXEQBKX2BB9X",
-      "last_transition_at": "2026-07-18T00:16:28.689015+00:00"
+      "last_transition_at": "2026-07-18T00:16:28.689015+00:00",
+      "review_result": {
+        "reference": "reviewer-renata APPROVE: docs sync + manifest-free deploy accurate; validators green; nav coverage; #750 closure documented",
+        "reviewer": "Kent Gale",
+        "verdict": "approved"
+      }
     }
   }
 }

@@ -22,7 +22,8 @@
       "force_count": 2,
       "lane": "approved",
       "last_event_id": "01KS1140WEP0MK530GYQ5TRNC5",
-      "last_transition_at": "2026-05-19T21:08:57.358336+00:00"
+      "last_transition_at": "2026-05-19T21:08:57.358336+00:00",
+      "review_result": null
     }
   }
 }

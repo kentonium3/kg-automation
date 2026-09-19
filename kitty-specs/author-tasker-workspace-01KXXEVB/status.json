@@ -22,7 +22,12 @@
       "force_count": 0,
       "lane": "done",
       "last_event_id": "01KXXHB1ZEW3B53426M4VVNJYK",
-      "last_transition_at": "2026-07-19T15:53:56.462620+00:00"
+      "last_transition_at": "2026-07-19T15:53:56.462620+00:00",
+      "review_result": {
+        "reference": "reviewer-renata independent APPROVE — validator ok:true, 10 conservation invariants hold, DELETEs traced to owners, FR-008 matches log_action.py, Voice byte-identical",
+        "reviewer": "Kent Gale",
+        "verdict": "approved"
+      }
     }
   }
 }

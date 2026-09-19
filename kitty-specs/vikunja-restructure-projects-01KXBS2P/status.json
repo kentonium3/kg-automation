@@ -22,7 +22,12 @@
       "force_count": 0,
       "lane": "done",
       "last_event_id": "01KXBVMN24T04NFE0YYJRFF3K9",
-      "last_transition_at": "2026-07-12T19:07:36.900254+00:00"
+      "last_transition_at": "2026-07-12T19:07:36.900254+00:00",
+      "review_result": {
+        "reference": "reviewer-renata APPROVE; do-no-harm + owner clean, 60 tests 95.88% cov; nit#1 folded bacd5f30",
+        "reviewer": "reviewer-renata",
+        "verdict": "approved"
+      }
     }
   }
 }

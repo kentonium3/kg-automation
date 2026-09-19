@@ -22,21 +22,36 @@
       "force_count": 0,
       "lane": "done",
       "last_event_id": "01KXGQVSQ9RAWCHHC34R8N6CH2",
-      "last_transition_at": "2026-07-14T16:37:48.905988+00:00"
+      "last_transition_at": "2026-07-14T16:37:48.905988+00:00",
+      "review_result": {
+        "reference": "Review passed: classification collapsed to 'dead', #616 machinery deleted, schema+config atomic, 217 security tests green",
+        "reviewer": "Kent Gale",
+        "verdict": "approved"
+      }
     },
     "WP02": {
       "actor": "merge",
       "force_count": 0,
       "lane": "done",
       "last_event_id": "01KXGQWA098Z8EWQXD108RZEQF",
-      "last_transition_at": "2026-07-14T16:38:05.577301+00:00"
+      "last_transition_at": "2026-07-14T16:38:05.577301+00:00",
+      "review_result": {
+        "reference": "Review passed: unconditional investigate block, literal credential-liveness-dead title, expected_next_expiration column removed, 217 tests green, grep clean",
+        "reviewer": "Kent Gale",
+        "verdict": "approved"
+      }
     },
     "WP03": {
       "actor": "merge",
       "force_count": 0,
       "lane": "done",
       "last_event_id": "01KXGQW2DCHHMEJMDM4DFCDFVS",
-      "last_transition_at": "2026-07-14T16:37:57.804227+00:00"
+      "last_transition_at": "2026-07-14T16:37:57.804227+00:00",
+      "review_result": {
+        "reference": "Review passed: gog-reauth wording+consent (auth flow untouched, bash -n OK), 6 docs reframed to single 'dead' + published-app reality, exec_start fixed, JSON valid, doc-CI passed",
+        "reviewer": "Kent Gale",
+        "verdict": "approved"
+      }
     }
   }
 }

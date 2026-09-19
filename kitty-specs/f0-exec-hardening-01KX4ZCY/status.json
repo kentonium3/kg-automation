@@ -22,14 +22,16 @@
       "force_count": 0,
       "lane": "done",
       "last_event_id": "01KX5338D7V93AHP6WJKGJ2CM5",
-      "last_transition_at": "2026-07-10T04:03:14.471475+00:00"
+      "last_transition_at": "2026-07-10T04:03:14.471475+00:00",
+      "review_result": null
     },
     "WP02": {
       "actor": "merge",
       "force_count": 0,
       "lane": "done",
       "last_event_id": "01KX533A69XVT4PZC9KE6H054A",
-      "last_transition_at": "2026-07-10T04:03:16.297390+00:00"
+      "last_transition_at": "2026-07-10T04:03:16.297390+00:00",
+      "review_result": null
     }
   }
 }

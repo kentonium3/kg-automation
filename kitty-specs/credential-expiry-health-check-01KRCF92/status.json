@@ -22,56 +22,64 @@
       "force_count": 2,
       "lane": "approved",
       "last_event_id": "01KRCGQBSZKJ15PHGY6DWET4DC",
-      "last_transition_at": "2026-05-11T21:57:36.703510+00:00"
+      "last_transition_at": "2026-05-11T21:57:36.703510+00:00",
+      "review_result": null
     },
     "WP02": {
       "actor": "user",
       "force_count": 2,
       "lane": "approved",
       "last_event_id": "01KRCGYMR51A5NS3GK0WKE0FRQ",
-      "last_transition_at": "2026-05-11T22:01:35.237152+00:00"
+      "last_transition_at": "2026-05-11T22:01:35.237152+00:00",
+      "review_result": null
     },
     "WP03": {
       "actor": "user",
       "force_count": 2,
       "lane": "approved",
       "last_event_id": "01KRCH2FPSJNAB1Z60PMNT1YBB",
-      "last_transition_at": "2026-05-11T22:03:41.145691+00:00"
+      "last_transition_at": "2026-05-11T22:03:41.145691+00:00",
+      "review_result": null
     },
     "WP04": {
       "actor": "user",
       "force_count": 2,
       "lane": "approved",
       "last_event_id": "01KRCH5T9TH6W7ZYV2JMDM46NG",
-      "last_transition_at": "2026-05-11T22:05:30.298953+00:00"
+      "last_transition_at": "2026-05-11T22:05:30.298953+00:00",
+      "review_result": null
     },
     "WP05": {
       "actor": "user",
       "force_count": 2,
       "lane": "approved",
       "last_event_id": "01KRCH9N19MPXC2V4MZH7A820G",
-      "last_transition_at": "2026-05-11T22:07:35.977881+00:00"
+      "last_transition_at": "2026-05-11T22:07:35.977881+00:00",
+      "review_result": null
     },
     "WP06": {
       "actor": "user",
       "force_count": 2,
       "lane": "approved",
       "last_event_id": "01KRCX5BF1D1P15S6SVD63CEWF",
-      "last_transition_at": "2026-05-12T01:34:58.017834+00:00"
+      "last_transition_at": "2026-05-12T01:34:58.017834+00:00",
+      "review_result": null
     },
     "WP07": {
       "actor": "user",
       "force_count": 2,
       "lane": "approved",
       "last_event_id": "01KRCX7QJW7B1CEW5TPH2K4M7C",
-      "last_transition_at": "2026-05-12T01:36:15.964801+00:00"
+      "last_transition_at": "2026-05-12T01:36:15.964801+00:00",
+      "review_result": null
     },
     "WP08": {
       "actor": "user",
       "force_count": 2,
       "lane": "approved",
       "last_event_id": "01KRDVC209TZ98DCX057XYNX7B",
-      "last_transition_at": "2026-05-12T10:22:54.985979+00:00"
+      "last_transition_at": "2026-05-12T10:22:54.985979+00:00",
+      "review_result": null
     }
   }
 }

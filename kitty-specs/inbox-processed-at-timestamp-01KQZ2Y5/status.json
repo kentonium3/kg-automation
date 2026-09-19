@@ -22,21 +22,24 @@
       "force_count": 3,
       "lane": "done",
       "last_event_id": "01KQZ4Z23AKP01K2ZMQ88KZSDQ",
-      "last_transition_at": "2026-05-06T17:21:58.379061+00:00"
+      "last_transition_at": "2026-05-06T17:21:58.379061+00:00",
+      "review_result": null
     },
     "WP02": {
       "actor": "user",
       "force_count": 2,
       "lane": "done",
       "last_event_id": "01KQZ4Z5QNZ6SS19PKPDJF9SW6",
-      "last_transition_at": "2026-05-06T17:22:02.101127+00:00"
+      "last_transition_at": "2026-05-06T17:22:02.101127+00:00",
+      "review_result": null
     },
     "WP03": {
       "actor": "user",
       "force_count": 2,
       "lane": "done",
       "last_event_id": "01KQZ4Z98ZT7A5DGB73X9K1A3C",
-      "last_transition_at": "2026-05-06T17:22:05.727070+00:00"
+      "last_transition_at": "2026-05-06T17:22:05.727070+00:00",
+      "review_result": null
     }
   }
 }

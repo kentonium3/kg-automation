@@ -22,35 +22,60 @@
       "force_count": 1,
       "lane": "done",
       "last_event_id": "01KX7G7NWA54CHPH2VBRK7V8EY",
-      "last_transition_at": "2026-07-11T02:31:19.690677+00:00"
+      "last_transition_at": "2026-07-11T02:31:19.690677+00:00",
+      "review_result": {
+        "reference": "Review passed: mirror of calendar_auth.py; fail-safe verified (no forced scopes=); 29 tests 100% cov; mutation-tested non-synthetic; diff = 2 owned files only.",
+        "reviewer": "Kent Gale",
+        "verdict": "approved"
+      }
     },
     "WP02": {
       "actor": "merge",
       "force_count": 1,
       "lane": "done",
       "last_event_id": "01KX7G7R229FZ75PPCT467CSQH",
-      "last_transition_at": "2026-07-11T02:31:21.922807+00:00"
+      "last_transition_at": "2026-07-11T02:31:21.922807+00:00",
+      "review_result": {
+        "reference": "Review passed: contract C2 fully implemented (append-row/create-tab/list-tabs/update-last/delete-last/--self-check, exit 0/1/2, --account default personal, workbook-id config w/ env override). Read-back-confirm gating verified (F8/NFR-002): append reports success only after includeValuesInResponse row carries entry_id; missing/mismatched entry_id -> exit 1 (mutation-tested: disabling the guard breaks exactly the 2 read-back tests). Idempotent retry does bounded tail scan and asserts zero duplicate append. create-tab no-op when tab exists (batchUpdate not called). Two-step create+append failure surfaces exit 1, no false success. Fail-safe API-error mapping to exit 1 across ops. NO LLM. Mirrors calendar_helper structure. 31 tests pass, 95% branch cov (>=90). Diff = only the 2 owned files.",
+        "reviewer": "Kent Gale",
+        "verdict": "approved"
+      }
     },
     "WP03": {
       "actor": "merge",
       "force_count": 1,
       "lane": "done",
       "last_event_id": "01KX7G7SSDT2N9Q2Y0MGVSYCS2",
-      "last_transition_at": "2026-07-11T02:31:23.693080+00:00"
+      "last_transition_at": "2026-07-11T02:31:23.693080+00:00",
+      "review_result": {
+        "reference": "Review passed: 13-status TimelogResult union matches data-model.md/contract C1 byte-for-byte (1 dedicated builder each, all reachable+tested); NO NL regex/LLM (no import re, no LLM SDK, only deterministic date-token normalization + substring closest-tab); F9 normalizer contract holds (always emits JSON, exit 0 for all handled statuses incl error/client_created_entry_failed, exit 2 only on argparse usage error via SystemExit handling); fail-safe verified by mutation (forcing false 'logged' on append failure breaks test_error_on_append_failure_never_false_logged); new-client two-step returns client_created_entry_failed on partial mutation, never logged, retry idempotent; pending keyed by channel+conversation+source-msg-id+nonce+30min TTL, uncorrelated->no_pending, expired->stale_pending(clears); corrections resolve most-recent correlated ledger entry, correction_ambiguous(reason: newer_write|stale), no wrong-row mutation; atomic state (temp+O_CREAT+flock LOCK_EX+os.replace) mirroring alert_bus/ledger.py, env-overridable dir; error/client_created_entry_failed emit alert_bus Alert(severity error, title 'Time-log write failed'), clarification signals do not; WP02 helper imported not reimplemented, WP01 __init__ not created. Diff = only 3 owned files (WP01/WP02 are approved deps). 77 WP03 tests + 211 google-suite pass, 97.6% branch cov. Ruff clean. Anti-pattern checklist all PASS.",
+        "reviewer": "Kent Gale",
+        "verdict": "approved"
+      }
     },
     "WP04": {
       "actor": "merge",
       "force_count": 1,
       "lane": "done",
       "last_event_id": "01KX7G7VE8NK1C46GR0GW4R2XG",
-      "last_transition_at": "2026-07-11T02:31:25.384153+00:00"
+      "last_transition_at": "2026-07-11T02:31:25.384153+00:00",
+      "review_result": {
+        "reference": "Review passed: main/AGENTS.md=11967B (<12000 cap, 33B margin); canonical Truthful/Mechanism-Fidelity block byte-for-byte intact (1 occurrence, 616B); compression meaning-preserving, no load-bearing instruction dropped (governance tiers/verbatim/no-infra/felix-file-issue/red-lines/delegation all present); Time-logging section = option A direct anchored call, no sub-agent delegation, full 13-status TimelogResult union with #683 truthful handling + follow-ups; all 4 named tests + full 72-test agents suite pass.",
+        "reviewer": "Kent Gale",
+        "verdict": "approved"
+      }
     },
     "WP05": {
       "actor": "merge",
       "force_count": 1,
       "lane": "done",
       "last_event_id": "01KX7G7X6C0F9683AAQ6XMK2CQ",
-      "last_transition_at": "2026-07-11T02:31:27.180104+00:00"
+      "last_transition_at": "2026-07-11T02:31:27.180104+00:00",
+      "review_result": {
+        "reference": "Review passed: deploy entrypoint is 100755; #711 self-test (sheets_helper --self-check no-write + timelog against a guaranteed-unresolvable client returning unknown_client) emits NOTHING and gates prompt-sync/go-live before any report; non-synthetic gate test proves prompt-sync unreached on a dirty self-test; re-consent + workbook bootstrap presence-checked only; manifest tier2/not-prenumbered/audited_surface:false/verification block/both preconditions in notes; arch docs (spreadsheets scope + timelog data-flow + service entry) landed, validate_architecture_data STRICT green + validate_docs green; runbook covers both self-checks + bootstrap + rollback + SC-001..005; 24/24 deploy tests pass.",
+        "reviewer": "Kent Gale",
+        "verdict": "approved"
+      }
     }
   }
 }
