@@ -3,9 +3,9 @@
 # DO NOT EDIT MANUALLY
 
 spec_kitty:
-  version: 3.2.6
+  version: 4.0.0rc4
   initialized_at: '2026-03-25T23:07:06.539751'
-  last_upgraded_at: '2026-07-10T13:31:35.611493'
+  last_upgraded_at: '2026-09-19T13:38:48.011416+00:00'
   schema_version: 3
 environment:
   python_version: 3.13.12
@@ -447,3 +447,7 @@ migrations:
     applied_at: '2026-07-08T13:32:00.027616'
     result: success
     notes: 'Added gitignore entry: .agents/skills/; Added gitignore entry: .kittify/skills-manifest.json'
+  - id: 4_0_0_retired_hosted_target
+    applied_at: '2026-09-19T13:38:47.999636+00:00'
+    result: skipped
+    notes: Not applicable
