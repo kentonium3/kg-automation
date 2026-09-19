@@ -3,7 +3,7 @@ title: "Second Brain Graph Layer — Design"
 doc_type: design
 status: draft
 owners: ["@kentonium3"]
-last_updated: '2026-07-20'
+last_updated: '2026-09-18'
 audience: agents_and_humans
 ---
 
@@ -77,6 +77,12 @@ LightRAG is optimized for static or slowly-evolving document corpora — strong 
 
 Graphiti implements a **bi-temporal model**: every graph edge carries explicit validity intervals (`valid_from`, `valid_until`). When a fact changes, the old relationship is invalidated — not deleted. The full history is preserved and queryable at any point in time. This is not a nice-to-have for a life-management second brain; it is the core requirement.
 
+> **Scope caveat (measured, 2026-09-15, #974):** the bi-temporal model versions
+> **relationships only**. Node *attributes* (e.g. `Task.scheduled_date`) are overwritten
+> in place with no history. History for state changes therefore comes from the episode
+> log, not from attribute versioning — see the *state vs history representation rule*
+> under §Edge attribute models & wiring.
+
 Additional selection factors:
 
 - Native Anthropic API support (alongside OpenAI, Gemini, Groq)
@@ -109,7 +115,7 @@ FalkorDB is preferred over Neo4j for this deployment:
 
 4. **Many-to-many is allowed upward.** A single Outcome can serve multiple Purposes. A single Objective can be advanced by multiple Projects. This reflects reality — work often serves more than one master — while keeping the hierarchy structurally enforced.
 
-5. **Decisions are first-class nodes.** Every trade-off conversation that reaches a resolution is ingested as an episode and creates a durable `DECIDED` relationship. Future conflicts can be checked against past decisions.
+5. **Decisions are first-class nodes.** Every trade-off conversation that reaches a resolution is ingested as an episode, from which a **Decision entity** is extracted; the Decision carries durable `DECIDED` (and `GOVERNED_BY`) edges to the nodes it bears on, and the source episode remains linked to it via Graphiti's built-in `MENTIONS` edge. Future conflicts can be checked against past decisions.
 
 6. **Principles are a first-class, cross-cutting constraint axis** (Kent, 2026-07-20). Where the Purpose→…→Task hierarchy *directs* decisions (what/why you pursue), **Principles *constrain*** them (how you decide — the values, standards, and non-negotiables the boss will or won't accept). A Principle is definitional-tier (slow-changing, like Purpose) and cross-cutting (not in the hierarchy, like Commitment). It is seeded explicitly and is the least-duplicable element in the system — the deepest moat. See [`executive-assistant-architecture.md`](executive-assistant-architecture.md) §6 for the EA framing that motivated adding this type.
 
@@ -120,10 +126,46 @@ FalkorDB is preferred over Neo4j for this deployment:
 #### PURPOSE
 The "why I exist / what I'm for" level. Immutable or near-immutable. Changes represent life events, not planning events. No due date. No status in the task sense.
 
-*Examples:* "Build wealth through AI-leveraged operations as a solo operator," "Radical personal transformation and growth"
+A Purpose is **not** the purpose *of* a particular Outcome — it is the purpose *from which*
+Outcomes are derived, and it sits above Outcome in the chain (Kent, 2026-09-16). A Purpose
+statement can read like an ambitious Outcome statement; the tiers are told apart by shape,
+not by tone:
+
+| | date | measure of done | status | 
+|---|---|---|---|
+| **Purpose** | none | none | none |
+| **Outcome** | required | required | tracked |
+| **Domain** | never | never | none (it is a container) |
+
+*Examples:* "I wish to be financially independent so that I have the freedom to do what I
+want with my time and so I can financially support causes I believe in," "to be a great
+father to my children," "Build wealth through AI-leveraged operations as a solo operator"
+
+> **Why this matters operationally (#974):** on ambiguous episode text, LLM extraction typed
+> 2 of 3 Purposes as Domains. Seeding and any adapter-rendered text must make the shape
+> explicit — state a Purpose with no date and no measure — or the tier collapses on ingest.
 
 #### DOMAIN
 A persistent life area that groups Outcomes. Not time-bounded. Serves as a routing and grouping layer — prevents all Outcomes from hanging directly off Purpose nodes and gives the life-coach agent a natural partition for capacity reasoning.
+
+**Domains carry no edge to Purpose — by design (2026-09-15, #974).** Domain is the
+*where* axis; Purpose is the *why* axis; the why-chain is single-sourced through
+Outcomes (`Outcome -SERVES-> Purpose`). A Domain's purpose-affinity is **derived** —
+the Purposes served by the Outcomes that `BELONGS_TO` it — never asserted, because
+Domains genuinely span Purposes and an asserted edge could disagree with the
+Outcome-level truth. An empty or ambiguous derivation is a coaching signal, not a
+modeling gap. Seed data and extraction wording must not assert Domain→Purpose
+relations; the post-extraction validator rejects them as unregistered pairs.
+
+**Kent's operating contexts are Domains (2026-09-18, from the #849 four-contexts note).** The
+four parallel surfaces Kent works across — personal, Intentional, spec-kitty, PointerHealth —
+each with its own calendar and mail system, are modelled as Domains on the *work* side: an
+Outcome `BELONGS_TO` the context it lives in. The **account or system a message arrived
+through** is *episode provenance* (the episode's `source_description`), not a node — the same
+person can reach Kent through several of them, which is what the `Person.aliases` list
+absorbs. `Capacity` with no `CONSTRAINS` edge is global, so it is the one resource all four
+contexts contend for; a **cross-context collision** (#849 Arc A) is therefore a
+Domain-partitioned read against a single Capacity, and needs no new entity type.
 
 *Examples:* Intentional LLC, Physical Conditioning, Business Acquisition, Felix/Second Brain
 
@@ -155,9 +197,47 @@ A cross-cutting **constraint** on decisions — a value, standard, or non-negoti
 
 *Examples:* "Never commit secrets or bypass a governance gate for expediency," "Protect deep-work mornings — no meetings before noon," "Reversible internal actions are autonomous; irreversible/outbound actions require preview"
 
+#### PERSON *(added 2026-09-18; ratified by Kent the same day on #849)*
+A human Kent deals with — the **who** axis, beside why (Purpose), what (Outcome→Task), and
+when (temporal edges). Cross-cutting like Commitment, Principle, and Capacity: **not a
+hierarchy tier**, and exempt from guiding principle 2 (a Person has no upward edge to a
+Purpose; that rule governs work nodes). Kent himself is **not** a node — the ego is implicit,
+otherwise every edge would sprout a Kent endpoint. A Person is a **hub**: edges point *at* it
+(`COMMITTED_TO`, `INVOLVES`); nothing is sourced from it, because people do not direct Kent's
+work — Purposes do.
+
+Why it exists: three of the six hard cases Kent scoped for #849 (dropped ball, cross-channel
+identity, stakeholder pattern) are *relational* and inexpressible without a who; and
+cross-episode entity resolution — the one graph mechanism neither #844 nor #974 exercised —
+needs something to resolve *across*.
+
+**Identity-resolution rule.** A Person carries an `aliases` list — every handle they appear
+under (email address, Slack display name, calendar invitee spelling). Structured adapters
+resolve handle → Person against that list **before writing** (deterministic, $0). The
+extraction path relies on Graphiti's entity dedup plus the post-extraction near-duplicate
+check, and a merge is committed **only on evidence**: production aliases are added by adapter
+configuration or a Decision-grade confirmation, never by LLM name similarity alone. #849's
+Arc D near-miss trap (a *different* person with a similar handle who must not be merged) is
+the measurement of whether that policy can ever loosen.
+
+**Privacy.** A Person node is PII by construction. Adding the *type* widens nothing: #849 uses
+a fictional cast, and any real-person data is gated by the #696 privacy gate and the
+physical-exclusion rule (§Rollout → Design spike, item 3). The local-extraction path (inside
+the tailnet, $0) is the favourable one for such content. Do not read the type as permission.
+
+*Examples:* a client principal (email + calendar), a collaborator (Slack), a family member.
+
 ---
 
 ### Pydantic Entity Models
+
+> **Reserved-field rule (graphiti-core):** custom entity types supply *type-specific
+> attributes only*. Graphiti's `EntityNode` already owns `uuid`, `name`, `group_id`,
+> `labels`, `created_at`, `name_embedding`, `summary`, and `attributes`; redeclaring any
+> of these in a custom type fails `validate_entity_types` at `add_episode` time. The node's
+> canonical name is `EntityNode.name` — the models below therefore declare no `name` field.
+> `description` is deliberately kept as an authored, definitional attribute, distinct from
+> the engine-generated rolling digest in `EntityNode.summary`.
 
 ```python
 from pydantic import BaseModel
@@ -180,20 +260,17 @@ class StrictnessEnum(str, Enum):
 
 class Purpose(BaseModel):
     """Immutable life-level why. Changes are life events."""
-    name: str
     description: str
     core_values: list[str] = []
 
 
 class Domain(BaseModel):
     """Persistent life area. Not time-bounded. Routing layer."""
-    name: str
     description: str
 
 
 class Outcome(BaseModel):
     """Concrete, time-bounded end state. Measurable."""
-    name: str
     description: str
     target_date: Optional[str] = None       # ISO date
     success_criteria: str = ""
@@ -203,7 +280,6 @@ class Outcome(BaseModel):
 
 class Objective(BaseModel):
     """Intermediate result required to reach an Outcome."""
-    name: str
     description: str
     target_date: Optional[str] = None
     success_criteria: str = ""
@@ -213,7 +289,6 @@ class Objective(BaseModel):
 
 class Project(BaseModel):
     """Coordinated body of work. Self-similar — can contain sub-Projects."""
-    name: str
     description: str
     target_date: Optional[str] = None
     status: StatusEnum = StatusEnum.ACTIVE
@@ -223,7 +298,6 @@ class Project(BaseModel):
 
 class Task(BaseModel):
     """Discrete, schedulable unit of action. Self-similar — can contain sub-Tasks."""
-    name: str
     description: str = ""
     due_date: Optional[str] = None
     scheduled_date: Optional[str] = None
@@ -237,7 +311,6 @@ class Task(BaseModel):
 
 class Commitment(BaseModel):
     """Hard temporal constraint. Fixed point for scheduling."""
-    name: str
     description: str = ""
     datetime: str                           # ISO datetime
     duration_hours: Optional[float] = None
@@ -248,11 +321,45 @@ class Commitment(BaseModel):
 class Principle(BaseModel):
     """Cross-cutting definitional constraint — a value, standard, or non-negotiable.
     Governs *how* decisions are made, not *what* is pursued. Slow-changing."""
-    name: str
     description: str
     rationale: str = ""                      # why this matters to Kent
     strictness: StrictnessEnum = StrictnessEnum.HARD
     is_global: bool = True                   # False = scoped via SCOPED_TO edges
+
+
+class Decision(BaseModel):
+    """A resolved trade-off, extracted from its decision episode.
+    First-class per guiding principle 5; the raw episode stays linked via MENTIONS."""
+    rationale: str = ""
+    decided_at: Optional[str] = None         # ISO datetime
+    options_considered: list[str] = []
+
+
+class Capacity(BaseModel):
+    """Measured availability constraint — a fact, not a preference.
+    The quantity the reasoning loop uses for step-6 arithmetic; the *value*
+    protecting that time (if any) is a separate Principle for step-7 checks."""
+    description: str = ""
+    hours_per_week: Optional[float] = None
+
+
+class RelationshipEnum(str, Enum):
+    CLIENT = "client"
+    COLLABORATOR = "collaborator"
+    FAMILY = "family"
+    PEER = "peer"
+    VENDOR = "vendor"
+    OTHER = "other"
+
+
+class Person(BaseModel):
+    """A human Kent deals with — the who axis (ratified 2026-09-18, #849).
+    Cross-cutting hub, never a hierarchy tier; Kent is not a node. See §Tier
+    Definitions → PERSON for the identity-resolution and privacy rules."""
+    description: str = ""                    # who they are to Kent
+    relationship: RelationshipEnum = RelationshipEnum.OTHER
+    organisation: Optional[str] = None
+    aliases: list[str] = []                  # every handle: email, Slack display, calendar spelling
 ```
 
 ---
@@ -260,6 +367,13 @@ class Principle(BaseModel):
 ### Edge Types
 
 All edges carry `valid_from` / `valid_until` automatically via Graphiti's bi-temporal model.
+
+> **Episode boundary (graphiti-core):** typed custom edges exist only between *entity*
+> nodes (`edge_type_map` is keyed by entity-type pairs). Episodes are `EpisodicNode`s,
+> whose only outbound link is the built-in untyped `MENTIONS` edge. Decision-bearing
+> episodes therefore yield an extracted **Decision entity** (above), which carries the
+> typed `DECIDED` / `GOVERNED_BY` edges; provenance back to the raw episode rides
+> `MENTIONS`. Rows below name entity→entity edges only.
 
 | Edge | From | To | Meaning |
 |---|---|---|---|
@@ -276,10 +390,114 @@ All edges carry `valid_from` / `valid_until` automatically via Graphiti's bi-tem
 | `GATES` | Commitment | Task/Project | Commitment is a prerequisite for this node |
 | `CONFLICTS_WITH` | Task | Task | Agent-detected scheduling conflict |
 | `TRADES_OFF` | Outcome | Outcome | Agent-detected tension between Outcomes |
-| `DECIDED` | Episode | any | Decision recorded with timestamp and rationale |
+| `DECIDED` | Decision | any | This Decision resolved the fate of this node (timestamp + rationale live on the Decision entity) |
 | `SCOPED_TO` | Principle | Purpose/Domain | Principle applies only within this Purpose/Domain (absence = global) |
-| `GOVERNED_BY` | Episode | Principle | A decision was constrained by / cited this Principle |
+| `GOVERNED_BY` | Decision | Principle | The Decision was constrained by / cited this Principle |
 | `VIOLATES` | Task/Project | Principle | Agent-detected tension between a proposed action and a Principle |
+| `CONSTRAINS` | Capacity | Purpose/Domain | Capacity bounds work in this scope (absence = global) |
+| `DUE_BY` | Task/Project | Commitment | This node's hard deadline is this Commitment (task-side source, matching the upward-pointing convention) |
+| `COMMITTED_TO` | Commitment | Person | The Person this Commitment was made to (its counterparty); attributed — see `CommittedTo` |
+| `INVOLVES` | Task/Project | Person | This Person is a stakeholder in this node |
+
+### Edge attribute models & wiring
+
+Most edges carry **no custom attributes** — their meaning is the type itself, and
+bi-temporal validity comes free from Graphiti. Four edges carry attributes:
+
+```python
+class ConflictsWith(BaseModel):
+    """Agent-detected scheduling conflict."""
+    basis: str = ""                          # what collides (e.g. "18h demanded vs 15h capacity")
+    window_start: Optional[str] = None       # ISO date
+    window_end: Optional[str] = None
+
+class TradesOff(BaseModel):
+    """Agent-detected tension between Outcomes."""
+    basis: str = ""
+
+class Decided(BaseModel):
+    """Disposition this Decision applied to the target node."""
+    disposition: str = ""                    # committed | postponed | displaced | abandoned
+
+class Violates(BaseModel):
+    """Detected Principle tension; severity comes from Principle.strictness, not here."""
+    note: str = ""
+
+class CommittedTo(BaseModel):
+    """Where and how the commitment to this Person was made."""
+    channel: str = ""                        # email | slack | calendar | in_person | other
+    made_at: Optional[str] = None            # ISO datetime, if distinct from the episode's reference_time
+```
+
+Wiring intent (implementer verifies exact API shape against the pinned graphiti-core —
+the doc states design intent, not engine mechanics):
+
+- `entity_types`: all eleven models, keyed by their class names, passed to `add_episode`.
+- `edge_type_map`: keyed by (source-type, target-type) name pairs per the table above.
+  `CONTAINS` registers for (Project, Project), (Project, Task), and (Task, Task).
+  `DECIDED` registers Decision → **{Purpose, Domain, Outcome, Objective, Project, Task,
+  Commitment} — seven pairs, deliberately excluding Principle**: (Decision, Principle)
+  must have exactly one candidate edge name (`GOVERNED_BY`) so extraction never has to
+  choose, and amending a Principle is a Kent re-seed event, not a graph-recorded
+  Decision. Enumerate pairs explicitly rather than relying on any generic-pair fallback
+  until the fallback behavior is verified on the pinned version.
+- **Principles never attach statically to Tasks/Projects.** Applicability is computed at
+  reasoning time (loop step 7) from global Principles plus `SCOPED_TO` edges along the
+  traversed chain; `GOVERNED_BY`/`VIOLATES` record *events*, not standing attachments.
+- **The `edge_type_map` is advisory, not enforced** (measured on graphiti-core 0.30.2,
+  #974: unregistered-pair edges are stored as-is). Therefore any **extraction** path
+  MUST run a **post-extraction validator** before results are trusted: reject or
+  quarantine edges on unregistered (source-type, target-type, name) triples, and flag
+  near-duplicate entity names across tiers (the dominant residual failure mode —
+  identically-named objective/project/deadline nodes). Structured adapters writing
+  typed nodes/edges directly do not need the validator; they are the preferred write
+  path and cost no LLM calls.
+- **Authority rule:** where a flag and an edge encode the same fact, the **edge is
+  authoritative** and the flag is derived (`Task.is_shared` ⇐ existence of `SHARED_BY`
+  edges; `Task.due_date` ⇐ its `DUE_BY` Commitment when one exists — attribute-only due
+  dates remain valid for soft dates that never earned a Commitment;
+  `Commitment.counterparty` ⇐ its `COMMITTED_TO` Person). Writers maintain
+  the edge; the flag may lag or be dropped entirely.
+- **Unmaterialised-commitment pattern** (with `Person`): a Commitment carrying a
+  `COMMITTED_TO` edge but **no inbound `DUE_BY` / `GATES` / `BLOCKS`** from any Task or
+  Project is a promise that never became work — the structural form of #849's "dropped
+  ball". It is one Cypher pattern, distinct from the retrieval form (the promise never
+  entered the Lattice at all and lives only in the episode log); #849 should test both.
+
+### State vs history representation rule
+
+**Node attributes hold current state only; history lives in the episode log.**
+Graphiti's bi-temporal intervals version *edges*, not attributes — a rewritten
+`scheduled_date` leaves no trace. So any state change whose history matters (reschedule,
+defer, status change) is recorded by the writing adapter as **one episode per event**
+(`reference_time` = when it happened, `MENTIONS` linking the affected node), plus a
+`Decision` node with `DECIDED` edges when an actual decision was made. A state change
+*without* a Decision is deliberately distinguishable from one *with* — the bare-event
+pattern ("deferred 4× and never decided anything") is itself a coaching signal.
+This is not a spike workaround: proof-ladder rung 2 is adapters writing events into the
+Lattice, and §Integration already routes Vikunja task events in as episodes.
+
+**Discovery contract for scope-free nodes:** a global `Capacity` (no `CONSTRAINS` edge)
+is intentionally not traversal-reachable; reasoning-loop step 6 finds it by **typed-label
+lookup**, not by walking edges. Retrieval configurations that only search edges will miss
+edgeless nodes (measured in #974) — consumers must include node search.
+
+### Graph namespace (group_id)
+
+Spike/prototype data uses a dedicated `group_id` (`spike_692`) so it can never mingle
+with future real Lattice data.
+
+**Naming rule: `group_id` uses `[A-Za-z0-9_]` only — underscores, never hyphens.**
+Measured on graphiti-core 0.30.2 + FalkorDB 4.20.1 (2026-09-15, #974): a hyphenated
+group_id silently disables BM25 edge full-text (the escaped query `@group_id:"x\-y"`
+returns 0 keyword hits) while hybrid search still returns vector hits — keyword recall
+disappears with **no error surfaced**. Two further operational facts from the same
+retest: on FalkorDB each group_id is its own graph, and **unscoped `search()` does not
+span groups** — consumers must always pass `group_ids` explicitly. Group-scoped search
+itself works; #844's "had to run unscoped" is superseded by this measurement.
+
+The production single-group vs multi-group strategy remains open, but is now a design
+choice rather than an engine limitation.
 
 ---
 
@@ -292,12 +510,12 @@ The life-coach agent operates on this graph to perform trade-off reasoning. Its 
 3. Retrieve all Tasks and Projects scheduled for the relevant time window
 4. Traverse each competing node upward to its Outcome; compare `priority_rank` and `target_date` urgency
 5. Retrieve active Commitments for the time window (fixed points)
-6. Calculate available effort: window capacity minus Commitments minus existing scheduled work
+6. Calculate available effort: window capacity (from applicable `Capacity` nodes — global plus those `CONSTRAINS`-scoped to the traversed Purpose/Domain) minus Commitments minus existing scheduled work
 7. **Check applicable Principles** (global + those `SCOPED_TO` the traversed Purpose/Domain): does the proposed action violate any? A **hard** violation is never auto-handled — it surfaces regardless of priority; a **soft** violation is weighed against the action's value. Record the check via `GOVERNED_BY` (and `VIOLATES` when detected).
 8. Determine fit: does the proposed node fit without displacing higher-priority work?
 9. If no fit: identify the lowest-priority scheduled item whose Outcome ranks below the proposed node's Outcome
 10. Surface the conflict: "You have [A] by [date], which needs [B]. This week also has [C] and [D] at [hours]. [E] would require displacing [F] (serving Outcome [X], priority [N]). Postpone E or trade off F?"
-11. Ingest the decision as an episode → creates `DECIDED` edge (and `GOVERNED_BY` edges to any Principles that bore on it) with timestamp and rationale
+11. Ingest the decision as an episode → a `Decision` entity is extracted carrying `DECIDED` edges (and `GOVERNED_BY` edges to any Principles that bore on it) with timestamp and rationale; the episode stays linked via `MENTIONS`
 
 Past decisions are retrievable: "You've deferred E four times since March. Either commit to it or explicitly abandon it."
 
@@ -365,6 +583,42 @@ strangler-fig adoption — the mature pattern for iterating safely on production
 
 ### Design spike (do first, throwaway, zero prod contact)
 
+> **STATUS (2026-09-15): the spike RAN as #844** (mission
+> `life-lattice-viability-spike-01KY37JY`, closed 2026-07-22, live on office2, torn down).
+> Outcomes per item — full detail in
+> [`kitty-specs/life-lattice-viability-spike-01KY37JY/findings.md`](../../kitty-specs/life-lattice-viability-spike-01KY37JY/findings.md):
+>
+> 1. **office2 fit — PASS** (+~112 MB host idle, no contention).
+> 2. **Temporal-reasoning payoff — split verdict.** The *reasoning* is GO (Kent, blinded:
+>    "clearly valuable"). The *graph substrate* is NO-GO/inconclusive at small static
+>    scale: the default-config graph arm lost 0/4 blinded comparisons to a flat-context
+>    baseline. Caveats bound this (untuned retrieval, Q4 under-seeded, **typed
+>    `entity_types` untested** — findings "Threats to validity"). **Build direction DECIDED
+>    2026-09-16 (Kent): pursue the graph, with adapters as the writers** — see the
+>    Build-direction decision below. The remaining open question is not affordability but
+>    whether graph-mediated retrieval earns its complexity at scale, which is **#849**
+>    (dynamic/scale regime, tuned retrieval + typed entities vs a vector-RAG baseline),
+>    gated on Kent's scenario stories.
+> 3. **Privacy/extraction — posture set for spike-grade work:** Claude extraction
+>    (Anthropic API; episode text crosses the Tailscale boundary), local FastEmbed
+>    embedder + local reranker (no OpenAI; Anthropic has no embeddings API). Real-vault
+>    ingest remains hard-gated per #696.
+> 4. **Ontology fit — significant friction in default config:** with no custom
+>    `entity_types`, Graphiti flattened everything to generic `Entity` nodes and the
+>    upward hierarchy survived only as fragile extracted edges. Typed-entity
+>    configuration was the open half — **closed by #974** (typed-entity spike,
+>    office4, closed 2026-09-15): the corrected ontology loads and direct typed
+>    writes work at $0; anchored episode expansion recovers full defer history;
+>    node+edge hybrid retrieval recovers edgeless facts that edge-only search
+>    misses; typed Capacity beats bare text. LLM extraction is input-sensitive —
+>    labels went 18/30 → 29/30 and edges 3/22 → 19/22 only with tier-definition
+>    instructions plus templated wording (local Qwen3-Next-80B; free prose
+>    unproven, #849 tests it) — and `edge_type_map` is not enforced, so extraction
+>    requires the post-extraction validator (§Edge attribute models & wiring).
+>    Full findings + reusable harness: kentonium3/kg-automation#974.
+>
+> The item list below is retained as the original spike definition (historical record).
+
 Time-boxed investigation to kill the four make-or-break unknowns *before* committing to the
 full #693→#698 build:
 
@@ -393,7 +647,47 @@ full #693→#698 build:
 4. **Ontology fit** — does hand-seeding reveal friction in the tier model? (empirical answer
    to the #367 hierarchy-research question, on a slice rather than by exhaustive survey).
 
+### Build-direction decision (Kent, 2026-09-16)
+
+**Pursue the graph, with adapters as the writers.** Kent's steer on where cycles go: *"If
+we're going to spend cycles I'd rather spend them figuring out if the end goal is going to
+work."* So plumbing is minimised and validation of the end goal is prioritised.
+
+What the decision rests on (#974, measured, $0):
+- Structured adapters write typed nodes and edges **directly, with no LLM** — verified by a
+  tripwire client recording zero LLM calls. Exact structure, no extraction risk, no cost.
+- Deadlines are **adapter-written `Commitment` nodes with `DUE_BY`**; extraction never
+  produced one, collapsing every deadline into its deliverable.
+- LLM extraction is confined to genuinely unstructured content, and runs **locally at $0**
+  on office4 for templated, one-relation-per-sentence text (29/30 labels, 19/22 edges, 5/6
+  strict chains on a local 80B-A3B model). **Free prose remains unproven** (ambiguous
+  wording: 18/30, 3/22, 0/6).
+- The cost objection that shelved this epic applies only to the extraction half, and even
+  that half now has a local, no-cost path.
+
+What this decision does **not** settle: whether graph-mediated retrieval beats the best
+non-graph baseline at scale. #974 measured mechanisms on 34–36 nodes, where a retrieval
+budget of 50 returns the whole graph. **#849 is the gate** and it is the priority spend.
+
+**Cost shape is a scored axis, and today's number is a lower bound (Kent, 2026-09-18).** The
+flat baseline's per-query cost scales with the corpus; the graph's scales with the answer, because
+it pays once to structure and assembles a small context per question. #849 therefore scores
+input-tokens-per-correct-answer alongside correctness. Because the corpus only grows once the
+Outcome→commitment→action chain is in use, a cost gap measured now **understates** the eventual
+gap, and a "graph does not pay off yet" reading would be regime-bound the way #844's was — the
+findings must say so before the run, not after. Inference cost as the practical capacity limit is
+the motivating context of RFC #986 (per-function provider/model seam) and ADR-0009 (office4
+large-context inference); this design leaves that seam open and hardcodes no provider.
+
 ### Proof-feature ladder (each rung: parallel on prod, additive, reversible, one proof point)
+
+> **Status (2026-09-17):** the ladder below is the **plan-of-record**. The contingency
+> recorded here on 2026-09-15 (build direction undecided after #844) was resolved by the
+> Build-direction decision above (Kent, 2026-09-16: pursue the graph, adapters as the
+> writers). What remains gated on **#849** is not *whether* to climb the ladder but whether
+> graph-mediated retrieval earns its complexity at scale — which bears on rung 3's
+> reasoning arm, not on rungs 1–2. The #693→#698 sequencing and the membrane-topology
+> question are still open scheduling/ingest decisions, not build-direction ones.
 
 1. **Read-only, hand-seeded, queried only by Kent** via MCP in Claude Desktop — zero Felix
    involvement. *Proof: can it answer "why this task?"*
@@ -414,6 +708,8 @@ full #693→#698 build:
 ### Named risks to hold
 
 - **Privacy / exposure** (LLM extraction of sensitive episodes) — hard gate; spike item 3.
+  The `Person` type makes PII a first-class node; real-person data stays behind
+  the same gate (§Tier Definitions → PERSON).
 - **Lattice becoming a silent load-bearing dependency** — mitigated by advisory/derived +
   adapters canonical.
 - **Backup gap** — graph-data backup is unresolved (see Infrastructure → Backup); resolve
@@ -428,7 +724,10 @@ full #693→#698 build:
 
 1. **Initial ontology seeding:** Does Kent define Purpose/Principle/Outcome/Domain nodes manually as a structured exercise before vault ingest, or does the first ingest attempt to extract them from existing notes? Recommendation: manual seeding first — these are definitional and too important to leave to LLM extraction from potentially inconsistent source material. **Principles especially** are authored by Kent, never extracted.
 
-2. **Vikunja sync direction:** One-way (Vikunja → Graphiti) or bidirectional? Bidirectional introduces write-back complexity. Start one-way.
+2. **Vikunja sync direction:** ~~One-way (Vikunja → Graphiti) or bidirectional?~~ **Decided
+   (2026-09-16, with the build direction): one-way, adapters → Lattice.** Adapters are the
+   writers of typed nodes/edges and remain canonical for their own domain; write-back stays
+   gated per §Rollout → *Where the risk actually is* until a specific write path is proven.
 
 3. **Privacy boundary:** Graphiti graph content will include sensitive life-planning data. Confirm vault content privacy posture before connecting any cloud-hosted LLM for extraction. This may accelerate the local LLM evaluation currently deferred pending observability data.
 

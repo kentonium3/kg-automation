@@ -52,7 +52,12 @@ Additional properties are allowed — Obsidian plugins and other tools can add t
 
 ### status
 
-`draft`, `in_review`, `approved`, `deprecated`, `archived`
+`draft`, `proposed`, `in_review`, `approved`, `deprecated`, `archived`, `active`
+
+`proposed` sits one step ahead of `in_review`: the artifact is complete and coherent, but the
+**concept** it records is not settled and needs further debate or design. Use it for a brand-new
+concept, artifact, or capability — as distinct from `draft`, which means the writing itself is
+unfinished. (Kent, 2026-09-18.)
 
 ### level (optional)
 
