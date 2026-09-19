@@ -54,8 +54,12 @@ fatal: Could not reset index file to revision '619bd1137...'
 | F10 | Mission-state manifest + quarantined rows written to a **gitignored** path | P2 | **OPEN** | [#996](https://github.com/kentonium3/kg-automation/issues/996) | — |
 | F11 | `mission-state --fix` / `--teamspace-dry-run` report counts with no detail | P3 | **OPEN** | [#997](https://github.com/kentonium3/kg-automation/issues/997) | — |
 | F12 | Repo unclonable on default Windows git (path length) | env | **WORKED AROUND** | — (this doc) | n/a — set `core.longpaths` |
+| F13 | `GEMINI.md` orientation never refreshes; `tool-surfaces --fix` no-ops | P3 | **OPEN** | [#999](https://github.com/kentonium3/kg-automation/issues/999) | — |
+| F14 | CLI emits both deprecated `TeamSpace` and current `Team Kitty` | P3 | **OPEN** | [#1000](https://github.com/kentonium3/kg-automation/issues/1000) | — |
 
 `FIXED, verified` = observed working on `619bd1137`. `OPEN` = reproduces on `619bd1137`.
+
+⚠️ **Terminology note for QA agents.** "TeamSpace" is **deprecated**; the product is **Team Kitty**. This document quotes CLI output verbatim, so `TeamSpace` appears throughout where the CLI emits it — that is evidence for F14, not our usage. Use **Team Kitty** in your own reports and reserve `TeamSpace` for quoted CLI strings and the `--teamspace-dry-run` / `teamspace-blocker` identifiers, which are still the literal names on the command line.
 
 ---
 
@@ -205,6 +209,40 @@ manifest at all, so its 20 errors have no recoverable detail anywhere. Contrast
 `doctor tool-surfaces`, which lists every finding with its path — the verbose
 style already exists in the same command family.
 
+### F13 · `GEMINI.md` orientation never refreshes, and the repair no-ops
+
+`GEMINI.md` still stamps `Spec Kitty v3.2.6` while its three sibling surfaces moved to rc4:
+
+```text
+.claude/CLAUDE.md                  Spec Kitty v4.0.0rc4
+.github/copilot-instructions.md    Spec Kitty v4.0.0rc4
+AGENTS.md                          Spec Kitty v4.0.0rc4
+GEMINI.md                          Spec Kitty v3.2.6     <- stale
+```
+
+It has survived **five** upgrades across two machines (office4's 3.2.6 → rc1 → rc3, and this box's 3.2.6 → rc4 over three invocations). `doctor tool-surfaces` *detects* it — `! Orientation version stale for gemini` — but the documented repair does nothing:
+
+```text
+before: Spec Kitty v3.2.6
+spec-kitty doctor tool-surfaces --tool gemini --fix   -> exit=0
+after:  Spec Kitty v3.2.6      (file unchanged)
+```
+
+The defect is the pairing: a check that fires plus a `--fix` that exits 0 without acting is worse than no check, because it reports success. Not hand-repaired here — it is a generated block.
+
+### F14 · Two product names in one CLI
+
+"TeamSpace" is deprecated; the product is **Team Kitty**. The rc4 build emits both. 325 occurrences across four casings:
+
+```text
+    181 teamspace        52 TeamSpace
+     69 Teamspace        23 TEAMSPACE
+```
+
+`Team Kitty` is already live in user-facing auth strings (*"contact your Team Kitty administrator"*, `auth/flows/refresh.py`) and carries an upstream reference `#3980, Team Kitty launch defaults` — so the new name is intended and partially landed. Meanwhile mission-state, doctor, sync, tracker and saas_client still say TeamSpace, including the public flag `--teamspace-dry-run` and the finding code `teamspace-blocker`, which are breaking changes to rename outright and likely need deprecated aliases.
+
+**Not just upstream:** our own repo carries the deprecated name in `docs/runbooks/teamspace-saas-local-qa-setup.md` (filename and content), `docs/DEVELOPER_PORTAL.md`, `docs/runbooks/spec-kitty-per-repo-upgrade.md` and `scripts/decommission/mac/cleanup.sh`. Deliberately left alone pending upstream settling on the canonical spelling — renaming ours first would just create a second mismatch.
+
 ---
 
 ## Mission-state repair outcome (this project)
@@ -239,6 +277,11 @@ and they look like legitimate mission history.
    migration path.
 5. **Was `.kittify/migrations/` ignored before the quarantine feature existed
    (F10)?** That would make it an unnoticed collision rather than a decision.
+6. **Do other partially-supported tool surfaces share F13's shape** — audited
+   but not repairable, with `--fix` exiting 0 regardless? Gemini may not be the
+   only one.
+7. **How far does the F14 rename reach beyond the CLI?** The hosted dashboard,
+   API responses and upstream docs are separate surfaces; the CLI is only one.
 
 ---
 
