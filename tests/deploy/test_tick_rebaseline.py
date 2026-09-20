@@ -15,6 +15,13 @@ Covers:
 All subprocess / filesystem / rebaseline-engine / ntfy side-effects are
 injected via mocks.  No real git, no office2, no /data paths touched.
 
+That last clause was false until #989: the tests below drive ``run_tick``,
+which calls ``rebaseline.write_observed_head()`` with no path argument, so
+every run wrote its own fixture SHA to the real
+``/data/services/felix-deployer/state/``.  It is now enforced rather than
+merely asserted — ``tests/deploy/conftest.py`` redirects the host-state
+constants and fails the session if anything writes under ``/data``.
+
 Import approach
 ---------------
 ``_tick.py`` lives under ``scripts/deploy/felix-deployer/`` — a hyphenated
@@ -211,7 +218,18 @@ def _wp04_seams(monkeypatch, tmp_path):
 
 
 def test_observe_called_with_pulled_range(monkeypatch, fake_repo, log_dir):
-    """observe() is called with pre_pull_head and post_pull_head."""
+    """observe() is called with pre_pull_head and post_pull_head.
+
+    This is the NO-WATERMARK path, and says so deliberately: with no
+    watermark on disk ``classify_watermark`` returns ``WATERMARK_FALLBACK``
+    and ``_tick`` selects ``pre_pull_head`` as the observe base.  The
+    dependence used to be ambient — whichever deploy test module last ran
+    left a watermark on the shared real path, so this test silently
+    exercised ``WATERMARK_VALID`` instead and failed (#989).  Isolation now
+    comes from ``tests/deploy/conftest.py``.
+
+    A reader who changes the FALLBACK branch should expect this to move.
+    """
     PRE = "aabbccdd" * 5
     POST = "11223344" * 5
 
