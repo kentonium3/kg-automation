@@ -152,26 +152,38 @@ def err(msg, path=None, is_blocker=True):
     full = f"{path}: {msg}" if path else msg
     (ERRORS if is_blocker else WARNINGS).append(full)
 
-def front_matter(p):
+def _front_matter_quiet(p):
+    """Parse frontmatter, reporting nothing. Returns (result, problem).
+
+    ``front_matter`` below adds the finding-reporting. Callers that merely need
+    to ASK something about a document — the skipped-category decision probe —
+    use this, so probing cannot manufacture findings for documents nobody asked
+    us to validate.
+    """
     txt = Path(p).read_text(encoding='utf-8', errors='ignore')
     txt = txt.replace("\r\n", "\n").lstrip("\ufeff \t\r\n")
     if not txt.startswith('---'):
-        err('Missing YAML front-matter', p)
-        return None
+        return None, 'Missing YAML front-matter'
+    lines = txt.splitlines()
+    end = None
+    for i in range(1, min(len(lines), 500)):
+        if lines[i].strip() == '---':
+            end = i
+            break
+    if end is None:
+        return None, "Front-matter closing '---' not found"
     try:
-        lines = txt.splitlines()
-        end = None
-        for i in range(1, min(len(lines), 500)):
-            if lines[i].strip() == '---':
-                end = i
-                break
-        if end is None:
-            err("Front-matter closing '---' not found", p)
-            return None
-        return yaml.safe_load('\n'.join(lines[1:end])) or {}
+        return (yaml.safe_load('\n'.join(lines[1:end])) or {}), None
     except Exception as e:
-        err(f"Front-matter parse error: {e}", p)
+        return None, f'Front-matter parse error: {e}'
+
+
+def front_matter(p):
+    result, problem = _front_matter_quiet(p)
+    if problem:
+        err(problem, p)
         return None
+    return result
 
 # ---------- Staged-mode: pre-commit hook secret scan ----------
 # When invoked with --staged, scan only the added lines in the current
@@ -523,12 +535,12 @@ def _is_decision_doc_in_skipped_category(md):
     if not rel or rel[0] != 'docs' or DECISION_SCAN_EXCLUDE & set(rel):
         return False
     try:
-        head = md.read_text(encoding='utf-8', errors='ignore')[:2000]
+        fm_probe, problem = _front_matter_quiet(md)
     except OSError:
         return False
-    if not head.lstrip('\ufeff \t\r\n').startswith('---'):
+    if problem or not isinstance(fm_probe, dict):
         return False
-    return bool(re.search(r'^doc_type:\s*decision\s*$', head, re.M))
+    return fm_probe.get('doc_type') == 'decision'
 
 
 for md in ROOT.rglob('*.md'):

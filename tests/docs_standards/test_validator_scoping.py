@@ -519,3 +519,58 @@ def test_decision_log_is_a_blocker_even_without_a_policy_file(repo):
     write(repo, "docs/a.md", _decision("\n"))
     r = run(repo)
     assert r.returncode == 1, r.stdout
+
+
+# ------------------- skipped-category decision detection (re-review F1) --
+
+SKIPPED_CATEGORY = "docs/design/research"
+
+
+def test_quoted_doc_type_is_detected_in_a_skipped_category(repo):
+    """A raw regex missed `doc_type: "decision"`; YAML does not."""
+    write(repo, "docs/design/standards/validator-policy.json", STRICT_POLICY)
+    write(repo, f"{SKIPPED_CATEGORY}/rfc.md",
+          '---\ntitle: T\ndoc_type: "decision"\nstatus: active\n---\n\n# T\n')
+    r = run(repo)
+    assert r.returncode == 1
+    assert "Invalid status 'active'" in r.stdout
+
+
+def test_late_doc_type_key_is_detected(repo):
+    """A key pushed past a fixed byte window must still be found."""
+    write(repo, "docs/design/standards/validator-policy.json", STRICT_POLICY)
+    padding = "\n".join(f"note_{i}: {'x' * 80}" for i in range(40))
+    write(repo, f"{SKIPPED_CATEGORY}/rfc.md",
+          f"---\ntitle: T\n{padding}\ndoc_type: decision\nstatus: active\n---\n\n# T\n")
+    r = run(repo)
+    assert r.returncode == 1
+    assert "Invalid status 'active'" in r.stdout
+
+
+def test_body_text_that_looks_like_the_key_does_not_trigger_validation(repo):
+    """The dangerous direction: a skipped document showing `doc_type: decision`
+    in a code example must not be dragged into commit-blocking validation."""
+    write(repo, "docs/design/standards/validator-policy.json", STRICT_POLICY)
+    write(repo, f"{SKIPPED_CATEGORY}/notes.md",
+          "---\ntitle: T\ndoc_type: note\nstatus: draft\n---\n\n"
+          "# T\n\nAn example of ADR frontmatter:\n\n```yaml\ndoc_type: decision\n```\n")
+    r = run(repo)
+    assert r.returncode == 0, r.stdout
+
+
+def test_a_skipped_document_with_no_frontmatter_is_not_probed_into_findings(repo):
+    """Probing must not manufacture 'Missing YAML front-matter' for documents
+    nobody asked us to validate."""
+    write(repo, "docs/design/standards/validator-policy.json", STRICT_POLICY)
+    write(repo, f"{SKIPPED_CATEGORY}/plain.md", "# Just a heading, no frontmatter\n")
+    r = run(repo)
+    assert r.returncode == 0, r.stdout
+    assert "Missing YAML front-matter" not in r.stdout
+
+
+def test_a_valid_decision_doc_in_a_skipped_category_passes(repo):
+    write(repo, "docs/design/standards/validator-policy.json", STRICT_POLICY)
+    write(repo, f"{SKIPPED_CATEGORY}/rfc.md",
+          "---\ntitle: T\ndoc_type: decision\nstatus: draft\n---\n\n"
+          "# T\n\n## Decision log\n\n*No entries.*\n")
+    assert run(repo).returncode == 0
