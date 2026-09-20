@@ -20,7 +20,9 @@ which calls ``rebaseline.write_observed_head()`` with no path argument, so
 every run wrote its own fixture SHA to the real
 ``/data/services/felix-deployer/state/``.  It is now enforced rather than
 merely asserted — ``tests/deploy/conftest.py`` redirects the host-state
-constants and fails the session if anything writes under ``/data``.
+constants, and blocks and records mutations under ``/data`` made through the
+``pathlib`` and ``os`` entry points, failing the session if any were tried.
+(Not total: subprocesses and C-level bypasses are out of its reach.)
 
 Import approach
 ---------------

@@ -62,13 +62,17 @@ attributes and still missed that second level; the guard below caught it with
 28 escaping writes.  So the sweep walks three routes: modules loaded from the
 two source files, module-valued globals of every ``tests/deploy`` test
 module, and the ``_rebaseline`` attribute of each ``_tick`` instance found by
-either.  The sweep is cached and recomputed only when ``sys.modules`` changes
-size, so a module imported mid-session is still picked up.
+either.  The sweep runs fresh every test rather than being cached: these
+loaders rebind existing ``sys.modules`` keys, so a new instance can appear
+without the table changing size, and any size-keyed cache would miss exactly
+the case it exists for.  With ``_RESOLVED`` memoising the realpath calls a
+full sweep costs well under a millisecond.
 """
 
 from __future__ import annotations
 
 import builtins
+import contextlib
 import io
 import os
 import pathlib
@@ -305,6 +309,15 @@ def _under_data(path, dir_fd: int | None = None) -> bool:
     lookup fails we treat the path as forbidden rather than assume it is
     safe: a guard that cannot tell should refuse, not wave through.
     """
+    if isinstance(path, int):
+        # os.chmod / chown / utime / truncate accept a descriptor in place of
+        # a path, so an fd opened read-only on /data would otherwise be a way
+        # to mutate live state unobserved.  Resolve it the same way.
+        try:
+            return _under_data(os.readlink(f"/proc/self/fd/{path}"))
+        except (OSError, ValueError):
+            return True  # cannot resolve the descriptor -> refuse
+
     try:
         raw = os.fsdecode(path)
     except (TypeError, ValueError):
@@ -317,11 +330,59 @@ def _under_data(path, dir_fd: int | None = None) -> bool:
             return True  # cannot resolve the anchor -> refuse
         raw = os.path.join(base, raw)
 
+    # Resolve the PARENT, not the leaf.  ``Path.resolve()`` follows the final
+    # component, so a symlink inside /data pointing elsewhere would resolve
+    # outside and read as safe — even though creating, removing or chmod-ing
+    # that link mutates /data.  Measured: an earlier version missed exactly
+    # this, letting os.symlink land a link in /data unblocked.
+    candidate = pathlib.Path(raw)
     try:
-        resolved = pathlib.Path(raw).resolve()
+        resolved = candidate.parent.resolve() / candidate.name
     except (OSError, ValueError):  # pragma: no cover - pathological path
         return False
     return resolved == _FORBIDDEN_PREFIX or _FORBIDDEN_PREFIX in resolved.parents
+
+
+@contextlib.contextmanager
+def unguarded():
+    """Suspend the guard for the duration of the block.
+
+    Narrow escape hatch for a probe's OWN cleanup: a test that deliberately
+    trips the guard may need to remove what a regression would have created,
+    and that removal is itself a mutation under ``/data`` the guard would
+    refuse.  Not for production-path work — a test that needs this to do its
+    actual job is a test that should be redirecting to tmp instead.
+    """
+    saved = _ACTIVE["nodeid"]
+    _ACTIVE["nodeid"] = None
+    try:
+        yield
+    finally:
+        _ACTIVE["nodeid"] = saved
+
+
+def _display(path, dir_fd: int | None = None) -> str:
+    """Render *path* for a message.
+
+    ``os.fsdecode`` raises on an int, and an int is exactly what the fd-valued
+    forms of ``os.chmod`` and friends pass — so formatting the error must not
+    assume a path-like.
+    """
+    if isinstance(path, int):
+        try:
+            return f"fd {path} -> {os.readlink(f'/proc/self/fd/{path}')}"
+        except OSError:
+            return f"fd {path}"
+    try:
+        raw = os.fsdecode(path)
+    except (TypeError, ValueError):
+        return repr(path)
+    if dir_fd is not None and not os.path.isabs(raw):
+        try:
+            return os.path.join(os.readlink(f"/proc/self/fd/{int(dir_fd)}"), raw)
+        except (OSError, TypeError, ValueError):
+            return f"{raw} (relative to fd {dir_fd})"
+    return raw
 
 
 def _block(path, how: str, dir_fd: int | None = None) -> None:
@@ -329,9 +390,10 @@ def _block(path, how: str, dir_fd: int | None = None) -> None:
     nodeid = _ACTIVE["nodeid"]
     if nodeid is None or not _under_data(path, dir_fd):
         return
-    _ESCAPES.append(f"{nodeid}\n      {how}: {os.fsdecode(path)}")
+    shown = _display(path, dir_fd)
+    _ESCAPES.append(f"{nodeid}\n      {how}: {shown}")
     raise HostStateWriteBlocked(
-        f"{nodeid} attempted {how} on real host state {os.fsdecode(path)!r}. "
+        f"{nodeid} attempted {how} on real host state {shown!r}. "
         f"felix-deployer runs out of {_FORBIDDEN_PREFIX} on office2; tests must "
         f"redirect to tmp (see tests/deploy/conftest.py, #989)."
     )
@@ -403,8 +465,24 @@ def _guard_host_state():
 
         mp.setattr(os, name, _guarded)
 
-    for name in ("replace", "rename", "link", "symlink"):
+    # os.link takes src_dir_fd/dst_dir_fd and mutates at both ends.
+    for name in ("replace", "rename", "link"):
         _wrap_os_move(name)
+
+    # os.symlink is NOT a two-ended move: its first argument is the link
+    # TARGET, a string that is merely stored and need not exist, and it takes
+    # a single ``dir_fd`` that anchors the link being created.  Routing it
+    # through the move wrapper both missed that dir_fd and falsely blocked a
+    # link created outside /data that merely points into it.
+    _real_symlink = os.symlink
+
+    def _guarded_symlink(src, dst, target_is_directory=False, *, dir_fd=None):
+        _block(dst, "os.symlink (link)", dir_fd)
+        if dir_fd is not None:
+            return _real_symlink(src, dst, target_is_directory, dir_fd=dir_fd)
+        return _real_symlink(src, dst, target_is_directory)
+
+    mp.setattr(os, "symlink", _guarded_symlink)
 
     def _wrap_os_single(name: str) -> None:
         real = getattr(os, name, None)

@@ -9,9 +9,12 @@ actually patched, which is where the original fix attempt went wrong.
 So the tests below drive ``run_tick`` and assert that the observe-range base
 tracks the watermark the test itself seeded — i.e. that the classification
 the tick performs is reading the isolated path rather than ambient host
-state.  The complementary filesystem-level assertion (no writes under
-``/data`` anywhere in this package) lives in the ``_guard_host_state``
-session fixture in ``conftest.py``.
+state.  The complementary filesystem-level assertion lives in the
+``_guard_host_state`` session fixture in ``conftest.py``, which blocks and
+records mutations under ``/data`` made through the ``pathlib`` and ``os``
+entry points.  It is not total: a subprocess, a C extension that bypasses
+those entry points, or a session-scoped finalizer running after the last
+item's protocol all fall outside it.
 
 The defect these guard against: ``rebaseline``'s path constants default to
 the real ``/data/services/felix-deployer/state``, ``_tick`` calls
@@ -221,3 +224,55 @@ def test_guard_ignores_paths_outside_host_state(tmp_path):
     target.write_text("fine", encoding="utf-8")
     target.chmod(0o600)
     assert target.read_text(encoding="utf-8") == "fine"
+
+
+def test_guard_blocks_a_symlink_created_inside_host_state(blocked_probe):
+    """The link being CREATED is the mutation, anchored by ``dir_fd``.
+
+    ``os.symlink``'s first argument is the link target — a string that is
+    merely stored and need not exist — so only the second is a path being
+    written.  Routing it through the two-ended move wrapper got this wrong in
+    both directions: it missed ``dir_fd`` (which ``os.symlink`` spells
+    without the ``src_``/``dst_`` prefixes) and falsely blocked a link made
+    outside ``/data`` that merely pointed into it.
+    """
+    if not pathlib.Path("/data").is_dir():
+        pytest.skip("/data does not exist on this host")
+
+    fd = os.open("/data", os.O_RDONLY)
+    try:
+        with pytest.raises(blocked_probe.HostStateWriteBlocked):
+            os.symlink("/tmp/whatever", "does-not-exist-989-link", dir_fd=fd)
+    finally:
+        os.close(fd)
+        # Self-cleaning: if the guard ever regresses, this probe would leave a
+        # real symlink in /data that poisons the next run — which is exactly
+        # what happened while developing it.  The removal is itself a /data
+        # mutation, so it runs with the guard suspended.
+        with blocked_probe.unguarded():
+            pathlib.Path("/data/does-not-exist-989-link").unlink(missing_ok=True)
+
+
+def test_guard_allows_a_symlink_outside_host_state_pointing_into_it(tmp_path):
+    """Pointing AT /data is not mutating it — this must not be blocked."""
+    link = tmp_path / "points-into-data"
+    os.symlink("/data/whatever", link)
+    assert link.is_symlink()
+    assert os.readlink(link) == "/data/whatever"
+
+
+def test_guard_blocks_an_fd_valued_path(blocked_probe):
+    """``os.chmod`` and friends accept a descriptor in place of a path.
+
+    A read-only descriptor on a real ``/data`` file would otherwise be a way
+    to mutate live state without the guard seeing a path at all.
+    """
+    if not pathlib.Path("/data").is_dir():
+        pytest.skip("/data does not exist on this host")
+
+    fd = os.open("/data", os.O_RDONLY)
+    try:
+        with pytest.raises(blocked_probe.HostStateWriteBlocked):
+            os.chmod(fd, 0o755)
+    finally:
+        os.close(fd)
