@@ -39,6 +39,13 @@ from doc_taxonomy import Taxonomy, TaxonomyError, load_taxonomy  # noqa: E402
 ROOT = Path(__file__).resolve().parents[2]
 SCHEMA_PATH = ROOT / "docs" / "design" / "standards" / "frontmatter.schema.json"
 NARRATIVE_PATH = ROOT / "docs" / "design" / "standards" / "doc-standards.md"
+#: The ADR README restates the decision-status vocabulary for authors. Left
+#: hand-maintained it is a third copy of the same list — the exact drift class
+#: this generator exists to remove (#987 post-merge review F6).
+ADR_README_PATH = ROOT / "docs" / "design" / "architecture" / "adr" / "README.md"
+
+ADR_START = "<!-- GENERATED:decision-status-table START -->"
+ADR_END = "<!-- GENERATED:decision-status-table END -->"
 
 START = "<!-- GENERATED:status-list START -->"
 END = "<!-- GENERATED:status-list END -->"
@@ -146,7 +153,38 @@ def render_narrative_region(tax: Taxonomy) -> str:
     return "\n".join(lines)
 
 
-def _split_on_sentinels(text: str, path: Path) -> tuple[str, str]:
+#: One-line meanings for the decision statuses. Prose belongs with the
+#: vocabulary, so the generated table carries both.
+DECISION_STATUS_MEANINGS = {
+    "draft": "being written; not yet put forward",
+    "proposed": "complete and coherent, but the concept is not settled and needs debate or design",
+    "approved": "decided, by a stated authority, and safe to act on",
+    "superseded": "a newer ADR replaces this decision; a `superseded-by` log row names it",
+    "deprecated": "the topic is no longer relevant; no successor",
+}
+
+
+def render_decision_status_table(tax: Taxonomy) -> str:
+    """The ADR README's status table, derived from the source."""
+    lines = [_WARNING, "", "| Status | Meaning |", "|---|---|"]
+    for status in tax.statuses_for("decision"):
+        meaning = DECISION_STATUS_MEANINGS.get(status, "_(no description recorded)_")
+        lines.append(f"| `{status}` | {meaning} |")
+    return "\n".join(lines)
+
+
+def _region_name(start: str) -> str:
+    """'<!-- GENERATED:status-list START -->' -> 'GENERATED:status-list'.
+
+    Error messages name the region, not the raw marker: an author reading
+    "no GENERATED:status-list sentinels" knows what is missing without parsing
+    an HTML comment out of the sentence.
+    """
+    m = re.search(r"(GENERATED:[\w-]+)", start)
+    return m.group(1) if m else start
+
+
+def _split_on_sentinels(text: str, path: Path, start: str = START, end: str = END) -> tuple[str, str]:
     """Return the text before and after the generated region.
 
     Strict by design: anything other than exactly one ordered pair fails without
@@ -169,32 +207,41 @@ def _split_on_sentinels(text: str, path: Path) -> tuple[str, str]:
         if open_fence is not None:
             # A documentation example may legitimately show the markers.
             continue
-        if ln.strip() == START:
+        if ln.strip() == start:
             start_idx.append(i)
-        elif ln.strip() == END:
+        elif ln.strip() == end:
             end_idx.append(i)
     # Substring matching would make a fenced example containing the marker a
     # writable boundary and destroy the prose between them (finding M3).
     inline = sum(
         1
         for ln in lines
-        for marker in (START, END)
+        for marker in (start, end)
         if marker in ln and ln.strip() != marker
     )
     if inline:
         raise GeneratorError(
-            f"{path}: sentinel marker appears {inline} time(s) other than as a standalone line"
+            f"{path}: {_region_name(start)} marker appears {inline} time(s) other than as a "
+            f"standalone line"
         )
     starts, ends = len(start_idx), len(end_idx)
     if starts == 0 and ends == 0:
-        raise GeneratorError(f"{path}: no GENERATED:status-list sentinels — run with --bootstrap once")
+        raise GeneratorError(f"{path}: no {_region_name(start)} sentinels — run with --bootstrap once")
     if starts != 1 or ends != 1:
         raise GeneratorError(
-            f"{path}: expected exactly one sentinel pair, found {starts} START and {ends} END"
+            f"{path}: expected exactly one {_region_name(start)} sentinel pair, "
+            f"found {starts} START and {ends} END"
         )
     if end_idx[0] < start_idx[0]:
         raise GeneratorError(f"{path}: END sentinel precedes START")
     return "".join(lines[: start_idx[0]]), "".join(lines[end_idx[0] + 1 :])
+
+
+def render_region(tax: Taxonomy, current: str, path: Path, start: str, end: str, body: str) -> str:
+    """Replace one sentinel-delimited region, preserving everything else."""
+    head, tail = _split_on_sentinels(current, path, start, end)
+    close = f"{end}\n" if (tail or current.endswith("\n")) else end
+    return f"{head}{start}\n{body}\n{close}{tail}"
 
 
 def render_narrative(tax: Taxonomy, current: str, path: Path) -> str:
@@ -250,7 +297,11 @@ def _targets(tax: Taxonomy) -> list[tuple[Path, str]]:
     schema_now = json.loads(SCHEMA_PATH.read_text(encoding="utf-8"))
     schema_next = json.dumps(render_schema(tax, schema_now), indent=2) + "\n"
     narrative_next = render_narrative(tax, NARRATIVE_PATH.read_text(encoding="utf-8"), NARRATIVE_PATH)
-    return [(SCHEMA_PATH, schema_next), (NARRATIVE_PATH, narrative_next)]
+    adr_readme = ADR_README_PATH.read_text(encoding="utf-8")
+    adr_next = render_region(
+        tax, adr_readme, ADR_README_PATH, ADR_START, ADR_END, render_decision_status_table(tax)
+    )
+    return [(SCHEMA_PATH, schema_next), (NARRATIVE_PATH, narrative_next), (ADR_README_PATH, adr_next)]
 
 
 def main(argv: list[str] | None = None) -> int:

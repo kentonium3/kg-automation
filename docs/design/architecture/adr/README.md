@@ -51,6 +51,9 @@ Each ADR follows a lightweight Markdown template (`docs/_templates/decision.md`)
 - **`doc_type`** — `decision`
 - **`status`** (frontmatter, authoritative) — one of:
 
+<!-- GENERATED:decision-status-table START -->
+<!-- Generated from allowed-values.json by generate_doc_standards.py. Do not edit by hand. -->
+
 | Status | Meaning |
 |---|---|
 | `draft` | being written; not yet put forward |
@@ -58,6 +61,7 @@ Each ADR follows a lightweight Markdown template (`docs/_templates/decision.md`)
 | `approved` | decided, by a stated authority, and safe to act on |
 | `superseded` | a newer ADR replaces this decision; a `superseded-by` log row names it |
 | `deprecated` | the topic is no longer relevant; no successor |
+<!-- GENERATED:decision-status-table END -->
 
   `partially_superseded` does not exist and must not be added. A partial change is a **log entry**,
   not a status — the ADR remains wholly binding until a successor replaces it or the topic dies.

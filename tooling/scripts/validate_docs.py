@@ -30,8 +30,12 @@ WARNINGS = []
 STAGED_MODE = '--staged' in sys.argv
 
 # ---------- Load policy ----------
+# `decision_log` is in the SAFE DEFAULT, not only in the policy file: a typo in
+# validator-policy.json previously fell back to defaults that omitted it,
+# silently demoting a blocker to nothing and letting the demotion be committed
+# (#987 post-merge review F4).
 DEFAULT_POLICY = {
-    'blockers': ['required_keys', 'enum_membership'],
+    'blockers': ['required_keys', 'enum_membership', 'decision_log'],
     'advisories': ['formats', 'id_filename_match', 'key_order',
                    'whitespace', 'array_style', 'title_blankline', 'case_style'],
 }
@@ -39,10 +43,24 @@ DEFAULT_POLICY = {
 POLICY_FILE = ROOT / 'docs' / 'design' / 'standards' / 'validator-policy.json'
 POLICY = DEFAULT_POLICY.copy()
 if POLICY_FILE.exists():
+    # Fail closed. A malformed policy is a defect in the gate itself; continuing
+    # on fallbacks means enforcing rules nobody can read (same reasoning as the
+    # taxonomy loader).
     try:
-        POLICY.update(json.loads(POLICY_FILE.read_text(encoding='utf-8')))
+        _loaded = json.loads(POLICY_FILE.read_text(encoding='utf-8'))
     except Exception as e:
-        print(f"Warning: Could not load validator-policy.json: {e}", file=sys.stderr)
+        print(f"FATAL: {POLICY_FILE}: invalid JSON: {e}", file=sys.stderr)
+        sys.exit(2)
+    if not isinstance(_loaded, dict):
+        print(f"FATAL: {POLICY_FILE}: top level must be an object", file=sys.stderr)
+        sys.exit(2)
+    for _k in ('blockers', 'advisories'):
+        if _k in _loaded and not (
+            isinstance(_loaded[_k], list) and all(isinstance(v, str) for v in _loaded[_k])
+        ):
+            print(f"FATAL: {POLICY_FILE}: '{_k}' must be a list of strings", file=sys.stderr)
+            sys.exit(2)
+    POLICY.update(_loaded)
 
 # ---------- Load allowed values ----------
 ALLOWED_VALUES = {
@@ -282,6 +300,26 @@ def _split_markdown_row(row):
 _FENCE_ANY = re.compile(r'^ {0,3}(?:(?P<b>`{3,})(?P<bi>[^`]*)|(?P<t>~{3,})(?P<ti>.*))$')
 
 
+def _indent_columns(line, tab_width=4):
+    """Leading indentation in COLUMNS, expanding tabs.
+
+    CommonMark treats a leading tab as an indented code block. Testing
+    ``startswith('    ')`` missed that, so a tab-indented ``## Decision log``
+    inside a code example read as a real section — rejecting a legitimate
+    document as having two logs, or letting code satisfy validation when the
+    real log was absent (#987 post-merge review F3).
+    """
+    cols = 0
+    for ch in line:
+        if ch == ' ':
+            cols += 1
+        elif ch == '\t':
+            cols += tab_width - (cols % tab_width)
+        else:
+            break
+    return cols
+
+
 def _strip_fenced(lines):
     """Blank out fenced-block content so it cannot satisfy validation.
 
@@ -307,7 +345,7 @@ def _strip_fenced(lines):
         if fence is not None:
             out.append('')
             continue
-        out.append('' if ln.startswith('    ') else ln)
+        out.append('' if _indent_columns(ln) >= 4 else ln)
     return out
 
 
@@ -370,6 +408,16 @@ def check_decision_log(md, fm, text):
             md, is_blocker=blocking)
         return
 
+    # A blockquote preamble is allowed ahead of EITHER form. Frozen ADRs that
+    # carry a legacy changes-log section need a closure note pointing future
+    # entries here, and those logs are empty (#987 post-merge review F7).
+    while body and body[0].lstrip().startswith('>'):
+        body.pop(0)
+    if not body:
+        err(f"'{DECISION_LOG_HEADING}' has a note but no entries; use '{DECISION_LOG_EMPTY}'",
+            md, is_blocker=blocking)
+        return
+
     # The empty form is a distinct grammar: the placeholder and nothing else.
     if body[0].strip() == DECISION_LOG_EMPTY:
         if len(body) > 1:
@@ -379,13 +427,6 @@ def check_decision_log(md, fm, text):
             err("status is 'superseded' but the decision log has no 'superseded-by' row naming "
                 "the successor", md, is_blocker=blocking)
         return
-
-    # A blockquote preamble is allowed before the table. It is unambiguous —
-    # a '>' line can never be mistaken for a '|' row — and forbidding any note
-    # at all would be fought by every author who needs to explain their log
-    # (ADR-0004 does). Anything else is still rejected.
-    while body and body[0].lstrip().startswith('>'):
-        body.pop(0)
 
     non_rows = [ln for ln in body if not ln.lstrip().startswith('|')]
     if non_rows:
@@ -451,8 +492,47 @@ def check_decision_log(md, fm, text):
 # ---------- 1) Frontmatter validation ----------
 REQUIRED = ['title', 'doc_type', 'status']
 
+#: Categories under docs/ that are skipped for general frontmatter validation
+#: but still hold real documents. A `doc_type: decision` file here is governed
+#: like any other (#987 post-merge review F1) — the migrated RFC lives in
+#: docs/design/research/, which is in SKIP_DIRS, so it was unguarded.
+#:
+#: The exemption is deliberately narrow: it applies only under docs/, so the
+#: spec-kitty-owned trees (kitty-specs/, .kittify/, .agents/, .claude/,
+#: .codex/, dist/ — all top-level) are never frontmatter-read, preserving
+#: C-001. `archive` stays excluded because it is frozen history, and
+#: `_templates` because a template is not a document.
+DECISION_SCAN_EXCLUDE = {'archive', '_templates'}
+
+
+def _is_decision_doc_in_skipped_category(md):
+    """True for a decision document that general validation would have skipped.
+
+    Deliberately does NOT call ``front_matter`` — that reports missing or
+    malformed frontmatter as findings, so probing every skipped file would
+    manufacture errors for documents nobody asked us to validate. This reads
+    the ``doc_type`` line directly and answers only that question.
+    """
+    try:
+        rel = md.relative_to(ROOT).parts
+    except ValueError:
+        return False
+    # Must be under THIS repository's own docs/ tree. A nested `docs` directory
+    # elsewhere (e.g. .agents/*/docs/) is not ours to police, and anchoring at
+    # rel[0] is also what keeps the spec-kitty trees unread (C-001).
+    if not rel or rel[0] != 'docs' or DECISION_SCAN_EXCLUDE & set(rel):
+        return False
+    try:
+        head = md.read_text(encoding='utf-8', errors='ignore')[:2000]
+    except OSError:
+        return False
+    if not head.lstrip('\ufeff \t\r\n').startswith('---'):
+        return False
+    return bool(re.search(r'^doc_type:\s*decision\s*$', head, re.M))
+
+
 for md in ROOT.rglob('*.md'):
-    if any(seg in md.parts for seg in SKIP_DIRS):
+    if any(seg in md.parts for seg in SKIP_DIRS) and not _is_decision_doc_in_skipped_category(md):
         continue
 
     fm = front_matter(md)

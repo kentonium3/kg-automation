@@ -101,4 +101,6 @@ Keep `felix-bot` for writes and `kent` for config/reads. Rejected: #715 already 
 
 ## Decision log
 
+> **This is the canonical log for this ADR.** The frozen `## Decision changes` section above predates the decision-log contract and is preserved verbatim as body content — it is history, not a mistake. **New entries go here, not there.**
+
 *No entries.*

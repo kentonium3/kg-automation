@@ -46,22 +46,34 @@ def test_every_adr_is_typed_decision(adr):
     assert fm(adr)["doc_type"] == "decision"
 
 
-#: The migration matrix, transcribed. Exact statuses, and the exact Type of
-#: each seeded row — "a valid status" and "contains the substring" would both
-#: pass against a half-migrated corpus (review finding #2).
-MATRIX = {
-    "0001": ("approved", []),
-    "0002": ("approved", [("2026-07-23", "amendment")]),
-    "0003": ("approved", [("2026-06-09", "amendment")]),
-    "0004": ("approved", [("2026-06-09", "amendment"),
-                          ("2026-08-29", "amendment"),
-                          ("2026-08-29", "context")]),
-    "0005": ("approved", []),
-    "0006": ("approved", []),
-    "0007": ("approved", []),
-    "0008": ("approved", [("2026-08-29", "erratum")]),
-    "0009": ("proposed", []),
+#: The migration matrix, transcribed — the state at MIGRATION TIME.
+#:
+#: These are NOT current-state assertions. The whole point of the feature is
+#: that an ADR's standing changes and its log grows, so freezing either would
+#: forbid the evolution this exists to enable: a legitimate status transition
+#: would fail, an appended row would fail, and ADR-0010 would raise KeyError
+#: against a matrix that stops at 0009 (#987 post-merge review F2).
+#:
+#: What IS durable: the log is append-only, so the seeded rows must remain an
+#: ordered PREFIX of it forever. That is what these assert.
+MIGRATION_SEED = {
+    "0001": [],
+    "0002": [("2026-07-23", "amendment")],
+    "0003": [("2026-06-09", "amendment")],
+    "0004": [("2026-06-09", "amendment"),
+             ("2026-08-29", "amendment"),
+             ("2026-08-29", "context")],
+    "0005": [],
+    "0006": [],
+    "0007": [],
+    "0008": [("2026-08-29", "erratum")],
+    "0009": [],
 }
+
+#: ADRs that existed at migration time. Ones added later are covered by the
+#: generic invariants only — they were never migrated, so there is nothing to
+#: check them against.
+MIGRATED = sorted(MIGRATION_SEED)
 
 
 def log_rows(path: Path):
@@ -76,35 +88,52 @@ def log_rows(path: Path):
     return out
 
 
-@pytest.mark.parametrize("adr", ADRS, ids=lambda p: p.name[:4])
-def test_status_matches_the_matrix_exactly(adr):
-    expected, _ = MATRIX[adr.name[:4]]
-    assert fm(adr)["status"] == expected
-    assert expected in load_taxonomy().statuses_for("decision")
+# ---- generic invariants: every ADR, now and in future --------------------
 
 
 @pytest.mark.parametrize("adr", ADRS, ids=lambda p: p.name[:4])
-def test_log_rows_match_the_matrix_exactly(adr):
-    """No unauthorised rows, none missing, and the empty ones truly empty."""
-    _, expected = MATRIX[adr.name[:4]]
-    assert log_rows(adr) == expected
-    if not expected:
-        tail = adr.read_text(encoding="utf-8").split("\n## Decision log\n", 1)[1]
-        assert tail.strip() == "*No entries.*", f"{adr.name}: expected the empty form"
+def test_status_is_valid_for_a_decision(adr):
+    """Valid, not frozen. Which status an ADR currently holds is mutable."""
+    assert fm(adr)["status"] in load_taxonomy().statuses_for("decision")
 
 
 @pytest.mark.parametrize("adr", ADRS, ids=lambda p: p.name[:4])
-def test_every_adr_has_a_decision_log_and_it_is_last(adr):
-    text = adr.read_text(encoding="utf-8")
-    assert text.count("\n## Decision log\n") == 1, adr.name
-    tail = text.split("\n## Decision log\n", 1)[1]
-    assert not re.search(r"^#{1,6}\s", tail, re.M), f"{adr.name}: heading after the log"
+def test_superseded_status_pairs_with_a_superseded_by_row(adr):
+    """The pairing rule, checked as an invariant rather than a fixed value."""
+    rows = log_rows(adr)
+    has_row = any(kind == "superseded-by" for _, kind in rows)
+    assert (fm(adr)["status"] == "superseded") == has_row, adr.name
 
 
-@pytest.mark.parametrize("adr", ADRS, ids=lambda p: p.name[:4])
-def test_no_adr_carries_partially_superseded(adr):
-    """C-004. It must never exist, in frontmatter or as prose in the index."""
-    assert "partially_superseded" not in adr.read_text(encoding="utf-8")
+# ---- migration fidelity: only the ADRs that were migrated ----------------
+
+
+@pytest.mark.parametrize("num", MIGRATED)
+def test_seeded_rows_remain_an_ordered_prefix(num):
+    """Append-only: the migration's rows stay at the front, in order, forever.
+
+    Later entries are expected and must not fail this.
+    """
+    adr = next(p for p in ADRS if p.name.startswith(num))
+    seeded = MIGRATION_SEED[num]
+    assert log_rows(adr)[: len(seeded)] == seeded
+
+
+@pytest.mark.parametrize("num", MIGRATED)
+def test_migrated_adrs_use_the_empty_form_only_when_they_have_no_rows(num):
+    adr = next(p for p in ADRS if p.name.startswith(num))
+    tail = adr.read_text(encoding="utf-8").split("\n## Decision log\n", 1)[1]
+    if not log_rows(adr):
+        assert "*No entries.*" in tail, f"{adr.name}: no rows, so expected the empty form"
+
+
+def test_a_future_adr_needs_no_matrix_entry():
+    """Guards the KeyError this suite used to raise: an ADR added after the
+    migration is covered by the generic invariants and nothing else."""
+    unmigrated = [p for p in ADRS if p.name[:4] not in MIGRATION_SEED]
+    for adr in unmigrated:
+        assert fm(adr)["doc_type"] == "decision"
+        assert fm(adr)["status"] in load_taxonomy().statuses_for("decision")
 
 
 # ----------------------------------------- the three documented cases -------
@@ -147,14 +176,17 @@ def test_adr0004_keeps_its_legacy_log_and_gains_the_canonical_one():
 
 
 def test_the_relocated_erratum_is_not_duplicated_as_a_canonical_row():
-    """Relocated, not copied. Structural: ADR-0004's canonical log must carry
-    exactly the three rows the matrix authorises and no erratum at all — a
-    substring check would pass if the row were copied without the literal
-    string 'ADR-0008'."""
+    """Relocated, not copied. Structural rather than a substring search, which
+    would pass if the row were copied without the literal string 'ADR-0008'.
+
+    Scoped to the migration-era rows: a later erratum about ADR-0004 ITSELF is
+    legitimate and must not fail this, so only the seeded prefix is checked.
+    """
     path = next(p for p in ADRS if p.name.startswith("0004"))
-    rows = log_rows(path)
-    assert rows == MATRIX["0004"][1]
-    assert not any(kind == "erratum" for _, kind in rows)
+    seeded = MIGRATION_SEED["0004"]
+    prefix = log_rows(path)[: len(seeded)]
+    assert prefix == seeded
+    assert not any(kind == "erratum" for _, kind in prefix)
 
 
 def test_adr0004_legacy_log_is_preserved_verbatim():

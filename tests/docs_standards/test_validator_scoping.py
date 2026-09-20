@@ -130,7 +130,12 @@ def test_secret_scanning_still_covers_kitty_specs(repo):
     """The dangerous misreading: a 'never walk' test could silently disable
     secret coverage. A 2026-04-08 key leak went unnoticed for a month because
     the secret scanner reused SKIP_DIRS."""
-    write(repo, "kitty-specs/leak.md", "token: AKIAIOSFODNN7EXAMPLE\n")
+    # Built at runtime from non-matching fragments (#987 post-merge review F5).
+    # Embedding the literal would make this file match the secret scanner, and the
+    # previous fix — allowlisting the whole file — meant a REAL secret added here
+    # later would bypass both the hook and CI.
+    synthetic = "AKIA" + "IOSFODNN7" + "EXAMPLE"
+    write(repo, "kitty-specs/leak.md", f"token: {synthetic}\n")
     r = run(repo)
     assert r.returncode == 1
     assert "leak.md" in r.stdout
@@ -454,3 +459,63 @@ def test_fenced_content_after_the_table_is_rejected(repo):
     r = run(repo)
     assert r.returncode == 1
     assert "must end with the table" in r.stdout
+
+
+# ------------------------------- post-merge review regressions (cross-WP) --
+
+
+def test_tab_indented_code_is_not_a_section(repo):
+    """F3: indentation was measured with startswith('    '), so a TAB-indented
+    `## Decision log` inside a code example read as a real section — rejecting
+    a legitimate document as having two logs."""
+    write(repo, "docs/design/standards/validator-policy.json", STRICT_POLICY)
+    body = "\n\t## Decision log\n\n\t*No entries.*\n\n## Decision log\n\n*No entries.*\n"
+    write(repo, "docs/a.md", _decision(body))
+    r = run(repo)
+    assert r.returncode == 0, r.stdout
+
+
+def test_tab_indented_code_cannot_satisfy_validation(repo):
+    """The other half: with only a tab-indented log, there is no real section."""
+    write(repo, "docs/design/standards/validator-policy.json", STRICT_POLICY)
+    write(repo, "docs/a.md", _decision("\n\t## Decision log\n\n\t*No entries.*\n"))
+    r = run(repo)
+    assert r.returncode == 1
+    assert "expected exactly one" in r.stdout
+
+
+def test_blockquote_preamble_is_allowed_before_the_empty_form(repo):
+    """F7: a frozen ADR carrying a legacy changes-log needs a closure note
+    pointing future entries at the canonical log — and those logs are empty."""
+    write(repo, "docs/design/standards/validator-policy.json", STRICT_POLICY)
+    body = "\n## Decision log\n\n> **Note.** Future entries go here, not in the frozen section above.\n\n*No entries.*\n"
+    write(repo, "docs/a.md", _decision(body))
+    r = run(repo)
+    assert r.returncode == 0, r.stdout
+
+
+def test_a_note_with_no_entries_at_all_is_rejected(repo):
+    """The bound: a preamble is not a substitute for the placeholder."""
+    write(repo, "docs/design/standards/validator-policy.json", STRICT_POLICY)
+    write(repo, "docs/a.md", _decision("\n## Decision log\n\n> just a note\n"))
+    r = run(repo)
+    assert r.returncode == 1
+    assert "no entries" in r.stdout
+
+
+def test_malformed_policy_fails_closed(repo):
+    """F4: a typo in validator-policy.json used to fall back to defaults that
+    omitted decision_log — silently demoting a blocker."""
+    write(repo, "docs/design/standards/validator-policy.json", "{not json")
+    write(repo, "docs/a.md", doc())
+    r = run(repo)
+    assert r.returncode == 2
+    assert "FATAL" in r.stderr
+
+
+def test_decision_log_is_a_blocker_even_without_a_policy_file(repo):
+    """F4: the safe default must carry it too, not only the external file."""
+    (repo / "docs/design/standards/validator-policy.json").unlink()
+    write(repo, "docs/a.md", _decision("\n"))
+    r = run(repo)
+    assert r.returncode == 1, r.stdout

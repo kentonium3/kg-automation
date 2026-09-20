@@ -160,14 +160,14 @@ def test_missing_sentinels_raise_without_writing(tax, tmp_path):
 def test_duplicate_sentinel_pair_raises(tax, tmp_path):
     p = tmp_path / "doc.md"
     p.write_text(f"{gen.START}\na\n{gen.END}\n{gen.START}\nb\n{gen.END}\n", encoding="utf-8")
-    with pytest.raises(gen.GeneratorError, match="expected exactly one sentinel pair"):
+    with pytest.raises(gen.GeneratorError, match=r"expected exactly one GENERATED:status-list sentinel pair"):
         gen.render_narrative(tax, p.read_text(), p)
 
 
 def test_partial_sentinel_pair_raises(tax, tmp_path):
     p = tmp_path / "doc.md"
     p.write_text(f"{gen.START}\nunclosed\n", encoding="utf-8")
-    with pytest.raises(gen.GeneratorError, match="expected exactly one sentinel pair"):
+    with pytest.raises(gen.GeneratorError, match=r"expected exactly one GENERATED:status-list sentinel pair"):
         gen.render_narrative(tax, p.read_text(), p)
 
 
@@ -425,3 +425,55 @@ def test_legacy_enum_clause_is_still_refused(tax):
     ]
     with pytest.raises(gen.GeneratorError, match="unmarked allOf clause constrains"):
         gen.render_schema(tax, before)
+
+
+# ------------------------------- post-merge review regressions (cross-WP) --
+
+
+def test_adr_readme_status_table_is_generated(tax):
+    """F6: the ADR README restated the decision-status vocabulary by hand — a
+    third copy of the same list, and the exact drift class this generator
+    exists to remove. It is now generator-owned."""
+    text = gen.ADR_README_PATH.read_text(encoding="utf-8")
+    assert gen.ADR_START in text and gen.ADR_END in text
+    region = text.split(gen.ADR_START, 1)[1].split(gen.ADR_END, 1)[0]
+    for status in tax.statuses_for("decision"):
+        assert f"`{status}`" in region, status
+
+
+def test_a_new_decision_status_makes_the_adr_readme_stale(tax, tmp_path, monkeypatch):
+    """The point of owning it: adding a status must fail the freshness check
+    rather than silently leaving the README wrong."""
+    readme = tmp_path / "README.md"
+    readme.write_text(gen.ADR_README_PATH.read_text(encoding="utf-8"), encoding="utf-8")
+    monkeypatch.setattr(gen, "ADR_README_PATH", readme)
+
+    class Widened:
+        default_statuses = tax.default_statuses
+        doc_types = tax.doc_types
+        scoped_statuses = {"decision": tax.statuses_for("decision") + ("invented",)}
+        vocabularies = tax.vocabularies
+        source = tax.source
+        def statuses_for(self, dt): return self.scoped_statuses.get(dt, self.default_statuses)
+        def is_scoped(self, dt): return dt in self.scoped_statuses
+        def allowed(self, k): return self.vocabularies[k]
+
+    widened = Widened()
+    fresh = gen.render_region(
+        widened, readme.read_text(), readme, gen.ADR_START, gen.ADR_END,
+        gen.render_decision_status_table(widened),
+    )
+    assert fresh != readme.read_text(), "a widened vocabulary must change the region"
+    assert "`invented`" in fresh
+
+
+def test_adr_readme_prose_outside_the_region_survives(tax):
+    text = gen.ADR_README_PATH.read_text(encoding="utf-8")
+    rendered = gen.render_region(
+        tax, text, gen.ADR_README_PATH, gen.ADR_START, gen.ADR_END,
+        gen.render_decision_status_table(tax),
+    )
+    head_b, tail_b = gen._split_on_sentinels(text, gen.ADR_README_PATH, gen.ADR_START, gen.ADR_END)
+    head_a, tail_a = gen._split_on_sentinels(rendered, gen.ADR_README_PATH, gen.ADR_START, gen.ADR_END)
+    assert head_b == head_a and tail_b == tail_a
+    assert "partially_superseded" in rendered  # the prohibition prose is hand-written
