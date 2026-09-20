@@ -9,7 +9,8 @@
 # catch to commit time removes that churn: the bad frontmatter never enters a
 # commit.
 #
-# Both validators run on EVERY commit (~4s total, measured 2026-07-08).
+# All three validators run on EVERY commit (~4s total, measured 2026-07-08;
+# the generated-file freshness check added 2026-09-18 is negligible).
 # validate_docs.py used to run ONLY when the commit staged docs/markdown, but
 # because it is a WHOLE-TREE scan while its trigger was per-commit, a frontmatter
 # issue already sitting in the tree (introduced via --no-verify, an inactive
@@ -20,6 +21,14 @@
 # Active only when hooks are enabled for this clone:
 #   git config core.hooksPath .githooks
 # (See docs/runbooks/local-test-gate.md for setup + bypass policy.)
+#
+# KNOWN LIMITATION (accepted, #987): every check here validates the WORKING
+# TREE, not the staged snapshot. With partial staging you can therefore commit
+# a stale generated file that the hook did not see. This is the hook's existing
+# whole-tree design — validate_docs.py has always worked this way, deliberately,
+# to catch problems already sitting in the tree — and the freshness check simply
+# matches it rather than introducing a second model. CI validates the pushed
+# result, so the gap defers a failure; it does not create one.
 #
 # Bypass with `git commit --no-verify` in genuine emergencies — Docs CI still
 # gates on main.
@@ -111,11 +120,19 @@ echo ">>> pre-commit: doc validation (see #678; skip with --no-verify)"
 "$PY" tooling/scripts/validate_architecture_data.py --strict || fail=1
 "$PY" tooling/scripts/validate_docs.py || fail=1
 
+# Generated-file freshness (#987). frontmatter.schema.json and the status list
+# in doc-standards.md are BUILD OUTPUT derived from allowed-values.json; both
+# had already drifted from it before generation existed. --check writes nothing
+# and fails if either is stale.
+"$PY" tooling/scripts/generate_doc_standards.py --check || fail=1
+
 if [[ "$fail" -ne 0 ]]; then
   echo
   echo "❌ pre-commit: doc validation failed — commit ABORTED."
   echo "   Fix the finding above (e.g. add a new doc_type to"
   echo "   docs/design/standards/allowed-values.json), then re-commit."
+  echo "   If a generated file is STALE, regenerate it —"
+  echo "     python3 tooling/scripts/generate_doc_standards.py"
   echo "   Bypass with 'git commit --no-verify' only if you are certain."
   exit 1
 fi

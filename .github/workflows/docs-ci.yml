@@ -29,3 +29,14 @@ jobs:
       # --github also emits ::warning:: annotations for visibility. Stdlib only.
       - name: Validate architecture data (semantic — #544/#545)
         run: python tooling/scripts/validate_architecture_data.py --strict --github
+
+      # Generated-file freshness (#987). frontmatter.schema.json and the status
+      # list in doc-standards.md are BUILD OUTPUT derived from
+      # allowed-values.json; both had already drifted from it before generation
+      # existed. The pre-commit hook runs this too, but the hook is bypassable
+      # with --no-verify, so CI is the real gate. Triggers are unchanged: this
+      # workflow already fires on push to main AND pull_request, which matters
+      # because spec-kitty merges land as merge commits and never fire a
+      # pull_request event.
+      - name: Check generated doc standards are fresh (#987)
+        run: python tooling/scripts/generate_doc_standards.py --check
