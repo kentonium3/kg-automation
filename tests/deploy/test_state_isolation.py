@@ -168,10 +168,15 @@ def test_the_watermark_write_lands_in_tmp_not_on_the_host(monkeypatch, repo, log
 # The guard itself: prove the wrappers fire, rather than trusting the list
 # ---------------------------------------------------------------------------
 #
-# Both probes are chosen so that a FAILURE of the guard mutates nothing: they
-# target a path under /data that does not exist, so an unguarded call raises
-# FileNotFoundError instead of creating anything. A guard regression shows up
-# as the wrong exception type, never as a real write to host state.
+# The probes target paths under /data that do not exist, so for the removal
+# and metadata cases a guard regression raises FileNotFoundError rather than
+# creating anything, and shows up as the wrong exception type.
+#
+# The symlink probe is the exception and is called out deliberately: a
+# regression there really would create a link in /data. That happened during
+# development and poisoned the following run, which is why that probe cleans
+# up after itself via `unguarded()`. So the guarantee is "a regression is
+# self-limiting and self-cleaning", not "a regression mutates nothing".
 
 
 @pytest.fixture()
