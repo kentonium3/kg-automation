@@ -549,13 +549,21 @@ def test_late_doc_type_key_is_detected(repo):
 
 def test_body_text_that_looks_like_the_key_does_not_trigger_validation(repo):
     """The dangerous direction: a skipped document showing `doc_type: decision`
-    in a code example must not be dragged into commit-blocking validation."""
+    in a code example must not be dragged into commit-blocking validation.
+
+    The frontmatter deliberately carries a status the validator would REJECT.
+    Skipped categories are unvalidated, so drifted values there are expected —
+    and that is what makes this test discriminate. An earlier version used a
+    clean document, which passed under the buggy regex probe too and therefore
+    proved nothing (re-review finding).
+    """
     write(repo, "docs/design/standards/validator-policy.json", STRICT_POLICY)
     write(repo, f"{SKIPPED_CATEGORY}/notes.md",
-          "---\ntitle: T\ndoc_type: note\nstatus: draft\n---\n\n"
+          "---\ntitle: T\ndoc_type: note\nstatus: not-a-real-status\n---\n\n"
           "# T\n\nAn example of ADR frontmatter:\n\n```yaml\ndoc_type: decision\n```\n")
     r = run(repo)
     assert r.returncode == 0, r.stdout
+    assert "not-a-real-status" not in r.stdout
 
 
 def test_a_skipped_document_with_no_frontmatter_is_not_probed_into_findings(repo):
