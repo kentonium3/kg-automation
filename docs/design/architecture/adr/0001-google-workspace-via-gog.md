@@ -1,6 +1,6 @@
 ---
 title: ADR-0001 — Google Workspace integration via `gog` CLI
-doc_type: reference
+doc_type: decision
 status: approved
 owners: ["@kentonium3"]
 last_updated: '2026-05-13'
@@ -100,3 +100,7 @@ Service-specific or use-case-specific. Would require integrating multiple commun
 - **Issue #100**: original research-phase issue; this ADR closes its Phase 1.
 - **Issue #120**: Gmail integration skill (F024); closes alongside #100 since the same gog install + same refresh token covers Gmail.
 - **Issues #164 / #165**: Calendar / Email management epics. Stay open as user-story trackers; downstream missions for individual stories build on this foundation.
+
+## Decision log
+
+*No entries.*

@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/kentonium3/kg-automation/docs/design/standards/frontmatter.schema.json",
   "title": "kg-automation Documentation Frontmatter Schema",
-  "description": "Canon v3 schema — lightweight frontmatter for kg-automation docs",
+  "description": "Canon v3 schema \u2014 lightweight frontmatter for kg-automation docs",
   "type": "object",
   "required": [
     "title",
@@ -40,15 +40,6 @@
     },
     "status": {
       "type": "string",
-      "enum": [
-        "draft",
-        "proposed",
-        "in_review",
-        "approved",
-        "deprecated",
-        "archived",
-        "active"
-      ],
       "description": "Document lifecycle status"
     },
     "level": {
@@ -73,7 +64,9 @@
     },
     "owners": {
       "type": "array",
-      "items": { "type": "string" },
+      "items": {
+        "type": "string"
+      },
       "minItems": 1,
       "description": "Optional list of document owners"
     },
@@ -89,19 +82,88 @@
     },
     "tags": {
       "type": "array",
-      "items": { "type": "string" },
+      "items": {
+        "type": "string"
+      },
       "description": "Optional tags for categorization"
     },
     "aliases": {
       "type": "array",
-      "items": { "type": "string" },
+      "items": {
+        "type": "string"
+      },
       "description": "Optional alternative names"
     },
     "links": {
       "type": "array",
-      "items": { "type": "string" },
+      "items": {
+        "type": "string"
+      },
       "description": "Optional related links"
     }
   },
-  "additionalProperties": true
+  "additionalProperties": true,
+  "allOf": [
+    {
+      "$comment": "GENERATED:status-by-doc_type",
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "doc_type": {
+                "const": "decision"
+              }
+            },
+            "required": [
+              "doc_type"
+            ]
+          },
+          "then": {
+            "properties": {
+              "status": {
+                "enum": [
+                  "draft",
+                  "proposed",
+                  "approved",
+                  "superseded",
+                  "deprecated"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "not": {
+              "properties": {
+                "doc_type": {
+                  "enum": [
+                    "decision"
+                  ]
+                }
+              },
+              "required": [
+                "doc_type"
+              ]
+            }
+          },
+          "then": {
+            "properties": {
+              "status": {
+                "enum": [
+                  "draft",
+                  "proposed",
+                  "in_review",
+                  "approved",
+                  "deprecated",
+                  "archived",
+                  "active"
+                ]
+              }
+            }
+          }
+        }
+      ]
+    }
+  ]
 }

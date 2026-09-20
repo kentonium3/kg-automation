@@ -52,7 +52,17 @@ Additional properties are allowed — Obsidian plugins and other tools can add t
 
 ### status
 
+<!-- GENERATED:status-list START -->
+<!-- Generated from allowed-values.json by generate_doc_standards.py. Do not edit by hand. -->
+
+Default (any `doc_type` without its own set):
+
 `draft`, `proposed`, `in_review`, `approved`, `deprecated`, `archived`, `active`
+
+`doc_type: decision`:
+
+`draft`, `proposed`, `approved`, `superseded`, `deprecated`
+<!-- GENERATED:status-list END -->
 
 `proposed` sits one step ahead of `in_review`: the artifact is complete and coherent, but the
 **concept** it records is not settled and needs further debate or design. Use it for a brand-new

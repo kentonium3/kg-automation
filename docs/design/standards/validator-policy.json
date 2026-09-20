@@ -1,7 +1,8 @@
 {
   "blockers": [
-    "required_keys",
-    "enum_membership"
+    "decision_log",
+    "enum_membership",
+    "required_keys"
   ],
   "advisories": [
     "formats",

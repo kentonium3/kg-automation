@@ -43,5 +43,14 @@
     "agents",
     "humans",
     "agents_and_humans"
-  ]
+  ],
+  "status_by_doc_type": {
+    "decision": [
+      "draft",
+      "proposed",
+      "approved",
+      "superseded",
+      "deprecated"
+    ]
+  }
 }

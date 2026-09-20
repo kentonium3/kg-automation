@@ -1,0 +1,151 @@
+{
+  "mission_slug": "adr-first-class-statuses-01M2TVSP",
+  "mission_number": "",
+  "mission_type": "software-dev",
+  "overall_verdict": "pass",
+  "criteria": [
+    {
+      "criterion_id": "FR-001",
+      "description": "Every doc_type: decision document carries a `## Decision log` section, and the validator enforces its grammar.",
+      "proof_type": "automated_test",
+      "evidence": "test_adr_corpus.py::test_every_adr_has_a_decision_log_and_it_is_last across 9 ADRs; validate_docs.py passes with decision_log promoted to a blocker",
+      "pass_fail": "pass",
+      "verified_by": "claude-office4",
+      "verified_at": "2026-09-18T23:54:24.421119+00:00",
+      "notes": "Verified in lane-e, which has all six work packages merged."
+    },
+    {
+      "criterion_id": "FR-002",
+      "description": "An entry lives in the ADR it is ABOUT. The originating defect \u2014 ADR-0008's erratum filed in ADR-0004's log \u2014 is corrected by relocation, not duplication.",
+      "proof_type": "automated_test",
+      "evidence": "test_adr_corpus.py::test_adr0008_surfaces_its_own_erratum + ::test_the_relocated_erratum_is_not_duplicated_as_a_canonical_row (structural)",
+      "pass_fail": "pass",
+      "verified_by": "claude-office4",
+      "verified_at": "2026-09-18T23:54:27.191579+00:00",
+      "notes": "Verified in lane-e, which has all six work packages merged."
+    },
+    {
+      "criterion_id": "FR-003",
+      "description": "The log table has fixed columns with a controlled Type vocabulary, enforced.",
+      "proof_type": "automated_test",
+      "evidence": "test_validator_scoping.py: wrong-header, separator-cardinality, column-count, Type-vocabulary, ISO-date, contiguity all reject; escaped pipe accepted",
+      "pass_fail": "pass",
+      "verified_by": "claude-office4",
+      "verified_at": "2026-09-18T23:54:29.931377+00:00",
+      "notes": "Verified in lane-e, which has all six work packages merged."
+    },
+    {
+      "criterion_id": "FR-004",
+      "description": "Permitted statuses depend on doc_type: a decision may use `superseded`, an ordinary doc may not, and `active` is invalid for a decision.",
+      "proof_type": "automated_test",
+      "evidence": "test_validator_scoping.py decision-may-use-superseded / ordinary-may-not / decision-may-not-use-active; conditional JSON Schema proven in test_generator.py",
+      "pass_fail": "pass",
+      "verified_by": "claude-office4",
+      "verified_at": "2026-09-18T23:54:32.720370+00:00",
+      "notes": "Verified in lane-e, which has all six work packages merged."
+    },
+    {
+      "criterion_id": "FR-005",
+      "description": "allowed-values.json is the single enforced source; the schema and the narrative status list are generated from it, and the loader is fail-closed.",
+      "proof_type": "automated_test",
+      "evidence": "generate_doc_standards.py --check passes; test_doc_taxonomy.py 41 fail-closed cases; test_generator.py idempotency and region-scoping",
+      "pass_fail": "pass",
+      "verified_by": "claude-office4",
+      "verified_at": "2026-09-18T23:54:35.491631+00:00",
+      "notes": "Verified in lane-e, which has all six work packages merged."
+    },
+    {
+      "criterion_id": "FR-006",
+      "description": "The contract survives --no-verify: the freshness check runs in CI as well as the pre-commit hook.",
+      "proof_type": "automated_test",
+      "evidence": "test_gate_wiring.py (hook runs --check and feeds fail; CI runs it; triggers cover push-to-main). Proven live: staling the schema failed --check and the hook; restoring cleared both",
+      "pass_fail": "pass",
+      "verified_by": "claude-office4",
+      "verified_at": "2026-09-18T23:54:38.256640+00:00",
+      "notes": "Verified in lane-e, which has all six work packages merged."
+    },
+    {
+      "criterion_id": "FR-007",
+      "description": "Frontmatter is authoritative for standing; new ADRs carry no body Status line.",
+      "proof_type": "automated_test",
+      "evidence": "docs/_templates/decision.md emits one frontmatter with doc_type: decision and no body Status line; test_adr_template.py renders it and runs the real validator with decision_log promoted",
+      "pass_fail": "pass",
+      "verified_by": "claude-office4",
+      "verified_at": "2026-09-18T23:54:40.988295+00:00",
+      "notes": "Verified in lane-e, which has all six work packages merged."
+    },
+    {
+      "criterion_id": "FR-008",
+      "description": "ADRs 0001-0009 migrated onto the contract, with state formerly held as prose in README.md/INDEX.md seeded into each ADR's own log.",
+      "proof_type": "automated_test",
+      "evidence": "test_adr_corpus.py MATRIX table-drives all nine ADRs: exact status and exact (date, Type) rows per the migration matrix",
+      "pass_fail": "pass",
+      "verified_by": "claude-office4",
+      "verified_at": "2026-09-18T23:54:43.751918+00:00",
+      "notes": "Verified in lane-e, which has all six work packages merged."
+    },
+    {
+      "criterion_id": "FR-009",
+      "description": "The ADR README records the doctrine \u2014 three separated roles, the status table, no partially_superseded, and the entry-lives-in-its-own-ADR rule.",
+      "proof_type": "automated_test",
+      "evidence": "docs/design/architecture/adr/README.md doctrine; test_adr_corpus.py::test_indexes_carry_no_parenthetical_state",
+      "pass_fail": "pass",
+      "verified_by": "claude-office4",
+      "verified_at": "2026-09-18T23:54:46.502273+00:00",
+      "notes": "Verified in lane-e, which has all six work packages merged."
+    },
+    {
+      "criterion_id": "FR-010",
+      "description": "The two known amendments are seeded in the documents they concern.",
+      "proof_type": "automated_test",
+      "evidence": "test_adr_corpus.py::test_adr0002_surfaces_its_own_dead_decision and ::test_adr0008_surfaces_its_own_erratum",
+      "pass_fail": "pass",
+      "verified_by": "claude-office4",
+      "verified_at": "2026-09-18T23:54:49.236935+00:00",
+      "notes": "Verified in lane-e, which has all six work packages merged."
+    }
+  ],
+  "negative_invariants": [
+    {
+      "invariant_id": "NI-001",
+      "description": "No document carries status: partially_superseded (the word appears only in the README's prohibition)",
+      "verification_method": "grep_absence",
+      "verification_command": "status: partially_superseded",
+      "result": "confirmed_absent",
+      "evidence": "grep found zero matches",
+      "scope": "docs"
+    },
+    {
+      "invariant_id": "NI-002",
+      "description": "Frontmatter validation never reaches spec-kitty trees, while secret scanning still covers kitty-specs/ (verified in the integrated lane; pre-merge the planning checkout lacks WP03)",
+      "verification_method": "custom_command",
+      "verification_command": "cd /home/kgale/repos/kg-automation/.worktrees/adr-first-class-statuses-01M2TVSP-lane-e && /home/kgale/repos/kg-automation/.venv/bin/python -m pytest tests/docs_standards/test_validator_scoping.py -k 'spec_kitty_trees or secret_scanning' -q",
+      "result": "confirmed_absent",
+      "evidence": "Command exited 0: ..                                                                       [100%]\n2 passed, 39 deselected in 0.09s"
+    },
+    {
+      "invariant_id": "NI-003",
+      "description": "ADR bodies are frozen \u2014 migration touches frontmatter and appends a section only",
+      "verification_method": "custom_command",
+      "verification_command": "/home/kgale/repos/kg-automation/.venv/bin/python -m pytest tests/docs_standards/test_adr_corpus.py -k legacy_log_is_preserved_verbatim -q",
+      "result": "confirmed_absent",
+      "evidence": "Command exited 0: .                                                                        [100%]\n1 passed, 53 deselected in 0.02s"
+    },
+    {
+      "invariant_id": "NI-004",
+      "description": "The generator never writes outside its own region and never produces output from fallbacks (verified in the integrated lane; pre-merge the planning checkout lacks WP02)",
+      "verification_method": "custom_command",
+      "verification_command": "cd /home/kgale/repos/kg-automation/.worktrees/adr-first-class-statuses-01M2TVSP-lane-e && /home/kgale/repos/kg-automation/.venv/bin/python -m pytest tests/docs_standards/test_generator.py -q",
+      "result": "confirmed_absent",
+      "evidence": "Command exited 0: .........................................                                [100%]\n41 passed in 0.28s"
+    },
+    {
+      "invariant_id": "NI-005",
+      "description": "No test regressed: the full suite holds its floor in the integrated lane",
+      "verification_method": "custom_command",
+      "verification_command": "cd /home/kgale/repos/kg-automation/.worktrees/adr-first-class-statuses-01M2TVSP-lane-e && /home/kgale/repos/kg-automation/.venv/bin/python -m pytest tests/docs_standards -q",
+      "result": "confirmed_absent",
+      "evidence": "Command exited 0: ........................................................................ [ 37%]\n........................................................................ [ 75%]\n........................................"
+    }
+  ]
+}

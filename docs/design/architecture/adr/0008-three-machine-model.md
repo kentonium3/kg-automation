@@ -1,6 +1,6 @@
 ---
 title: ADR-0008 — Three-machine model; office2 managed, MacBook Pro and office4 unmanaged peers
-doc_type: reference
+doc_type: decision
 status: approved
 owners: ["@kentonium3"]
 last_updated: '2026-08-29'
@@ -275,3 +275,9 @@ Tailscale SSH, and changes nothing the runbook depends on.
 - Issue [#917](https://github.com/kentonium3/kg-automation/issues/917) — the undocumented `codex` account, the drift class this ADR guards against
 - [ADR-0004](<./0004-tailscale-ssh-with-accept-acl.md>) — Tailscale SSH accept ACL
 - `docs/design/architecture/data/network-topology.json`, `hardware-inventory.json`, `service-inventory.json`
+
+## Decision log
+
+| Date | Type | By | Summary | Refs |
+|---|---|---|---|---|
+| 2026-08-29 | erratum | Kent | The ADR-0004 review affirmation cites RunSSH:false on office4; that reasoning is backwards in direction. RunSSH:false governs SSH *into* office4, while what widened is office4's ability to reach office2. The conclusion (ADR-0004 unchanged) stands. | ADR-0004 ACL changes log, #931 |

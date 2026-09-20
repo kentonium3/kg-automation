@@ -1,6 +1,6 @@
 ---
 title: ADR-0007 — Retire Vikunja felix-bot; single kent-token runtime identity
-doc_type: reference
+doc_type: decision
 status: approved
 owners: ["@kentonium3"]
 last_updated: '2026-07-23'
@@ -98,3 +98,9 @@ Keep `felix-bot` for writes and `kent` for config/reads. Rejected: #715 already 
 (Future amendments record here.)
 </content>
 </invoke>
+
+## Decision log
+
+> **This is the canonical log for this ADR.** The frozen `## Decision changes` section above predates the decision-log contract and is preserved verbatim as body content — it is history, not a mistake. **New entries go here, not there.**
+
+*No entries.*

@@ -8,6 +8,7 @@ PY ?= python
 docs-check:
 	$(PY) tooling/scripts/validate_docs.py
 	$(PY) tooling/scripts/validate_architecture_data.py --strict
+	$(PY) tooling/scripts/generate_doc_standards.py --check
 
 diagrams-sync:
 	$(PY) tooling/scripts/sync_mermaid_views.py --write

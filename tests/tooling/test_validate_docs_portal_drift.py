@@ -27,6 +27,11 @@ import pytest
 # scripts walk the synthetic tree instead.
 REPO_ROOT = Path(__file__).resolve().parents[2]
 VALIDATE_DOCS_SRC = REPO_ROOT / 'tooling' / 'scripts' / 'validate_docs.py'
+# validate_docs.py imports this sibling for the doc-status taxonomy (#987 WP01).
+DOC_TAXONOMY_SRC = REPO_ROOT / 'tooling' / 'scripts' / 'doc_taxonomy.py'
+# The taxonomy source is now REQUIRED, not optional: running on built-in
+# fallbacks would enforce rules that differ from the ones on disk (#987 FR-005).
+ALLOWED_VALUES_SRC = REPO_ROOT / 'docs' / 'design' / 'standards' / 'allowed-values.json'
 BUILD_FILTER_SRC = REPO_ROOT / 'tooling' / 'scripts' / 'build_runbook_filter.py'
 
 RUN_HINT = 'run: python tooling/scripts/build_runbook_filter.py --write'
@@ -44,6 +49,10 @@ def _seed_repo(tmp_path: Path, *, with_portal: bool, with_runbooks: bool = True)
     scripts_dir = tmp_path / 'tooling' / 'scripts'
     scripts_dir.mkdir(parents=True)
     shutil.copy2(VALIDATE_DOCS_SRC, scripts_dir / 'validate_docs.py')
+    shutil.copy2(DOC_TAXONOMY_SRC, scripts_dir / 'doc_taxonomy.py')
+    standards_dir = tmp_path / 'docs' / 'design' / 'standards'
+    standards_dir.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(ALLOWED_VALUES_SRC, standards_dir / 'allowed-values.json')
     shutil.copy2(BUILD_FILTER_SRC, scripts_dir / 'build_runbook_filter.py')
 
     docs = tmp_path / 'docs'

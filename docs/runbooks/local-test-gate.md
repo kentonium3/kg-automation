@@ -17,7 +17,7 @@ a workflow on `main`. The former **pre-push** `make test` gate was removed
 
 | Hook | Runs | Catches | Cost |
 |---|---|---|---|
-| `.githooks/pre-commit` | the two Docs CI validators (whole-tree, every commit) | `docs-ci.yml` failures | ~4s every commit |
+| `.githooks/pre-commit` | the three Docs CI validators (whole-tree, every commit) | `docs-ci.yml` failures | ~4s every commit |
 | `.githooks/pre-push` | **nothing (no-op)** — removed #719 | — (code is checked post-push by `test-ci.yml`) | ~0s |
 
 ## One-time setup (per clone)
@@ -44,8 +44,8 @@ Runs the same validators as the Docs CI workflow, so a doc-frontmatter problem
 (an unknown `doc_type`/`status` enum value, a broken required key, etc.) is
 caught at commit time — closest to authoring — and never enters a commit.
 
-Both validators run **unconditionally on every commit** (~4s total):
-`validate_architecture_data.py --strict` (~0.1s) and `validate_docs.py`
+All three validators run **unconditionally on every commit** (~4s total):
+`validate_architecture_data.py --strict` (~0.1s), `validate_docs.py`, and `generate_doc_standards.py --check` (generated-file freshness, #987)
 (~3.9s, a whole-tree frontmatter + secret scan).
 
 `validate_docs.py` used to run **only when the commit staged docs/markdown** (a
@@ -104,7 +104,7 @@ pushed. We have the test locally and can know in advance if it will fail CI."
 Two CI workflows run on every push to `main`:
 
 - `test-ci.yml` — runs `make test` (the full pytest suite).
-- `docs-ci.yml` — runs **two** validators: `validate_docs.py` (frontmatter +
+- `docs-ci.yml` — runs **three** validators: `validate_docs.py` (frontmatter +
   enum membership) and `validate_architecture_data.py --strict`.
 
 `.githooks/pre-push` closed the gap for `test-ci` in #571. The `docs-ci` gap
@@ -117,7 +117,7 @@ legitimate `doc_type` tripping the `enum_membership` blocker — reddened `main`
 until hand-patched (**#560**: ~2 days red; **#678**: 7 red runs over 5 hours).
 `.githooks/pre-commit` closes that gap for real, mirroring what `docs-ci` runs.
 
-`make docs-check` runs both validators on demand (mirrors the workflow).
+`make docs-check` runs all three validators on demand (mirrors the workflow).
 
 ## Maintenance
 

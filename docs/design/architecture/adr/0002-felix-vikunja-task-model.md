@@ -1,6 +1,6 @@
 ---
 title: ADR-0002 — Felix ↔ Vikunja task model
-doc_type: reference
+doc_type: decision
 status: approved
 owners: ["@kentonium3"]
 last_updated: '2026-07-23'
@@ -258,3 +258,9 @@ Mint a Vikunja personal-access token per Felix agent (one for habits, one for es
 - Roadmap context: [Felix capability roadmap](<../../felix-capability-roadmap.md>).
 - Format precedent: [ADR-0001](<./0001-google-workspace-via-gog.md>).
 - Triggering incident: internal investigation 2026-05-16 (Saturday morning check-in surfaced 2/8 habits after parallel UI writes).
+
+## Decision log
+
+| Date | Type | By | Summary | Refs |
+|---|---|---|---|---|
+| 2026-07-23 | amendment | Kent | Decision Q6 (identity attribution) superseded by ADR-0007; the remaining decisions stand. | ADR-0007 |
