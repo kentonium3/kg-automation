@@ -104,10 +104,13 @@ _FORBIDDEN_PREFIX = pathlib.Path("/data")
 #: and ``tests/security`` escapes tracked separately as #1002.  Blaming this
 #: package for those would be wrong and would couple this gate to unrelated
 #: work, so the guard is gated on this flag.  It is maintained by a
-#: ``pytest_runtest_protocol`` wrapper declared in THIS conftest, so pytest
-#: applies it only to items collected under ``tests/deploy/`` — and, unlike
-#: the setup/teardown hook pair it replaced, it spans the *whole* protocol,
-#: so fixture finalizers are inside the guarded window rather than after it.
+#: ``pytest_runtest_protocol`` wrapper, which spans the whole protocol — so
+#: a test's fixture finalizers are inside the guarded window, which the
+#: ``pytest_runtest_setup``/``teardown`` pair it replaced could not manage.
+#: The wrapper is NOT limited to this directory by virtue of living in this
+#: conftest; it fires for every item in the session, and ``_is_deploy_item``
+#: is what scopes it.  Session-scoped finalizers still fall outside the
+#: window, because they run after the last item's protocol completes.
 _ACTIVE: dict[str, str | None] = {"nodeid": None}
 
 #: Attempted mutations under ``/data``, asserted at session teardown.
@@ -183,13 +186,6 @@ def _source_of(obj) -> pathlib.Path | None:
     return resolved
 
 
-#: Cache for ``_live_felix_deployer_modules``, keyed on ``len(sys.modules)``.
-#: Scanning the whole module table per test costs ~13ms, which is ~8s across
-#: this package; the module count is a cheap proxy for "something was
-#: imported since the last sweep".
-_SWEEP_CACHE: dict[str, object] = {"size": -1, "modules": []}
-
-
 def _live_felix_deployer_modules():
     """Every live ``rebaseline`` and ``_tick`` instance, by identity.
 
@@ -218,10 +214,6 @@ def _live_felix_deployer_modules():
     those shapes exist in this package today, and the guard below is the
     backstop for the ones that do not.
     """
-    size = len(sys.modules)
-    if _SWEEP_CACHE["size"] == size:
-        return _SWEEP_CACHE["modules"]
-
     rebaselines: dict[int, object] = {}
     ticks: dict[int, object] = {}
 
@@ -246,10 +238,7 @@ def _live_felix_deployer_modules():
         if held is not None:
             rebaselines[id(held)] = held
 
-    found = (list(rebaselines.values()), list(ticks.values()))
-    _SWEEP_CACHE["size"] = size
-    _SWEEP_CACHE["modules"] = found
-    return found
+    return list(rebaselines.values()), list(ticks.values())
 
 
 @pytest.fixture(autouse=True)
@@ -302,16 +291,32 @@ _WRITE_FLAGS = (
 )
 
 
-def _under_data(path) -> bool:
+def _under_data(path, dir_fd: int | None = None) -> bool:
     """True if *path* resolves beneath ``/data``.
 
     Accepts str, bytes, and ``os.PathLike``; ``os.fsdecode`` normalises the
     bytes form that ``open(b"/data/x")`` would otherwise slip through.
+
+    ``dir_fd`` matters because the ``os`` functions resolve a RELATIVE path
+    against that descriptor rather than the process CWD, so
+    ``os.rename("a", "b", src_dir_fd=fd_on_data)`` would otherwise walk
+    straight past a CWD-based check.  Linux exposes the descriptor's target
+    at ``/proc/self/fd/<n>``, which is what this resolves through.  If that
+    lookup fails we treat the path as forbidden rather than assume it is
+    safe: a guard that cannot tell should refuse, not wave through.
     """
     try:
         raw = os.fsdecode(path)
     except (TypeError, ValueError):
         return False
+
+    if dir_fd is not None and not os.path.isabs(raw):
+        try:
+            base = os.readlink(f"/proc/self/fd/{int(dir_fd)}")
+        except (OSError, TypeError, ValueError):
+            return True  # cannot resolve the anchor -> refuse
+        raw = os.path.join(base, raw)
+
     try:
         resolved = pathlib.Path(raw).resolve()
     except (OSError, ValueError):  # pragma: no cover - pathological path
@@ -319,10 +324,10 @@ def _under_data(path) -> bool:
     return resolved == _FORBIDDEN_PREFIX or _FORBIDDEN_PREFIX in resolved.parents
 
 
-def _block(path, how: str) -> None:
+def _block(path, how: str, dir_fd: int | None = None) -> None:
     """Record and refuse a mutation under ``/data``; no-op otherwise."""
     nodeid = _ACTIVE["nodeid"]
-    if nodeid is None or not _under_data(path):
+    if nodeid is None or not _under_data(path, dir_fd):
         return
     _ESCAPES.append(f"{nodeid}\n      {how}: {os.fsdecode(path)}")
     raise HostStateWriteBlocked(
@@ -344,32 +349,39 @@ def _guard_host_state():
     mp = pytest.MonkeyPatch()
     _ESCAPES.clear()
 
-    def _wrap_path(method: str, how: str) -> None:
-        real = getattr(pathlib.Path, method)
+    def _wrap_path(method: str) -> None:
+        """Wrap a single-target ``Path`` mutator."""
+        real = getattr(pathlib.Path, method, None)
+        if real is None:  # pragma: no cover - version-dependent method
+            return
 
         def _guarded(self, *a, **kw):
-            _block(self, how)
+            _block(self, f"Path.{method}")
             return real(self, *a, **kw)
 
         mp.setattr(pathlib.Path, method, _guarded)
 
-    for method, how in (
-        ("mkdir", "mkdir"),
-        ("write_text", "write_text"),
-        ("write_bytes", "write_bytes"),
-        ("touch", "touch"),
-        ("unlink", "unlink"),
-        ("rmdir", "rmdir"),
+    for method in (
+        # create / write
+        "mkdir", "write_text", "write_bytes", "touch",
+        # remove
+        "unlink", "rmdir",
+        # metadata mutation — chmod is used in this package
+        # (test_migrate_inbox_state.py) and mutates real state just as a
+        # write does, so an unredirected call must not slip through
+        "chmod", "lchmod", "chown",
+        # links
+        "symlink_to", "hardlink_to",
     ):
-        _wrap_path(method, method)
+        _wrap_path(method)
 
     # Two-ended operations: the destination is written, the source removed.
     def _wrap_path_move(method: str) -> None:
         real = getattr(pathlib.Path, method)
 
         def _guarded(self, target, *a, **kw):
-            _block(self, f"{method} (source)")
-            _block(target, f"{method} (target)")
+            _block(self, f"Path.{method} (source)")
+            _block(target, f"Path.{method} (target)")
             return real(self, target, *a, **kw)
 
         mp.setattr(pathlib.Path, method, _guarded)
@@ -377,36 +389,49 @@ def _guard_host_state():
     for method in ("rename", "replace"):
         _wrap_path_move(method)
 
-    def _wrap_os_move(name: str):
+    def _wrap_os_move(name: str) -> None:
         real = getattr(os, name)
 
-        def _guarded(src, dst, *a, **kw):
-            _block(src, f"os.{name} (source)")
-            _block(dst, f"os.{name} (target)")
+        def _guarded(src, dst, *a, src_dir_fd=None, dst_dir_fd=None, **kw):
+            _block(src, f"os.{name} (source)", src_dir_fd)
+            _block(dst, f"os.{name} (target)", dst_dir_fd)
+            if src_dir_fd is not None:
+                kw["src_dir_fd"] = src_dir_fd
+            if dst_dir_fd is not None:
+                kw["dst_dir_fd"] = dst_dir_fd
             return real(src, dst, *a, **kw)
 
         mp.setattr(os, name, _guarded)
 
-    for name in ("replace", "rename"):
+    for name in ("replace", "rename", "link", "symlink"):
         _wrap_os_move(name)
 
-    def _wrap_os_single(name: str):
-        real = getattr(os, name)
+    def _wrap_os_single(name: str) -> None:
+        real = getattr(os, name, None)
+        if real is None:  # pragma: no cover - platform-dependent
+            return
 
-        def _guarded(path, *a, **kw):
-            _block(path, f"os.{name}")
+        def _guarded(path, *a, dir_fd=None, **kw):
+            _block(path, f"os.{name}", dir_fd)
+            if dir_fd is not None:
+                kw["dir_fd"] = dir_fd
             return real(path, *a, **kw)
 
         mp.setattr(os, name, _guarded)
 
-    for name in ("remove", "unlink", "mkdir", "makedirs", "rmdir"):
+    for name in (
+        "remove", "unlink", "mkdir", "makedirs", "rmdir", "removedirs",
+        "chmod", "chown", "lchown", "utime", "truncate", "mknod",
+    ):
         _wrap_os_single(name)
 
     real_os_open = os.open
 
-    def _guarded_os_open(path, flags, *a, **kw):
+    def _guarded_os_open(path, flags, *a, dir_fd=None, **kw):
         if flags & _WRITE_FLAGS:
-            _block(path, f"os.open(flags={flags:#o})")
+            _block(path, f"os.open(flags={flags:#o})", dir_fd)
+        if dir_fd is not None:
+            kw["dir_fd"] = dir_fd
         return real_os_open(path, flags, *a, **kw)
 
     mp.setattr(os, "open", _guarded_os_open)

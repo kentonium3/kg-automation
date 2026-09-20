@@ -24,6 +24,7 @@ felix-deployer out of that directory — this would clobber live state.
 
 from __future__ import annotations
 
+import os
 import pathlib
 
 import pytest
@@ -158,3 +159,65 @@ def test_the_watermark_write_lands_in_tmp_not_on_the_host(monkeypatch, repo, log
     assert written.exists(), "the tick should have advanced the watermark"
     assert pathlib.Path("/data") not in written.resolve().parents
     assert rebaseline.read_observed_head(written) == POST
+
+
+# ---------------------------------------------------------------------------
+# The guard itself: prove the wrappers fire, rather than trusting the list
+# ---------------------------------------------------------------------------
+#
+# Both probes are chosen so that a FAILURE of the guard mutates nothing: they
+# target a path under /data that does not exist, so an unguarded call raises
+# FileNotFoundError instead of creating anything. A guard regression shows up
+# as the wrong exception type, never as a real write to host state.
+
+
+@pytest.fixture()
+def blocked_probe():
+    """Let a test trip the guard deliberately without failing the session.
+
+    The guard records every blocked attempt and asserts the record is empty at
+    session teardown.  These tests trip it on purpose, so they roll the record
+    back to its prior length.
+    """
+    from tests.deploy import conftest as guard
+
+    start = len(guard._ESCAPES)
+    yield guard
+    del guard._ESCAPES[start:]
+
+
+def test_guard_blocks_chmod_on_host_state(blocked_probe):
+    """chmod mutates real state as surely as a write does.
+
+    It is used in this package (``test_migrate_inbox_state.py``), so an
+    unredirected call must not slip through the way it did before the
+    mutator list was widened.
+    """
+    with pytest.raises(blocked_probe.HostStateWriteBlocked):
+        pathlib.Path("/data/does-not-exist-989-probe").chmod(0o644)
+
+
+def test_guard_blocks_a_dir_fd_relative_mutation(blocked_probe):
+    """A relative path anchored at a /data descriptor must not walk past.
+
+    ``os.*`` resolves a relative path against ``dir_fd``, not the process CWD,
+    so a CWD-only check would wave this through.  The guard resolves the
+    anchor via ``/proc/self/fd``.
+    """
+    if not pathlib.Path("/data").is_dir():
+        pytest.skip("/data does not exist on this host")
+
+    fd = os.open("/data", os.O_RDONLY)
+    try:
+        with pytest.raises(blocked_probe.HostStateWriteBlocked):
+            os.unlink("does-not-exist-989-probe", dir_fd=fd)
+    finally:
+        os.close(fd)
+
+
+def test_guard_ignores_paths_outside_host_state(tmp_path):
+    """The guard must not fire on ordinary tmp work — it runs on every test."""
+    target = tmp_path / "ordinary.txt"
+    target.write_text("fine", encoding="utf-8")
+    target.chmod(0o600)
+    assert target.read_text(encoding="utf-8") == "fine"
