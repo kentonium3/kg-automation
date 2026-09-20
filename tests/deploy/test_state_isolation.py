@@ -10,7 +10,7 @@ So the tests below drive ``run_tick`` and assert that the observe-range base
 tracks the watermark the test itself seeded — i.e. that the classification
 the tick performs is reading the isolated path rather than ambient host
 state.  The complementary filesystem-level assertion (no writes under
-``/data`` anywhere in this package) lives in the ``_forbid_data_writes``
+``/data`` anywhere in this package) lives in the ``_guard_host_state``
 session fixture in ``conftest.py``.
 
 The defect these guard against: ``rebaseline``'s path constants default to
@@ -30,11 +30,24 @@ import pytest
 
 # Reuse the sibling module's loaded copies rather than loading our own: a
 # fresh importlib load would create yet another pair of ``_tick`` /
-# ``rebaseline`` instances, which is exactly the multiplicity that made
-# this defect hard to isolate in the first place.
-from tests.deploy.test_tick_rebaseline import (
-    _clean_advance_from_git,
+# ``rebaseline`` instances, which is exactly the multiplicity that made this
+# defect hard to isolate in the first place.
+#
+# This import is safe only because ``tests/__init__.py`` and
+# ``tests/deploy/__init__.py`` both exist: pytest's prepend import mode then
+# names the sibling ``tests.deploy.test_tick_rebaseline``, so there is exactly
+# one copy and its module-level ``spec_from_file_location`` loads run once.
+# Without those two files pytest would import it as bare
+# ``test_tick_rebaseline`` and re-run those loads under a second name.
+#
+# ``_wp04_seams`` is imported rather than hand-copied.  It is an autouse
+# fixture, and autouse travels with the definition, so importing the name
+# activates it here too — and it cannot drift out of sync with the original
+# the way a copy silently would.
+from tests.deploy.test_tick_rebaseline import (  # noqa: F401 - autouse fixture
     _git_mock,
+    _read_log,
+    _wp04_seams,
     rebaseline,
     tick,
 )
@@ -42,22 +55,6 @@ from tests.deploy.test_tick_rebaseline import (
 PRE = "aabbccdd" * 5
 POST = "11223344" * 5
 SEEDED = "cafe1234" * 5
-
-
-@pytest.fixture(autouse=True)
-def _wp04_seams(monkeypatch, tmp_path):
-    """Mirror of ``test_tick_rebaseline``'s autouse harness.
-
-    That fixture is module-scoped to its own file, so this module does not
-    inherit it.  Without it the tick takes the real ``advance_checkout`` path
-    and the real ``deploylock``, which reaches further host state — the
-    ``_forbid_data_writes`` observer catches that, which is how the omission
-    surfaced here.
-    """
-    monkeypatch.setenv("DEPLOY_CHECKOUT_LOCK", str(tmp_path / "checkout.lock"))
-    monkeypatch.setattr(tick, "DEFAULT_STATE_DIR", tmp_path / "tick-state")
-    monkeypatch.setattr(tick, "advance_checkout", _clean_advance_from_git)
-    yield
 
 
 @pytest.fixture()
@@ -74,8 +71,14 @@ def logs(tmp_path: pathlib.Path) -> pathlib.Path:
     return d
 
 
-def _run_and_capture_observe_base(monkeypatch, repo, logs, **git_kwargs) -> str:
-    """Drive one tick and return the base ``observe()`` was called with."""
+def _run_and_capture(monkeypatch, repo, logs, **git_kwargs) -> tuple[str, dict]:
+    """Drive one tick; return the observe base and the ``rebaseline_observe`` entry.
+
+    The log entry carries ``range_source``, which is what distinguishes the
+    four watermark classifications.  The base alone does not: SELF_HEAL and
+    TRANSIENT both select ``post_pull_head``, so a test asserting only the
+    base would pass on a regression from one to the other.
+    """
     monkeypatch.setattr(tick, "_git", _git_mock(pre_sha=PRE, post_sha=POST, **git_kwargs))
 
     seen: list[tuple] = []
@@ -89,7 +92,10 @@ def _run_and_capture_observe_base(monkeypatch, repo, logs, **git_kwargs) -> str:
 
     assert tick.run_tick(repo_root=repo, log_dir=logs) == 0
     assert len(seen) == 1, f"expected exactly one observe() call, got {len(seen)}"
-    return seen[0][0]
+
+    entries = [e for e in _read_log(logs) if e.get("event") == "rebaseline_observe"]
+    assert len(entries) == 1, f"expected one rebaseline_observe entry, got {entries}"
+    return seen[0][0], entries[0]
 
 
 def test_absent_watermark_selects_pre_pull_head(monkeypatch, repo, logs):
@@ -101,7 +107,9 @@ def test_absent_watermark_selects_pre_pull_head(monkeypatch, repo, logs):
     this branch was not the one taken.
     """
     assert not rebaseline.DEFAULT_OBSERVED_HEAD_PATH.exists()
-    assert _run_and_capture_observe_base(monkeypatch, repo, logs) == PRE
+    base, entry = _run_and_capture(monkeypatch, repo, logs)
+    assert base == PRE
+    assert entry["range_source"] == "fallback"
 
 
 def test_seeded_watermark_is_read_from_the_isolated_path(monkeypatch, repo, logs):
@@ -115,8 +123,9 @@ def test_seeded_watermark_is_read_from_the_isolated_path(monkeypatch, repo, logs
     assert rebaseline.DEFAULT_OBSERVED_HEAD_PATH.exists()
 
     # cat-file rc=0 and merge-base --is-ancestor rc=0 -> WATERMARK_VALID.
-    base = _run_and_capture_observe_base(monkeypatch, repo, logs)
+    base, entry = _run_and_capture(monkeypatch, repo, logs)
     assert base == SEEDED
+    assert entry["range_source"] == "watermark"
 
 
 def test_unknown_watermark_self_heals_to_post_pull_head(monkeypatch, repo, logs):
@@ -130,8 +139,11 @@ def test_unknown_watermark_self_heals_to_post_pull_head(monkeypatch, repo, logs)
     """
     rebaseline.write_observed_head(SEEDED, rebaseline.DEFAULT_OBSERVED_HEAD_PATH)
 
-    base = _run_and_capture_observe_base(monkeypatch, repo, logs, cat_file_rc=1)
+    base, entry = _run_and_capture(monkeypatch, repo, logs, cat_file_rc=1)
     assert base == POST
+    # The base alone cannot tell SELF_HEAL from TRANSIENT — both select
+    # post_pull_head — so assert the classification the tick actually took.
+    assert entry["range_source"] == "self_heal"
 
 
 def test_the_watermark_write_lands_in_tmp_not_on_the_host(monkeypatch, repo, logs):
@@ -140,7 +152,7 @@ def test_the_watermark_write_lands_in_tmp_not_on_the_host(monkeypatch, repo, log
     ``_tick`` calls ``write_observed_head(new_watermark)`` with no path, so
     this is the write that escaped to ``/data`` before #989.
     """
-    _run_and_capture_observe_base(monkeypatch, repo, logs)
+    _run_and_capture(monkeypatch, repo, logs)
 
     written = rebaseline.DEFAULT_OBSERVED_HEAD_PATH
     assert written.exists(), "the tick should have advanced the watermark"

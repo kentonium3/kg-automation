@@ -7,23 +7,32 @@ Two independent mechanisms live here, and they do different jobs.
     per-test tmp directory, so the code under test executes truthfully
     against scratch state instead of the host's real service directory.
 
-``_forbid_data_writes`` (session-scoped, autouse)
-    Records every filesystem write under ``/data`` and fails the session at
-    teardown if any occurred.  This is the part that actually closes the
-    defect class: the redirect makes a *forgetful* test pass quietly, while
-    the observer makes the omission visible.
+``_guard_host_state`` (session-scoped, autouse)
+    Blocks *and* records attempted mutations under ``/data`` across the
+    common write idioms — the ``pathlib`` and ``os`` mutators and both
+    ``open`` bindings — then fails the session at teardown if any were
+    attempted.  It is not a complete syscall interceptor: it cannot see
+    writes made by a subprocess, nor through a C extension that bypasses
+    these entry points.  The redirect makes a
+    correctly-isolated test pass; the guard is what stops a *forgetful* one
+    from touching real service state and makes the omission visible.
 
-Why the observer records instead of raising
--------------------------------------------
-A raise-based guard — the shape ``tests/conftest.py`` uses for live HTTP —
-does not work on this code path.  ``rebaseline.write_observed_head`` catches
-``OSError`` and logs it (``rebaseline.py``), and ``_tick.run_tick`` wraps the
-whole watermark block in ``except Exception`` by deliberate no-crash design
-(``_tick.py``).  A guard that raised would be swallowed by the production
-code under test and downgraded to a log line: the write would not happen,
-the test would still pass, and the guard would appear to work while
-protecting nothing.  Recording and asserting at teardown is immune to
-``except Exception``.
+Why the guard both raises and records
+-------------------------------------
+Raising alone is not enough as a *detector* on this code path:
+``rebaseline.write_observed_head`` catches ``OSError`` and logs it, and
+``_tick.run_tick`` wraps the whole watermark block in ``except Exception`` by
+deliberate no-crash design.  A guard that only raised would be swallowed by
+the production code under test, the test would still pass, and the escape
+would go unreported.
+
+But raising *is* what prevents the harm: the real write never happens.  So
+the guard does both — it appends to a session-level record and then raises,
+refusing to call the underlying function.  Production may swallow the
+exception; it cannot swallow the record, which is asserted at session
+teardown.  Recording without raising would be an alarm that still lets the
+damage through, which matters because on office2 these are the live paths
+felix-deployer runs out of.
 
 Why the redirect cannot key on a module name
 --------------------------------------------
@@ -33,29 +42,34 @@ package, so each test module loads its own copy via
 ``sys.modules[name] = mod`` — unconditionally.  Each registration *rebinds*
 the name, so at any moment ``sys.modules["rebaseline"]`` is only the
 last-registered of several live instances, and which one that is depends on
-collection order.  Measured during a whole-directory run, three distinct
-``rebaseline`` objects are live, one per ``_tick`` copy, and only one is the
-one ``sys.modules`` names.
+collection order.  Measured at the end of a whole-package run: four live
+``rebaseline`` objects and four live ``_tick`` objects, and the mapping is
+not one-to-one — ``test_rebaseline.py`` loads a ``rebaseline`` with no
+``_tick``, and two ``_tick`` copies share one name.
 
 A ``sys.modules``-only sweep by ``__file__`` is also insufficient, at two
 levels.  The rebound ``rebaseline`` instances are orphaned from the module
 table and survive only as the ``_rebaseline`` attribute of the ``_tick`` copy
-that imported them — and ``_tick`` is orphaned the same way, because
-``test_deployer.py`` and ``test_tick_rebaseline.py`` both register their copy
-under the name ``felix_deployer_tick_under_test``.  The first copy then lives
-on only as a global inside the *test module* that loaded it.
+that imported them.  And some ``_tick`` copies are not in the table at all:
+``test_deployer.py``'s loader registers only its synthetic ``notify`` module
+and returns the ``_tick`` object without ever assigning it a ``sys.modules``
+key, so that copy lives solely as a global of the test module that loaded it.
+(It is unregistered rather than rebound — a distinction worth keeping,
+because it is the rule for whether a *new* loader needs covering.)
 
 An earlier version of this fixture walked ``sys.modules`` plus ``_tick``
-attributes and still missed that second level; the ``_forbid_data_writes``
-observer below caught it with 28 escaping writes.  So the sweep walks three
-routes: modules loaded from the two source files, module-valued globals of
-every ``tests/deploy`` test module, and the ``_rebaseline`` attribute of each
-``_tick`` instance found by either.
+attributes and still missed that second level; the guard below caught it with
+28 escaping writes.  So the sweep walks three routes: modules loaded from the
+two source files, module-valued globals of every ``tests/deploy`` test
+module, and the ``_rebaseline`` attribute of each ``_tick`` instance found by
+either.  The sweep is cached and recomputed only when ``sys.modules`` changes
+size, so a module imported mid-session is still picked up.
 """
 
 from __future__ import annotations
 
 import builtins
+import io
 import os
 import pathlib
 import sys
@@ -70,10 +84,9 @@ _TICK_SRC = (_FELIX_DEPLOYER / "_tick.py").resolve()
 _DEPLOY_TESTS = pathlib.Path(__file__).resolve().parent
 
 #: The four host-state constants ``rebaseline`` binds at import time.  The
-#: latter three are NOT derived at use time — ``DEFAULT_TOKEN_PATH`` and
-#: ``DEFAULT_OBSERVED_HEAD_PATH`` are computed from ``DEFAULT_STATE_DIR``
-#: once, at import, so rebinding the parent alone is inert.  All four must
-#: be patched individually.
+#: middle two are NOT derived at use time — they are computed from
+#: ``DEFAULT_STATE_DIR`` once, at import, so rebinding the parent alone is
+#: inert.  All four must be patched individually.
 _STATE_CONSTANTS = (
     "DEFAULT_STATE_DIR",
     "DEFAULT_TOKEN_PATH",
@@ -81,42 +94,112 @@ _STATE_CONSTANTS = (
     "DEFAULT_BASELINES_DIR",
 )
 
-#: Real host prefix that no test in this package may write beneath.
+#: Real host prefix that no test in this package may mutate.
 _FORBIDDEN_PREFIX = pathlib.Path("/data")
 
 #: Nodeid of the ``tests/deploy`` test currently executing, or ``None``.
 #:
-#: The observer patches process-global functions, so once installed it sees
-#: writes from every package in the session — including the ``tests/trust``
+#: The guard patches process-global functions, so once installed it sees
+#: activity from every package in the session — including the ``tests/trust``
 #: and ``tests/security`` escapes tracked separately as #1002.  Blaming this
 #: package for those would be wrong and would couple this gate to unrelated
-#: work, so recording is gated on this flag.  The two hooks that maintain it
-#: are declared in THIS conftest, so pytest fires them only for items
-#: collected under ``tests/deploy/``.
+#: work, so the guard is gated on this flag.  It is maintained by a
+#: ``pytest_runtest_protocol`` wrapper declared in THIS conftest, so pytest
+#: applies it only to items collected under ``tests/deploy/`` — and, unlike
+#: the setup/teardown hook pair it replaced, it spans the *whole* protocol,
+#: so fixture finalizers are inside the guarded window rather than after it.
 _ACTIVE: dict[str, str | None] = {"nodeid": None}
 
+#: Attempted mutations under ``/data``, asserted at session teardown.
+_ESCAPES: list[str] = []
 
-def pytest_runtest_setup(item):
+
+class HostStateWriteBlocked(RuntimeError):
+    """A test tried to mutate real host state under ``/data``."""
+
+
+def _is_deploy_item(item) -> bool:
+    """True when *item* lives under ``tests/deploy/``.
+
+    Checked explicitly rather than relying on conftest hook scoping.
+    ``pytest_runtest_protocol`` is registered on the global plugin manager and
+    fires for items in OTHER packages too — measured: without this check the
+    guard attributed ``tests/trust`` writes to itself and failed 22 tests that
+    pass in isolation.  The ``pytest_runtest_setup``/``teardown`` pair this
+    replaced did not have that reach, which is why the problem appeared only
+    when the window was widened to cover fixture finalizers.
+    """
+    try:
+        return pathlib.Path(item.path).resolve().is_relative_to(_DEPLOY_TESTS)
+    except (AttributeError, OSError, ValueError):  # pragma: no cover
+        return str(item.nodeid).startswith("tests/deploy/")
+
+
+@pytest.hookimpl(wrapper=True)
+def pytest_runtest_protocol(item, nextitem):
+    """Mark the guarded window for one deploy test, setup through teardown."""
+    if not _is_deploy_item(item):
+        return (yield)
     _ACTIVE["nodeid"] = item.nodeid
+    try:
+        return (yield)
+    finally:
+        _ACTIVE["nodeid"] = None
 
 
-def pytest_runtest_teardown(item):
-    _ACTIVE["nodeid"] = None
+# ---------------------------------------------------------------------------
+# Redirect: point every live rebaseline instance at tmp
+# ---------------------------------------------------------------------------
+
+
+#: ``__file__`` string -> resolved path.  ``sys.modules`` is walked once per
+#: test and ``Path.resolve()`` is a realpath syscall; caching on the string
+#: (which never changes for a module) cuts the sweep by ~50x.
+_RESOLVED: dict[str, pathlib.Path | None] = {}
 
 
 def _source_of(obj) -> pathlib.Path | None:
-    """Resolved ``__file__`` of *obj*, or ``None`` if it has no usable one."""
-    origin = getattr(obj, "__file__", None)
-    if not origin:
-        return None
+    """Resolved ``__file__`` of *obj*, or ``None`` if it has no usable one.
+
+    ``sys.modules`` legitimately holds lazy proxies and shims whose
+    ``__file__`` may be absent, a non-string, or a raising property.  This
+    runs inside an autouse fixture, so an uncaught ``TypeError`` here would
+    error every test in the package rather than one.
+    """
     try:
-        return pathlib.Path(origin).resolve()
-    except OSError:  # pragma: no cover - unresolvable __file__
+        origin = getattr(obj, "__file__", None)
+    except Exception:  # noqa: BLE001 - a raising __file__ property
         return None
+    if not origin or not isinstance(origin, (str, bytes, os.PathLike)):
+        return None
+    key = os.fsdecode(origin)
+    if key in _RESOLVED:
+        return _RESOLVED[key]
+    try:
+        resolved = pathlib.Path(key).resolve()
+    except (OSError, TypeError, ValueError):  # pragma: no cover
+        resolved = None
+    _RESOLVED[key] = resolved
+    return resolved
 
 
-def _live_rebaseline_modules():
-    """Every live ``rebaseline`` instance, de-duplicated by identity.
+#: Cache for ``_live_felix_deployer_modules``, keyed on ``len(sys.modules)``.
+#: Scanning the whole module table per test costs ~13ms, which is ~8s across
+#: this package; the module count is a cheap proxy for "something was
+#: imported since the last sweep".
+_SWEEP_CACHE: dict[str, object] = {"size": -1, "modules": []}
+
+
+def _live_felix_deployer_modules():
+    """Every live ``rebaseline`` and ``_tick`` instance, by identity.
+
+    Returns ``(rebaselines, ticks)``.  Both matter: ``_tick`` carries a fifth
+    host-state constant of its own (``DEFAULT_STATE_DIR``, used for
+    ``git-health.json`` and the last-tick record, the latter written in a
+    ``finally`` on every tick including a lock-defer).  Nothing escapes
+    through it today only because all five ``run_tick`` drivers patch it by
+    hand — which is exactly the per-module discipline this fixture exists to
+    replace.
 
     An instance is reachable by one of three routes, and no single route
     finds them all:
@@ -128,9 +211,17 @@ def _live_rebaseline_modules():
     3. held as the ``_rebaseline`` attribute of any ``_tick`` instance found
        by route 1 or 2.
 
-    The scan is bounded to modules sourced from ``tests/deploy/`` and from
-    the two felix-deployer files, so it stays cheap enough to run per test.
+    Known limits, accepted deliberately: the walk goes one level deep into
+    test-module globals, so an instance reachable only through a closure,
+    a ``functools.partial``, or an attribute of a non-module object would be
+    missed, as would one produced by ``importlib.reload`` mid-test.  None of
+    those shapes exist in this package today, and the guard below is the
+    backstop for the ones that do not.
     """
+    size = len(sys.modules)
+    if _SWEEP_CACHE["size"] == size:
+        return _SWEEP_CACHE["modules"]
+
     rebaselines: dict[int, object] = {}
     ticks: dict[int, object] = {}
 
@@ -155,7 +246,10 @@ def _live_rebaseline_modules():
         if held is not None:
             rebaselines[id(held)] = held
 
-    return list(rebaselines.values())
+    found = (list(rebaselines.values()), list(ticks.values()))
+    _SWEEP_CACHE["size"] = size
+    _SWEEP_CACHE["modules"] = found
+    return found
 
 
 @pytest.fixture(autouse=True)
@@ -171,8 +265,9 @@ def _isolate_felix_deployer_state(monkeypatch, tmp_path):
     "state"`` does not exist, and separately asserts its mode once created.
     ``write_observed_head`` mkdirs its own parent lazily.
     """
-    targets = _live_rebaseline_modules()
-    if not targets:
+
+    rebaselines, ticks = _live_felix_deployer_modules()
+    if not rebaselines and not ticks:
         yield
         return
 
@@ -184,83 +279,163 @@ def _isolate_felix_deployer_state(monkeypatch, tmp_path):
         "DEFAULT_BASELINES_DIR": tmp_path / "security-monitor-baselines",
     }
 
-    for mod in targets:
+    for mod in rebaselines:
         for name in _STATE_CONSTANTS:
             if hasattr(mod, name):
                 monkeypatch.setattr(mod, name, replacements[name])
 
+    # _tick's own state dir — git-health.json and the last-tick record.
+    for mod in ticks:
+        if hasattr(mod, "DEFAULT_STATE_DIR"):
+            monkeypatch.setattr(mod, "DEFAULT_STATE_DIR", tmp_path / "tick-state")
+
     yield
 
 
-@pytest.fixture(scope="session", autouse=True)
-def _forbid_data_writes():
-    """Record writes under ``/data`` and fail the session at teardown.
+# ---------------------------------------------------------------------------
+# Guard: block and record any mutation under /data
+# ---------------------------------------------------------------------------
 
-    Observes behaviour rather than asserting on the redirect fixture's own
-    output, so it cannot pass vacuously: it catches escapes from instances no
-    name-based patch reached, and escapes nobody anticipated.
+#: ``os.open`` flags that can create, truncate, or write.
+_WRITE_FLAGS = (
+    os.O_WRONLY | os.O_RDWR | os.O_CREAT | os.O_APPEND | os.O_TRUNC | getattr(os, "O_EXCL", 0)
+)
 
-    Recorded, never raised — see the module docstring for why raising is
-    defeated here.
+
+def _under_data(path) -> bool:
+    """True if *path* resolves beneath ``/data``.
+
+    Accepts str, bytes, and ``os.PathLike``; ``os.fsdecode`` normalises the
+    bytes form that ``open(b"/data/x")`` would otherwise slip through.
     """
-    escapes: list[str] = []
+    try:
+        raw = os.fsdecode(path)
+    except (TypeError, ValueError):
+        return False
+    try:
+        resolved = pathlib.Path(raw).resolve()
+    except (OSError, ValueError):  # pragma: no cover - pathological path
+        return False
+    return resolved == _FORBIDDEN_PREFIX or _FORBIDDEN_PREFIX in resolved.parents
+
+
+def _block(path, how: str) -> None:
+    """Record and refuse a mutation under ``/data``; no-op otherwise."""
+    nodeid = _ACTIVE["nodeid"]
+    if nodeid is None or not _under_data(path):
+        return
+    _ESCAPES.append(f"{nodeid}\n      {how}: {os.fsdecode(path)}")
+    raise HostStateWriteBlocked(
+        f"{nodeid} attempted {how} on real host state {os.fsdecode(path)!r}. "
+        f"felix-deployer runs out of {_FORBIDDEN_PREFIX} on office2; tests must "
+        f"redirect to tmp (see tests/deploy/conftest.py, #989)."
+    )
+
+
+@pytest.fixture(scope="session", autouse=True)
+def _guard_host_state():
+    """Block mutations under ``/data`` and fail the session if any were tried.
+
+    Blocking is the protection; the session-teardown assertion is the
+    detection, and it survives the ``except Exception`` handlers in the code
+    under test that would otherwise swallow the block.  See the module
+    docstring for why both halves are needed.
+    """
     mp = pytest.MonkeyPatch()
+    _ESCAPES.clear()
 
-    def _under_data(path) -> bool:
-        try:
-            return _FORBIDDEN_PREFIX in pathlib.Path(path).resolve().parents
-        except (OSError, TypeError, ValueError):
-            return False
+    def _wrap_path(method: str, how: str) -> None:
+        real = getattr(pathlib.Path, method)
 
-    def _record(path, how: str) -> None:
-        nodeid = _ACTIVE["nodeid"]
-        if nodeid is not None and _under_data(path):
-            escapes.append(f"{nodeid}\n      {how}: {path}")
+        def _guarded(self, *a, **kw):
+            _block(self, how)
+            return real(self, *a, **kw)
 
-    real_mkdir = pathlib.Path.mkdir
-    real_write_text = pathlib.Path.write_text
-    real_write_bytes = pathlib.Path.write_bytes
-    real_replace = os.replace
-    real_open = builtins.open
+        mp.setattr(pathlib.Path, method, _guarded)
 
-    def _mkdir(self, *a, **kw):
-        _record(self, "mkdir")
-        return real_mkdir(self, *a, **kw)
+    for method, how in (
+        ("mkdir", "mkdir"),
+        ("write_text", "write_text"),
+        ("write_bytes", "write_bytes"),
+        ("touch", "touch"),
+        ("unlink", "unlink"),
+        ("rmdir", "rmdir"),
+    ):
+        _wrap_path(method, method)
 
-    def _write_text(self, *a, **kw):
-        _record(self, "write_text")
-        return real_write_text(self, *a, **kw)
+    # Two-ended operations: the destination is written, the source removed.
+    def _wrap_path_move(method: str) -> None:
+        real = getattr(pathlib.Path, method)
 
-    def _write_bytes(self, *a, **kw):
-        _record(self, "write_bytes")
-        return real_write_bytes(self, *a, **kw)
+        def _guarded(self, target, *a, **kw):
+            _block(self, f"{method} (source)")
+            _block(target, f"{method} (target)")
+            return real(self, target, *a, **kw)
 
-    def _replace(src, dst, *a, **kw):
-        _record(dst, "os.replace")
-        return real_replace(src, dst, *a, **kw)
+        mp.setattr(pathlib.Path, method, _guarded)
 
-    def _open(file, mode="r", *a, **kw):
-        if any(flag in mode for flag in ("w", "a", "x", "+")):
-            _record(file, f"open(mode={mode!r})")
-        return real_open(file, mode, *a, **kw)
+    for method in ("rename", "replace"):
+        _wrap_path_move(method)
 
-    mp.setattr(pathlib.Path, "mkdir", _mkdir)
-    mp.setattr(pathlib.Path, "write_text", _write_text)
-    mp.setattr(pathlib.Path, "write_bytes", _write_bytes)
-    mp.setattr(os, "replace", _replace)
-    mp.setattr(builtins, "open", _open)
+    def _wrap_os_move(name: str):
+        real = getattr(os, name)
+
+        def _guarded(src, dst, *a, **kw):
+            _block(src, f"os.{name} (source)")
+            _block(dst, f"os.{name} (target)")
+            return real(src, dst, *a, **kw)
+
+        mp.setattr(os, name, _guarded)
+
+    for name in ("replace", "rename"):
+        _wrap_os_move(name)
+
+    def _wrap_os_single(name: str):
+        real = getattr(os, name)
+
+        def _guarded(path, *a, **kw):
+            _block(path, f"os.{name}")
+            return real(path, *a, **kw)
+
+        mp.setattr(os, name, _guarded)
+
+    for name in ("remove", "unlink", "mkdir", "makedirs", "rmdir"):
+        _wrap_os_single(name)
+
+    real_os_open = os.open
+
+    def _guarded_os_open(path, flags, *a, **kw):
+        if flags & _WRITE_FLAGS:
+            _block(path, f"os.open(flags={flags:#o})")
+        return real_os_open(path, flags, *a, **kw)
+
+    mp.setattr(os, "open", _guarded_os_open)
+
+    # ``builtins.open`` and ``io.open`` are the same function object but are
+    # separate module attributes; pathlib's ``Path.open`` resolves ``io.open``
+    # at call time, so patching only ``builtins`` would miss it.
+    def _make_guarded_open(real):
+        def _guarded(file, mode="r", *a, **kw):
+            if any(flag in mode for flag in ("w", "a", "x", "+")):
+                _block(file, f"open(mode={mode!r})")
+            return real(file, mode, *a, **kw)
+
+        return _guarded
+
+    mp.setattr(builtins, "open", _make_guarded_open(builtins.open))
+    mp.setattr(io, "open", _make_guarded_open(io.open))
 
     try:
-        yield escapes
+        yield _ESCAPES
     finally:
         mp.undo()
 
-    if escapes:
-        shown = "\n    ".join(sorted(set(escapes))[:20])
+    if _ESCAPES:
+        shown = "\n    ".join(sorted(set(_ESCAPES))[:20])
         raise AssertionError(
-            f"tests/deploy wrote to real host state under {_FORBIDDEN_PREFIX} "
-            f"({len(escapes)} write(s)). These are production service paths — "
-            f"on office2, which runs felix-deployer out of that directory, "
-            f"this would clobber live service state (#989).\n"
-            f"    {shown}"
+            f"tests/deploy attempted {len(_ESCAPES)} mutation(s) of real host "
+            f"state under {_FORBIDDEN_PREFIX}. They were blocked, but the "
+            f"attempts are a defect: office2 runs felix-deployer out of that "
+            f"directory, so an unguarded run would clobber live service state "
+            f"(#989).\n    {shown}"
         )
