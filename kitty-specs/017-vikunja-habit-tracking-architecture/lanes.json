@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "mission_slug": "017-vikunja-habit-tracking-architecture",
+  "mission_id": "01KRG3V5ET8KEBZ6GB024KWHVN",
+  "mission_branch": "kitty/mission-vikunja-habit-tracking-architecture-01KRG3V5",
+  "target_branch": "main",
+  "lanes": [
+    {
+      "lane_id": "lane-planning",
+      "wp_ids": [
+        "WP01"
+      ],
+      "write_scope": [
+        "kitty-specs/017-vikunja-habit-tracking-architecture/findings.md"
+      ],
+      "predicted_surfaces": [
+        "planning"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    }
+  ],
+  "computed_at": "2026-09-21T22:55:52.748930+00:00",
+  "computed_from": "dependency_graph+ownership",
+  "planning_artifact_wps": [
+    "WP01"
+  ],
+  "planning_commit_sha": "5adde1b456b6625615bad4c9d30c237d6272499c"
+}

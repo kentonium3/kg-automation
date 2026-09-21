@@ -22,35 +22,40 @@
       "force_count": 2,
       "lane": "approved",
       "last_event_id": "01KS89590KRPY5F9F8CM6AM011",
-      "last_transition_at": "2026-05-22T16:44:08.083872+00:00"
+      "last_transition_at": "2026-05-22T16:44:08.083872+00:00",
+      "review_result": null
     },
     "WP02": {
       "actor": "codex:gpt-5:spec-kitty-review:reviewer",
       "force_count": 3,
       "lane": "approved",
       "last_event_id": "01KS8AZRNHXCSN0VFM9ZQZE8VM",
-      "last_transition_at": "2026-05-22T17:16:04.657066+00:00"
+      "last_transition_at": "2026-05-22T17:16:04.657066+00:00",
+      "review_result": null
     },
     "WP03": {
       "actor": "user",
       "force_count": 1,
       "lane": "approved",
       "last_event_id": "01KS8BPXSYF7JAXP0V2J0FQMVF",
-      "last_transition_at": "2026-05-22T17:28:43.582559+00:00"
+      "last_transition_at": "2026-05-22T17:28:43.582559+00:00",
+      "review_result": null
     },
     "WP04": {
       "actor": "user",
       "force_count": 1,
       "lane": "approved",
       "last_event_id": "01KS8C7EKNGFFWKKEC3TYJ5835",
-      "last_transition_at": "2026-05-22T17:37:45.077154+00:00"
+      "last_transition_at": "2026-05-22T17:37:45.077154+00:00",
+      "review_result": null
     },
     "WP05": {
       "actor": "user",
       "force_count": 2,
       "lane": "approved",
       "last_event_id": "01KS88XRJWASQQ4NVN6NG6TTSV",
-      "last_transition_at": "2026-05-22T16:40:01.884850+00:00"
+      "last_transition_at": "2026-05-22T16:40:01.884850+00:00",
+      "review_result": null
     }
   }
 }

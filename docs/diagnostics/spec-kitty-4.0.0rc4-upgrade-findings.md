@@ -1,8 +1,8 @@
-# Spec-Kitty upgrade findings — 3.2.7 → 4.0.0rc4 candidate
+# Spec-Kitty upgrade findings — 3.2.7 → 4.0.0rc4 (candidate, then released)
 
-**Reporting window**: 2026-09-17 → 2026-09-19
+**Reporting window**: 2026-09-17 → 2026-09-21
 **Host**: Windows 11 Pro 26200 · Python 3.13.7 · `uv tool` install
-**Project**: `kentonium3/kg-automation`, `.kittify` schema_version 3, 124 missions
+**Project**: `kentonium3/kg-automation`, `.kittify` schema_version 3, 125 missions
 **Prepared for**: spec-kitty QA agents. Read the Findings Register first; each row
 links to a kg-automation issue carrying full reproduction and an upstream draft.
 
@@ -18,7 +18,8 @@ bare version string identifies nothing during pre-release QA.
 |---|---|---|
 | 3.2.7 | `fb4e8fa98` | Last PyPI stable. Works on Windows. |
 | 4.0.0rc3 | `fbe1109fa` | Tagged + on PyPI. **Unusable on Windows.** |
-| 4.0.0rc4 candidate | `619bd1137` | **No tag, no PyPI artifact.** `pyproject.toml` on `main` declares `4.0.0rc4`. This is what we tested. |
+| 4.0.0rc4 candidate | `619bd1137` | Untagged build off `main`. The first thing we tested. |
+| 4.0.0rc4 **released** | `5309c4107` | Tag `v4.0.0rc4` + PyPI wheel, 2026-09-21. **174 commits ahead** of the candidate, `behind_by: 0`. Both report `4.0.0rc4`. |
 
 Install the candidate by SHA:
 
@@ -47,17 +48,20 @@ fatal: Could not reset index file to revision '619bd1137...'
 | F3 | Prerelease channel resolves to a **yanked** release | P2 | **FIXED, verified** | [#982](https://github.com/kentonium3/kg-automation/issues/982) | `cc945affb` (#4705) |
 | F4 | Orientation block always renders `project: unknown` | P2 | **FIXED, verified** | [#983](https://github.com/kentonium3/kg-automation/issues/983) | `68601eea4` (#4706) |
 | F5 | Orientation `health` can never report `upgrade-available` | P2 | **FIXED, partial verify** | [#984](https://github.com/kentonium3/kg-automation/issues/984) | `54a5f86f1` (#4707) |
-| F6 | `upgrade --yes` still prompts; declined remediation exits 1 on success | P2 | **OPEN** | [#992](https://github.com/kentonium3/kg-automation/issues/992) | — |
-| F7 | `upgrade` fails on `_recheck_command_completion`; needs 3 runs | P2 | **OPEN** | [#993](https://github.com/kentonium3/kg-automation/issues/993) | — (known scoped-out follow-up) |
-| F8 | Windows `upgrade --dry-run` reports 184 phantom repairs forever | P3 | **OPEN** | [#994](https://github.com/kentonium3/kg-automation/issues/994) | — |
-| F9 | `mission-state --fix` rejects legacy `change_mode: regular` | P2 | **OPEN** | [#995](https://github.com/kentonium3/kg-automation/issues/995) | — |
+| F6 | `upgrade --yes` still prompts; declined remediation exits 1 on success | P2 | **OPEN — unverifiable on released build (F15)** | [#992](https://github.com/kentonium3/kg-automation/issues/992) | — |
+| F7 | `upgrade` fails on `_recheck_command_completion`; needs 3 runs | P2 | **OPEN — unverifiable on released build (F15)** | [#993](https://github.com/kentonium3/kg-automation/issues/993) | — (known scoped-out follow-up) |
+| F8 | Windows `upgrade --dry-run` reports 184 phantom repairs forever | P3 | **OPEN — unverifiable on released build (F15)** | [#994](https://github.com/kentonium3/kg-automation/issues/994) | — |
+| F9 | `mission-state --fix` rejects legacy `change_mode: regular` | P2 | **FIXED on `5309c4107`** | [#995](https://github.com/kentonium3/kg-automation/issues/995) | — |
 | F10 | Mission-state manifest + quarantined rows written to a **gitignored** path | P2 | **OPEN** | [#996](https://github.com/kentonium3/kg-automation/issues/996) | — |
-| F11 | `mission-state --fix` / `--teamspace-dry-run` report counts with no detail | P3 | **OPEN** | [#997](https://github.com/kentonium3/kg-automation/issues/997) | — |
+| F11 | `mission-state --fix` / `--teamspace-dry-run` report counts with no detail | P3 | **FIXED on `5309c4107`** | [#997](https://github.com/kentonium3/kg-automation/issues/997) | — |
 | F12 | Repo unclonable on default Windows git (path length) | env | **WORKED AROUND** | — (this doc) | n/a — set `core.longpaths` |
-| F13 | `GEMINI.md` orientation never refreshes; `tool-surfaces --fix` no-ops | P3 | **OPEN** | [#999](https://github.com/kentonium3/kg-automation/issues/999) | — |
-| F14 | CLI emits both deprecated `TeamSpace` and current `Team Kitty` | P3 | **OPEN** | [#1000](https://github.com/kentonium3/kg-automation/issues/1000) | — |
+| F13 | `GEMINI.md` orientation never refreshes; `tool-surfaces --fix` no-ops | P3 | **FIXED on `5309c4107`** | [#999](https://github.com/kentonium3/kg-automation/issues/999) | — |
+| F14 | CLI emits both deprecated `TeamSpace` and current `Team Kitty` | P3 | **OPEN** (unchanged on `5309c4107`) | [#1000](https://github.com/kentonium3/kg-automation/issues/1000) | — |
+| F15 | Released rc4: Windows `upgrade` crashes on `os.utime(follow_symlinks=False)` | P1 | **OPEN, blocking** | [#1005](https://github.com/kentonium3/kg-automation/issues/1005) | — |
 
-`FIXED, verified` = observed working on `619bd1137`. `OPEN` = reproduces on `619bd1137`.
+**Reading the Status column.** `FIXED, verified` = observed working on the candidate build `619bd1137`.
+`FIXED on 5309c4107` = still broken on the candidate, confirmed fixed on the released build.
+`OPEN` = reproduces on the released build. `unverifiable` = the command under test crashes first (F15).
 
 ⚠️ **Terminology note for QA agents.** "TeamSpace" is **deprecated**; the product is **Team Kitty**. This document quotes CLI output verbatim, so `TeamSpace` appears throughout where the CLI emits it — that is evidence for F14, not our usage. Use **Team Kitty** in your own reports and reserve `TeamSpace` for quoted CLI strings and the `--teamspace-dry-run` / `teamspace-blocker` identifiers, which are still the literal names on the command line.
 
@@ -127,6 +131,10 @@ affirmative claim) rather than distinguishing "not checked".
 ---
 
 ## Open on the rc4 candidate
+
+> **Read with the register above.** F9, F11 and F13 below describe the *candidate* build and were
+> subsequently **fixed on the released build** — kept as the original evidence, superseded by the
+> released-build section further down. F6–F8 could not be re-tested at all (F15).
 
 ### F6 · `--yes` does not suppress the TeamSpace prompt, and success exits 1
 
@@ -245,6 +253,71 @@ The defect is the pairing: a check that fires plus a `--fix` that exits 0 withou
 
 ---
 
+## Released rc4 (`5309c4107`) — verification, 2026-09-21
+
+The release is **174 commits ahead** of the candidate, `behind_by: 0`. Both builds report
+`spec-kitty-cli version 4.0.0rc4`; only the build distinguishes them. Full verdict and
+upstream draft: [#1006](https://github.com/kentonium3/kg-automation/issues/1006).
+
+### Fixed — verified on Windows
+
+**F9 + F11** (`b25f45a56`, #4778 #4780 #4779). The 21 legacy missions are normalized
+rather than rejected, and the output now names every failure:
+
+```text
+  - audit-interpretation-moment0-01KSBGBS: normalized_change_mode:regular
+  … 21 total
+```
+
+Zero `Invalid change_mode` errors remain, and `Errored missions:` replaces the bare count.
+Net effect on mission state:
+
+```text
+before (619bd1137): 124 missions | errors 38 | warnings 116 | blockers 38
+              then: 124 missions | errors 20 | warnings 116 | blockers 20
+after  (5309c4107): 125 missions | errors  0 | warnings 117 | blockers  0
+```
+
+**All Team Kitty blockers cleared** — the outcome F9 was blocking.
+
+**F13** (`92a200070`, #4782 #4776 #4777 #4134). `GEMINI.md` repaired at last:
+
+```text
+before: Spec Kitty v3.2.6
+doctor tool-surfaces --tool gemini --fix
+after:  Spec Kitty v4.0.0rc4
+```
+
+### New — F15, blocking
+
+`spec-kitty upgrade` crashes deterministically on Windows with
+`NotImplementedError: utime: follow_symlinks unavailable on this platform`
+(`skills/installer.py:980`). Narrower than F1 — other commands are fine — but `upgrade`
+cannot complete and each attempt leaves `.kittify/command-skills-manifest.json` modified.
+
+The line is **not new**; it exists in the candidate build too. `92a200070` (the F7 fix)
+now *reaches* it. A latent Windows defect newly exposed, so a fix should cover the four
+sibling `follow_symlinks=False` sites in the same module, not just line 980.
+
+### Unchanged
+
+**F14** — still 328 TeamSpace occurrences against Team Kitty in 14 files.
+**F10** — the new run's manifest is still written to the gitignored path.
+
+### Unverifiable — F6, F7, F8
+
+All three describe `upgrade` behaviour, and `upgrade` now crashes before reaching them.
+Upstream `cdde1cb51` (#4775) and `92a200070` plausibly address F6 and F7, but that is
+**unconfirmed on Windows and is not claimed**. Resolving them needs an rc5 carrying the
+F15 fix, or a rollback to `619bd1137` — which restores a working `upgrade` but reinstates
+the very bugs under test.
+
+One partial observation, explicitly **not** counted as evidence: the `[y/N]` prompt did not
+appear in the released-build run (0, against 1 on the candidate). Confounded — the crash
+pre-empted the gate and blockers had been cleared separately. Inconclusive.
+
+---
+
 ## Mission-state repair outcome (this project)
 
 ```text
@@ -294,5 +367,8 @@ and they look like legitimate mission history.
 - Each issue listed above embeds a slim upstream-ready draft in a fenced block,
   per the dual-track model in
   [`runbooks/spec-kitty-bug-reporting.md`](<../runbooks/spec-kitty-bug-reporting.md>).
-  All drafts currently carry `**Submission approved by**: PENDING` and have **not**
-  been filed upstream.
+  Drafts for #992, #993, #994, #996, #1000 carry Kent's approval (2026-09-19) and are
+  cleared for the QA bot; #1005 and #1006 still read `PENDING`. **Nothing has been filed
+  upstream** — the QA bot files, not Claude Code.
+- #995, #997 and #999 were closed as fixed before filing, so the bot should **not** file
+  them: they would report solved bugs.

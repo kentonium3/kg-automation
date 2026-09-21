@@ -1,0 +1,51 @@
+{
+  "version": 1,
+  "mission_slug": "goal-and-outcome-structure",
+  "mission_id": "01KN5QX3WGCV3TGJ9CKAPFQ5N7",
+  "mission_branch": "kitty/mission-goal-and-outcome-structure-01KN5QX3",
+  "target_branch": "main",
+  "lanes": [
+    {
+      "lane_id": "lane-a",
+      "wp_ids": [
+        "WP01"
+      ],
+      "write_scope": [
+        "kitty-specs/006-goal-and-outcome-structure/data-model.md",
+        "kitty-specs/006-goal-and-outcome-structure/plan.md",
+        "kitty-specs/006-goal-and-outcome-structure/research.md",
+        "kitty-specs/006-goal-and-outcome-structure/spec.md"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "legacy-cleanup"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    },
+    {
+      "lane_id": "lane-planning",
+      "wp_ids": [
+        "WP02",
+        "WP03"
+      ],
+      "write_scope": [
+        "kitty-specs/006-goal-and-outcome-structure/**"
+      ],
+      "predicted_surfaces": [
+        "planning"
+      ],
+      "depends_on_lanes": [
+        "lane-a"
+      ],
+      "parallel_group": 1
+    }
+  ],
+  "computed_at": "2026-09-21T22:55:52.129594+00:00",
+  "computed_from": "dependency_graph+ownership",
+  "planning_artifact_wps": [
+    "WP02",
+    "WP03"
+  ],
+  "planning_commit_sha": "5adde1b456b6625615bad4c9d30c237d6272499c"
+}

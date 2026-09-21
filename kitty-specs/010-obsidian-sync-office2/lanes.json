@@ -1,0 +1,86 @@
+{
+  "version": 1,
+  "mission_slug": "obsidian-sync-office2",
+  "mission_id": "01KN5QX3WNQ7X8S386F2A0ME8Q",
+  "mission_branch": "kitty/mission-obsidian-sync-office2-01KN5QX3",
+  "target_branch": "main",
+  "lanes": [
+    {
+      "lane_id": "lane-a",
+      "wp_ids": [
+        "WP01"
+      ],
+      "write_scope": [
+        "src/**"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "tracker-integration",
+        "workspace"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    },
+    {
+      "lane_id": "lane-b",
+      "wp_ids": [
+        "WP02",
+        "WP03"
+      ],
+      "write_scope": [
+        "docs/design/architecture/**",
+        "docs/design/architecture/service-inventory.md",
+        "docs/handbooks/**",
+        "kitty-specs/010-obsidian-sync-office2/quickstart.md"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "legacy-cleanup",
+        "tracker-integration",
+        "workspace"
+      ],
+      "depends_on_lanes": [
+        "lane-a"
+      ],
+      "parallel_group": 1
+    },
+    {
+      "lane_id": "lane-planning",
+      "wp_ids": [
+        "WP04"
+      ],
+      "write_scope": [
+        "kitty-specs/010-obsidian-sync-office2/**"
+      ],
+      "predicted_surfaces": [
+        "planning"
+      ],
+      "depends_on_lanes": [
+        "lane-a",
+        "lane-b"
+      ],
+      "parallel_group": 2
+    }
+  ],
+  "computed_at": "2026-09-21T22:55:52.361980+00:00",
+  "computed_from": "dependency_graph+ownership",
+  "planning_artifact_wps": [
+    "WP04"
+  ],
+  "planning_commit_sha": "5adde1b456b6625615bad4c9d30c237d6272499c",
+  "collapse_report": {
+    "events": [
+      {
+        "wp_a": "WP02",
+        "wp_b": "WP03",
+        "rule": "write_scope_overlap",
+        "evidence": "overlapping globs: 'docs/design/architecture/service-inventory.md' vs 'docs/design/architecture/**'"
+      }
+    ],
+    "total_merges": 1,
+    "independent_wps_collapsed": 1,
+    "by_rule": {
+      "write_scope_overlap": 1
+    }
+  }
+}

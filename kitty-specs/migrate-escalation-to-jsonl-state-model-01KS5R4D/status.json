@@ -22,63 +22,72 @@
       "force_count": 3,
       "lane": "approved",
       "last_event_id": "01KS6257Q6T91JEGVJR7707YJT",
-      "last_transition_at": "2026-05-21T20:03:17.862640+00:00"
+      "last_transition_at": "2026-05-21T20:03:17.862640+00:00",
+      "review_result": null
     },
     "WP02": {
       "actor": "user",
       "force_count": 1,
       "lane": "approved",
       "last_event_id": "01KS62SQRYXCTEQSC9W3TPHDT2",
-      "last_transition_at": "2026-05-21T20:14:29.662340+00:00"
+      "last_transition_at": "2026-05-21T20:14:29.662340+00:00",
+      "review_result": null
     },
     "WP03": {
       "actor": "user",
       "force_count": 4,
       "lane": "approved",
       "last_event_id": "01KS648BWYHTYZW55RSAT5BFJB",
-      "last_transition_at": "2026-05-21T20:39:57.598582+00:00"
+      "last_transition_at": "2026-05-21T20:39:57.598582+00:00",
+      "review_result": null
     },
     "WP04": {
       "actor": "user",
       "force_count": 6,
       "lane": "approved",
       "last_event_id": "01KS64JJPT7EGH9WJAWJZY6Z7Z",
-      "last_transition_at": "2026-05-21T20:45:32.250363+00:00"
+      "last_transition_at": "2026-05-21T20:45:32.250363+00:00",
+      "review_result": null
     },
     "WP05": {
       "actor": "user",
       "force_count": 2,
       "lane": "approved",
       "last_event_id": "01KS68QXSA9S7VWTVX2RRWBRNC",
-      "last_transition_at": "2026-05-21T21:58:21.738534+00:00"
+      "last_transition_at": "2026-05-21T21:58:21.738534+00:00",
+      "review_result": null
     },
     "WP06": {
       "actor": "user",
       "force_count": 2,
       "lane": "approved",
       "last_event_id": "01KS68QT25HJ97RJXHFBD9WHTH",
-      "last_transition_at": "2026-05-21T21:58:17.925366+00:00"
+      "last_transition_at": "2026-05-21T21:58:17.925366+00:00",
+      "review_result": null
     },
     "WP07": {
       "actor": "user",
       "force_count": 1,
       "lane": "approved",
       "last_event_id": "01KS695Q3WZVVHX92DP9SZ3XAQ",
-      "last_transition_at": "2026-05-21T22:05:53.660972+00:00"
+      "last_transition_at": "2026-05-21T22:05:53.660972+00:00",
+      "review_result": null
     },
     "WP08": {
       "actor": "user",
       "force_count": 2,
       "lane": "approved",
       "last_event_id": "01KS624WNYH1PVJRXHQ04HREM4",
-      "last_transition_at": "2026-05-21T20:03:06.558146+00:00"
+      "last_transition_at": "2026-05-21T20:03:06.558146+00:00",
+      "review_result": null
     },
     "WP09": {
       "actor": "user",
       "force_count": 1,
       "lane": "approved",
       "last_event_id": "01KS69XFGVMECX83T9CTVZMA8K",
-      "last_transition_at": "2026-05-21T22:18:52.315925+00:00"
+      "last_transition_at": "2026-05-21T22:18:52.315925+00:00",
+      "review_result": null
     }
   }
 }

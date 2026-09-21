@@ -244,7 +244,7 @@ Templates:
 Active troubleshooting and upstream bug reporting.
 
 - [Spec-Kitty Workflow Journal](<./diagnostics/spec-kitty-workflow-journal.md>) — running observations log; promote stabilized entries to internal kg-automation issues per the bug-reporting runbook
-- [Spec-Kitty 4.0.0rc4 Upgrade Findings](<./diagnostics/spec-kitty-4.0.0rc4-upgrade-findings.md>) — QA-agent-facing register of the 14 findings from the 3.2.7 → 4.0.0rc4-candidate upgrade (2026-09-17→19); build-pinned, maps each finding to its kg-automation issue and upstream fix commit
+- [Spec-Kitty 4.0.0rc4 Upgrade Findings](<./diagnostics/spec-kitty-4.0.0rc4-upgrade-findings.md>) — QA-agent-facing register of the 15 findings from the 3.2.7 → 4.0.0rc4 upgrade, candidate and released builds (2026-09-17→21); build-pinned, maps each finding to its kg-automation issue and upstream fix commit
 - [Spec-Kitty External Bug Report Template](<./diagnostics/spec-kitty-bug-report-external-template.md>) — slim template for upstream submission; source for transient paste docs at `{slug}-external.md`
 - [Spec-Kitty Upstream Issue Comment Template](<./diagnostics/spec-kitty-upstream-comment-template.md>) — peer template for commenting on an *existing* upstream issue (recurrence/persistence, supplying a missing build SHA, evidence, or responding to a maintainer); mandates the 9-char build ID and the pre-posting approval gate
 - [Spec-Kitty Bug Report Template (deprecated)](<./diagnostics/spec-kitty-bug-report-template.md>) — original combined internal+external template; superseded 2026-05-28 by the dual-track workflow (internal issue template at `.github/ISSUE_TEMPLATE/spec-kitty-bug.md` + external template above); retained as reference during the migration window

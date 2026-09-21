@@ -22,14 +22,17 @@
       "force_count": 1,
       "lane": "done",
       "last_event_id": "01KSEJ7WB1TEFGRYJ67ZHMMEQG",
-      "last_transition_at": "2026-05-25T03:18:17.185849+00:00"
+      "last_transition_at": "2026-05-25T03:18:17.185849+00:00",
+      "review_result": null
     },
     "WP02": {
       "actor": "user",
+      "cancellation_reason": "Mission design oversight: WP02 requires WP01 merged to main (office2 deploy pulls main), but spec-kitty merges at end-of-mission only. Splitting into a follow-up mission. Code change ships via this mission's WP01; operational capture + #404 closure ships via the next mission.",
       "force_count": 2,
       "lane": "canceled",
       "last_event_id": "01KSEJ72Q4995X3ADS4QB35ANB",
-      "last_transition_at": "2026-05-25T03:17:50.948123+00:00"
+      "last_transition_at": "2026-05-25T03:17:50.948123+00:00",
+      "reason_source": "operator"
     }
   }
 }
