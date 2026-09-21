@@ -1,6 +1,6 @@
 ---
 title: ADR-0005 — Vikunja client standardization (base URL, token, timeout, error policy)
-doc_type: reference
+doc_type: decision
 status: approved
 owners: ["@kentonium3"]
 last_updated: '2026-06-10'
@@ -170,3 +170,9 @@ Successful responses with empty bodies (typical for DELETE 204) parse to an empt
 ## Decision changes
 
 (Future amendments record here.)
+
+## Decision log
+
+> **This is the canonical log for this ADR.** The frozen `## Decision changes` section above predates the decision-log contract and is preserved verbatim as body content — it is history, not a mistake. **New entries go here, not there.**
+
+*No entries.*

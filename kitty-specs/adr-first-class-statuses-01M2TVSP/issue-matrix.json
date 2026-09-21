@@ -1,0 +1,137 @@
+{
+  "rows": {
+    "#10": {
+      "evidence_ref": "NOT a GitHub issue reference. Scraper false positive: these are review-finding numbers ('review finding #10') cited in this mission's own artifacts. No such issue exists in kentonium3/kg-automation.",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": null,
+      "title": null,
+      "verdict": "deferred-with-followup",
+      "wp": "WP01"
+    },
+    "#11": {
+      "evidence_ref": "NOT a GitHub issue reference. Scraper false positive: these are review-finding numbers ('review finding #10') cited in this mission's own artifacts. No such issue exists in kentonium3/kg-automation.",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": null,
+      "title": null,
+      "verdict": "deferred-with-followup",
+      "wp": "WP01"
+    },
+    "#12": {
+      "evidence_ref": "NOT a GitHub issue reference. Scraper false positive: these are review-finding numbers ('review finding #10') cited in this mission's own artifacts. No such issue exists in kentonium3/kg-automation.",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": null,
+      "title": null,
+      "verdict": "deferred-with-followup",
+      "wp": "WP01"
+    },
+    "#13": {
+      "evidence_ref": "NOT a GitHub issue reference. Scraper false positive: these are review-finding numbers ('review finding #10') cited in this mission's own artifacts. No such issue exists in kentonium3/kg-automation.",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": null,
+      "title": null,
+      "verdict": "deferred-with-followup",
+      "wp": "WP01"
+    },
+    "#507": {
+      "evidence_ref": "Closed epic, cited as evidence for ADR-0003's standing: it shipped via #518/#519/#520 and sync-driver-ops.md documents the driver as live.",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": null,
+      "title": null,
+      "verdict": "verified-already-fixed",
+      "wp": "WP01"
+    },
+    "#508": {
+      "evidence_ref": "Closed 2026-06-06. Cited as the promotion condition ADR-0003's own body set for itself; its closure is why ADR-0003 is approved.",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": null,
+      "title": null,
+      "verdict": "verified-already-fixed",
+      "wp": "WP01"
+    },
+    "#557": {
+      "evidence_ref": "Rebaseline obligation. Charter Check records it as N/A for this mission: tooling/ and docs/ are not audited surfaces.",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": null,
+      "title": null,
+      "verdict": "verified-already-fixed",
+      "wp": "WP01"
+    },
+    "#681": {
+      "evidence_ref": "RFC #681 is the other doc_type: decision document in the repo. WP05 migrates it alongside the nine ADRs (matrix row 10).",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": null,
+      "title": null,
+      "verdict": "in-mission",
+      "wp": "WP05"
+    },
+    "#986": {
+      "evidence_ref": "RFC on inference provider/model flexibility; referenced because ADR-0009 points at ADR-0004's legacy log. Its own substance is open on #986 and untouched here.",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": null,
+      "title": null,
+      "verdict": "deferred-with-followup",
+      "wp": "WP01"
+    },
+    "#988": {
+      "evidence_ref": "doc_type taxonomy drift; deliberately scoped out of this mission by Kent 2026-09-18 to avoid doubling the blast radius on allowed-values.json, which gates every commit. Filed as #988 to run after this merges and reuse this generator.",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": null,
+      "title": null,
+      "verdict": "deferred-with-followup",
+      "wp": "WP01"
+    },
+    "#989": {
+      "evidence_ref": "Pre-existing failure on main, reproduced on a clean tree before this mission changed anything; diagnosed to a stale test asserting the pre-#685 observe contract; filed as #989",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": null,
+      "title": null,
+      "verdict": "deferred-with-followup",
+      "wp": "WP01"
+    }
+  },
+  "schema_version": 1
+}

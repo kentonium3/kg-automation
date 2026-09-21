@@ -147,7 +147,7 @@ independent of SSH keys entirely. Termius mobile uses its own SSH ID, NOT any Ma
 2026-06-09 #575 rediscovery wasted ~30 min troubleshooting `authorized_keys` permissions before
 noticing that distinction.
 
-**ACL changes are tracked in [ADR-0004](<./adr/0004-tailscale-ssh-with-accept-acl.md>) § ACL changes log.** Any future change to the tailnet `ssh` rule (action, src/dst/users) must be recorded there. Undocumented changes are how the #575 docs-debt accumulated.
+**ACL changes are tracked in [ADR-0004](<./adr/0004-tailscale-ssh-with-accept-acl.md>) § Decision log.** Any future change to the tailnet `ssh` rule (action, src/dst/users) must be recorded there, as an `amendment` row. (The older `§ ACL changes log` section in that ADR is frozen history and is no longer the write target — #987.) Undocumented changes are how the #575 docs-debt accumulated.
 
 ## Credential Security
 

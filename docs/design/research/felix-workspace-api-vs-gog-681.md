@@ -315,3 +315,7 @@ all decided or recommended above.
 - [ ] On F6 green: mark RFC **accepted** and convert to a **feature issue** for
       the Calendar-helper build (deterministic helper on `google-api-python-client`
       per Q3; judgment-only calendar agent + `felix@intentional.biz` per Q5).
+
+## Decision log
+
+*No entries.*
