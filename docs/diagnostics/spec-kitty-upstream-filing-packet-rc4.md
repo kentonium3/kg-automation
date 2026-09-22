@@ -32,6 +32,59 @@ Every claim below names the build it was tested on.
 
 ---
 
+## ⚠️ READ FIRST — filing ledger, checked 2026-09-22
+
+A batch of QA issues (#4888–#4910) landed upstream on 2026-09-22, **after** this packet was
+first drafted. Three of them intersect the actions below. Check this ledger before filing
+anything — the risk is not just duplicating our own earlier reports, it is duplicating someone
+else's work from the same day.
+
+### Already filed by us — DO NOT re-file
+
+Filed 2026-09-19T17:42 under the work hat, all with `from:qa`. Actions 2–4 reference three of
+these; they are **new issues about persistence after closure**, not re-filings of the originals.
+
+| Upstream | Ours | State | This packet |
+|---|---|---|---|
+| #4775 | #992 | CLOSED | Action 2 files a **new** issue referencing it |
+| #4776 | #993 | CLOSED | ✅ verified fixed — no action |
+| #4777 | #994 | CLOSED | Action 3 files a **new** issue referencing it |
+| #4778 | #995 | CLOSED | ✅ verified fixed — no action |
+| #4779 | #996 | CLOSED | Action 4 files a **new** issue referencing it |
+| #4780 | #997 | CLOSED | ✅ verified fixed — no action |
+| #4782 | #999 | CLOSED | ✅ verified fixed — no action |
+| #4783 | #1000 | OPEN | no action — still open, nothing to contest |
+
+### Filed by someone else on 2026-09-22 — check before filing
+
+| Upstream | Overlaps | Relationship |
+|---|---|---|
+| **#4902** `Windows 11: RC4 still cannot install on a real desktop` — P1, `triage:repro-needed` | **Action 1** (#1005) | ⚠️ **Likely the same failure, and it is explicitly waiting on our evidence.** Its body says *"The meeting note does not contain the failing command or error output, so implementation must begin with evidence capture rather than guessing at a packaging cause."* Action 1 is exactly that evidence: exact command, full traceback, root cause to the line, and the build boundary. It says *install* where ours says *upgrade*, so they may be different — **Kent's call**. See the decision note below. |
+| **#4893** `upgrade ... reports 'Upgrade failed.' (exit 1) after all migrations applied` — P1 | **Action 2** (persistence vs #4775) | Adjacent, probably distinct. Same user-visible class — `upgrade` exits 1 having succeeded — but a different mechanism: theirs is a self-inflicted fingerprint trip that **prints three errors** on a 3.2.0-era project. Ours prints **no errors at all** on a converged project with nothing to do. File Action 2 with an explicit cross-reference to #4893 so triage can merge them if they share a cause. |
+| **#4897** `doctor mission-state --fix quarantines the authoritative DecisionPoint* rows` — **P0** | our DecisionPoint open question | ✅ **Already covered — do not file.** Our register carried this only as an unanswered question (*"is `DecisionPointOpened` correctly classified as a non-status event?"*). #4897 answers it, with far stronger evidence: the decisions ledger is emptied and `agent decision list` drops from 1 to 0. Adjacent to Action 4 but distinct — #4897 is about *which rows* get quarantined, Action 4 is about *where the quarantine is written*. Cross-reference, do not merge. |
+
+### Decision needed on Action 1 vs #4902
+
+Two defensible routes, and this one is Kent's:
+
+1. **Post Action 1's body as a comment on #4902**, supplying the evidence it asks for. Best if
+   Kent's meeting report and our crash are the same failure — it unblocks a P1 that is currently
+   `triage:repro-needed` rather than opening a second Windows issue beside it.
+2. **File Action 1 as its own issue, cross-referencing #4902.** Best if they are genuinely
+   different — `install` and `upgrade` are different commands, and ours is provably an `upgrade`
+   finalizer crash, not a packaging or PATH problem.
+
+Note our procedure ("persistence on a closed issue → new issue") does **not** decide this:
+#4902 is **open**, so commenting on it is the normal path. The only question is whether it is
+the same defect.
+
+### Nothing else in #4888–#4910 overlaps
+
+The remainder concern charter, intake, merge, safe_commit, accept, move-task, encoding and lane
+handling — outside this arc.
+
+---
+
 ## VERIFIED FIXED — no action needed
 
 Four of our reports are confirmed fixed by direct test. Each closing commit was verified to be
@@ -87,7 +140,11 @@ install, upgrade deployment) · `domain:status` (status event-log & lane state m
 
 ---
 
-# Action 1 — FILE NEW ISSUE (never filed; evidence revised 2026-09-22)
+# Action 1 — FILE NEW ISSUE *or* comment on #4902 — SEE LEDGER FIRST
+
+> ⚠️ Upstream **#4902** (`Windows 11: RC4 still cannot install on a real desktop`, P1,
+> `triage:repro-needed`) was filed 2026-09-22 and is explicitly waiting for the evidence this
+> action carries. Decide route per the ledger before posting. Never filed by us.
 
 **Repo**: `spec-kitty/spec-kitty`
 **Local tracking**: kentonium3/kg-automation#1005
@@ -230,6 +287,10 @@ Installed an untagged `main` build (`d57619a90`) by SHA, where the path does not
 ---
 
 # Action 2 — FILE NEW ISSUE (persistence against closed #4775)
+
+> ⚠️ Cross-reference upstream **#4893** (filed 2026-09-22): same symptom class, different
+> mechanism. Ours prints no errors; theirs prints three. Name #4893 in the filing so triage can
+> merge if they share a cause.
 
 **Repo**: `spec-kitty/spec-kitty`
 **References closed issue**: **#4775** — *"Bug: `upgrade --yes` still prompts, and a declined optional remediation exits 1 on a successful upgrade"*
@@ -428,6 +489,10 @@ The `(including 0 manifests)` detail may help narrow it: the manifest repairs do
 ---
 
 # Action 4 — FILE NEW ISSUE (persistence against closed #4779)
+
+> ⚠️ Cross-reference upstream **#4897** (P0, filed 2026-09-22): it covers *which* rows get
+> quarantined; this action covers *where* the quarantine is written. Distinct — do not merge,
+> but link them.
 
 **Repo**: `spec-kitty/spec-kitty`
 **References closed issue**: **#4779** — *"Bug: mission-state repair writes its manifest and quarantined rows into a gitignored path"*
