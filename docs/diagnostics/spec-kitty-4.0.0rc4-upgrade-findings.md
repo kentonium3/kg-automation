@@ -1,6 +1,6 @@
-# Spec-Kitty upgrade findings — 3.2.7 → 4.0.0rc4 (candidate, then released)
+# Spec-Kitty upgrade findings — 3.2.7 → 4.0.0rc4 (candidate, then released) → rc5 dev
 
-**Reporting window**: 2026-09-17 → 2026-09-21
+**Reporting window**: 2026-09-17 → 2026-09-22
 **Host**: Windows 11 Pro 26200 · Python 3.13.7 · `uv tool` install
 **Project**: `kentonium3/kg-automation`, `.kittify` schema_version 3, 125 missions
 **Prepared for**: spec-kitty QA agents. Read the Findings Register first; each row
@@ -19,7 +19,8 @@ bare version string identifies nothing during pre-release QA.
 | 3.2.7 | `fb4e8fa98` | Last PyPI stable. Works on Windows. |
 | 4.0.0rc3 | `fbe1109fa` | Tagged + on PyPI. **Unusable on Windows.** |
 | 4.0.0rc4 candidate | `619bd1137` | Untagged build off `main`. The first thing we tested. |
-| 4.0.0rc4 **released** | `5309c4107` | Tag `v4.0.0rc4` + PyPI wheel, 2026-09-21. **174 commits ahead** of the candidate, `behind_by: 0`. Both report `4.0.0rc4`. |
+| 4.0.0rc4 **released** | `5309c4107` | Tag `v4.0.0rc4` + PyPI wheel. **174 commits ahead** of the candidate, `behind_by: 0`. Both report `4.0.0rc4`. **`upgrade` is broken on Windows here (F15).** |
+| 4.0.0rc5 **dev** ⬅ installed | `d57619a90` | Untagged `main`, 35 commits past the rc4 tag. Installed 2026-09-22 to reach surfaces the F15 crash blocked. |
 
 Install the candidate by SHA:
 
@@ -48,16 +49,16 @@ fatal: Could not reset index file to revision '619bd1137...'
 | F3 | Prerelease channel resolves to a **yanked** release | P2 | **FIXED, verified** | [#982](https://github.com/kentonium3/kg-automation/issues/982) | `cc945affb` (#4705) |
 | F4 | Orientation block always renders `project: unknown` | P2 | **FIXED, verified** | [#983](https://github.com/kentonium3/kg-automation/issues/983) | `68601eea4` (#4706) |
 | F5 | Orientation `health` can never report `upgrade-available` | P2 | **FIXED, partial verify** | [#984](https://github.com/kentonium3/kg-automation/issues/984) | `54a5f86f1` (#4707) |
-| F6 | `upgrade --yes` still prompts; declined remediation exits 1 on success | P2 | **OPEN — unverifiable on released build (F15)** | [#992](https://github.com/kentonium3/kg-automation/issues/992) | — |
-| F7 | `upgrade` fails on `_recheck_command_completion`; needs 3 runs | P2 | **OPEN — unverifiable on released build (F15)** | [#993](https://github.com/kentonium3/kg-automation/issues/993) | — (known scoped-out follow-up) |
-| F8 | Windows `upgrade --dry-run` reports 184 phantom repairs forever | P3 | **OPEN — unverifiable on released build (F15)** | [#994](https://github.com/kentonium3/kg-automation/issues/994) | — |
+| F6 | `upgrade --yes` exits 1 on a successful no-op | P2 | ✅ **REPRODUCES on `d57619a90`** — filing | [#992](https://github.com/kentonium3/kg-automation/issues/992) | — |
+| F7 | `upgrade` fails on `_recheck_command_completion`; needs 3 runs | P2 | ❌ **FIXED on `d57619a90`** — converges in one run | [#993](https://github.com/kentonium3/kg-automation/issues/993) | — (known scoped-out follow-up) |
+| F8 | Windows `upgrade --dry-run` reports 184 phantom repairs forever | P3 | ✅ **REPRODUCES on `d57619a90`** — filing | [#994](https://github.com/kentonium3/kg-automation/issues/994) | — |
 | F9 | `mission-state --fix` rejects legacy `change_mode: regular` | P2 | **FIXED on `5309c4107`** | [#995](https://github.com/kentonium3/kg-automation/issues/995) | — |
 | F10 | Mission-state manifest + quarantined rows written to a **gitignored** path | P2 | **OPEN** | [#996](https://github.com/kentonium3/kg-automation/issues/996) | — |
 | F11 | `mission-state --fix` / `--teamspace-dry-run` report counts with no detail | P3 | **FIXED on `5309c4107`** | [#997](https://github.com/kentonium3/kg-automation/issues/997) | — |
 | F12 | Repo unclonable on default Windows git (path length) | env | **WORKED AROUND** | — (this doc) | n/a — set `core.longpaths` |
 | F13 | `GEMINI.md` orientation never refreshes; `tool-surfaces --fix` no-ops | P3 | **FIXED on `5309c4107`** | [#999](https://github.com/kentonium3/kg-automation/issues/999) | — |
 | F14 | CLI emits both deprecated `TeamSpace` and current `Team Kitty` | P3 | **OPEN** (unchanged on `5309c4107`) | [#1000](https://github.com/kentonium3/kg-automation/issues/1000) | — |
-| F15 | Released rc4: Windows `upgrade` crashes on `os.utime(follow_symlinks=False)` | P1 | **OPEN, blocking** | [#1005](https://github.com/kentonium3/kg-automation/issues/1005) | — |
+| F15 | Released rc4: Windows `upgrade` crashes on `os.utime(follow_symlinks=False)` | P1 | ⚠️ **Latent** — breaks `5309c4107`, dormant on `d57619a90`, call still present | [#1005](https://github.com/kentonium3/kg-automation/issues/1005) | — |
 
 **Reading the Status column.** `FIXED, verified` = observed working on the candidate build `619bd1137`.
 `FIXED on 5309c4107` = still broken on the candidate, confirmed fixed on the released build.
@@ -318,6 +319,60 @@ pre-empted the gate and blockers had been cleared separately. Inconclusive.
 
 ---
 
+## rc5 dev build (`d57619a90`) — verification, 2026-09-22
+
+Installed the untagged `main` HEAD specifically to reach surfaces the F15 crash blocked on the
+released build. `upgrade` runs here, so F6/F7/F8 could finally be judged.
+
+### F7 — FIXED
+
+`upgrade` converged in a **single** run; runs 2 and 3 were clean no-ops. The three-invocation
+requirement is gone. Upstream #4776, fixed by `92a200070`, verified as an ancestor of this build.
+
+### F6 — REPRODUCES, and more cleanly than we first reported
+
+```text
+Current version: 4.0.0rc5
+Target version:  4.0.0rc5
+
+Project is already up to date!
+```
+**EXIT=1** — on a clean tree, `current == target`, with no prompt, no gate, no warning and no
+errors. Upstream #4775 is CLOSED as completed by `cdde1cb51`, an ancestor of this build. The
+**prompt half is genuinely fixed**; only the exit code persists.
+
+Our original report confounded the two: exit 1 arrived alongside a declined Team Kitty prompt,
+so prompt-suppression and exit status could not be separated. Here there is nothing to decline.
+
+### F8 — REPRODUCES, and this is its first valid test
+
+```text
+doctor tool-surfaces  ->  exit=0, 0 missing, 0 stale
+dry-run: 'Would repair 184 supporting surface paths (including 0 manifests). …'
+dry-run: 'Would repair 184 supporting surface paths (including 0 manifests). …'
+```
+
+The issue's premise is "after convergence", which the F15 crash had made unreachable — so this
+is the first time it could be tested at all. The count is **184**, the original figure, on a
+converged project while the auditor reports clean.
+
+⚠️ Our root cause may be wrong. We blamed unconvergeable `chmod` effects; `92a200070` added
+exactly the host-aware relaxation that theory predicts, its convergence half demonstrably works,
+and the count did not move.
+
+### F15 — latent, not fixed
+
+Does not reproduce here, but all five `follow_symlinks=False` calls survive (the culprit moved
+to line 981). Dormant in `619bd1137`, exposed in `5309c4107`, dormant again in `d57619a90` —
+reachability changed, the call never did. The **released** build on PyPI remains broken.
+
+### Unchanged
+
+F10 (gitignored manifest) and F14 (Team Kitty naming, 328 occurrences) both re-verified as
+still present.
+
+---
+
 ## Upstream routing map — read before filing anything
 
 These findings are produced under Kent's **personal hat** (discovery and analysis, tracked as
@@ -334,9 +389,9 @@ Ready-to-post copy for every outbound action:
 
 | Ours | Upstream | Upstream state | Verdict on `5309c4107` | Filing action |
 |---|---|---|---|---|
-| #992 | spec-kitty#4775 | CLOSED completed | unverifiable (F15) | 🚫 already routed |
-| #993 | spec-kitty#4776 | CLOSED completed | unverifiable (F15) | 🚫 already routed |
-| #994 | spec-kitty#4777 | CLOSED completed | unverifiable (F15) | 🚫 already routed |
+| #992 | spec-kitty#4775 | CLOSED completed | ✅ **reproduces** on `d57619a90` | ✅ **file new issue ref. #4775** |
+| #993 | spec-kitty#4776 | CLOSED completed | ❌ **verified fixed** | 🚫 no action |
+| #994 | spec-kitty#4777 | CLOSED completed | ✅ **reproduces** on `d57619a90` | ✅ **file new issue ref. #4777** |
 | #995 | spec-kitty#4778 | CLOSED completed | ✅ fixed, verified | 🚫 already routed |
 | #996 | spec-kitty#4779 | CLOSED completed | ❌ **still present** | ✅ **file new issue ref. #4779** |
 | #997 | spec-kitty#4780 | CLOSED completed | ✅ fixed, verified | 🚫 already routed |
@@ -345,7 +400,9 @@ Ready-to-post copy for every outbound action:
 | #1005 | — | not filed | 🔴 new blocker | ✅ **file** |
 | #1006 | — | not filed | this register's verdict | ✅ **file** |
 
-**Net: three new upstream issues.** Everything else is already upstream.
+**Net: five new upstream issues plus one comment** on open #4902. See the
+[filing packet](<./spec-kitty-upstream-filing-packet-rc4.md>) for ready-to-post copy, suggested
+labels, and a ledger separating already-filed from new.
 
 ### Two corrections this mapping surfaced
 
@@ -416,4 +473,5 @@ and they look like legitimate mission history.
   [`runbooks/spec-kitty-bug-reporting.md`](<../runbooks/spec-kitty-bug-reporting.md>).
   **See the Upstream routing map above before filing**, and use the ready-to-post copy in
   [`spec-kitty-upstream-filing-packet-rc4.md`](<./spec-kitty-upstream-filing-packet-rc4.md>).
-  Everything except #996, #1005 and #1006 is already upstream as spec-kitty#4775–#4783.
+  #4775–#4783 are already upstream; #992, #994, #996, #1005 and #1006 need new filings, and
+  #4902 needs a comment.
