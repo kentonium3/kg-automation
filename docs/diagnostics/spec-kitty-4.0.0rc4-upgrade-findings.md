@@ -20,12 +20,12 @@ bare version string identifies nothing during pre-release QA.
 | 4.0.0rc3 | `fbe1109fa` | Tagged + on PyPI. **Unusable on Windows.** |
 | 4.0.0rc4 candidate | `619bd1137` | Untagged build off `main`. The first thing we tested. |
 | 4.0.0rc4 **released** | `5309c4107` | Tag `v4.0.0rc4` + PyPI wheel. **174 commits ahead** of the candidate, `behind_by: 0`. Both report `4.0.0rc4`. **`upgrade` is broken on Windows here (F15).** |
-| 4.0.0rc5 **dev** ⬅ installed | `d57619a90` | Untagged `main`, 35 commits past the rc4 tag. Installed 2026-09-22 to reach surfaces the F15 crash blocked. |
+| 4.0.0rc5 **dev** ⬅ installed | `d57619a90` | Untagged `main`, 35 commits past the rc4 tag. Installed 2026-09-22 to reach surfaces the F15 crash blocked. Upstream `main` was 3 commits further (`b7d9dc79f`) at last check; still no rc5 tag. |
 
-Install the candidate by SHA:
+Install any build by SHA (the installed one shown; swap the SHA for the others):
 
 ```bash
-uv tool install --force "git+https://github.com/spec-kitty/spec-kitty.git@619bd11376342abaae67e18588ff12c2def336f1"
+uv tool install --force "git+https://github.com/spec-kitty/spec-kitty.git@d57619a900277ef388608dca4390c38758a06db0"
 ```
 
 ⚠️ **Windows prerequisite**: `git config --global core.longpaths true`. The
@@ -49,20 +49,26 @@ fatal: Could not reset index file to revision '619bd1137...'
 | F3 | Prerelease channel resolves to a **yanked** release | P2 | **FIXED, verified** | [#982](https://github.com/kentonium3/kg-automation/issues/982) | `cc945affb` (#4705) |
 | F4 | Orientation block always renders `project: unknown` | P2 | **FIXED, verified** | [#983](https://github.com/kentonium3/kg-automation/issues/983) | `68601eea4` (#4706) |
 | F5 | Orientation `health` can never report `upgrade-available` | P2 | **FIXED, partial verify** | [#984](https://github.com/kentonium3/kg-automation/issues/984) | `54a5f86f1` (#4707) |
-| F6 | `upgrade --yes` exits 1 on a successful no-op | P2 | ✅ **REPRODUCES on `d57619a90`** — filing | [#992](https://github.com/kentonium3/kg-automation/issues/992) | — |
-| F7 | `upgrade` fails on `_recheck_command_completion`; needs 3 runs | P2 | ❌ **FIXED on `d57619a90`** — converges in one run | [#993](https://github.com/kentonium3/kg-automation/issues/993) | — (known scoped-out follow-up) |
-| F8 | Windows `upgrade --dry-run` reports 184 phantom repairs forever | P3 | ✅ **REPRODUCES on `d57619a90`** — filing | [#994](https://github.com/kentonium3/kg-automation/issues/994) | — |
-| F9 | `mission-state --fix` rejects legacy `change_mode: regular` | P2 | **FIXED on `5309c4107`** | [#995](https://github.com/kentonium3/kg-automation/issues/995) | — |
-| F10 | Mission-state manifest + quarantined rows written to a **gitignored** path | P2 | **OPEN** | [#996](https://github.com/kentonium3/kg-automation/issues/996) | — |
-| F11 | `mission-state --fix` / `--teamspace-dry-run` report counts with no detail | P3 | **FIXED on `5309c4107`** | [#997](https://github.com/kentonium3/kg-automation/issues/997) | — |
-| F12 | Repo unclonable on default Windows git (path length) | env | **WORKED AROUND** | — (this doc) | n/a — set `core.longpaths` |
-| F13 | `GEMINI.md` orientation never refreshes; `tool-surfaces --fix` no-ops | P3 | **FIXED on `5309c4107`** | [#999](https://github.com/kentonium3/kg-automation/issues/999) | — |
-| F14 | CLI emits both deprecated `TeamSpace` and current `Team Kitty` | P3 | **OPEN** (unchanged on `5309c4107`) | [#1000](https://github.com/kentonium3/kg-automation/issues/1000) | — |
-| F15 | Released rc4: Windows `upgrade` crashes on `os.utime(follow_symlinks=False)` | P1 | ⚠️ **Latent** — breaks `5309c4107`, dormant on `d57619a90`, call still present | [#1005](https://github.com/kentonium3/kg-automation/issues/1005) | — |
+| F6 | `upgrade --yes` exits 1 on a successful no-op | P2 | **REPRODUCES on `d57619a90`** — prompt half fixed, exit code persists; filing | [#992](https://github.com/kentonium3/kg-automation/issues/992) | `cdde1cb51` (#4775, partial) |
+| F7 | `upgrade` fails on `_recheck_command_completion`; needs 3 runs | P2 | **FIXED on `d57619a90`** — converges in one run | [#993](https://github.com/kentonium3/kg-automation/issues/993) | `92a200070` (#4776) |
+| F8 | Windows `upgrade --dry-run` reports 184 phantom repairs forever | P3 | **REPRODUCES on `d57619a90`** — filing | [#994](https://github.com/kentonium3/kg-automation/issues/994) | — (#4777 closed, not fixed) |
+| F9 | `mission-state --fix` rejects legacy `change_mode: regular` | P2 | **FIXED on `5309c4107`** | [#995](https://github.com/kentonium3/kg-automation/issues/995) | `b25f45a56` (#4778) |
+| F10 | Mission-state manifest + quarantined rows written to a **gitignored** path | P2 | **OPEN** on `d57619a90` — filing | [#996](https://github.com/kentonium3/kg-automation/issues/996) | — (#4779 closed, not fixed) |
+| F11 | `mission-state --fix` / `--teamspace-dry-run` report counts with no detail | P3 | **FIXED on `5309c4107`** | [#997](https://github.com/kentonium3/kg-automation/issues/997) | `b25f45a56` (#4780) |
+| F12 | Repo unclonable on default Windows git (path length) | env | **WORKED AROUND**; upstream #4781 open | — (this doc) | n/a — set `core.longpaths` |
+| F13 | `GEMINI.md` orientation never refreshes; `tool-surfaces --fix` no-ops | P3 | **FIXED on `5309c4107`** | [#999](https://github.com/kentonium3/kg-automation/issues/999) | `92a200070` (#4782) |
+| F14 | CLI emits both deprecated `TeamSpace` and current `Team Kitty` | P3 | **OPEN** on `d57619a90` (328 occurrences) | [#1000](https://github.com/kentonium3/kg-automation/issues/1000) | — (#4783 open) |
+| F15 | Released rc4: Windows `upgrade` crashes on `os.utime(follow_symlinks=False)` | P1 | ⚠️ **Latent** — breaks `5309c4107`, dormant on `d57619a90`, call still present; filing | [#1005](https://github.com/kentonium3/kg-automation/issues/1005) | — |
 
 **Reading the Status column.** `FIXED, verified` = observed working on the candidate build `619bd1137`.
-`FIXED on 5309c4107` = still broken on the candidate, confirmed fixed on the released build.
-`OPEN` = reproduces on the released build. `unverifiable` = the command under test crashes first (F15).
+`FIXED on <build>` = still broken on the previous build, confirmed fixed on the named one.
+`REPRODUCES` / `OPEN on d57619a90` = re-tested on the installed dev build and still present.
+Every upstream fix commit named here is an ancestor of `d57619a90` (checked with the GitHub compare API, 2026-09-22).
+
+**Observation, not yet a finding.** `.kittify/metadata.yaml`'s `environment:` block (`platform: darwin`,
+macOS 26.3.1, Python 3.13.12) was written at `init` on the Mac on 2026-03-26 and has not been touched by
+any upgrade since — three of which ran on this Windows box. Whether that block is init-time provenance
+or is meant to track the current host is unclear; not filed.
 
 ⚠️ **Terminology note for QA agents.** "TeamSpace" is **deprecated**; the product is **Team Kitty**. This document quotes CLI output verbatim, so `TeamSpace` appears throughout where the CLI emits it — that is evidence for F14, not our usage. Use **Team Kitty** in your own reports and reserve `TeamSpace` for quoted CLI strings and the `--teamspace-dry-run` / `teamspace-blocker` identifiers, which are still the literal names on the command line.
 
@@ -135,7 +141,8 @@ affirmative claim) rather than distinguishing "not checked".
 
 > **Read with the register above.** F9, F11 and F13 below describe the *candidate* build and were
 > subsequently **fixed on the released build** — kept as the original evidence, superseded by the
-> released-build section further down. F6–F8 could not be re-tested at all (F15).
+> released-build section further down. F6–F8 could not be re-tested on the released build (F15);
+> they were re-tested on the rc5 dev build — see that section: F7 fixed, F6 and F8 reproduce.
 
 ### F6 · `--yes` does not suppress the TeamSpace prompt, and success exits 1
 
@@ -387,18 +394,19 @@ easy to miss and does not re-enter triage. Comments stay correct for issues stil
 Ready-to-post copy for every outbound action:
 [`spec-kitty-upstream-filing-packet-rc4.md`](<./spec-kitty-upstream-filing-packet-rc4.md>).
 
-| Ours | Upstream | Upstream state | Verdict on `5309c4107` | Filing action |
+| Ours | Upstream | Upstream state | Verdict on `d57619a90` (latest build tested) | Filing action |
 |---|---|---|---|---|
-| #992 | spec-kitty#4775 | CLOSED completed | ✅ **reproduces** on `d57619a90` | ✅ **file new issue ref. #4775** |
-| #993 | spec-kitty#4776 | CLOSED completed | ❌ **verified fixed** | 🚫 no action |
-| #994 | spec-kitty#4777 | CLOSED completed | ✅ **reproduces** on `d57619a90` | ✅ **file new issue ref. #4777** |
-| #995 | spec-kitty#4778 | CLOSED completed | ✅ fixed, verified | 🚫 already routed |
-| #996 | spec-kitty#4779 | CLOSED completed | ❌ **still present** | ✅ **file new issue ref. #4779** |
-| #997 | spec-kitty#4780 | CLOSED completed | ✅ fixed, verified | 🚫 already routed |
-| #999 | spec-kitty#4782 | CLOSED completed | ✅ fixed, verified | 🚫 already routed |
-| #1000 | spec-kitty#4783 (+ epic #4793, #3154) | OPEN | ❌ still present | 🚫 already routed |
-| #1005 | — | not filed | 🔴 new blocker | ✅ **file** |
-| #1006 | — | not filed | this register's verdict | ✅ **file** |
+| #992 (F6) | spec-kitty#4775 | CLOSED completed | **reproduces** (exit code only) | **file new issue ref. #4775** |
+| #993 (F7) | spec-kitty#4776 | CLOSED completed | fixed, verified | no action |
+| #994 (F8) | spec-kitty#4777 | CLOSED completed | **reproduces** | **file new issue ref. #4777** |
+| #995 (F9) | spec-kitty#4778 | CLOSED completed | fixed, verified | already routed |
+| #996 (F10) | spec-kitty#4779 | CLOSED completed | **still present** | **file new issue ref. #4779** |
+| #997 (F11) | spec-kitty#4780 | CLOSED completed | fixed, verified | already routed |
+| — (F12) | spec-kitty#4781 | OPEN | still required (`core.longpaths`) | already routed |
+| #999 (F13) | spec-kitty#4782 | CLOSED completed | fixed, verified | already routed |
+| #1000 (F14) | spec-kitty#4783 (+ epic #4793, #3154) | OPEN | still present | already routed |
+| #1005 (F15) | — | not filed | latent (crashes `5309c4107` only) | **file**, then comment on open #4902 |
+| #1006 | — | not filed | this register's verdict | **file** |
 
 **Net: five new upstream issues plus one comment** on open #4902. See the
 [filing packet](<./spec-kitty-upstream-filing-packet-rc4.md>) for ready-to-post copy, suggested
@@ -435,9 +443,12 @@ Quarantined:         20 rows across 6 missions, all DecisionPointOpened
                      events tagged `quarantined_non_status_event`
 ```
 
-Open question for QA, not investigated here: **is `DecisionPointOpened` correctly
-classified as a non-status event?** Six were evicted from one mission's status log
-and they look like legitimate mission history.
+We asked at the time whether `DecisionPointOpened` is correctly classified as a non-status
+event. **Answered upstream on 2026-09-22 — it is not.** #4897 (P0, open) shows the consequence
+is worse than eviction: `doctor decisions --repair` then empties the decisions ledger, and
+`agent decision list` drops from 1 to 0. #4919 (open) is an adjacent defect in the same fold.
+Our 20 quarantined rows are still recoverable from git, since the source `status.events.jsonl`
+files are tracked (see F10).
 
 ---
 
@@ -445,20 +456,23 @@ and they look like legitimate mission history.
 
 1. **Confirm F5's positive branch** on an environment running an older build, so
    `upgrade-available` is reachable.
-2. **Does F7 reproduce with a single agent configured?** Our projection covered
-   five (`copilot, claude, gemini, codex, antigravity`). If it converges in one run
-   with fewer, that localises the race.
+2. ~~Does F7 reproduce with a single agent configured?~~ Moot — F7 is fixed on
+   `d57619a90`, and the root cause was a Windows POSIX-mode assertion, not the race.
 3. **Does F8 occur on macOS/Linux?** If the count converges there, it is purely a
-   Windows mode-representability issue.
-4. **What replaced `change_mode: regular` (F9)?** Nothing in the error names a
-   migration path.
+   Windows mode-representability issue — though see the rc5 section: the `chmod`
+   theory now looks doubtful.
+4. ~~What replaced `change_mode: regular` (F9)?~~ Answered by `b25f45a56`: legacy
+   values are normalized in place (`normalized_change_mode:regular`), not migrated.
 5. **Was `.kittify/migrations/` ignored before the quarantine feature existed
    (F10)?** That would make it an unnoticed collision rather than a decision.
 6. **Do other partially-supported tool surfaces share F13's shape** — audited
-   but not repairable, with `--fix` exiting 0 regardless? Gemini may not be the
-   only one.
+   but not repairable, with `--fix` exiting 0 regardless? Gemini was fixed; the
+   pattern may survive elsewhere.
 7. **How far does the F14 rename reach beyond the CLI?** The hosted dashboard,
    API responses and upstream docs are separate surfaces; the CLI is only one.
+8. **Is F15 Windows-only?** `os.utime in os.supports_follow_symlinks` is `True` on
+   Linux, so almost certainly — a Linux run of the released rc4's `upgrade --yes`
+   would settle it.
 
 ---
 
@@ -467,11 +481,12 @@ and they look like legitimate mission history.
 - Restore point for the mission-state repair: git tag
   `pre-mission-state-fix-20260919` (commit `2bc3b749`), plus an out-of-tree
   backup with a `RESTORE.md` procedure.
-- Upgrade artifacts commit: `2bc3b749`.
+- Upgrade artifacts commits: `2bc3b749` (rc4 candidate), `d2557501` (released rc4),
+  `6d004746` (rc5 dev).
 - Each issue listed above embeds a slim upstream-ready draft in a fenced block,
   per the dual-track model in
   [`runbooks/spec-kitty-bug-reporting.md`](<../runbooks/spec-kitty-bug-reporting.md>).
   **See the Upstream routing map above before filing**, and use the ready-to-post copy in
   [`spec-kitty-upstream-filing-packet-rc4.md`](<./spec-kitty-upstream-filing-packet-rc4.md>).
-  #4775–#4783 are already upstream; #992, #994, #996, #1005 and #1006 need new filings, and
-  #4902 needs a comment.
+  #4775–#4783 (nine issues, including #4781 for F12) are already upstream; #992, #994, #996,
+  #1005 and #1006 need new filings, and #4902 needs a comment.
