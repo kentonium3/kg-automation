@@ -55,6 +55,28 @@ Verified against `spec-kitty/spec-kitty` on 2026-09-21, so these are real values
 | `domain:status` | Status event-log & lane state machine |
 | `domain:cli` | Control-plane / CLI command surface |
 
+## Template conformance
+
+Every body below is the upstream copy from its kg-automation tracking issue, shaped to the
+[external bug-report template](<./spec-kitty-bug-report-external-template.md>): `# Bug: {title}`,
+`## Summary`, `## Reproduction` (Prerequisites / Steps / Expected / Actual), `## Root Cause`,
+`## Workaround Applied`, `## Environment`, attribution + approval footer. No frontmatter, no
+priority, no status, no suggested fix, no internal issue or mission references — all excluded by
+the template on purpose.
+
+Two deliberate deviations, both noted rather than silently applied:
+
+- **Action 2** omits `## Root Cause` and `## Workaround Applied`. The template marks both
+  optional ("skip entirely if unknown"), and a verification report has neither — there is no
+  single defect to diagnose. It adds four verdict sections instead, and its `## Reproduction`
+  gives the commands that produced each verdict.
+- **Action 3** adds `## Build tested`, which the
+  [upstream comment template](<./spec-kitty-upstream-comment-template.md>) makes non-negotiable
+  for any comment renewing a defect claim. This is a new issue rather than a comment, but it is
+  still a persistence claim against a closed issue, so the build pinning and the
+  recurrence-vs-persistence framing carry over. It also adds `## Mitigation` so the maintainer
+  can weigh severity without having to infer it.
+
 ---
 
 # Action 1 — FILE NEW ISSUE
@@ -231,6 +253,39 @@ Windows verification of the released 4.0.0rc4. Three previously-reported defects
 
 Tested build `5309c4107` (tag `v4.0.0rc4`, PyPI wheel), against the prior candidate build `619bd1137` — 174 commits behind, `behind_by: 0`. Both report `spec-kitty-cli version 4.0.0rc4`; only the build distinguishes them.
 
+## Reproduction
+
+This is a verification report rather than a defect report, so "reproduction" here means the
+commands that produced each verdict below, on the build named above.
+
+### Prerequisites
+
+- Windows, `uv tool install --force "spec-kitty-cli==4.0.0rc4"`
+- A long-lived project with legacy missions (`01KS*`/`01KT*`-era `change_mode: regular`), a
+  `GEMINI.md` orientation block stale since 3.2.6, and mission-state blockers present
+
+### Steps
+
+```bash
+spec-kitty --version
+spec-kitty doctor mission-state --audit          # baseline
+spec-kitty doctor mission-state --fix            # exercises #4778 / #4780
+spec-kitty doctor mission-state --audit          # end state
+grep -m1 -o 'Spec Kitty v[0-9a-zrc.]*' GEMINI.md
+spec-kitty doctor tool-surfaces --tool gemini --fix   # exercises #4782
+grep -m1 -o 'Spec Kitty v[0-9a-zrc.]*' GEMINI.md
+spec-kitty upgrade --yes                         # crashes; see the blocker below
+```
+
+### Expected Behavior
+
+The three fixes referenced above hold on Windows, and `upgrade` completes.
+
+### Actual Behavior
+
+The three fixes hold; `upgrade` does not complete. Per-verdict output is given in the sections
+that follow.
+
 ## Confirmed fixed on Windows
 
 **`b25f45a56` — repair legacy `change_mode` instead of aborting; honest per-mission reporting (#4778 #4780 #4779).** Both halves verified.
@@ -374,6 +429,13 @@ Both still ignored. Nothing in the command output indicates the artifacts it poi
 > `--fix` and `--teamspace-dry-run` now report per-mission slug + reason in the terminal and `--json` (dry-run parity), so triage no longer requires reading the gitignored manifest.
 
 That fully resolves the diagnosability consequence, and we can confirm it works on Windows — per-mission slug and reason now render. But diagnosability was the subject of #4780. #4779's concern was placement: the record of a destructive mutation, and rows removed from tracked files, are written where git will not keep them. Removing the need to *read* the manifest does not make it durable.
+
+## Workaround Applied
+
+The whole `.kittify/migrations/` tree is copied to an out-of-tree backup directory immediately
+after every repair run, alongside a pre-repair git tag, and a restore procedure documents both.
+That is the only reason the quarantined rows from an earlier run on this project still exist in
+a form independent of the working tree.
 
 ## Mitigation, for weighing severity
 
