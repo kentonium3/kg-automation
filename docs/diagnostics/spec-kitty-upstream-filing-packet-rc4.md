@@ -8,8 +8,8 @@ last_updated: '2026-09-22'
 
 # Upstream filing packet — rc4 released (`5309c4107`) and rc5 dev (`d57619a90`)
 
-**For the spec-kitty QA bot.** Five outbound issue filings, ready to post. Four are defects,
-one is a verification report. Everything else from this arc is already upstream — see the
+**For the spec-kitty QA bot.** Six outbound posts: five new issues (four defects, one
+verification report) plus one comment on an open upstream issue. Everything else from this arc is already upstream — see the
 do-not-file list at the bottom before acting.
 
 ## Why this artifact exists
@@ -59,24 +59,22 @@ these; they are **new issues about persistence after closure**, not re-filings o
 
 | Upstream | Overlaps | Relationship |
 |---|---|---|
-| **#4902** `Windows 11: RC4 still cannot install on a real desktop` — P1, `triage:repro-needed` | **Action 1** (#1005) | ⚠️ **Likely the same failure, and it is explicitly waiting on our evidence.** Its body says *"The meeting note does not contain the failing command or error output, so implementation must begin with evidence capture rather than guessing at a packaging cause."* Action 1 is exactly that evidence: exact command, full traceback, root cause to the line, and the build boundary. It says *install* where ours says *upgrade*, so they may be different — **Kent's call**. See the decision note below. |
+| **#4902** `Windows 11: RC4 still cannot install on a real desktop` — P1, `triage:repro-needed` | **Actions 1 + 1b** | ✅ **Decided: file separately, then comment.** #4902 asks for evidence we hold; Action 1 files the diagnosed `upgrade` defect on its own, Action 1b posts the pointer comment supplying what #4902 asked for. Stijn will close #4902. |
 | **#4893** `upgrade ... reports 'Upgrade failed.' (exit 1) after all migrations applied` — P1 | **Action 2** (persistence vs #4775) | Adjacent, probably distinct. Same user-visible class — `upgrade` exits 1 having succeeded — but a different mechanism: theirs is a self-inflicted fingerprint trip that **prints three errors** on a 3.2.0-era project. Ours prints **no errors at all** on a converged project with nothing to do. File Action 2 with an explicit cross-reference to #4893 so triage can merge them if they share a cause. |
 | **#4897** `doctor mission-state --fix quarantines the authoritative DecisionPoint* rows` — **P0** | our DecisionPoint open question | ✅ **Already covered — do not file.** Our register carried this only as an unanswered question (*"is `DecisionPointOpened` correctly classified as a non-status event?"*). #4897 answers it, with far stronger evidence: the decisions ledger is emptied and `agent decision list` drops from 1 to 0. Adjacent to Action 4 but distinct — #4897 is about *which rows* get quarantined, Action 4 is about *where the quarantine is written*. Cross-reference, do not merge. |
 
-### Decision needed on Action 1 vs #4902
+### Action 1 vs #4902 — DECIDED
 
-Two defensible routes, and this one is Kent's:
+**Kent, 2026-09-22: file separately, and comment on #4902.** Stijn will close #4902 and take
+action on the others.
 
-1. **Post Action 1's body as a comment on #4902**, supplying the evidence it asks for. Best if
-   Kent's meeting report and our crash are the same failure — it unblocks a P1 that is currently
-   `triage:repro-needed` rather than opening a second Windows issue beside it.
-2. **File Action 1 as its own issue, cross-referencing #4902.** Best if they are genuinely
-   different — `install` and `upgrade` are different commands, and ours is provably an `upgrade`
-   finalizer crash, not a packaging or PATH problem.
+So Action 1 produces two posts: the new issue (Action 1), then a short pointer comment on
+#4902 (Action 1b) carrying the evidence it asked for and naming the new issue. Do them in that
+order — the comment must be able to cite the new issue number.
 
-Note our procedure ("persistence on a closed issue → new issue") does **not** decide this:
-#4902 is **open**, so commenting on it is the normal path. The only question is whether it is
-the same defect.
+Filing separately is the right call on the substance too: #4902 describes *install* failing,
+while ours is provably an `upgrade` finalizer crash with a traced root cause. Folding a
+diagnosed `upgrade` defect into an undiagnosed `install` report would bury it.
 
 ### Nothing else in #4888–#4910 overlaps
 
@@ -140,11 +138,11 @@ install, upgrade deployment) · `domain:status` (status event-log & lane state m
 
 ---
 
-# Action 1 — FILE NEW ISSUE *or* comment on #4902 — SEE LEDGER FIRST
+# Action 1 — FILE NEW ISSUE, **then** comment on #4902
 
-> ⚠️ Upstream **#4902** (`Windows 11: RC4 still cannot install on a real desktop`, P1,
-> `triage:repro-needed`) was filed 2026-09-22 and is explicitly waiting for the evidence this
-> action carries. Decide route per the ledger before posting. Never filed by us.
+> ✅ **Route decided (Kent, 2026-09-22): do both.** File this as its own issue, then post the
+> short pointer comment in Action 1b on upstream **#4902**. Stijn will close #4902 and act on
+> the rest. Never filed by us before.
 
 **Repo**: `spec-kitty/spec-kitty`
 **Local tracking**: kentonium3/kg-automation#1005
@@ -283,6 +281,45 @@ Installed an untagged `main` build (`d57619a90`) by SHA, where the path does not
 **Authored by**: Kent Gale (kentonium3/kg-automation) & Claude Code (Claude Opus 5), 2026-09-22.
 **Submission approved by**: PENDING — copy revised 2026-09-22, not yet approved.
 **Local tracking**: kentonium3/kg-automation#1005.
+
+---
+
+# Action 1b — COMMENT on open issue #4902
+
+**Repo**: `spec-kitty/spec-kitty`
+**Target**: open issue **#4902** — *"Windows 11: RC4 still cannot install on a real desktop"*
+**Post AFTER Action 1**, so the new issue number can be cited.
+**Copy approved**: ❌ **NOT YET** — drafted 2026-09-22.
+
+This is a comment, not a new issue, because #4902 is **open** — the closed-issue procedure does
+not apply. No labels to set; Stijn is expected to close it.
+
+**Body** — replace `#NNNN` with the issue number Action 1 produces:
+
+---
+
+Supplying the failing command and error output this issue asks for, from a Windows 11 desktop.
+
+The failure I hit is in `upgrade`, not `install` — the released rc4 installs fine here via `uv tool install --force "spec-kitty-cli==4.0.0rc4"`. Filed separately as #NNNN with the full traceback and root cause, rather than folded in here, because it is a diagnosed defect in a different command and would be buried under an undiagnosed packaging report.
+
+Summary, in case it is the same thing Kent reported in the meeting:
+
+- Installation itself succeeds. `--version`, `doctor channel`, `session-start`, `config` and `doctor tool-surfaces` all exit 0.
+- `spec-kitty upgrade` fails deterministically with `NotImplementedError: utime: follow_symlinks unavailable on this platform`, raised at `specify_cli/skills/installer.py:980`.
+- Root cause is `os.utime(..., follow_symlinks=False)` applied to `after.kind in {"file", "symlink"}`. On a regular file the flag is unnecessary, and Windows does not support it (`os.utime not in os.supports_follow_symlinks`).
+- Not a packaging, PATH, SmartScreen or Mark-of-the-Web problem.
+
+Build boundary, which may be the most useful part: the call is **present in all three builds** and the crash appears only in the released one.
+
+| Build | Reaches the call? |
+|---|---|
+| `619bd1137` (pre-release rc4 candidate) | no — upgrade succeeds |
+| `5309c4107` (released `v4.0.0rc4`) | **yes — crashes** |
+| `d57619a90` (main, rc5 dev) | no — upgrade succeeds |
+
+So it is latent rather than fixed: `92a200070` changed which paths reach the call, not the call itself. Four sibling `follow_symlinks=False` sites remain in the same module on current `main`. Full detail and the reduced repro are in #NNNN.
+
+Environment: Windows 11 Pro 26200, Python 3.13.7, `uv tool` install from PyPI.
 
 ---
 
