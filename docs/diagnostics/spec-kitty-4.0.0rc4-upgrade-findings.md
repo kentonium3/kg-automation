@@ -326,9 +326,11 @@ issues. That is why every upstream issue below carries the `from:qa` label and a
 our draft verbatim — they are *these* reports, re-routed, not independent duplicates.
 
 **Before filing, check this table.** A second upstream issue for an already-routed finding
-would be a duplicate; persistence after closure belongs as a **comment** on the existing
-upstream issue per the
-[upstream comment template](<./spec-kitty-upstream-comment-template.md>).
+would be a duplicate. Persistence or recurrence against a **closed** upstream issue is filed as
+a **new issue referencing the closed one** (Kent, 2026-09-21) — a comment on a closed issue is
+easy to miss and does not re-enter triage. Comments stay correct for issues still **open**.
+Ready-to-post copy for every outbound action:
+[`spec-kitty-upstream-filing-packet-rc4.md`](<./spec-kitty-upstream-filing-packet-rc4.md>).
 
 | Ours | Upstream | Upstream state | Verdict on `5309c4107` | Filing action |
 |---|---|---|---|---|
@@ -336,14 +338,14 @@ upstream issue per the
 | #993 | spec-kitty#4776 | CLOSED completed | unverifiable (F15) | 🚫 already routed |
 | #994 | spec-kitty#4777 | CLOSED completed | unverifiable (F15) | 🚫 already routed |
 | #995 | spec-kitty#4778 | CLOSED completed | ✅ fixed, verified | 🚫 already routed |
-| #996 | spec-kitty#4779 | CLOSED completed | ❌ **still present** | 📣 **comment on #4779** |
+| #996 | spec-kitty#4779 | CLOSED completed | ❌ **still present** | ✅ **file new issue ref. #4779** |
 | #997 | spec-kitty#4780 | CLOSED completed | ✅ fixed, verified | 🚫 already routed |
 | #999 | spec-kitty#4782 | CLOSED completed | ✅ fixed, verified | 🚫 already routed |
 | #1000 | spec-kitty#4783 (+ epic #4793, #3154) | OPEN | ❌ still present | 🚫 already routed |
 | #1005 | — | not filed | 🔴 new blocker | ✅ **file** |
 | #1006 | — | not filed | this register's verdict | ✅ **file** |
 
-**Net: two new upstream issues plus one comment.** Everything else is already upstream.
+**Net: three new upstream issues.** Everything else is already upstream.
 
 ### Two corrections this mapping surfaced
 
@@ -412,6 +414,6 @@ and they look like legitimate mission history.
 - Each issue listed above embeds a slim upstream-ready draft in a fenced block,
   per the dual-track model in
   [`runbooks/spec-kitty-bug-reporting.md`](<../runbooks/spec-kitty-bug-reporting.md>).
-  **See the Upstream routing map above before filing.** Everything except #1005 and #1006
-  is already upstream as spec-kitty#4775–#4783; only those two remain to file, plus a
-  persistence comment on spec-kitty#4779.
+  **See the Upstream routing map above before filing**, and use the ready-to-post copy in
+  [`spec-kitty-upstream-filing-packet-rc4.md`](<./spec-kitty-upstream-filing-packet-rc4.md>).
+  Everything except #996, #1005 and #1006 is already upstream as spec-kitty#4775–#4783.
