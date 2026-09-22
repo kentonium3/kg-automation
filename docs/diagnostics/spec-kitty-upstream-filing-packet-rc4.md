@@ -4,12 +4,14 @@ doc_type: note
 audience: agents_and_humans
 status: active
 last_updated: '2026-09-22'
+filed: '2026-09-22'
 ---
 
 # Upstream filing packet — rc4 released (`5309c4107`) and rc5 dev (`d57619a90`)
 
 **For the spec-kitty QA bot.** Six outbound posts: five new issues (four defects, one
-verification report) plus one comment on an open upstream issue. Everything else from this arc is already upstream — see the
+verification report) plus one comment on an open upstream issue. **All filed 2026-09-22 under the
+work hat, plus one extra correction comment — see the completion ledger at the top of the actions.** Everything else from this arc is already upstream — see the
 do-not-file list at the bottom before acting.
 
 ## Why this artifact exists
@@ -138,6 +140,44 @@ install, upgrade deployment) · `domain:status` (status event-log & lane state m
 
 ---
 
+# ✅ FILED — completion ledger, 2026-09-22
+
+Every post below was approved by Kent as exact copy before posting, under the work hat.
+
+| Action | Upstream | Labels applied | Local record |
+|---|---|---|---|
+| 1 | [spec-kitty#4923](https://github.com/spec-kitty/spec-kitty/issues/4923) | `from:qa` `type:bug` `priority:P1` `domain:skills` | #1005 · `upstream-filed` |
+| 1b | [comment on #4902](https://github.com/spec-kitty/spec-kitty/issues/4902#issuecomment-5782458570) | — | #1005 |
+| 2 | [spec-kitty#4925](https://github.com/spec-kitty/spec-kitty/issues/4925) | `from:qa` `type:bug` `priority:P2` `domain:cli` | #992 |
+| 3 | [spec-kitty#4927](https://github.com/spec-kitty/spec-kitty/issues/4927) | `from:qa` `type:bug` `priority:P3` `domain:skills` | #994 |
+| 4 | [spec-kitty#4928](https://github.com/spec-kitty/spec-kitty/issues/4928) | `from:qa` `type:bug` `priority:P2` `domain:status` | #996 |
+| 5 | [spec-kitty#4930](https://github.com/spec-kitty/spec-kitty/issues/4930) | `from:qa` `domain:skills` | #1006 · `upstream-filed` |
+| + | [comment on closed #4776](https://github.com/spec-kitty/spec-kitty/issues/4776#issuecomment-5782733237) | — | #993 |
+
+**Deviations from the drafts below, each shown to Kent before posting:**
+
+- **Attribution footer appended** to both comments (1b and the #4776 correction). The comment template
+  mandates it on every upstream artifact; the 1b draft here lacked it.
+- **Action 2**: the ledger-required **#4893** cross-reference was missing from the body and was added
+  (second Summary paragraph). Ivan's comment on #4893 adds a third mechanism — per-checkout
+  auto-commits conflicting in a coord worktree — strengthening "cross-reference, do not merge".
+- **Action 3**: at Kent's option, the crash that blocked rc4 testing is named as **#4923**.
+- **Action 4**: the ledger-required **#4897** cross-reference was missing and was added; at Kent's
+  option it also points at Stijn's `silent-destructive-write-hardening-01M355VK` mission, which now
+  owns #4897.
+- **Action 5 was rewritten before posting.** Its title promised `d57619a90` results, but the body
+  (here, and in #1006) was the pre-rc5 version: "Blocked on verification" still stood, contradicting
+  #4925 and #4927 filed the same hour. Rewritten to carry the header's VERIFIED FIXED results, a
+  verdict table for the three blocked reports, and the filed numbers. The **"Corrections carried
+  forward" section was struck at Kent's direction**: the #4777 half already lives in #4927's Root
+  Cause; the #4776 half had no upstream home, so it was posted as the extra correction comment
+  above. Footer names both models (Opus drafted, Fable revised).
+- Fresh dedup past the ledger's #4888–#4910 found #4911–#4922; none overlap any action.
+
+Bodies below are left as drafted, for the record. The posted copy is authoritative at the URLs above.
+
+---
+
 # Action 1 — FILE NEW ISSUE, **then** comment on #4902
 
 > ✅ **Route decided (Kent, 2026-09-22): do both.** File this as its own issue, then post the
@@ -146,8 +186,7 @@ install, upgrade deployment) · `domain:status` (status event-log & lane state m
 
 **Repo**: `spec-kitty/spec-kitty`
 **Local tracking**: kentonium3/kg-automation#1005
-**Copy approved**: ❌ **NOT YET** — the body was revised on 2026-09-22 after the defect stopped
-reproducing on `d57619a90`. Needs re-approval before posting.
+**Copy approved**: ✅ Kent, 2026-09-22 — **filed as spec-kitty#4923**, `priority:P1`.
 **Title**:
 
 ```text
@@ -289,7 +328,7 @@ Installed an untagged `main` build (`d57619a90`) by SHA, where the path does not
 **Repo**: `spec-kitty/spec-kitty`
 **Target**: open issue **#4902** — *"Windows 11: RC4 still cannot install on a real desktop"*
 **Post AFTER Action 1**, so the new issue number can be cited.
-**Copy approved**: ❌ **NOT YET** — drafted 2026-09-22.
+**Copy approved**: ✅ Kent, 2026-09-22 — **posted** (attribution footer appended; `#NNNN` → #4923).
 
 This is a comment, not a new issue, because #4902 is **open** — the closed-issue procedure does
 not apply. No labels to set; Stijn is expected to close it.
@@ -332,7 +371,7 @@ Environment: Windows 11 Pro 26200, Python 3.13.7, `uv tool` install from PyPI.
 **Repo**: `spec-kitty/spec-kitty`
 **References closed issue**: **#4775** — *"Bug: `upgrade --yes` still prompts, and a declined optional remediation exits 1 on a successful upgrade"*
 **Local tracking**: kentonium3/kg-automation#992
-**Copy approved**: ❌ **NOT YET** — drafted 2026-09-22.
+**Copy approved**: ✅ Kent, 2026-09-22 — **filed as spec-kitty#4925** (with the #4893 cross-reference added).
 **Title**:
 
 ```text
@@ -433,7 +472,7 @@ Convergence is confirmed by other means and the exit code is ignored: `pending_m
 **Repo**: `spec-kitty/spec-kitty`
 **References closed issue**: **#4777** — *"Bug: Windows `upgrade --dry-run` permanently reports 184 phantom repairs after convergence"*
 **Local tracking**: kentonium3/kg-automation#994
-**Copy approved**: ❌ **NOT YET** — drafted 2026-09-22.
+**Copy approved**: ✅ Kent, 2026-09-22 — **filed as spec-kitty#4927** (naming #4923 as the blocker).
 **Title**:
 
 ```text
@@ -534,7 +573,7 @@ The `(including 0 manifests)` detail may help narrow it: the manifest repairs do
 **Repo**: `spec-kitty/spec-kitty`
 **References closed issue**: **#4779** — *"Bug: mission-state repair writes its manifest and quarantined rows into a gitignored path"*
 **Local tracking**: kentonium3/kg-automation#996
-**Copy approved**: ❌ **NOT YET** — drafted 2026-09-21, re-verified on `d57619a90` 2026-09-22.
+**Copy approved**: ✅ Kent, 2026-09-22 — **filed as spec-kitty#4928** (with the #4897 cross-reference and hardening-mission pointer added).
 **Title**:
 
 ```text
@@ -631,8 +670,8 @@ The evicted rows remain recoverable from git because the source `status.events.j
 
 **Repo**: `spec-kitty/spec-kitty`
 **Local tracking**: kentonium3/kg-automation#1006
-**Copy approved**: ⚠️ Kent approved an earlier version on 2026-09-21; the body has changed since
-(rc5 dev-build results added). Re-read before posting.
+**Copy approved**: ✅ Kent, 2026-09-22 — **filed as spec-kitty#4930**, body **rewritten** first (see ledger: the draft below
+never received the rc5 results its title promised; "Corrections carried forward" struck).
 **Title**:
 
 ```text
@@ -770,9 +809,10 @@ persistence filing: the defect is known and unfixed, and epic #4793 already trac
 # Verification status at a glance
 
 ```text
-FIXED, verified      #4776  #4778  #4780  #4782        (4 of our reports)
-PERSISTS, filing     #4775  #4777  #4779               (Actions 2, 3, 4)
-NEW, filing          #1005 utime                        (Action 1)
+FIXED, verified      #4776  #4778  #4780  #4782        (4 of our reports; #4776 diagnosis corrected in a comment)
+PERSISTS, FILED      #4775→#4925  #4777→#4927  #4779→#4928   (Actions 2, 3, 4)
+NEW, FILED           #1005 utime → #4923 + comment on #4902 (Actions 1, 1b)
+REPORT, FILED        #1006 → #4930                        (Action 5)
 OPEN upstream        #4783  naming                      (no action)
 ```
 
@@ -795,6 +835,10 @@ convergence half works, and the count is unchanged at 184. Action 3 says so rath
 re-asserting the original theory.
 
 Both are recorded because a mechanism that fits the evidence is not necessarily the mechanism.
+
+**Where each now lives upstream (2026-09-22):** the #994 correction is in #4927's Root Cause; the
+#993 correction was posted as a comment on closed #4776 (linked in the completion ledger). Neither is
+in #4930 — struck from the verification report at Kent's direction.
 
 # Related
 
