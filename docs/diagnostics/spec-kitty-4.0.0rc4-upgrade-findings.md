@@ -318,6 +318,51 @@ pre-empted the gate and blockers had been cleared separately. Inconclusive.
 
 ---
 
+## Upstream routing map — read before filing anything
+
+These findings are produced under Kent's **personal hat** (discovery and analysis, tracked as
+kg-automation issues) and filed upstream under his **spec-kitty work hat** as QA-reported
+issues. That is why every upstream issue below carries the `from:qa` label and a title matching
+our draft verbatim — they are *these* reports, re-routed, not independent duplicates.
+
+**Before filing, check this table.** A second upstream issue for an already-routed finding
+would be a duplicate; persistence after closure belongs as a **comment** on the existing
+upstream issue per the
+[upstream comment template](<./spec-kitty-upstream-comment-template.md>).
+
+| Ours | Upstream | Upstream state | Verdict on `5309c4107` | Filing action |
+|---|---|---|---|---|
+| #992 | spec-kitty#4775 | CLOSED completed | unverifiable (F15) | 🚫 already routed |
+| #993 | spec-kitty#4776 | CLOSED completed | unverifiable (F15) | 🚫 already routed |
+| #994 | spec-kitty#4777 | CLOSED completed | unverifiable (F15) | 🚫 already routed |
+| #995 | spec-kitty#4778 | CLOSED completed | ✅ fixed, verified | 🚫 already routed |
+| #996 | spec-kitty#4779 | CLOSED completed | ❌ **still present** | 📣 **comment on #4779** |
+| #997 | spec-kitty#4780 | CLOSED completed | ✅ fixed, verified | 🚫 already routed |
+| #999 | spec-kitty#4782 | CLOSED completed | ✅ fixed, verified | 🚫 already routed |
+| #1000 | spec-kitty#4783 (+ epic #4793, #3154) | OPEN | ❌ still present | 🚫 already routed |
+| #1005 | — | not filed | 🔴 new blocker | ✅ **file** |
+| #1006 | — | not filed | this register's verdict | ✅ **file** |
+
+**Net: two new upstream issues plus one comment.** Everything else is already upstream.
+
+### Two corrections this mapping surfaced
+
+**#4779 was closed without addressing the placement.** `b25f45a56` closes it on the grounds
+that *"triage no longer requires reading the gitignored manifest"*. That resolves the
+diagnosability half — our F11 / their #4780 — but leaves the audit trail and the quarantined
+rows unversioned, which was F10's actual concern. Re-verified unchanged on `5309c4107`: the
+manifest and `quarantine/` still land under `.kittify/migrations/`, ignored by `.gitignore:75`.
+This is the one place our verdict and upstream's disagree.
+
+**Our F7 root cause was wrong; upstream's is better.** We attributed the three-run convergence
+to the `_recheck_command_completion` `installed_at` race that the #4703 docstring scoped out.
+Upstream found a Windows POSIX-mode assertion at the same gate — `os.chmod` cannot represent
+`0o755` on a freshly-created `.agents/skills` — and fixed the `installed_at` hash separately.
+The symptom report was sound; the diagnosis was not. Worth remembering when writing root-cause
+sections: a plausible mechanism that fits the evidence is not necessarily the mechanism.
+
+---
+
 ## Mission-state repair outcome (this project)
 
 ```text
@@ -367,8 +412,6 @@ and they look like legitimate mission history.
 - Each issue listed above embeds a slim upstream-ready draft in a fenced block,
   per the dual-track model in
   [`runbooks/spec-kitty-bug-reporting.md`](<../runbooks/spec-kitty-bug-reporting.md>).
-  Drafts for #992, #993, #994, #996, #1000 carry Kent's approval (2026-09-19) and are
-  cleared for the QA bot; #1005 and #1006 still read `PENDING`. **Nothing has been filed
-  upstream** — the QA bot files, not Claude Code.
-- #995, #997 and #999 were closed as fixed before filing, so the bot should **not** file
-  them: they would report solved bugs.
+  **See the Upstream routing map above before filing.** Everything except #1005 and #1006
+  is already upstream as spec-kitty#4775–#4783; only those two remain to file, plus a
+  persistence comment on spec-kitty#4779.
