@@ -46,8 +46,8 @@ rule). Keeping the story and its answer together here is an authoring convenienc
 
 | Arc | Hard case | Keep/Cut/Rewrite | Oracle done | Near-misses done |
 |---|---|---|---|---|
-| A | cross-time, **cross-context** collision | **Keep** | ☑ (notice edge open) | ◐ (4 of Kent's, 3 candidates) |
-| B | quiet drift | `TODO(kent)` | ☐ | ☐ |
+| A | cross-time, **cross-context** collision | **Keep** | ☑ | ◐ (4 of Kent's, 3 candidates) |
+| B | quiet drift | **Keep** | ☑ (invented values to confirm) | ☑ (3 of Kent's placed, 3 candidates) |
 | C | dropped ball | `TODO(kent)` | ☐ | ☐ |
 | D | cross-channel identity | `TODO(kent)` | ☐ | ☐ |
 | E | stakeholder pattern | `TODO(kent)` | ☐ | ☐ |
@@ -77,7 +77,7 @@ moves meetings agent-assisted on his end and doesn't always reference your calen
    the real block, so the true footprint of the session is not written anywhere;
 2. the **conflict** between the moved meeting and the PT session, which has to be resolved.
 
-**Cast** — `TODO(kent)`: fictional names, real dynamics.
+**Cast** — fictional names, real dynamics (Kent, 2026-09-23).
 
 | handle | who they are to you | relationship | context | channels |
 |---|---|---|---|---|
@@ -127,10 +127,11 @@ than they look.
       **not** very high importance, so the exception does not fire. Notice: Tuesday for Thursday
       is **exactly two days** — borderline by construction (`TODO(kent)`: keep the edge, or make
       it clearly short notice?)
-- [x] the resolution — **counter-offer Marcus a new time within the same week** (1:1s may move
-      within the week), and the counter-offer must respect the *true* footprint: nothing before
-      15:45 on Thursday. Offering 15:15 (the calendar's end) is a wrong answer that only the
-      travel-time finding prevents
+- [x] the resolution (Kent, 2026-09-23) — **counter the invite with an invite for a Wednesday
+      meeting**: Wed 06-10 14:00–15:00, clear of the 11:30–13:30 workout-plus-travel block, and
+      within the week as the 1:1 rule requires. Any Thursday counter must respect the *true*
+      footprint — nothing before 15:45. Offering Thu 15:15 (the calendar's stated end) is a wrong
+      answer that only the travel-time finding prevents
 - [x] when it should have been caught — **Tuesday 06-09**, the moment the move landed, not
       Thursday morning
 
@@ -174,36 +175,141 @@ candidates in the same spirit — keep, cut, add.
 
 ## Arc B — Quiet drift
 
-**Keep / Cut / Rewrite:** `TODO(kent)`
+**Keep / Cut / Rewrite:** **Keep** (Kent, 2026-09-23).
 
-**Context:** `TODO(kent)` — personal / Intentional / spec-kitty / PointerHealth
+**Context:** **personal**, solo. The pressure that causes the drift comes from every context;
+the Outcome lives in this one.
 
-**The story (candidate).** An Outcome with a real measure and date. Over ~4 months its supporting
-Objectives get re-scoped five times. Every individual re-scope is locally reasonable. The
-aggregate effect is that the Outcome can no longer reach its measure by its date.
+**The story (Kent, 2026-09-23).** It's June. You sign up to run a 5K race on **15 October** and
+pay the **$35 registration fee**. The training commitment is a progression of **3–5 runs a
+week** at different distances and paces to get in condition for it. Work and personal
+obligations start to pile up, and the commitment to run on a given day starts getting deferred
+more than it should. Things that happen at random points on the journey, **some of them more
+than once**:
+- someone asks for a favor after work;
+- you agree to schedule a meeting in the morning when you would normally run;
+- you choose to run in the evening to accommodate an early meeting — then don't;
+- you stay up too late working and don't get up early enough to fit the run in before or
+  around other scheduled events.
 
-**The Outcome** — `TODO(kent)`: state it with **a date and a measure** (that's what makes it an
-Outcome and not a Purpose).
+The accumulated misses at some point reach a **point of no return**: you have run out of time
+to safely condition yourself to get the performance you want on race day. In retrospect,
+different choices could have been made and the deferrals avoided — with different scheduling,
+better commitment management, better delegation, and a shift in mindset.
 
-**Timeline** — `TODO(kent)`: five re-scopes, each with a reason that sounded fine at the time.
+**The Outcome** (Kent, 2026-09-23) — *Run the 5K on 2026-10-15 at a **sub-10-minute-mile average
+pace** for the full distance* (3.1 mi → under 31:00). The date is a hard external Commitment
+(registered, $35 paid); the measure is the pace.
 
-| when | what was re-scoped | the reason at the time |
-|---|---|---|
-| ×5 | `TODO(kent)` | `TODO(kent)` |
+**The conditioning rule** (Kent, 2026-09-23 — this is what the oracle computes against).
+- Conditioning is **cumulative** and cannot be accumulated all at once in a few weeks.
+- **Consistent workouts, at least 3× a week**, are the only way to meet the targets.
+- Working backwards from the race, there are **mid-month time/distance checkpoints** that say
+  whether you're on track.
+- **If the target training pace is not hit at the 50% point of the program, there is no path to
+  recovery.**
+- **If you cannot run at race pace two weeks before the race, you are unlikely to do it on race
+  day.**
 
-**The tension to catch.** The drift is the *delta across five events*. No single event is a defect.
+**The plan** (Kent's real conditioning plan, 2026-09-23) — full detail in
+[`849-arc-b-training-plan.md`](849-arc-b-training-plan.md). Seventeen weeks, Mon 2026-06-15 →
+race Thu 2026-10-15, four phases: rebuild the habit (wk 1–4), continuous running (wk 5–8),
+5K-specific fitness (wk 9–12), sharpen (wk 13–16), taper (wk 17 + race week). Core runs
+**Tue easy / Thu quality / Sat long**; strength Mon/Wed/Sun. The plan's own gate: *"if the 2 × 1
+mile at 9:50–10:00 in week 16 feels controlled, you are in range."*
 
-**ORACLE.** `TODO(kent)`
-- [ ] all five re-scope events, in order, with dates
-- [ ] the gap between current trajectory and the stated measure
-- [ ] **which re-scope made the measure unreachable**
-- [ ] that no individual decision was unreasonable — the failure is aggregate
+**Checkpoints**, derived from Kent's rule against the plan's own milestones:
 
-**Near-misses.** `TODO(kent)` — *other things that were re-scoped and were genuinely fine.*
+| checkpoint | when | target | meaning |
+|---|---|---|---|
+| CP1 | wk 5 (07-13 → 19) | first continuous easy 25-min run | Phase 2 entered |
+| **CP2 — the 50% point** | **end of wk 8, Sun 08-09** | a 45–50 min continuous long run completed in Phase 2, and the wk 7 progression's "quicker 5 min" at ~10:30/mi | **miss this → no path to recovery** |
+| CP3 | wk 14, Thu 09-17 | 3 × 8 min at 10:00/mi | race pace sustainable in pieces |
+| **CP4 — two weeks out** | **wk 16, Thu 10-01** | 2 × 1 mile at 9:50–10:00, controlled | the plan's own go / no-go |
 
-> Why this arc matters technically: node attributes are **overwritten**, and the graph's
-> bi-temporal history covers edges only — so this drift is recoverable *only* from the episode
-> log. It is the sharpest test of the state-vs-history rule.
+**Timeline** (invented to Kent's spec: misses reach ~30% of core sessions — "that's trouble").
+Miss rate is cumulative over core sessions; near-miss rows are marked and **not counted**.
+
+| wk | Mon | core | what happened | reason at the time | decided / silent | miss rate |
+|---|---|---|---|---|---|---|
+| 1 | 06-15 | 3/3 | | | | 0% |
+| 2 | 06-22 | 3/3 | Thu run/walk moved to Fri evening | friend's birthday dinner | decided — *near-miss, reschedule* | 0% |
+| 3 | 06-29 | 2/3 | Sat 07-04 brisk walk skipped | July 4th weekend | decided — *near-miss, holiday* | 0% |
+| 4 | 07-06 | 3/3 | first 20-min continuous run ✓ | | | 0% |
+| 5 | 07-13 | 2/3 | Tue not run; **CP1 hit** Thu | someone asked a favor after work | silent | 7% |
+| 6 | 07-20 | 1/3 | Thu quality slot taken by a 07:30 meeting; Sat long run not run | agreed to the morning meeting; up too late Fri working | decided (meeting) / silent (run); silent | 17% |
+| 7 | 07-27 | 1/3 | Tue moved to evening, then not run; Thu progression done but the "quicker 5 min" at **11:10**; Sat 50-min long run not run | early meeting → "I'll run tonight"; up too late **again** | decided-then-silent; silent | **24%** |
+| 8 | 08-03 | 1/3 | Tue not run; Thu slot taken by the 07:30 meeting **again**; Sat cutback 40 min ✓ | up too late; same meeting series | silent; decided/silent | **29%** |
+| **8** | **08-09** | | **CP2 missed** — no 45+ min continuous long run completed in Phase 2 (wk 6 and wk 7 Saturdays both missed; wk 8 is the 40-min cutback), progression pace 11:10 vs ~10:30 | | | **← point of no return** |
+| 9 | 08-10 | 3/3 | a full week — feels like recovery; 6 × 1 min run at ~10:40 effort | | | 26% |
+| 10 | 08-17 | 1/3 | Thu slot taken by the 07:30 meeting, third time; Sat long run stopped at 25 min | same series; **calf tightness worsening — backed off per the plan's red-flag rule** | decided/silent; decided, with reason — *near-miss, legitimate* | 27% |
+| 11 | 08-24 | 2/3 | Tue not run | favor after work, **again** | silent | 27% |
+| 12 | 08-31 | 2/3 | Sat 09-05 long run skipped | Labor Day weekend away | decided — *near-miss, holiday* | 25% |
+| 13 | 09-07 | 2/3 | Thu workout moved to evening, then not run | early meeting → "tonight", **again** | decided-then-silent | 26% |
+| 14 | 09-14 | 3/3 | **CP3 missed** — 3 × 8 min at **10:35**, not 10:00 | | | 24% |
+| 15 | 09-21 | 1/3 | head cold, three days off, plan adjusted | illness | decided, with reason — *near-miss, legitimate* | 22% |
+| 16 | 09-28 | 3/3 | **CP4 failed** — 2 × 1 mile at **10:25 and 10:40**, not controlled | | | 21% |
+| 17 | 10-05 | 3/3 | taper as written | | | 20% |
+| race | 10-15 | | **32:50 → 10:35/mi.** Finished; sub-10 missed | | | |
+
+Four reasons, and **every one repeats**: up too late working (×3: wk 6, 7, 8), the 07:30 meeting
+series booked into the Thursday quality slot (×3: wk 6, 8, 10), "I'll run tonight" then not
+(×2: wk 7, 13), a favor after work (×2: wk 5, 11). Ten counted misses over the programme; the
+damage was done by week 8.
+
+**The question put to both arms** — **build both** (Kent, 2026-09-23):
+- **B1 mid-journey (coaching):** asked Mon 2026-08-17 — *"Am I on track for the October 5K?"*
+  Right answer: no — CP2 was missed at the 50% point, so by the rule sub-10 is no longer
+  reachable; the cause is a 29% miss rate driven by four repeating reasons, three of them
+  scheduling choices; and the coaching move is **don't give up, but learn from this** — reset
+  the outcome to *finish healthy*, and fix the 07:30 series and the late nights now.
+- **B2 retrospective:** asked after the race — *"Why did I miss sub-10?"* Right answer: the same
+  chain, plus the earliest week it was catchable. Accepting the lesser outcome is the
+  "don't give up, learn from this" situation, not a failure to be hidden.
+
+**ORACLE.** (Kent's rule + plan, invented timeline, 2026-09-23 — confirm the invented values)
+- [x] the Outcome, with its date **and** its measure — 10-15, sub-10:00/mi — and that the date
+      is a hard Commitment
+- [x] every counted deferral, in order, with dates and the reason at the time — the table,
+      **excluding** the five near-miss rows (wk 2, 3, 10-Sat, 12, 15)
+- [x] **which reasons repeat** — all four; the 07:30 meeting series is the largest single cause
+      and was **agreed to three times into a known quality-run slot**
+- [x] the split between **decided** and **silent** — the meetings and the evening moves were
+      decided (a Decision exists, on the meeting or the move); the runs themselves were never
+      decided against — they just didn't happen. Five silent misses, five decided-then-silent
+- [x] **the point of no return** — **CP2, Sun 08-09**, by the 50% rule. Not the last miss, not
+      the first, **not** the wk 10 calf tightness and **not** the wk 15 cold — both tempting
+      wrong answers, both legitimate back-offs the plan itself prescribes
+- [x] that no individual deferral was unreasonable — the failure is aggregate
+- [x] **when it should have been caught** — **end of wk 7, Sun 08-02**: two consecutive weeks at
+      1/3, one reason already repeated, miss rate 24% and rising, and one week left before CP2
+      in which a change could still have mattered
+- [x] the retrospective, framed as coaching (Kent): different scheduling (don't book the 07:30
+      series into the quality slot), commitment management (an evening move is a new commitment,
+      not a deferral), delegation (the after-work favors), and a mindset shift
+
+**Near-misses.** Kent's three (2026-09-23) first, each placed at a specific week; candidates follow.
+1. **Illness or injury that alters the conditioning plan** — wk 10's calf tightness (the plan's
+   own red-flag rule) and wk 15's cold. Legitimate re-plans with a reason. Not drift, and
+   **not the cause**.
+2. **A deferral with an acceptable reschedule** — wk 2, Thursday to Friday evening. Decided,
+   within the week, no load lost. Must not be counted.
+3. **Holidays** — wk 3 July 4th, wk 12 Labor Day. A few days off look bad on a coarse count but
+   aren't a miss when you're mostly on track. A naive counter that includes them reads 33% at
+   CP2 instead of 29% — still trouble, but for the wrong reason.
+4. *(candidate)* **The wk 9 full week** — looks like recovery, is arithmetically irrelevant after
+   CP2. Must not be read as "back on track".
+5. *(candidate)* **A different recurring personal commitment** (the PT sessions from Arc A) that
+   is *not* drifting, so "count deferrals per commitment" doesn't win by accident.
+6. *(candidate)* **The strength sessions** — Mon/Wed/Sun lifting continues throughout and is
+   never a core run; a miss there is not a miss here.
+
+> Why this arc matters technically: a deferred run is a rewritten `scheduled_date`, and node
+> attributes are **overwritten** — the graph's bi-temporal history covers edges only. So the
+> whole trajectory is recoverable *only* from the episode log, one episode per deferral, with a
+> `Decision` node where one was actually made and **none where it just didn't happen**. It is the
+> sharpest test of the state-vs-history rule, and the decided-vs-silent split is the same
+> absence-detection Arc F asks for.
 
 ---
 
