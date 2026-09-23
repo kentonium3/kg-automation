@@ -501,7 +501,7 @@ Two defects, one policy question, for upstream to split as they see fit:
 F7 (single-run convergence — three consecutive no-op runs), F13 (stamps), F10, F14 all as on the
 baseline. The 15 `PAYLOAD_INVALID` mission-state validation issues, first seen today on the baseline
 before any install, are byte-identical on the PR build and remain an untriaged observation — they were
-0 blockers in the 2026-09-22 run of the same command on the same build.
+0 blockers in the 2026-09-22 run of the same command on the same build. Tracked as [#1012](https://github.com/kentonium3/kg-automation/issues/1012).
 
 ### Observation, not a finding
 
@@ -509,7 +509,8 @@ before any install, are byte-identical on the PR build and remain an untriaged o
 clean, converged tree (plus the 19 agent-profile drifts above), and exits 0. Identical on both builds.
 The rc5 section above recorded this command as "0 missing, 0 stale"; that was true and incomplete —
 drift was not counted. Whether 275 managed skills genuinely drift on a tree git reports as clean, or
-the hash check is line-ending-sensitive on Windows, is not investigated here.
+the hash check is line-ending-sensitive on Windows, is not investigated here. Tracked as
+[#1013](https://github.com/kentonium3/kg-automation/issues/1013).
 
 ---
 
@@ -529,20 +530,20 @@ Ready-to-post copy for every outbound action:
 
 | Ours | Upstream | Upstream state | Verdict on `d57619a90` (latest build tested) | Filing action |
 |---|---|---|---|---|
-| #992 (F6) | spec-kitty#4775 → **#4925** | #4925 OPEN, deferred | **reproduces on `1ee5f2d32`, now traced** (renderer drops the drift error) | comment on #4925 with the trace — PENDING Kent |
+| #992 (F6) | spec-kitty#4775 → **#4925** | #4925 OPEN, deferred | **reproduces on `1ee5f2d32`, now traced** (renderer drops the drift error) | comment on #4925 — **approved 2026-09-23**, in [packet](<./spec-kitty-upstream-filing-packet-pr4947.md>) Action B |
 | #993 (F7) | spec-kitty#4776 | CLOSED completed | fixed, verified | no action |
-| #994 (F8) | spec-kitty#4777 → **#4927** | #4927 OPEN, PR #4947 | **reproduces on `1ee5f2d32`** — PR relaxes project-skill seam; effects are global-asset | comment on PR #4947 / #4927 — PENDING Kent |
+| #994 (F8) | spec-kitty#4777 → **#4927** | #4927 OPEN, PR #4947 | **reproduces on `1ee5f2d32`** — PR relaxes project-skill seam; effects are global-asset | comment on PR #4947 — **approved 2026-09-23**, in [packet](<./spec-kitty-upstream-filing-packet-pr4947.md>) Action A |
 | #995 (F9) | spec-kitty#4778 | CLOSED completed | fixed, verified | already routed |
 | #996 (F10) | spec-kitty#4779 → **#4928** | #4928 OPEN | still present (out of PR scope) | already routed |
 | #997 (F11) | spec-kitty#4780 | CLOSED completed | fixed, verified | already routed |
 | — (F12) | spec-kitty#4781 | OPEN | still required (`core.longpaths`) | already routed |
 | #999 (F13) | spec-kitty#4782 | CLOSED completed | fixed, verified | already routed |
 | #1000 (F14) | spec-kitty#4783 (+ epic #4793, #3154) | OPEN | still present | already routed |
-| #1005 (F15) | **#4923** | OPEN, PR #4947 | **fixed on `1ee5f2d32`** (static) | comment on PR #4947 confirming — PENDING Kent |
+| #1005 (F15) | **#4923** | OPEN, PR #4947 | **fixed on `1ee5f2d32`** (static) | comment on PR #4947 — **approved 2026-09-23**, in [packet](<./spec-kitty-upstream-filing-packet-pr4947.md>) Action A |
 | #1006 | **#4930** | OPEN, umbrella | rc4/rc5 verdict | filed 2026-09-22 |
-| #1011 | — | not filed | PR #4947 head verdict (this section) | Kent's call |
+| #1011 | — | via comments A + B | PR #4947 head verdict (this section) | packet approved 2026-09-23 |
 
-~~**Net: five new upstream issues plus one comment** on open #4902.~~ Filed 2026-09-22 as #4923, #4925, #4927, #4928, #4930. **Net after 2026-09-23: three comments pending Kent's review** (PR #4947 for #4923/#4927, and #4925). See the
+~~**Net: five new upstream issues plus one comment** on open #4902.~~ Filed 2026-09-22 as #4923, #4925, #4927, #4928, #4930. **Net after 2026-09-23: two comments, approved, in [`spec-kitty-upstream-filing-packet-pr4947.md`](<./spec-kitty-upstream-filing-packet-pr4947.md>)** (Action A on PR #4947 for #4923/#4927; Action B on #4925). Baseline anomalies tracked locally as #1012 and #1013 — not for upstream yet. See the
 [filing packet](<./spec-kitty-upstream-filing-packet-rc4.md>) for ready-to-post copy, suggested
 labels, and a ledger separating already-filed from new.
 
