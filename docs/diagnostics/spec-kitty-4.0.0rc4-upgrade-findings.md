@@ -551,6 +551,8 @@ Ready-to-post copy for every outbound action:
 | #1005 (F15) | **#4923** | OPEN, PR #4947 | **fixed on `1ee5f2d32`** (static) | ✅ **posted 2026-09-23** — [comment on PR #4947](https://github.com/spec-kitty/spec-kitty/pull/4947#issuecomment-5799117052) (Action A, verbatim) |
 | #1006 | **#4930** | OPEN, umbrella | rc4/rc5 verdict | filed 2026-09-22 |
 | #1011 | — | via comments A + B | PR #4947 head verdict (this section) | ✅ **both posted 2026-09-23** — [A](https://github.com/spec-kitty/spec-kitty/pull/4947#issuecomment-5799117052) · [B](https://github.com/spec-kitty/spec-kitty/issues/4925#issuecomment-5799118717); `upstream-filed` applied |
+| #1012 | — | not yet filed | dry-run `PAYLOAD_INVALID` rows blank; 9.1.6 rules reject 2026-03 history, no repair | **approved P3** 2026-09-23, in [anomalies packet](<./spec-kitty-upstream-filing-packet-anomalies.md>) Action D |
+| #1013 | — | not yet filed | CRLF sources → doubled `SKILL.md` frontmatter ×275; `--fix` cannot converge | **approved P0** 2026-09-23, in [anomalies packet](<./spec-kitty-upstream-filing-packet-anomalies.md>) Action C |
 
 ~~**Net: five new upstream issues plus one comment** on open #4902.~~ Filed 2026-09-22 as #4923, #4925, #4927, #4928, #4930. **Net after 2026-09-23: two comments, both ✅ POSTED** (Action A on PR #4947 for #4923/#4927; Action B on #4925) — see [`spec-kitty-upstream-filing-packet-pr4947.md`](<./spec-kitty-upstream-filing-packet-pr4947.md>) for the copy and the Action B revision. Baseline anomalies tracked locally as #1012 and #1013 — not for upstream yet. See the
 [filing packet](<./spec-kitty-upstream-filing-packet-rc4.md>) for ready-to-post copy, suggested
