@@ -530,20 +530,20 @@ Ready-to-post copy for every outbound action:
 
 | Ours | Upstream | Upstream state | Verdict on `d57619a90` (latest build tested) | Filing action |
 |---|---|---|---|---|
-| #992 (F6) | spec-kitty#4775 → **#4925** | #4925 OPEN, deferred | **reproduces on `1ee5f2d32`, now traced** (renderer drops the drift error) | comment on #4925 — **approved 2026-09-23**, in [packet](<./spec-kitty-upstream-filing-packet-pr4947.md>) Action B |
+| #992 (F6) | spec-kitty#4775 → **#4925** | #4925 OPEN, deferred | **reproduces on `1ee5f2d32`, now traced** (renderer drops the drift error) | ✅ **posted 2026-09-23** — [comment on #4925](https://github.com/spec-kitty/spec-kitty/issues/4925#issuecomment-5799118717) (Action B, revised before posting; see packet) |
 | #993 (F7) | spec-kitty#4776 | CLOSED completed | fixed, verified | no action |
-| #994 (F8) | spec-kitty#4777 → **#4927** | #4927 OPEN, PR #4947 | **reproduces on `1ee5f2d32`** — PR relaxes project-skill seam; effects are global-asset | comment on PR #4947 — **approved 2026-09-23**, in [packet](<./spec-kitty-upstream-filing-packet-pr4947.md>) Action A |
+| #994 (F8) | spec-kitty#4777 → **#4927** | #4927 OPEN, PR #4947 | **reproduces on `1ee5f2d32`** — PR relaxes project-skill seam; effects are global-asset | ✅ **posted 2026-09-23** — [comment on PR #4947](https://github.com/spec-kitty/spec-kitty/pull/4947#issuecomment-5799117052) (Action A, verbatim) |
 | #995 (F9) | spec-kitty#4778 | CLOSED completed | fixed, verified | already routed |
 | #996 (F10) | spec-kitty#4779 → **#4928** | #4928 OPEN | still present (out of PR scope) | already routed |
 | #997 (F11) | spec-kitty#4780 | CLOSED completed | fixed, verified | already routed |
 | — (F12) | spec-kitty#4781 | OPEN | still required (`core.longpaths`) | already routed |
 | #999 (F13) | spec-kitty#4782 | CLOSED completed | fixed, verified | already routed |
 | #1000 (F14) | spec-kitty#4783 (+ epic #4793, #3154) | OPEN | still present | already routed |
-| #1005 (F15) | **#4923** | OPEN, PR #4947 | **fixed on `1ee5f2d32`** (static) | comment on PR #4947 — **approved 2026-09-23**, in [packet](<./spec-kitty-upstream-filing-packet-pr4947.md>) Action A |
+| #1005 (F15) | **#4923** | OPEN, PR #4947 | **fixed on `1ee5f2d32`** (static) | ✅ **posted 2026-09-23** — [comment on PR #4947](https://github.com/spec-kitty/spec-kitty/pull/4947#issuecomment-5799117052) (Action A, verbatim) |
 | #1006 | **#4930** | OPEN, umbrella | rc4/rc5 verdict | filed 2026-09-22 |
-| #1011 | — | via comments A + B | PR #4947 head verdict (this section) | packet approved 2026-09-23 |
+| #1011 | — | via comments A + B | PR #4947 head verdict (this section) | ✅ **both posted 2026-09-23** — [A](https://github.com/spec-kitty/spec-kitty/pull/4947#issuecomment-5799117052) · [B](https://github.com/spec-kitty/spec-kitty/issues/4925#issuecomment-5799118717); `upstream-filed` applied |
 
-~~**Net: five new upstream issues plus one comment** on open #4902.~~ Filed 2026-09-22 as #4923, #4925, #4927, #4928, #4930. **Net after 2026-09-23: two comments, approved, in [`spec-kitty-upstream-filing-packet-pr4947.md`](<./spec-kitty-upstream-filing-packet-pr4947.md>)** (Action A on PR #4947 for #4923/#4927; Action B on #4925). Baseline anomalies tracked locally as #1012 and #1013 — not for upstream yet. See the
+~~**Net: five new upstream issues plus one comment** on open #4902.~~ Filed 2026-09-22 as #4923, #4925, #4927, #4928, #4930. **Net after 2026-09-23: two comments, both ✅ POSTED** (Action A on PR #4947 for #4923/#4927; Action B on #4925) — see [`spec-kitty-upstream-filing-packet-pr4947.md`](<./spec-kitty-upstream-filing-packet-pr4947.md>) for the copy and the Action B revision. Baseline anomalies tracked locally as #1012 and #1013 — not for upstream yet. See the
 [filing packet](<./spec-kitty-upstream-filing-packet-rc4.md>) for ready-to-post copy, suggested
 labels, and a ledger separating already-filed from new.
 

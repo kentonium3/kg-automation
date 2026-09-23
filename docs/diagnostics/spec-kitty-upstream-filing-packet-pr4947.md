@@ -10,13 +10,20 @@ approved: '2026-09-23'
 # Upstream filing packet — PR #4947 head (`1ee5f2d32`)
 
 **For the spec-kitty QA bot.** Two outbound posts, both **comments** on existing upstream
-artifacts — no new issues. **Copy approved by Kent on 2026-09-23** (kentonium3/kg-automation#1011);
-post the bodies below verbatim, filling only the `Submission approved by` date if it is blank.
+artifacts — no new issues. **Copy approved by Kent on 2026-09-23** (kentonium3/kg-automation#1011).
+
+# ✅ BOTH POSTED — 2026-09-23
+
+Action A [on PR #4947](https://github.com/spec-kitty/spec-kitty/pull/4947#issuecomment-5799117052) · Action B [on #4925](https://github.com/spec-kitty/spec-kitty/issues/4925#issuecomment-5799118717). `upstream-filed` applied to #1011.
+
+⚠ **The bodies below are the drafts, kept for the record. The posted copy is authoritative at the
+two URLs above.** Action A posted verbatim. **Action B's draft below is superseded** — its
+"Response to suggested direction" section was rewritten before posting; see *Revision to Action B*.
 
 | Action | Target | What it is | Status |
 |---|---|---|---|
-| **A** | [spec-kitty/spec-kitty PR #4947](https://github.com/spec-kitty/spec-kitty/pull/4947) | Windows verification of the PR head: #4923 **confirmed fixed**, #4927 **not fixed** with the plan-JSON evidence showing why | ✅ approved — **post** |
-| **B** | [spec-kitty/spec-kitty#4925](https://github.com/spec-kitty/spec-kitty/issues/4925) | The re-verification the maintainer asked for, plus the trace of the exit code they said could not be traced on Linux | ✅ approved — **post** |
+| **A** | [spec-kitty/spec-kitty PR #4947](https://github.com/spec-kitty/spec-kitty/pull/4947) | Windows verification of the PR head: #4923 **confirmed fixed**, #4927 **not fixed** with the plan-JSON evidence showing why | ✅ **POSTED** 2026-09-23 — [comment](https://github.com/spec-kitty/spec-kitty/pull/4947#issuecomment-5799117052) |
+| **B** | [spec-kitty/spec-kitty#4925](https://github.com/spec-kitty/spec-kitty/issues/4925) | The re-verification the maintainer asked for, plus the trace of the exit code they said could not be traced on Linux | ✅ **POSTED** 2026-09-23 — [comment](https://github.com/spec-kitty/spec-kitty/issues/4925#issuecomment-5799118717), revised first |
 
 Evidence and full trace: [`spec-kitty-4.0.0rc4-upgrade-findings.md` § PR #4947 head](<./spec-kitty-4.0.0rc4-upgrade-findings.md#pr-4947-head-1ee5f2d32--verification-2026-09-23>).
 Local tracking: kentonium3/kg-automation#1011. Predecessor packet (all filed 2026-09-22):
@@ -110,7 +117,7 @@ statement about the field: `init` and the legacy `run_surface_repair` fallback p
 agent's summary. One span was corrected in the process: `upgrade.py:1134-1137` → `1134-1136`.
 
 Attribution footer updated to name both models (Fable 5.1 drafted, Opus 5 revised), per the rc4
-packet's precedent. Action A was **not** changed; it posts verbatim as approved.
+packet's precedent. Action A was **not** changed; it posted verbatim as approved.
 
 ---
 
@@ -183,7 +190,9 @@ Byte-identical to the same command on `d57619a90`. The plan's 184 `effects` are 
 **Copy approved**: ✅ Kent, 2026-09-23.
 **Target**: issue #4925, replying to the maintainer's deferral comment of 2026-09-22 (which asked: *"re-verify on Windows after #4923+#4927 land"*).
 
-**Body** — post verbatim:
+**Body** — ⚠ **SUPERSEDED DRAFT.** The posted copy differs in the *Response to suggested
+direction* section; see *Revision to Action B* above and the live comment for what actually went
+out.
 
 ---
 
