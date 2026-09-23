@@ -40,7 +40,8 @@ rule). Keeping the story and its answer together here is an authoring convenienc
 - **Every arc carries a `context`** — personal / Intentional / spec-kitty / PointerHealth (Kent,
   2026-09-18). At synthesis a context is a **Domain**; the account or system a message arrived
   through is **episode provenance**, not a node; one **global Capacity** is what all four contend
-  for. Arcs A and D are authored **cross-context** — that is what makes them bite.
+  for. Arc A is authored **cross-context** — that is what makes it bite. (Arc D, the other
+  cross-context candidate, was cut 2026-09-23.)
 - **Outbound channels are watched** (Kent, 2026-09-23). Intake reads what Kent *sends* — Slack
   replies, email, suggestions, commitments — not only what arrives. Outbound is where the
   machinery notices conflicts, over-commitments and scheduling opportunities, and surfaces
@@ -55,9 +56,9 @@ rule). Keeping the story and its answer together here is an authoring convenienc
 |---|---|---|---|---|
 | A | cross-time, **cross-context** collision | **Keep** | ☑ | ◐ (4 of Kent's, 3 candidates) |
 | B | quiet drift | **Keep** | ☑ (invented values to confirm) | ☑ (3 of Kent's placed, 3 candidates) |
-| C | dropped ball (captured-and-deferred) | **Keep** | ☑ (invented dates to confirm) | ☑ (2 of Kent's, 4 candidates) |
-| D | cross-channel identity | `TODO(kent)` | ☐ | ☐ |
-| E | stakeholder pattern | `TODO(kent)` | ☐ | ☐ |
+| C | dropped ball (captured-and-deferred) | **Keep** | ☑ | ☑ |
+| D | cross-channel identity | **Cut** | — | — |
+| E | repeating pattern → automation | **Rewrite** (reshaped) | ☐ | ☐ |
 | F | principle erosion | `TODO(kent)` | ☐ | ☐ |
 
 ---
@@ -381,7 +382,7 @@ launch went**. Then Fred writes:
 **The question put to both arms**, asked Tue 04-28 on receipt: *"Fred just sent this. What is he
 referring to, and what do I owe him?"*
 
-**ORACLE.** (Kent's story, invented dates, 2026-09-23 — confirm)
+**ORACLE.** (Kent's story, invented dates; confirmed by Kent 2026-09-23)
 - [x] the original promise — 04-14, Slack, outbound, and its exact wording
 - [x] that it was **captured and deferred with no date or timeframe** — a condition-gated
       Commitment, "once we're past the launch" — and that **nothing was ever created against it**:
@@ -428,60 +429,78 @@ referring to, and what do I owe him?"*
 
 ---
 
-## Arc D — Cross-channel identity
+## Arc D — Cross-channel identity — **CUT**
 
-**Keep / Cut / Rewrite:** `TODO(kent)`
+**Keep / Cut / Rewrite:** **Cut** (Kent, 2026-09-23) — *"not practical. Multiple IDs for a given
+person are unique to that person."*
 
-**Context:** `TODO(kent)` — personal / Intentional / spec-kitty / PointerHealth (author **cross-context**, per the 2026-09-18 ruling)
+**Why it was cut.** The arc assumed identity resolution is a reasoning problem the arms must
+solve at question time. It isn't: a person's handles are unique to that person, so the
+`Person.aliases` list resolves handle → Person **deterministically, before writing, at $0** —
+exactly as the design doc's identity-resolution rule already says. There is no inference for a
+test to measure, and manufacturing a confusable second person would test a trap the real data
+does not set. Person resolution is still *exercised* — Arc C binds through the Person hub — but
+it is a precondition of the corpus, not a hard case.
 
-**The story (candidate).** One person appears under three handles — an email address, a Slack
-display name, and a calendar invitee under a third spelling. Commitments to and from them
-accumulate across all three over months.
-
-**The question put to both arms:** *"What have I committed to <person>, and is any of it overdue?"*
-
-**The cast** — `TODO(kent)`. The alias list is the point of this arc:
-
-| the person | handle 1 (email) | handle 2 (Slack) | handle 3 (calendar) |
-|---|---|---|---|
-| `TODO(kent)` | | | |
-
-**The trap** — `TODO(kent)`: **a different person with a confusingly similar handle**, who must
-*not* be merged. Without this the arc measures nothing.
-
-**ORACLE.** `TODO(kent)`
-- [ ] the complete commitment set across all three handles
-- [ ] that the three handles are one person — and the evidence a reader could use
-- [ ] which single commitment is overdue
-- [ ] that the near-miss person is **separate**
-
-> Authoring rule: the stream carries the **raw handles**; the Person node carries the **alias
-> list**. Don't pre-resolve them in the stream, or the arc is solved before it starts.
+**What survives.** The alias/handle authoring rule stands for the whole corpus: the stream
+carries raw handles, the Person node carries the alias list, and synthesis must not pre-resolve
+them in the stream. That remains the way every arc's cast is written.
 
 ---
 
-## Arc E — Stakeholder pattern
+## Arc E — Repeating pattern → automation
 
-**Keep / Cut / Rewrite:** `TODO(kent)`
+**Keep / Cut / Rewrite:** **Rewrite** (Kent, 2026-09-23) — reshaped from *stakeholder pattern*
+to *noticing a repeating business or communication pattern that needs some form of automation.*
 
-**Context:** `TODO(kent)` — personal / Intentional / spec-kitty / PointerHealth
+**Context:** `TODO(kent)` — personal / Intentional / spec-kitty / PointerHealth (or several: a
+pattern that recurs *across* contexts is the stronger version).
 
-**The story (candidate).** One client or collaborator requests scope additions ~6 times over ~5
-months. Each is small, each is individually reasonable, each was accepted.
+**The story (frame — Kent's specifics `TODO(kent)`).** Some activity recurs: a request you field,
+a message you compose, a hand-off you perform, a report you assemble. Each instance is small,
+handled in the moment, and individually not worth a second thought. Nobody ever asks for it to
+be automated because no single instance suggests it. Over weeks the instances accumulate into a
+pattern with a **recognisable shape and cadence** — same trigger, same steps, same output — and
+a cumulative cost that is material against capacity. The finding is *"this is a process; it
+should be automated,"* and the coaching question is *"at which instance was that knowable?"*
 
-**Timeline** — `TODO(kent)`: the ~6 asks, with dates and the hours each quietly added.
+`TODO(kent)`: **the pattern** — what recurs, what triggers it, what you do each time, roughly how
+long each instance takes, roughly how many over how long, and **what the automation would be**
+(a template, a rule, an agent, a delegated hand-off).
 
-**The tension to catch.** The *pattern* is a boundary problem and its cumulative cost is material
-against capacity. No single instance justifies raising it.
+**The tension to catch.** The pattern is invisible from inside any one instance. It is only
+visible as a *shape across events* — and the shape has to be recognised as *automatable*, which
+means noticing the instances are the same kind of thing, not merely that they involve the same
+people or words. The cumulative cost is what makes it worth raising; the regularity is what
+makes it automatable; both have to be read off the history.
 
-**ORACLE.** `TODO(kent)`
-- [ ] all the scope-addition events with dates
-- [ ] cumulative hours, set against your capacity
-- [ ] that each instance alone is trivial — the pattern is the finding
-- [ ] framed as a relationship conversation, not a task problem
+**Timeline** — `TODO(kent)`: the instances with dates; enough of them that the shape is clear.
 
-**Near-misses.** `TODO(kent)` — **important here**: other people who asked once or twice and are
-genuinely fine. Without them, "flag the person with the most asks" wins by accident.
+**ORACLE.** (frame — `TODO(kent)` the values)
+- [ ] all the instances, with dates, and that they are **the same kind of thing** (same trigger →
+      same steps → same output)
+- [ ] the cadence and the cumulative cost — hours, set against capacity
+- [ ] that no single instance justified automating — the pattern is the finding
+- [ ] **the instance at which the pattern became recognisable** — the earliest point a coaching
+      surface could have said "this is a process" (not the last instance)
+- [ ] the proposed automation, and what it would return per week
+- [ ] framed as a **process** finding, not a task or a relationship finding
+
+**Near-misses** (`TODO(kent)` — candidates to react to):
+- *things that recur but vary too much to automate* — same people, same topic, different work
+  each time; "automate it" is the wrong answer
+- *a one-off that looks like the start of a pattern* — two instances is not a process
+- *something already automated* whose output still appears in the stream, so it looks like
+  manual recurrence
+- *a genuine recurring pattern that is not worth automating* — cheap enough per instance and
+  rare enough that the automation costs more than it returns
+
+> Why the flat arm can't just win it: every instance is a small, unremarkable event, and the
+> instances are separated by weeks of unrelated traffic. Nothing links them except their shape.
+> A dump of everything contains them all and marks none of them; the arm has to cluster
+> same-shaped events across months and then judge the cluster as automatable. This is the arc
+> where *typed* history should matter most — if the adapters wrote each instance as the same
+> kind of node, the cluster is a query; if they are loose episodes, it is a search for a shape.
 
 ---
 
