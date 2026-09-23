@@ -1,6 +1,6 @@
-# Spec-Kitty upgrade findings — 3.2.7 → 4.0.0rc4 (candidate, then released) → rc5 dev
+# Spec-Kitty upgrade findings — 3.2.7 → 4.0.0rc4 (candidate, then released) → rc5 dev → PR #4947 head
 
-**Reporting window**: 2026-09-17 → 2026-09-22
+**Reporting window**: 2026-09-17 → 2026-09-23
 **Host**: Windows 11 Pro 26200 · Python 3.13.7 · `uv tool` install
 **Project**: `kentonium3/kg-automation`, `.kittify` schema_version 3, 125 missions
 **Prepared for**: spec-kitty QA agents. Read the Findings Register first; each row
@@ -20,12 +20,13 @@ bare version string identifies nothing during pre-release QA.
 | 4.0.0rc3 | `fbe1109fa` | Tagged + on PyPI. **Unusable on Windows.** |
 | 4.0.0rc4 candidate | `619bd1137` | Untagged build off `main`. The first thing we tested. |
 | 4.0.0rc4 **released** | `5309c4107` | Tag `v4.0.0rc4` + PyPI wheel. **174 commits ahead** of the candidate, `behind_by: 0`. Both report `4.0.0rc4`. **`upgrade` is broken on Windows here (F15).** |
-| 4.0.0rc5 **dev** ⬅ installed | `d57619a90` | Untagged `main`, 35 commits past the rc4 tag. Installed 2026-09-22 to reach surfaces the F15 crash blocked. Upstream `main` was 3 commits further (`b7d9dc79f`) at last check; still no rc5 tag. |
+| 4.0.0rc5 **dev** | `d57619a90` | Untagged `main`, 35 commits past the rc4 tag. Installed 2026-09-22 to reach surfaces the F15 crash blocked. |
+| **PR #4947 head** ⬅ installed | `1ee5f2d32` | Upstream fix branch `fix/windows-upgrade-mode-fidelity` for #4923 + #4927, fetchable as `refs/pull/4947/head`. **Unmerged**; strict superset of `d57619a90` (9 ahead, 0 behind). Installed 2026-09-23. `main` was at `86b282f00` (36 past `d57619a90`) with no rc5 tag; the PR conflicts with it. |
 
 Install any build by SHA (the installed one shown; swap the SHA for the others):
 
 ```bash
-uv tool install --force "git+https://github.com/spec-kitty/spec-kitty.git@d57619a900277ef388608dca4390c38758a06db0"
+uv tool install --force "git+https://github.com/spec-kitty/spec-kitty.git@1ee5f2d326ae426f139f9bf778cba74e9653c0f3"
 ```
 
 ⚠️ **Windows prerequisite**: `git config --global core.longpaths true`. The
@@ -49,16 +50,16 @@ fatal: Could not reset index file to revision '619bd1137...'
 | F3 | Prerelease channel resolves to a **yanked** release | P2 | **FIXED, verified** | [#982](https://github.com/kentonium3/kg-automation/issues/982) | `cc945affb` (#4705) |
 | F4 | Orientation block always renders `project: unknown` | P2 | **FIXED, verified** | [#983](https://github.com/kentonium3/kg-automation/issues/983) | `68601eea4` (#4706) |
 | F5 | Orientation `health` can never report `upgrade-available` | P2 | **FIXED, partial verify** | [#984](https://github.com/kentonium3/kg-automation/issues/984) | `54a5f86f1` (#4707) |
-| F6 | `upgrade --yes` exits 1 on a successful no-op | P2 | **REPRODUCES on `d57619a90`** — prompt half fixed, exit code persists; filing | [#992](https://github.com/kentonium3/kg-automation/issues/992) | `cdde1cb51` (#4775, partial) |
+| F6 | `upgrade --yes` exits 1 on a successful no-op | P2 | **REPRODUCES on `1ee5f2d32`** — now **traced**: a surface-drift error that the text renderer never prints (see PR #4947 section) | [#992](https://github.com/kentonium3/kg-automation/issues/992) → upstream #4925 (deferred) | `cdde1cb51` (#4775, partial) |
 | F7 | `upgrade` fails on `_recheck_command_completion`; needs 3 runs | P2 | **FIXED on `d57619a90`** — converges in one run | [#993](https://github.com/kentonium3/kg-automation/issues/993) | `92a200070` (#4776) |
-| F8 | Windows `upgrade --dry-run` reports 184 phantom repairs forever | P3 | **REPRODUCES on `d57619a90`** — filing | [#994](https://github.com/kentonium3/kg-automation/issues/994) | — (#4777 closed, not fixed) |
+| F8 | Windows `upgrade --dry-run` reports 184 phantom repairs forever | P3 | **REPRODUCES on `1ee5f2d32`** — PR #4947 relaxes the wrong planner; the 184 are **global-asset** effects (see PR #4947 section) | [#994](https://github.com/kentonium3/kg-automation/issues/994) → upstream #4927 | PR #4947 (open, does not fix) |
 | F9 | `mission-state --fix` rejects legacy `change_mode: regular` | P2 | **FIXED on `5309c4107`** | [#995](https://github.com/kentonium3/kg-automation/issues/995) | `b25f45a56` (#4778) |
-| F10 | Mission-state manifest + quarantined rows written to a **gitignored** path | P2 | **OPEN** on `d57619a90` — filing | [#996](https://github.com/kentonium3/kg-automation/issues/996) | — (#4779 closed, not fixed) |
+| F10 | Mission-state manifest + quarantined rows written to a **gitignored** path | P2 | **OPEN** — not in PR #4947 scope | [#996](https://github.com/kentonium3/kg-automation/issues/996) → upstream #4928 | — (#4779 closed, not fixed) |
 | F11 | `mission-state --fix` / `--teamspace-dry-run` report counts with no detail | P3 | **FIXED on `5309c4107`** | [#997](https://github.com/kentonium3/kg-automation/issues/997) | `b25f45a56` (#4780) |
 | F12 | Repo unclonable on default Windows git (path length) | env | **WORKED AROUND**; upstream #4781 open | — (this doc) | n/a — set `core.longpaths` |
 | F13 | `GEMINI.md` orientation never refreshes; `tool-surfaces --fix` no-ops | P3 | **FIXED on `5309c4107`** | [#999](https://github.com/kentonium3/kg-automation/issues/999) | `92a200070` (#4782) |
-| F14 | CLI emits both deprecated `TeamSpace` and current `Team Kitty` | P3 | **OPEN** on `d57619a90` (328 occurrences) | [#1000](https://github.com/kentonium3/kg-automation/issues/1000) | — (#4783 open) |
-| F15 | Released rc4: Windows `upgrade` crashes on `os.utime(follow_symlinks=False)` | P1 | ⚠️ **Latent** — breaks `5309c4107`, dormant on `d57619a90`, call still present; filing | [#1005](https://github.com/kentonium3/kg-automation/issues/1005) | — |
+| F14 | CLI emits both deprecated `TeamSpace` and current `Team Kitty` | P3 | **OPEN** on `1ee5f2d32` (328 occurrences, unchanged) | [#1000](https://github.com/kentonium3/kg-automation/issues/1000) | — (#4783 open) |
+| F15 | Released rc4: Windows `upgrade` crashes on `os.utime(follow_symlinks=False)` | P1 | **FIXED on `1ee5f2d32`** (statically verified — all five sites routed through `kernel.no_follow`; crash not reachable on this build to prove dynamically) | [#1005](https://github.com/kentonium3/kg-automation/issues/1005) → upstream #4923 | PR #4947 (open) |
 
 **Reading the Status column.** `FIXED, verified` = observed working on the candidate build `619bd1137`.
 `FIXED on <build>` = still broken on the previous build, confirmed fixed on the named one.
@@ -380,6 +381,138 @@ still present.
 
 ---
 
+## PR #4947 head (`1ee5f2d32`) — verification, 2026-09-23
+
+Tracking: [#1011](https://github.com/kentonium3/kg-automation/issues/1011). Installed the head of upstream
+PR spec-kitty#4947 (`fix/windows-upgrade-mode-fidelity`, Stijn, 2026-09-22), which claims to close #4923
+(F15) and #4927 (F8). Chosen over `main` because it is a strict superset of the previously installed
+`d57619a90` (compare API: 9 ahead, 0 behind), so any change is attributable to the fix. The PR is
+unmerged, unreviewed, CI-green, and conflicts with `main` (base `6b4164dbf`, `main` 30 ahead).
+
+Restore point: tag `pre-upgrade-pr4947-20260923` (= `ff044e93`). Pre-flight: clean tree, no mission
+worktrees. Every command below ran with `</dev/null`; exit codes recorded. **The upgrade left the working
+tree untouched** — no `.kittify` or orientation file changed, so there are no upgrade artifacts to commit
+beyond this document.
+
+### Headline: one of the two fixes does not reach Windows
+
+| | Baseline `d57619a90` | PR head `1ee5f2d32` |
+|---|---|---|
+| `upgrade --dry-run` | `Would repair 184 …`, exit 0 | **`Would repair 184 …`, exit 0 — byte-identical** |
+| `upgrade --yes` ×3 | exit 1, "already up to date" | exit 1, "already up to date" — unchanged |
+| `doctor tool-surfaces` | 294 drift findings, exit 0 | byte-identical |
+| `doctor mission-state --teamspace-dry-run` | 15 `PAYLOAD_INVALID`, exit 1 | byte-identical |
+| `follow_symlinks=False` sites in `skills/installer.py` | 5 | **0** (routed via `kernel.no_follow`) |
+| TeamSpace occurrences (F14) | 328 | 328 |
+| Orientation stamps (F13) | 4× `v4.0.0rc5` | 4× `v4.0.0rc5` |
+
+### F15 / #4923 — FIXED (statically verified)
+
+All five `chmod`/`utime` sites in `skills/installer.py` (`:172`, `:174`, `:963`, `:969`, `:981` on the
+baseline) now call `chmod_no_follow` / `utime_no_follow` from the new `kernel/no_follow.py`, which passes
+`follow_symlinks=False` only when the host lists the function in `os.supports_follow_symlinks`. On this
+box both `os.utime` and `os.chmod` report unsupported, so the flag is dropped. No direct
+`follow_symlinks=False` apply call survives in the module.
+
+Caveat, stated plainly: the crash was **dormant** on the baseline too (reachability, not the call,
+changed between builds — see the rc5 section), so this run could not make it fire and then watch it
+not fire. The dynamic evidence is only "three `upgrade --yes` runs and one `--json` run, no
+`NotImplementedError`". The static evidence is what carries the verdict. The released rc4 wheel on PyPI
+remains broken until this merges.
+
+### F8 / #4927 — NOT FIXED: the relaxation was applied to the wrong planner
+
+The PR generalises `windows_dir_mode_only_divergence` (`skills/command_installer.py`) from
+directory-only to `directory`/`file`/`symlink`, and its two callers are `skills/installer.py` (project
+skill writes, `:508` and the new guard at `:601`) and `tool_surface/providers/managed_skills.py:181`
+(the completion re-check). Those are the **project**-skill paths.
+
+The 184 effects come from somewhere else entirely. From `upgrade --dry-run --plan-json` on the PR build:
+
+```text
+action:   {'chmod': 184}
+owner:    {'global_assets': 184}          phase: {'global_bootstrap': 184}
+root_id:  {'global_skills': 144, 'runtime_bootstrap': 40}
+reason:   {'Refresh canonical global asset': 184}
+before:   {('directory', 0o777): 183, ('file', 0o666): 1}
+after:    {('directory', 0o755): 183, ('file', 0o644): 1}
+differing fields: {('mode',): 184}
+paths:    ~/.agents/skills/** (72)   ~/.claude/skills/** (72)   %LOCALAPPDATA%/spec-kitty/** (40)
+```
+
+Every one is a **global** asset — the per-user skill trees and the runtime bootstrap cache — and 183 of
+the 184 are **directories**, not files. They are emitted by `runtime/asset_preparation.py`:
+`_action()` returns `"chmod"` whenever `before.mode != after.mode` (`:87`), and `asset()` feeds it the
+`lstat` mode (`:289`–`:315`). That module contains **no** `is_windows` check and never calls
+`windows_dir_mode_only_divergence`; the PR does not touch it (its `src/` diff is exactly
+`kernel/no_follow.py`, `skills/command_installer.py`, `skills/installer.py`). The dry-run summary line
+counts precisely this planner's output — `cli/commands/upgrade.py:1093` renders
+`len(prepare_upgrade_repairs(...).effects)`.
+
+So the PR's own diagnosis ("one phantom `chmod` per managed *file*", 184 == managed file count) was a
+coincidence of numbers. On this project the count is 183 directories + 1 file (`cache/version.lock`),
+all outside the project root. The PR fix is correct for the project-skill seam it covers — it just is
+not the seam the reported number comes from. The #4930 triage comment named
+`tool_surface/operations.py` and `tool_surface/bundles/projection.py` as the planning layer to fix;
+neither is in the PR, and neither is where these effects originate either.
+
+### F6 / #4925 — REPRODUCES, and is now traced (upstream said it could not be)
+
+`upgrade --yes` exits 1 on this converged project with plain output of just
+`Project is already up to date!`. The same command with `--json` explains it:
+
+```json
+"status": "failed", "success": false,
+"errors": ["Unresolved tool-surface drift in 19 file(s); run 'spec-kitty doctor tool-surfaces' to review."],
+"surface_repair": {"repaired": 184, "drifted_reported": 19, "created": 0, "skipped": 0}
+```
+
+The 19 are the native agent-profile projections — seven profiles (`analyst-annie`, `comms-cleo`,
+`diagram-daisy`, `lexical-larry`, `reviewer-renata`, `scribe-sally`, `synthesizer-sam`) across
+`.claude/agents/*.md`, `.codex/agents/*.toml` and `.github/agents/*.agent.md` — which the plan lists as
+`consent_required` dispositions ("Would preserve 19 paths requiring separate consent"). The doctor
+reports each as `Native agent profile drifted from manifest hash` and exits 0. They were last written by
+the released 3.2.6 on 2026-09-06 (`39496bf8`) and are unmodified in git since.
+
+Mechanism, traced in the installed `cli/commands/upgrade.py`:
+
+- `_combined_errors()` (`:873`) folds the surface-drift failure into `result.errors`, and the exit code is
+  derived from that outcome — hence exit 1 and `"errors": [...]` under `--json`.
+- The text renderer for the no-migrations path, `_display_no_migrations_results()` (`:1002`), prints
+  `warnings` and `outcome.activation_errors` **only**. The surface-drift error is not in
+  `activation_errors`, so it is never printed. The human sees success text and exit 1.
+
+Upstream's #4925 comment concluded `surface_drift_failed` could not be the cause because
+`drifted_reported` "is populated only from `consent_required` dispositions" and our report showed no
+errors. Both halves were right; the inference was wrong because the text output hides the error that
+`--json` shows. It also refutes the "may resolve downstream of #4927" hope — this exit code is
+independent of the chmod effects.
+
+Two defects, one policy question, for upstream to split as they see fit:
+
+1. **Rendering**: the no-migrations text path must print the same errors the JSON path reports.
+2. **Contract**: `--yes` is documented as non-interactive confirmation. An operator-preserved drift that
+   the command deliberately does not overwrite is reported as a hard failure of a no-op run.
+3. **Policy**: whether never-consented agent-profile drift should fail `upgrade` at all, given the
+   doctor treats the identical finding as a warning and exits 0.
+
+### Unchanged
+
+F7 (single-run convergence — three consecutive no-op runs), F13 (stamps), F10, F14 all as on the
+baseline. The 15 `PAYLOAD_INVALID` mission-state validation issues, first seen today on the baseline
+before any install, are byte-identical on the PR build and remain an untriaged observation — they were
+0 blockers in the 2026-09-22 run of the same command on the same build.
+
+### Observation, not a finding
+
+`doctor tool-surfaces` reports 275 `Managed doctrine skill drifted from manifest hash` findings on a
+clean, converged tree (plus the 19 agent-profile drifts above), and exits 0. Identical on both builds.
+The rc5 section above recorded this command as "0 missing, 0 stale"; that was true and incomplete —
+drift was not counted. Whether 275 managed skills genuinely drift on a tree git reports as clean, or
+the hash check is line-ending-sensitive on Windows, is not investigated here.
+
+---
+
 ## Upstream routing map — read before filing anything
 
 These findings are produced under Kent's **personal hat** (discovery and analysis, tracked as
@@ -396,19 +529,20 @@ Ready-to-post copy for every outbound action:
 
 | Ours | Upstream | Upstream state | Verdict on `d57619a90` (latest build tested) | Filing action |
 |---|---|---|---|---|
-| #992 (F6) | spec-kitty#4775 | CLOSED completed | **reproduces** (exit code only) | **file new issue ref. #4775** |
+| #992 (F6) | spec-kitty#4775 → **#4925** | #4925 OPEN, deferred | **reproduces on `1ee5f2d32`, now traced** (renderer drops the drift error) | comment on #4925 with the trace — PENDING Kent |
 | #993 (F7) | spec-kitty#4776 | CLOSED completed | fixed, verified | no action |
-| #994 (F8) | spec-kitty#4777 | CLOSED completed | **reproduces** | **file new issue ref. #4777** |
+| #994 (F8) | spec-kitty#4777 → **#4927** | #4927 OPEN, PR #4947 | **reproduces on `1ee5f2d32`** — PR relaxes project-skill seam; effects are global-asset | comment on PR #4947 / #4927 — PENDING Kent |
 | #995 (F9) | spec-kitty#4778 | CLOSED completed | fixed, verified | already routed |
-| #996 (F10) | spec-kitty#4779 | CLOSED completed | **still present** | **file new issue ref. #4779** |
+| #996 (F10) | spec-kitty#4779 → **#4928** | #4928 OPEN | still present (out of PR scope) | already routed |
 | #997 (F11) | spec-kitty#4780 | CLOSED completed | fixed, verified | already routed |
 | — (F12) | spec-kitty#4781 | OPEN | still required (`core.longpaths`) | already routed |
 | #999 (F13) | spec-kitty#4782 | CLOSED completed | fixed, verified | already routed |
 | #1000 (F14) | spec-kitty#4783 (+ epic #4793, #3154) | OPEN | still present | already routed |
-| #1005 (F15) | — | not filed | latent (crashes `5309c4107` only) | **file**, then comment on open #4902 |
-| #1006 | — | not filed | this register's verdict | **file** |
+| #1005 (F15) | **#4923** | OPEN, PR #4947 | **fixed on `1ee5f2d32`** (static) | comment on PR #4947 confirming — PENDING Kent |
+| #1006 | **#4930** | OPEN, umbrella | rc4/rc5 verdict | filed 2026-09-22 |
+| #1011 | — | not filed | PR #4947 head verdict (this section) | Kent's call |
 
-**Net: five new upstream issues plus one comment** on open #4902. See the
+~~**Net: five new upstream issues plus one comment** on open #4902.~~ Filed 2026-09-22 as #4923, #4925, #4927, #4928, #4930. **Net after 2026-09-23: three comments pending Kent's review** (PR #4947 for #4923/#4927, and #4925). See the
 [filing packet](<./spec-kitty-upstream-filing-packet-rc4.md>) for ready-to-post copy, suggested
 labels, and a ledger separating already-filed from new.
 
@@ -482,7 +616,8 @@ files are tracked (see F10).
   `pre-mission-state-fix-20260919` (commit `2bc3b749`), plus an out-of-tree
   backup with a `RESTORE.md` procedure.
 - Upgrade artifacts commits: `2bc3b749` (rc4 candidate), `d2557501` (released rc4),
-  `6d004746` (rc5 dev).
+  `6d004746` (rc5 dev). The PR #4947 head install produced no artifacts (tree untouched).
+- Restore points: `pre-mission-state-fix-20260919`, `pre-upgrade-pr4947-20260923`.
 - Each issue listed above embeds a slim upstream-ready draft in a fenced block,
   per the dual-track model in
   [`runbooks/spec-kitty-bug-reporting.md`](<../runbooks/spec-kitty-bug-reporting.md>).
