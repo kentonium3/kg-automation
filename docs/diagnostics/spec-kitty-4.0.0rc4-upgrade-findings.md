@@ -502,6 +502,9 @@ F7 (single-run convergence — three consecutive no-op runs), F13 (stamps), F10,
 baseline. The 15 `PAYLOAD_INVALID` mission-state validation issues, first seen today on the baseline
 before any install, are byte-identical on the PR build and remain an untriaged observation — they were
 0 blockers in the 2026-09-22 run of the same command on the same build. Tracked as [#1012](https://github.com/kentonium3/kg-automation/issues/1012).
+**Root-caused 2026-09-23 (see #1012):** the "0" was the *audit's* blocker count, not this command; the dry-run
+returns early on audit blockers, so these 15 pre-existing 2026-03 transition rows (`force=false` review-rejection
+rollbacks the 9.1.6 events contract now rejects) only became reachable once F9 was fixed. Newly reachable, not new.
 
 ### Observation, not a finding
 
@@ -511,6 +514,12 @@ The rc5 section above recorded this command as "0 missing, 0 stale"; that was tr
 drift was not counted. Whether 275 managed skills genuinely drift on a tree git reports as clean, or
 the hash check is line-ending-sensitive on Windows, is not investigated here. Tracked as
 [#1013](https://github.com/kentonium3/kg-automation/issues/1013).
+**Root-caused 2026-09-23 (see #1013):** worse than line endings. System-scope `core.autocrlf=true` gives the venv CRLF
+skill sources; the installer's `
+`-only frontmatter detector then prepends a second, bogus frontmatter block to all 275
+`SKILL.md` files (visible to agents as `description: "name: <skill>"`), the verifier renders the correct expectation via
+`read_text()`, and `--fix` cannot converge because its pre-check uses the installer's rendering. The 19 agent profiles are
+plain CRLF checkout of tracked LF files with no `.gitattributes` rule — and they are the `drifted_reported` set behind #992's local exit 1.
 
 ---
 
