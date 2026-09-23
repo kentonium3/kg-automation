@@ -4,9 +4,9 @@ doc_type: runbook
 audience: agents_and_humans
 status: approved
 created: 2026-05-28
-last_validated: 2026-09-11
-last_updated: '2026-09-11'
-version: v1.6
+last_validated: 2026-09-23
+last_updated: '2026-09-23'
+version: v1.7
 owners: [kgale]
 ---
 
@@ -167,9 +167,15 @@ cloned), so a home-relative path in this runbook would be wrong somewhere.
                         issue, BEFORE the upstream filing step. Never file
                         upstream on the agent's own initiative.
 6. FILE UPSTREAM        gh issue create --repo spec-kitty/spec-kitty
-                        --title "<approved title>" --body-file <(extract the
-                        embedded draft from the internal issue + fill the
-                        Submission approved date with today).
+                        --title "<approved title>" --type Bug
+                        --body-file <(extract the embedded draft from the
+                        internal issue + fill the Submission approved date
+                        with today).
+                        ── --type, NOT a type:bug label ──
+                        That repo uses GitHub's native issue type
+                        (Bug|Feature|Task). The type:bug label still exists
+                        there, so applying it looks like it worked and a
+                        maintainer strips it. See Labels.
 7. CROSS-LINK           Comment on the kg-automation issue with the
                         "Filed upstream: spec-kitty/spec-kitty#NNNN" line +
                         filing-date + label transitions. Apply the
@@ -180,6 +186,18 @@ cloned), so a home-relative path in this runbook would be wrong somewhere.
                         labels upstream-filed → upstream-pending-release →
                         upstream-released and close the kg-automation issue.
 ```
+
+### v1.7 change note (2026-09-23)
+
+`spec-kitty/spec-kitty` adopted GitHub's **native issue type** and retired the `type:bug` label
+on filings. Step 6 now passes `--type Bug`, and a new upstream subsection in *Labels* records the
+three organisation-level types, the `gh issue edit` repair path, and the version floor. The reason
+this needed writing down rather than just remembering: the `type:*` labels were **not deleted**, so
+the stale instruction still succeeds and produces an issue that looks correctly labelled until a
+maintainer strips it — which is how it went unnoticed across four filings on 2026-09-22.
+
+Scope was deliberately held to `spec-kitty/spec-kitty`. The programme repos still use `type:*`
+labels with no native type set, verified 2026-09-23.
 
 ### v1.6 change note (2026-09-11)
 
@@ -259,6 +277,34 @@ Before promoting an internal issue to upstream-ready:
 - Environment: OS, Python version, `spec-kitty --version`, `codex --version` or other relevant tool versions
 
 ## Labels
+
+### Upstream: `spec-kitty/spec-kitty` takes a native issue type, not `type:bug`
+
+⚠ **Applies to the upstream filing (lifecycle step 6) only** — the internal kg-automation labels
+below are unchanged.
+
+That repo moved to GitHub's native issue-type field. Three types are defined at the organisation
+level: **Bug**, **Feature**, **Task**. Set the type on the filing command rather than applying a
+`type:bug` label:
+
+```bash
+gh issue create --repo spec-kitty/spec-kitty --title "<approved title>" \
+  --body-file <path> --type Bug
+```
+
+`gh issue edit <n> --type Bug` fixes an already-filed issue; `--remove-type` clears one. Both
+need gh 2.101.0 or newer.
+
+**The old instruction fails silently.** The `type:*` labels still exist in that repo, so applying
+`type:bug` succeeds and looks right. On 2026-09-22 a maintainer removed `type:bug` from all four
+of our filings — spec-kitty#4923, #4925, #4927 and #4928 — within an hour and set the issue type
+instead. Every issue created in that repo on 2026-09-23 carries a native type and no `type:*`
+label, so this is settled rather than in flux.
+
+Labels that are still labels upstream: `from:qa`, `domain:*`, `priority:*`. Priority stays the
+maintainers' call — #4923 was filed at `priority:P1` and raised to `priority:P0` on triage.
+
+### Internal (kg-automation)
 
 - `area/tooling` — canonical area label for spec-kitty bugs (and sibling tooling: codex, antigravity, openclaw)
 - `spec: brief` — default state when filed; not yet structured for the spec-kitty mission workflow (these issues usually stay `spec: brief` forever since fixes land upstream, not in our repo)
