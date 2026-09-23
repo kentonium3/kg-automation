@@ -79,6 +79,39 @@ Deviations, noted rather than silently applied:
   SHA was read from `spec_kitty_cli-*.dist-info/direct_url.json` under `uv tool dir`. Same
   identifier, different path.
 
+## Revision to Action B before posting — 2026-09-23, approved by Kent
+
+**Action B's "Response to suggested direction" section was rewritten.** The approved draft said the
+maintainer *"concluded `surface_drift_failed` could not be the source because our report showed no
+errors."* That is not the reasoning the #4925 comment gave: it excluded the drift because
+`drifted_reported` is populated only from `consent_required` dispositions. The compression dropped
+the correct half and kept only the weaker one, which understates a maintainer's reasoning in a
+public correction — the most sensitive copy shape we send. The findings register already had the
+fair version (*"Both halves were right; the inference was wrong"*); the packet lost it.
+
+The rewrite concedes both halves, scopes the concession accurately, and adds two findings Kent
+approved folding in on 2026-09-23:
+
+1. **The text path prints nothing about the drift at all** — not even the advisory note.
+   `render_surface_summary_lines` is reached only from the legacy fallback and from `init`, never
+   from the prepared branch this build takes.
+2. **The drift-policy tests are asymmetric.** The text-mode case asserts only a non-zero return
+   code; only the JSON twin asserts the message. Offered as context for why the silence survived,
+   not as a prescription — the "no suggested fix" rule still holds.
+
+⚠ **Scoping correction found while verifying.** The maintainer's *"populated only from
+`consent_required` dispositions"* is true **on the `upgrade` path** and false as a general
+statement about the field: `init` and the legacy `run_surface_repair` fallback populate
+`drifted_reported` from `STATE_DRIFTED` surfaces with no disposition involved. The rewrite says
+"on the `upgrade` path" so it does not endorse a claim that is false elsewhere.
+
+**Every `file:line` in the rewrite was verified directly against the PR head `1ee5f2d32`**
+(`git fetch refs/pull/4947/head`, read via `git show FETCH_HEAD:<path>`), not taken from an
+agent's summary. One span was corrected in the process: `upgrade.py:1134-1137` → `1134-1136`.
+
+Attribution footer updated to name both models (Fable 5.1 drafted, Opus 5 revised), per the rc4
+packet's precedent. Action A was **not** changed; it posts verbatim as approved.
+
 ---
 
 ## Action A — comment on PR spec-kitty/spec-kitty#4947
