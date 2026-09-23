@@ -41,6 +41,13 @@ rule). Keeping the story and its answer together here is an authoring convenienc
   2026-09-18). At synthesis a context is a **Domain**; the account or system a message arrived
   through is **episode provenance**, not a node; one **global Capacity** is what all four contend
   for. Arcs A and D are authored **cross-context** — that is what makes them bite.
+- **Outbound channels are watched** (Kent, 2026-09-23). Intake reads what Kent *sends* — Slack
+  replies, email, suggestions, commitments — not only what arrives. Outbound is where the
+  machinery notices conflicts, over-commitments and scheduling opportunities, and surfaces
+  trade-offs and reprioritisation needs. Consequence for the arcs: a promise made in writing
+  **always enters the system**; the realistic dropped ball is *captured, deferred, never
+  revisited*, not *never captured*. Only verbal and text-message promises stay outside (see
+  Arc A's scope note).
 
 ## Per-arc scorecard (fill as you go)
 
@@ -48,7 +55,7 @@ rule). Keeping the story and its answer together here is an authoring convenienc
 |---|---|---|---|---|
 | A | cross-time, **cross-context** collision | **Keep** | ☑ | ◐ (4 of Kent's, 3 candidates) |
 | B | quiet drift | **Keep** | ☑ (invented values to confirm) | ☑ (3 of Kent's placed, 3 candidates) |
-| C | dropped ball | `TODO(kent)` | ☐ | ☐ |
+| C | dropped ball (captured-and-deferred) | `TODO(kent)` | ☐ | ☐ |
 | D | cross-channel identity | `TODO(kent)` | ☐ | ☐ |
 | E | stakeholder pattern | `TODO(kent)` | ☐ | ☐ |
 | F | principle erosion | `TODO(kent)` | ☐ | ☐ |
@@ -323,11 +330,27 @@ damage was done by week 8.
 task anywhere. About three months later they follow up **obliquely, in a different channel**,
 without naming it — "did you ever get anywhere with that?"
 
-**Two variants — build both** (design lead, 2026-09-18):
-- **C1 structural:** the promise *was* captured as a Commitment, but no Task or Project ever
-  attached to it. Findable as a pattern: a commitment with a counterparty and nothing downstream.
-- **C2 episode-only:** it never entered the Lattice at all. Recoverable only from the message log.
-  This is the realistic case today; C1 is what you'd get once a router exists.
+**Variants — reframed after the outbound ruling** (Kent + design discussion, 2026-09-23):
+- **C1 captured-and-deferred — the scored arc.** The promise was your own outbound Slack reply.
+  Intake flagged it and asked what to do; you said "later"; it became a Commitment (or a deferred
+  intake item) with a counterparty and **nothing downstream** — no Task, no Project, no revisit.
+  Three months on, the oblique follow-up arrives in another channel. This is the design lead's
+  structural variant plus a deferral history, and it is the same bare-event pattern as #844's
+  chronic deferral: a thing that sat, with no Decision ever taken against it.
+- **C2 never-entered — out of scope.** With outbound watched, a written promise cannot fail to
+  enter. The only never-entered promises are verbal or text-message ones, which Arc A's scope
+  note already rules out. Not built.
+- **The residual risk to note, not test:** recognition precision. If intake over-flags, the
+  dismissals become the dropped balls — the failure moves from *not captured* to *captured and
+  waved off*, which is C1 by another route.
+
+**What Arc C decides.** Not the recovery — once the follow-up is understood, a new task closes
+it and that path is covered. It decides whether the system can **bind an oblique reference to a
+months-old deferred commitment through the person**, and say what it was, when it was deferred,
+and that it was never revisited. That is the difference between *"remind me what that was?"* and
+*"I owe you the X from 3 March — sorry, here's when."* Close cousin of Arc D: D's trap is
+identity, C's finding is the absence. If the two prove too close, fold C into D as a second
+question on the same cast.
 
 **Cast & timeline** — `TODO(kent)`
 
