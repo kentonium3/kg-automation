@@ -55,7 +55,7 @@ rule). Keeping the story and its answer together here is an authoring convenienc
 |---|---|---|---|---|
 | A | cross-time, **cross-context** collision | **Keep** | ☑ | ◐ (4 of Kent's, 3 candidates) |
 | B | quiet drift | **Keep** | ☑ (invented values to confirm) | ☑ (3 of Kent's placed, 3 candidates) |
-| C | dropped ball (captured-and-deferred) | `TODO(kent)` | ☐ | ☐ |
+| C | dropped ball (captured-and-deferred) | **Keep** | ☑ (invented dates to confirm) | ☑ (2 of Kent's, 4 candidates) |
 | D | cross-channel identity | `TODO(kent)` | ☐ | ☐ |
 | E | stakeholder pattern | `TODO(kent)` | ☐ | ☐ |
 | F | principle erosion | `TODO(kent)` | ☐ | ☐ |
@@ -322,45 +322,109 @@ damage was done by week 8.
 
 ## Arc C — Dropped ball
 
-**Keep / Cut / Rewrite:** `TODO(kent)`
+**Keep / Cut / Rewrite:** **Keep** (Kent, 2026-09-23).
 
-**Context:** `TODO(kent)` — personal / Intentional / spec-kitty / PointerHealth
+**Context:** **spec-kitty** (Kent: "could be personal or business" — the launch, the integration
+and the executive staff put this one at work; the shape transfers to personal unchanged).
 
-**The story (candidate).** You promise someone something in a Slack thread. It never becomes a
-task anywhere. About three months later they follow up **obliquely, in a different channel**,
-without naming it — "did you ever get anywhere with that?"
+**The story (Kent, 2026-09-23).** Mid-launch, you send a colleague a Slack message:
+
+> *"Hey Fred, let's meet and do a design review once we're past this immediate launch craziness
+> so we can start working on the integration."*
+
+Intake flags it — *there's a meeting to schedule; when should it be?* You reply **"I don't know
+yet"** and give no follow-up date or timeframe. It sits. In the two weeks that follow you and
+Fred exchange many emails and Slack messages, all about other things with clear, immediate
+relevance — including coordinating a **quarterly report to the executive staff on how the
+launch went**. Then Fred writes:
+
+> *"How are things going with the launch activity?"*
 
 **Variants — reframed after the outbound ruling** (Kent + design discussion, 2026-09-23):
-- **C1 captured-and-deferred — the scored arc.** The promise was your own outbound Slack reply.
-  Intake flagged it and asked what to do; you said "later"; it became a Commitment (or a deferred
-  intake item) with a counterparty and **nothing downstream** — no Task, no Project, no revisit.
-  Three months on, the oblique follow-up arrives in another channel. This is the design lead's
-  structural variant plus a deferral history, and it is the same bare-event pattern as #844's
-  chronic deferral: a thing that sat, with no Decision ever taken against it.
+- **C1 captured-and-deferred — the scored arc.** This story. The promise was your own outbound
+  Slack reply; intake caught it; you deferred it with no date; it became a Commitment with a
+  counterparty and **nothing downstream** — no calendar hold, no Task, no revisit.
 - **C2 never-entered — out of scope.** With outbound watched, a written promise cannot fail to
-  enter. The only never-entered promises are verbal or text-message ones, which Arc A's scope
-  note already rules out. Not built.
-- **The residual risk to note, not test:** recognition precision. If intake over-flags, the
-  dismissals become the dropped balls — the failure moves from *not captured* to *captured and
-  waved off*, which is C1 by another route.
+  enter. Only verbal and text-message promises stay outside, per Arc A's scope note. Not built.
+- **Residual risk, noted not tested:** recognition precision. If intake over-flags, the
+  dismissals become the dropped balls — C1 by another route.
 
-**What Arc C decides.** Not the recovery — once the follow-up is understood, a new task closes
-it and that path is covered. It decides whether the system can **bind an oblique reference to a
-months-old deferred commitment through the person**, and say what it was, when it was deferred,
-and that it was never revisited. That is the difference between *"remind me what that was?"* and
-*"I owe you the X from 3 March — sorry, here's when."* Close cousin of Arc D: D's trap is
-identity, C's finding is the absence. If the two prove too close, fold C into D as a second
-question on the same cast.
+**What makes this one hard — three things stacked:**
+1. **The commitment has no date.** It is gated on a *condition* — "once we're past the launch" —
+   not a time. Nothing can go overdue, so nothing is ever late.
+2. **The condition has been met, and the evidence is indirect.** Nobody wrote "the launch is
+   over." What exists is a thread coordinating a report on *how the launch went* — which can only
+   be written after it.
+3. **The follow-up is a probe on the condition, not the promise.** Fred is co-presenting the
+   launch retrospective; he already knows how the launch went. So *"how are things going with
+   the launch activity?"* cannot be a sincere question about the launch. It is asking whether the
+   thing gated on the launch is coming. And the quarterly-report thread — Fred + launch — is the
+   **lexically closest match** to his message, and the wrong binding.
 
-**Cast & timeline** — `TODO(kent)`
+**Cast** — fictional names, real dynamics.
 
-**ORACLE.** `TODO(kent)`
-- [ ] the original promise, its date, its channel, and its exact wording
-- [ ] that **nothing was ever created against it** — a gap, not a delay
-- [ ] that the later oblique message refers to it — and what makes that inferable
-- [ ] elapsed time and the relational cost
+| handle | who they are to you | relationship | context | channels |
+|---|---|---|---|---|
+| **Fred Okafor** (fictional) | spec-kitty colleague; owns the integration on his side; co-presents the launch retrospective with you | collaborator | spec-kitty | Slack, email, calendar |
 
-**Near-misses.** `TODO(kent)` — *promises you DID keep, and follow-ups about something else.*
+**Timeline** (dates invented).
+
+| when | channel | what happened |
+|---|---|---|
+| Tue 04-14 | Slack (outbound) | the promise, verbatim above |
+| Tue 04-14 | intake | flagged: "meeting to schedule — when?" · Kent: "I don't know yet" · no date, no timeframe, no revisit set |
+| Thu 04-23 | — | the launch ships |
+| 04-15 → 04-27 | Slack + email | many Kent ↔ Fred exchanges on other, immediately relevant topics *(near-miss set)* |
+| Fri 04-24, Mon 04-27 | email | coordinating the **quarterly report to the executive staff on how the launch went** *(the lexical near-miss)* |
+| Tue 04-28 | Slack | Fred: *"How are things going with the launch activity?"* |
+
+**The question put to both arms**, asked Tue 04-28 on receipt: *"Fred just sent this. What is he
+referring to, and what do I owe him?"*
+
+**ORACLE.** (Kent's story, invented dates, 2026-09-23 — confirm)
+- [x] the original promise — 04-14, Slack, outbound, and its exact wording
+- [x] that it was **captured and deferred with no date or timeframe** — a condition-gated
+      Commitment, "once we're past the launch" — and that **nothing was ever created against it**:
+      no hold, no Task, no revisit. A gap, not a delay
+- [x] that **the condition has been met** — the launch shipped 04-23, inferable from the
+      quarterly-report thread about *how it went*, which can only exist afterwards. So the
+      deferred commitment is **now due**, even though nothing is overdue
+- [x] that Fred's message **refers to the design review, not the launch** — and the evidence: he
+      is co-presenting the launch retrospective, so he already knows how the launch went; the
+      question only makes sense as a probe on what was gated behind it
+- [x] that the quarterly-report thread is the **wrong binding**, despite being the closest match
+      on both person and topic
+- [x] elapsed time and cost — two weeks; low but rising: Fred's integration work is waiting on a
+      review that has no date, and he has had to ask sideways
+- [x] the response — **propose the design review now, with dates**; and the coaching: a
+      commitment deferred without a date needs a *trigger* ("ask me again the week after launch"),
+      which intake could have asked for at 04-14
+
+**Near-misses.** Kent's two (2026-09-23) first; candidates follow.
+1. **The quarterly-report thread** — Fred, launch, recent, email. Everything a retrieval wants,
+   and the wrong answer. Binding Fred's message to it makes the reply *"the report's on track"*,
+   which answers a question he didn't ask.
+2. **The other Fred traffic** — multiple Slack and email exchanges in the window, each with clear
+   immediate relevance to something else. Recency and volume both point away from the promise.
+3. *(candidate)* **A different deferred commitment gated on the same launch**, to someone else —
+   "after launch let's revisit the pricing page with Dana." Same shape, wrong person.
+4. *(candidate)* **A design review that did happen** in the window, with a third person. Lexical
+   match on "design review"; the promise to Fred is not kept by it.
+5. *(candidate)* **A meeting you did have with Fred** in the window — about the quarterly report.
+   "We met, so the promise is kept" is a wrong answer: the meeting was about something else.
+6. *(candidate)* **Fred's own earlier, sincere launch question**, sent before 04-23. Same words,
+   different meaning, and the date is what separates them.
+
+> **Ontology note for the design lead.** `Commitment.datetime` is required in the entity model.
+> This arc's commitment has **no datetime** — it has a trigger condition. The realistic dropped
+> ball is exactly the commitment the model cannot currently represent. Either `datetime` becomes
+> optional with a `trigger` (free text, or a reference to the gating node), or intake must
+> always convert a condition into a review date. Worth deciding before synthesis.
+
+> **Why the flat arm can't just win it.** Person-and-topic retrieval lands on the report thread.
+> The right answer needs the Person hub → the deferred Commitment with nothing downstream → the
+> launch-ended inference from an unrelated thread → the reading of Fred's message as oblique. Four
+> hops, two of them absences, one of them a date comparison.
 
 ---
 
