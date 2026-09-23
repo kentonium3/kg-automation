@@ -10,12 +10,21 @@ approved: '2026-09-23'
 # Upstream filing packet — baseline anomalies #1012 and #1013
 
 **For the spec-kitty QA bot.** Two **new issues** on `spec-kitty/spec-kitty`. **Copy approved by Kent on
-2026-09-23** with priorities set; file the bodies below verbatim (see the one marked insertion under each).
+2026-09-23** with priorities set.
+
+# ✅ BOTH FILED — 2026-09-23
+
+C → [#4998](https://github.com/spec-kitty/spec-kitty/issues/4998) (P0) · D → [#4999](https://github.com/spec-kitty/spec-kitty/issues/4999) (P3).
+
+⚠ **The bodies below are the approved drafts. The filed copy is authoritative at those URLs, and
+BOTH were corrected before filing** — see *Corrections made before filing* below. Action D's draft
+in particular carries a root cause that is a **deliberate, ADR-backed, tested decision** and must
+not be reused.
 
 | Action | Ours | Type / labels | Priority | What it is | Status |
 |---|---|---|---|---|---|
-| **C** | [#1013](https://github.com/kentonium3/kg-automation/issues/1013) | `--type Bug` · `from:qa` · `domain:skills` | **`priority:P0`** | CRLF skill sources → installer prepends a second bogus frontmatter to all 275 `SKILL.md`; doctor reports drift, `upgrade`/`--fix` cannot converge | ✅ approved — **file** |
-| **D** | [#1012](https://github.com/kentonium3/kg-automation/issues/1012) | `--type Bug` · `from:qa` · `domain:status` | **`priority:P3`** | `--teamspace-dry-run` renders `PAYLOAD_INVALID` rows with no detail; 9.1.6 transition rules reject the CLI's own 2026-03 history with no repair path | ✅ approved — **file** |
+| **C** | [#1013](https://github.com/kentonium3/kg-automation/issues/1013) | `--type Bug` · `from:qa` · `domain:skills` | **`priority:P0`** | CRLF skill sources → installer prepends a second bogus frontmatter to all 275 `SKILL.md`; doctor reports drift, `upgrade`/`--fix` cannot converge | ✅ **FILED** [#4998](https://github.com/spec-kitty/spec-kitty/issues/4998) |
+| **D** | [#1012](https://github.com/kentonium3/kg-automation/issues/1012) | `--type Bug` · `from:qa` · `domain:status` | **`priority:P3`** | `--teamspace-dry-run` renders `PAYLOAD_INVALID` rows with no detail; 9.1.6 transition rules reject the CLI's own 2026-03 history with no repair path | ✅ **FILED** [#4999](https://github.com/spec-kitty/spec-kitty/issues/4999), corrected first |
 
 File C before D — it is the P0 and the one with a Windows-critical reproduction. Neither is a duplicate: the
 2026-09-23 sweep of upstream issues #4888–#4987 found nothing on frontmatter doubling, CRLF sources, or
@@ -76,6 +85,60 @@ Deviations, noted rather than silently applied:
 | #992 → #4925 | comment posted 2026-09-23 | The 19 CRLF agent-profile drifts are the `drifted_reported` set behind the local exit 1. That link is stated in C's local comment, not re-filed; the maintainer already has the trace on #4925. |
 | #994 → #4927, #1005 → #4923 | PR #4947 comment posted 2026-09-23 | Unrelated to these two. |
 | #996 → #4928 | open | Unrelated. |
+
+## Corrections made before filing — 2026-09-23
+
+A source and test verification against `1ee5f2d32` ran before filing, plus a keyword dedup sweep.
+Both changed the copy. The packet's own dedup had swept upstream **#4888–#4987 by number**, which
+cannot reach older matches; a keyword sweep found several.
+
+### Action D — two claims were wrong, both refutable in one command
+
+1. ⛔ **The second Root Cause was a deliberate, documented decision.** The draft blamed
+   `teamspace_dry_run()` returning before payload validation when `_teamspace_audit_blockers()` is
+   non-empty. That early return is pinned three ways on `1ee5f2d32`, each verified directly rather
+   than taken from a reviewer's summary:
+   - `docs/adr/3.x/2026-05-10-1-deterministic-historical-mission-state-repair.md` — **Accepted** —
+     *"TeamSpace dry-run refuses audit-blocking historical shapes before import."*
+   - `tests/integration/migration/test_mission_state_repair_fidelity_e2e.py:271` —
+     `test_dry_run_still_refuses_audit_blocking_mission_e2e`, green, docstring: the refusal
+     *"must NOT"* be weakened.
+   - The owning work package: refusal semantics **UNTOUCHED**, *"DO NOT weaken"*.
+
+   This is the cry-wolf case the reporting runbook's intent check exists for. The filed body names
+   the early return **as intentional and not the report**, citing it only as why the payload class
+   stayed invisible until the blockers cleared.
+
+2. ⛔ **The `force` backfill claim was false.** *"nothing under `migration/` references
+   `transition_rule` or a `force` backfill"* — `transition_rule` is absent repo-wide, but
+   `_default_force_and_mode()` (`migration/mission_state.py:2161-2166`) appends `force_defaulted`.
+   The substance survives and is now stated precisely: it fills `force` only when the key is
+   **absent**, and fills it with `False`, so a row already carrying `force: false` is untouched and
+   `False` cannot satisfy a rule requiring `True`.
+
+3. **Persistence framing added.** The transition-rule class was reported and closed twice:
+   **#3001** (identical class and messages; closed as obsolete because the sync transport it
+   targeted was removed by #3824 — but the rows and rules survived) and **#3485** (ours; audit
+   clean while the dry-run rejects; Kent posted persistence on it 2026-09-09). **#3017** was named
+   the structural root. The filed body leads on the **rendering defect**, which has no prior art:
+   `PAYLOAD_INVALID`, `ENVELOPE_INVALID` and `STATUS_EVENTS_UNREADABLE` appear nowhere in `tests/`.
+
+### Action C — strengthened, nothing retracted
+
+- **Cross-references added**: **#2527** (open, same non-convergence symptom on 3.2.6, no root cause
+  — flagged as worth checking against this one, not asserted to be the same defect), **#4280**
+  (open, same never-verifies-under-CRLF shape elsewhere), **epic #3864**.
+- **Prior art added**, and it is the strongest addition: `hash_content()` in
+  `src/charter/hasher.py` already canonicalises line endings for exactly this reason, and its
+  docstring names the same `read_bytes().decode()` versus `read_text()` split. The skills path has
+  the same split and no equivalent seam, so this is a **gap in one subsystem**, not an
+  unrecognised problem.
+- **Intent check clean**: no test pins `\n`-only frontmatter matching.
+- ⚠ **A reviewer recommendation was declined.** It proposed re-citing `installer.py:328-332` as
+  dead code. Reading those lines directly shows they support the claim exactly, so the citation
+  stands. Recorded because the recommendation was wrong and a later reader should not re-apply it.
+
+Footers on both name two models (Fable 5.1 drafted, Opus 5 revised).
 
 ---
 
