@@ -250,6 +250,14 @@ a fictional cast, and any real-person data is gated by the #696 privacy gate and
 physical-exclusion rule (§Rollout → Design spike, item 3). The local-extraction path (inside
 the tailnet, $0) is the favourable one for such content. Do not read the type as permission.
 
+**Organisations are not nodes (2026-09-24, #849 synthesis Q4).** An organisation appears in
+exactly three existing places: `Person.organisation` (where a human works),
+`Commitment.counterparty` (a string when the counterparty is an organisation; a `COMMITTED_TO`
+edge when it is a human), and episode provenance (sender address or calendar organiser).
+Grouping mail by vendor is a $0 string operation on the sender domain. An `Organisation` type
+is deferred until a question must *traverse* one ("what have I committed to anyone at X?");
+none in #849 does, and minting org nodes there would blur the `is_contact` test.
+
 *Examples:* a client principal (email + calendar), a collaborator (Slack), a family member.
 
 #### INTEREST — *PROPOSED 2026-09-23, stability: directional (Kent to ratify)*
