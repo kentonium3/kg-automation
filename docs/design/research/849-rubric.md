@@ -83,12 +83,21 @@ near_misses: [NM_A_1, NM_A_2, …] # ids of the seeded decoys for precision scor
 grader_notes: "accept 'on or before 04-24' for the launch date (C3)"   # optional
 ```
 
-Rules: `required_values` are the literal tokens a hit must contain (dates ISO, times HH:MM,
-counts as integers); `traceability` must name existing seed ids or rendered-event ids, and the
-freeze check fails on an oracle point whose `traceability` is empty; per-miss classifications
-(counted / decided-then-silent, Arc B) and phase bands (Arc F) live here, never in a seed;
-the artifact is committed under `oracle/` and the harness asserts that directory is absent from
-every arm's input path before a run starts.
+Rules: `required_values` are the literal tokens a hit must contain — reserve them for dates
+(ISO), times (HH:MM), counts and names, where a literal is the honest test; for verdict-shaped
+points use `[]` and let the grader judge the statement, or list every acceptable token.
+`traceability` must name existing **seed ids or declared emits** (below), nothing else; the
+oracle checker (`scripts/research/check_849_oracle.py`) fails on an undeclared id or an empty
+list. Per-miss classifications (counted / decided-then-silent, Arc B) and phase bands (Arc F)
+live here, never in a seed; the artifact is committed under `oracle/` and the harness asserts
+that directory is absent from every arm's input path before a run starts.
+
+**Two-way emits contract (implementer, 2026-09-24; accepted).** Every seed declares
+`meta.emits`: the rendered-event ids its generator **must** produce. This makes oracle
+traceability checkable before the renderer exists, and binds the renderer: a generator that
+drops a declared event fails the renderer test instead of leaving an oracle point silently
+unverifiable. Shared sets (e.g. `SHARED_LATE_NIGHTS`) are declared by their owning seed and
+referenced by dependants, which must not re-declare them.
 
 ## 4. Axis 1 — correctness
 
@@ -174,6 +183,9 @@ regime-bound the way #844's was, and the findings say so up front.
   ≈ 2 h). Recovered → the signal is present and an arm that misses it failed on merit. Not
   recovered → the corpus is too thin; add signal **before** any run. #844's seed-retrievability
   check, generalised. Probe results are attached to the registration.
+- **Emits realised:** every id in every seed's `meta.emits` is present in the rendered corpus
+  (renderer test), and every oracle `traceability` id resolves to a seed id or a declared emit
+  (oracle checker). Both gate freeze.
 - Corpus frozen at a commit hash before the first run; the hash is in the registration.
 
 ## 10. Artifacts
