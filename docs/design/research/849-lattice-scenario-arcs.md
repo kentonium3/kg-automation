@@ -15,7 +15,7 @@ near-misses; D cut. Next step is synthesis — the split into seed and hidden or
 kills [#693](https://github.com/kentonium3/kg-automation/issues/693).
 
 Each arc below is a **candidate, pre-filled** so you edit rather than author from a blank page.
-Change anything. The parts marked **`TODO(kent)`** are the ones only you can write.
+Change anything. The parts that were marked `TODO(kent)` were the ones only Kent could write; all are now filled or ruled.
 
 ## How to use this
 
