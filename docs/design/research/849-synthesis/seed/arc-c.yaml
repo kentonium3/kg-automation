@@ -1,0 +1,173 @@
+# #849 seed — Arc C: dropped ball (captured-and-deferred)
+#
+# SEED MATERIAL. Everything here is a primitive the arms may see.
+#
+# Arc C's answer needs four hops, two of them absences:
+#   Person hub -> the deferred Commitment with nothing downstream
+#              -> the launch-ended inference from an unrelated thread
+#              -> the reading of Fred's message as oblique
+#
+# So this file must NOT assert: that the condition has been met; that Fred's
+# message refers to the design review; that the quarterly-report thread is the
+# wrong binding; or that nothing was created against the commitment.
+#
+# THE TRAP I NEARLY WALKED INTO — recorded because it is the same class as
+# Q1 in 00-context-chains.md, and it is invisible unless you look for it:
+#
+#   OUT_LAUNCH's *completion* is NOT seeded. Only its target date is.
+#
+# The oracle says the condition-met inference must be INDIRECT — "nobody wrote
+# 'the launch is over'; what exists is a thread coordinating a report on how it
+# went, which can only be written afterwards." Seeding OUT_LAUNCH with
+# status: shipped, or emitting a "launch shipped" stream event, turns a
+# four-hop inference into a field lookup and guts the arc.
+#
+# Kent's own timeline marks this: the "Thu 04-23 the launch ships" row is the
+# ONLY row in the table with no channel. It is background truth, not corpus.
+
+meta:
+  arc: C
+  contexts: [spec-kitty]
+  window: {start: 2026-04-14, end: 2026-04-28}
+  ontology_ref: docs/design/second-brain-graph-layer.md@fc3e4eea
+
+# --- entities -------------------------------------------------------------
+
+outcomes:
+  # Target date only. NO completion, NO status advance, NO shipped event.
+  # The arm must infer the launch ended from the report thread below.
+  - id: OUT_LAUNCH
+    description: Ship the spec-kitty launch
+    target_date: 2026-04-23
+    domain: DOM_SPECKITTY
+    serves: PUR_LIVELIHOOD
+
+  - id: OUT_INTEGRATION
+    description: Land the integration Fred owns on his side
+    target_date: 2026-09-30
+    domain: DOM_SPECKITTY
+    serves: PUR_LIVELIHOOD
+
+commitments:
+  # The promise. datetime is NULL and a trigger carries the condition —
+  # the shape that landed @ee1311a5 precisely because this arc needed it.
+  # Invariant honoured: datetime OR trigger, never neither.
+  - id: COM_DESIGN_REVIEW
+    counterparty: "Fred Okafor"
+    is_external: false
+    datetime: null
+    trigger: "once we're past this immediate launch craziness"
+    description: >-
+      Meet with Fred to do a design review, so the integration work can start.
+
+edges:
+  - {type: COMMITTED_TO, from: COM_DESIGN_REVIEW, to: PER_FRED, channel: slack,
+     made_at: 2026-04-14T16:42:00-04:00}
+  # The gate relationship IS stated in the promise itself ("once we're past
+  # this launch"), so it is a primitive and is seeded. What is NOT seeded is
+  # whether the gate has been SATISFIED — that is the inference.
+  - {type: GATED_ON, from: COM_DESIGN_REVIEW, to: OUT_LAUNCH}
+
+# --- the two absences that make the arc -----------------------------------
+#
+# Absence 1: NOTHING points at COM_DESIGN_REVIEW. There is no Task, no
+# Project, no calendar hold, no DUE_BY, no GATES, no BLOCKS, no revisit. The
+# design lead's "unmaterialised commitment" pattern — a Commitment with a
+# COMMITTED_TO edge and no inbound DUE_BY/GATES/BLOCKS from any Task or
+# Project — matches it as one Cypher pattern. That absence is represented by
+# there being no such rows in this file, not by a flag saying so.
+#
+# Absence 2: no "launch shipped" event anywhere in the corpus. See the header.
+
+# --- the stream -----------------------------------------------------------
+#
+# Raw handles only; nothing pre-resolved (01-cast.md).
+
+episodes:
+  # The promise, outbound. Outbound channels are watched (Kent, 2026-09-23),
+  # which is exactly why this enters the system at all and why C2
+  # (never-entered) was ruled out of scope.
+  - id: EP_C_PROMISE
+    reference_time: 2026-04-14T16:42:00-04:00
+    source_description: "spec-kitty Slack — outbound DM to @fred"
+    content: >-
+      Hey Fred, let's meet and do a design review once we're past this immediate
+      launch craziness so we can start working on the integration.
+    mentions: [PER_FRED, COM_DESIGN_REVIEW]
+
+  # Intake caught it and asked. Kent deferred with no date and no timeframe.
+  # A Decision node EXISTS here — he did decide, and decided not to decide a
+  # date — which is what distinguishes C from a silent miss. The coaching
+  # finding (intake should have asked for a TRIGGER, not a date) turns on this
+  # exchange existing.
+  - id: EP_C_INTAKE
+    reference_time: 2026-04-14T16:55:00-04:00
+    source_description: "felix intake — clarification prompt and reply"
+    content: >-
+      Intake: there's a meeting to schedule with Fred — when should it be?
+      Kent: I don't know yet.
+    mentions: [COM_DESIGN_REVIEW, DEC_C_DEFER]
+
+decisions:
+  - id: DEC_C_DEFER
+    decided_at: 2026-04-14T16:55:00-04:00
+    rationale: "I don't know yet."
+    options_considered: []
+    # DECIDED -> the Commitment. No disposition field is seeded beyond this:
+    # calling it "deferred_indefinitely" would label the defect.
+  - id: DEC_C_DEFER_EDGE_NOTE
+    _comment: >-
+      edge: DECIDED from DEC_C_DEFER to COM_DESIGN_REVIEW. Written in the edges
+      list of the loader, not here; kept as a note so the YAML stays flat.
+
+# The two weeks of other traffic. These are the near-miss mass: every one has
+# clear, immediate relevance to something else, and recency and volume both
+# point away from the promise. They are NOT marked as near-misses.
+traffic:
+  - {when: 2026-04-15T09:20, channel: slack, direction: inbound, from: "@fred",
+     text: "Morning — can you sanity-check the rollback note before standup?"}
+  - {when: 2026-04-15T09:31, channel: slack, direction: outbound, to: "@fred",
+     text: "Looked at it, one nit on the ordering. Commented."}
+  - {when: 2026-04-16T11:05, channel: email, direction: inbound,
+     from: "fokafor@spec-kitty.example", subject: "Re: staging cutover window"}
+  - {when: 2026-04-17T14:48, channel: slack, direction: outbound, to: "@fred",
+     text: "Cutover looks clean. Nice work on the migration guard."}
+  - {when: 2026-04-20T08:55, channel: email, direction: inbound,
+     from: "fokafor@spec-kitty.example", subject: "Customer escalation — 2 open"}
+  - {when: 2026-04-21T16:12, channel: slack, direction: inbound, from: "@fred",
+     text: "Do you want me on the Thursday call or is that covered?"}
+  - {when: 2026-04-22T10:02, channel: slack, direction: outbound, to: "@fred",
+     text: "Covered, thanks. Save your cycles for the integration."}
+  - {when: 2026-04-27T09:14, channel: email, direction: inbound,
+     from: "dreyes@spec-kitty.example", subject: "pricing page — after launch?"}
+
+  # THE LEXICAL NEAR-MISS. Fred + launch + recent + email: everything a
+  # retrieval wants, and the wrong binding. It is also the ONLY evidence the
+  # launch ended — a report on HOW IT WENT can only be written afterwards.
+  # One artefact, two jobs: the trap and the clue are the same thread.
+  - {when: 2026-04-24T15:30, channel: email, direction: inbound,
+     from: "fokafor@spec-kitty.example",
+     subject: "Quarterly report to exec staff — how the launch went",
+     text: "Drafted the launch section. Can you take the metrics half? Exec review is the 5th."}
+  - {when: 2026-04-27T11:40, channel: email, direction: outbound,
+     to: "fokafor@spec-kitty.example",
+     subject: "Re: Quarterly report to exec staff — how the launch went",
+     text: "Metrics half is done, sent you the deck. See you at the exec review."}
+
+  # The oblique probe. Nothing marks it as oblique.
+  - {when: 2026-04-28T09:06, channel: slack, direction: inbound, from: "@fred",
+     text: "How are things going with the launch activity?"}
+
+# --- what is NOT in this file, on purpose ---------------------------------
+#
+#  * no launch-completed event, status, or date-reached flag
+#  * no assertion that COM_DESIGN_REVIEW is now due, overdue, or unmaterialised
+#  * no link from Fred's 04-28 message to COM_DESIGN_REVIEW
+#  * no marker distinguishing the quarterly-report thread from the promise
+#  * no near-miss labels anywhere — the traffic is interleaved and unannotated
+#  * no "elapsed: 14 days" computation
+#
+# Near-misses 3-6 (the other deferred commitment gated on the same launch; a
+# design review that did happen with a third person; a meeting with Fred about
+# the report; Fred's earlier sincere launch question) are seeded in
+# arc-c-near-misses.yaml as ordinary corpus, unlabelled.
