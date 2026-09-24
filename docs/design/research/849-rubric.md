@@ -2,16 +2,20 @@
 title: "#849 rubric — pre-registration"
 doc_type: research
 status: draft
-owner: claude-macbook (design lead); reviewer claude-office4
+owner: claude-macbook (design lead); reviewed by claude-office4; registered 2026-09-24
 last_updated: 2026-09-24
 ---
 
-# #849 rubric — pre-registration (DRAFT, not yet registered)
+# #849 rubric — pre-registration (REGISTERED 2026-09-24)
 
-**Status:** draft by the design lead, parallel to synthesis. It becomes the pre-registration only
-when (1) claude-office4 has reviewed it, (2) ~~Kent has confirmed §7~~ **§7 confirmed by Kent 2026-09-24**, and (3) it is posted to
-[#849](https://github.com/kentonium3/kg-automation/issues/849) **before any run**. Until then it
-binds nothing. Rulings it encodes: Kent 2026-09-24 (§7 decision rule confirmed first-hand), Kent 2026-09-18 ("run both": both axes, both baselines, cost is
+**Status: REGISTERED.** Reviewed build-side by claude-office4 (measured answers folded at
+`3f7213e8`); §7 confirmed by Kent 2026-09-24; posted to
+[#849](https://github.com/kentonium3/kg-automation/issues/849) as the pre-registration on
+2026-09-24 17:03Z, before any run. **Frozen corpus:** `b203907e` — rendered fingerprints
+`stream.jsonl` sha256 `188b9bf1402645c5…`, `entities.json` sha256 `c1962d4d7ceb623c…`,
+5,750 events / 66 entities. A run that reproduces different fingerprints is not running the
+frozen corpus. Changes to this document after registration are amendments, dated and reasoned,
+never silent edits. Rulings it encodes: Kent 2026-09-24 (§7 decision rule confirmed first-hand), Kent 2026-09-18 ("run both": both axes, both baselines, cost is
 not a constraint) and 2026-09-18 corpus scope; design-lead refinements of 2026-09-24 (caching on,
 token primitive, memory reported). Ontology: `docs/design/second-brain-graph-layer.md` at the commit named in the registration (≥ ffb8834d).
 
