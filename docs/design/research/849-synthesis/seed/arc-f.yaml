@@ -60,14 +60,15 @@ principles:
 # NOTE what is absent: no Outcome, no Project, no target, no streak counter,
 # no `expected_per_week`. Adding any of those would seed the answer.
 tasks:
+  # NOTE: no `actor` field — it is not in the Task model (@884d1c6e). The
+  # single-actor property is definitional for a Task, not an attribute, and
+  # the ego is implicit anyway (Kent is not a node).
   - id: TASK_MEDITATION
     description: Morning meditation
     recurrence_rule: "FREQ=DAILY"
-    actor: kent
   - id: TASK_PERSONAL_INVESTMENT
     description: Personal-investment time
     recurrence_rule: "FREQ=DAILY"
-    actor: kent
 
 edges:
   - {type: EMBODIES, from: TASK_MEDITATION, to: PRIN_SELF_INVESTMENT}
@@ -129,6 +130,11 @@ slot_fillers:
 decisions:
   # Exactly four Decisions across ~60 missed mornings. The ratio IS the finding,
   # and it is produced by there being only four of these, not by a field.
+  #
+  # ⚠ EVERY Decision is extracted FROM an episode and stays linked to it via
+  # MENTIONS (§State vs history). An orphan Decision is a loader artefact, not
+  # a record — the first version of this file had three of them, caught by the
+  # design lead 2026-09-24T04:41Z. Each now has its source episode below.
   - {id: DEC_F_TZ_CALL, decided_at: 2026-05-12T21:14:00-04:00,
      rationale: "Only overlap window with Priya this week.", options_considered: []}
   - {id: DEC_F_TRAVEL, decided_at: 2026-06-22T19:02:00-04:00,
@@ -137,6 +143,15 @@ decisions:
      rationale: "Head cold — resting this week.", options_considered: []}
   - {id: DEC_F_RESTART, decided_at: 2026-09-21T07:05:00-04:00,
      rationale: "I've let the mornings go. Restarting tomorrow.", options_considered: []}
+
+# DECIDED edges: Decision -> the practice Task it bears on, with disposition.
+decision_edges:
+  - {type: DECIDED, from: DEC_F_TZ_CALL, to: TASK_MEDITATION, disposition: postponed}
+  - {type: DECIDED, from: DEC_F_TRAVEL, to: TASK_PERSONAL_INVESTMENT, disposition: postponed}
+  - {type: DECIDED, from: DEC_F_ILLNESS, to: TASK_MEDITATION, disposition: postponed}
+  - {type: DECIDED, from: DEC_F_ILLNESS, to: TASK_PERSONAL_INVESTMENT, disposition: postponed}
+  - {type: DECIDED, from: DEC_F_RESTART, to: TASK_MEDITATION, disposition: committed}
+  - {type: DECIDED, from: DEC_F_RESTART, to: TASK_PERSONAL_INVESTMENT, disposition: committed}
 
 episodes:
   # wk 12 travel: the practice MOVED to the evening and the check-in was done
@@ -147,12 +162,38 @@ episodes:
     content: "Personal-investment time — completed 20:30."
     mentions: [TASK_PERSONAL_INVESTMENT]
 
+  # Source episodes for the three Decisions that had none.
+  - id: EP_F_TZ_ACCEPT
+    reference_time: 2026-05-12T21:14:00-04:00
+    source_description: "spec-kitty calendar — invitation accepted"
+    content: >-
+      Accepted: "Call — Priya (Singapore)", Wed 2026-05-13 06:30-07:15.
+      Note: only overlap window this week.
+    mentions: [DEC_F_TZ_CALL]
+
+  - id: EP_F_TRAVEL_NOTE
+    reference_time: 2026-06-22T19:02:00-04:00
+    source_description: "obsidian note — daily"
+    content: "Early flight tomorrow — moving the practice to the evening."
+    mentions: [DEC_F_TRAVEL]
+
+  - id: EP_F_ILLNESS_NOTE
+    reference_time: 2026-07-20T08:30:00-04:00
+    source_description: "vikunja — task comment"
+    content: "Head cold. Resting this week; picking it back up when it clears."
+    mentions: [DEC_F_ILLNESS]
+
   # wk 25 restart, by WhatsApp voice note. The return is scored POSITIVE.
+  #
+  # ⚠ PRIN_SELF_INVESTMENT is NOT in `mentions`. Kent's voice note says "I've
+  # let the mornings go" — it does not cite the Principle. Listing it would
+  # assert that he connected the lapse to the Principle, which is the arm's
+  # inference and part of what F1 scores (design lead, 04:41Z).
   - id: EP_F_RESTART
     reference_time: 2026-09-21T07:05:00-04:00
     source_description: "whatsapp voice note — +1-555-0199"
     content: "I've let the mornings go."
-    mentions: [TASK_MEDITATION, PRIN_SELF_INVESTMENT, DEC_F_RESTART]
+    mentions: [TASK_MEDITATION, DEC_F_RESTART]
 
 # --- the shared cause, which is Arc B's too --------------------------------
 #

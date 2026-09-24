@@ -294,3 +294,40 @@ def test_committed_seeds_declare_every_generator_block():
             if k.startswith("generator") or k.endswith("_input")
         }
         assert looks_generated <= declared, (path.name, looks_generated - declared)
+
+
+# --------------------------------------------------------------------------
+# Universal: a Decision must have a source episode
+# --------------------------------------------------------------------------
+
+
+def test_an_orphan_decision_is_rejected_in_any_arc(tmp_path):
+    text = (
+        "meta: {arc: F}\n"
+        "decisions:\n"
+        "  - {id: DEC_X, decided_at: '2026-05-12T21:14:00', rationale: 'because'}\n"
+        "episodes: []\n"
+    )
+    problems = check_file(_write(tmp_path, "arc-f.yaml", text))
+    assert any("has no source episode" in p for p in problems), problems
+
+
+def test_a_decision_mentioned_by_an_episode_passes(tmp_path):
+    text = (
+        "meta: {arc: F}\n"
+        "decisions:\n"
+        "  - {id: DEC_X, decided_at: '2026-05-12T21:14:00', rationale: 'because'}\n"
+        "episodes:\n"
+        "  - {id: EP_X, content: 'note', mentions: [DEC_X]}\n"
+    )
+    assert check_file(_write(tmp_path, "arc-f.yaml", text)) == []
+
+
+def test_committed_seeds_have_no_orphan_decisions():
+    import yaml as _yaml
+
+    for path in sorted(SEED_DIR.glob("*.yaml")):
+        doc = _yaml.safe_load(strip_comments(path.read_text(encoding="utf-8")))
+        decs = {d["id"] for d in (doc.get("decisions") or [])}
+        mentioned = {m for e in (doc.get("episodes") or []) for m in (e.get("mentions") or [])}
+        assert decs <= mentioned, (path.name, decs - mentioned)

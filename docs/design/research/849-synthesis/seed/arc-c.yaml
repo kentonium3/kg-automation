@@ -95,30 +95,31 @@ episodes:
       launch craziness so we can start working on the integration.
     mentions: [PER_FRED, COM_DESIGN_REVIEW]
 
-  # Intake caught it and asked. Kent deferred with no date and no timeframe.
-  # A Decision node EXISTS here — he did decide, and decided not to decide a
-  # date — which is what distinguishes C from a silent miss. The coaching
-  # finding (intake should have asked for a TRIGGER, not a date) turns on this
-  # exchange existing.
+  # Intake caught it and asked. Kent gave no date and no timeframe.
+  #
+  # ⚠ THERE IS DELIBERATELY NO Decision NODE HERE. I originally seeded one
+  # (DEC_C_DEFER, rationale "I don't know yet") on the reasoning that Kent had
+  # decided not to decide. The design lead overruled it, 2026-09-24T04:38Z,
+  # and is right:
+  #
+  #   A Decision is a RESOLVED trade-off with a rationale. "I don't know yet"
+  #   resolves nothing — it is the refusal to decide. Under the state-vs-history
+  #   rule an event WITHOUT a Decision is the deliberately distinguishable
+  #   bare-event pattern, and "captured, deferred, NEVER DECIDED" is precisely
+  #   Arc C's coaching finding. Minting a Decision would have handed the arm the
+  #   word "deferred" as a disposition and contradicted the ontology's own
+  #   definition of the type.
+  #
+  # The coaching finding needs the EXCHANGE, not a Decision — and this episode
+  # already carries it as a primitive. An arm that reads "intake asked, Kent
+  # gave no date, and no Decision exists" has inferred the finding.
   - id: EP_C_INTAKE
     reference_time: 2026-04-14T16:55:00-04:00
     source_description: "felix intake — clarification prompt and reply"
     content: >-
       Intake: there's a meeting to schedule with Fred — when should it be?
       Kent: I don't know yet.
-    mentions: [COM_DESIGN_REVIEW, DEC_C_DEFER]
-
-decisions:
-  - id: DEC_C_DEFER
-    decided_at: 2026-04-14T16:55:00-04:00
-    rationale: "I don't know yet."
-    options_considered: []
-    # DECIDED -> the Commitment. No disposition field is seeded beyond this:
-    # calling it "deferred_indefinitely" would label the defect.
-  - id: DEC_C_DEFER_EDGE_NOTE
-    _comment: >-
-      edge: DECIDED from DEC_C_DEFER to COM_DESIGN_REVIEW. Written in the edges
-      list of the loader, not here; kept as a note so the YAML stays flat.
+    mentions: [COM_DESIGN_REVIEW]
 
 # The two weeks of other traffic. These are the near-miss mass: every one has
 # clear, immediate relevance to something else, and recency and volume both
@@ -166,6 +167,8 @@ traffic:
 #  * no marker distinguishing the quarterly-report thread from the promise
 #  * no near-miss labels anywhere — the traffic is interleaved and unannotated
 #  * no "elapsed: 14 days" computation
+#  * NO Decision node for the deferral — see EP_C_INTAKE. "Never decided" is
+#    the finding, and it is represented by a Decision not existing.
 #
 # Near-misses 3-6 (the other deferred commitment gated on the same launch; a
 # design review that did happen with a third person; a meeting with Fred about

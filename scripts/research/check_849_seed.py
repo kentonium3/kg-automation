@@ -191,6 +191,25 @@ def strip_comments(raw: str) -> str:
     return re.sub(r"(?m)^\s*#.*$", "", raw)
 
 
+def _orphan_decisions(doc: dict) -> list[str]:
+    """Decisions with no source episode.
+
+    Per §State vs history a Decision is EXTRACTED FROM an episode and stays
+    linked to it via MENTIONS. A Decision that no episode mentions is a loader
+    artefact rather than a record — it asserts that a trade-off was resolved
+    while providing nothing that resolved it. Applies to every arc.
+    """
+    declared = {d.get("id") for d in (doc.get("decisions") or []) if isinstance(d, dict)}
+    if not declared:
+        return []
+    mentioned = {
+        m
+        for e in (doc.get("episodes") or [])
+        for m in (e.get("mentions") or [])
+    }
+    return sorted(declared - mentioned)
+
+
 def check_file(path: pathlib.Path) -> list[str]:
     problems: list[str] = []
     raw = path.read_text(encoding="utf-8")
@@ -227,7 +246,16 @@ def check_file(path: pathlib.Path) -> list[str]:
                 f"verbatim and leak whatever it contains"
             )
 
-    # 2. structural absences for this arc
+    # 2. universal: no orphan Decision nodes
+    for orphan in _orphan_decisions(doc):
+        problems.append(
+            f"{path.name}: Decision {orphan!r} has no source episode — a "
+            f"Decision is extracted FROM an episode and stays linked via "
+            f"MENTIONS; an orphan asserts a resolved trade-off with nothing "
+            f"that resolved it"
+        )
+
+    # 3. structural absences for this arc
     arc = (doc.get("meta") or {}).get("arc")
     for description, predicate in STRUCTURAL_CHECKS.get(arc, []):
         try:
