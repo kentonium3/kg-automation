@@ -124,7 +124,7 @@ FalkorDB is preferred over Neo4j for this deployment:
 1. **Fixed semantic tiers, arbitrary depth within Project and Task.** Semantic tier identity matters because the life-coach agent applies different reasoning at each level — a Purpose is definitional, a Task is schedulable, and conflating them breaks the reasoning model.
 
 2. **Every node must connect upward to a Purpose.** No floating tasks. No projects without an Objective. This structural rule is the enforcement mechanism for explicit prioritization.
-   *Standing-practice exception (2026-09-24, from #849 Arc F; stability: directional, Kent to ratify).* A recurring Task that exists only to **enact a Principle** — a morning meditation, a journaling habit — is a *standing practice*, not work toward an Outcome: it has no finish line and no measure, and minting an Outcome for it would fabricate a target rate the coaching loop is supposed to *infer* from its trajectory. Such a Task anchors to its Principle through the static `EMBODIES` edge instead of to an Outcome, and reaches Purpose/Domain through that Principle's `SCOPED_TO` scope (or the global default). Nothing floats: the anchor is a Principle rather than a Purpose. Practices are discovered from the Principle side ("am I keeping my non-negotiables?"), and their health is the slope of their episode log, never a seeded threshold.
+   *Standing-practice exception (2026-09-24, from #849 Arc F; ratified by Kent the same day).* A recurring Task that exists only to **enact a Principle** — a morning meditation, a journaling habit — is a *standing practice*, not work toward an Outcome: it has no finish line and no measure, and minting an Outcome for it would fabricate a target rate the coaching loop is supposed to *infer* from its trajectory. Such a Task anchors to its Principle through the static `EMBODIES` edge instead of to an Outcome, and reaches Purpose/Domain through that Principle's `SCOPED_TO` scope (or the global default). Nothing floats: the anchor is a Principle rather than a Purpose. Practices are discovered from the Principle side ("am I keeping my non-negotiables?"), and their health is the slope of their episode log, never a seeded threshold.
 
 3. **Project and Task are self-similar.** Both support arbitrary nesting depth via `CONTAINS` edges. A Project can contain sub-Projects and Tasks. A Task can contain sub-Tasks. The boundary: Projects have scope and deliverables; Tasks have a single actor and a single action.
 
@@ -260,7 +260,7 @@ none in #849 does, and minting org nodes there would blur the `is_contact` test.
 
 *Examples:* a client principal (email + calendar), a collaborator (Slack), a family member.
 
-#### INTEREST — *PROPOSED 2026-09-23, stability: directional (Kent to ratify)*
+#### INTEREST *(added 2026-09-23; ratified by Kent 2026-09-24)*
 A topic Kent currently wants information on — the "current interest" list he maintains by
 voice, journal, or WhatsApp (#849 Arc E). Cross-cutting and scope-free, like Capacity. Not a
 Principle (it constrains nothing) and not a Domain (it is a subject, not a life area). It is
@@ -416,7 +416,7 @@ class InterestStatusEnum(str, Enum):
 
 
 class Interest(BaseModel):
-    """PROPOSED (2026-09-23, directional). A topic Kent currently wants information on.
+    """A topic Kent currently wants information on (ratified 2026-09-24).
     Cross-cutting, scope-free, found by typed-label lookup like Capacity. Adds and drops
     are episodes, so 'the interest list as of week N' comes from anchored expansion."""
     topic: str
@@ -455,7 +455,7 @@ All edges carry `valid_from` / `valid_until` automatically via Graphiti's bi-tem
 | `SCOPED_TO` | Principle | Purpose/Domain | Principle applies only within this Purpose/Domain (absence = global) |
 | `GOVERNED_BY` | Decision | Principle | The Decision was constrained by / cited this Principle |
 | `VIOLATES` | Task/Project | Principle | Agent-detected tension between a proposed action and a Principle |
-| `EMBODIES` | Task | Principle | *Directional (2026-09-24).* This recurring Task **is the practice of** this Principle — a standing practice with no Outcome. The one sanctioned static Task→Principle attachment; says what the Task *is*, not which Principles govern it |
+| `EMBODIES` | Task | Principle | This recurring Task **is the practice of** this Principle — a standing practice with no Outcome. The one sanctioned static Task→Principle attachment; says what the Task *is*, not which Principles govern it |
 | `CONSTRAINS` | Capacity | Purpose/Domain | Capacity bounds work in this scope (absence = global) |
 | `DUE_BY` | Task/Project/Outcome | Commitment | This node's hard deadline is this Commitment (source side is the work node, matching the upward-pointing convention) |
 | `GATED_ON` | Commitment | Project/Objective/Outcome/Commitment | This trigger-gated Commitment becomes due when this node completes / occurs |
@@ -495,8 +495,7 @@ class CommittedTo(BaseModel):
 Wiring intent (implementer verifies exact API shape against the pinned graphiti-core —
 the doc states design intent, not engine mechanics):
 
-- `entity_types`: all twelve models (eleven accepted + the proposed `Interest`), keyed by
-  their class names, passed to `add_episode`.
+- `entity_types`: all twelve models, keyed by their class names, passed to `add_episode`.
 - `edge_type_map`: keyed by (source-type, target-type) name pairs per the table above.
   `CONTAINS` registers for (Project, Project), (Project, Task), and (Task, Task).
   `DECIDED` registers Decision → **{Purpose, Domain, Outcome, Objective, Project, Task,

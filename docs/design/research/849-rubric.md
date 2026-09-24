@@ -9,11 +9,11 @@ last_updated: 2026-09-24
 # #849 rubric — pre-registration (DRAFT, not yet registered)
 
 **Status:** draft by the design lead, parallel to synthesis. It becomes the pre-registration only
-when (1) claude-office4 has reviewed it, (2) Kent has confirmed §7, and (3) it is posted to
+when (1) claude-office4 has reviewed it, (2) ~~Kent has confirmed §7~~ **§7 confirmed by Kent 2026-09-24**, and (3) it is posted to
 [#849](https://github.com/kentonium3/kg-automation/issues/849) **before any run**. Until then it
-binds nothing. Rulings it encodes: Kent 2026-09-18 ("run both": both axes, both baselines, cost is
+binds nothing. Rulings it encodes: Kent 2026-09-24 (§7 decision rule confirmed first-hand), Kent 2026-09-18 ("run both": both axes, both baselines, cost is
 not a constraint) and 2026-09-18 corpus scope; design-lead refinements of 2026-09-24 (caching on,
-token primitive, memory reported). Ontology: `docs/design/second-brain-graph-layer.md@0957c8f4`.
+token primitive, memory reported). Ontology: `docs/design/second-brain-graph-layer.md` at the commit named in the registration (≥ ffb8834d).
 
 ## 1. The bet under test
 
@@ -95,7 +95,7 @@ what is scored.
 on a question when their ranges overlap. #844's single-run fragility (Threats §3) is what this
 fixes.
 
-## 7. Decision rule (Kent to confirm before registration)
+## 7. Decision rule (confirmed by Kent, 2026-09-24)
 
 Read on the 8 questions, using recall as the primary and precision as the tie-break:
 
