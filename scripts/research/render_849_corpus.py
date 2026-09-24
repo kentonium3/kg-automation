@@ -469,41 +469,121 @@ def generate_arc_e(corpus: Corpus, doc: dict, scale: int) -> None:
 
 
 def generate_arc_b(corpus: Corpus, doc: dict, scale: int) -> None:
+    """Render Arc B.
+
+    L1: a CAUSE is a type, not a sentence. Each renders as the primitives it
+    actually consists of — a recurring meeting series and its acceptance, a
+    task reschedule with no completion after it, a message plus a calendar
+    block. No event carries a reason-for-the-miss sentence, because such a
+    sentence states the finding instead of showing it.
+    """
     gi = doc.get("generator_input") or {}
     rng = _rng(str(gi.get("seed", "arc-b")))
+    causes = gi.get("causes") or {}
     day_of = {"tue": 1, "thu": 3, "sat": 5}
+
+    series_started: set[str] = set()
 
     for wk in gi.get("weeks") or []:
         monday = datetime.fromisoformat(str(wk["mon"]))
-        missed_days = {m["day"] for m in (wk.get("missed") or [])}
+        missed = wk.get("missed") or []
+        missed_days = {m["day"] for m in missed}
+
+        # Completions only — a miss is an absence, never a row.
         for label, offset in day_of.items():
             if label in missed_days or "all" in missed_days:
-                continue  # completions-only: a miss is an ABSENCE, not a row
+                continue
             when = monday + timedelta(days=offset, hours=6, minutes=rng.randint(30, 59))
             corpus.event("GEN_B_SESSIONS", _iso(when), "vikunja",
                          {"task": "core run", "status": "completed"})
-        for m in (wk.get("missed") or []):
-            if m.get("reason"):
-                when = monday + timedelta(days=day_of.get(m["day"], 0), hours=7)
-                corpus.event(f"GEN_B_WK{wk['wk']}_{m['day'].upper()}",
-                             _iso(when), "note", {"text": m["reason"]})
-            if m.get("decision"):
-                corpus.event("GEN_B_DECISIONS",
-                             _iso(monday + timedelta(days=day_of.get(m['day'], 0), hours=7, minutes=5)),
-                             "episode", {"kind": "decision-source", "text": m.get("reason")})
+
+        for m in missed:
+            cause = causes.get(m.get("cause") or "", {})
+            offset = day_of.get(m["day"], 0)
+            emit = f"GEN_B_WK{wk['wk']}_{m['day'].upper()}"
+            renders = cause.get("renders") or []
+
+            if "recurring_calendar_series" in renders:
+                spec = cause.get("series") or {}
+                if spec.get("title") not in series_started:
+                    series_started.add(spec.get("title"))
+                    corpus.event(
+                        emit, _iso(monday + timedelta(days=offset, hours=7, minutes=30)),
+                        "calendar",
+                        {"account": spec.get("account"), "title": spec.get("title"),
+                         "organiser": spec.get("organiser"),
+                         "start": _iso(monday + timedelta(days=offset, hours=7, minutes=30)),
+                         "end": _iso(monday + timedelta(days=offset, hours=8, minutes=15)),
+                         "recurrence_rule": "FREQ=WEEKLY;BYDAY=TH"})
+                    if "acceptance_episode" in renders and m.get("decision"):
+                        corpus.event(
+                            "GEN_B_DECISIONS",
+                            _iso(monday + timedelta(days=offset - 2, hours=16)),
+                            "episode",
+                            {"source_description": "spec-kitty calendar — invitation accepted",
+                             "content": cause.get("acceptance_text")})
+                else:
+                    corpus.event(
+                        emit, _iso(monday + timedelta(days=offset, hours=7, minutes=30)),
+                        "calendar",
+                        {"account": spec.get("account"), "title": spec.get("title"),
+                         "organiser": spec.get("organiser"),
+                         "start": _iso(monday + timedelta(days=offset, hours=7, minutes=30)),
+                         "end": _iso(monday + timedelta(days=offset, hours=8, minutes=15))})
+
+            if "task_reschedule" in renders:
+                corpus.event(
+                    emit, _iso(monday + timedelta(days=offset, hours=7)), "vikunja",
+                    {"task": "core run", "status": "rescheduled",
+                     "note": cause.get("note")})
+                if m.get("decision"):
+                    corpus.event(
+                        "GEN_B_DECISIONS",
+                        _iso(monday + timedelta(days=offset, hours=7, minutes=2)),
+                        "episode",
+                        {"source_description": "vikunja — task comment",
+                         "content": cause.get("note")})
+
+            if "inbound_message" in renders:
+                corpus.event(
+                    emit, _iso(monday + timedelta(days=offset, hours=16, minutes=40)),
+                    "slack",
+                    {"direction": "inbound", "from": "@dana",
+                     "text": cause.get("message")})
+
+            if "calendar_block" in renders:
+                at = cause.get("block_at", "09:00")
+                hh, mm = (int(x) for x in str(at).split(":"))
+                corpus.event(
+                    emit, _iso(monday + timedelta(days=offset, hours=hh, minutes=mm)),
+                    "calendar",
+                    {"account": "personal", "title": cause.get("block_title"),
+                     "start": _iso(monday + timedelta(days=offset, hours=hh, minutes=mm)),
+                     "end": _iso(monday + timedelta(days=offset, hours=hh + 2, minutes=mm))})
+
+            if "task_note" in renders:
+                corpus.event(
+                    emit, _iso(monday + timedelta(days=offset, hours=7, minutes=10)),
+                    "vikunja",
+                    {"task": "core run", "note": cause.get("note")})
+                if m.get("decision"):
+                    corpus.event(
+                        "GEN_B_DECISIONS",
+                        _iso(monday + timedelta(days=offset, hours=7, minutes=12)),
+                        "episode",
+                        {"source_description": "vikunja — task comment",
+                         "content": cause.get("note")})
+
         if wk.get("note"):
-            corpus.event(f"GEN_B_WK{wk['wk']}_PROG", _iso(monday + timedelta(days=3, hours=7)),
-                         "vikunja", {"note": wk["note"]})
+            corpus.event(f"GEN_B_WK{wk['wk']}_PROG",
+                         _iso(monday + timedelta(days=3, hours=7)),
+                         "vikunja", {"task": "core run", "status": "completed",
+                                     "note": wk["note"]})
 
     race = gi.get("race") or {}
     if race:
-        # Natural completion text, not a `result:` field. The allowlist
-        # stripped the field form and B2-1's required value "32:50" vanished
-        # from the corpus — the point became unhittable. Rendering it as the
-        # note an adapter would actually write keeps it inferable.
         corpus.event("GEN_B_RACE", f"{race['date']}T08:00", "vikunja",
-                     {"task": "Riverside 5K",
-                      "status": "completed",
+                     {"task": "Riverside 5K", "status": "completed",
                       "note": f"Finished {race.get('result')}."})
 
 
@@ -529,11 +609,60 @@ def render(scale: int = 1) -> tuple[Corpus, list[str]]:
     for doc in seeds.values():
         declared |= set((doc.get("meta") or {}).get("emits") or [])
 
-    missing = sorted(declared - corpus.emitted)
-    problems = [
-        f"declared emit {m!r} was never produced — oracle traceability names it, "
-        f"so the point it supports would be unverifiable"
-        for m in missing
+    # A literal declaration must be produced exactly; a FAMILY (trailing "*")
+    # must have at least one member. A declared family with no members is a
+    # declaration with nothing behind it, which is the same defect as an
+    # unproduced literal.
+    problems: list[str] = []
+    for d in sorted(declared):
+        if d.endswith("*"):
+            if not any(e.startswith(d[:-1]) for e in corpus.emitted):
+                problems.append(
+                    f"declared emit family {d!r} produced no members — the "
+                    f"family is declared but empty")
+        elif d not in corpus.emitted:
+            problems.append(
+                f"declared emit {d!r} was never produced — oracle traceability "
+                f"names it, so the point it supports would be unverifiable")
+
+    # R-c, answered without a second contract. The design lead proposed
+    # declaring the ~24 remaining emitted ids (EP_*, GEN_B_WK*_PROG) in
+    # meta.emits so the manifest and seeds match. Those are already seed ids
+    # that check_849_oracle resolves directly, so declaring them would put one
+    # contract inside another and create two places to keep in sync.
+    #
+    # Same guarantee, one source: every id the renderer emits must be EITHER a
+    # declared emit OR a resolvable seed id. Anything that is neither is an id
+    # invented by the renderer, which nothing can trace.
+    seed_ids: set[str] = set()
+
+    def _walk(node):
+        if isinstance(node, dict):
+            if isinstance(node.get("id"), str):
+                seed_ids.add(node["id"])
+            for value in node.values():
+                _walk(value)
+        elif isinstance(node, list):
+            for item in node:
+                _walk(item)
+
+    for doc in seeds.values():
+        _walk(doc)
+
+    # A declared emit ending in "*" is a FAMILY. Arc B's per-week ids are
+    # generated from the weeks table, so enumerating them would be 24 entries
+    # that must stay in lockstep with that table — a second contract to keep in
+    # sync, which is what I was trying to avoid. One pattern declares the
+    # family, stays bounded (GEN_X_FOO still fails), and cannot drift.
+    prefixes = tuple(d[:-1] for d in declared if d.endswith("*"))
+    untraceable = sorted(
+        e for e in corpus.emitted - declared - seed_ids
+        if not (prefixes and e.startswith(prefixes))
+    )
+    problems += [
+        f"emitted id {u!r} is neither a declared emit nor a seed id — the "
+        f"renderer invented it, so no oracle point can trace to it"
+        for u in untraceable
     ]
     return corpus, problems
 

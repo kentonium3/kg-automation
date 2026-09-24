@@ -63,6 +63,11 @@ meta:
     - GEN_B_WK10_THU
     - GEN_B_WK11_TUE
     - GEN_B_WK13_THU
+    # The per-week ids are generated from the weeks table above. Declared as a
+    # FAMILY rather than enumerated: 24 explicit entries would have to stay in
+    # lockstep with that table, and a list that can drift from its own source
+    # is worse than no list. Still bounded — an id outside this family fails.
+    - GEN_B_WK*
 
 outcomes:
   - id: OUT_5K
@@ -156,22 +161,70 @@ generator_input:
   # done; the reason as the primitive it becomes; `decision: true` meaning
   # "emit a Decision plus its provenance episode". `late_night: true` stays —
   # it names events to emit, not a verdict.
+  # L1 (design lead, 2026-09-24T14:38Z). Reasons were rendering as event text —
+  # "07:30 meeting booked into the slot" STATES the collision; "moved to
+  # evening, then not run" STATES the miss. Same class as E-2: the generator's
+  # hint written straight into the corpus.
+  #
+  # A cause is now a TYPE, and the renderer emits the primitives it actually
+  # consists of. No event carries a reason-for-the-miss sentence.
+  causes:
+    early_meeting:
+      # A recurring Thursday 07:30 spec-kitty meeting, standing from week 6.
+      # Its ACCEPTANCE is the Decision's provenance, in natural words.
+      renders: [recurring_calendar_series, acceptance_episode]
+      series: {weekday: thu, at: "07:30", account: spec-kitty,
+               title: "Weekly pipeline review",
+               organiser: "mvale@spec-kitty.example", from_week: 6}
+      acceptance_text: "Accepted — Thursday 07:30 works."
+    moved_to_evening:
+      # A Vikunja reschedule on the run task, and NO completion after it.
+      # The absence of the completion is what says it did not happen.
+      renders: [task_reschedule]
+      reschedule_to: "19:00"
+      note: "Moving today's run to this evening."
+    favour:
+      renders: [inbound_message, calendar_block]
+      message: "Any chance you could give me a hand with this after work?"
+      block_title: "Helping out"
+      block_at: "17:30"
+    holiday_july4:
+      renders: [calendar_block]
+      block_title: "July 4th weekend"
+      all_day: true
+    holiday_labor:
+      renders: [calendar_block]
+      block_title: "Labor Day weekend — away"
+      all_day: true
+    birthday:
+      renders: [calendar_block]
+      block_title: "Dinner — Joel's birthday"
+      block_at: "19:00"
+    calf:
+      # Legitimate back-off the plan itself prescribes. Rendered as the note a
+      # runner writes, not as a verdict about drift.
+      renders: [task_note]
+      note: "Calf tight again and getting worse on the run. Backing off."
+    illness:
+      renders: [task_note]
+      note: "Head cold. Taking a few days and picking the plan back up after."
+
   weeks:
     - {wk: 1,  mon: 2026-06-15, done: 3}
-    - {wk: 2,  mon: 2026-06-22, done: 3, moved: [{from: thu, to: fri_evening, reason: "friend's birthday dinner", decision: true}]}
-    - {wk: 3,  mon: 2026-06-29, done: 2, missed: [{day: sat, reason: "July 4th weekend", decision: true}]}
+    - {wk: 2,  mon: 2026-06-22, done: 3, moved: [{from: thu, to: fri_evening, cause: null, decision: true}]}
+    - {wk: 3,  mon: 2026-06-29, done: 2, missed: [{day: sat, cause: holiday_july4, decision: true}]}
     - {wk: 4,  mon: 2026-07-06, done: 3, note: "first 20-min continuous run"}
-    - {wk: 5,  mon: 2026-07-13, done: 2, missed: [{day: tue, reason: "favour after work", decision: false}]}
-    - {wk: 6,  mon: 2026-07-20, done: 1, missed: [{day: thu, reason: "07:30 meeting booked into the slot", decision: true}, {day: sat, reason: null, decision: false, late_night: true}]}
-    - {wk: 7,  mon: 2026-07-27, done: 1, missed: [{day: tue, reason: "moved to evening, then not run", decision: true}, {day: sat, reason: null, decision: false, late_night: true}], note: "progression quicker-5-min run at 11:10"}
-    - {wk: 8,  mon: 2026-08-03, done: 1, missed: [{day: tue, reason: null, decision: false, late_night: true}, {day: thu, reason: "07:30 meeting series", decision: true}]}
+    - {wk: 5,  mon: 2026-07-13, done: 2, missed: [{day: tue, cause: favour, decision: false}]}
+    - {wk: 6,  mon: 2026-07-20, done: 1, missed: [{day: thu, cause: early_meeting, decision: true}, {day: sat, cause: null, decision: false, late_night: true}]}
+    - {wk: 7,  mon: 2026-07-27, done: 1, missed: [{day: tue, cause: moved_to_evening, decision: true}, {day: sat, cause: null, decision: false, late_night: true}], note: "progression quicker-5-min run at 11:10"}
+    - {wk: 8,  mon: 2026-08-03, done: 1, missed: [{day: tue, cause: null, decision: false, late_night: true}, {day: thu, cause: early_meeting, decision: true}]}
     - {wk: 9,  mon: 2026-08-10, done: 3, note: "6 x 1 min at ~10:40 effort", late_night: true}
-    - {wk: 10, mon: 2026-08-17, done: 1, missed: [{day: thu, reason: "07:30 meeting series", decision: true}, {day: sat, reason: "calf tightness worsening — backed off per the plan's red-flag rule", decision: true}]}
-    - {wk: 11, mon: 2026-08-24, done: 2, missed: [{day: tue, reason: "favour after work", decision: false}], late_night: true}
-    - {wk: 12, mon: 2026-08-31, done: 2, missed: [{day: sat, reason: "Labor Day weekend away", decision: true}]}
-    - {wk: 13, mon: 2026-09-07, done: 2, missed: [{day: thu, reason: "moved to evening, then not run", decision: true}], late_night: true}
+    - {wk: 10, mon: 2026-08-17, done: 1, missed: [{day: thu, cause: early_meeting, decision: true}, {day: sat, cause: calf, decision: true}]}
+    - {wk: 11, mon: 2026-08-24, done: 2, missed: [{day: tue, cause: favour, decision: false}], late_night: true}
+    - {wk: 12, mon: 2026-08-31, done: 2, missed: [{day: sat, cause: holiday_labor, decision: true}]}
+    - {wk: 13, mon: 2026-09-07, done: 2, missed: [{day: thu, cause: moved_to_evening, decision: true}], late_night: true}
     - {wk: 14, mon: 2026-09-14, done: 3, note: "3 x 8 min at 10:35", late_night: true}
-    - {wk: 15, mon: 2026-09-21, done: 1, missed: [{day: all, reason: "head cold, three days off, plan adjusted", decision: true}]}
+    - {wk: 15, mon: 2026-09-21, done: 1, missed: [{day: all, cause: illness, decision: true}]}
     - {wk: 16, mon: 2026-09-28, done: 3, note: "2 x 1 mile at 10:25 and 10:40"}
     - {wk: 17, mon: 2026-10-05, done: 3, note: "taper as written"}
   race:

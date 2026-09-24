@@ -197,11 +197,14 @@ def test_silent_misses_produce_no_event(rendered):
     collided, and three ids were declared for events that cannot exist.
     """
     doc = load_all()["arc-b"]
+    # `cause` replaced `reason` when L1 turned reasons into primitive TYPES.
+    # A silent miss has no cause at all: nothing happened that an adapter
+    # could have recorded, which is exactly what makes it silent.
     silent = [
         (w["wk"], m["day"])
         for w in doc["generator_input"]["weeks"]
         for m in (w.get("missed") or [])
-        if not m.get("reason")
+        if not m.get("cause")
     ]
     assert silent, "the seed no longer has silent misses — this test is stale"
     declared = set(doc["meta"]["emits"])
@@ -216,3 +219,65 @@ def test_the_manifest_marks_a_scaled_corpus_invalid_for_a_run(tmp_path):
     manifest = json.loads((tmp_path / "manifest.json").read_text())
     assert manifest["scale"] == 20
     assert manifest["valid_for_run"] is False
+
+
+# --------------------------------------------------------------------------
+# Emit families and traceability of every emitted id (R-c)
+# --------------------------------------------------------------------------
+
+
+def test_every_emitted_id_is_declared_or_a_seed_id(rendered):
+    """An id the renderer invented cannot be traced by any oracle point."""
+    _, problems = rendered
+    assert not [p for p in problems if "neither a declared emit" in p], problems
+
+
+def test_an_invented_emit_id_is_rejected(monkeypatch):
+    import scripts.research.render_849_corpus as mod
+
+    real_gen = mod.generate_arc_b
+
+    def _with_invented(corpus, doc, scale):
+        real_gen(corpus, doc, scale)
+        corpus.event("GEN_INVENTED_BY_RENDERER", "2026-06-01T09:00", "note", {})
+
+    monkeypatch.setitem(mod.GENERATORS, "arc-b", _with_invented)
+    _, problems = mod.render(scale=SCALE)
+    assert any("GEN_INVENTED_BY_RENDERER" in p for p in problems), problems
+
+
+def test_a_declared_family_with_no_members_is_rejected(monkeypatch):
+    """A family declared but empty is as defective as an unproduced literal."""
+    import scripts.research.render_849_corpus as mod
+
+    real = mod.load_all
+
+    def _with_empty_family():
+        seeds = real()
+        seeds["arc-a"]["meta"]["emits"] = list(
+            seeds["arc-a"]["meta"]["emits"]) + ["GEN_A_NOTHING_*"]
+        return seeds
+
+    monkeypatch.setattr(mod, "load_all", _with_empty_family)
+    _, problems = mod.render(scale=SCALE)
+    assert any("produced no members" in p for p in problems), problems
+
+
+def test_arc_b_states_no_reason_for_a_miss(rendered):
+    """L1: a reason sentence states the finding instead of showing it."""
+    corpus, _ = rendered
+    blob = _text(corpus).lower()
+    for phrase in ["booked into the slot", "then not run", "meeting series",
+                   "favour after work", "moved to evening, then"]:
+        assert phrase not in blob, phrase
+
+
+def test_arc_b_renders_the_collision_as_a_recurring_series(rendered):
+    """The 07:30 meeting must exist as a real calendar series the arm can see
+    colliding with the quality-run slot — not as a sentence saying it did."""
+    corpus, _ = rendered
+    series = [e for e in corpus.events
+              if e.get("channel") == "calendar"
+              and e.get("title") == "Weekly pipeline review"]
+    assert len(series) >= 3, len(series)
+    assert all(str(e.get("start", ""))[11:16] == "07:30" for e in series)
