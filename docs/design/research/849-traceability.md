@@ -56,10 +56,25 @@ GRADE = a note for the grader, not a seed change. Arcs B and E are added when th
 | F-NM | Near-misses 1–7 (illness wk 16, travel wk 12, one-off TZ call wk 6, journaling dip wk 9, Arc B link, lighter weekends, late-evening check-in) | wk 6/12/16 present; **lighter-weekend convention and the wk-9 journaling dip need generator rules; the late-evening check-in needs a completion event at ~20:30 on a lost morning** | PARTIAL — 3 generator rules to add |
 | F-REP | Missed mornings are represented by absence of a completion, not by an explicit "not done" | generator emits completions only | CHOICE — adapter fidelity decides (asked on the bus); record in the seed header |
 
-## Arcs B and E
+## Arc B — quiet drift (`seed/arc-b.yaml` @938cd847) — PROVISIONAL until R3 is confirmed
 
-Rows are added when `seed/arc-b.yaml` and the Arc E generator land. Known in advance from the
-worksheet: B needs the training-plan checkpoints CP1–CP4 to be *derivable from the plan document
-as a primitive*, not asserted; E1 needs the 13 marathon sessions as calendar blocks with no
-"triage" label, and the six consequential misses as ordinary mail with their consequences as
-later ordinary events.
+| # | oracle point | primitives | status |
+|---|---|---|---|
+| B1 | The Outcome with date and measure; the date is a hard Commitment | `OUT_5K` (target_date, success_criteria — seeded as `measure`, see R4), `COM_RACE`, `DUE_BY`, `EP_B_REGISTER` (non-refundable, $35) | OK after R4 |
+| B2 | Every counted deferral, in order, with dates and the reason at the time | generator must emit one primitive per row: the Thu 07:30 series as a real recurring calendar event (wk 6→) whose acceptance is a Decision; a favour-request message + block (wk 5, 11); Vikunja reschedule-to-evening episodes with no completion (wk 7, 13); silent misses as absence against the plan; holiday/away calendar entries (wk 3, 12) | GAP until R3 — reasons currently exist only as generator strings |
+| B3 | Which reasons repeat; the 07:30 series agreed to three times into a known quality slot | the series' three occurrences + three acceptance Decisions; the plan marks Thu as the quality run | OK after R3 |
+| B4 | Decided vs silent split (5 silent, 5 decided-then-silent) | Decisions + provenance episodes for the meetings and the evening moves; none for the runs themselves | OK after R2/R3 — classification lives in the oracle only |
+| B5 | Point of no return = CP2, Sun 08-09, by the halfway rule; not wk 10 calf, not wk 15 cold | `EP_B_PLAN` (milestones: Phase-2 45–50 min long run, wk-7 "quicker 5 min" ~10:30), `EP_B_CONDITIONING_RULE` (halfway rule, *without* the coaching clause — R1); wk 6/7 Sat misses + wk 8 40-min cutback as events; wk 7 pace 11:10 as a completion note | OK after R1/R3 |
+| B6 | No individual deferral was unreasonable | the reasons as primitives (R3) | OK after R3 |
+| B7 | Should have been caught end of wk 7 (08-02) | events through wk 7 (two 1/3 weeks, one repeated reason) | OK after R3 |
+| B8 | Retrospective framed as coaching: scheduling, commitment management, delegation, mindset; reset-not-quit | reasoning over B2–B7; **no primitive may state the coaching move** (R1) | OK — judgement, graded |
+| B9 | Race result 32:50 → 10:35/mi (for B2, asked after 10-15) | results email / completion note after 10-15 | GAP until R3 |
+| B-NM | Near-misses: wk 10 calf (red-flag rule in the plan), wk 15 cold, wk 2 reschedule-within-week, wk 3/12 holidays, wk 9 full week, Arc A's PT sessions not drifting, strength sessions never core | plan red-flag list (`EP_B_PLAN`); note episodes + Decisions (wk 10, 15); calendar (wk 3, 12); PT sessions rendered weekly Jun–Oct from Arc A's recurrence (`non_drifting_control`); Mon/Wed/Sun strength as Vikunja completions | PARTIAL — PT must render across B's window; strength sessions need a generator rule |
+
+## Arc E
+
+Rows are added when the Arc E generator lands. Known in advance from the worksheet: E1 needs the
+13 marathon sessions as calendar blocks with no "triage" label, the six consequential misses as
+ordinary mail with their consequences as later ordinary events, and the wk-10 WhatsApp
+interest-list change as an episode; E2 needs the Interest nodes with add/drop episodes and the
+contacts as `Person.is_contact`.
