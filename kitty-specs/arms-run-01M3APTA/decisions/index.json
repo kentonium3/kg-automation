@@ -1,0 +1,106 @@
+{
+  "entries": [
+    {
+      "created_at": "2026-09-24T21:58:46.935703Z",
+      "decision_id": "01M3APV8CQ0V90VSXB3PE09WQS",
+      "final_answer": "A \u2014 office4 session under auto-run runs and resumes the matrix from the ledger; model resident whenever a cell needs it, any hour",
+      "input_key": "run_operator_and_office4_envelope",
+      "mission_id": "01M3APTADS39MF0NDWG9HDSW50",
+      "mission_slug": "arms-run-01M3APTA",
+      "opened_by": "cli",
+      "options": [
+        "Me under auto-run, model resident whenever needed, any hour",
+        "Me, but only inside windows Kent declares on the bus",
+        "Kent starts each session manually; I only build",
+        "Other"
+      ],
+      "origin_flow": "specify",
+      "other_answer": false,
+      "question": "When the 72-cell primary run executes on office4, who starts and resumes it across session limits, and under what resource envelope \u2014 may the 80B model stay resident (~51 GiB GTT, GPU saturated) while you are using the machine, or only in windows you declare?",
+      "rationale": null,
+      "resolved_at": "2026-09-24T22:03:29.878857Z",
+      "resolved_by": null,
+      "slot_key": "specify.run-scenario.operator-and-envelope",
+      "status": "resolved",
+      "step_id": null,
+      "summary_json": null
+    },
+    {
+      "created_at": "2026-09-24T22:03:31.909006Z",
+      "decision_id": "01M3AQ3YP4TCJA1QPDYZG6JCYN",
+      "final_answer": "A \u2014 done at primary 72-cell ledger complete + blinded grading_view with sealed label map + D-YaRN secondary in its own ledger; grading and section 7 verdict stay with the design lead on the bus",
+      "input_key": "definition_of_done_boundary",
+      "mission_id": "01M3APTADS39MF0NDWG9HDSW50",
+      "mission_slug": "arms-run-01M3APTA",
+      "opened_by": "cli",
+      "options": [
+        "Primary ledger + grading_view + D-YaRN secondary, then hand to the design lead to grade",
+        "Primary ledger + grading_view only; D-YaRN is a follow-on mission",
+        "Include blind grading and the section 7 verdict inside this mission",
+        "Other"
+      ],
+      "origin_flow": "specify",
+      "other_answer": false,
+      "question": "Where does this mission end? Is it done when the primary 72-cell ledger is complete and the blinded grading_view is exported, with the D-YaRN secondary also run \u2014 or does D-YaRN fall to a follow-on, or does grading itself belong inside?",
+      "rationale": null,
+      "resolved_at": "2026-09-24T22:04:42.571389Z",
+      "resolved_by": null,
+      "slot_key": "specify.scope.definition-of-done",
+      "status": "resolved",
+      "step_id": null,
+      "summary_json": null
+    },
+    {
+      "created_at": "2026-09-24T22:04:44.154502Z",
+      "decision_id": "01M3AQ657T5KPTP3WMR645GDAA",
+      "final_answer": "A \u2014 retry a cell up to 2 times after a substrate health check passes; then record error and continue; the ledger records every attempt",
+      "input_key": "error_cell_retry_policy",
+      "mission_id": "01M3APTADS39MF0NDWG9HDSW50",
+      "mission_slug": "arms-run-01M3APTA",
+      "opened_by": "cli",
+      "options": [
+        "Retry up to 2 times after a substrate health check, then record error and continue",
+        "Record error and continue immediately; a later resume re-attempts error cells",
+        "Halt the run on any infrastructure error and post blocked to the bus",
+        "Other"
+      ],
+      "origin_flow": "specify",
+      "other_answer": false,
+      "question": "The most common exception in a multi-hour run: a cell fails for an infrastructure reason (llama-server crash, FalkorDB connection drop, OOM) rather than a model answer. What must the harness do \u2014 retry the cell automatically (how many times), record error and move on, or halt the run until an operator looks?",
+      "rationale": null,
+      "resolved_at": "2026-09-24T22:05:30.496005Z",
+      "resolved_by": null,
+      "slot_key": "specify.run-scenario.error-cell-handling",
+      "status": "resolved",
+      "step_id": null,
+      "summary_json": null
+    },
+    {
+      "created_at": "2026-09-24T22:05:32.068856Z",
+      "decision_id": "01M3AQ7M14BGP42HDGT4WV9KZB",
+      "final_answer": "A \u2014 enforce structurally twice: harness refuses to start if any arm module references the oracle path, AND arms execute from an environment where oracle/ physically does not exist",
+      "input_key": "oracle_isolation_enforcement",
+      "mission_id": "01M3APTADS39MF0NDWG9HDSW50",
+      "mission_slug": "arms-run-01M3APTA",
+      "opened_by": "cli",
+      "options": [
+        "Harness refuses to start if any arm module references the oracle path, AND arms execute in a worktree where oracle/ is absent",
+        "Static check only: harness scans arm code for the oracle path before the run",
+        "Convention plus code review is sufficient",
+        "Other"
+      ],
+      "origin_flow": "specify",
+      "other_answer": false,
+      "question": "The rule that must always hold: no arm may see the hidden oracle. Today that is a convention. Should the run enforce it structurally, and how?",
+      "rationale": null,
+      "resolved_at": "2026-09-24T22:06:25.186331Z",
+      "resolved_by": null,
+      "slot_key": "specify.rules.oracle-isolation",
+      "status": "resolved",
+      "step_id": null,
+      "summary_json": null
+    }
+  ],
+  "mission_id": "01M3APTADS39MF0NDWG9HDSW50",
+  "version": 1
+}
