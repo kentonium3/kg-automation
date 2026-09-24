@@ -30,6 +30,8 @@ meta:
   contexts: [personal]
   window: {start: 2026-04-06, end: 2026-09-25}
   ontology_ref: docs/design/second-brain-graph-layer.md@884d1c6e
+  # See arc-b.yaml for why this declaration is load-bearing.
+  non_rendered: [generator_input, shared_late_nights]
 
 principles:
   # Kent's verbatim text, 2026-09-23. Hard, global (no SCOPED_TO edge).

@@ -1,0 +1,173 @@
+# #849 seed — Arc B: quiet drift
+#
+# SEED MATERIAL. Everything here is a primitive the arms may see.
+#
+# ⚠ TRACEABILITY GAP FOUND AND FIXED HERE — same class as the design lead's
+#   Arc A catch (#844 Threats §1), and this one is load-bearing.
+#
+#   Arc B's oracle names CP2 (Sun 2026-08-09) as THE POINT OF NO RETURN, by
+#   Kent's rule: "if the target training pace is not hit at the 50% point of the
+#   program, there is no path to recovery." The whole B1 answer turns on it.
+#
+#   That rule is NOT in Kent's training plan. I checked: the plan states the
+#   week-16 gate ("if the 2 x 1 mile workout feels controlled, you are in
+#   range") and the red-flag back-off list, but nothing about a 50% point or
+#   cumulative conditioning. The worksheet attributes the rule to Kent at
+#   authoring time, marked "this is what the oracle computes against".
+#
+#   So as authored, the oracle's central point had NO primitive behind it. An
+#   arm could identify every miss correctly and still have no basis to say
+#   recovery was impossible — it would be marked wrong for not knowing a rule
+#   the corpus never states.
+#
+#   FIX: seed the conditioning rule as a primitive, the same way Arc A seeds
+#   its Principle verbatim. It is domain knowledge Kent holds, so it belongs in
+#   the corpus as something he wrote down. What stays inferable: WHICH
+#   checkpoint is the 50% point, whether it was missed, and what follows.
+#   Flagged to the design lead rather than resolved silently.
+
+meta:
+  arc: B
+  contexts: [personal]
+  window: {start: 2026-06-15, end: 2026-10-15}
+  ontology_ref: docs/design/second-brain-graph-layer.md@884d1c6e
+  # Blocks the renderer CONSUMES and never emits verbatim. Declaring them
+  # is what makes their oracle-adjacent contents safe: the renderer strips
+  # exactly this list, and the freeze check greps the rendered corpus for
+  # their words. An undeclared block would be emitted and leak.
+  non_rendered: [generator_input, shared_late_nights, non_drifting_control]
+
+outcomes:
+  - id: OUT_5K
+    description: Run the 5K at a sub-10-minute-mile average for the full distance
+    target_date: 2026-10-15
+    measure: "under 31:00 for 3.1 mi (sub-10:00/mi average)"
+    domain: DOM_PERSONAL
+    serves: PUR_VITALITY
+
+commitments:
+  # Hard external: registered and paid. DUE_BY sources from Outcome per the
+  # endpoint extension landed @ee1311a5.
+  - id: COM_RACE
+    counterparty: "Riverside 5K"
+    is_external: true
+    datetime: 2026-10-15T08:00:00-04:00
+    description: Riverside 5K — registered, entry fee paid
+
+edges:
+  - {type: DUE_BY, from: OUT_5K, to: COM_RACE}
+
+episodes:
+  # Registration — the primitive behind "the date is hard and the fee is paid".
+  - id: EP_B_REGISTER
+    reference_time: 2026-06-11T20:41:00-04:00
+    source_description: "personal email — registration@riverside5k.example"
+    content: >-
+      Registration confirmed — Riverside 5K, Thursday 15 October 2026, 08:00.
+      Entry fee $35.00 charged. Entries are non-refundable and non-transferable.
+    mentions: [COM_RACE, OUT_5K]
+
+  # THE PLAN, as Kent wrote it. A real document in the corpus.
+  - id: EP_B_PLAN
+    reference_time: 2026-06-12T09:15:00-04:00
+    source_description: "obsidian note — 5K conditioning plan"
+    content_ref: docs/design/research/849-arc-b-training-plan.md
+    mentions: [OUT_5K]
+
+  # THE CONDITIONING RULE — the primitive this arc was missing.
+  # Kent's own framing, written as a note when he built the plan. It states the
+  # rule; it does NOT say which week is the 50% point, whether any checkpoint
+  # was hit, or what the miss rate is. Those remain the arm's work.
+  - id: EP_B_CONDITIONING_RULE
+    reference_time: 2026-06-12T09:22:00-04:00
+    source_description: "obsidian note — how to read the plan"
+    content: >-
+      How to read this plan. Conditioning is cumulative — it cannot be
+      accumulated all at once in a few weeks near the end. Consistent workouts,
+      at least three a week, are the only way to meet the targets. Working
+      backwards from the race there are mid-programme time and distance
+      checkpoints that say whether I am on track. If I am not hitting the target
+      training pace by the halfway point of the programme, there is no path to
+      recovery for the pace goal — the honest move then is to reset the goal to
+      finishing healthy. And if I cannot run at race pace two weeks before the
+      race, I am unlikely to do it on race day.
+    mentions: [OUT_5K]
+
+# --- the sessions ---------------------------------------------------------
+#
+# 17 weeks x 3 core runs. Rendered as Vikunja recurring-task events (done /
+# not done) plus calendar entries, exactly as an adapter would write them.
+#
+# ⚠ GENERATOR INPUT, not a seed artifact. The weekly table below never reaches
+#   the rendered corpus — what reaches it is ~51 individual session events.
+#   The renderer strips this block; the freeze check greps for its words.
+#
+# WHAT IS ABSENT FROM EVERY RENDERED EVENT: any miss rate, any cumulative
+# count, any checkpoint verdict, any "near-miss" mark, any decided/silent
+# label. The decided/silent split is produced by a Decision node existing or
+# not existing — five of the misses have one, five do not.
+
+generator_input:
+  seed: 849-arc-b
+  plan_ref: docs/design/research/849-arc-b-training-plan.md
+  # `counted: false` marks the five rows the ORACLE excludes. It is a generator
+  # instruction, never rendered. The rendered event for a counted and an
+  # uncounted miss are IDENTICAL in shape — what differs is the reason text and
+  # whether a Decision exists, which is exactly what the arm must judge.
+  weeks:
+    - {wk: 1,  mon: 2026-06-15, done: 3}
+    - {wk: 2,  mon: 2026-06-22, done: 3, moved: [{from: thu, to: fri_evening, reason: "friend's birthday dinner", decision: true, counted: false}]}
+    - {wk: 3,  mon: 2026-06-29, done: 2, missed: [{day: sat, reason: "July 4th weekend", decision: true, counted: false}]}
+    - {wk: 4,  mon: 2026-07-06, done: 3, note: "first 20-min continuous run"}
+    - {wk: 5,  mon: 2026-07-13, done: 2, missed: [{day: tue, reason: "favour after work", decision: false, counted: true}]}
+    - {wk: 6,  mon: 2026-07-20, done: 1, missed: [{day: thu, reason: "07:30 meeting booked into the slot", decision: true, counted: true}, {day: sat, reason: null, decision: false, counted: true, late_night: true}]}
+    - {wk: 7,  mon: 2026-07-27, done: 1, missed: [{day: tue, reason: "moved to evening, then not run", decision: true, then_silent: true, counted: true}, {day: sat, reason: null, decision: false, counted: true, late_night: true}], note: "progression quicker-5-min run at 11:10"}
+    - {wk: 8,  mon: 2026-08-03, done: 1, missed: [{day: tue, reason: null, decision: false, counted: true, late_night: true}, {day: thu, reason: "07:30 meeting series", decision: true, counted: true}]}
+    - {wk: 9,  mon: 2026-08-10, done: 3, note: "6 x 1 min at ~10:40 effort", late_night: true}
+    - {wk: 10, mon: 2026-08-17, done: 1, missed: [{day: thu, reason: "07:30 meeting series", decision: true, counted: true}, {day: sat, reason: "calf tightness worsening — backed off per the plan's red-flag rule", decision: true, counted: false}]}
+    - {wk: 11, mon: 2026-08-24, done: 2, missed: [{day: tue, reason: "favour after work", decision: false, counted: true}], late_night: true}
+    - {wk: 12, mon: 2026-08-31, done: 2, missed: [{day: sat, reason: "Labor Day weekend away", decision: true, counted: false}]}
+    - {wk: 13, mon: 2026-09-07, done: 2, missed: [{day: thu, reason: "moved to evening, then not run", decision: true, then_silent: true, counted: true}], late_night: true}
+    - {wk: 14, mon: 2026-09-14, done: 3, note: "3 x 8 min at 10:35", late_night: true}
+    - {wk: 15, mon: 2026-09-21, done: 1, missed: [{day: all, reason: "head cold, three days off, plan adjusted", decision: true, counted: false}]}
+    - {wk: 16, mon: 2026-09-28, done: 3, note: "2 x 1 mile at 10:25 and 10:40"}
+    - {wk: 17, mon: 2026-10-05, done: 3, note: "taper as written"}
+  race:
+    date: 2026-10-15
+    result: "32:50"
+    # NOT seeded: "10:35/mi", "sub-10 missed". The pace is arithmetic on the
+    # time and the distance; the verdict is the oracle's.
+
+# --- the shared cause ------------------------------------------------------
+#
+# Arc B does NOT re-author the late nights. It references the single set
+# rendered from arc-f.yaml, so the cause Kent's oracle scores is genuinely one
+# cause rather than two fabrications that agree. Weeks marked late_night above
+# consume those events.
+shared_late_nights:
+  source: arc-f.yaml#shared_late_nights
+  consumed_weeks: [6, 7, 8, 9, 11, 13, 14]
+
+# --- near-miss 5: a non-drifting recurring commitment ----------------------
+#
+# Arc A's PT sessions run through Arc B's window and do NOT drift, so
+# "count deferrals per commitment" cannot win by accident. Rendered from
+# arc-a.yaml's COM_PT_TUE / COM_PT_THU across 2026-06-15 -> 2026-10-15.
+non_drifting_control:
+  source: arc-a.yaml#commitments
+  ids: [COM_PT_TUE, COM_PT_THU]
+  window: {start: 2026-06-15, end: 2026-10-15}
+
+# --- what is NOT in this file, on purpose ---------------------------------
+#
+#  * no miss rate, cumulative count, or percentage anywhere
+#  * no checkpoint definitions, targets, or pass/fail verdicts (CP1-CP4 are
+#    the ORACLE's derivation from the plan plus the conditioning rule)
+#  * no "point of no return" marker at wk 8 or anywhere else
+#  * no tally of which reasons repeat — the reasons are event text, and the
+#    repetition is the finding
+#  * no decided/silent labels — five misses have a Decision node, five do not
+#  * no "near-miss" marks in the rendered corpus
+#  * no race verdict beyond the finish time
+#  * no link between the late nights and the missed runs, and none between
+#    Arc B and Arc F — the shared cause is shared EVENTS

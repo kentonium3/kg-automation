@@ -162,6 +162,30 @@ STRUCTURAL_CHECKS = {
 }
 
 
+#: Top-level keys whose contents are GENERATOR INPUT or CROSS-ARC REFERENCES —
+#: consumed by the renderer to produce corpus events, never rendered verbatim.
+#:
+#: These legitimately contain oracle-adjacent structure. Arc B's generator input
+#: marks which misses the oracle counts; Arc F's carries the phase bands. That
+#: is correct: the renderer needs it to emit the right events, and the arms
+#: never see it. But the exemption is only safe if it is DECLARED, so a seed
+#: must list its non-rendered keys in `meta.non_rendered` and the renderer must
+#: strip exactly those. An undeclared block containing verdict vocabulary is a
+#: leak; a declared one is a contract.
+DEFAULT_NON_RENDERED = frozenset()
+
+
+def _non_rendered_keys(doc: dict) -> frozenset[str]:
+    declared = (doc.get("meta") or {}).get("non_rendered") or []
+    return frozenset(declared)
+
+
+def _rendered_view(doc: dict) -> dict:
+    """The part of a seed the arms can eventually see."""
+    skip = _non_rendered_keys(doc) | {"meta"}
+    return {k: v for k, v in doc.items() if k not in skip}
+
+
 def strip_comments(raw: str) -> str:
     """Remove whole-line comments so checks read DATA, not prose about it."""
     return re.sub(r"(?m)^\s*#.*$", "", raw)
@@ -179,13 +203,28 @@ def check_file(path: pathlib.Path) -> list[str]:
     if not isinstance(doc, dict):
         return [f"{path.name}: expected a mapping at the top level"]
 
-    # 1. vocabulary, over the re-serialised DATA only
-    flat = yaml.safe_dump(doc, default_flow_style=False).lower()
+    # 1. vocabulary, over the RENDERED view only. Declared non-rendered blocks
+    #    are exempt — see DEFAULT_NON_RENDERED.
+    rendered = _rendered_view(doc)
+    flat = yaml.safe_dump(rendered, default_flow_style=False).lower()
     for token in FORBIDDEN_TOKENS:
         if token in flat:
             problems.append(
-                f"{path.name}: forbidden token {token!r} appears in seed DATA — "
-                f"that is an oracle fact, not a primitive"
+                f"{path.name}: forbidden token {token!r} appears in RENDERED seed "
+                f"data — that is an oracle fact, not a primitive"
+            )
+
+    # 1b. a block that looks like generator input must be DECLARED, or the
+    #     renderer has no instruction to strip it and it leaks by default.
+    declared = _non_rendered_keys(doc)
+    for key in doc:
+        if key in ("meta",) or key in declared:
+            continue
+        if key.startswith("generator") or key.endswith("_input"):
+            problems.append(
+                f"{path.name}: {key!r} looks like generator input but is not "
+                f"listed in meta.non_rendered — the renderer would emit it "
+                f"verbatim and leak whatever it contains"
             )
 
     # 2. structural absences for this arc

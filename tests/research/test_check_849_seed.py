@@ -242,3 +242,55 @@ def test_the_committed_arc_f_seed_has_no_outcome_and_anchors_both_tasks():
     tasks = {t["id"] for t in doc["tasks"]}
     embodied = {e["from"] for e in doc["edges"] if e["type"] == "EMBODIES"}
     assert tasks and tasks == embodied, (tasks, embodied)
+
+
+# --------------------------------------------------------------------------
+# Rendered view vs generator input — the exemption must be DECLARED
+# --------------------------------------------------------------------------
+
+
+def test_undeclared_generator_input_is_rejected(tmp_path):
+    """An undeclared block is emitted verbatim by the renderer, so it leaks."""
+    text = (
+        "meta: {arc: B}\n"
+        "generator_input:\n"
+        "  weeks: [{wk: 1, counted: false}]\n"
+    )
+    problems = check_file(_write(tmp_path, "arc-b.yaml", text))
+    assert any("not listed in meta.non_rendered" in p for p in problems), problems
+
+
+def test_declared_generator_input_may_carry_oracle_adjacent_structure(tmp_path):
+    """Declared is a contract: the renderer strips exactly this list."""
+    text = (
+        "meta: {arc: B, non_rendered: [generator_input]}\n"
+        "generator_input:\n"
+        "  weeks: [{wk: 1, counted: false, point_of_no_return: true}]\n"
+    )
+    assert check_file(_write(tmp_path, "arc-b.yaml", text)) == []
+
+
+def test_declaring_a_block_does_not_exempt_the_rendered_part(tmp_path):
+    """The exemption is scoped — a leak outside the declared block still fails."""
+    text = (
+        "meta: {arc: B, non_rendered: [generator_input]}\n"
+        "generator_input: {weeks: [{counted: false}]}\n"
+        "episodes:\n"
+        "  - {id: EP_X, content: 'x', point_of_no_return: '2026-08-09'}\n"
+    )
+    problems = check_file(_write(tmp_path, "arc-b.yaml", text))
+    assert any("point_of_no_return" in p for p in problems), problems
+
+
+def test_committed_seeds_declare_every_generator_block():
+    """The real files must not rely on the author remembering."""
+    import yaml as _yaml
+
+    for path in sorted(SEED_DIR.glob("*.yaml")):
+        doc = _yaml.safe_load(strip_comments(path.read_text(encoding="utf-8")))
+        declared = set((doc.get("meta") or {}).get("non_rendered") or [])
+        looks_generated = {
+            k for k in doc
+            if k.startswith("generator") or k.endswith("_input")
+        }
+        assert looks_generated <= declared, (path.name, looks_generated - declared)
