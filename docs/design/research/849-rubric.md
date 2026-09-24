@@ -31,11 +31,20 @@ whether free-prose extraction works (no extraction is used in this run; the seed
 |---|---|---|
 | **G** — tuned graph | Graphiti + FalkorDB over the typed ontology, seeded by structured writes (no LLM) | node + edge hybrid retrieval; typed constraint pull, one query per label (`Capacity`, `Commitment`, `Principle`, `Interest`); anchored history expansion (entity → its episodes via `MENTIONS`); **no BFS by default**; `group_id` in `[A-Za-z0-9_]`; retrieval budget recorded per question |
 | **D** — full dump | the entire corpus (rendered seed + full stream) in the prompt | prompt caching **on**; hit rate logged |
-| **R** — vector-RAG + records | embedding retrieval over the stream and rendered records, top-k | k chosen so the assembled context is within ±20 % of G's median assembled context; caching on for any stable prefix |
+| **R** — vector-RAG + records | embedding retrieval over the stream and rendered records, top-k | ONE global k, chosen so R's median assembled context is within ±20 % of G's median; the per-question ratio R_context / G_context is a reported column so a parity breach is visible, never silent; caching on for any stable prefix |
 
 Common to all arms: the **same reasoning model**, the **same fixed prompt**, the **same question
 wording**; the arm assembles context, the model answers; nothing else differs. The model and its
-provider are recorded, not prescribed (per-function seam, §Tool Selection).
+provider are recorded, not prescribed (per-function seam, §Tool Selection). **Assembled context**
+= the input tokens of the assembled block, excluding the fixed prompt and the question; that is
+what the cost axis counts.
+
+**Question order is protocol.** Questions are asked in `ask_time` ascending order (C1, A, F1, B1,
+E2, E1, F2, B2). Under the time-cut each D prompt is then a literal prefix of the next (measured:
+757 → 5,620 events, ~24k → ~178k tokens), so D's cache hit rate is a property of this protocol
+and is reported as such; a random order would collapse it and the number would be an artifact
+of an unstated choice. The served model's context window must exceed the largest prefix (B2,
+~178k tokens) and is recorded in the registration.
 
 **Time-cut rule.** Every question is asked at its stream timestamp. An arm may only see material
 with `created_at ≤ ask time`. For D this means the dumped prefix differs per question — that is
@@ -97,7 +106,10 @@ that directory is absent from every arm's input path before a run starts.
 traceability checkable before the renderer exists, and binds the renderer: a generator that
 drops a declared event fails the renderer test instead of leaving an oracle point silently
 unverifiable. Shared sets (e.g. `SHARED_LATE_NIGHTS`) are declared by their owning seed and
-referenced by dependants, which must not re-declare them.
+referenced by dependants, which must not re-declare them. **Families:** an entry ending in `*`
+declares a family (`GEN_B_WK*`); every emitted id must be a declared literal, a family member,
+or a resolvable seed id, and a declared family with no members fails exactly as an unproduced
+literal does (implementer, 2026-09-24; accepted).
 
 ## 4. Axis 1 — correctness
 
@@ -106,8 +118,14 @@ Per question, per run:
 - **Recall** = must_identify points hit ÷ points in the oracle. A point is hit only if the answer
   states it, with the specific value the oracle requires (a date, a count, a name). Partial credit
   is not given per point.
-- **Precision** = 1 − (near-misses the answer asserts *as the finding* ÷ near-misses seeded for
-  that arc). Asserting a decoy is a wrong answer, not a missing one.
+- **Decoys asserted** = the raw count of seeded near-misses the answer asserts *as the finding*
+  (an integer; expected 0 — most such assertions are also hard fails below). A normalised
+  precision ratio is **not** used: seeded-decoy counts range 2–6 per question (measured), so one
+  assertion would cost 0.17 on B1 and 0.50 on C1, and the ratio is not comparable across
+  questions or averageable.
+- **Decoys seen and rejected** = the count of seeded near-misses the answer mentions and
+  correctly rules out. This is the better signal: it separates an arm that retrieved the trap
+  and reasoned past it from one that never saw it. Never penalised.
 - **Hard fails**: any answer that proposes something the oracle names as a *wrong answer* (Arc F:
   a reward, badge, or public commitment; Arc A: a Thursday counter before 15:45; Arc C: binding
   Fred's message to the report thread) scores 0 for that run regardless of hits.
@@ -122,8 +140,10 @@ Per question, per run, per arm — recorded, never estimated:
 - **input tokens per correct answer** = total input tokens ÷ points hit (the primitive), with
   sub-columns **cache-write / cache-read / uncached**;
 - output tokens; wall-clock latency from question to answer;
-- **peak memory** of the arm's serving process during the question (KV / GTT on office4) — a
-  number, not a pass/fail;
+- **peak memory**, two labelled columns: *per question* for D and R inference (the KV cache
+  scales with the prefix, ~7× across questions), sampled from the serving process during the
+  question; *per run* for G's graph store, which is dominated by the loaded graph and near
+  constant per question. A number, not a pass/fail;
 - D and R: prompt-cache **hit rate** under the time-cut arrival pattern.
 
 Dollar conversions are derived afterwards from the token columns for any provider; they are not
@@ -200,6 +220,16 @@ regime-bound the way #844's was, and the findings say so up front.
   by eye for this class as well as by grep.
 - **Recoverability probes are code:** `scripts/research/probe_849_recoverability.py`, one probe
   per inferred-pattern arc, each with a can-fail test; results attached to the registration.
+  `check_849_freeze.py` imports these; there is one implementation per probe.
+- **Required-value presence** (the inverse of the leak grep): every oracle `required_values`
+  literal appears in the rendered corpus. A leak makes a point too easy; a missing required
+  value makes it unhittable, and nothing else would notice until an arm scored zero on it.
+- **Emitted-id traceability:** an id the renderer produced that no oracle point can trace fails.
+- **Rendered-view contract:** the stream is built from a **default-deny field allowlist** — a
+  field not on it is stripped and reported; event ids are **opaque refs** (the id → ref mapping
+  lives in the manifest, so a name like `EP_C_PROMISE` never tells an arm what an event is);
+  loader wiring (`mentions`) is **not** in the stream — G links episodes to entities through the
+  loader, and D/R are not handed that traversal.
 - Corpus frozen at a commit hash before the first run; the hash is in the registration.
 
 ## 10. Artifacts
