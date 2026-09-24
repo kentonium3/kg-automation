@@ -178,3 +178,67 @@ def test_an_unknown_arc_gets_vocabulary_checks_but_no_structural_ones(tmp_path):
 
     leaky = _write(tmp_path, "arc-z2.yaml", "meta: {arc: Z}\nitems:\n  - {overdue: true}\n")
     assert any("overdue" in p for p in check_file(leaky))
+
+
+# --------------------------------------------------------------------------
+# Arc F — the standing-practice invariants (Q1 ruling, Kent-ratified)
+# --------------------------------------------------------------------------
+
+ARC_F_OK = (
+    "meta: {arc: F}\n"
+    "tasks:\n"
+    "  - {id: TASK_MEDITATION, recurrence_rule: 'FREQ=DAILY'}\n"
+    "edges:\n"
+    "  - {type: EMBODIES, from: TASK_MEDITATION, to: PRIN_SELF_INVESTMENT}\n"
+)
+
+
+def test_arc_f_clean_case_passes(tmp_path):
+    assert check_file(_write(tmp_path, "arc-f.yaml", ARC_F_OK)) == []
+
+
+def test_arc_f_rejects_an_outcome_for_a_standing_practice(tmp_path):
+    """An Outcome requires a measure, and the measure IS the leaked answer."""
+    text = ARC_F_OK + (
+        "outcomes:\n"
+        "  - {id: OUT_PRACTICE, target_date: 2026-12-31, measure: '>=5/week'}\n"
+    )
+    problems = check_file(_write(tmp_path, "arc-f.yaml", text))
+    assert any("must have NO Outcome" in p for p in problems), problems
+
+
+def test_arc_f_rejects_a_practice_task_with_no_embodies_anchor(tmp_path):
+    """'No Outcome' is only correct because EMBODIES is the anchor."""
+    text = (
+        "meta: {arc: F}\n"
+        "tasks:\n"
+        "  - {id: TASK_MEDITATION, recurrence_rule: 'FREQ=DAILY'}\n"
+        "edges: []\n"
+    )
+    problems = check_file(_write(tmp_path, "arc-f.yaml", text))
+    assert any("EMBODIES" in p for p in problems), problems
+
+
+@pytest.mark.parametrize(
+    "field",
+    ["target_rate", "expected_per_week", "streak", "expected_frequency", "threshold"],
+)
+def test_arc_f_rejects_any_seeded_rate(tmp_path, field):
+    text = ARC_F_OK.replace(
+        "recurrence_rule: 'FREQ=DAILY'",
+        f"recurrence_rule: 'FREQ=DAILY', {field}: 5",
+    )
+    problems = check_file(_write(tmp_path, "arc-f.yaml", text))
+    assert any("target-rate" in p or field in p for p in problems), (field, problems)
+
+
+def test_the_committed_arc_f_seed_has_no_outcome_and_anchors_both_tasks():
+    """Assert the real file, not a fixture — the invariant that matters."""
+    import yaml as _yaml
+
+    path = SEED_DIR / "arc-f.yaml"
+    doc = _yaml.safe_load(strip_comments(path.read_text(encoding="utf-8")))
+    assert not doc.get("outcomes"), "Arc F must seed no Outcome"
+    tasks = {t["id"] for t in doc["tasks"]}
+    embodied = {e["from"] for e in doc["edges"] if e["type"] == "EMBODIES"}
+    assert tasks and tasks == embodied, (tasks, embodied)

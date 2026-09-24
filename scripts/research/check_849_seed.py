@@ -80,6 +80,36 @@ def _outcome_has_no_status(doc: dict, outcome_id: str) -> bool:
     return True  # outcome not in this file
 
 
+def _tasks_have_no_outcome(doc: dict) -> bool:
+    """Arc F: a standing practice anchors via EMBODIES, never an Outcome."""
+    if doc.get("outcomes"):
+        return False
+    return not any("outcome" in (t or {}) for t in (doc.get("tasks") or []))
+
+
+def _every_task_embodies_a_principle(doc: dict) -> bool:
+    """The flip side: no Outcome is only correct if EMBODIES is present."""
+    tasks = {t.get("id") for t in (doc.get("tasks") or [])}
+    if not tasks:
+        return True
+    embodied = {
+        e.get("from")
+        for e in (doc.get("edges") or [])
+        if e.get("type") == "EMBODIES"
+    }
+    return tasks <= embodied
+
+
+def _no_rate_field_anywhere(doc: dict) -> bool:
+    """Arc F's finding is the SLOPE; a seeded rate turns it into subtraction."""
+    banned = {
+        "target_rate", "expected_per_week", "goal_per_week", "streak",
+        "target_check_ins", "expected_frequency", "threshold",
+    }
+    flat = yaml.safe_dump(doc).lower()
+    return not any(b in flat for b in banned)
+
+
 STRUCTURAL_CHECKS = {
     "A": [
         (
@@ -109,6 +139,24 @@ STRUCTURAL_CHECKS = {
                 and c.get("trigger")
                 for c in (d.get("commitments") or [])
             ),
+        ),
+    ],
+    "F": [
+        (
+            "a standing practice must have NO Outcome — an Outcome requires a "
+            "measure, and any measure seeds the target rate the oracle says "
+            "must be inferred from the slope (Q1 ruling, Kent-ratified)",
+            _tasks_have_no_outcome,
+        ),
+        (
+            "every practice Task must carry an EMBODIES edge to its Principle "
+            "— 'no Outcome' is only correct because EMBODIES is the anchor; "
+            "without it the task floats",
+            _every_task_embodies_a_principle,
+        ),
+        (
+            "no target-rate field may appear anywhere in Arc F",
+            _no_rate_field_anywhere,
         ),
     ],
 }

@@ -41,10 +41,21 @@ $0 lookup Arc E's router needs.
 | `PER_FRED` | Fred Okafor | collaborator | spec-kitty | ☑ | `fokafor@spec-kitty.example` · `@fred` (Slack) · `Fred Okafor` (cal) | C |
 | `PER_DANA` | Dana Reyes | collaborator | spec-kitty | ☑ | `dreyes@spec-kitty.example` · `@dana` (Slack) | C (near-miss 3) |
 | `PER_PRIYA` | Priya Raman | collaborator | spec-kitty | ☑ | `praman@spec-kitty.example` · `@priya` (Slack) | F (wk 6 time-zone call) |
-| `PER_JOEL` | Joel Whitaker | peer | — | ☑ | `joel.whitaker@example.net` · `+1555…` (WhatsApp) | B (wk 2 birthday), E (friend, wk 21) |
+| `PER_JOEL` | Joel Whitaker | peer | — | ☑ | `joel.whitaker@example.net` · `+1-555-0142` (WhatsApp) | B (wk 2 birthday), E (friend, wk 21) |
 | `PER_CLIENT` | Alina Duarte | client | Intentional | ☑ | `aduarte@duarte-partners.example` | E (meeting request, wk 3) |
 | `PER_ACCOUNTANT` | Ray Mbeki | vendor | Mbeki & Co | ☑ | `ray@mbeki-co.example` | E (tax document, wk 17) |
 | `PER_CEO` | Sondra Falk | collaborator | spec-kitty | ☑ | `sfalk@spec-kitty.example` · `@sondra` (Slack) | A (near-miss 7a) |
+
+**Two episodes must carry their own justification, or the arcs they belong to
+collapse into their main case** (design-lead review, 2026-09-24T04:30Z):
+
+- `PER_CEO`'s Arc A near-miss 7a episode must **state the announcement's
+  importance in its own text**. Near-miss 7a is "the exception fires and PT
+  moves"; the main arc is "the exception does not fire and PT holds". If the
+  episode does not say why the CEO's meeting is high-importance, the two are
+  indistinguishable from the corpus and both answers score identically.
+- The same applies to Arc A near-miss 4, where Marcus moves the 1:1 *with*
+  enough notice *and* a high-importance reason.
 
 All eight are `is_contact: True` — they are precisely the people whose mail must always surface
 in E2. That is the **test**, not the tone: E2 near-miss 1 is friendly-looking spam from someone
@@ -71,39 +82,38 @@ This table is **oracle-side**. It goes in the hidden artifact, not the seed. It 
 only so the seed author and the oracle author agree, and it will be **moved out** of this file
 before the seed is handed to any arm.
 
+**Freeze requirement** (design lead, 04:32Z): the freeze check must grep the *rendered* corpus
+for this table's rows, exactly as it does for oracle `must_identify` phrases and seed comment
+lines. A resolution table that leaked into what an arm reads would hand over Arc C's Person-hub
+hop — the one thing Arc D's cut left this corpus still exercising.
+
 Resolution is deterministic from the alias lists above; no inference is required or measured.
 
 ---
 
-## Q4 — organisation-as-sender: a question for the design lead
+## Q4 — organisations are NOT nodes — **RULED** (design lead, 2026-09-24T04:32Z, stability: accepted)
 
-Arc A's cast lists **Northside PT** with `relationship: vendor`, and Arc E's lists ~25 vendor
-orgs and ~15 newsletter orgs the same way. But `Person` carries `organisation` as an
-*attribute*, which reads as "Person = human, org = where they work".
+My reading stands. There is **no `Organisation` entity**. An organisation appears in exactly
+three places, all already in the ontology:
 
-Three things in the corpus are organisation-shaped senders with no human attached: the PT studio
-(Arc A), the vendor/newsletter senders (Arc E), and the doctor's office and billing sender
-(Arc E's buried-and-missed set).
+1. `Person.organisation` — where a human works;
+2. `Commitment.counterparty` — a string when the counterparty is an org, a `COMMITTED_TO` edge
+   when it is a human;
+3. **episode provenance** — the sender address or domain on an email, or the calendar organiser.
 
-My reading, and what I have built to unless you correct it: **they are not nodes.** The PT studio
-is a `counterparty` string plus a calendar organiser; the Arc E senders are episode provenance.
-Nothing in any oracle traverses them, and E2's scored decisions are all reachable from
-`is_contact` plus the interest list plus Kent's own bills and appointments — none of which needs
-an org node.
+Filing offers "by vendor organisation" is a **$0 string operation on the sender domain**, and E2
+scores the *decision*, not the mechanism. No oracle question traverses an organisation, so
+minting ~40 org nodes would add entities nothing reads and would blur the `is_contact` test by
+making non-contacts structurally identical to contacts.
 
-The case against my reading: Arc E's automation spec says offers are **auto-filed by vendor
-organisation**, which implies the organisation is a first-class thing the router groups by. If
-that grouping has to be a graph traversal rather than a string match on the sender domain, then
-orgs need to be nodes and `Person` is the wrong type for them.
-
-I do not think it does — filing by sender domain is a $0 string operation and E2 scores the
-*decision*, not the mechanism — but it is your call whether the ontology should carry an
-organisation entity, and it is cheaper to answer now than after ~5,000 emails are generated.
+**The trigger for revisiting**, recorded so this is not re-asked: a question that must *traverse*
+an org — e.g. *"what have I committed to anyone at Duarte Partners?"*. No such question exists in
+#849. Noted in the design doc under §Tier Definitions → PERSON (@ffb8834d).
 
 ---
 
 ## Next
 
-Cast is complete for the five authored arcs pending Q4. Next bite is the per-arc primitive seed
-for **A, B, C, E** — entities and edges only, no asserted conflict, drift or pattern. Arc F's
-seed waits on Q1 (the principle-2 / answer-leakage ruling in `00-context-chains.md`).
+Cast is complete for the five authored arcs; Q4 is ruled. Arcs A and C are seeded. Q1 is ruled
+(standing-practice exception + `EMBODIES`, ratified by Kent 2026-09-24), so **Arc F is
+unblocked**. Remaining: seeds for F, B and E, then the Arc E generator, then the hidden oracle.

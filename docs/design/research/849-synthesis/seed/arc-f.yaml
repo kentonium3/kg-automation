@@ -1,0 +1,189 @@
+# #849 seed — Arc F: principle erosion at scale
+#
+# SEED MATERIAL. Everything here is a primitive the arms may see.
+#
+# Built to the standing-practice exception + EMBODIES edge, ruled by the design
+# lead 2026-09-24T04:27Z in answer to Q1 and RATIFIED by Kent the same day
+# (doc @884d1c6e, guiding principle 2 exception; §Edge Types EMBODIES).
+#
+# WHY THIS ARC HAS NO OUTCOME, stated plainly because it looks like an omission:
+#
+#   The two Vikunja practice Tasks exist only to enact a Principle. Minting an
+#   Outcome for them would require a MEASURE, and any measure states the
+#   expected rate (">=5 check-ins/week"). Arc F's entire finding is the SLOPE of
+#   decline inferred from the check-in stream — its oracle says "the signal is
+#   the slope, not any one miss". A seeded target turns absence-detection into a
+#   threshold subtraction the arm reads off one node.
+#
+#   So: no Outcome, no Project. Each practice Task EMBODIES the hard global
+#   Principle and reaches Purpose/Domain through it. No target rate is seeded
+#   anywhere. The Principle's own words say "near-daily" — that is Kent's
+#   verbatim text and stays; it is a value, not a threshold.
+#
+# THE TRAJECTORY IS NOT SEEDED EITHER. What is seeded is ~180 individual
+# check-in events and ~110 journal marks. The five phases, the rates, the
+# threshold crossing and the decided/silent split are all OTHER PEOPLE'S
+# ARITHMETIC — the oracle's. Nothing here says "phase", "erosion" or "lapsed".
+
+meta:
+  arc: F
+  contexts: [personal]
+  window: {start: 2026-04-06, end: 2026-09-25}
+  ontology_ref: docs/design/second-brain-graph-layer.md@884d1c6e
+
+principles:
+  # Kent's verbatim text, 2026-09-23. Hard, global (no SCOPED_TO edge).
+  - id: PRIN_SELF_INVESTMENT
+    strictness: hard
+    scope: global
+    description: >-
+      Only I can make this investment in myself, and it must be a non-negotiable
+      priority. There is no external force; no one is coming to tell me to do it.
+      Personal transformation is necessary to achieve the vibrant, prosperous
+      life I imagine, but it takes slowly transforming my mind through
+      persistent, consistent work. This needs to be a near-daily practice done
+      with no fanfare, no celebration, no external view, and for no one's
+      fulfilment and satisfaction but my own. This is where power comes from if
+      recognised as such — but if not, it is easy to trade away for trivial
+      pursuits. Life will interfere at times, but the practice of returning to
+      the habit in spite of interruptions and pressures to do otherwise is
+      itself strengthening a mental muscle.
+    rationale: >-
+      A 1%-a-day improvement in mindset, emotional intelligence, consciousness
+      and mindfulness, and interpersonal or professional skill compounds across
+      a year. The cost of a missed morning is never the hour; it is the
+      compounding.
+
+# The two standing practices. recurrence_rule, EMBODIES, and nothing else.
+# NOTE what is absent: no Outcome, no Project, no target, no streak counter,
+# no `expected_per_week`. Adding any of those would seed the answer.
+tasks:
+  - id: TASK_MEDITATION
+    description: Morning meditation
+    recurrence_rule: "FREQ=DAILY"
+    actor: kent
+  - id: TASK_PERSONAL_INVESTMENT
+    description: Personal-investment time
+    recurrence_rule: "FREQ=DAILY"
+    actor: kent
+
+edges:
+  - {type: EMBODIES, from: TASK_MEDITATION, to: PRIN_SELF_INVESTMENT}
+  - {type: EMBODIES, from: TASK_PERSONAL_INVESTMENT, to: PRIN_SELF_INVESTMENT}
+
+# --- the three evidence streams -------------------------------------------
+#
+# All metadata, no content. Kent: "it shows up by its absence."
+#
+# 1. Vikunja check-ins  — adapter-written completion events, the primary signal
+# 2. journal            — entry TIMESTAMPS ONLY, one opaque event per entry.
+#                         The vault is out of scope and journal content is
+#                         private by construction; the count per week is all
+#                         Arc F needs. This is the "structure without content"
+#                         rule applied literally.
+# 3. calendar           — what fills 06:00-07:00 when the practice does not
+#
+# These are GENERATED from the phase table below by the renderer, not
+# hand-listed, because ~180 check-ins and ~110 journal marks are volume. The
+# generator is deterministic (seeded RNG) so the corpus is reproducible.
+#
+# ⚠ The phase table is a GENERATOR INPUT, not a seed artifact. It never reaches
+# the rendered corpus. What reaches the corpus is the individual events it
+# produces. The freeze check greps the rendered corpus for the words below.
+
+generator_input:
+  seed: 849-arc-f
+  weeks: {start: 2026-04-06, count: 25}
+  # check_ins_per_7 / journal_per_7 are RANGES the generator samples within,
+  # so the stream has realistic jitter rather than a clean staircase an arm
+  # could pattern-match on. Kent's sputter, in his words, is the shape.
+  phases:
+    - {weeks: [1, 5],   check_ins: [6, 7], journal: [5, 6]}
+    - {weeks: [6, 8],   check_ins: [5, 6], journal: [4, 5]}
+    - {weeks: [9, 13],  check_ins: [4, 5], journal: [3, 4]}
+    - {weeks: [14, 18], check_ins: [2, 4], journal: [1, 2]}
+    - {weeks: [19, 22], check_ins: [1, 2], journal: [0, 1]}
+    - {weeks: [23, 24], check_ins: [0, 1], journal: [0, 0]}
+    - {weeks: [25, 25], check_ins: [5, 5], journal: [3, 3]}
+
+# --- what filled the slot: calendar events, as ordinary rows ---------------
+#
+# Each is a real calendar event in the 06:00-07:00 window. Nothing labels them
+# as intrusions; that reading is the arm's job.
+
+slot_fillers:
+  - {week: 6,  start: 2026-05-13T06:30, end: 2026-05-13T07:15,
+     account: spec-kitty, title: "Call — Priya (Singapore)",
+     organiser: "praman@spec-kitty.example", decision: DEC_F_TZ_CALL}
+  # wk 11: a SECOND recurring early call simply appears. No Decision anywhere.
+  # The oracle calls this the sharpest single instance; nothing marks it.
+  - {week: 11, start: 2026-06-17T06:30, end: 2026-06-17T07:15,
+     account: spec-kitty, title: "Weekly sync — APAC",
+     organiser: "praman@spec-kitty.example",
+     recurrence_rule: "FREQ=WEEKLY;BYDAY=WE"}
+  - {week: 12, start: 2026-06-23T05:40, end: 2026-06-23T12:00,
+     account: personal, title: "Flight — travel day", decision: DEC_F_TRAVEL}
+
+decisions:
+  # Exactly four Decisions across ~60 missed mornings. The ratio IS the finding,
+  # and it is produced by there being only four of these, not by a field.
+  - {id: DEC_F_TZ_CALL, decided_at: 2026-05-12T21:14:00-04:00,
+     rationale: "Only overlap window with Priya this week.", options_considered: []}
+  - {id: DEC_F_TRAVEL, decided_at: 2026-06-22T19:02:00-04:00,
+     rationale: "Early flight; practice moved to the evening.", options_considered: []}
+  - {id: DEC_F_ILLNESS, decided_at: 2026-07-20T08:30:00-04:00,
+     rationale: "Head cold — resting this week.", options_considered: []}
+  - {id: DEC_F_RESTART, decided_at: 2026-09-21T07:05:00-04:00,
+     rationale: "I've let the mornings go. Restarting tomorrow.", options_considered: []}
+
+episodes:
+  # wk 12 travel: the practice MOVED to the evening and the check-in was done
+  # at 20:30. A reschedule, kept. Near-miss 2 — must not count as a miss.
+  - id: EP_F_TRAVEL_EVENING
+    reference_time: 2026-06-23T20:30:00-04:00
+    source_description: "vikunja — task completed"
+    content: "Personal-investment time — completed 20:30."
+    mentions: [TASK_PERSONAL_INVESTMENT]
+
+  # wk 25 restart, by WhatsApp voice note. The return is scored POSITIVE.
+  - id: EP_F_RESTART
+    reference_time: 2026-09-21T07:05:00-04:00
+    source_description: "whatsapp voice note — +1-555-0199"
+    content: "I've let the mornings go."
+    mentions: [TASK_MEDITATION, PRIN_SELF_INVESTMENT, DEC_F_RESTART]
+
+# --- the shared cause, which is Arc B's too --------------------------------
+#
+# Kent's oracle: "the late nights working that eroded this practice are the same
+# late nights that broke Arc B's training in the same weeks. One cause, two
+# Principles eroding. An arm that names the shared cause has found the coaching
+# finding."
+#
+# So these are ONE set of events, rendered once, read by both arcs. They are
+# NOT duplicated into arc-b.yaml — a parallel fabrication that merely agreed
+# would let an arm "find" a shared cause that the corpus does not actually
+# share. The renderer emits them once; arc-b.yaml references them by id.
+
+shared_late_nights:
+  # Ordinary work activity timestamps after 23:30 — laptop commits, sent mail.
+  # Nothing says "too late" or links them to either practice.
+  source: generator
+  seed: 849-shared-latenights
+  rule: >-
+    On the nights preceding a missed morning in weeks 7, 8, 9, 11, 13, 14, 16,
+    17, 19, 20, 21, 22, emit 2-5 work events between 23:30 and 01:40 (git
+    commits on spec-kitty repos, sent email, Slack messages). These same nights
+    precede Arc B's missed Tuesday/Thursday runs in weeks 6, 7, 8, 13.
+  consumed_by: [arc-f, arc-b]
+
+# --- what is NOT in this file, on purpose ---------------------------------
+#
+#  * no Outcome and no Project for the practices — the Q1 ruling
+#  * no target rate, expected frequency, streak, or goal anywhere
+#  * no phase labels in the rendered corpus ("practice", "sporadic", "missing")
+#  * no threshold marker at wk 14 and no "point it lapsed"
+#  * no count of decided vs silent — four Decisions exist; the ratio is derived
+#  * no link between the late nights and either practice
+#  * no link between Arc F and Arc B — the shared cause is shared EVENTS, and
+#    naming it is the finding
+#  * no "return" flag on wk 25 beyond the restart episode itself

@@ -153,6 +153,27 @@ calendar_events:
 calendar_sharing:
   - {from_account: personal, to_account: spec-kitty, mode: free-busy}
 
+# --- primitive source for "the PT session is fixed" ------------------------
+#
+# #844 Threats §1 — an oracle point with no seed behind it. The oracle says the
+# PT session is fixed BECAUSE it is paid and hard to reschedule. Before this,
+# the only place that was stated was a YAML comment, which no arm can see.
+# One booking-confirmation episode makes fixedness INFERABLE rather than
+# asserted: the fee, the cancellation window and the forfeiture rule are facts
+# in the corpus, and "therefore it is the fixed one" stays the arm's inference.
+# (Design-lead review, 2026-09-24T04:30Z.)
+
+episodes_booking:
+  - id: EP_A_PT_BOOKING
+    reference_time: 2026-05-28T11:07:00-04:00
+    source_description: "personal email — bookings@northside-pt.example"
+    content: >-
+      Northside PT — booking confirmed. Tue 10:15 and Thu 14:30, weekly, 45 min.
+      Session fee $95, charged per session. Cancellations require 24 hours'
+      notice; changes inside 24 hours forfeit the session and the fee.
+      Rescheduling is subject to trainer availability, which is limited.
+    mentions: [COM_PT_TUE, COM_PT_THU]
+
 # --- the event that creates the tension -----------------------------------
 #
 # An episode, at the reference_time it happened. Per the state-vs-history rule
@@ -189,3 +210,21 @@ calendar_events_after_move:
 # Near-misses 1-7 are seeded in arc-a-near-misses.yaml as ordinary corpus
 # events, unlabelled and interleaved, so that an arm cannot find them by
 # looking for a near-miss marker.
+#
+# TWO CONSTRAINTS ON THE REST OF THE CORPUS, from the design-lead review:
+#
+#  1. Near-miss 4 ("the exception fires") is indistinguishable from the main
+#     arc unless its move episode STATES the high-importance reason in its own
+#     text. Same for near-miss 7a (the CEO's announcement). Without that, an
+#     arm cannot tell the exception-fires case from the exception-does-not
+#     case, and both answers score the same.
+#  2. Wed 2026-06-10 14:00-15:00 MUST STAY FREE across the whole corpus,
+#     including Arc E's generated mass. The counter-offer is only the unique
+#     right answer if nothing else occupies that slot.
+#
+# HOW THE COMMENTS IN THIS FILE STAY SAFE: the arms never see seed files. They
+# see the RENDERED corpus (calendar events, episodes and records as an adapter
+# would write them), and the render strips comments. The freeze check greps the
+# rendered corpus for every oracle must_identify phrase AND every seed comment
+# line — because phrases like "True footprint 14:00-15:45" above would solve
+# the arc outright if they ever leaked into what an arm reads.
