@@ -46,6 +46,39 @@ arm sees, and it invokes all five recoverability probes. Use `--scale N` to shri
 volume for a fast loop; a scaled corpus records `valid_for_run: false` in its manifest and must
 not be used for a run.
 
+## Harness
+
+Built 2026-09-24, after Amendment A1. The arms themselves are still to come.
+
+```bash
+python3 -m scripts.research.check_849_loader                 # the loader-side pass
+python3 -m scripts.research.load_849_corpus --visibility     # derived replay visibility
+python3 -m scripts.research.run_849_harness --dry-run        # the 72-cell matrix
+```
+
+- **`load_849_corpus.py`** — refuses any corpus but the registered one, then replays to a
+  question's `ask_time`. Replay, not filtering: a Decision is visible only from its `decided_at`,
+  and a `DECIDED` edge inherits that timestamp. Those edges carry `made_at: None`, so filtering the
+  node alone leaves an edge that names the withheld decision and states its disposition while
+  pointing at an id the arm cannot resolve — it leaks in both directions at once.
+- **`check_849_loader.py`** — the pass the freeze gate could not do, because it checks the graph a
+  loader emits rather than the rendered files. It found both A1 defects: `arcs` authoring metadata
+  on 8 `Person` nodes, and `loader_links.jsonl` never being written.
+- **`run_849_harness.py`** — 3 arms x 8 questions x 3 repeats, resumable. The ledger is
+  append-only and fsynced per run, and is **bound to one corpus by fingerprint**: resuming against
+  a different one refuses rather than appending, because runs from two corpora averaged together
+  are indistinguishable from runs from one. All four gates must pass before any run starts.
+
+`loader_links.jsonl` is **arm G's input only** — D and R are handed a view with the links removed,
+not trusted to ignore them.
+
+### Known blocker
+
+Arm D cannot run as specified. Measured with the Qwen tokenizer, B2's dump is **362,772 tokens**
+against the ruled model's `max_position_embeddings` of **262,144** — six of the eight questions
+exceed it. Memory is not the constraint (51.2 GiB against a 62.5 GiB budget). Awaiting a
+D-specification ruling.
+
 ## The four contracts
 
 Each exists because something got through without it.
@@ -95,9 +128,8 @@ Not documentation. Each of these was a real defect in a real artifact:
 
 ## What this is not
 
-- **Not a harness.** No loader, no arms, no run. The loader-side structural pass the design lead
-  specified is **owed, not done**: the gate checks the rendered stream and entities, not a graph a
-  loader emitted.
+- **Not the arms, and not a run.** The loader, the loader-side structural pass and the resumable
+  run harness now exist (see [Harness](#harness) below). The three arms do not.
 - **Not frozen.** Freezing is the design lead's call (rubric §9) at a named commit.
 - **Not scored.** The grader notes in each oracle record judgements that must survive to scoring
   time — notably that Arc A's "counter-offer Thursday at 15:15" is a hard fail rather than partial
