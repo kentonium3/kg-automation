@@ -68,14 +68,37 @@ meta:
     # lockstep with that table, and a list that can drift from its own source
     # is worse than no list. Still bounded — an id outside this family fails.
     - GEN_B_WK*
+    - GEN_B_STRENGTH      # the Mon/Wed/Sun sessions that never drift (nm 6)
 
-outcomes:
-  - id: OUT_5K
-    description: Run the 5K at a sub-10-minute-mile average for the full distance
-    target_date: 2026-10-15
-    success_criteria: "under 31:00 for 3.1 mi (sub-10:00/mi average)"
-    domain: DOM_PERSONAL
-    serves: PUR_VITALITY
+# L10: Outcomes are defined ONCE, in chains.yaml. This file previously
+# redefined them, which loaded each twice. Deduping at the SEED rather
+# than the renderer, because one owner is a property of the corpus; a
+# renderer-side dedupe would hide a second definition that had drifted.
+# Referenced here: OUT_5K (see seed/chains.yaml).
+
+# L8 — the work chain. OUT_5K and COM_RACE existed with nothing under them, so
+# the graph arm got no structure on the arc that tests history recovery. The
+# runs are the recurring Task the reschedules act on; without it a reschedule
+# has no subject.
+objectives:
+  - {id: OBJ_CONDITIONING, description: "Complete the 17-week conditioning programme",
+     target_date: 2026-10-11, advances: OUT_5K}
+
+projects:
+  - {id: PRJ_TRAINING_BLOCK, description: "Base, build, sharpen and taper blocks",
+     delivers: OBJ_CONDITIONING}
+
+tasks:
+  - {id: TASK_CORE_RUN, description: "Core run",
+     recurrence_rule: "FREQ=WEEKLY;BYDAY=TU,TH,SA"}
+  - {id: TASK_STRENGTH, description: "Strength session",
+     recurrence_rule: "FREQ=WEEKLY;BYDAY=MO,WE,SU"}
+
+chain_edges:
+  - {type: ADVANCES, from: OBJ_CONDITIONING, to: OUT_5K}
+  - {type: DELIVERS, from: PRJ_TRAINING_BLOCK, to: OBJ_CONDITIONING}
+  - {type: CONTAINS, from: PRJ_TRAINING_BLOCK, to: TASK_CORE_RUN}
+  - {type: CONTAINS, from: PRJ_TRAINING_BLOCK, to: TASK_STRENGTH}
 
 commitments:
   # Hard external: registered and paid. DUE_BY sources from Outcome per the

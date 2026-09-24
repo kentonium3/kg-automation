@@ -24,11 +24,10 @@ from scripts.research.check_849_freeze import (  # noqa: E402
     check_no_seed_comments,
     check_no_wrong_answer_phrases,
     load_oracles,
-    probe_arc_e_sessions,
-    probe_arc_f_slope,
     run,
     seed_comment_lines,
 )
+from scripts.research.probe_849_recoverability import PROBES  # noqa: E402
 from scripts.research.render_849_corpus import render  # noqa: E402
 
 
@@ -96,41 +95,42 @@ def test_oracle_statement_overlap_adjudicates_rather_than_fails(full):
 # --------------------------------------------------------------------------
 
 
-def test_the_session_shape_is_deterministically_recoverable(full):
-    """E1-4's claim, checked by a script rather than by an author's conviction.
+@pytest.mark.parametrize("arc", sorted(PROBES))
+def test_every_arc_probe_recovers_its_structure(full, arc):
+    """Each claim checked by a script rather than by an author's conviction.
 
     This is the mechanism that distinguishes "the corpus is too thin" from
-    "the arm is not good enough", and it is the answer to whether a repeated
-    action shape is enough signal.
+    "the arm is not good enough". Probes live in ONE module — mine covered E
+    and F and were dropped when the design lead's covered all five.
     """
-    ok, detail = probe_arc_e_sessions(full)
-    assert ok, detail
-    assert "13" in detail
+    from scripts.research.check_849_freeze import _as_rows
 
-
-def test_the_practice_decline_is_recoverable_as_a_slope(full):
-    ok, detail = probe_arc_f_slope(full)
+    rows, ents = _as_rows(full)
+    ok, detail = PROBES[arc](rows, ents)
     assert ok, detail
 
 
-def test_a_probe_fails_when_the_signal_is_absent():
+@pytest.mark.parametrize("arc", sorted(PROBES))
+def test_a_probe_fails_when_the_signal_is_absent(arc):
     """A probe that cannot fail proves nothing."""
-
-    class Empty:
-        events: list = []
-        entities: list = []
-
-    ok_e, _ = probe_arc_e_sessions(Empty())
-    ok_f, _ = probe_arc_f_slope(Empty())
-    assert not ok_e and not ok_f
+    ok, _ = PROBES[arc]([], [])
+    assert not ok
 
 
 def test_the_gate_fails_when_a_probe_fails(monkeypatch):
+    """The gate must surface a probe failure, not merely report it.
+
+    Patched on the imported name in the gate module, because the gate now
+    imports the probes from their single home rather than defining its own.
+    """
     import scripts.research.check_849_freeze as mod
 
-    monkeypatch.setitem(mod.PROBES, "synthetic", lambda c: (False, "forced"))
-    failures, _, _ = mod.run(scale=20)
-    assert any("recoverability probe [synthetic]" in f for f in failures), failures
+    monkeypatch.setitem(mod._RECOVERY_PROBES, "Z", lambda rows, ents: (False, "forced"))
+    try:
+        failures, _, _ = mod.run(scale=20)
+    finally:
+        mod._RECOVERY_PROBES.pop("Z", None)
+    assert any("recoverability probe [arc Z]" in f for f in failures), failures
 
 
 # --------------------------------------------------------------------------

@@ -207,71 +207,17 @@ def adjudicate_oracle_statements(text: str, oracles: list[dict]) -> list[str]:
 # --------------------------------------------------------------------------
 
 
-def probe_arc_e_sessions(corpus) -> tuple[bool, str]:
-    """Can a deterministic script recover E1's five-phase session shape?
-
-    The claim under test: 13 marathon sessions, each the same five action
-    types in the same order, span about two hours. If this recovers it, the
-    signal is in the corpus and an arm that misses it failed on merit.
-    """
-    actions = sorted(
-        (e for e in corpus.events if e.get("channel") == "mail-client" and e.get("action")),
-        key=lambda e: str(e["at"]),
-    )
-    if not actions:
-        return False, "no mail-client action events in the corpus at all"
-
-    # Cluster by inter-event gap — the same operation an arm would have to do.
-    sessions: list[list[dict]] = []
-    current: list[dict] = []
-    previous: datetime | None = None
-    for ev in actions:
-        when = datetime.fromisoformat(str(ev["at"]))
-        if previous is not None and (when - previous).total_seconds() > 3 * 3600:
-            sessions.append(current)
-            current = []
-        current.append(ev)
-        previous = when
-    if current:
-        sessions.append(current)
-
-    shapes = Counter()
-    for session in sessions:
-        ordered: list[str] = []
-        for ev in session:
-            if not ordered or ordered[-1] != ev["action"]:
-                ordered.append(ev["action"])
-        shapes[tuple(ordered)] += 1
-
-    (dominant, count), = shapes.most_common(1)
-    ok = count >= 11 and len(dominant) == 5
-    detail = (
-        f"{len(sessions)} sessions recovered; dominant shape {list(dominant)} "
-        f"seen {count}x (need >= 11 sessions sharing a 5-phase shape)"
-    )
-    return ok, detail
+# Probes live in ONE module. Mine were written first and covered E and F only;
+# the design lead's covers A, B, C, E and F and reads the corpus files an arm
+# would. Two implementations of the same probe is a worse outcome than either,
+# so this imports theirs and keeps none of its own (ruled 2026-09-24T16:36Z).
+from scripts.research.probe_849_recoverability import PROBES as _RECOVERY_PROBES  # noqa: E402
 
 
-def probe_arc_f_slope(corpus) -> tuple[bool, str]:
-    """Is Arc F's decline recoverable as a slope from the check-in stream?"""
-    per_week: dict[int, int] = defaultdict(int)
-    for ev in corpus.events:
-        if ev.get("channel") == "vikunja" and ev.get("task") == "TASK_MEDITATION":
-            week = datetime.fromisoformat(str(ev["at"])).isocalendar()[1]
-            per_week[week] += 1
-    if len(per_week) < 10:
-        return False, f"only {len(per_week)} weeks of check-ins recovered"
-    weeks = sorted(per_week)
-    first = sum(per_week[w] for w in weeks[:5]) / 5
-    last = sum(per_week[w] for w in weeks[-5:]) / 5
-    ok = last < first
-    return ok, f"mean check-ins/week fell from {first:.1f} (first 5) to {last:.1f} (last 5)"
-
-
-PROBES = {
-    "E1-4 five-phase session shape": probe_arc_e_sessions,
-    "F1-2 practice decline is a slope": probe_arc_f_slope,
-}
+def _as_rows(corpus):
+    """The probe module reads what an arm reads — plain dicts, not Corpus."""
+    return [json.loads(json.dumps(e, default=str)) for e in corpus.events], \
+           [json.loads(json.dumps(e, default=str)) for e in corpus.entities]
 
 
 # --------------------------------------------------------------------------
@@ -291,15 +237,17 @@ def run(scale: int = 1) -> tuple[list[str], list[str], list[str]]:
     failures += check_no_wrong_answer_phrases(text, oracles)
     failures += check_required_values_present(text, oracles)
 
+    rows, ents = _as_rows(corpus)
     probe_lines = []
-    for label, probe in PROBES.items():
-        ok, detail = probe(corpus)
-        probe_lines.append(f"{'PASS' if ok else 'FAIL'}: probe [{label}] — {detail}")
+    for label, probe in sorted(_RECOVERY_PROBES.items()):
+        ok, detail = probe(rows, ents)
+        note = detail if isinstance(detail, str) else "; ".join(map(str, detail))
+        probe_lines.append(f"{'PASS' if ok else 'FAIL'}: probe [arc {label}] — {note}")
         if not ok:
             failures.append(
-                f"FAIL: recoverability probe [{label}] could not recover the "
+                f"FAIL: recoverability probe [arc {label}] could not recover the "
                 f"claimed structure — the corpus is too thin to score that "
-                f"oracle point. Add signal BEFORE the run. ({detail})"
+                f"oracle point. Add signal BEFORE the run. ({note})"
             )
 
     return failures, adjudicate_oracle_statements(text, oracles), probe_lines

@@ -200,6 +200,8 @@ ENTITY_SECTIONS = (
     ("tasks", "Task"),
     ("decisions", "Decision"),
     ("interests", "Interest"),
+    ("objectives", "Objective"),
+    ("projects", "Project"),
     ("persons", "Person"),
 )
 
@@ -211,7 +213,7 @@ def render_entities(corpus: Corpus, seeds: dict[str, dict]) -> None:
         for key, kind in ENTITY_SECTIONS:
             for item in view.get(key) or []:
                 corpus.entity(kind, item)
-        for key in ("edges", "decision_edges"):
+        for key in ("edges", "decision_edges", "chain_edges"):
             for edge in view.get(key) or []:
                 corpus.entity("Edge", edge)
         # Files whose whole job is entities mark their emit satisfied here.
@@ -294,10 +296,20 @@ def generate_arc_f(corpus: Corpus, doc: dict, scale: int) -> None:
             n_check = max(1, rng.randint(*phase["check_ins"]) // scale)
             n_journal = max(1, rng.randint(*phase["journal"]) // scale)
             days = rng.sample(range(7), min(n_check, 7))
+            # BOTH practice tasks check in. The worksheet seeds two daily
+            # Vikunja tasks — meditation AND personal-investment time — and
+            # only one was rendering, so half of Arc F's slope signal did not
+            # exist (L7). They correlate but are not identical: a day can carry
+            # one and not the other, which is what makes the two streams worth
+            # having rather than one counted twice.
             for d in days:
                 when = monday + timedelta(days=d, hours=6, minutes=rng.randint(5, 55))
                 corpus.event("GEN_F_CHECKINS", _iso(when), "vikunja",
-                             {"task": "TASK_MEDITATION", "status": "completed"})
+                             {"task": "Morning meditation", "status": "completed"})
+            for d in rng.sample(days, max(1, int(len(days) * 0.85))) if days else []:
+                when = monday + timedelta(days=d, hours=6, minutes=rng.randint(15, 58))
+                corpus.event("GEN_F_CHECKINS", _iso(when), "vikunja",
+                             {"task": "Personal-investment time", "status": "completed"})
             for d in rng.sample(range(7), min(n_journal, 7)):
                 when = monday + timedelta(days=d, hours=6, minutes=rng.randint(10, 58))
                 corpus.event("GEN_F_JOURNAL", _iso(when), "journal", {"kind": "entry"})
@@ -356,13 +368,26 @@ def generate_arc_e(corpus: Corpus, doc: dict, scale: int) -> None:
     rng = _rng("arc-e-sessions")
     day = start + timedelta(days=4)
     for _ in range(int(sessions.get("count", 13))):
-        cursor = day.replace(hour=rng.randint(19, 20), minute=rng.randint(0, 40))
+        # The SPAN is the controlled variable, not an emergent one.
+        #
+        # First attempt set a per-action gap and let span = gap x action count.
+        # Action counts vary 3-9 per phase, so spans ranged 1:14 to 2:31 and
+        # drifted outside the probe's 90-150 min band in both directions —
+        # tightening the gap fixed the long tail and created a short one.
+        # The oracle's claim is about DURATION, so duration is what the
+        # generator should decide; the actions are then distributed across it.
+        target = timedelta(minutes=rng.randint(100, 140))
+        actions = []
         for action in shape:
-            for _ in range(rng.randint(3, 9) // max(scale, 1) or 1):
-                cursor += timedelta(minutes=rng.randint(1, 6))
-                corpus.event("GEN_E_SESSIONS", _iso(cursor), "mail-client",
-                             {"action": action,
-                              "sender": f"news@{rng.choice(vendors + letters)}"})
+            actions += [action] * (rng.randint(3, 9) // max(scale, 1) or 1)
+
+        begin = day.replace(hour=rng.randint(19, 20), minute=rng.randint(0, 40))
+        step = target / max(len(actions) - 1, 1)
+        for index, action in enumerate(actions):
+            cursor = begin + step * index
+            corpus.event("GEN_E_SESSIONS", _iso(cursor), "mail-client",
+                         {"action": action,
+                          "sender": f"news@{rng.choice(vendors + letters)}"})
         day += timedelta(days=rng.randint(10, 14))
 
     for row in doc.get("generator_input", {}).get("buried_with_consequence") or []:
@@ -412,10 +437,29 @@ def generate_arc_e(corpus: Corpus, doc: dict, scale: int) -> None:
             when = start + timedelta(weeks=wk - 1, hours=7)
             corpus.event("GEN_E_AUTOMATED", _iso(when), "email", a)
 
-    for v in (doc.get("generator_input", {}).get("varying_recurrence") or []):
+    # L6 — this decoy renders as REAL prep notes whose content differs every
+    # week. The allowlist correctly stripped the generator's `label_in_corpus`
+    # and `weekly` fields, but that left the events carrying nothing at all:
+    # E1 near-miss 4 (a recurring activity that varies too much to automate)
+    # stopped existing as corpus. Cleaning a leak must not delete the
+    # primitive — the VARIATION is the whole decoy, so it has to be visible.
+    PREP = [
+        "Renewal timing and the discount they asked about.",
+        "Two open escalations; need the migration status before Thursday.",
+        "Headcount question came back — pull the utilisation numbers.",
+        "They want the roadmap slide updated with the new dates.",
+        "Contract renewal is in scope this week; check the legal thread.",
+        "Integration blockers from their side, plus the support backlog.",
+    ]
+    rng_prep = _rng("arc-e-prep")
+    for _ in (doc.get("generator_input", {}).get("varying_recurrence") or []):
         for wk in range(1, n_weeks + 1):
             when = start + timedelta(weeks=wk - 1, days=2, hours=15)
-            corpus.event("GEN_E_VARYING", _iso(when), "note", v)
+            corpus.event("GEN_E_VARYING", _iso(when), "note",
+                         {"text": PREP[wk % len(PREP)] + " "
+                                  + rng_prep.choice(["", "Also: pricing follow-up.",
+                                                     "Note: their PM is new.",
+                                                     "Bring the SLA summary."])})
 
     week = doc.get("e2_sample_week") or {}
     ws = datetime.fromisoformat(str(week.get("start", "2026-08-31")))
@@ -579,6 +623,17 @@ def generate_arc_b(corpus: Corpus, doc: dict, scale: int) -> None:
                          _iso(monday + timedelta(days=3, hours=7)),
                          "vikunja", {"task": "core run", "status": "completed",
                                      "note": wk["note"]})
+
+    # The strength sessions run Mon/Wed/Sun throughout and never drift. Arc B
+    # near-miss 6: a miss there is not a miss here, and without them an arm
+    # counting "sessions missed" has nothing to distinguish core runs from
+    # everything else on the training plan.
+    for wk in gi.get("weeks") or []:
+        monday = datetime.fromisoformat(str(wk["mon"]))
+        for offset in (0, 2, 6):
+            when = monday + timedelta(days=offset, hours=17, minutes=rng.randint(0, 40))
+            corpus.event("GEN_B_STRENGTH", _iso(when), "vikunja",
+                         {"task": "Strength session", "status": "completed"})
 
     race = gi.get("race") or {}
     if race:

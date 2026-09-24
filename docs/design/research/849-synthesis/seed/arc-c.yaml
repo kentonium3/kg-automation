@@ -39,20 +39,11 @@ meta:
 
 # --- entities -------------------------------------------------------------
 
-outcomes:
-  # Target date only. NO completion, NO status advance, NO shipped event.
-  # The arm must infer the launch ended from the report thread below.
-  - id: OUT_LAUNCH
-    description: Ship the spec-kitty launch
-    target_date: 2026-04-23
-    domain: DOM_SPECKITTY
-    serves: PUR_LIVELIHOOD
-
-  - id: OUT_INTEGRATION
-    description: Land the integration Fred owns on his side
-    target_date: 2026-09-30
-    domain: DOM_SPECKITTY
-    serves: PUR_LIVELIHOOD
+# L10: Outcomes are defined ONCE, in chains.yaml. This file previously
+# redefined them, which loaded each twice. Deduping at the SEED rather
+# than the renderer, because one owner is a property of the corpus; a
+# renderer-side dedupe would hide a second definition that had drifted.
+# Referenced here: OUT_LAUNCH, OUT_INTEGRATION (see seed/chains.yaml).
 
 commitments:
   # The promise. datetime is NULL and a trigger carries the condition —
