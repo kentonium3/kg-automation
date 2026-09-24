@@ -11,11 +11,19 @@ last_updated: 2026-09-24
 **Status: REGISTERED.** Reviewed build-side by claude-office4 (measured answers folded at
 `3f7213e8`); §7 confirmed by Kent 2026-09-24; posted to
 [#849](https://github.com/kentonium3/kg-automation/issues/849) as the pre-registration on
-2026-09-24 17:03Z, before any run. **Frozen corpus:** `b203907e` — rendered fingerprints
-`stream.jsonl` sha256 `188b9bf1402645c5…`, `entities.json` sha256 `c1962d4d7ceb623c…`,
-5,750 events / 66 entities. A run that reproduces different fingerprints is not running the
-frozen corpus. Changes to this document after registration are amendments, dated and reasoned,
-never silent edits. Rulings it encodes: Kent 2026-09-24 (§7 decision rule confirmed first-hand), Kent 2026-09-18 ("run both": both axes, both baselines, cost is
+2026-09-24 17:03Z, before any run; Kent confirmed it on the issue ("I agree with all as stated").
+
+**Frozen corpus (Amendment A1, 2026-09-24 18:15Z): `c0b35cd1`** — rendered fingerprints
+`stream.jsonl` sha256 `188b9bf1402645c5a015da01bd3241376a1914e25aacad8a529a84b10a290d4a`,
+`entities.json` sha256 `22532e50297a8594f358376919ce38bde3db3bce3f015d9e2dd9fb5ce0c9a9df`,
+`loader_links.jsonl` sha256 `826fa4544085055a689298b117b5c5ecb4a596cdfe132b6af8c85418cc1302ee`;
+5,750 events / 66 entities / 22 loader links. A run that reproduces different fingerprints is not
+running the frozen corpus. Changes to this document after registration are amendments, dated and
+reasoned, never silent edits — see the amendment log at the end.
+
+*Superseded registration:* `b203907e` (17:03Z) — `stream.jsonl` identical; `entities.json` was
+`c1962d4d7ceb623c…` and carried `arcs` authoring metadata on Person nodes; `loader_links.jsonl`
+did not exist. Reason for A1: the loader-side structural pass (owed at freeze) found both. Rulings it encodes: Kent 2026-09-24 (§7 decision rule confirmed first-hand), Kent 2026-09-18 ("run both": both axes, both baselines, cost is
 not a constraint) and 2026-09-18 corpus scope; design-lead refinements of 2026-09-24 (caching on,
 token primitive, memory reported). Ontology: `docs/design/second-brain-graph-layer.md` at the commit named in the registration (≥ ffb8834d).
 
@@ -44,11 +52,39 @@ provider are recorded, not prescribed (per-function seam, §Tool Selection). **A
 what the cost axis counts.
 
 **Question order is protocol.** Questions are asked in `ask_time` ascending order (C1, A, F1, B1,
-E2, E1, F2, B2). Under the time-cut each D prompt is then a literal prefix of the next (measured:
-757 → 5,620 events, ~24k → ~178k tokens), so D's cache hit rate is a property of this protocol
-and is reported as such; a random order would collapse it and the number would be an artifact
-of an unstated choice. The served model's context window must exceed the largest prefix (B2,
-~178k tokens) and is recorded in the registration.
+E2, E1, F2, B2). Under the time-cut each D prompt is then a prefix of the next, so D's cache hit
+rate is a property of this protocol and is reported as such; a random order would collapse it and
+the number would be an artifact of an unstated choice.
+
+**Prompt layout is protocol (A1).** The event stream comes first and the entity block after it.
+Entities change at A, F1 and E1 as Decisions become visible under the replay rules, so
+entities-first collapses the cache prefix to ~0 % for those three questions; events-first keeps
+every step a token-level prefix extension (measured with the Qwen3-Next tokenizer: A 35.3 %,
+F1 50.5 %, B1 94.7 %, E2 87.3 %, E1 91.1 %, F2 99.9 %, B2 99.7 % of the prompt reused).
+
+**Replay rules (A1, measured on the frozen corpus):** a Decision is visible only from its
+`decided_at` (DEC_F_RESTART, decided 09-21, would otherwise answer F1 asked 08-10); a `DECIDED`
+edge inherits its Decision's `decided_at` and is withheld with it — an edge naming a withheld
+decision leaks its existence and disposition while pointing at an id the arm cannot resolve.
+
+**Prefix sizes on the frozen corpus** (`c0b35cd1`, real tokenizer, 2.32 chars/token for
+JSON-dense text — a prose ratio under-counts by ~40 %):
+
+| Q | events | tokens |
+|---|---|---|
+| C1 | 772 | 51,398 |
+| A | 2,184 | 139,451 |
+| F1 | 4,313 | 272,863 |
+| B1 | 4,558 | 288,041 |
+| E2 | 5,216 | 329,415 |
+| E1 | 5,720 | 361,170 |
+| F2 | 5,730 | 361,659 |
+| B2 | 5,750 | **362,772** |
+
+The served model's context window must exceed the B2 prefix and is recorded in the registration;
+the pre-freeze figure of ~178k tokens is superseded. Feasibility on office4 is arithmetic until
+the (b) gate measures it (12 of 48 Qwen3-Next layers carry KV, GQA with 2 KV heads: weights +
+KV ≈ 51–53 GiB of 62.5 GiB GTT); the gate records n_ctx, peak GTT and tok/s at full B2 length.
 
 **Time-cut rule.** Every question is asked at its stream timestamp. An arm may only see material
 with `created_at ≤ ask time`. For D this means the dumped prefix differs per question — that is
@@ -233,7 +269,16 @@ regime-bound the way #844's was, and the findings say so up front.
   field not on it is stripped and reported; event ids are **opaque refs** (the id → ref mapping
   lives in the manifest, so a name like `EP_C_PROMISE` never tells an arm what an event is);
   loader wiring (`mentions`) is **not** in the stream — G links episodes to entities through the
-  loader, and D/R are not handed that traversal.
+  loader, and D/R are not handed that traversal. **(A1)** Entities are built from a per-kind
+  default-deny allowlist owned by the renderer (L12: `arcs` was the first field through the
+  gap); the loader wiring is written as `loader_links.jsonl`, registered by fingerprint, and is
+  **arm G's input only** — D and R receive a view with links emptied, asserted by the harness.
+- **Loader-side structural pass (A1):** `check_849_loader` verifies the three fingerprints,
+  refuses any other corpus, replays to every `ask_time`, and checks the loaded graph for
+  forbidden vocabulary, unregistered edge pairs and the arc-specific absences. **Four gates**
+  (`check_849_seed`, `check_849_oracle`, `check_849_freeze`, `check_849_loader`) run in-process
+  before any run; a failing gate raises and no ledger is created; a ledger is bound to the
+  fingerprints and refuses to resume against different ones.
 - Corpus frozen at a commit hash before the first run; the hash is in the registration.
 
 ## 10. Artifacts
@@ -241,3 +286,10 @@ regime-bound the way #844's was, and the findings say so up front.
 `docs/design/research/849-synthesis/` — `00-context-chains.md`, `01-cast.md`, `seed/*.yaml`,
 `stream/` (deterministic RNG for Arc E's mass, hand-authored scored events), `oracle/` (hidden),
 harness code, `results/<run>.json`, grading sheet. Findings are written against this rubric.
+
+## Amendment log
+
+| # | date (UTC) | what changed | why | frozen commit |
+|---|---|---|---|---|
+| — | 2026-09-24 17:03 | Registration | freeze verdict PASS | `b203907e` |
+| A1 | 2026-09-24 18:15 | Entity allowlist (`arcs` stripped); `loader_links.jsonl` written, G-only; loader gate added; §2 replay rules, prompt layout, measured prefix tokens (B2 = 362,772) | loader-side structural pass found L12 and L13; prefix figure was a prose-ratio estimate | `c0b35cd1` |
