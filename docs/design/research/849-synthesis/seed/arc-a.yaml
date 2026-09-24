@@ -1,0 +1,191 @@
+# #849 seed — Arc A: cross-time, cross-context collision
+#
+# SEED MATERIAL. Everything in this file is a primitive the arms may see.
+#
+# THE RULE THIS FILE IS MOST AT RISK OF BREAKING:
+#   "Seeds assert primitives only. No conflict, drift or pattern is ever written
+#    as an edge; all of it must be inferable."  (worksheet, Settled context)
+#
+# So this file asserts calendar events and recurrence rules and NOTHING about:
+#   - the overlap between the moved 1:1 and the Thursday PT session
+#   - that the Tue/Thu PT sessions are missing travel time
+#   - which commitment is fixed and which is movable
+#   - the counter-offer resolution
+# Every one of those is oracle content and must be inferred from what is here.
+#
+# The missing travel time is an ABSENCE by construction: the Mon/Wed/Fri
+# sessions carry travel blocks as real calendar events, the Tue/Thu ones simply
+# do not, and no field anywhere says "understated". A `travel_missing: true`
+# flag would destroy the arc.
+
+meta:
+  arc: A
+  contexts: [personal, spec-kitty]
+  window: {start: 2026-06-08, end: 2026-06-12}
+  ontology_ref: docs/design/second-brain-graph-layer.md@fc3e4eea
+
+# --- entities -------------------------------------------------------------
+
+principles:
+  # Global (no SCOPED_TO edge) and hard. Verbatim in substance from Kent,
+  # 2026-09-23. The exception clause is PART of the principle, not a reason to
+  # weigh it — so it is seeded as one text, not decomposed into rules the arm
+  # could apply mechanically.
+  - id: PRIN_PERSONAL_PRIORITY
+    strictness: hard
+    scope: global
+    description: >-
+      Pre-scheduled, repeating, personal commitments take priority unless the
+      competing request is of very high importance AND arrives at least two days
+      before the event. When they take priority, the response is a counter-offer
+      on the competing request, not a cancellation.
+    rationale: >-
+      Repeating personal meetings for paid services are an obligation to
+      yourself. A short-notice change usually means a cancellation for that
+      week, and if it can be rescheduled it lands in a following week and adds
+      pressure there.
+
+  # The three companion rules Kent named. Seeded as separate Principles because
+  # they are separately applicable, and because near-miss 7 turns on choosing
+  # between them — if they were one blob the arm could not cite which one fired.
+  - id: PRIN_ONE_TO_ONE_MOVABLE
+    strictness: soft
+    scope: global
+    description: Repeating 1:1s with colleagues may be rescheduled within the week.
+
+  - id: PRIN_STANDING_WORK_FIXED
+    strictness: hard
+    scope: global
+    description: Standing work meetings you do not own cannot be moved.
+
+  - id: PRIN_SELF_INFLICTED_YIELDS
+    strictness: hard
+    scope: global
+    description: >-
+      A collision you caused yourself with a multi-person meeting is resolved by
+      moving the personal commitment, because the cost now falls on other people.
+
+commitments:
+  # Recurrence via recurrence_rule (RRULE), landed @ee1311a5 for exactly this.
+  # NOTE the asymmetry below is the whole arc: the workout commitments have
+  # travel events on the calendar, the PT commitments do not. Nothing marks it.
+  - id: COM_WORKOUT_MON
+    counterparty: "Northside Gym"
+    is_external: false
+    recurrence_rule: "FREQ=WEEKLY;BYDAY=MO"
+    datetime: 2026-06-08T07:00:00-04:00
+    description: Standing workout — Monday 07:00-08:00
+  - id: COM_WORKOUT_WED
+    counterparty: "Northside Gym"
+    is_external: false
+    recurrence_rule: "FREQ=WEEKLY;BYDAY=WE"
+    datetime: 2026-06-10T12:00:00-04:00
+    description: Standing workout — Wednesday 12:00-13:00
+  - id: COM_WORKOUT_FRI
+    counterparty: "Northside Gym"
+    is_external: false
+    recurrence_rule: "FREQ=WEEKLY;BYDAY=FR"
+    datetime: 2026-06-12T16:00:00-04:00
+    description: Standing workout — Friday 16:00-17:00
+
+  - id: COM_PT_TUE
+    counterparty: "Northside PT"
+    is_external: true      # paid, booked with a third party, hard to reschedule
+    recurrence_rule: "FREQ=WEEKLY;BYDAY=TU"
+    datetime: 2026-06-09T10:15:00-04:00
+    description: PT session — Tuesday 10:15-11:00
+  - id: COM_PT_THU
+    counterparty: "Northside PT"
+    is_external: true
+    recurrence_rule: "FREQ=WEEKLY;BYDAY=TH"
+    datetime: 2026-06-11T14:30:00-04:00
+    description: PT session — Thursday 14:30-15:15
+
+  - id: COM_1TO1_MARCUS
+    counterparty: "Marcus Vale"
+    is_external: false
+    recurrence_rule: "FREQ=WEEKLY;BYDAY=FR"
+    datetime: 2026-06-12T14:00:00-04:00
+    description: Weekly 1:1 with Marcus — Friday 14:00-15:00
+
+# COMMITTED_TO edges: Commitment -> Person. Only the 1:1 has a Person
+# counterparty in the cast; the gym and PT studio are organisations and are
+# carried as the `counterparty` string (see 01-cast.md Q4).
+edges:
+  - {type: COMMITTED_TO, from: COM_1TO1_MARCUS, to: PER_MARCUS, channel: calendar}
+
+# --- the stream: calendar events as they actually appear ------------------
+#
+# This is what an adapter would have written. The travel events exist for the
+# workouts and DO NOT EXIST for the PT sessions. That absence is the finding.
+
+calendar_events:
+  # personal account — Monday
+  - {account: personal, start: 2026-06-08T06:30, end: 2026-06-08T07:00, title: "Travel — gym"}
+  - {account: personal, start: 2026-06-08T07:00, end: 2026-06-08T08:00, title: "Workout", commitment: COM_WORKOUT_MON}
+  - {account: personal, start: 2026-06-08T08:00, end: 2026-06-08T08:30, title: "Travel — home"}
+
+  # personal account — Tuesday PT. NO travel events. True footprint 09:45-11:30.
+  - {account: personal, start: 2026-06-09T10:15, end: 2026-06-09T11:00, title: "PT — Northside", commitment: COM_PT_TUE}
+
+  # personal account — Wednesday
+  - {account: personal, start: 2026-06-10T11:30, end: 2026-06-10T12:00, title: "Travel — gym"}
+  - {account: personal, start: 2026-06-10T12:00, end: 2026-06-10T13:00, title: "Workout", commitment: COM_WORKOUT_WED}
+  - {account: personal, start: 2026-06-10T13:00, end: 2026-06-10T13:30, title: "Travel — home"}
+
+  # personal account — Thursday PT. NO travel events. True footprint 14:00-15:45.
+  - {account: personal, start: 2026-06-11T14:30, end: 2026-06-11T15:15, title: "PT — Northside", commitment: COM_PT_THU}
+
+  # personal account — Friday
+  - {account: personal, start: 2026-06-12T15:30, end: 2026-06-12T16:00, title: "Travel — gym"}
+  - {account: personal, start: 2026-06-12T16:00, end: 2026-06-12T17:00, title: "Workout", commitment: COM_WORKOUT_FRI}
+  - {account: personal, start: 2026-06-12T17:00, end: 2026-06-12T17:30, title: "Travel — home"}
+
+  # spec-kitty account — the 1:1 as originally scheduled
+  - {account: spec-kitty, start: 2026-06-12T14:00, end: 2026-06-12T15:00,
+     title: "1:1 Kent / Marcus", organiser: "mvale@spec-kitty.example",
+     commitment: COM_1TO1_MARCUS}
+
+# Personal availability is SHARED into the work calendar — Kent, 2026-09-23:
+# "the information to avoid the collision was technically visible, and the
+# colleague did not look." Free/busy only, no titles. This is what makes the
+# collision detectable at all, and it is a primitive.
+calendar_sharing:
+  - {from_account: personal, to_account: spec-kitty, mode: free-busy}
+
+# --- the event that creates the tension -----------------------------------
+#
+# An episode, at the reference_time it happened. Per the state-vs-history rule
+# the move is an EVENT in the log; the calendar's current state is overwritten.
+# There is no Decision node: Marcus moved it unilaterally on his side, and Kent
+# decided nothing. That absence is part of Arc A's answer.
+
+episodes:
+  - id: EP_A_MOVE
+    reference_time: 2026-06-09T09:12:00-04:00
+    source_description: "spec-kitty calendar — invitation update from mvale@spec-kitty.example"
+    content: >-
+      Updated invitation: "1:1 Kent / Marcus" moved from Fri 2026-06-12 14:00-15:00
+      to Thu 2026-06-11 14:00-15:00.
+    mentions: [COM_1TO1_MARCUS, PER_MARCUS]
+
+# Resulting current state of the 1:1 after the move. Attributes hold CURRENT
+# STATE only; the history is EP_A_MOVE above.
+calendar_events_after_move:
+  - {account: spec-kitty, start: 2026-06-11T14:00, end: 2026-06-11T15:00,
+     title: "1:1 Kent / Marcus", organiser: "mvale@spec-kitty.example",
+     commitment: COM_1TO1_MARCUS}
+
+# --- what is NOT in this file, on purpose ---------------------------------
+#
+#  * no `conflict` edge, node, or flag of any kind
+#  * no annotation that COM_PT_TUE / COM_PT_THU lack travel events
+#  * no `fixed: true` / `movable: true` on any commitment — is_external is a
+#    factual attribute the model already carries, not a verdict; the arm must
+#    still reason from "paid, third-party, hard to reschedule" to "fixed"
+#  * no counter-offer, no proposed Wednesday slot
+#  * no link asserting that PRIN_PERSONAL_PRIORITY is the principle that applies
+#
+# Near-misses 1-7 are seeded in arc-a-near-misses.yaml as ordinary corpus
+# events, unlabelled and interleaved, so that an arm cannot find them by
+# looking for a near-miss marker.
