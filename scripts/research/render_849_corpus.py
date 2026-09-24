@@ -337,8 +337,14 @@ def generate_arc_f(corpus: Corpus, doc: dict, scale: int) -> None:
                 ["git", "email", "slack"]), {"direction": "outbound", "week": wk})
 
 
-def generate_arc_e(corpus: Corpus, doc: dict, scale: int) -> None:
+def generate_arc_e(corpus: Corpus, doc: dict, scale: int, cast: dict | None = None) -> None:
     gi = doc.get("generator_input") or {}
+    # PER_* -> a raw handle. A `sender: PER_CLIENT` names the entity AND
+    # pre-resolves the handle — the two things the corpus must never do (L11).
+    handles = {
+        p["id"]: next((a for a in (p.get("aliases") or []) if "@" in a), p["id"])
+        for p in ((cast or {}).get("persons") or [])
+    }
     rng = _rng(str(gi.get("seed", "arc-e")))
     window = gi.get("window") or {}
     start = datetime.fromisoformat(str(window.get("start", "2026-04-06")))
@@ -507,7 +513,7 @@ def generate_arc_e(corpus: Corpus, doc: dict, scale: int) -> None:
             "GEN_E_SAMPLE_WEEK",
             _iso(ws + timedelta(days=i % 5, hours=8 + i % 9)), "email",
             {"account": "personal", "direction": "inbound",
-             "sender": str(item.get("from")),
+             "sender": handles.get(str(item.get("from")), str(item.get("from"))),
              "subject": subject.format(**fill),
              "text": body.format(**fill)})
 
@@ -656,7 +662,11 @@ def render(scale: int = 1) -> tuple[Corpus, list[str]]:
     render_entities(corpus, seeds)
     render_explicit_events(corpus, seeds)
     for name, gen in GENERATORS.items():
-        if name in seeds:
+        if name not in seeds:
+            continue
+        if name == "arc-e":
+            gen(corpus, seeds[name], scale, seeds.get("cast"))
+        else:
             gen(corpus, seeds[name], scale)
     corpus.sort()
 

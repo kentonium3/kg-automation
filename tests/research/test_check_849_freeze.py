@@ -182,7 +182,12 @@ def test_semantic_ids_do_not_reach_the_stream(full):
     import json as _json
 
     text = _json.dumps(full.events, default=str)
-    for prefix in ("EP_", "GEN_", "COM_", "DEC_", "PRIN_", "INT_"):
+    # Every id prefix the ontology uses, not a sample of them. The first
+    # version listed six and omitted PER_, which is how five E2 emails shipped
+    # with `sender: PER_CLIENT` through a check written to prevent exactly that
+    # (freeze finding L11). A partial denylist is the too-narrow failure again.
+    for prefix in ("EP_", "GEN_", "COM_", "DEC_", "PRIN_", "INT_", "PER_",
+                   "TASK_", "OUT_", "DOM_", "PUR_", "OBJ_", "PRJ_", "CAP_"):
         assert prefix not in text, prefix
 
 

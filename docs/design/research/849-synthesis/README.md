@@ -8,7 +8,7 @@ last_updated: 2026-09-24
 
 # #849 synthesis
 
-The authoring worksheet ([`849-lattice-scenario-arcs.md`](849-lattice-scenario-arcs.md), Kent,
+The authoring worksheet ([`849-lattice-scenario-arcs.md`](../849-lattice-scenario-arcs.md), Kent,
 2026-09-23) was split into the two artifacts the run needs: a **seed** both arms may see, and a
 **hidden oracle** neither may. This is the record of what exists and how to check it.
 
