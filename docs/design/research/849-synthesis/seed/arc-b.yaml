@@ -46,12 +46,20 @@ meta:
     - GEN_B_RACE          # the race-result event (32:50)
     - GEN_B_WK5_TUE
     - GEN_B_WK6_THU
-    - GEN_B_WK6_SAT
     - GEN_B_WK7_TUE
-    - GEN_B_WK7_SAT
     - GEN_B_WK7_PROG      # the progression run logged at 11:10
-    - GEN_B_WK8_TUE
     - GEN_B_WK8_THU
+    #
+    # ⚠ NOT DECLARED, and the omission is the point: the SILENT misses
+    # (wk 6 Sat, wk 7 Sat, wk 8 Tue) have NO event id, because CHOICE F-REP is
+    # completions-only — a Vikunja task emits on completion and nothing on a
+    # miss. Their evidence is the ABSENCE of a completion in GEN_B_SESSIONS.
+    #
+    # I originally declared all three and cited two in B1-2's traceability. The
+    # renderer's emits contract caught it by refusing to produce them. Two
+    # rules that were each correct in isolation — "completions only" and "every
+    # declared emit must be produced" — interacted in a way neither of us
+    # predicted, and the contract is what surfaced it rather than a review.
     - GEN_B_WK10_THU
     - GEN_B_WK11_TUE
     - GEN_B_WK13_THU

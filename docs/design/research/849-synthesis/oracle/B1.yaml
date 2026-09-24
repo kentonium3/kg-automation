@@ -22,7 +22,11 @@ must_identify:
       is the 40-min cutback), and the wk 7 progression ran 11:10 against a
       ~10:30 target
     required_values: ["2026-08-09", "11:10"]
-    traceability: [EP_B_PLAN, EP_B_CONDITIONING_RULE, GEN_B_WK6_SAT, GEN_B_WK7_SAT, GEN_B_WK7_PROG]
+    # The two missed Saturdays are SILENT — no event exists for them under
+    # completions-only, so the evidence is the absence of a completion in
+    # the session stream, not a per-miss id. Citing ids that cannot exist
+    # would have made this point permanently unverifiable.
+    traceability: [EP_B_PLAN, EP_B_CONDITIONING_RULE, GEN_B_SESSIONS, GEN_B_WK7_PROG]
 
   - id: B1-3
     statement: "the miss rate at that point is ~29% of core sessions"

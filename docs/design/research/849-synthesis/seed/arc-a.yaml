@@ -202,6 +202,7 @@ episodes:
 # STATE only; the history is EP_A_MOVE above.
 calendar_events_after_move:
   - {account: spec-kitty, start: 2026-06-11T14:00, end: 2026-06-11T15:00,
+     emit: GEN_A_MOVED_1TO1,
      title: "1:1 Kent / Marcus", organiser: "mvale@spec-kitty.example",
      commitment: COM_1TO1_MARCUS}
 

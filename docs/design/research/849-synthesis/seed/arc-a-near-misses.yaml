@@ -1,0 +1,134 @@
+# #849 seed — Arc A near-misses
+#
+# SEED MATERIAL. Everything here is a primitive the arms may see.
+#
+# These are ordinary corpus events, interleaved and UNLABELLED. Nothing marks
+# them as decoys; an arm cannot find them by looking for a marker. They exist
+# so that an arm cannot win Arc A by a rule as crude as "always protect PT".
+#
+# TWO OF THEM MUST STATE THEIR OWN JUSTIFICATION (design lead, 04:30Z and
+# 04:32Z), and this is the whole reason they are a separate authoring problem:
+# near-miss 4 and 7a have the SAME SHAPE as the main arc and the OPPOSITE
+# answer. If their episode text does not say why the competing meeting is of
+# very high importance, they are indistinguishable from the main case and both
+# answers score identically — the arc would be testing nothing.
+
+meta:
+  arc: A
+  contexts: [personal, spec-kitty]
+  window: {start: 2026-05-04, end: 2026-07-31}
+  ontology_ref: docs/design/second-brain-graph-layer.md@884d1c6e
+  non_rendered: []
+  emits:
+    - GEN_A_NM_EXCEPTION    # 4: the exception fires — notice AND importance
+    - GEN_A_NM_CEO          # 7a: the CEO's announcement over an existing PT slot
+    - GEN_A_NM_SELF         # 7b: the self-booked collision
+    - GEN_A_NM_PHONE        # 1: phone meeting over a travel block, both variants
+    - GEN_A_NM_SOCIAL       # 2: a social call in the same slot shape
+    - GEN_A_NM_ERRAND       # 3: a task with travel, but movable
+    - GEN_A_NM_CLEAN        # 5: a move that lands clear — nothing to flag
+    - GEN_A_NM_ADJACENT     # 6: travel block adjacent to a meeting, not overlapping
+
+# The key is `events`, not `near_misses`. My own detector rejected the latter,
+# and it was right: a collection key is DATA, and a rendered event that carries
+# the word "near-miss" hands the game away. The FILE may be named for its
+# purpose — seed files never render — but nothing inside it may be.
+events:
+  # 4 — THE EXCEPTION FIRES. Same shape as the main arc, opposite answer.
+  # The reason is IN THE EPISODE TEXT, which is what makes it distinguishable.
+  - id: GEN_A_NM_EXCEPTION
+    when: 2026-05-04T11:20
+    channel: calendar
+    account: spec-kitty
+    direction: inbound
+    organiser: "mvale@spec-kitty.example"
+    subject: "Moved: 1:1 Kent / Marcus -> Thu 2026-05-07 14:00-15:00"
+    text: >-
+      Moving our 1:1 to Thursday — the board review got pulled forward and this
+      is the only slot I can brief you in before it. Sorry for the change;
+      I know it's short but I can't do it after.
+
+  # 7a — THE CEO CALLS IT. PT moves, on importance.
+  - id: GEN_A_NM_CEO
+    when: 2026-06-15T08:40
+    channel: calendar
+    account: spec-kitty
+    direction: inbound
+    organiser: "sfalk@spec-kitty.example"
+    subject: "All-hands — Thu 2026-06-18 14:15-15:00"
+    text: >-
+      Company-wide announcement Thursday. Everyone is expected; we're
+      announcing the acquisition and I need the whole leadership team visibly
+      in the room. This one can't be recorded.
+
+  # 7b — YOU CALLED IT YOURSELF, over your own PT slot. PT moves, but not on
+  # importance: the cost has fallen on other people. Felix should have caught
+  # this AT CREATION TIME, which is what makes it a different answer again.
+  - id: GEN_A_NM_SELF
+    when: 2026-06-22T16:05
+    channel: calendar
+    account: spec-kitty
+    direction: outbound
+    organiser: "kent"
+    subject: "Integration kickoff — Thu 2026-06-25 14:00-15:30"
+    attendees: ["fokafor@spec-kitty.example", "dreyes@spec-kitty.example",
+                "praman@spec-kitty.example"]
+    text: "Kicking off the integration work. Sending invites now."
+
+  # 1 — PHONE MEETING OVER A TRAVEL BLOCK. Two variants, deliberately paired:
+  # one feasible (45-min block), one not (30-min block). "Take it in the car"
+  # is the right answer for one and the wrong answer for the other.
+  - id: GEN_A_NM_PHONE
+    variants:
+      - {when: 2026-05-18T11:30, account: spec-kitty, duration_min: 30,
+         over_travel_block_min: 45, subject: "Call — vendor check-in"}
+      - {when: 2026-05-25T11:35, account: spec-kitty, duration_min: 30,
+         over_travel_block_min: 30, subject: "Call — pipeline review"}
+
+  # 2 — A SOCIAL CALL in the same slot shape as PT. Not paid, not repeating:
+  # it yields, and must not be protected as if it were.
+  - id: GEN_A_NM_SOCIAL
+    when: 2026-06-01T14:30
+    channel: calendar
+    account: personal
+    subject: "Catch-up call — Joel"
+    attendee: "joel.whitaker@example.net"
+
+  # 3 — A TASK WITH TRAVEL. Same travel footprint as PT, but movable.
+  - id: GEN_A_NM_ERRAND
+    when: 2026-06-04T14:30
+    channel: calendar
+    account: personal
+    subject: "Drop parcel at depot"
+    travel_before_min: 20
+    travel_after_min: 20
+
+  # 5 — A CLEAN MOVE. Marcus moved the 1:1 and it landed clear. Nothing to
+  # flag. Without this an arm can score by flagging every move.
+  - id: GEN_A_NM_CLEAN
+    when: 2026-07-06T09:30
+    channel: calendar
+    account: spec-kitty
+    organiser: "mvale@spec-kitty.example"
+    subject: "Moved: 1:1 Kent / Marcus -> Wed 2026-07-08 11:00-12:00"
+
+  # 6 — ADJACENT, NOT OVERLAPPING. A Mon/Wed/Fri workout whose on-calendar
+  # travel block abuts a work meeting; a coarse read calls it a conflict.
+  - id: GEN_A_NM_ADJACENT
+    when: 2026-07-13T13:30
+    channel: calendar
+    account: spec-kitty
+    subject: "Design sync"
+    start: 2026-07-13T13:30
+    end: 2026-07-13T14:00
+
+# --- what is NOT in this file ---------------------------------------------
+#
+#  * no near-miss labels, ids that read as decoys, or grouping in the corpus —
+#    the ids above are EMIT ids for the traceability contract and never render
+#  * no verdicts: which one yields, which holds, which needs no action
+#  * no link between any of these and the main arc's Thursday collision
+#
+# CONSTRAINT INHERITED FROM ARC A: none of these may occupy
+# Wed 2026-06-10 14:00-15:00 — that slot must stay free for the counter-offer
+# to be the unique right answer. Checked mechanically below.

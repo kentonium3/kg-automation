@@ -97,3 +97,4 @@ kitty-ops/ops-index.jsonl
 # or erode felix-deployer's clean-tree invariant. No scripts/**/state/ dir is
 # intentionally tracked (audited 2026-07-22).
 scripts/**/state/
+build/
