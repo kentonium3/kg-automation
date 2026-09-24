@@ -307,9 +307,13 @@ def generate_arc_e(corpus: Corpus, doc: dict, scale: int) -> None:
         monday = start + timedelta(weeks=int(row["wk"]) - 1)
         corpus.event("GEN_E_BURIED", _iso(monday + timedelta(days=1, hours=9)),
                      "email", {"account": row.get("account"), "kind": row.get("kind")})
-        corpus.event("GEN_E_CONSEQUENCES",
-                     _iso(monday + timedelta(days=6, hours=11)), "email",
-                     {"note": row.get("consequence")})
+        ce = row.get("consequence_event") or {}
+        corpus.event(
+            "GEN_E_CONSEQUENCES",
+            _iso(monday + timedelta(days=int(row.get("consequence_at_days", 6)),
+                                    hours=11)),
+            ce.get("channel", "email"),
+            {k: v for k, v in ce.items() if k != "channel"})
 
     for g in (doc.get("generator_input", {}).get("grounding") or []):
         corpus.event("GEN_E_GROUNDING", _iso(start), "record", g)

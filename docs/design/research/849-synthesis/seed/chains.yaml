@@ -59,11 +59,27 @@ outcomes:
      target_date: 2026-09-30, success_criteria: "delivered",
      domain: DOM_SPECKITTY, serves: PUR_LIVELIHOOD}
 
+  # Q2 RULED by Kent, 2026-09-24: "pointerhealth and intentional get outcomes
+  # of their own." So all four contexts carry real work, and the Domain
+  # partition over one global Capacity is genuinely four-way rather than a
+  # two-way partition with two empty containers — which would have made Arc A's
+  # cross-context collision and Arc E's capacity arithmetic easier than reality.
+  #
+  # These are UNSCORED: no oracle point references them. They exist so the
+  # partition is honest and so PUR_LIVELIHOOD is served from three work
+  # Domains, which is what keeps purpose-affinity derived rather than 1:1.
+  - {id: OUT_INTENTIONAL_PIPELINE, description: "Build a qualified advisory pipeline for Intentional",
+     target_date: 2026-12-31, success_criteria: "six retained engagements",
+     domain: DOM_INTENTIONAL, serves: PUR_LIVELIHOOD}
+  - {id: OUT_POINTERHEALTH_PILOT, description: "Get the PointerHealth pilot to a signed second site",
+     target_date: 2026-11-30, success_criteria: "second site contracted",
+     domain: DOM_POINTERHEALTH, serves: PUR_LIVELIHOOD}
+
 # NOTE: OUT_LAUNCH deliberately carries NO status. Arc C's third hop is
 # inferring the launch ended from the quarterly-report thread; a completed
 # status hands that over. Enforced by check_849_seed's Arc C structural check.
 
-# Q2 (PointerHealth and Intentional have no Outcomes of their own) is still
-# open with Kent — seeding them as unscored distractor mass was the design
-# lead's recommendation, routed for confirmation. Until then this file carries
-# the four Domains and no Outcomes for those two, which is the honest state.
+# Q2 is RULED (Kent, 2026-09-24): PointerHealth and Intentional get Outcomes of
+# their own, seeded above as unscored work. All four Domains now carry real
+# Outcomes serving PUR_LIVELIHOOD, so the derived purpose-affinity is a genuine
+# three-to-one mapping rather than a token one.

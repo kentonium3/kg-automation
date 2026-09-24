@@ -132,19 +132,48 @@ generator_input:
   # accountant's chase mail, a two-weeks-on reply — with NO reference to the
   # burying. Same rule as Arc B's R3. The consequence is visible; that it was
   # CAUSED by the mail being buried is the finding.
+  # ⚠ Each consequence renders as THE ARTIFACT ITSELF, not as a description of
+  # it. My first implementation emitted a note reading "found after the slot
+  # lapsed" — which is a summary, and a summary is the finding stated rather
+  # than shown. The freeze check caught it on the word "lapsed".
+  #
+  # E-2 as the design lead wrote it: "the reply to the client 4 days late
+  # (outbound mail), the next statement with a late-fee line, the rebooking
+  # confirmation six weeks out ... with NO reference to the burying."
   buried_with_consequence:
-    - {wk: 3,  account: Intentional, from: PER_CLIENT,     kind: meeting_request,
-       consequence: "replied 4 days after it arrived"}
-    - {wk: 6,  account: personal,    from: billing_org,    kind: bill,
-       consequence: "paid after the due date; late fee line on the next statement"}
-    - {wk: 9,  account: personal,    from: clinic_org,     kind: appointment_reminder,
-       consequence: "found after the slot lapsed; rebooked six weeks out"}
-    - {wk: 12, account: spec-kitty,  from: vendor_org,     kind: renewal_notice,
-       consequence: "auto-renewed at the old tier"}
-    - {wk: 17, account: personal,    from: PER_ACCOUNTANT, kind: document_request,
-       consequence: "chased by the accountant"}
-    - {wk: 21, account: personal,    from: PER_JOEL,       kind: personal_message,
-       consequence: "answered two weeks on"}
+    - {wk: 3,  account: Intentional, from: PER_CLIENT, kind: meeting_request,
+       consequence_at_days: 4,
+       consequence_event: {channel: email, direction: outbound,
+         to: "aduarte@duarte-partners.example",
+         subject: "Re: time to talk next week?",
+         text: "Apologies for the slow reply — yes, let's find a slot."}}
+    - {wk: 6,  account: personal, from: billing_org, kind: bill,
+       consequence_at_days: 9,
+       consequence_event: {channel: email, direction: inbound,
+         subject: "Your statement is ready",
+         text: "Previous balance carried. Late payment charge $12.00 applied."}}
+    - {wk: 9,  account: personal, from: clinic_org, kind: appointment_reminder,
+       consequence_at_days: 11,
+       consequence_event: {channel: email, direction: inbound,
+         subject: "Appointment booked",
+         text: "Dr Aliyev, 2026-09-09 11:20. Earliest availability was six weeks out."}}
+    - {wk: 12, account: spec-kitty, from: vendor_org, kind: renewal_notice,
+       consequence_at_days: 6,
+       consequence_event: {channel: email, direction: inbound,
+         subject: "Your subscription renewed",
+         text: "Team plan renewed for 12 months at the current rate. No changes applied."}}
+    - {wk: 17, account: personal, from: PER_ACCOUNTANT, kind: document_request,
+       consequence_at_days: 8,
+       consequence_event: {channel: email, direction: inbound,
+         from: "ray@mbeki-co.example",
+         subject: "Following up",
+         text: "Did you get a chance to send the form over? I need it to file."}}
+    - {wk: 21, account: personal, from: PER_JOEL, kind: personal_message,
+       consequence_at_days: 14,
+       consequence_event: {channel: email, direction: outbound,
+         to: "joel.whitaker@example.net",
+         subject: "Re: still on for the thing?",
+         text: "Sorry, this got away from me. Still up for it?"}}
 
   # E-3 (design lead, 05:12Z) — GROUNDING PRIMITIVES.
   #
