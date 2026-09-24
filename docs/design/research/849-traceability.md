@@ -10,7 +10,7 @@ last_updated: 2026-09-24
 
 Rubric §8 closure of #844 Threats §1 (an oracle point with nothing in the seed behind it).
 Built from the worksheet oracles (`849-lattice-scenario-arcs.md@f3076643`) and the seeds at
-`2994bab7` / `a489039d` / `938cd847` / `c331e6f9` / `1be1cb23`. Ids in backticks are seed ids or
+`cd08e419` (cast and chains are loadable seed as of `0182254b`). Ids in backticks are seed ids or
 `meta.emits` declarations; the oracle checker resolves the same names. **Legend:** OK = inferable from the named primitives; OK-ABS = inferable from an
 absence the seed constructs; GAP = no primitive yet, with the primitive that would close it;
 GRADE = a note for the grader, not a seed change. Arcs B and E are added when their seeds land.
@@ -26,7 +26,7 @@ GRADE = a note for the grader, not a seed change. Arcs B and E are added when th
 | A5 | Exception test: not very high importance; notice exactly two working days | `EP_A_MOVE` carries no reason (absence); `reference_time` Tue 09:12 vs event Thu 14:00; no holiday in the window | OK-ABS |
 | A6 | Resolution: counter-offer Wed 06-10 14:00–15:00; any Thu counter ≥ 15:45 | Wed calendar shows only 11:30–13:30 workout+travel; seed constraint keeps Wed 14:00–15:00 free corpus-wide; `PRIN_ONE_TO_ONE_MOVABLE` ("within the week") | OK — constraint must survive Arc E's generator (freeze check) |
 | A7 | Should have been caught Tue 06-09 at the move | `EP_A_MOVE.reference_time` | OK |
-| A-NM | Near-misses 1–7 need their own primitives (a 45-min travel block for NM1; a stated high-importance reason in NM4 and NM7a episodes; a self-called multi-person meeting for NM7b) | `arc-a-near-misses.yaml` not yet written | PENDING |
+| A-NM | Near-misses 1–7 | `arc-a-near-misses.yaml` (cd08e419): `GEN_A_NM_PHONE` (paired 45-min / 30-min variants), `GEN_A_NM_SOCIAL`, `GEN_A_NM_ERRAND`, `GEN_A_NM_EXCEPTION` (states its high-importance reason), `GEN_A_NM_CLEAN`, `GEN_A_NM_ADJACENT`, `GEN_A_NM_CEO` / `GEN_A_NM_SELF` | OK — but freeze L3: the hint fields on these events must go before freeze |
 
 ## Arc C — dropped ball, captured-and-deferred (`seed/arc-c.yaml`)
 
@@ -35,7 +35,7 @@ GRADE = a note for the grader, not a seed change. Arcs B and E are added when th
 | C1 | The promise: 04-14, Slack, outbound, exact wording | `EP_C_PROMISE` | OK |
 | C2 | Captured and deferred with no date/timeframe; nothing ever created against it | `EP_C_INTAKE`; `COM_DESIGN_REVIEW` with `datetime: null` + `trigger`; no inbound `DUE_BY`/`GATES`/`BLOCKS` (absence) | OK-ABS (`DEC_C_DEFER` removed a489039d) |
 | C3 | The condition has been met (launch shipped ~04-23), inferable only indirectly | `OUT_LAUNCH.target_date` 04-23 with no status advance; 04-24 email "Quarterly report … how the launch went" | OK — **GRADE:** accept "shipped on or before 04-24, target 04-23"; the exact day is not in the corpus by design |
-| C4 | Fred's message refers to the design review, not the launch; evidence: he already knows how the launch went | Fred drafted the launch section (04-24); "See you at the exec review" (04-27 outbound) | OK — inferable; the worksheet's "co-presents" is implied, not stated |
+| C4 | Fred's message refers to the design review, not the launch; evidence: he already knows how the launch went | `GEN_C_RETRO_INVITE` (retrospective invite naming both presenters, 04-21), `GEN_C_REPORT_THREAD` (Fred drafted the launch section, 04-24) | OK — grounded by the emits contract (8e2f4da9) |
 | C5 | The quarterly-report thread is the wrong binding | same thread; `GATED_ON` → `OUT_LAUNCH` gives the arm what to check | OK |
 | C6 | Elapsed two weeks; cost rising — Fred's integration is waiting | timestamps 04-14 → 04-28; `OUT_INTEGRATION` "Fred owns on his side"; promise text "so we can start working on the integration" | OK |
 | C7 | Response: propose the review with dates; coaching — a dateless commitment needs a trigger, which intake could have asked for | `EP_C_INTAKE` shows intake asked "when", not "what would tell us" | OK-ABS |
@@ -65,7 +65,7 @@ GRADE = a note for the grader, not a seed change. Arcs B and E are added when th
 | B2 | Every counted deferral, in order, with dates and the reason at the time | declared emits: `GEN_B_WK5_TUE`, `GEN_B_WK6_THU`, `GEN_B_WK6_SAT`, `GEN_B_WK7_TUE`, `GEN_B_WK7_SAT`, `GEN_B_WK8_TUE`, `GEN_B_WK8_THU`, `GEN_B_WK10_THU`, `GEN_B_WK11_TUE`, `GEN_B_WK13_THU`; `GEN_B_SESSIONS` for the silent misses as absence | OK — bound by `meta.emits` (1be1cb23) |
 | B3 | Which reasons repeat; the 07:30 series agreed to three times into a known quality slot | `GEN_B_WK6_THU`, `GEN_B_WK8_THU`, `GEN_B_WK10_THU` + `GEN_B_DECISIONS`; `EP_B_PLAN` marks Thu as the quality run | OK |
 | B4 | Decided vs silent split (5 silent, 5 decided-then-silent) | `GEN_B_DECISIONS` (provenance episodes for the meetings and evening moves); none for the runs themselves | OK — classification in `oracle/arc-b-appendix.yaml` (1be1cb23) |
-| B5 | Point of no return = CP2, Sun 08-09, by the halfway rule; not wk 10 calf, not wk 15 cold | `EP_B_PLAN` (milestones: Phase-2 45–50 min long run, wk-7 "quicker 5 min" ~10:30), `EP_B_CONDITIONING_RULE` (halfway rule, *without* the coaching clause — R1); `GEN_B_WK6_SAT`, `GEN_B_WK7_SAT`, `GEN_B_WK7_PROG` (11:10), wk-8 cutback in `GEN_B_SESSIONS` | OK — coaching clause stripped (c331e6f9) |
+| B5 | Point of no return = CP2, Sun 08-09, by the halfway rule; not wk 10 calf, not wk 15 cold | `EP_B_PLAN` (milestones: Phase-2 45–50 min long run, wk-7 "quicker 5 min" ~10:30), `EP_B_CONDITIONING_RULE` (halfway rule, *without* the coaching clause — R1); `GEN_B_SESSIONS` (the wk-6/wk-7 Saturday absences live there — silent misses have no per-instance id), `GEN_B_WK7_PROG` (11:10) | OK — coaching clause stripped (c331e6f9); absence rule (cd08e419) |
 | B6 | No individual deferral was unreasonable | the reasons as primitives | OK |
 | B7 | Should have been caught end of wk 7 (08-02) | events through wk 7 (two 1/3 weeks, one repeated reason) | OK |
 | B8 | Retrospective framed as coaching: scheduling, commitment management, delegation, mindset; reset-not-quit | reasoning over B2–B7; **no primitive may state the coaching move** (R1) | OK — judgement, graded |

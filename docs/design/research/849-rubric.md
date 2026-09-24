@@ -186,6 +186,20 @@ regime-bound the way #844's was, and the findings say so up front.
 - **Emits realised:** every id in every seed's `meta.emits` is present in the rendered corpus
   (renderer test), and every oracle `traceability` id resolves to a seed id or a declared emit
   (oracle checker). Both gate freeze.
+- **Absence evidence cites the stream.** An oracle point whose evidence is an *absence* (a
+  silent miss under completions-only, a missing travel block) cites the stream the absence is
+  visible in (`GEN_B_SESSIONS`, `GEN_A_CALENDAR`), never a per-instance id — a per-instance id
+  for an absent thing is a contradiction the emits contract will catch (implementer, 2026-09-24).
+- **Prose is commentary, not seed.** Every id an oracle or the traceability table names must
+  resolve in a *loadable* seed file (`seed/*.yaml`) or a declared emit. The narrative files
+  (`00-context-chains.md`, `01-cast.md`) are the record of reasoning; nothing may trace to them.
+- **Hint fields and generator strings are leaks too** (freeze gate, 2026-09-24): the vocabulary
+  check is necessary, not sufficient. No rendered event may carry a generator instruction, a
+  reason-for-the-miss sentence, a role tag (`emit`), a programme-relative `week`, or a field that
+  encodes the test condition (`over_travel_block_min`). The freeze gate reads the rendered events
+  by eye for this class as well as by grep.
+- **Recoverability probes are code:** `scripts/research/probe_849_recoverability.py`, one probe
+  per inferred-pattern arc, each with a can-fail test; results attached to the registration.
 - Corpus frozen at a commit hash before the first run; the hash is in the registration.
 
 ## 10. Artifacts
