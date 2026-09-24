@@ -43,14 +43,15 @@ DEFAULT_CORPUS = REPO_ROOT / "build" / "849-corpus"
 #: on #849; this block exists so the gate can enforce it, and is updated to
 #: match, never ahead of it.
 #:
-#: Amendment A1 (2026-09-24): `arcs` stripped from Person, loader_links.jsonl
-#: written. stream.jsonl is byte-identical to the 17:03Z registration because
-#: `arcs` was entity-only; entities.json and the new links file are the deltas.
+#: Amendment A1 (2026-09-24 18:15Z, rubric @5573ac1b): `arcs` stripped from
+#: Person, loader_links.jsonl written. stream.jsonl is byte-identical to the
+#: superseded 17:03Z / b203907e registration because `arcs` was entity-only;
+#: entities.json and the new links file are the deltas.
 REGISTRATION = {
-    "commit": "b203907e",
-    "registered": "2026-09-24T17:03Z",
-    "amendment": "A1 (2026-09-24) — pending design-lead verification of these "
-                 "fingerprints before the dated amendment is posted",
+    "commit": "c0b35cd1",
+    "registered": "2026-09-24T18:15Z",
+    "amendment": "A1 (2026-09-24) — posted; supersedes the 17:03Z b203907e "
+                 "registration without deleting it",
     "files": {
         "stream.jsonl":
             "188b9bf1402645c5a015da01bd3241376a1914e25aacad8a529a84b10a290d4a",
