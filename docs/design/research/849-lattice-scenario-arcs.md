@@ -1,13 +1,16 @@
 ---
 title: "#849 Life Lattice scenario arcs — authoring worksheet"
-status: draft
+status: authored — ready for synthesis
 owner: Kent
 last_updated: 2026-09-23
 ---
 
 # #849 scenario arcs — authoring worksheet
 
-**This is the thing to edit.** It is the blocking input for
+**Authored 2026-09-23.** All six arcs decided: A, B, C, E, F authored with oracles and
+near-misses; D cut. Next step is synthesis — the split into seed and hidden oracle.
+
+**This was the thing to edit.** It is the blocking input for
 [#849](https://github.com/kentonium3/kg-automation/issues/849), the decisive test that earns or
 kills [#693](https://github.com/kentonium3/kg-automation/issues/693).
 
@@ -54,12 +57,12 @@ rule). Keeping the story and its answer together here is an authoring convenienc
 
 | Arc | Hard case | Keep/Cut/Rewrite | Oracle done | Near-misses done |
 |---|---|---|---|---|
-| A | cross-time, **cross-context** collision | **Keep** | ☑ | ◐ (4 of Kent's, 3 candidates) |
-| B | quiet drift | **Keep** | ☑ (invented values to confirm) | ☑ (3 of Kent's placed, 3 candidates) |
+| A | cross-time, **cross-context** collision | **Keep** | ☑ | ☑ (Kent's 4; 3 candidates stand) |
+| B | quiet drift | **Keep** | ☑ | ☑ |
 | C | dropped ball (captured-and-deferred) | **Keep** | ☑ | ☑ |
 | D | cross-channel identity | **Cut** | — | — |
-| E | repeating pattern → automation | **Rewrite** | ☑ (invented values to confirm) | ☑ (3 of Kent's, 4 candidates) |
-| F | principle erosion | **Keep** | ☑ (invented trajectory to confirm) | ◐ (7 candidates, none of Kent's yet) |
+| E | repeating pattern → automation | **Rewrite** | ☑ | ☑ |
+| F | principle erosion | **Keep** | ☑ | ☑ (accepted) |
 
 ---
 
@@ -108,7 +111,7 @@ carry travel, the Tue/Thu ones don't, and nothing in either calendar says "this 
 understated." A right answer resolves the conflict *and* notices that the PT sessions are bigger
 than they look.
 
-**ORACLE — the right answer.** (Kent, 2026-09-23; open: the two-day notice edge only)
+**ORACLE — the right answer.** (Kent, 2026-09-23; complete)
 - [x] the Thursday overlap — moved 1:1 **Thu 14:00–15:00** vs PT **14:30–15:15**: 30 minutes of
       direct overlap; against the true footprint (14:00–15:45) the whole meeting collides
 - [x] that the Tue/Thu PT sessions are **missing travel time** — the Mon/Wed/Fri sessions carry
@@ -133,8 +136,10 @@ than they look.
       personal commitment**, because the cost now falls on other people (see near-miss 7).
 - [x] the exception test, run explicitly — importance: a routine 1:1 moved for convenience is
       **not** very high importance, so the exception does not fire. Notice: Tuesday for Thursday
-      is **exactly two days** — borderline by construction (`TODO(kent)`: keep the edge, or make
-      it clearly short notice?)
+      is **exactly two days** — borderline by construction, and **kept that way** (Kent,
+      2026-09-23). Rider: *the system needs to be conscious of weekends and holidays* — "two
+      days" is two working days, so a Friday move for a Monday event is short notice, and a
+      Tuesday move for the Thursday after a Wednesday holiday is too
 - [x] the resolution (Kent, 2026-09-23) — **counter the invite with an invite for a Wednesday
       meeting**: Wed 06-10 14:00–15:00, clear of the 11:30–13:30 workout-plus-travel block, and
       within the week as the 1:1 rule requires. Any Thursday counter must respect the *true*
@@ -275,7 +280,7 @@ damage was done by week 8.
   chain, plus the earliest week it was catchable. Accepting the lesser outcome is the
   "don't give up, learn from this" situation, not a failure to be hidden.
 
-**ORACLE.** (Kent's rule + plan, invented timeline, 2026-09-23 — confirm the invented values)
+**ORACLE.** (Kent's rule + plan, invented timeline, accepted by Kent 2026-09-23)
 - [x] the Outcome, with its date **and** its measure — 10-15, sub-10:00/mi — and that the date
       is a hard Commitment
 - [x] every counted deferral, in order, with dates and the reason at the time — the table,
@@ -666,7 +671,7 @@ call, the travel day, the illness week, the restart). The rest are bare events.
   week* and the late-night cause had repeated — before the second early call was allowed to
   appear on the calendar.
 
-**ORACLE.** (Kent's Principle; invented trajectory to confirm)
+**ORACLE.** (Kent's Principle; invented trajectory accepted by Kent 2026-09-23)
 - [x] the Principle, verbatim in substance, and that it is **hard** and **global**
 - [x] the trajectory — the five phases with their rates — and that the signal is the **slope**,
       not any one miss
@@ -687,7 +692,7 @@ call, the travel day, the illness week, the restart). The rest are bare events.
       in the lapse
 - [x] **when it should have been caught** — wk 9–10
 
-**Near-misses** (candidates — Kent did not name any; react to these):
+**Near-misses** (candidates, accepted by Kent 2026-09-23):
 1. **The illness week** (wk 16) — decided, legitimate, and *not* the cause. A tempting wrong
    answer for "when did it stop."
 2. **The travel day** (wk 12) — the practice moved to the evening and the check-in was done at
