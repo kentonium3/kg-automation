@@ -59,6 +59,33 @@ Eight, from the worksheet (`docs/design/research/849-lattice-scenario-arcs.md@f3
 Each question's oracle block is the worksheet's `must_identify` list plus its explicit wrong
 answers, held in the hidden oracle artifact and **never loaded into any arm**.
 
+### 3.1 The hidden-oracle artifact — contract
+
+One file, `docs/design/research/849-synthesis/oracle/<question-id>.yaml`, per question. The
+grader and the traceability check consume it; no arm, renderer, or loader may import it.
+
+```yaml
+question: A                      # id from §3
+ask_time: 2026-06-09T09:12:00-04:00   # the time-cut instant; arms see created_at <= this
+question_text: "…"               # verbatim, as put to every arm
+must_identify:                   # one entry per oracle point; each is binary at grading
+  - id: A1
+    statement: "the moved 1:1 (Thu 14:00–15:00) overlaps the PT session (14:30–15:15)"
+    required_values: ["2026-06-11", "14:00", "14:30"]   # any of these missing = not hit
+    traceability: [EP_A_MOVE, COM_PT_THU]               # rows in 849-traceability.md
+wrong_answers:                   # asserting any of these = hard fail for the run
+  - "a Thursday counter-offer earlier than 15:45"
+near_misses: [NM_A_1, NM_A_2, …] # ids of the seeded decoys for precision scoring
+grader_notes: "accept 'on or before 04-24' for the launch date (C3)"   # optional
+```
+
+Rules: `required_values` are the literal tokens a hit must contain (dates ISO, times HH:MM,
+counts as integers); `traceability` must name existing seed ids or rendered-event ids, and the
+freeze check fails on an oracle point whose `traceability` is empty; per-miss classifications
+(counted / decided-then-silent, Arc B) and phase bands (Arc F) live here, never in a seed;
+the artifact is committed under `oracle/` and the harness asserts that directory is absent from
+every arm's input path before a run starts.
+
 ## 4. Axis 1 — correctness
 
 Per question, per run:
