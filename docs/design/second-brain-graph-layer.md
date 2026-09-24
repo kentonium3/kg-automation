@@ -124,6 +124,7 @@ FalkorDB is preferred over Neo4j for this deployment:
 1. **Fixed semantic tiers, arbitrary depth within Project and Task.** Semantic tier identity matters because the life-coach agent applies different reasoning at each level — a Purpose is definitional, a Task is schedulable, and conflating them breaks the reasoning model.
 
 2. **Every node must connect upward to a Purpose.** No floating tasks. No projects without an Objective. This structural rule is the enforcement mechanism for explicit prioritization.
+   *Standing-practice exception (2026-09-24, from #849 Arc F; stability: directional, Kent to ratify).* A recurring Task that exists only to **enact a Principle** — a morning meditation, a journaling habit — is a *standing practice*, not work toward an Outcome: it has no finish line and no measure, and minting an Outcome for it would fabricate a target rate the coaching loop is supposed to *infer* from its trajectory. Such a Task anchors to its Principle through the static `EMBODIES` edge instead of to an Outcome, and reaches Purpose/Domain through that Principle's `SCOPED_TO` scope (or the global default). Nothing floats: the anchor is a Principle rather than a Purpose. Practices are discovered from the Principle side ("am I keeping my non-negotiables?"), and their health is the slope of their episode log, never a seeded threshold.
 
 3. **Project and Task are self-similar.** Both support arbitrary nesting depth via `CONTAINS` edges. A Project can contain sub-Projects and Tasks. A Task can contain sub-Tasks. The boundary: Projects have scope and deliverables; Tasks have a single actor and a single action.
 
@@ -199,7 +200,7 @@ A coordinated body of work that delivers one or more Objectives. Has scope, not 
 *Examples:* "BD pipeline build," "FalkorDB + Graphiti infrastructure," "Obsidian vault ingest pipeline"
 
 #### TASK
-A discrete, schedulable unit of action. Has a single actor and a single action. Tasks are self-similar — a Task can contain sub-Tasks of arbitrary depth. A Task must connect upward to a Project or directly to an Objective (never floating). Tasks can be shared across multiple Projects.
+A discrete, schedulable unit of action. Has a single actor and a single action. Tasks are self-similar — a Task can contain sub-Tasks of arbitrary depth. A Task must connect upward to a Project or directly to an Objective (never floating). Tasks can be shared across multiple Projects. The one exception is a **standing practice** — a recurring Task whose only justification is a Principle — which anchors via `EMBODIES` instead (guiding principle 2, exception).
 
 #### COMMITMENT
 A hard temporal constraint. Not in the hierarchy — a cross-cutting node type that the life-coach agent treats as a fixed point when calculating capacity. Cannot be moved unilaterally (external commitments) or represents a hard internal deadline.
@@ -446,6 +447,7 @@ All edges carry `valid_from` / `valid_until` automatically via Graphiti's bi-tem
 | `SCOPED_TO` | Principle | Purpose/Domain | Principle applies only within this Purpose/Domain (absence = global) |
 | `GOVERNED_BY` | Decision | Principle | The Decision was constrained by / cited this Principle |
 | `VIOLATES` | Task/Project | Principle | Agent-detected tension between a proposed action and a Principle |
+| `EMBODIES` | Task | Principle | *Directional (2026-09-24).* This recurring Task **is the practice of** this Principle — a standing practice with no Outcome. The one sanctioned static Task→Principle attachment; says what the Task *is*, not which Principles govern it |
 | `CONSTRAINS` | Capacity | Purpose/Domain | Capacity bounds work in this scope (absence = global) |
 | `DUE_BY` | Task/Project/Outcome | Commitment | This node's hard deadline is this Commitment (source side is the work node, matching the upward-pointing convention) |
 | `GATED_ON` | Commitment | Project/Objective/Outcome/Commitment | This trigger-gated Commitment becomes due when this node completes / occurs |
@@ -495,9 +497,12 @@ the doc states design intent, not engine mechanics):
   choose, and amending a Principle is a Kent re-seed event, not a graph-recorded
   Decision. Enumerate pairs explicitly rather than relying on any generic-pair fallback
   until the fallback behavior is verified on the pinned version.
-- **Principles never attach statically to Tasks/Projects.** Applicability is computed at
-  reasoning time (loop step 7) from global Principles plus `SCOPED_TO` edges along the
-  traversed chain; `GOVERNED_BY`/`VIOLATES` record *events*, not standing attachments.
+- **Principles never attach statically to Tasks/Projects for *applicability*.** Which
+  Principles govern a node is computed at reasoning time (loop step 7) from global Principles
+  plus `SCOPED_TO` edges along the traversed chain; `GOVERNED_BY`/`VIOLATES` record *events*,
+  not standing attachments. The single exception is `EMBODIES` (Task → Principle), which is
+  not an applicability claim but an identity one: the Task *is* that Principle's standing
+  practice (guiding principle 2, exception). `EMBODIES` never substitutes for the step-7 check.
 - **The `edge_type_map` is advisory, not enforced** (measured on graphiti-core 0.30.2,
   #974: unregistered-pair edges are stored as-is). Therefore any **extraction** path
   MUST run a **post-extraction validator** before results are trusted: reject or
