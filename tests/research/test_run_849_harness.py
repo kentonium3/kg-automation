@@ -228,3 +228,61 @@ def test_a_failing_gate_stops_the_run(tmp_path, monkeypatch, arms):
         h.run(tmp_path / "ledger.jsonl", CORPUS, limit=1, gates=True)
     assert "check_849_loader" in str(exc.value)
     assert not (tmp_path / "ledger.jsonl").exists(), "no ledger on a failed gate"
+
+
+# --------------------------------------------------------------------------
+# Amendment A2: exceeds_model_context is an outcome, never a score
+# --------------------------------------------------------------------------
+
+
+def test_context_exceeded_is_recorded_not_errored_and_not_scored(tmp_path, monkeypatch):
+    """Six D cells are expected to land here. They must be visible in the
+    ledger with the token count, distinct from an error, and absent from
+    every average."""
+    def d_arm(question, ask_time, loaded):
+        raise h.ContextExceeded(prompt_tokens=362_772)
+
+    def ok_arm(question, ask_time, loaded):
+        return h.Answer(text="x", assembled_context_tokens=1000)
+
+    monkeypatch.setitem(h.ARM_IMPLEMENTATIONS, "D", d_arm)
+    monkeypatch.setitem(h.ARM_IMPLEMENTATIONS, "G", ok_arm)
+    ledger = tmp_path / "ledger.jsonl"
+    # 24 G cells (all ok), then the first D cells.
+    completed, failed = h.run(ledger, CORPUS, limit=26, gates=False)
+    assert failed == 0, "exceeds_model_context must not count as a failure"
+    header, rows = h.read_ledger(ledger)
+    d_rows = [r for r in rows if r["arm"] == "D"]
+    assert d_rows and all(r["outcome"] == "exceeds_model_context" for r in d_rows)
+    assert all(r["prompt_tokens"] == 362_772 for r in d_rows)
+    assert all(r["model_context_tokens"] == h.MODEL_CONTEXT_TOKENS for r in d_rows)
+    assert header["model_context_tokens"] == h.MODEL_CONTEXT_TOKENS
+
+
+def test_exceeds_cells_are_never_averaged():
+    """The could-not-check / verified-false collapse A2 forbids: a cell with
+    no number must not read as zero."""
+    rows = [
+        {"arm": "D", "question": "C1", "repeat": 1, "outcome": "ok", "assembled_context_tokens": 50_000},
+        {"arm": "D", "question": "C1", "repeat": 2, "outcome": "ok", "assembled_context_tokens": 52_000},
+        {"arm": "D", "question": "B2", "repeat": 1, "outcome": "exceeds_model_context", "prompt_tokens": 362_772},
+        {"arm": "D", "question": "B2", "repeat": 2, "outcome": "exceeds_model_context", "prompt_tokens": 362_772},
+        {"arm": "D", "question": "B2", "repeat": 3, "outcome": "error", "error": "boom"},
+    ]
+    s = h.summarise(rows)
+    assert s[("D", "C1")]["mean_context_tokens"] == 51_000
+    assert s[("D", "C1")]["range_context_tokens"] == (50_000, 52_000)
+    b2 = s[("D", "B2")]
+    assert b2["n_scored"] == 0
+    assert b2["mean_context_tokens"] is None, "an exceeds cell averaged in would read as 0"
+    assert b2["exceeds_model_context"] == 2
+    assert b2["error"] == 1
+
+
+def test_summarise_would_fail_if_exceeds_cells_leaked_into_the_mean():
+    """Guards the guard: prove the test above discriminates."""
+    rows = [
+        {"arm": "D", "question": "B2", "repeat": 1, "outcome": "ok", "assembled_context_tokens": 0},
+    ]
+    assert h.summarise(rows)[("D", "B2")]["mean_context_tokens"] == 0, \
+        "a zero-token ok cell is what a leaked exceeds cell would look like — it must be distinguishable by outcome, and it is"

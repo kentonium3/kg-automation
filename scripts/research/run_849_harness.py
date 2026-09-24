@@ -72,6 +72,30 @@ GATES = (
 )
 
 
+#: The ruled model's trained context (rubric §2, Amendment A2). Recorded in the
+#: ledger header so an `exceeds_model_context` cell is reproducible from the
+#: ledger alone. A serving config that changes this (D-YaRN) is a different
+#: ledger, never a flag on this one.
+MODEL_CONTEXT_TOKENS = 262_144
+MODEL_OF_RECORD = "Qwen3-Next-80B-A3B-Instruct UD-Q4_K_XL, native (no RoPE scaling)"
+
+
+class ContextExceeded(Exception):
+    """An arm's prompt would exceed the model's trained context.
+
+    Raised BY THE ARM before it sends anything: llama.cpp will serve a prompt
+    past max_position_embeddings without complaint and return degraded output
+    wearing a number. The harness records the cell as `exceeds_model_context`
+    with the measured token count — could-not-check, never verified-false
+    (Engineering Principle 14) — and it is excluded from every average.
+    """
+
+    def __init__(self, prompt_tokens: int, limit: int = MODEL_CONTEXT_TOKENS):
+        super().__init__(f"prompt is {prompt_tokens:,} tokens; model context is {limit:,}")
+        self.prompt_tokens = prompt_tokens
+        self.limit = limit
+
+
 class GateFailed(RuntimeError):
     """Raised when a pre-run gate does not pass."""
 
@@ -161,6 +185,8 @@ def open_ledger(path: pathlib.Path, corpus_dir: pathlib.Path) -> set[RunKey]:
             # "local" (#759). A ledger header is a machine record anyway.
             "started": datetime.now(timezone.utc).isoformat(),
             "registration_commit": REGISTRATION["commit"],
+            "model": MODEL_OF_RECORD,
+            "model_context_tokens": MODEL_CONTEXT_TOKENS,
             "corpus": observed,
             "plan": len(plan()),
         })
@@ -249,6 +275,13 @@ def execute(key: RunKey, corpus_dir: pathlib.Path) -> dict:
     started = time.monotonic()
     try:
         answer: Answer = arm(key.question, ask_time, loaded)
+    except ContextExceeded as exc:
+        # Not an error and not a score. Amendment A2: reported with the token
+        # count, excluded from every average, pre-registered as an expected
+        # result on six of the eight D cells.
+        return {**key.as_dict(), "record": "run", "outcome": "exceeds_model_context",
+                "prompt_tokens": exc.prompt_tokens, "model_context_tokens": exc.limit,
+                "ask_time": ask_time.isoformat()}
     except Exception as exc:  # noqa: BLE001 — a failed run is data, not a crash
         return {**key.as_dict(), "record": "run", "outcome": "error",
                 "error": f"{type(exc).__name__}: {exc}",
@@ -284,13 +317,43 @@ def run(ledger_path: pathlib.Path, corpus_dir: pathlib.Path,
         record = execute(key, corpus_dir)
         _append(ledger_path, record)
         outcome = record.get("outcome")
-        mark = {"ok": "·", "error": "!", "not_implemented": "-"}.get(outcome, "?")
+        mark = {"ok": "·", "error": "!", "not_implemented": "-",
+                "exceeds_model_context": "x"}.get(outcome, "?")
         print(f"  {mark} {key.arm} {key.question} r{key.repeat}  {outcome}")
         if outcome == "ok":
             completed += 1
         elif outcome == "error":
             failed += 1
     return completed, failed
+
+
+SCORED_OUTCOME = "ok"
+
+
+def summarise(rows: list[dict]) -> dict[tuple[str, str], dict]:
+    """Per (arm, question): mean and range of assembled-context tokens over
+    the SCORED cells only, plus counts of every other outcome.
+
+    The only place the ledger is ever averaged, on purpose. An
+    `exceeds_model_context` cell has no assembled-context number to average
+    and would read as zero if it were let in — that is exactly the
+    could-not-check / verified-false collapse A2 forbids, so those cells are
+    counted here and never summed.
+    """
+    out: dict[tuple[str, str], dict] = {}
+    for row in rows:
+        cell = out.setdefault((row["arm"], row["question"]), {
+            "scored": [], "exceeds_model_context": 0, "error": 0, "not_implemented": 0})
+        if row.get("outcome") == SCORED_OUTCOME:
+            cell["scored"].append(row["assembled_context_tokens"])
+        elif row.get("outcome") in cell:
+            cell[row["outcome"]] += 1
+    for cell in out.values():
+        scored = cell.pop("scored")
+        cell["n_scored"] = len(scored)
+        cell["mean_context_tokens"] = (sum(scored) / len(scored)) if scored else None
+        cell["range_context_tokens"] = (min(scored), max(scored)) if scored else None
+    return out
 
 
 def status(ledger_path: pathlib.Path) -> None:
@@ -304,7 +367,7 @@ def status(ledger_path: pathlib.Path) -> None:
     print(f"  started  {header.get('started')}")
     print(f"  corpus   {header.get('registration_commit')}")
     print(f"  complete {len(done)} of {len(plan())}")
-    for outcome in ("error", "not_implemented"):
+    for outcome in ("error", "not_implemented", "exceeds_model_context"):
         n = sum(1 for r in rows if r.get("outcome") == outcome)
         if n:
             print(f"  {outcome}: {n}")
