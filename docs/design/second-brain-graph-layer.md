@@ -3,7 +3,7 @@ title: "Second Brain Graph Layer — Design"
 doc_type: design
 status: draft
 owners: ["@kentonium3"]
-last_updated: '2026-09-23'
+last_updated: '2026-09-24'
 audience: agents_and_humans
 ---
 
@@ -91,6 +91,20 @@ Additional selection factors:
 - Hybrid retrieval: vector similarity + BM25 full-text + graph traversal in a single query
 - Apache 2.0 license; Zep Cloud not required
 - FalkorDB backend (default for MCP server) is lightweight enough for office2
+
+### Inference seam (per function, never global)
+
+"Native Anthropic API support" above is a capability of Graphiti, not a decision of this
+design. The layer has **four distinct inference functions** — structured writes, extraction,
+embedding/reranking, and reasoning — and #974 measured them at three different cost/quality
+points in one run: structured adapter writes need **no model** ($0, exact); extraction ran
+**locally** on office4 (Qwen3-Next-80B, llama.cpp Vulkan) at $0 marginal; #844's reasoning
+ran on the **Anthropic API**. So provider, model, and location are a **per-function
+configuration seam** (RFC #986), placed per ADR-0009 (large-context inference is office4,
+best-effort, behind a fallback; office2 cannot host it). Nothing in this document hardcodes a
+provider; where a section names one (#844/#974 postures), it records what was measured, not
+what is required. Graphiti's own `LLMClient` / `EmbedderClient` / `CrossEncoderClient`
+abstractions are the natural attachment points for that seam.
 
 ### Backend: FalkorDB
 
