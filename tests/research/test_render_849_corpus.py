@@ -168,10 +168,25 @@ def test_the_shared_late_nights_are_one_event_set(rendered):
     highest-value point, scores exactly that.
     """
     corpus, _ = rendered
-    late = [e for e in corpus.events if e.get("week") and e.get("direction") == "outbound"]
+
+    # Identified by TIME, not by a `week` field. The field was programme-
+    # relative and the stream allowlist now strips it (freeze finding L5): a
+    # real git commit has no programme week, and carrying one would align the
+    # arm to the oracle's frame for free.
+    #
+    # This test previously leaned on that field — a test resting on a leak.
+    late = [
+        e for e in corpus.events
+        if e.get("direction") == "outbound"
+        and e.get("channel") in {"git", "email", "slack"}
+        and "23:" <= str(e["at"])[11:16] <= "23:59"
+    ]
     assert late, "no shared late-night events were rendered"
-    weeks = {e["week"] for e in late}
-    assert weeks & {7, 8, 13}, weeks  # weeks Arc B's misses also draw on
+
+    # They must fall in the window both arcs draw on, which is what makes the
+    # shared cause shared rather than two agreeing fabrications.
+    months = {str(e["at"])[:7] for e in late}
+    assert months & {"2026-05", "2026-06", "2026-07"}, months
 
 
 def test_silent_misses_produce_no_event(rendered):

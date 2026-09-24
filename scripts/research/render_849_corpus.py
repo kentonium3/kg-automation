@@ -87,13 +87,59 @@ def load_all() -> dict[str, dict]:
 # --------------------------------------------------------------------------
 
 
+#: Fields an arm may see on a stream event. DEFAULT DENY: anything not listed
+#: is internal bookkeeping and is stripped before the event is recorded.
+#:
+#: This exists because four of the freeze gate's five blocking findings were
+#: the same shape — an internal field reaching the output. `emit` named each
+#: event's role in the test; `week` aligned events to the oracle's programme
+#: frame; `over_travel_block_min` encoded the test condition; `label_in_corpus`
+#: was authoring scaffolding. None was vocabulary and none was a comment, so
+#: every check I had passed them.
+#:
+#: An allowlist makes the next one fail by default instead of needing to be
+#: noticed.
+STREAM_FIELDS = frozenset({
+    # universal
+    "at", "channel", "ref",
+    # mail / messaging
+    "account", "direction", "sender", "from", "to", "subject", "text",
+    # calendar
+    "title", "start", "end", "organiser", "attendees", "attendee",
+    "recurrence_rule",
+    # task tracker
+    "task", "status", "note",
+    # mail-client actions
+    "action",
+    # episodes
+    "content", "source_description",
+})
+
+#: Fields that are LOADER input — how the graph arm wires episodes to entities.
+#: They are not stream text: rendering `mentions: [COM_DESIGN_REVIEW]` into the
+#: dump hands D and R the wiring that G has to traverse for.
+LOADER_FIELDS = frozenset({"mentions", "commitment", "content_ref"})
+
+
 class Corpus:
-    """Accumulates rendered events and entities, and tracks emitted ids."""
+    """Accumulates rendered events and entities, and tracks emitted ids.
+
+    Emits two views deliberately: the STREAM (what the dump and RAG arms read)
+    and the LOADER input (what the graph arm is built from). They differ, and
+    collapsing them would give the flat arms the graph's wiring for free.
+    """
 
     def __init__(self) -> None:
         self.events: list[dict] = []
         self.entities: list[dict] = []
         self.emitted: set[str] = set()
+        self.loader_links: list[dict] = []
+        self.id_map: dict[str, str] = {}
+        #: Field names stripped as non-stream. Reported, not silently dropped —
+        #: a field appearing here is either new corpus vocabulary that belongs
+        #: in STREAM_FIELDS, or a leak that was just prevented. Either way
+        #: somebody should look.
+        self.stripped_fields: dict[str, object] = {}
 
     def event(self, emit_id: str, when: str, channel: str, fields: dict | None = None) -> None:
         """Record one rendered event.
@@ -106,7 +152,23 @@ class Corpus:
         payload = dict(fields or {})
         payload.pop("when", None)
         payload.pop("channel", None)
-        self.events.append({"at": when, "channel": channel, **payload})
+
+        # Stable opaque reference. The seed's own ids are SEMANTIC —
+        # EP_C_PROMISE says the episode is the promise, EP_B_CONDITIONING_RULE
+        # says it is the rule — so they must not reach an arm. The mapping
+        # lives in the manifest, where traceability can still resolve it.
+        ref = f"e{len(self.events):05d}"
+        self.id_map[ref] = payload.pop("id", None) or emit_id
+
+        loader = {k: payload.pop(k) for k in list(payload) if k in LOADER_FIELDS}
+        stripped = {k: v for k, v in payload.items() if k not in STREAM_FIELDS}
+        if stripped:
+            self.stripped_fields.update(stripped)
+        kept = {k: v for k, v in payload.items() if k in STREAM_FIELDS and v is not None}
+
+        self.events.append({"at": when, "channel": channel, "ref": ref, **kept})
+        if loader:
+            self.loader_links.append({"ref": ref, **loader})
         self.emitted.add(emit_id)
 
     def entity(self, kind: str, data: dict, emit_id: str | None = None) -> None:
@@ -315,8 +377,35 @@ def generate_arc_e(corpus: Corpus, doc: dict, scale: int) -> None:
             ce.get("channel", "email"),
             {k: v for k, v in ce.items() if k != "channel"})
 
+    # R-b: grounding renders as the DATED ARTIFACTS an adapter sees, not as a
+    # summary row. "prior_statements … weeks: [2,6,10…]" is a description of
+    # history; the history itself is individual statements.
     for g in (doc.get("generator_input", {}).get("grounding") or []):
-        corpus.event("GEN_E_GROUNDING", _iso(start), "record", g)
+        kind = g.get("kind")
+        if kind == "prior_statements":
+            for wk in g.get("weeks") or []:
+                when = start + timedelta(weeks=wk - 1, days=2, hours=9)
+                corpus.event("GEN_E_GROUNDING", _iso(when), "email",
+                             {"account": g.get("account"), "direction": "inbound",
+                              "sender": "billing@statements.example",
+                              "subject": "Your monthly statement",
+                              "text": "Your statement for this period is ready."})
+        elif kind == "calendar_appointment":
+            corpus.event("GEN_E_GROUNDING", str(g.get("booked")), "calendar",
+                         {"account": g.get("account"), "title": g.get("title"),
+                          "start": str(g.get("when"))})
+        elif kind == "prior_renewal":
+            corpus.event("GEN_E_GROUNDING", str(g.get("when")), "email",
+                         {"account": g.get("account"), "direction": "inbound",
+                          "sender": "billing@vendor-a.example",
+                          "subject": "Your plan renewed",
+                          "text": "Team plan renewed for 12 months."})
+        elif kind == "subscription_record":
+            corpus.event("GEN_E_GROUNDING", str(g.get("active_since")), "email",
+                         {"account": "spec-kitty", "direction": "inbound",
+                          "sender": "billing@vendor-a.example",
+                          "subject": "Welcome to the team plan",
+                          "text": "Your team plan is now active."})
 
     for a in (doc.get("generator_input", {}).get("already_automated") or []):
         for wk in range(1, n_weeks + 1):
@@ -330,10 +419,53 @@ def generate_arc_e(corpus: Corpus, doc: dict, scale: int) -> None:
 
     week = doc.get("e2_sample_week") or {}
     ws = datetime.fromisoformat(str(week.get("start", "2026-08-31")))
+    # E2 items render as ORDINARY EMAILS. Stripping the structured fields was
+    # right — `kind: linkedin_coldcall` plus `topic_area` told the arm what the
+    # item was and what decided it — but it left the two cold-calls
+    # indistinguishable, which is the whole of E2-6. The distinguishing fact
+    # has to be IN the message, as it would be in life.
+    SUBJECTS = {
+        "ordinary_mail": ("Quick question", "Following up on the last call."),
+        "meeting_request": ("Time to talk next week?",
+                            "Could we find 30 minutes? Happy to work around you."),
+        "newsletter_from_contact": ("This month's notes",
+                                    "A few things I've been reading."),
+        "bill": ("Your invoice is due", "Amount due by {due}. Pay online any time."),
+        "document_request": ("Need this before I can file",
+                             "Could you send the signed form by {due}?"),
+        "appointment_reminder": ("Appointment reminder",
+                                 "You are booked for {due}. Reply to reschedule."),
+        "renewal_notice": ("Your plan renews soon",
+                           "Your team plan renews on {renews} at the current rate."),
+        "weekly_promo": ("This week's offers", "New pricing on selected plans."),
+        "product_announcement": ("Introducing our new release",
+                                 "Shipping today across all tiers."),
+        "newsletter": ("Weekly digest", "In this issue: {topic_area}."),
+        "friendly_spam": ("Just checking in!",
+                          "Hi! Wanted to see how things are going on your end."),
+        "linkedin_coldcall": ("Connecting re {topic_area}",
+                              "I work with teams on {topic_area} and thought I'd reach out."),
+        "urgent_looking_spam": ("URGENT: action required on your application",
+                                "The loan department is reviewing your application "
+                                "for a $60,000 loan. Respond within 24 hours."),
+        "bulk_promo": ("Limited time offer", "Ends Friday."),
+    }
+    # An Interest id is internal. A newsletter reading "In this issue:
+    # INT_GRAPH_DB" would put the ontology's own vocabulary in Kent's inbox.
+    topics = {i["id"]: i["topic"] for i in (doc.get("interests") or [])}
+
     for i, item in enumerate(doc.get("scored_items") or []):
-        corpus.event("GEN_E_SAMPLE_WEEK",
-                     _iso(ws + timedelta(days=i % 5, hours=8 + i % 9)),
-                     "email", item)
+        subject, body = SUBJECTS.get(item.get("kind"), ("Message", ""))
+        topic = item.get("topic_area") or topics.get(item.get("topic"), "")
+        fill = {"due": item.get("due"), "renews": item.get("renews"),
+                "topic_area": topic}
+        corpus.event(
+            "GEN_E_SAMPLE_WEEK",
+            _iso(ws + timedelta(days=i % 5, hours=8 + i % 9)), "email",
+            {"account": "personal", "direction": "inbound",
+             "sender": str(item.get("from")),
+             "subject": subject.format(**fill),
+             "text": body.format(**fill)})
 
 
 def generate_arc_b(corpus: Corpus, doc: dict, scale: int) -> None:
@@ -365,8 +497,14 @@ def generate_arc_b(corpus: Corpus, doc: dict, scale: int) -> None:
 
     race = gi.get("race") or {}
     if race:
+        # Natural completion text, not a `result:` field. The allowlist
+        # stripped the field form and B2-1's required value "32:50" vanished
+        # from the corpus — the point became unhittable. Rendering it as the
+        # note an adapter would actually write keeps it inferable.
         corpus.event("GEN_B_RACE", f"{race['date']}T08:00", "vikunja",
-                     {"event": "race", "result": race.get("result")})
+                     {"task": "Riverside 5K",
+                      "status": "completed",
+                      "note": f"Finished {race.get('result')}."})
 
 
 GENERATORS = {"arc-f": generate_arc_f, "arc-e": generate_arc_e, "arc-b": generate_arc_b}

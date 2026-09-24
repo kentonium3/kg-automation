@@ -154,6 +154,32 @@ def check_no_wrong_answer_phrases(text: str, oracles: list[dict]) -> list[str]:
     return hits
 
 
+def check_required_values_present(text: str, oracles: list[dict]) -> list[str]:
+    """Every required_value must APPEAR in the corpus, or the point is unhittable.
+
+    The inverse of the leak grep, and just as necessary. A leak makes a point
+    too easy; a missing required value makes it impossible — the grader demands
+    a literal the arm had no way to see.
+
+    This caught a real regression the moment it was written: adding a
+    default-deny field allowlist to the renderer stripped `result: 32:50`, and
+    B2-1's required value vanished from the corpus silently. Nothing else would
+    have noticed until an arm scored zero on a point it could not have hit.
+    """
+    problems = []
+    for doc in oracles:
+        for point in doc.get("must_identify") or []:
+            for value in point.get("required_values") or []:
+                if str(value) not in text:
+                    problems.append(
+                        f"FAIL: {doc['_file']} {point['id']} requires {value!r} "
+                        f"but it does not appear in the rendered corpus — the "
+                        f"point is unhittable. Fix the SEED or the renderer, "
+                        f"never the oracle."
+                    )
+    return problems
+
+
 def adjudicate_oracle_statements(text: str, oracles: list[dict]) -> list[str]:
     """Report statement fragments that also appear in the corpus.
 
@@ -263,6 +289,7 @@ def run(scale: int = 1) -> tuple[list[str], list[str], list[str]]:
     failures += check_no_forbidden_vocabulary(text)
     failures += check_no_non_rendered_keys(text)
     failures += check_no_wrong_answer_phrases(text, oracles)
+    failures += check_required_values_present(text, oracles)
 
     probe_lines = []
     for label, probe in PROBES.items():

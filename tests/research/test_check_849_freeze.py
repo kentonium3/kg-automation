@@ -131,3 +131,72 @@ def test_the_gate_fails_when_a_probe_fails(monkeypatch):
     monkeypatch.setitem(mod.PROBES, "synthetic", lambda c: (False, "forced"))
     failures, _, _ = mod.run(scale=20)
     assert any("recoverability probe [synthetic]" in f for f in failures), failures
+
+
+# --------------------------------------------------------------------------
+# The inverse check: a required value must be PRESENT, not merely not-leaked
+# --------------------------------------------------------------------------
+
+
+def test_every_required_value_appears_in_the_corpus(full):
+    """A missing required value makes a point unhittable — the grader demands
+    a literal the arm had no way to see. Just as fatal as a leak, and silent."""
+    from scripts.research.check_849_freeze import (
+        check_required_values_present, corpus_text, load_oracles)
+
+    assert check_required_values_present(corpus_text(full), load_oracles()) == []
+
+
+def test_the_required_value_check_can_fail():
+    from scripts.research.check_849_freeze import check_required_values_present
+
+    fake = [{"_file": "X.yaml", "must_identify": [
+        {"id": "X-1", "required_values": ["a-value-not-in-the-corpus"]}]}]
+    assert check_required_values_present("nothing here", fake)
+
+
+# --------------------------------------------------------------------------
+# The stream allowlist — default deny
+# --------------------------------------------------------------------------
+
+
+def test_no_internal_bookkeeping_field_reaches_the_stream(full):
+    """Four of five blocking freeze findings were this one shape."""
+    from scripts.research.render_849_corpus import STREAM_FIELDS
+
+    seen = {k for e in full.events for k in e}
+    assert seen <= STREAM_FIELDS, seen - STREAM_FIELDS
+
+
+@pytest.mark.parametrize(
+    "field",
+    ["emit", "week", "over_travel_block_min", "travel_before_min",
+     "label_in_corpus", "kind", "decision", "duration_min"],
+)
+def test_specific_leaked_fields_are_gone(full, field):
+    assert not any(field in e for e in full.events), field
+
+
+def test_semantic_ids_do_not_reach_the_stream(full):
+    """EP_C_PROMISE tells an arm the episode IS the promise."""
+    import json as _json
+
+    text = _json.dumps(full.events, default=str)
+    for prefix in ("EP_", "GEN_", "COM_", "DEC_", "PRIN_", "INT_"):
+        assert prefix not in text, prefix
+
+
+def test_loader_wiring_is_held_apart_from_the_stream(full):
+    """`mentions` is how G wires episodes to entities; putting it in the dump
+    would hand D and R the traversal G has to earn."""
+    assert full.loader_links, "no loader links captured"
+    assert not any("mentions" in e for e in full.events)
+
+
+def test_stripped_fields_are_reported_not_silently_dropped(full):
+    """A stripped field is either new vocabulary or a prevented leak.
+
+    Either way somebody should look, so the renderer records them.
+    """
+    assert full.stripped_fields
+    assert "emit" in full.stripped_fields
