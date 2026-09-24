@@ -1,0 +1,15 @@
+{
+  "created_at": "2026-09-24T21:58:16.271751+00:00",
+  "flattened": false,
+  "friendly_name": "849 Lattice Arms and Decisive Run",
+  "mid8": "01M3APTA",
+  "mission_id": "01M3APTADS39MF0NDWG9HDSW50",
+  "mission_number": null,
+  "mission_slug": "arms-run-01M3APTA",
+  "mission_type": "software-dev",
+  "purpose_context": "#849 is the decisive test for the Life Lattice graph layer: three arms answer the same eight questions over a frozen, oracle-backed corpus, scored on correctness and input tokens per correct answer. The corpus, loader, run harness and gate measurements already exist and are frozen; this mission builds the arms on office4, runs the 72-cell primary matrix and the D-YaRN secondary, and delivers a ledger the design lead can grade blind. The result reads directly on whether the typed graph earns or kills #693.",
+  "purpose_tldr": "Build the three retrieval arms (graph, full-dump, vector-RAG) and run the pre-registered #849 comparison so #692's build direction is decided by measurement, not argument.",
+  "slug": "arms-run-01M3APTA",
+  "target_branch": "feat/849-arms-run",
+  "topology": "single_branch"
+}
