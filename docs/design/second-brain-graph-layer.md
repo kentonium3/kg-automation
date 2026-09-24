@@ -3,7 +3,7 @@ title: "Second Brain Graph Layer — Design"
 doc_type: design
 status: draft
 owners: ["@kentonium3"]
-last_updated: '2026-09-18'
+last_updated: '2026-09-23'
 audience: agents_and_humans
 ---
 
@@ -190,6 +190,15 @@ A discrete, schedulable unit of action. Has a single actor and a single action. 
 #### COMMITMENT
 A hard temporal constraint. Not in the hierarchy — a cross-cutting node type that the life-coach agent treats as a fixed point when calculating capacity. Cannot be moved unilaterally (external commitments) or represents a hard internal deadline.
 
+**Anchoring rule (2026-09-23, from #849 Arc C).** A Commitment is anchored by a **datetime**
+*or* by a **trigger condition** ("once we're past the launch"), never neither. A trigger-gated
+Commitment has no date, so it can never go *overdue* — it becomes *due* when its condition is
+met, which is often only inferable indirectly. Where the condition names a node, a `GATED_ON`
+edge points at it so the reasoning loop knows what to check; the trigger text is kept
+regardless. **Intake policy:** when Kent defers a captured promise without a date, ask for a
+trigger, not a date. Standing commitments (a weekly paid session) carry a `recurrence_rule`
+rather than one datetime per instance.
+
 *Examples:* "Contrarian cohort call Thursday 2pm," "Client delivery deadline"
 
 #### PRINCIPLE
@@ -216,9 +225,10 @@ under (email address, Slack display name, calendar invitee spelling). Structured
 resolve handle → Person against that list **before writing** (deterministic, $0). The
 extraction path relies on Graphiti's entity dedup plus the post-extraction near-duplicate
 check, and a merge is committed **only on evidence**: production aliases are added by adapter
-configuration or a Decision-grade confirmation, never by LLM name similarity alone. #849's
-Arc D near-miss trap (a *different* person with a similar handle who must not be merged) is
-the measurement of whether that policy can ever loosen.
+configuration or a Decision-grade confirmation, never by LLM name similarity alone. Kent's
+ruling when cutting #849's Arc D (2026-09-23): a person's handles are unique to that person,
+so resolution is a **deterministic precondition of the corpus**, not a reasoning problem to
+test. `is_contact` marks the people whose mail must always surface (the router's $0 lookup).
 
 **Privacy.** A Person node is PII by construction. Adding the *type* widens nothing: #849 uses
 a fictional cast, and any real-person data is gated by the #696 privacy gate and the
@@ -226,6 +236,17 @@ physical-exclusion rule (§Rollout → Design spike, item 3). The local-extracti
 the tailnet, $0) is the favourable one for such content. Do not read the type as permission.
 
 *Examples:* a client principal (email + calendar), a collaborator (Slack), a family member.
+
+#### INTEREST — *PROPOSED 2026-09-23, stability: directional (Kent to ratify)*
+A topic Kent currently wants information on — the "current interest" list he maintains by
+voice, journal, or WhatsApp (#849 Arc E). Cross-cutting and scope-free, like Capacity. Not a
+Principle (it constrains nothing) and not a Domain (it is a subject, not a life area). It is
+**bi-temporal by nature**: every add or drop is an episode, so the list *as of a given week*
+is recovered by anchored expansion under the state-vs-history rule, while `status` holds the
+current value. Needed to seed the intake router's digest and "current interest" judgement
+honestly; not a #849 build item.
+
+*Examples:* "local LLM inference on consumer hardware", "5K training plans"
 
 ---
 
@@ -310,12 +331,15 @@ class Task(BaseModel):
 
 
 class Commitment(BaseModel):
-    """Hard temporal constraint. Fixed point for scheduling."""
+    """Hard temporal constraint. Fixed point for scheduling.
+    Invariant: `datetime` or `trigger` is set — never neither (see Anchoring rule)."""
     description: str = ""
-    datetime: str                           # ISO datetime
+    datetime: Optional[str] = None          # ISO datetime; None for trigger-gated
+    trigger: Optional[str] = None           # condition text, e.g. "once we're past the launch"
+    recurrence_rule: Optional[str] = None   # RRULE for standing commitments
     duration_hours: Optional[float] = None
     is_external: bool = True                # False = hard internal deadline
-    counterparty: Optional[str] = None
+    counterparty: Optional[str] = None      # derived from COMMITTED_TO when present
 
 
 class Principle(BaseModel):
@@ -360,6 +384,20 @@ class Person(BaseModel):
     relationship: RelationshipEnum = RelationshipEnum.OTHER
     organisation: Optional[str] = None
     aliases: list[str] = []                  # every handle: email, Slack display, calendar spelling
+    is_contact: bool = False                 # on Kent's contacts list — a $0 router lookup
+
+
+class InterestStatusEnum(str, Enum):
+    ACTIVE = "active"
+    DROPPED = "dropped"
+
+
+class Interest(BaseModel):
+    """PROPOSED (2026-09-23, directional). A topic Kent currently wants information on.
+    Cross-cutting, scope-free, found by typed-label lookup like Capacity. Adds and drops
+    are episodes, so 'the interest list as of week N' comes from anchored expansion."""
+    topic: str
+    status: InterestStatusEnum = InterestStatusEnum.ACTIVE
 ```
 
 ---
@@ -395,7 +433,8 @@ All edges carry `valid_from` / `valid_until` automatically via Graphiti's bi-tem
 | `GOVERNED_BY` | Decision | Principle | The Decision was constrained by / cited this Principle |
 | `VIOLATES` | Task/Project | Principle | Agent-detected tension between a proposed action and a Principle |
 | `CONSTRAINS` | Capacity | Purpose/Domain | Capacity bounds work in this scope (absence = global) |
-| `DUE_BY` | Task/Project | Commitment | This node's hard deadline is this Commitment (task-side source, matching the upward-pointing convention) |
+| `DUE_BY` | Task/Project/Outcome | Commitment | This node's hard deadline is this Commitment (source side is the work node, matching the upward-pointing convention) |
+| `GATED_ON` | Commitment | Project/Objective/Outcome/Commitment | This trigger-gated Commitment becomes due when this node completes / occurs |
 | `COMMITTED_TO` | Commitment | Person | The Person this Commitment was made to (its counterparty); attributed — see `CommittedTo` |
 | `INVOLVES` | Task/Project | Person | This Person is a stakeholder in this node |
 
@@ -432,7 +471,8 @@ class CommittedTo(BaseModel):
 Wiring intent (implementer verifies exact API shape against the pinned graphiti-core —
 the doc states design intent, not engine mechanics):
 
-- `entity_types`: all eleven models, keyed by their class names, passed to `add_episode`.
+- `entity_types`: all twelve models (eleven accepted + the proposed `Interest`), keyed by
+  their class names, passed to `add_episode`.
 - `edge_type_map`: keyed by (source-type, target-type) name pairs per the table above.
   `CONTAINS` registers for (Project, Project), (Project, Task), and (Task, Task).
   `DECIDED` registers Decision → **{Purpose, Domain, Outcome, Objective, Project, Task,
@@ -456,7 +496,8 @@ the doc states design intent, not engine mechanics):
   authoritative** and the flag is derived (`Task.is_shared` ⇐ existence of `SHARED_BY`
   edges; `Task.due_date` ⇐ its `DUE_BY` Commitment when one exists — attribute-only due
   dates remain valid for soft dates that never earned a Commitment;
-  `Commitment.counterparty` ⇐ its `COMMITTED_TO` Person). Writers maintain
+  `Outcome.target_date` ⇐ its `DUE_BY` Commitment likewise; `Commitment.counterparty` ⇐ its
+  `COMMITTED_TO` Person). Writers maintain
   the edge; the flag may lag or be dropped entirely.
 - **Unmaterialised-commitment pattern** (with `Person`): a Commitment carrying a
   `COMMITTED_TO` edge but **no inbound `DUE_BY` / `GATES` / `BLOCKS`** from any Task or
@@ -477,9 +518,9 @@ pattern ("deferred 4× and never decided anything") is itself a coaching signal.
 This is not a spike workaround: proof-ladder rung 2 is adapters writing events into the
 Lattice, and §Integration already routes Vikunja task events in as episodes.
 
-**Discovery contract for scope-free nodes:** a global `Capacity` (no `CONSTRAINS` edge)
-is intentionally not traversal-reachable; reasoning-loop step 6 finds it by **typed-label
-lookup**, not by walking edges. Retrieval configurations that only search edges will miss
+**Discovery contract for scope-free nodes:** a global `Capacity` (no `CONSTRAINS` edge) and
+every `Interest` are intentionally not traversal-reachable; reasoning-loop step 6 (and the
+router's interest check) find them by **typed-label lookup**, not by walking edges. Retrieval configurations that only search edges will miss
 edgeless nodes (measured in #974) — consumers must include node search.
 
 ### Graph namespace (group_id)
@@ -509,7 +550,7 @@ The life-coach agent operates on this graph to perform trade-off reasoning. Its 
 2. Traverse upward to Outcome and Purpose; identify which life area this serves
 3. Retrieve all Tasks and Projects scheduled for the relevant time window
 4. Traverse each competing node upward to its Outcome; compare `priority_rank` and `target_date` urgency
-5. Retrieve active Commitments for the time window (fixed points)
+5. Retrieve active Commitments for the time window (fixed points) — expanding `recurrence_rule` instances, and including trigger-gated Commitments whose `GATED_ON` target has completed or whose condition is inferably met
 6. Calculate available effort: window capacity (from applicable `Capacity` nodes — global plus those `CONSTRAINS`-scoped to the traversed Purpose/Domain) minus Commitments minus existing scheduled work
 7. **Check applicable Principles** (global + those `SCOPED_TO` the traversed Purpose/Domain): does the proposed action violate any? A **hard** violation is never auto-handled — it surfaces regardless of priority; a **soft** violation is weighed against the action's value. Record the check via `GOVERNED_BY` (and `VIOLATES` when detected).
 8. Determine fit: does the proposed node fit without displacing higher-priority work?
