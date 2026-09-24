@@ -120,6 +120,32 @@ STREAM_FIELDS = frozenset({
 #: dump hands D and R the wiring that G has to traverse for.
 LOADER_FIELDS = frozenset({"mentions", "commitment", "content_ref"})
 
+#: Default-deny per entity kind, the mirror of STREAM_FIELDS. `id` and `kind`
+#: are implicit.
+#:
+#: Amendment A1 (2026-09-24). Contract 3 was applied to events only: the entity
+#: path was `{"kind": kind, **data}`, so a field added to a seed reached every
+#: arm untouched. `arcs` walked through it — authoring metadata naming which
+#: test arc each Person belongs to, which partitions the cast by question and
+#: hands all three arms the selectivity arm G is supposed to earn. The field
+#: was the instance; the missing allowlist was the defect.
+ENTITY_FIELDS = {
+    "Purpose":    {"description"},
+    "Domain":     {"description"},
+    "Capacity":   {"description", "hours_per_week"},
+    "Outcome":    {"description", "domain", "serves", "success_criteria", "target_date"},
+    "Objective":  {"description", "advances", "target_date"},
+    "Project":    {"description", "delivers"},
+    "Task":       {"description", "recurrence_rule"},
+    "Principle":  {"description", "rationale", "scope", "strictness"},
+    "Commitment": {"counterparty", "datetime", "description", "is_external",
+                   "recurrence_rule", "trigger"},
+    "Person":     {"aliases", "is_contact", "name", "organisation", "relationship"},
+    "Interest":   {"topic"},
+    "Decision":   {"decided_at", "options_considered", "rationale"},
+    "Edge":       {"channel", "disposition", "from", "made_at", "to", "type"},
+}
+
 
 class Corpus:
     """Accumulates rendered events and entities, and tracks emitted ids.
@@ -172,7 +198,19 @@ class Corpus:
         self.emitted.add(emit_id)
 
     def entity(self, kind: str, data: dict, emit_id: str | None = None) -> None:
-        self.entities.append({"kind": kind, **data})
+        allowed = ENTITY_FIELDS.get(kind)
+        if allowed is None:
+            # An unregistered kind is reported and passed through: silently
+            # emptying a new entity type would be worse than the leak.
+            self.stripped_fields[f"<unregistered entity kind>{kind}"] = kind
+            kept = dict(data)
+        else:
+            for key, value in data.items():
+                if key not in allowed and key not in ("id", "kind"):
+                    self.stripped_fields[f"{kind}.{key}"] = value
+            kept = {k: v for k, v in data.items()
+                    if k in allowed or k in ("id", "kind")}
+        self.entities.append({"kind": kind, **kept})
         if emit_id:
             self.emitted.add(emit_id)
 
@@ -747,17 +785,29 @@ def main(argv: list[str]) -> int:
     (args.out / "entities.json").write_text(
         json.dumps(corpus.entities, indent=2, sort_keys=True, default=str) + "\n",
         encoding="utf-8")
+    # ARM G'S INPUT ONLY (Amendment A1, 2026-09-24). These links were collected
+    # and never written, so the graph arm's specified retrieval — "anchored
+    # history expansion (entity -> its episodes via MENTIONS)", seeded by
+    # structured writes with no LLM (rubric §2) — had no data, and G would have
+    # string-matched exactly like the flat arms. D and R must NEVER read this
+    # file: putting the wiring in the dump hands them the traversal G has to
+    # earn. The harness asserts their input paths are stream + entities only.
+    with (args.out / "loader_links.jsonl").open("w", encoding="utf-8") as fh:
+        for link in sorted(corpus.loader_links, key=lambda l: l["ref"]):
+            fh.write(json.dumps(link, sort_keys=True, default=str) + "\n")
     (args.out / "manifest.json").write_text(
         json.dumps({
             "scale": args.scale,
             "valid_for_run": args.scale == 1,
             "events": len(corpus.events),
             "entities": len(corpus.entities),
+            "loader_links": len(corpus.loader_links),
             "emitted": sorted(corpus.emitted),
         }, indent=2) + "\n", encoding="utf-8")
 
     print(f"render_849_corpus: {len(corpus.events)} events, "
-          f"{len(corpus.entities)} entities -> {args.out}")
+          f"{len(corpus.entities)} entities, "
+          f"{len(corpus.loader_links)} loader links -> {args.out}")
     if args.scale != 1:
         print("  ⚠ scaled corpus — NOT valid for a run (manifest records this)")
     if problems:

@@ -71,11 +71,11 @@ def test_questions_run_in_ask_time_ascending_order_within_each_pass():
 def test_resume_skips_completed_runs_and_finishes_the_matrix(tmp_path, arms):
     ledger = tmp_path / "ledger.jsonl"
 
-    h.run(ledger, CORPUS, limit=5)
+    h.run(ledger, CORPUS, limit=5, gates=False)
     _, rows = h.read_ledger(ledger)
     assert len(rows) == 5
 
-    h.run(ledger, CORPUS, limit=5)
+    h.run(ledger, CORPUS, limit=5, gates=False)
     _, rows = h.read_ledger(ledger)
     assert len(rows) == 10, "resume re-ran work already in the ledger"
     keys = [(r["arm"], r["question"], r["repeat"]) for r in rows]
@@ -86,8 +86,8 @@ def test_resume_skips_completed_runs_and_finishes_the_matrix(tmp_path, arms):
 
 def test_a_completed_matrix_has_nothing_left_to_do(tmp_path, arms):
     ledger = tmp_path / "ledger.jsonl"
-    h.run(ledger, CORPUS)
-    completed, failed = h.run(ledger, CORPUS)
+    h.run(ledger, CORPUS, gates=False)
+    completed, failed = h.run(ledger, CORPUS, gates=False)
     assert (completed, failed) == (0, 0)
     _, rows = h.read_ledger(ledger)
     assert len(rows) == 72
@@ -98,7 +98,7 @@ def test_every_ledger_line_is_complete_json(tmp_path, arms):
     """An interrupted write would make the ledger unparseable, which loses the
     whole run rather than the cell in flight."""
     ledger = tmp_path / "ledger.jsonl"
-    h.run(ledger, CORPUS, limit=4)
+    h.run(ledger, CORPUS, limit=4, gates=False)
     for line in ledger.read_text(encoding="utf-8").splitlines():
         assert json.loads(line)
 
@@ -115,7 +115,7 @@ def test_a_ledger_refuses_to_resume_against_a_different_corpus(tmp_path, arms):
     from one, and #849 has an amendment pending that changes the fingerprints.
     """
     ledger = tmp_path / "ledger.jsonl"
-    h.run(ledger, CORPUS, limit=2)
+    h.run(ledger, CORPUS, limit=2, gates=False)
 
     other = tmp_path / "corpus"
     other.mkdir()
@@ -159,7 +159,7 @@ def test_an_unregistered_arm_is_recorded_not_silently_skipped(tmp_path):
     """"Could not run" and "ran and scored zero" must never collapse."""
     ledger = tmp_path / "ledger.jsonl"
     h.ARM_IMPLEMENTATIONS.clear()
-    h.run(ledger, CORPUS, limit=3)
+    h.run(ledger, CORPUS, limit=3, gates=False)
     _, rows = h.read_ledger(ledger)
     assert len(rows) == 3
     assert all(r["outcome"] == "not_implemented" for r in rows)
@@ -172,8 +172,59 @@ def test_an_arm_that_raises_is_recorded_and_the_run_continues(tmp_path, monkeypa
         raise ValueError("substrate unavailable")
 
     monkeypatch.setitem(h.ARM_IMPLEMENTATIONS, "G", exploding)
-    completed, failed = h.run(ledger, CORPUS, limit=2)
+    completed, failed = h.run(ledger, CORPUS, limit=2, gates=False)
     assert failed == 2
     _, rows = h.read_ledger(ledger)
     assert all(r["outcome"] == "error" for r in rows)
     assert "substrate unavailable" in rows[0]["error"]
+
+
+# --------------------------------------------------------------------------
+# Amendment A1: loader_links is arm G's input only
+# --------------------------------------------------------------------------
+
+
+def test_only_arm_g_sees_loader_links():
+    """The flat arms must not get the traversal the graph arm has to earn.
+
+    D and R are handed a view with no links rather than trusted not to look —
+    an assertion that depends on an arm's good behaviour is not an assertion.
+    """
+    from datetime import datetime as _dt
+    from scripts.research.load_849_corpus import replay as _replay
+    ask = _dt.fromisoformat("2026-10-16T09:00:00-04:00")
+
+    g = h.arm_view(h.RunKey("G", "B2", 1), _replay(CORPUS, ask, verify=False))
+    assert g.links, "arm G must receive the MENTIONS wiring"
+
+    for arm in ("D", "R"):
+        view = h.arm_view(h.RunKey(arm, "B2", 1), _replay(CORPUS, ask, verify=False))
+        assert view.links == [], f"arm {arm} must never see loader_links"
+
+
+def test_arm_inputs_declares_links_for_g_only():
+    from scripts.research.load_849_corpus import ARM_INPUTS
+    assert "loader_links.jsonl" in ARM_INPUTS["G"]
+    assert "loader_links.jsonl" not in ARM_INPUTS["D"]
+    assert "loader_links.jsonl" not in ARM_INPUTS["R"]
+
+
+# --------------------------------------------------------------------------
+# Amendment A1 (d): the four gates precede any run
+# --------------------------------------------------------------------------
+
+
+def test_all_four_gates_pass_on_the_current_corpus():
+    assert h.verify_gates() == []
+
+
+def test_a_failing_gate_stops_the_run(tmp_path, monkeypatch, arms):
+    """A run against a corpus that fails a gate produces numbers that look
+    exactly like numbers from a corpus that passed."""
+    import scripts.research.check_849_loader as loader_check
+    monkeypatch.setattr(loader_check, "main", lambda argv: 1)
+
+    with pytest.raises(h.GateFailed) as exc:
+        h.run(tmp_path / "ledger.jsonl", CORPUS, limit=1, gates=True)
+    assert "check_849_loader" in str(exc.value)
+    assert not (tmp_path / "ledger.jsonl").exists(), "no ledger on a failed gate"

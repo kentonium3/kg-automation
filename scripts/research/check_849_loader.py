@@ -35,6 +35,7 @@ REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT))
 
 from scripts.research.check_849_seed import FORBIDDEN_TOKENS  # noqa: E402
+from scripts.research.render_849_corpus import ENTITY_FIELDS  # noqa: E402
 from scripts.research.load_849_corpus import (  # noqa: E402
     DEFAULT_CORPUS, UnfrozenCorpus, replay, verify_registration,
 )
@@ -50,27 +51,6 @@ ASK_TIMES = [
     ("F2", "2026-09-25T09:00:00-04:00"),
     ("B2", "2026-10-16T09:00:00-04:00"),
 ]
-
-#: Default-deny, per entity kind — the mirror of the renderer's STREAM_FIELDS.
-#: `id` and `kind` are implicit. A field not listed here is either new corpus
-#: vocabulary that belongs on the list, or authoring metadata that would reach
-#: every arm. Both need a human to look; neither should pass silently.
-ENTITY_FIELDS = {
-    "Purpose":    {"description"},
-    "Domain":     {"description"},
-    "Capacity":   {"description", "hours_per_week"},
-    "Outcome":    {"description", "domain", "serves", "success_criteria", "target_date"},
-    "Objective":  {"description", "advances", "target_date"},
-    "Project":    {"description", "delivers"},
-    "Task":       {"description", "recurrence_rule"},
-    "Principle":  {"description", "rationale", "scope", "strictness"},
-    "Commitment": {"counterparty", "datetime", "description", "is_external",
-                   "recurrence_rule", "trigger"},
-    "Person":     {"aliases", "is_contact", "name", "organisation", "relationship"},
-    "Interest":   {"topic"},
-    "Decision":   {"decided_at", "options_considered", "rationale"},
-    "Edge":       {"channel", "disposition", "from", "made_at", "to", "type"},
-}
 
 #: The closed set of edge types. An unregistered type fails rather than loading,
 #: because an arm querying a typed graph can only pull what the ontology names.

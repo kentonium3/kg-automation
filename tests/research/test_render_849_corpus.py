@@ -321,3 +321,64 @@ def test_every_generator_rng_is_seeded_from_a_stable_label():
     constructions = _re.findall(r"random\.Random\(([^)]*)\)", src)
     assert constructions, "no Random construction found — has the helper moved?"
     assert all(arg.strip() for arg in constructions), constructions
+
+
+# --------------------------------------------------------------------------
+# Amendment A1 (2026-09-24): entity allowlist + loader links
+# --------------------------------------------------------------------------
+
+
+def test_arcs_authoring_metadata_never_reaches_an_arm(rendered):
+    """`arcs` labelled which test arc each Person belonged to, partitioning the
+    cast by question and handing every arm the selectivity G must earn."""
+    corpus, _ = rendered
+    assert not any("arcs" in e for e in corpus.entities)
+    assert '"arcs"' not in _text(corpus)
+
+
+def test_the_entity_allowlist_is_default_deny(rendered):
+    """The field was the instance; the missing allowlist was the defect —
+    contract 3 had been applied to events only."""
+    from scripts.research.render_849_corpus import ENTITY_FIELDS
+    corpus, _ = rendered
+    for entity in corpus.entities:
+        allowed = ENTITY_FIELDS[entity["kind"]] | {"id", "kind"}
+        assert set(entity) <= allowed, (entity["kind"], set(entity) - allowed)
+
+
+def test_a_new_authoring_field_is_stripped_and_reported(rendered):
+    corpus, _ = rendered
+    assert "Person.arcs" in corpus.stripped_fields
+    assert corpus.stripped_fields["Person.arcs"]
+
+
+def test_loader_links_are_written_and_cover_every_mentions_declaration(tmp_path):
+    """Collected and never written, arm G's MENTIONS expansion had no data and
+    it would have string-matched exactly like the flat arms."""
+    import scripts.research.render_849_corpus as mod
+    mod.main(["render", "--out", str(tmp_path)])
+
+    path = tmp_path / "loader_links.jsonl"
+    assert path.exists()
+    links = [json.loads(l) for l in path.read_text().splitlines() if l.strip()]
+    assert len(links) == 22, len(links)
+    assert all("ref" in l for l in links)
+    assert [l["ref"] for l in links] == sorted(l["ref"] for l in links)
+
+    declared = sum(len((doc.get("meta") or {}).get("non_rendered") or []) * 0
+                   + sum(1 for key in ("episodes", "episodes_booking", "interest_episodes")
+                         for ep in (rendered_view(doc).get(key) or [])
+                         if ep.get("mentions"))
+                   for doc in load_all().values())
+    assert sum(1 for l in links if "mentions" in l) == declared, declared
+
+    manifest = json.loads((tmp_path / "manifest.json").read_text())
+    assert manifest["loader_links"] == 22
+
+
+def test_mentions_never_reach_the_stream(rendered):
+    """Putting the wiring in the dump would hand D and R the traversal G has
+    to earn."""
+    corpus, _ = rendered
+    assert not any("mentions" in e for e in corpus.events)
+    assert "mentions" not in _text(corpus)

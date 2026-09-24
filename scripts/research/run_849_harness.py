@@ -50,7 +50,7 @@ sys.path.insert(0, str(REPO_ROOT))
 
 from scripts.research.check_849_loader import ASK_TIMES  # noqa: E402
 from scripts.research.load_849_corpus import (  # noqa: E402
-    DEFAULT_CORPUS, REGISTRATION, UnfrozenCorpus, fingerprint, replay,
+    ARM_INPUTS, DEFAULT_CORPUS, REGISTRATION, UnfrozenCorpus, fingerprint, replay,
 )
 
 ARMS = ("G", "D", "R")
@@ -59,6 +59,21 @@ DEFAULT_LEDGER = REPO_ROOT / "build" / "849-runs" / "ledger.jsonl"
 
 #: Phase (b) registers callables here: (question_label, ask_time, Loaded) -> Answer.
 ARM_IMPLEMENTATIONS: dict[str, object] = {}
+
+
+#: The four gates, all of which must pass before any run starts (Amendment A1
+#: (d)). Running the matrix against a corpus that fails a gate produces numbers
+#: that look exactly like numbers from a corpus that passed.
+GATES = (
+    "scripts.research.check_849_seed",
+    "scripts.research.check_849_oracle",
+    "scripts.research.check_849_freeze",
+    "scripts.research.check_849_loader",
+)
+
+
+class GateFailed(RuntimeError):
+    """Raised when a pre-run gate does not pass."""
 
 
 class LedgerBoundToAnotherCorpus(RuntimeError):
@@ -182,6 +197,46 @@ def _append(path: pathlib.Path, record: dict) -> None:
 # --------------------------------------------------------------------------
 
 
+def verify_gates() -> list[str]:
+    """Run all four checkers in-process; return the names that failed.
+
+    In-process rather than by subprocess so a gate that cannot even be imported
+    fails loudly here instead of looking like a passing exit code.
+    """
+    import importlib
+    import io
+    import contextlib
+
+    failed = []
+    for name in GATES:
+        module = importlib.import_module(name)
+        buffer = io.StringIO()
+        try:
+            with contextlib.redirect_stdout(buffer):
+                code = module.main([name])
+        except Exception as exc:  # noqa: BLE001
+            failed.append(f"{name}: raised {type(exc).__name__}: {exc}")
+            continue
+        if code != 0:
+            tail = "\n      ".join(buffer.getvalue().strip().splitlines()[-6:])
+            failed.append(f"{name}: exit {code}\n      {tail}")
+    return failed
+
+
+def arm_view(key: RunKey, loaded):
+    """Narrow a replayed corpus to what THIS arm is allowed to read.
+
+    loader_links is arm G's input only (Amendment A1 (b)). D and R are handed a
+    view with no links at all rather than being trusted not to look: the flat
+    arms must not get the traversal the graph arm has to earn, and an assertion
+    that depends on an arm's good behaviour is not an assertion.
+    """
+    allowed = ARM_INPUTS[key.arm]
+    if "loader_links.jsonl" not in allowed:
+        loaded.links = []
+    return loaded
+
+
 def execute(key: RunKey, corpus_dir: pathlib.Path) -> dict:
     """Run one cell of the matrix. Returns the ledger record."""
     ask_time = datetime.fromisoformat(dict(ASK_TIMES)[key.question])
@@ -190,7 +245,7 @@ def execute(key: RunKey, corpus_dir: pathlib.Path) -> dict:
         return {**key.as_dict(), "record": "run", "outcome": "not_implemented",
                 "note": f"arm {key.arm} is not registered — phase (b)"}
 
-    loaded = replay(corpus_dir, ask_time, verify=False)
+    loaded = arm_view(key, replay(corpus_dir, ask_time, verify=False))
     started = time.monotonic()
     try:
         answer: Answer = arm(key.question, ask_time, loaded)
@@ -209,7 +264,14 @@ def execute(key: RunKey, corpus_dir: pathlib.Path) -> dict:
 
 
 def run(ledger_path: pathlib.Path, corpus_dir: pathlib.Path,
-        limit: int | None = None) -> tuple[int, int]:
+        limit: int | None = None, gates: bool = True) -> tuple[int, int]:
+    if gates:
+        failures = verify_gates()
+        if failures:
+            raise GateFailed(
+                "the corpus does not pass every gate; no run may start:\n  "
+                + "\n  ".join(failures))
+        print(f"gates: all {len(GATES)} pass")
     done = open_ledger(ledger_path, corpus_dir)
     todo = [k for k in plan() if k not in done]
     if limit:
@@ -257,6 +319,8 @@ def main(argv: list[str]) -> int:
     ap.add_argument("--ledger", type=pathlib.Path, default=DEFAULT_LEDGER)
     ap.add_argument("--limit", type=int, help="stop after N runs this session")
     ap.add_argument("--dry-run", action="store_true")
+    ap.add_argument("--skip-gates", action="store_true",
+                    help="development only; never for a run")
     ap.add_argument("--status", action="store_true")
     args = ap.parse_args(argv[1:])
 
@@ -275,8 +339,9 @@ def main(argv: list[str]) -> int:
         return 0
 
     try:
-        completed, failed = run(args.ledger, args.corpus, args.limit)
-    except (LedgerBoundToAnotherCorpus, UnfrozenCorpus) as exc:
+        completed, failed = run(args.ledger, args.corpus, args.limit,
+                                gates=not args.skip_gates)
+    except (LedgerBoundToAnotherCorpus, UnfrozenCorpus, GateFailed) as exc:
         print(f"harness: REFUSED\n{exc}")
         return 1
     print(f"\nthis session: {completed} completed, {failed} failed")

@@ -38,18 +38,37 @@ from datetime import datetime
 REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]
 DEFAULT_CORPUS = REPO_ROOT / "build" / "849-corpus"
 
-#: The registration (rubric §9). A run is valid only against THIS corpus.
-#: Post-registration changes are dated amendments, so amending means editing
-#: this block and the rubric together — never one of them.
+#: A MIRROR of the registration (rubric §9), which is the authoritative record.
+#: The registration is written by one hand — the design lead — in the rubric and
+#: on #849; this block exists so the gate can enforce it, and is updated to
+#: match, never ahead of it.
+#:
+#: Amendment A1 (2026-09-24): `arcs` stripped from Person, loader_links.jsonl
+#: written. stream.jsonl is byte-identical to the 17:03Z registration because
+#: `arcs` was entity-only; entities.json and the new links file are the deltas.
 REGISTRATION = {
     "commit": "b203907e",
     "registered": "2026-09-24T17:03Z",
+    "amendment": "A1 (2026-09-24) — pending design-lead verification of these "
+                 "fingerprints before the dated amendment is posted",
     "files": {
         "stream.jsonl":
             "188b9bf1402645c5a015da01bd3241376a1914e25aacad8a529a84b10a290d4a",
         "entities.json":
-            "c1962d4d7ceb623ccd909ffe82b62838494c5e193e441dd6568339ac863c27c5",
+            "22532e50297a8594f358376919ce38bde3db3bce3f015d9e2dd9fb5ce0c9a9df",
+        "loader_links.jsonl":
+            "826fa4544085055a689298b117b5c5ecb4a596cdfe132b6af8c85418cc1302ee",
     },
+}
+
+#: Which corpus files each arm may read (Amendment A1).
+#: loader_links.jsonl is ARM G'S INPUT ONLY: it is how the graph arm wires
+#: episodes to entities, and handing it to the flat arms would give them the
+#: traversal G has to earn. Asserted by the harness before any run.
+ARM_INPUTS = {
+    "G": frozenset({"stream.jsonl", "entities.json", "loader_links.jsonl"}),
+    "D": frozenset({"stream.jsonl", "entities.json"}),
+    "R": frozenset({"stream.jsonl", "entities.json"}),
 }
 
 #: Entity kinds that are DEFINITIONAL: they describe standing structure rather
@@ -188,8 +207,11 @@ def read_corpus(corpus_dir: pathlib.Path):
     is the harness's dominant cost and buys nothing. Keyed on size+mtime so a
     re-render inside one process is picked up rather than served stale.
 
-    Returns the cached lists — `replay` must not mutate them, and does not: it
-    builds new lists by filtering.
+    Returns the CACHED lists. `replay` copies every dict it hands out, because
+    the cache made the rows shared: a caller that mutated one row poisoned every
+    later replay in the process. A test that set `OUT_LAUNCH.status` to prove a
+    check fires did exactly that and broke the gate four tests later. An arm
+    doing the same would corrupt later runs of a 72-cell matrix silently.
     """
     return _read_corpus_cached(_stat_key(corpus_dir), str(corpus_dir))
 
@@ -277,7 +299,9 @@ def replay(corpus_dir: pathlib.Path, ask_time: datetime,
 
     loaded = Loaded(ask_time=ask_time)
 
-    loaded.events = [r for r in rows
+    # Copied, not shared — see read_corpus. Shallow is enough: corpus values are
+    # scalars and short lists, and nothing writes through them.
+    loaded.events = [dict(r) for r in rows
                      if (t := _cmp_key(r.get("at"), ask_time)) is not None
                      and t <= ask_time]
     # By ref, not by `r not in loaded.events` — that was a linear scan over a
@@ -290,7 +314,7 @@ def replay(corpus_dir: pathlib.Path, ask_time: datetime,
     for node in nodes:
         start = entity_visible_from(node, edges)
         if start is None or _cmp_key(start, ask_time) <= ask_time:
-            loaded.entities.append(node)
+            loaded.entities.append(dict(node))
             visible_ids.add(node.get("id"))
         else:
             loaded.withheld.setdefault("entities", []).append(node.get("id"))
@@ -300,13 +324,13 @@ def replay(corpus_dir: pathlib.Path, ask_time: datetime,
         in_time = start is None or _cmp_key(start, ask_time) <= ask_time
         connected = edge.get("from") in visible_ids and edge.get("to") in visible_ids
         if in_time and connected:
-            loaded.edges.append(edge)
+            loaded.edges.append(dict(edge))
         else:
             loaded.withheld.setdefault("edges", []).append(
                 f"{edge.get('from')}-{edge.get('type')}->{edge.get('to')}")
 
     kept_refs = {r["ref"] for r in loaded.events}
-    loaded.links = [l for l in all_links if l.get("ref") in kept_refs]
+    loaded.links = [dict(l) for l in all_links if l.get("ref") in kept_refs]
     return loaded
 
 
