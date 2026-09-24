@@ -127,8 +127,9 @@ in the arc — not optional extras.
 
 ## Dispatch
 
-Both Codex passes use the Codex CLI with the `spec-kitty-review` profile. **Capture the
-FULL stdout to a log file — do NOT rely on `-o` / `--output-last-message`.** On agentic
+Both Codex passes use the Codex CLI **sandboxed and read-only** — `--sandbox read-only`,
+*not* `-p spec-kitty-review`. **Capture the FULL stdout to a log file — do NOT rely on
+`-o` / `--output-last-message`.** On agentic
 runs (Codex explores the tree with many tool calls before the synthesis) the last-message
 capture comes back empty or truncated, which is the entire reason Codex has *looked*
 unreliable as a reviewer (kentonium3/kg-automation#790). The full stdout is reliable; the
@@ -136,9 +137,9 @@ review synthesis is the block after the **last** line that is exactly `codex`, u
 `tokens used` footer.
 
 ```bash
-# Prompt via stdin `-`; full stdout+stderr → a log; run in the background and poll
+# Prompt via stdin; full stdout+stderr → a log; run in the background and poll
 # byte-growth for liveness (never `| tail`, never `-o`). See the never-hide-codex SOP.
-codex exec -p spec-kitty-review -C <worktree> --add-dir "$(pwd)" - < <prompt.md> \
+codex exec --sandbox read-only -C <worktree> --add-dir "$(pwd)" - < <prompt.md> \
   > <log.md> 2>&1 &
 # Liveness: while <log.md> keeps growing, Codex is alive. If it stalls for a few minutes
 # (no byte growth), it is wedged (usually stdin-wait) — kill and fix the invocation.
@@ -146,8 +147,27 @@ codex exec -p spec-kitty-review -C <worktree> --add-dir "$(pwd)" - < <prompt.md>
 ```
 
 Never pass `-o` / `--output-last-message` (unreliable on agentic runs — read the full log
-instead), and never pass `--full-auto` — it overrides the profile's `sandbox_mode` and
-breaks `.git/` writes (see the `reference_codex_speckitty_profile` note /
-kentonium3/kg-automation#330). Verified 2026-07-18: `-p spec-kitty-review -` with
-full-stdout capture reviews a real diff in ~60s, clean exit — the profile and invocation
-are fine; only the output-capture pattern was at fault (#790).
+instead), and never pass `--full-auto` — it overrides `sandbox_mode` entirely (see the
+`reference_codex_speckitty_profile` note / kentonium3/kg-automation#330).
+
+**Why read-only rather than the `spec-kitty-review` profile.** That profile is a single
+line — `sandbox_mode = "danger-full-access"` — and has nothing to do with review quality.
+Its only purpose is to let Codex write `.git/spec-kitty-locks` and `~/.spec-kitty/` when
+it must record a WP verdict *itself*. A review pass only reads and emits findings, so
+granting it write access to `.git/` is strictly worse than not granting it. Prefer
+removing even the verdict-recording need: have the orchestrator record the verdict through
+the deterministic seam (`spk-run-verdict-capture` → `spec-kitty agent tasks move-task`),
+leaving Codex purely advisory.
+
+Verified 2026-07-18 that the *invocation* works and that only the output-capture pattern
+was ever at fault (#790) — that finding stands and is why full-stdout capture is
+mandatory. Re-verified 2026-09-19-20 on the #989 arc: four consecutive review passes run
+with `codex exec --sandbox read-only` and the prompt piped via stdin returned clean
+synthesis every time, finding real defects each round. Read-only costs nothing in review
+quality.
+
+**Opus fallback.** If Codex hits its usage/rate limit, switch that review function to an
+independent Opus reviewer (e.g. `reviewer-renata`) with the same adversarial prompt on the
+same artifacts, and fix its findings the same way. Codex stays the default; Opus is the
+automatic fallback, so the review discipline is never dropped just because Codex is out of
+hours.

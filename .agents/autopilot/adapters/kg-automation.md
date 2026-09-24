@@ -34,10 +34,20 @@ python3 tooling/scripts/validate_architecture_data.py
 
 ## Adversarial review
 
-- Default reviewer is **reviewer-renata** (Opus subagent) for non-trivial diffs.
-- Codex (`codex exec -p spec-kitty-review`) is the historical default but has
-  been unreliable as a reviewer recently (under investigation) — prefer renata
-  until that is resolved. Never `--full-auto` (breaks `.git/` writes).
+- Default reviewer is **Codex**, run **sandboxed and read-only**:
+  `codex exec --sandbox read-only`, with the prompt piped via **stdin** (a bare
+  `"$(cat)"` argument hangs) and an explicit "do not edit any files" instruction.
+- ⛔ Do **not** pass `-p spec-kitty-review` for a review pass. That profile is a
+  single line — `sandbox_mode = "danger-full-access"` — and has nothing to do
+  with review quality; it exists only for the narrow case where Codex must
+  record a WP verdict itself. Handing a read-only reviewer write access to
+  `.git/` is strictly worse than not handing it over. Never `--full-auto`
+  either, which overrides the profile regardless.
+- **reviewer-renata** (Opus subagent) is the standing **fallback**, not the
+  default: use it when Codex hits its usage/rate limit, so the review
+  discipline is never dropped just because Codex is out of hours.
+- Keep prompts under ~150 lines — Codex returns empty (exit 0, no answer) on
+  long prompts.
 
 ## Deploy motion (office2)
 
