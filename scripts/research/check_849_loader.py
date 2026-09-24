@@ -183,11 +183,16 @@ def main(argv: list[str]) -> int:
     failures: list[str] = []
 
     try:
-        verify_registration(corpus_dir)
-        print(f"fingerprint gate: OK")
+        observed = verify_registration(corpus_dir)
     except UnfrozenCorpus as exc:
         print(f"fingerprint gate: REFUSED\n{exc}")
         return 1
+    # Printed on SUCCESS too, at the design lead's request: verification and
+    # the registration report then cite the same strings instead of each
+    # re-hashing by hand and hoping they agree.
+    print("fingerprint gate: OK — computed:")
+    for name in sorted(observed):
+        print(f"  {name:20} {observed[name]}")
 
     print("\ncorpus-wide:")
     for problem in (check_entity_properties(corpus_dir)
