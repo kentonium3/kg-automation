@@ -82,7 +82,7 @@ When the primary ledger is complete, the harness exports a grading view: per que
 |----|-------|------------|----------|--------|
 | FR-001 | Four-gate + prompt-hash precondition | As the operator, I want the run to refuse unless the corpus passes all four registered checks and the prompt text matches the registered hash, so that no number is produced from unregistered inputs. | High | Open |
 | FR-002 | Resumable 72-cell primary run | As the operator, I want the run to complete all 72 cells arm-major with questions in ask-time order and to resume from the ledger across session limits without re-executing scored cells, so that a multi-hour run survives a session limit. | High | Open |
-| FR-003 | Ledger header binds corpus, prompt and serving configuration | As the grader, I want each ledger's header to record the corpus fingerprints, prompt hash, model identity, model context, serving-configuration identity, and R's derived k with the G medians it came from, so that any cell is reproducible from the ledger alone and a ledger can never mix configurations. | High | Open |
+| FR-003 | Ledger header binds corpus, prompt and serving configuration | As the grader, I want each ledger's header to record the corpus fingerprints, prompt hash, model identity, model context, the full serving-configuration identity — including the sampling settings (temperature, top-p, top-k, repeat penalty, seed policy) and the output-length limit, equal across every cell of the ledger — and R's derived k with the G medians it came from, so that any cell is reproducible from the ledger alone, three repeats measure a variance that means something, and a truncated answer is distinguishable from a short one. | High | Open |
 | FR-004 | Per-cell cost and plan columns | As the grader, I want every scored cell to carry total prompt tokens, output tokens, the cache split (write / read / uncached), prefill and generation timings with generation rate, peak memory during the cell, and the arm's plan record (G: anchors, plan steps, items assembled; R: k; D: layout asserted), so that §5 reporting is computed from columns, not from free-text. | High | Open |
 | FR-005 | Outcome kinds kept distinct and never averaged | As the grader, I want `ok`, `exceeds_model_context`, `error` and `not_implemented` to be distinct outcomes, with only `ok` cells entering any mean or range and the others counted, so that could-not-check never reads as verified-false. | High | Open |
 | FR-006 | Arm D context-limit classification | As the operator, I want arm D to measure its prompt's token count client-side before sending and to record `exceeds_model_context` with that count when it exceeds the model's trained context, so that no degraded over-limit answer is ever recorded as a result. | High | Open |
@@ -110,7 +110,7 @@ When the primary ledger is complete, the harness exports a grading view: per que
 | NFR-005 | Determinism of what is not the model | Given the same ledger header, the assembled context for any cell is byte-identical across repeats; only the model's output may vary. | Reliability | High | Open |
 | NFR-006 | Blinding integrity | The grader-facing file contains zero arm identifiers and zero ledger metadata; the mapping is recoverable only from the sealed file and the seed. | Security | High | Open |
 | NFR-007 | Single writer | At most one process appends to a given ledger at any time; a second writer is refused, never silently interleaved. | Reliability | High | Open |
-| NFR-008 | Per-cell wall-clock bound | A single cell, retries included, is bounded at 90 minutes; exceeding it records `error` with cause `timeout`. | Reliability | Medium | Open |
+| NFR-008 | Per-attempt wall-clock bound | A single attempt is bounded at 90 minutes; a cell is at most three attempts; exceeding the attempt bound records `error` with cause `timeout` for that attempt. (Per attempt, not per cell: a cold scaled-context D cell at 362,772 tokens extrapolates to ~50 minutes of prefill, so a per-cell cap would time out a legitimate retry.) | Reliability | Medium | Open |
 
 ### Constraints
 
@@ -133,7 +133,15 @@ When the primary ledger is complete, the harness exports a grading view: per que
 - **Outcome**: `ok` (scored), `exceeds_model_context` (classified, never scored), `error` (attempted, failed), `not_implemented` (could not attempt).
 - **Arm view**: what one arm is permitted to read for one question at its ask time — events, entities, edges, and for G alone the episode links.
 - **Grading view**: the blinded per-question export; **Seal**: the separate file holding the label-to-arm mapping and seed.
-- **Serving configuration**: the identity of the model weights, server image, context size and any context-scaling setting; equal across all cells of one ledger.
+- **Serving configuration**: the identity of the model weights, server image, context size, any context-scaling setting, the sampling settings (temperature, top-p, top-k, repeat penalty, seed policy) and the output-length limit; equal across all cells of one ledger and recorded in its header. Rubric §5 cites this as the definition.
+
+## Out of Scope
+
+- Grading, the §7 reading and the findings — the design lead's, on the bus, from the grading view.
+- Any change to the corpus, a seed, or the oracle; the corpus is an immutable input at `c0b35cd1`.
+- Any change to the rubric except by dated amendment through the design lead.
+- Any deployment to office2, any deploy manifest, any change to a managed service.
+- A verdict on #693 — this mission delivers the ledgers that make one possible, not the verdict.
 
 ### Domain Language
 
@@ -167,5 +175,5 @@ When the primary ledger is complete, the harness exports a grading view: per que
 
 - office4's measured envelope holds: 62.5 GiB GTT, 51.3 GiB peak at full native context, the pinned server image, all substrate packages installable from the machine.
 - #849 is the tracking issue; no separate issue is filed for the mission.
-- The design lead grades from the grading view and posts §7 on the bus; nothing in this mission scores an answer.
+- Arm D's repeats 2 and 3 will hit the prompt cache from repeat 1 unless the server restarts; that is expected — §5 reads the cold figure from repeat 1 and the warm figures from repeats 2–3, with the hit rate recorded per cell.
 - The four Decision Moments recorded in `decisions/` are the interview of record; no `[NEEDS CLARIFICATION]` markers remain.
