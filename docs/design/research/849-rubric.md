@@ -41,9 +41,9 @@ whether free-prose extraction works (no extraction is used in this run; the seed
 
 | arm | what it is | fixed configuration |
 |---|---|---|
-| **G** — tuned graph | Graphiti + FalkorDB over the typed ontology, seeded by structured writes (no LLM) | node + edge hybrid retrieval; typed constraint pull, one query per label (`Capacity`, `Commitment`, `Principle`, `Interest`); anchored history expansion (entity → its episodes via `MENTIONS`); **no BFS by default**; `group_id` in `[A-Za-z0-9_]`; retrieval budget recorded per question |
+| **G** — tuned graph | Graphiti + FalkorDB over the typed ontology, seeded by structured writes (no LLM) | node + edge hybrid retrieval; typed constraint pull, one query per label (`Capacity`, `Commitment`, `Principle`, `Interest`); anchored history expansion (entity → its episodes via `MENTIONS`); **no BFS by default**; `group_id` in `[A-Za-z0-9_]`; retrieval budget recorded per question. **Query plan (A3):** anchors are derived **from the question text** by deterministic resolution against the loaded entities (names/aliases → Person; commitment and outcome descriptions by exact or normalised match; typed labels for the constraint pull) — never from a per-question list, which would be the oracle leaking through configuration. Per question: resolve anchors → hybrid search on the question text → typed constraint pull → anchored history expansion per anchor → assemble, under a fixed cap of **60 items** (nodes + edges + episodes), set once; the ledger records the anchors resolved, the plan, and the actual count. Zero anchors → search-only path, recorded |
 | **D** — full dump | the entire corpus (rendered seed + full stream) in the prompt, in the ruled **native** configuration | prompt caching **on**; hit rate logged. **(A2)** Where the prompt exceeds the model's trained context (262,144 tokens on Qwen3-Next-80B: F1, B1, E2, E1, F2, B2) the cell is recorded as `exceeds_model_context` with the measured token count — never a zero, never a truncated run |
-| **R** — vector-RAG + records | embedding retrieval over the stream and rendered records, top-k | ONE global k, chosen so R's median assembled context is within ±20 % of G's median; the per-question ratio R_context / G_context is a reported column so a parity breach is visible, never silent; caching on for any stable prefix |
+| **R** — vector-RAG + records | embedding retrieval over the stream and rendered records, top-k | ONE global k, chosen so R's median assembled context is within ±20 % of G's median; the per-question ratio R_context / G_context is a reported column so a parity breach is visible, never silent; caching on for any stable prefix. **k procedure (A3):** arm-major order G → D → R; k is chosen **once** from G's **repeat-1** medians of assembled-context tokens (G's repeats 2–3 never move R's configuration), fixed for all R repeats, and recorded with the medians it was derived from; R never runs before G's repeat 1 is complete |
 
 Common to all arms: the **same reasoning model**, the **same fixed prompt**, the **same question
 wording**; the arm assembles context, the model answers; nothing else differs. The model and its
@@ -171,6 +171,35 @@ declares a family (`GEN_B_WK*`); every emitted id must be a declared literal, a 
 or a resolvable seed id, and a declared family with no members fails exactly as an unproduced
 literal does (implementer, 2026-09-24; accepted).
 
+### 3.2 The fixed prompt (registered text, A3)
+
+Identical for G, D and R; the arm inserts its assembled context at the single slot and nothing
+else varies. Authored by the design lead; wired in verbatim by the implementer; the harness
+asserts the text's hash per run.
+
+```text
+You are the assistant of the person whose records follow. You are reviewing their own
+calendar, tasks, messages and notes to answer one question they have asked.
+
+Use only the material provided below. Do not rely on outside knowledge about them, and do
+not invent events, dates or people that the material does not contain.
+
+Answer the question directly. State each finding as a specific claim, with the dates, times,
+counts and names the material supports. Where the material does not establish something,
+say "the material does not establish this" rather than guessing. Then say what you would
+do next, and why, in their terms.
+
+=== MATERIAL ===
+{assembled_context}
+=== END MATERIAL ===
+
+Question: {question_text}
+```
+
+The prompt never mentions arcs, oracles, scoring, near-misses, or any question's
+`must_identify` vocabulary. Grader notes in the oracle map answers *to* this shape; the prompt
+does not map the shape to the oracle.
+
 ## 4. Axis 1 — correctness
 
 Per question, per run:
@@ -199,12 +228,12 @@ Per question, per run, per arm — recorded, never estimated:
 
 - **input tokens per correct answer** = total input tokens ÷ points hit (the primitive), with
   sub-columns **cache-write / cache-read / uncached**;
-- output tokens; wall-clock latency from question to answer;
+- output tokens; wall-clock latency from question to answer, **reported at the context length the question ran at** (A3: prefill throughput fell 630 → 154 tok/s cumulative and generation 43 → 20 tok/s between 16k and 256k on the ruled model, measured in `849-synthesis/gate-b-context-window.md`), never as one figure per arm;
 - **peak memory**, two labelled columns: *per question* for D and R inference (the KV cache
   scales with the prefix, ~7× across questions), sampled from the serving process during the
   question; *per run* for G's graph store, which is dominated by the loaded graph and near
   constant per question. A number, not a pass/fail;
-- D and R: prompt-cache **hit rate** under the time-cut arrival pattern.
+- D and R: prompt-cache **hit rate** under the time-cut arrival pattern — **load-bearing** for D (A3): with ask_time ordering and events-first layout, later questions reuse 87–99.9 % of their prefix; the hit rate is the difference between a ~30-minute cold question and a seconds-long warm one. `cache_prompt` ON is the only valid D configuration.
 
 Dollar conversions are derived afterwards from the token columns for any provider; they are not
 what is scored.
@@ -317,3 +346,4 @@ harness code, `results/<run>.json`, grading sheet. Findings are written against 
 | — | 2026-09-24 17:03 | Registration | freeze verdict PASS | `b203907e` |
 | A1 | 2026-09-24 18:15 | Entity allowlist (`arcs` stripped); `loader_links.jsonl` written, G-only; loader gate added; §2 replay rules, prompt layout, measured prefix tokens (B2 = 362,772) | loader-side structural pass found L12 and L13; prefix figure was a prose-ratio estimate | `c0b35cd1` |
 | A2 | 2026-09-24 18:20 | Arm D: native config, `exceeds_model_context` outcome on six questions, pre-registered expected result; D-YaRN secondary; §7 reading | ruled model's trained context is 262,144 tokens; six D prompts exceed it (Kent ruled the design lead's recommendation) | `c0b35cd1` (no corpus change) |
+| A3 | 2026-09-24 19:20 | §3.2 the fixed prompt (registered text); §2 G query plan (anchors from question text, 60-item cap) and R k procedure (once, from G repeat-1 medians); §5 reporting at context length, cache hit rate load-bearing | the arms cannot be built without these registered; gate (b) measured non-linear prefill | `c0b35cd1` (no corpus change) |
