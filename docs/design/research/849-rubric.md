@@ -127,6 +127,15 @@ regime-bound the way #844's was, and the findings say so up front.
 - `OUT_LAUNCH` status is never flipped to completed by a primitive (Arc C leak flag).
 - Standing practices carry `EMBODIES`, no Outcome, no seeded rate (Q1 ruling).
 - The oracle is a physically separate artifact; the harness cannot load it into an arm.
+- **Freeze check, mechanical** (`scripts/research/check_849_seed.py`, 7a02e25d, extended per
+  the design lead's 2026-09-24 review): (a) the vocabulary and structural-absence checks run
+  over the **rendered corpus** the arms consume (D/R text, G's loaded nodes and edges), not only
+  over seed YAML — loader-emitted edges are in scope; (b) in a sandbox that never touches an
+  arm, the rendered corpus is grepped for every oracle `must_identify` phrase, every explicit
+  wrong-answer phrase, and every seed comment line; each hit is adjudicated by hand as *leak*
+  or *legitimately inferable primitive* and logged; (c) per-arc structural checks cover A, B, C,
+  E and F as ruled on the bus; (d) every timestamp in seed data is tz-aware ISO (the time-cut
+  rule depends on it). A non-empty unadjudicated hit list blocks freeze.
 - Corpus frozen at a commit hash before the first run; the hash is in the registration.
 
 ## 10. Artifacts
