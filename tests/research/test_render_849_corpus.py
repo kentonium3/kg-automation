@@ -281,3 +281,43 @@ def test_arc_b_renders_the_collision_as_a_recurring_series(rendered):
               and e.get("title") == "Weekly pipeline review"]
     assert len(series) >= 3, len(series)
     assert all(str(e.get("start", ""))[11:16] == "07:30" for e in series)
+
+
+# --------------------------------------------------------------------------
+# Reproducibility beyond this process
+# --------------------------------------------------------------------------
+
+
+def test_the_render_path_has_no_wall_clock_dependency():
+    """A corpus that changes tomorrow breaks 3-repeats-per-arm as badly as one
+    that changes between processes.
+
+    Determinism within a run is already asserted above; this is the other half.
+    Verified separately that a clean clone renders byte-identically — this
+    static check is what keeps it true when someone adds a timestamp later.
+    """
+    import re as _re
+
+    watched = [
+        REPO_ROOT / "scripts" / "research" / "render_849_corpus.py",
+        REPO_ROOT / "scripts" / "research" / "check_849_freeze.py",
+    ]
+    banned = _re.compile(r"\b(datetime\.now|date\.today|utcnow|time\.time)\b")
+    for path in watched:
+        src = "\n".join(
+            line for line in path.read_text(encoding="utf-8").splitlines()
+            if not line.strip().startswith("#")
+        )
+        assert not banned.search(src), f"{path.name} reads the wall clock"
+
+
+def test_every_generator_rng_is_seeded_from_a_stable_label():
+    """An unseeded Random would make the corpus differ per process."""
+    import re as _re
+
+    src = (REPO_ROOT / "scripts" / "research" / "render_849_corpus.py").read_text(
+        encoding="utf-8")
+    # The only construction site is the _rng helper, which always takes a label.
+    constructions = _re.findall(r"random\.Random\(([^)]*)\)", src)
+    assert constructions, "no Random construction found — has the helper moved?"
+    assert all(arg.strip() for arg in constructions), constructions
