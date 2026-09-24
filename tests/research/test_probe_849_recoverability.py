@@ -75,3 +75,38 @@ def test_probe_e_fails_when_order_varies():
         rows += _session(f"2026-{4 + i // 3:02d}-{5 + 7 * (i % 3):02d}", 19, shape)
     ok, _ = p.probe_e(rows, [])
     assert not ok
+
+
+def _practice_rows(tasks, per_week, weeks=25, journal=None):
+    """Synthetic Vikunja completions: `per_week[w]` completions per task in week w (1-based)."""
+    from datetime import date, timedelta
+    rows, start = [], date(2026, 4, 6)
+    for w in range(1, weeks + 1):
+        for task in tasks:
+            for k in range(per_week[w - 1]):
+                d = start + timedelta(days=(w - 1) * 7 + k)
+                rows.append({"channel": "vikunja", "task": task, "status": "completed", "at": f"{d}T06:30"})
+        for k in range((journal or per_week)[w - 1] if (journal or per_week)[w - 1] < 7 else 6):
+            d = start + timedelta(days=(w - 1) * 7 + k)
+            rows.append({"channel": "journal", "kind": "entry", "at": f"{d}T06:20"})
+    return rows
+
+
+DECLINE = [6, 6, 6, 6, 6, 5, 5, 5, 4, 4, 4, 4, 4, 2, 2, 2, 2, 2, 1, 1, 1, 1, 0, 0, 5]
+DECS = [{"kind": "Decision", "id": f"DEC_F_{i}"} for i in range(4)]
+
+
+def test_probe_f_recovers_slope_with_one_task():
+    ok, lines = p.probe_f(_practice_rows(["Morning meditation"], DECLINE), DECS)
+    assert ok, lines
+
+
+def test_probe_f_recovers_slope_with_two_tasks_same_thresholds():
+    ok, lines = p.probe_f(_practice_rows(["Morning meditation", "Personal-investment time"], DECLINE), DECS)
+    assert ok, lines
+
+
+def test_probe_f_fails_when_the_practice_never_declines():
+    flat = [6] * 24 + [6]
+    ok, _ = p.probe_f(_practice_rows(["Morning meditation"], flat, journal=flat), DECS)
+    assert not ok

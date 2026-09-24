@@ -183,16 +183,23 @@ def probe_f(rows, ents) -> tuple[bool, list[str]]:
             med[(date.fromisoformat(r["at"][:10]) - start).days // 7 + 1] += 1
         if r.get("channel") == "journal":
             jour[(date.fromisoformat(r["at"][:10]) - start).days // 7 + 1] += 1
-    m = [med.get(w, 0) for w in range(1, 26)]
+    # Normalise PER PRACTICE TASK so the thresholds mean the same thing
+    # whether one or two daily practices render (the corpus has two; the
+    # oracle's phase bands are per task). Tasks are counted from the stream,
+    # never assumed.
+    tasks = {r.get("task") for r in rows if r.get("channel") == "vikunja"
+             and r.get("task") in ("Morning meditation", "Personal-investment time")}
+    n_tasks = max(1, len(tasks))
+    m = [med.get(w, 0) / n_tasks for w in range(1, 26)]
     j = [jour.get(w, 0) for w in range(1, 26)]
-    out.append(f"meditation check-ins/wk: {m}")
+    out.append(f"practice tasks in stream: {n_tasks}; check-ins/wk per task: {[round(x, 1) for x in m]}")
     out.append(f"journal entries/wk: {j}")
     early, late = sum(m[0:5]) / 5, sum(m[18:22]) / 4
     cross = next((w for w in range(1, 26) if jour.get(w, 0) < 3 and all(jour.get(x, 0) < 3 for x in range(w, min(w + 3, 26)))), None)
     decisions = [e for e in ents if e.get("kind") == "Decision" and e.get("id", "").startswith("DEC_F")]
-    missed = sum(7 - min(7, med.get(w, 0)) for w in range(1, 25))
-    out.append(f"early mean {early:.1f}/wk -> late mean {late:.1f}/wk; journal <3 sustained from wk {cross}; Decisions={len(decisions)} vs ~{missed} missed mornings; wk25 return={m[24]}")
-    ok = early >= 5.5 and late <= 5.0 and cross is not None and 12 <= cross <= 16 and 3 <= len(decisions) <= 5 and m[24] >= 4
+    missed = sum(max(0.0, 7 - m[w - 1]) for w in range(1, 25))
+    out.append(f"early mean {early:.1f}/wk -> late mean {late:.1f}/wk per task; journal <3 sustained from wk {cross}; Decisions={len(decisions)} vs ~{missed:.0f} missed mornings per task; wk25 return={m[24]:.1f}")
+    ok = early >= 5.5 and late <= 2.5 and cross is not None and 12 <= cross <= 16 and 3 <= len(decisions) <= 5 and m[24] >= 4
     return ok, out
 
 
