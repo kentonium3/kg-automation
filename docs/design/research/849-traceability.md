@@ -10,7 +10,8 @@ last_updated: 2026-09-24
 
 Rubric §8 closure of #844 Threats §1 (an oracle point with nothing in the seed behind it).
 Built from the worksheet oracles (`849-lattice-scenario-arcs.md@f3076643`) and the seeds at
-`2994bab7` / `a489039d` / `938cd847`. **Legend:** OK = inferable from the named primitives; OK-ABS = inferable from an
+`2994bab7` / `a489039d` / `938cd847` / `c331e6f9` / `1be1cb23`. Ids in backticks are seed ids or
+`meta.emits` declarations; the oracle checker resolves the same names. **Legend:** OK = inferable from the named primitives; OK-ABS = inferable from an
 absence the seed constructs; GAP = no primitive yet, with the primitive that would close it;
 GRADE = a note for the grader, not a seed change. Arcs B and E are added when their seeds land.
 
@@ -45,11 +46,11 @@ GRADE = a note for the grader, not a seed change. Arcs B and E are added when th
 | # | oracle point | primitives | status |
 |---|---|---|---|
 | F1 | The Principle, verbatim, hard, global | `PRIN_SELF_INVESTMENT` | OK |
-| F2 | Five-phase trajectory; the signal is the slope | ~180 generated check-in completions + ~110 journal marks (jittered inside bands; bands never rendered) | OK — `meta.non_rendered` declares it and the detector rejects undeclared blocks (a489039d); the renderer test is still owed |
+| F2 | Five-phase trajectory; the signal is the slope | `GEN_F_CHECKINS` (~180 completions) + `GEN_F_JOURNAL` (~110 marks), jittered inside bands; bands never rendered | OK — `meta.non_rendered` declares it and the detector rejects undeclared blocks (a489039d); the renderer test is still owed |
 | F3 | Journaling drops below 3/week at wk 14 | generated journal marks | OK (the "3/week" marker is oracle-only) |
 | F4 | ~4 of ~60 misses decided; the wk-11 APAC sync simply appeared with no Decision | four `DEC_F_*` + their source episodes (ruling: add provenance episodes for TZ_CALL, TRAVEL, ILLNESS); wk-11 `slot_fillers` entry with `recurrence_rule` and no decision | OK (provenance episodes + dispositions a489039d) |
-| F5 | What filled the slot: early calls, **email-first mornings**, sleep after late nights | early calls: `slot_fillers` wk 6, 11; late nights: `shared_late_nights` generator; **email-first mornings: no primitive** | OK — sent-mail events 06:00–07:00 (wk 8 one morning; ~3/wk wk 14–18; ~2/wk wk 19–24; never on a completed morning), c331e6f9 |
-| F6 | Root cause shared with Arc B's missed runs | `shared_late_nights` (single event set, consumed by arc-b and arc-f) | OK — contingent on Arc B referencing the same ids |
+| F5 | What filled the slot: early calls, **email-first mornings**, sleep after late nights | early calls: `slot_fillers` wk 6, 11; late nights: `SHARED_LATE_NIGHTS` (owned by arc-f); email-first mornings: `GEN_F_EMAIL_FIRST` | OK — bound by `meta.emits` (1be1cb23) |
+| F6 | Root cause shared with Arc B's missed runs | `SHARED_LATE_NIGHTS`, declared by arc-f, referenced by arc-b (R5; detector enforces the week subset) | OK |
 | F7 | Response in the Principle's own terms; reward/badge/public commitment are wrong answers | Principle text ("no fanfare, no celebration, no external view") | OK |
 | F8 | The wk-25 return is scored positive | `EP_F_RESTART`, `DEC_F_RESTART`, phase-7 generation | OK — F1 is asked wk 19, before this; the time-cut rule must hold |
 | F9 | Should have been caught wk 9–10 | generated data (two consecutive phases of decline + a repeated cause) | OK |
@@ -61,14 +62,14 @@ GRADE = a note for the grader, not a seed change. Arcs B and E are added when th
 | # | oracle point | primitives | status |
 |---|---|---|---|
 | B1 | The Outcome with date and measure; the date is a hard Commitment | `OUT_5K` (target_date, success_criteria — seeded as `measure`, see R4), `COM_RACE`, `DUE_BY`, `EP_B_REGISTER` (non-refundable, $35) | OK (`success_criteria`, c331e6f9) |
-| B2 | Every counted deferral, in order, with dates and the reason at the time | generator must emit one primitive per row: the Thu 07:30 series as a real recurring calendar event (wk 6→) whose acceptance is a Decision; a favour-request message + block (wk 5, 11); Vikunja reschedule-to-evening episodes with no completion (wk 7, 13); silent misses as absence against the plan; holiday/away calendar entries (wk 3, 12) | OK — generator emits one primitive per reason (R3 confirmed) |
-| B3 | Which reasons repeat; the 07:30 series agreed to three times into a known quality slot | the series' three occurrences + three acceptance Decisions; the plan marks Thu as the quality run | OK |
-| B4 | Decided vs silent split (5 silent, 5 decided-then-silent) | Decisions + provenance episodes for the meetings and the evening moves; none for the runs themselves | OK — classification moved to `oracle/arc-b-oracle.yaml` (c331e6f9) |
-| B5 | Point of no return = CP2, Sun 08-09, by the halfway rule; not wk 10 calf, not wk 15 cold | `EP_B_PLAN` (milestones: Phase-2 45–50 min long run, wk-7 "quicker 5 min" ~10:30), `EP_B_CONDITIONING_RULE` (halfway rule, *without* the coaching clause — R1); wk 6/7 Sat misses + wk 8 40-min cutback as events; wk 7 pace 11:10 as a completion note | OK — coaching clause stripped (c331e6f9) |
+| B2 | Every counted deferral, in order, with dates and the reason at the time | declared emits: `GEN_B_WK5_TUE`, `GEN_B_WK6_THU`, `GEN_B_WK6_SAT`, `GEN_B_WK7_TUE`, `GEN_B_WK7_SAT`, `GEN_B_WK8_TUE`, `GEN_B_WK8_THU`, `GEN_B_WK10_THU`, `GEN_B_WK11_TUE`, `GEN_B_WK13_THU`; `GEN_B_SESSIONS` for the silent misses as absence | OK — bound by `meta.emits` (1be1cb23) |
+| B3 | Which reasons repeat; the 07:30 series agreed to three times into a known quality slot | `GEN_B_WK6_THU`, `GEN_B_WK8_THU`, `GEN_B_WK10_THU` + `GEN_B_DECISIONS`; `EP_B_PLAN` marks Thu as the quality run | OK |
+| B4 | Decided vs silent split (5 silent, 5 decided-then-silent) | `GEN_B_DECISIONS` (provenance episodes for the meetings and evening moves); none for the runs themselves | OK — classification in `oracle/arc-b-appendix.yaml` (1be1cb23) |
+| B5 | Point of no return = CP2, Sun 08-09, by the halfway rule; not wk 10 calf, not wk 15 cold | `EP_B_PLAN` (milestones: Phase-2 45–50 min long run, wk-7 "quicker 5 min" ~10:30), `EP_B_CONDITIONING_RULE` (halfway rule, *without* the coaching clause — R1); `GEN_B_WK6_SAT`, `GEN_B_WK7_SAT`, `GEN_B_WK7_PROG` (11:10), wk-8 cutback in `GEN_B_SESSIONS` | OK — coaching clause stripped (c331e6f9) |
 | B6 | No individual deferral was unreasonable | the reasons as primitives | OK |
 | B7 | Should have been caught end of wk 7 (08-02) | events through wk 7 (two 1/3 weeks, one repeated reason) | OK |
 | B8 | Retrospective framed as coaching: scheduling, commitment management, delegation, mindset; reset-not-quit | reasoning over B2–B7; **no primitive may state the coaching move** (R1) | OK — judgement, graded |
-| B9 | Race result 32:50 → 10:35/mi (for B2, asked after 10-15) | results email / completion note after 10-15 (R3) | OK |
+| B9 | Race result 32:50 → 10:35/mi (for B2, asked after 10-15) | `GEN_B_RACE` | OK |
 | B-NM | Near-misses: wk 10 calf (red-flag rule in the plan), wk 15 cold, wk 2 reschedule-within-week, wk 3/12 holidays, wk 9 full week, Arc A's PT sessions not drifting, strength sessions never core | plan red-flag list (`EP_B_PLAN`); note episodes + Decisions (wk 10, 15); calendar (wk 3, 12); PT sessions rendered weekly Jun–Oct from Arc A's recurrence (`non_drifting_control`); Mon/Wed/Sun strength as Vikunja completions | PARTIAL — PT must render across B's window; strength sessions need a generator rule |
 
 ## Arc E — repeating pattern → automation (`seed/arc-e.yaml` @ad0e3e5c) — PROVISIONAL until E-1..E-3 land
