@@ -58,7 +58,7 @@ rule). Keeping the story and its answer together here is an authoring convenienc
 | B | quiet drift | **Keep** | ☑ (invented values to confirm) | ☑ (3 of Kent's placed, 3 candidates) |
 | C | dropped ball (captured-and-deferred) | **Keep** | ☑ | ☑ |
 | D | cross-channel identity | **Cut** | — | — |
-| E | repeating pattern → automation | **Rewrite** (reshaped) | ☐ | ☐ |
+| E | repeating pattern → automation | **Rewrite** | ☑ (invented values to confirm) | ☑ (3 of Kent's, 4 candidates) |
 | F | principle erosion | `TODO(kent)` | ☐ | ☐ |
 
 ---
@@ -453,54 +453,140 @@ them in the stream. That remains the way every arc's cast is written.
 **Keep / Cut / Rewrite:** **Rewrite** (Kent, 2026-09-23) — reshaped from *stakeholder pattern*
 to *noticing a repeating business or communication pattern that needs some form of automation.*
 
-**Context:** `TODO(kent)` — personal / Intentional / spec-kitty / PointerHealth (or several: a
-pattern that recurs *across* contexts is the stronger version).
+**Context:** **personal + Intentional + spec-kitty** — three mailboxes, one pattern. The
+cross-context version by construction.
 
-**The story (frame — Kent's specifics `TODO(kent)`).** Some activity recurs: a request you field,
-a message you compose, a hand-off you perform, a report you assemble. Each instance is small,
-handled in the moment, and individually not worth a second thought. Nobody ever asks for it to
-be automated because no single instance suggests it. Over weeks the instances accumulate into a
-pattern with a **recognisable shape and cadence** — same trigger, same steps, same output — and
-a cumulative cost that is material against capacity. The finding is *"this is a process; it
-should be automated,"* and the coaching question is *"at which instance was that knowable?"*
+**The story (Kent, 2026-09-23).** Over a week your personal, Intentional and spec-kitty inboxes
+receive roughly **200 emails** from newsletters, promotions and vendor product announcements.
+Most are from organisations you *want* to stay informed about — the volume from each is just too
+much. **A couple of times a week an important email in one of the accounts gets buried and
+missed.** Periodically you end up in a **marathon session of a couple of hours** cleaning up all
+three boxes. The session is the same every time:
+1. look for the latest offers from vendors you're interested in;
+2. skim the newsletters for the essence of the topics, and read perhaps 3–4 articles in depth;
+3. file emails by organisation into folders;
+4. purge old filed emails by organisation that you haven't starred to keep;
+5. and, along the way, find the important ones you missed.
 
-`TODO(kent)`: **the pattern** — what recurs, what triggers it, what you do each time, roughly how
-long each instance takes, roughly how many over how long, and **what the automation would be**
-(a template, a rule, an agent, a delegated hand-off).
+**The automation** (Kent's spec, 2026-09-23 — this is the oracle's "what should be proposed"):
+- vendor offers **auto-filed by vendor organisation**; a **digest of just the latest offer** from
+  each is sent to you;
+- newsletters **condensed to a digest**; topics you've flagged as of interest *at the time* are
+  highlighted, or sit in their own **"current interest"** section;
+- you tell Felix — by **voice, journal, or text (WhatsApp today)** — which topics you want
+  information on and which can be dropped;
+- folders **auto-purged** of email older than 30 days;
+- **email from contacts is surfaced** to you;
+- contacts with a **meeting request** get a friendly reply with your **Calendly link**;
+- anything **time-sensitive** is raised through an alert channel — **ntfy, or text (WhatsApp or
+  Signal)**;
+- items clearly indicating a **to-do** (review your taxes, pay a bill, schedule a doctor's
+  appointment) are **added to Vikunja**, with suggested dates/times surfaced to you.
 
-**The tension to catch.** The pattern is invisible from inside any one instance. It is only
-visible as a *shape across events* — and the shape has to be recognised as *automatable*, which
-means noticing the instances are the same kind of thing, not merely that they involve the same
-people or words. The cumulative cost is what makes it worth raising; the regularity is what
-makes it automatable; both have to be read off the history.
+**Two layers, two questions — build both:**
+- **E1 — notice the pattern.** Asked at some week N: *"What recurring manual work am I doing that
+  should be automated?"* The right answer is the email marathon, with its numbers, its five
+  identical sub-activities, the misses it exists to catch, and the automation above.
+- **E2 — the automation's judgement.** Given the spec, over one sample week: *"Which of this
+  week's emails should reach me, which become to-dos, which are digested, which are filed, which
+  are dropped?"* This is where Kent's near-misses live, and it is the layer closest to the
+  intake-router's job — score it, but read it as evidence about the router as much as the
+  substrate.
 
-**Timeline** — `TODO(kent)`: the instances with dates; enough of them that the shape is clear.
+**Corpus consequence.** This arc sets the stream's volume: ~200 promotional/newsletter emails a
+week across three accounts for the ~6-month window is ~**5,000 emails**. That is not padding —
+it is the distractor mass every other arc's near-misses are embedded in, and it is the volume
+that makes the *cost-per-correct-answer* axis bite.
 
-**ORACLE.** (frame — `TODO(kent)` the values)
-- [ ] all the instances, with dates, and that they are **the same kind of thing** (same trigger →
-      same steps → same output)
-- [ ] the cadence and the cumulative cost — hours, set against capacity
-- [ ] that no single instance justified automating — the pattern is the finding
-- [ ] **the instance at which the pattern became recognisable** — the earliest point a coaching
-      surface could have said "this is a process" (not the last instance)
-- [ ] the proposed automation, and what it would return per week
-- [ ] framed as a **process** finding, not a task or a relationship finding
+**Cast** — fictional; the organisations matter more than the people here.
 
-**Near-misses** (`TODO(kent)` — candidates to react to):
-- *things that recur but vary too much to automate* — same people, same topic, different work
-  each time; "automate it" is the wrong answer
-- *a one-off that looks like the start of a pattern* — two instances is not a process
-- *something already automated* whose output still appears in the stream, so it looks like
-  manual recurrence
-- *a genuine recurring pattern that is not worth automating* — cheap enough per instance and
-  rare enough that the automation costs more than it returns
+| handle | who / what | relationship | context | channels |
+|---|---|---|---|---|
+| ~25 vendor orgs | tools, services, hardware — offers and product announcements | vendor | all three | email |
+| ~15 newsletter orgs | industry, research, learning — topics Kent wants the essence of | other | all three | email |
+| Kent's contacts list | the people whose mail must always surface | client / collaborator / family / peer | all three | email → Person nodes |
+| 6 buried-and-missed senders (invented) | a client meeting request; a bill; a doctor's-appointment reminder; a spec-kitty vendor renewal notice; a tax document; a friend | mixed | mixed | email |
 
-> Why the flat arm can't just win it: every instance is a small, unremarkable event, and the
-> instances are separated by weeks of unrelated traffic. Nothing links them except their shape.
-> A dump of everything contains them all and marks none of them; the arm has to cluster
-> same-shaped events across months and then judge the cluster as automatable. This is the arc
-> where *typed* history should matter most — if the adapters wrote each instance as the same
-> kind of node, the cluster is a query; if they are loose episodes, it is a search for a shape.
+**Timeline** (invented to Kent's spec; ~6 months, Mon 2026-04-06 → Fri 2026-09-25).
+
+| when | what happened |
+|---|---|
+| every week | ~200 newsletter / promo / vendor emails land across the three boxes (~70 / 60 / 70) |
+| ~every 10–14 days | a **marathon triage session**, ~2 h, all five sub-activities, in this order — **13 sessions** over the window (~26 h) |
+| ~2×/week | an important email is buried; **six** of them have a recorded consequence: the client meeting request answered four days late (wk 3); the bill paid after its due date (wk 6); the doctor's reminder found after the slot lapsed (wk 9); the vendor renewal auto-renewed at the old tier (wk 12); the tax document chased by the accountant (wk 17); the friend's message answered two weeks on (wk 21) |
+| wk 5 | **third marathon session** — the same five steps, the same ~2 h, and the first miss with a consequence already behind it: **the pattern is recognisable here** |
+| wk 10 | Kent tells Felix by WhatsApp two topics are now of interest and one newsletter can be dropped *(seeds the "current interest" mechanism)* |
+| wk 24 | E1 asked |
+
+**The tension to catch.** From inside any one session, this is just "doing email." From inside
+any one miss, it is just "I missed one." The finding is that the *sessions are a process* — same
+trigger (the boxes are full), same five steps, same output — and that the *misses are its cost*,
+not separate accidents. Both are only visible as a shape across months. And the shape has to be
+judged automatable: the steps are regular enough to specify, which Kent's spec demonstrates.
+
+**ORACLE.**
+*E1 — the pattern* (invented values to confirm):
+- [x] the volume — ~200/week across three contexts, ~70 / 60 / 70 — and that it is **one pattern
+      across three boxes**, not three problems
+- [x] the sessions — 13 in the window, ~2 h each, ~26 h; and that each is **the same five
+      sub-activities in the same order**
+- [x] the cost against capacity — ~1.2 h/week of the 15 h deep-work Capacity (~8%), **plus** the
+      six consequential misses, which are the larger cost and the reason the sessions exist
+- [x] that no single session or miss justified automating — the pattern is the finding
+- [x] **the session at which it was recognisable** — the third, wk 5: same steps, same duration,
+      one consequential miss already behind it. Not the thirteenth
+- [x] the proposed automation — Kent's spec above, in substance: auto-file by org, latest-offer
+      digest, newsletter digest with current-interest section, contact surfacing, Calendly
+      auto-reply on meeting requests, time-sensitive alerts, to-do extraction to Vikunja, 30-day purge
+- [x] framed as a **process** finding — "this is a workflow to build," not "you have too much
+      email" and not "you should be more disciplined"
+
+*E2 — the judgement*, over one sample week (invented; ~200 items, of which ~20 are scored):
+- [x] email from anyone on the contacts list **surfaces** — including a contact's newsletter
+- [x] a contact's meeting request gets the **Calendly reply**, and nothing else does
+- [x] the bill, the tax document and the doctor's reminder become **Vikunja to-dos** with
+      suggested dates
+- [x] the vendor renewal notice is **time-sensitive → alert**; the vendor's weekly promo is
+      **digest → file**
+- [x] the near-misses below are each classified **correctly** — every one is a plausible wrong
+      answer to "surface it?"
+
+**Near-misses.** Kent's three (2026-09-23) first; they are E2's traps. Candidates for E1 follow.
+1. **Friendly-looking spam that is not from a contact.** First-name salutation, casual tone,
+   "just checking in." Not on the contacts list → **not surfaced**. The contacts list is the
+   test, not the tone.
+2. **LinkedIn cold-call invitations** from someone in an area **not** on the interest list →
+   dropped. **But some cold-call PMs are of interest** — one from an area *on* the list must
+   surface. Same shape, opposite answer, decided by the current-interest list as it stood
+   *that week*.
+3. **Spam that looks urgent but isn't** — "the loan department is reviewing your application
+   for a $60K loan" you never asked for. Urgency language → **not** an alert. Time-sensitivity
+   has to be grounded in something Kent actually has (a bill, a renewal, an appointment), not in
+   the sender's tone.
+4. *(candidate, E1)* **A recurring activity that varies too much to automate** — the weekly
+   client status call prep: same cadence, different content every time. "Automate it" is wrong.
+5. *(candidate, E1)* **Something already automated** whose output still appears in the stream —
+   the daily calendar-orchestrator summary — so it looks like manual recurrence but isn't.
+6. *(candidate, E2)* **A newsletter from an org that is also a contact** — surfaces because of
+   the sender, not the content; must not be digested away.
+7. *(candidate, E2)* **A topic that *was* of interest in wk 4 and was dropped in wk 10** — a
+   newsletter on it in wk 14 goes to the ordinary digest, not "current interest." Bi-temporal
+   by construction.
+
+> **Ontology note for the design lead.** Two things in Kent's spec have no home in the entity
+> model: (a) the **current-interest list** — a set of topics Kent adds and drops over time by
+> voice / journal / WhatsApp, which E2's near-miss 2 and 7 depend on and which is *bi-temporal by
+> nature*; (b) the **contacts list** maps to `Person`, but "is on my contacts list" is a
+> property the router needs at $0 and the model doesn't carry. Neither is a #849 build item;
+> both are needed to *seed* E2 honestly.
+
+> Why the flat arm can't just win it: E1's evidence is thirteen unremarkable two-hour blocks and
+> six unrelated misses spread across six months and ~5,000 emails. Nothing links them except
+> their shape. A dump contains them all and marks none of them; the arm has to cluster
+> same-shaped events across months and then judge the cluster as a process. E2 is the reverse:
+> ~200 items, ~20 decisions, and each decision needs a fact that lives *outside* the email —
+> the contacts list, the interest list as of that week, Kent's actual bills and appointments.
+> That is a typed-lookup problem, and it is where a structured substrate should be cheapest.
 
 ---
 
