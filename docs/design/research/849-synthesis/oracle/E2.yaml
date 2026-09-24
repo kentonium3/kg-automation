@@ -1,0 +1,94 @@
+# #849 HIDDEN ORACLE — question E2
+#
+# ⛔ NEVER LOADED INTO ANY ARM, RENDERER OR LOADER. ⛔
+# Conforms to rubric §3.1. Holds the verdicts moved out of the seed under E-4.
+
+question: E2
+ask_time: 2026-09-04T17:00:00-04:00
+question_text: >-
+  For this week's email across all three accounts: which should reach me, which
+  become to-dos, which are digested, which are filed, and which are dropped?
+
+must_identify:
+  - id: E2-1
+    statement: >-
+      every item from someone on the contacts list surfaces — E2_01, E2_02,
+      E2_03 and E2_04 — including E2_04, which is a newsletter and surfaces
+      because of its SENDER, not its content
+    required_values: []
+    traceability: [PER_CLIENT, PER_FRED, PER_JOEL, GEN_E_SAMPLE_WEEK]
+
+  - id: E2-2
+    statement: >-
+      E2_03, a contact's meeting request, gets the Calendly reply — and nothing
+      else in the week does
+    required_values: []
+    traceability: [PER_CLIENT, GEN_E_SAMPLE_WEEK]
+
+  - id: E2-3
+    statement: >-
+      E2_05 (bill), E2_06 (tax document) and E2_07 (appointment reminder)
+      become to-dos with suggested dates
+    required_values: ["2026-09-18", "2026-09-15", "2026-09-09"]
+    traceability: [GEN_E_SAMPLE_WEEK, GEN_E_GROUNDING]
+
+  - id: E2-4
+    statement: >-
+      E2_08 (renewal notice) is time-sensitive and alerts; E2_09, the same
+      vendor's weekly promo, is digested and filed. Same sender, opposite
+      handling
+    required_values: ["2026-09-11"]
+    traceability: [GEN_E_SAMPLE_WEEK, GEN_E_GROUNDING]
+
+  - id: E2-5
+    statement: >-
+      E2_10 does NOT surface. It is friendly in tone and not from a contact;
+      the contacts list is the test, not the tone
+    required_values: []
+    traceability: [GEN_E_SAMPLE_WEEK]
+
+  - id: E2-6
+    statement: >-
+      E2_11 is dropped and E2_12 surfaces — identical cold-call shape, decided
+      by whether the topic is on the interest list AS IT STOOD THAT WEEK
+    required_values: []
+    traceability: [INT_K8S, EP_E_INT_WK10, GEN_E_SAMPLE_WEEK]
+
+  - id: E2-7
+    statement: >-
+      E2_13 is NOT an alert despite urgent language. Time-sensitivity has to be
+      grounded in something Kent actually has — there is no loan application
+      anywhere in the corpus, whereas the bill, the renewal and the appointment
+      all have prior history
+    required_values: []
+    traceability: [GEN_E_GROUNDING, GEN_E_SAMPLE_WEEK]
+
+  - id: E2-8
+    statement: >-
+      E2_14 (typography) goes to the ordinary digest, not the current-interest
+      section, because typography was dropped in week 10; E2_15 (kubernetes)
+      goes to current-interest, because it was added in week 10
+    required_values: []
+    traceability: [EP_E_INT_ADD_TYPO, EP_E_INT_WK10, INT_TYPOGRAPHY, INT_K8S]
+
+wrong_answers:
+  - "E2_10 surfaces because it is personally addressed"
+  - "E2_13 is time-sensitive"
+  - "E2_11 and E2_12 are handled the same way"
+  - "E2_14 goes to the current-interest section"
+  - "E2_04 is digested because it is a newsletter"
+
+near_misses: [E2_10, E2_11, E2_13, E2_04, E2_14]
+
+grader_notes: >-
+  E2-8 is the bi-temporal point and the hardest. An arm that reports the
+  interest list as a current snapshot gets both halves wrong — typography looks
+  active because the Interest node exists. The correct answer requires
+  replaying the add and drop episodes to the ask_time.
+
+  E2-6 and E2-8 both turn on the same mechanism from different directions. An
+  arm that gets one and not the other has probably pattern-matched rather than
+  replayed; note it in the run log if it happens.
+
+  E2-1 and E2-4 are the cheap points — sender lookup and a date comparison.
+  If an arm misses THOSE, the run has a retrieval problem, not a reasoning one.

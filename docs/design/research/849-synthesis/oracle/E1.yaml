@@ -1,0 +1,97 @@
+# #849 HIDDEN ORACLE — question E1
+#
+# ⛔ NEVER LOADED INTO ANY ARM, RENDERER OR LOADER. ⛔
+# Conforms to rubric §3.1.
+
+question: E1
+ask_time: 2026-09-21T09:00:00-04:00
+question_text: "What recurring manual work am I doing that should be automated?"
+
+must_identify:
+  - id: E1-1
+    statement: >-
+      the email triage marathon — and that it is ONE pattern across three
+      accounts, not three separate problems
+    required_values: []
+    traceability: [GEN_E_SESSIONS, GEN_E_MAIL_MASS]
+
+  - id: E1-2
+    statement: "the volume — roughly 200 emails a week across the three accounts"
+    required_values: ["200"]
+    traceability: [GEN_E_MAIL_MASS]
+
+  - id: E1-3
+    statement: >-
+      13 sessions over the window at roughly 2 hours each, about 26 hours total
+    required_values: ["13"]
+    traceability: [GEN_E_SESSIONS]
+
+  - id: E1-4
+    statement: >-
+      each session is the same five sub-activities in the same order — scan
+      vendor offers; read newsletters with a few deep reads; file by sender
+      organisation; purge old filed mail; reply to mail that had sat unread
+    required_values: []
+    traceability: [GEN_E_SESSIONS]
+
+  - id: E1-5
+    statement: >-
+      the cost against capacity — roughly 1.2 h/week of the 15 h deep-work
+      Capacity, about 8% — PLUS the six consequential misses, which are the
+      larger cost and the reason the sessions exist
+    required_values: ["15"]
+    traceability: [CAP_DEEP, GEN_E_SESSIONS, GEN_E_CONSEQUENCES]
+
+  - id: E1-6
+    statement: >-
+      no single session or miss justified automating — the PATTERN is the
+      finding
+    required_values: []
+    traceability: [GEN_E_SESSIONS, GEN_E_BURIED]
+
+  - id: E1-7
+    statement: >-
+      it was recognisable at the THIRD session, in week 5 — same steps, same
+      duration, one consequential miss already behind it. Not the thirteenth
+    required_values: []
+    traceability: [GEN_E_SESSIONS, GEN_E_CONSEQUENCES]
+
+  - id: E1-8
+    statement: >-
+      the proposed automation, in substance — auto-file by organisation,
+      latest-offer digest, newsletter digest with a current-interest section,
+      contact surfacing, Calendly auto-reply on meeting requests, time-sensitive
+      alerts, to-do extraction, and a 30-day purge
+    required_values: []
+    traceability: [GEN_E_SESSIONS, INT_K8S, GEN_CAST_PERSONS]
+
+  - id: E1-9
+    statement: >-
+      framed as a PROCESS finding — "this is a workflow to build" — not "you
+      have too much email" and not "you should be more disciplined"
+    required_values: []
+    traceability: [GEN_E_SESSIONS]
+
+wrong_answers:
+  - "the weekly client status call prep should be automated"
+  - "the daily calendar summary should be automated"
+  - "you have too much email; unsubscribe"
+  - "you should be more disciplined about inbox zero"
+  - "it was recognisable at the thirteenth session"
+
+near_misses: [GEN_E_VARYING, GEN_E_AUTOMATED]
+
+grader_notes: >-
+  E1-4 is the inferred-pattern point and the one the recoverability probe
+  (rubric §9) exists for. A hit requires at least FOUR of the five phases named
+  in the right order, in the arm's own words. Exact wording is never required.
+
+  Two decoys sit directly against E1-1: the weekly client-status-call prep has
+  the same cadence and different content every time, so "automate it" is wrong;
+  and the daily calendar-orchestrator summary is ALREADY automated and its
+  output appears in the stream, so it looks like manual recurrence and is not.
+  Naming either as the answer is a hard fail.
+
+  E1-5's "8%" is deliberately not a required_value — the arithmetic depends on
+  how the arm counts session length, and the point is that the misses outweigh
+  the hours, not the precise percentage.

@@ -1,0 +1,69 @@
+# #849 seed — the four context chains (Purpose / Domain / Capacity / Outcome)
+#
+# SEED MATERIAL. Everything here is a primitive the arms may see.
+#
+# Machine-readable form of 00-context-chains.md, which stays as the narrative
+# record (the reasoning, the three-not-four argument, the open questions).
+# The table there was prose, so nothing could resolve PUR_*, DOM_*, CAP_DEEP or
+# OUT_* ids — the oracle checker caught it when E1's traceability named
+# CAP_DEEP, one file after it caught the same thing for the cast. Design docs
+# that are only prose are not seed; they are commentary on seed.
+
+meta:
+  kind: chains
+  ontology_ref: docs/design/second-brain-graph-layer.md@884d1c6e
+  emits:
+    - GEN_CHAINS_ENTITIES    # the Purposes, Domains, Capacity and Outcomes
+
+# Three Purposes, deliberately NOT one per context: the ontology has no
+# Domain->Purpose edge and affinity is DERIVED through Outcome -SERVES-> Purpose,
+# so one-per-Domain would smuggle that rejected mapping back in via the seed.
+# PUR_LIVELIHOOD is served by Outcomes in three work Domains instead.
+purposes:
+  - id: PUR_TRANSFORM
+    description: >-
+      Transform my mind and character through persistent, consistent work,
+      because that is where power comes from.
+  - id: PUR_VITALITY
+    description: >-
+      Sustain the physical vitality and capability the rest of the life
+      depends on.
+  - id: PUR_LIVELIHOOD
+    description: >-
+      Build a durable, independent livelihood that does not depend on any
+      single venture.
+
+# The four operating contexts ARE Domains on the work side (Kent, 2026-09-18).
+domains:
+  - {id: DOM_PERSONAL, description: personal}
+  - {id: DOM_INTENTIONAL, description: Intentional}
+  - {id: DOM_SPECKITTY, description: spec-kitty}
+  - {id: DOM_POINTERHEALTH, description: PointerHealth}
+
+# One global Capacity. NO CONSTRAINS edge — that is what makes it global, and
+# it is discovered by typed-label lookup per the discovery contract. Every
+# Domain contends for it; Arc E scores its marathon sessions against this.
+capacities:
+  - id: CAP_DEEP
+    description: Deep-work availability across all contexts
+    hours_per_week: 15
+
+outcomes:
+  - {id: OUT_5K, description: "Run the 5K at a sub-10-minute-mile average for the full distance",
+     target_date: 2026-10-15, success_criteria: "under 31:00 for 3.1 mi",
+     domain: DOM_PERSONAL, serves: PUR_VITALITY}
+  - {id: OUT_LAUNCH, description: "Ship the spec-kitty launch",
+     target_date: 2026-04-23, success_criteria: "shipped",
+     domain: DOM_SPECKITTY, serves: PUR_LIVELIHOOD}
+  - {id: OUT_INTEGRATION, description: "Land the integration Fred owns on his side",
+     target_date: 2026-09-30, success_criteria: "delivered",
+     domain: DOM_SPECKITTY, serves: PUR_LIVELIHOOD}
+
+# NOTE: OUT_LAUNCH deliberately carries NO status. Arc C's third hop is
+# inferring the launch ended from the quarterly-report thread; a completed
+# status hands that over. Enforced by check_849_seed's Arc C structural check.
+
+# Q2 (PointerHealth and Intentional have no Outcomes of their own) is still
+# open with Kent — seeding them as unscored distractor mass was the design
+# lead's recommendation, routed for confirmation. Until then this file carries
+# the four Domains and no Outcomes for those two, which is the honest state.

@@ -35,6 +35,20 @@ meta:
   window: {start: 2026-04-06, end: 2026-09-25}
   ontology_ref: docs/design/second-brain-graph-layer.md@884d1c6e
   non_rendered: [generator_input, e2_sample_week, scored_items]
+  # ADAPTER ASSUMPTION (design lead, 2026-09-24T05:04Z — record it because the
+  # result depends on it): the mail adapter observes read/move/delete/star/reply
+  # events. E1's "same five sub-activities" is recoverable only if that holds.
+  # #849's findings must state this as a dependency, not assume it.
+  adapter_assumption: "the mail adapter observes read/move/delete/star/reply events"
+  emits:
+    - GEN_E_MAIL_MASS       # ~5,000 newsletter/promo/vendor emails, 3 accounts
+    - GEN_E_SESSIONS        # 13 action-shape runs (read/move/delete/star/reply)
+    - GEN_E_BURIED          # the 6 buried mails
+    - GEN_E_CONSEQUENCES    # their 6 downstream consequences, as own events
+    - GEN_E_GROUNDING       # prior statements, appointments, subscriptions (E-3)
+    - GEN_E_AUTOMATED       # the already-automated daily summary decoy
+    - GEN_E_VARYING         # the client-status-call prep decoy
+    - GEN_E_SAMPLE_WEEK     # the ~200 items of the E2 week
 
 # --- Interest: RATIFIED by Kent 2026-09-24, seeded first-class --------------
 #
@@ -53,6 +67,19 @@ interests:
 
 # Interest status is NOT a field here. It is derived from these episodes.
 interest_episodes:
+  # E-1 (design lead, 2026-09-24T05:12Z). Four Interests had no add event, and
+  # under replay-to-ask_time NODE EXISTENCE IS NOT AN EVENT — nothing would
+  # tell an arm they were active. Adapter-faithful: the list came from
+  # somewhere. Typography and k8s keep their own add events below.
+  - id: EP_E_INT_BASELINE
+    reference_time: 2026-04-07T07:31:00-04:00
+    source_description: "whatsapp voice note — +1-555-0199"
+    content: >-
+      Topics I want to follow: local inference and small models, graph
+      databases, endurance training for masters athletes, and small-business
+      acquisition.
+    mentions: [INT_LOCAL_INFERENCE, INT_GRAPH_DB, INT_ENDURANCE, INT_ACQUISITION]
+
   - id: EP_E_INT_ADD_TYPO
     reference_time: 2026-04-28T08:14:00-04:00
     source_description: "whatsapp voice note — +1-555-0199"
@@ -97,9 +124,14 @@ generator_input:
     # wk 5 is the third session — the oracle's "recognisable here". Nothing
     # marks it; it is simply the third instance of the shape.
 
-  # ~2/week an important email is buried. SIX have a downstream consequence,
-  # and only the consequence is seeded — never the causal link back to the
-  # session or to the volume.
+  # ~2/week an important email is buried. SIX have a downstream consequence.
+  #
+  # E-2 (design lead, 05:12Z): each `consequence` is EMITTED AS AN ORDINARY
+  # PRIMITIVE at its own time — an outbound reply, a statement with a late-fee
+  # line, a rebooking confirmation, a renewal confirmation at the old tier, the
+  # accountant's chase mail, a two-weeks-on reply — with NO reference to the
+  # burying. Same rule as Arc B's R3. The consequence is visible; that it was
+  # CAUSED by the mail being buried is the finding.
   buried_with_consequence:
     - {wk: 3,  account: Intentional, from: PER_CLIENT,     kind: meeting_request,
        consequence: "replied 4 days after it arrived"}
@@ -113,6 +145,27 @@ generator_input:
        consequence: "chased by the accountant"}
     - {wk: 21, account: personal,    from: PER_JOEL,       kind: personal_message,
        consequence: "answered two weeks on"}
+
+  # E-3 (design lead, 05:12Z) — GROUNDING PRIMITIVES.
+  #
+  # The oracle says time-sensitivity is "grounded in something Kent actually
+  # has, not the sender's tone". Without these, telling the real bill (E2_05)
+  # from the fake $60K loan (E2_13) is UNSCORABLE — the arm would be guessing
+  # from tone, which is the thing the near-miss exists to punish. Fourth
+  # instance of the missing-primitive class (A3, B-CP2, F5, now this).
+  grounding:
+    # a real bill has a history of statements
+    - {kind: prior_statements, from: billing_org, account: personal,
+       weeks: [2, 6, 10, 14, 18, 22], note: "monthly statement, same sender"}
+    # a real appointment exists on the calendar BEFORE its reminder arrives
+    - {kind: calendar_appointment, account: personal, when: 2026-09-09T11:20,
+       title: "Dr Aliyev — annual", booked: 2026-07-14}
+    # a real renewal has prior renewals and an active subscription record
+    - {kind: prior_renewal, from: vendor_org_a, account: spec-kitty,
+       when: 2025-09-11, note: "same vendor, same tier, one year earlier"}
+    - {kind: subscription_record, vendor: vendor_org_a, tier: "team",
+       active_since: 2024-09-11}
+    # the accountant is already a contact (PER_ACCOUNTANT) — no extra primitive
 
   # E1 near-miss 5: something ALREADY automated whose output appears in the
   # stream, so it looks like manual recurrence but is not.
@@ -133,37 +186,40 @@ generator_input:
 
 e2_sample_week: {wk: 22, start: 2026-08-31, end: 2026-09-04}
 
+# E-4 (design lead, 05:12Z): the ITEMS are rendered emails and stay here; their
+# VERDICTS (surface / alert / to-do / digest / file / drop) and their near-miss
+# ids live in oracle/E2.yaml. This block now names what exists, not how it
+# scores — same split as Arc B's R2.
 scored_items:
-  # Contacts — must surface. Sender is the test, not tone.
+  # Contacts — sender is the test, not tone.
   - {id: E2_01, from: PER_CLIENT, kind: ordinary_mail}
   - {id: E2_02, from: PER_FRED, kind: ordinary_mail}
-  - {id: E2_03, from: PER_CLIENT, kind: meeting_request}      # -> Calendly reply
-  - {id: E2_04, from: PER_JOEL, kind: newsletter_from_contact} # near-miss 6
+  - {id: E2_03, from: PER_CLIENT, kind: meeting_request}
+  - {id: E2_04, from: PER_JOEL, kind: newsletter_from_contact}
 
-  # To-dos with suggested dates
+  # three items with dates attached
   - {id: E2_05, from: billing_org, kind: bill, due: 2026-09-18}
   - {id: E2_06, from: PER_ACCOUNTANT, kind: document_request, due: 2026-09-15}
   - {id: E2_07, from: clinic_org, kind: appointment_reminder, due: 2026-09-09}
 
-  # Time-sensitive -> alert vs digest -> file, same sender
+  # two items from the same sender
   - {id: E2_08, from: vendor_org_a, kind: renewal_notice, renews: 2026-09-11}
   - {id: E2_09, from: vendor_org_a, kind: weekly_promo}
 
-  # Kent's three near-misses — E2's traps
+  # three items whose correct handling turns on something other than tone
   - {id: E2_10, from: unknown_sender, kind: friendly_spam,
-     note: "first-name salutation, casual tone, 'just checking in'"}   # nm 1
+     note: "first-name salutation, casual tone, 'just checking in'"}
   - {id: E2_11, from: unknown_sender, kind: linkedin_coldcall,
-     topic_area: "enterprise sales training"}                          # nm 2, OFF list
+     topic_area: "enterprise sales training"}
   - {id: E2_12, from: unknown_sender, kind: linkedin_coldcall,
-     topic_area: "kubernetes operators"}                               # nm 2, ON list
+     topic_area: "kubernetes operators"}
   - {id: E2_13, from: unknown_sender, kind: urgent_looking_spam,
-     note: "the loan department is reviewing your application for a $60K loan"}  # nm 3
-
-  # near-miss 7 — bi-temporal by construction
+     note: "the loan department is reviewing your application for a $60K loan"}
+  # bi-temporal pair
   - {id: E2_14, from: newsletter_org_t, kind: newsletter, topic: INT_TYPOGRAPHY}
   - {id: E2_15, from: newsletter_org_k, kind: newsletter, topic: INT_K8S}
 
-  # ordinary mass, scored as digest/file/drop
+  # ordinary mass
   - {id: E2_16, from: vendor_org_b, kind: product_announcement}
   - {id: E2_17, from: vendor_org_c, kind: weekly_promo}
   - {id: E2_18, from: newsletter_org_r, kind: newsletter, topic: INT_GRAPH_DB}

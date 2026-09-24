@@ -1,0 +1,107 @@
+# #849 seed — the cast
+#
+# SEED MATERIAL. Everything here is a primitive the arms may see.
+#
+# This is the machine-readable form of 01-cast.md, which stays as the narrative
+# record (the reasoning, the deliberate exclusions, the Q4 ruling). The table
+# there was prose, so nothing could resolve PER_* ids — the oracle checker
+# caught it the moment E2's traceability named them, and the renderer would
+# have hit the same wall.
+#
+# THE AUTHORING RULE THIS FILE GOVERNS (Arc D's surviving rule; design lead
+# 2026-09-24T04:04Z): the STREAM carries raw per-channel handles and never
+# pre-resolves them; the Person node carries the alias list. Resolution is the
+# arms' job, deterministic and $0. A stream row reading
+# "Marcus Vale <mvale@...>" would hand over Arc C's Person-hub hop.
+
+meta:
+  kind: cast
+  ontology_ref: docs/design/second-brain-graph-layer.md@884d1c6e
+  emits:
+    - GEN_CAST_PERSONS     # the eight Person nodes as loaded entities
+
+# All eight are is_contact: true — they are exactly the people whose mail must
+# surface in E2. That is the TEST, not the tone: E2_10 is friendly-looking spam
+# from someone absent from this list and must not surface.
+persons:
+  - id: PER_MARCUS
+    name: Marcus Vale
+    relationship: collaborator
+    organisation: spec-kitty
+    is_contact: true
+    aliases: ["mvale@spec-kitty.example", "marcus.vale@spec-kitty.example",
+              "Marcus Vale", "@marcus"]
+    arcs: [A]
+
+  - id: PER_FRED
+    name: Fred Okafor
+    relationship: collaborator
+    organisation: spec-kitty
+    is_contact: true
+    aliases: ["fokafor@spec-kitty.example", "@fred", "Fred Okafor"]
+    arcs: [C]
+
+  - id: PER_DANA
+    name: Dana Reyes
+    relationship: collaborator
+    organisation: spec-kitty
+    is_contact: true
+    aliases: ["dreyes@spec-kitty.example", "@dana"]
+    arcs: [C]
+
+  - id: PER_PRIYA
+    name: Priya Raman
+    relationship: collaborator
+    organisation: spec-kitty
+    is_contact: true
+    aliases: ["praman@spec-kitty.example", "@priya"]
+    arcs: [F]
+
+  - id: PER_JOEL
+    name: Joel Whitaker
+    relationship: peer
+    organisation: null
+    is_contact: true
+    aliases: ["joel.whitaker@example.net", "+1-555-0142"]
+    arcs: [B, E]
+
+  - id: PER_CLIENT
+    name: Alina Duarte
+    relationship: client
+    organisation: Duarte Partners
+    is_contact: true
+    aliases: ["aduarte@duarte-partners.example"]
+    arcs: [E]
+
+  - id: PER_ACCOUNTANT
+    name: Ray Mbeki
+    relationship: vendor
+    organisation: Mbeki & Co
+    is_contact: true
+    aliases: ["ray@mbeki-co.example"]
+    arcs: [E]
+
+  - id: PER_CEO
+    name: Sondra Falk
+    relationship: collaborator
+    organisation: spec-kitty
+    is_contact: true
+    aliases: ["sfalk@spec-kitty.example", "@sondra"]
+    arcs: [A]
+
+# --- deliberately NOT nodes, with reasons ---------------------------------
+#
+# Q4 RULED (design lead, 2026-09-24T04:32Z, accepted): there is no Organisation
+# entity. An organisation appears as Person.organisation, as
+# Commitment.counterparty, or as episode provenance — never as a node. The
+# revisit trigger is a question that must TRAVERSE an org; none exists in #849.
+#
+#  * Northside PT and Northside Gym — counterparty strings plus calendar
+#    organisers (Arc A)
+#  * the ~25 vendor and ~15 newsletter senders — episode provenance only. No
+#    oracle traverses them, and minting 40 nodes would blur the is_contact test
+#    by making non-contacts structurally identical to contacts.
+#  * billing_org, clinic_org — same; their mail is grounded by prior statements
+#    and a calendar appointment (Arc E, E-3), not by an entity.
+#  * Kent — the ego is implicit; every edge would otherwise sprout a Kent
+#    endpoint (design lead, 04:23Z).
