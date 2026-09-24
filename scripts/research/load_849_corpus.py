@@ -32,6 +32,7 @@ import json
 import pathlib
 import sys
 from dataclasses import dataclass, field
+from functools import lru_cache
 from datetime import datetime
 
 REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]
@@ -121,7 +122,14 @@ def _ts(value) -> datetime | None:
     """Parse a corpus timestamp. Dates and datetimes both appear."""
     if value in (None, ""):
         return None
-    text = str(value)
+    return _parse(str(value))
+
+
+@lru_cache(maxsize=None)
+def _parse(text: str) -> datetime | None:
+    """Memoised because replay parses every event's `at` and the harness
+    replays 72 times: 5,750 events × 72 is ~414k parses of a few thousand
+    distinct strings. Datetimes are immutable, so sharing them is safe."""
     try:
         parsed = datetime.fromisoformat(text)
     except ValueError:
@@ -146,6 +154,44 @@ def _cmp_key(value, reference: datetime) -> datetime | None:
         parsed = (parsed.replace(tzinfo=reference.tzinfo)
                   if parsed.tzinfo is None else parsed.replace(tzinfo=None))
     return parsed
+
+
+def _stat_key(corpus_dir: pathlib.Path) -> tuple:
+    """Identify the corpus files by (size, mtime_ns) so the cache cannot serve
+    stale content if a corpus is re-rendered inside one process."""
+    key = []
+    for name in ("stream.jsonl", "entities.json", "loader_links.jsonl"):
+        path = corpus_dir / name
+        st = path.stat() if path.exists() else None
+        key.append((name, st.st_size, st.st_mtime_ns) if st else (name, None, None))
+    return (str(corpus_dir), tuple(key))
+
+
+@lru_cache(maxsize=4)
+def _read_corpus_cached(_key: tuple, corpus_dir_str: str):
+    corpus_dir = pathlib.Path(corpus_dir_str)
+    rows = [json.loads(line) for line
+            in (corpus_dir / "stream.jsonl").read_text(encoding="utf-8").splitlines()
+            if line.strip()]
+    entities = json.loads((corpus_dir / "entities.json").read_text(encoding="utf-8"))
+    links_path = corpus_dir / "loader_links.jsonl"
+    links = [json.loads(line) for line
+             in links_path.read_text(encoding="utf-8").splitlines()
+             if line.strip()] if links_path.exists() else []
+    return rows, entities, links
+
+
+def read_corpus(corpus_dir: pathlib.Path):
+    """Parse the corpus once per process.
+
+    The harness replays 72 times over an 828 KB stream; re-parsing it each time
+    is the harness's dominant cost and buys nothing. Keyed on size+mtime so a
+    re-render inside one process is picked up rather than served stale.
+
+    Returns the cached lists — `replay` must not mutate them, and does not: it
+    builds new lists by filtering.
+    """
+    return _read_corpus_cached(_stat_key(corpus_dir), str(corpus_dir))
 
 
 @dataclass
@@ -224,15 +270,7 @@ def replay(corpus_dir: pathlib.Path, ask_time: datetime,
     if verify:
         verify_registration(corpus_dir)
 
-    rows = [json.loads(line) for line
-            in (corpus_dir / "stream.jsonl").read_text(encoding="utf-8").splitlines()
-            if line.strip()]
-    all_entities = json.loads((corpus_dir / "entities.json").read_text(encoding="utf-8"))
-
-    links_path = corpus_dir / "loader_links.jsonl"
-    all_links = [json.loads(line) for line
-                 in links_path.read_text(encoding="utf-8").splitlines()
-                 if line.strip()] if links_path.exists() else []
+    rows, all_entities, all_links = read_corpus(corpus_dir)
 
     nodes = [e for e in all_entities if e.get("kind") != "Edge"]
     edges = [e for e in all_entities if e.get("kind") == "Edge"]
@@ -242,7 +280,11 @@ def replay(corpus_dir: pathlib.Path, ask_time: datetime,
     loaded.events = [r for r in rows
                      if (t := _cmp_key(r.get("at"), ask_time)) is not None
                      and t <= ask_time]
-    loaded.withheld["events"] = [r["ref"] for r in rows if r not in loaded.events]
+    # By ref, not by `r not in loaded.events` — that was a linear scan over a
+    # list of dicts for every row, so a single replay did ~25M dict comparisons
+    # and took 290ms. The harness replays 72 times.
+    kept = {r["ref"] for r in loaded.events}
+    loaded.withheld["events"] = [r["ref"] for r in rows if r["ref"] not in kept]
 
     visible_ids = set()
     for node in nodes:
