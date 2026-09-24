@@ -42,7 +42,7 @@ whether free-prose extraction works (no extraction is used in this run; the seed
 | arm | what it is | fixed configuration |
 |---|---|---|
 | **G** — tuned graph | Graphiti + FalkorDB over the typed ontology, seeded by structured writes (no LLM) | node + edge hybrid retrieval; typed constraint pull, one query per label (`Capacity`, `Commitment`, `Principle`, `Interest`); anchored history expansion (entity → its episodes via `MENTIONS`); **no BFS by default**; `group_id` in `[A-Za-z0-9_]`; retrieval budget recorded per question |
-| **D** — full dump | the entire corpus (rendered seed + full stream) in the prompt | prompt caching **on**; hit rate logged |
+| **D** — full dump | the entire corpus (rendered seed + full stream) in the prompt, in the ruled **native** configuration | prompt caching **on**; hit rate logged. **(A2)** Where the prompt exceeds the model's trained context (262,144 tokens on Qwen3-Next-80B: F1, B1, E2, E1, F2, B2) the cell is recorded as `exceeds_model_context` with the measured token count — never a zero, never a truncated run |
 | **R** — vector-RAG + records | embedding retrieval over the stream and rendered records, top-k | ONE global k, chosen so R's median assembled context is within ±20 % of G's median; the per-question ratio R_context / G_context is a reported column so a parity breach is visible, never silent; caching on for any stable prefix |
 
 Common to all arms: the **same reasoning model**, the **same fixed prompt**, the **same question
@@ -81,10 +81,30 @@ JSON-dense text — a prose ratio under-counts by ~40 %):
 | F2 | 5,730 | 361,659 |
 | B2 | 5,750 | **362,772** |
 
-The served model's context window must exceed the B2 prefix and is recorded in the registration;
-the pre-freeze figure of ~178k tokens is superseded. Feasibility on office4 is arithmetic until
-the (b) gate measures it (12 of 48 Qwen3-Next layers carry KV, GQA with 2 KV heads: weights +
-KV ≈ 51–53 GiB of 62.5 GiB GTT); the gate records n_ctx, peak GTT and tok/s at full B2 length.
+**Arm D and the model's context (Amendment A2, Kent 2026-09-24).** The ruled model's trained
+context is 262,144 tokens (`max_position_embeddings`, no RoPE scaling). Six of the eight D
+prompts exceed it, the largest by 100,628 tokens; memory is not the limit (weights + KV ≈ 51 GiB
+of 62.5 GiB GTT — 12 of 48 layers carry KV), the wall is positional, and output past it would be
+silently degraded. The ruling:
+
+- **Primary run:** all three arms in the native configuration. D runs on C1 and A. On F1, B1,
+  E2, E1, F2, B2 the D cell is `exceeds_model_context` (could-not-check, Engineering Principle
+  14), reported with the token count and excluded from every average.
+- **Pre-registered expected result:** *on this life-sized corpus (~363k tokens at the last
+  question) the full-context approach hits a positional wall that the graph and RAG arms do
+  not.* This is a finding about where flat context stops scaling, stated in tokens, and it counts
+  whichever way the scored cells come out. It is registered here, before the run, so it cannot
+  be read as post-hoc.
+- **Secondary run, after the primary and never interleaved:** **D-YaRN** — the same weights
+  served with Qwen's documented YaRN/RoPE scaling to cover 362,772 tokens, on all eight
+  questions, reported in its own table as a *different serving configuration*. It answers "what
+  would a full dump have given"; it is excluded from the §7 decision rule; its cache, memory and
+  tok/s are recorded so the cost of making D runnable is itself visible.
+- Rejected: a truncated D (no longer an upper bound on recall); re-scoping the frozen corpus;
+  YaRN for all three arms (moves G and R off the ruled model for a benefit only D needs).
+
+The empirical gate runs at n_ctx 262,144 (the largest valid configuration) and records
+configured n_ctx, peak GTT and tok/s at the longest prompt that fits.
 
 **Time-cut rule.** Every question is asked at its stream timestamp. An arm may only see material
 with `created_at ≤ ask time`. For D this means the dumped prefix differs per question — that is
@@ -197,7 +217,10 @@ fixes.
 
 ## 7. Decision rule (confirmed by Kent, 2026-09-24)
 
-Read on the 8 questions, using recall as the primary and precision as the tie-break:
+Read on the 8 questions, using recall as the primary and the decoy counts as the tie-break.
+**(A2)** G vs R is read on all eight; G vs D only on the questions where D exists in the native
+configuration (C1, A); the six `exceeds_model_context` cells are reported, not scored; D-YaRN is
+reported separately and never enters this rule.
 
 - **EARNS #693** — G beats R on a majority of questions, is not worse than D on any question
   beyond the repeat range, and G's uncached input tokens per correct answer are ≤ 20 % of D's on
@@ -293,3 +316,4 @@ harness code, `results/<run>.json`, grading sheet. Findings are written against 
 |---|---|---|---|---|
 | — | 2026-09-24 17:03 | Registration | freeze verdict PASS | `b203907e` |
 | A1 | 2026-09-24 18:15 | Entity allowlist (`arcs` stripped); `loader_links.jsonl` written, G-only; loader gate added; §2 replay rules, prompt layout, measured prefix tokens (B2 = 362,772) | loader-side structural pass found L12 and L13; prefix figure was a prose-ratio estimate | `c0b35cd1` |
+| A2 | 2026-09-24 18:20 | Arm D: native config, `exceeds_model_context` outcome on six questions, pre-registered expected result; D-YaRN secondary; §7 reading | ruled model's trained context is 262,144 tokens; six D prompts exceed it (Kent ruled the design lead's recommendation) | `c0b35cd1` (no corpus change) |
