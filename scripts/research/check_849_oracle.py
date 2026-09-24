@@ -46,6 +46,21 @@ REQUIRED_TOP_KEYS = {"question", "ask_time", "question_text", "must_identify"}
 
 _ISO_DATE = re.compile(r"^\d{4}-\d{2}-\d{2}")
 
+#: `required_values` are the literal tokens a hit MUST contain, so they are only
+#: honest for things with one spelling: dates, times, counts as digits, names.
+#: A verdict word or a number spelled out marks a correct answer wrong for
+#: phrasing — "not on track" is a hit that lacks "no"; "3x" is a hit that lacks
+#: "three". Design lead, 2026-09-24T05:21Z, after B1-1 was written that way.
+_BRITTLE_TOKENS = frozenset(
+    """yes no not never always none all must should
+    one two three four five six seven eight nine ten
+    eleven twelve first second third last""".split()
+)
+
+
+def _brittle(values) -> list[str]:
+    return [v for v in values if isinstance(v, str) and v.strip().lower() in _BRITTLE_TOKENS]
+
 
 def strip_comments(raw: str) -> str:
     return re.sub(r"(?m)^\s*#.*$", "", raw)
@@ -142,6 +157,14 @@ def check_file(path: pathlib.Path, known_ids: set[str] | None = None) -> list[st
                 f"The fix belongs in the SEED, never here."
             )
             continue
+
+        for token in _brittle(point["required_values"]):
+            problems.append(
+                f"{name}: point {pid} has brittle required_value {token!r} — a "
+                f"literal token is only an honest test for a date, time, count "
+                f"as digits, or name. Use required_values: [] and let the "
+                f"grader judge the statement."
+            )
 
         if known_ids is not None:
             unknown = [t for t in point["traceability"] if t not in known_ids]

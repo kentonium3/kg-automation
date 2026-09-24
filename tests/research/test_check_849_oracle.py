@@ -166,3 +166,39 @@ def test_every_emitted_id_referenced_by_an_oracle_is_declared_by_some_seed():
         for point in doc["must_identify"]:
             for ref in point["traceability"]:
                 assert ref in declared, (path.name, point["id"], ref)
+
+
+# --------------------------------------------------------------------------
+# required_values must be honest literals, not verdict words
+# --------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize("token", ["no", "yes", "three", "five", "never", "first"])
+def test_a_brittle_required_value_is_rejected(tmp_path, token):
+    """A verdict word or spelled-out number marks a correct answer wrong.
+
+    "not on track" is a hit that lacks "no"; "3x" is a hit that lacks "three".
+    B1-1 was written this way and the design lead caught it.
+    """
+    text = GOOD.replace('required_values: ["no"]', f'required_values: ["{token}"]')
+    problems = check_file(_write(tmp_path, text), {"OUT_5K"})
+    assert any("brittle required_value" in p for p in problems), (token, problems)
+
+
+@pytest.mark.parametrize("token", ["2026-08-09", "07:30", "29", "32:50", "Fred Okafor"])
+def test_an_honest_literal_is_accepted(tmp_path, token):
+    text = GOOD.replace('required_values: ["no"]', f'required_values: ["{token}"]')
+    assert check_file(_write(tmp_path, text), {"OUT_5K"}) == []
+
+
+def test_committed_oracles_carry_no_brittle_required_values():
+    import yaml as _yaml
+
+    from scripts.research.check_849_oracle import _brittle
+
+    for path in ORACLE_DIR.glob("*.yaml"):
+        if path.name.endswith("-appendix.yaml"):
+            continue
+        doc = _yaml.safe_load(strip_comments(path.read_text(encoding="utf-8")))
+        for point in doc["must_identify"]:
+            assert not _brittle(point["required_values"]), (path.name, point["id"])

@@ -10,7 +10,9 @@ question_text: "Am I on track for the October 5K?"
 must_identify:
   - id: B1-1
     statement: "No — the sub-10:00/mi pace goal is no longer reachable"
-    required_values: ["no"]
+    # Verdict-shaped: "not on track" and "the pace goal is gone" are hits
+    # that carry no literal token. Grader judges the statement.
+    required_values: []
     traceability: [OUT_5K, EP_B_CONDITIONING_RULE]
 
   - id: B1-2
@@ -40,12 +42,15 @@ must_identify:
     statement: >-
       the 07:30 meeting series is the largest single cause and was agreed to
       three times into a known quality-run slot
-    required_values: ["three", "07:30"]
+    # "three" as a word is brittle — "3x" and "three times" are both hits.
+    # The time is a real literal; the count is judged from the statement.
+    required_values: ["07:30"]
     traceability: [GEN_B_WK6_THU, GEN_B_WK8_THU, GEN_B_WK10_THU]
 
   - id: B1-6
     statement: "five misses were silent and five were decided-then-silent"
-    required_values: ["five"]
+    # Same brittleness: "5" and "five" are both hits.
+    required_values: []
     traceability: [GEN_B_SESSIONS, GEN_B_DECISIONS]
 
   - id: B1-7
