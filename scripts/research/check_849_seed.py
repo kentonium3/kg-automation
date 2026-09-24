@@ -274,6 +274,19 @@ def check_file(path: pathlib.Path) -> list[str]:
     if not isinstance(doc, dict):
         return [f"{path.name}: expected a mapping at the top level"]
 
+    # An ORACLE artifact legitimately contains every forbidden token — it is
+    # the answer key. Running seed checks on it would be nonsense, and running
+    # NO check on it would let an oracle file sit in the seed directory and be
+    # loaded into an arm. So: identify it, and assert it is somewhere else.
+    if (doc.get("meta") or {}).get("never_load"):
+        if path.resolve().parent == SEED_DIR.resolve():
+            return [
+                f"{path.name}: declares never_load but lives in the SEED "
+                f"directory — an oracle artifact in seed/ is one glob away "
+                f"from being loaded into an arm. Move it to oracle/."
+            ]
+        return []
+
     # 1. vocabulary, over the RENDERED view only. Declared non-rendered blocks
     #    are exempt — see DEFAULT_NON_RENDERED.
     rendered = _rendered_view(doc)

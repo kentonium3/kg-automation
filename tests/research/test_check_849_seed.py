@@ -412,3 +412,45 @@ def test_arc_e_rejects_process_vocabulary(tmp_path, leak):
     text = ARC_E_OK + f"events:\n  - {{title: '{leak}'}}\n"
     problems = check_file(_write(tmp_path, "arc-e.yaml", text))
     assert any("process vocabulary" in p for p in problems), (leak, problems)
+
+
+# --------------------------------------------------------------------------
+# Oracle artifacts must not be confused with seeds
+# --------------------------------------------------------------------------
+
+ORACLE_DIR = REPO_ROOT / "docs" / "design" / "research" / "849-synthesis" / "oracle"
+
+
+def test_an_oracle_artifact_outside_the_seed_dir_is_skipped(tmp_path):
+    """It legitimately contains every forbidden token — it IS the answer key."""
+    text = (
+        "meta: {arc: B, never_load: true}\n"
+        "B1: {must_identify: ['the point of no return is the halfway point']}\n"
+    )
+    assert check_file(_write(tmp_path, "arc-b-oracle.yaml", text)) == []
+
+
+def test_an_oracle_artifact_inside_the_seed_dir_is_rejected(tmp_path, monkeypatch):
+    """An oracle file in seed/ is one glob away from being loaded into an arm."""
+    import scripts.research.check_849_seed as mod
+
+    monkeypatch.setattr(mod, "SEED_DIR", tmp_path)
+    text = "meta: {arc: B, never_load: true}\nB1: {must_identify: ['x']}\n"
+    problems = mod.check_file(_write(tmp_path, "arc-b-oracle.yaml", text))
+    assert any("lives in the SEED directory" in p for p in problems), problems
+
+
+def test_no_committed_seed_file_declares_never_load():
+    import yaml as _yaml
+
+    for path in sorted(SEED_DIR.glob("*.yaml")):
+        doc = _yaml.safe_load(strip_comments(path.read_text(encoding="utf-8")))
+        assert not (doc.get("meta") or {}).get("never_load"), path.name
+
+
+def test_oracle_artifacts_live_outside_the_seed_directory():
+    if not ORACLE_DIR.exists():
+        pytest.skip("no oracle artifacts yet")
+    assert ORACLE_DIR.resolve() != SEED_DIR.resolve()
+    for path in ORACLE_DIR.glob("*.yaml"):
+        assert check_file(path) == [], path.name

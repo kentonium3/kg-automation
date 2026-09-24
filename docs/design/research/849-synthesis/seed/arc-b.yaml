@@ -41,7 +41,7 @@ outcomes:
   - id: OUT_5K
     description: Run the 5K at a sub-10-minute-mile average for the full distance
     target_date: 2026-10-15
-    measure: "under 31:00 for 3.1 mi (sub-10:00/mi average)"
+    success_criteria: "under 31:00 for 3.1 mi (sub-10:00/mi average)"
     domain: DOM_PERSONAL
     serves: PUR_VITALITY
 
@@ -76,8 +76,17 @@ episodes:
 
   # THE CONDITIONING RULE — the primitive this arc was missing.
   # Kent's own framing, written as a note when he built the plan. It states the
-  # rule; it does NOT say which week is the 50% point, whether any checkpoint
-  # was hit, or what the miss rate is. Those remain the arm's work.
+  # rule; it does NOT say which week is the halfway point, whether any
+  # checkpoint was hit, or what the miss rate is. Those remain the arm's work.
+  #
+  # ⚠ R1 (design lead, 2026-09-24T04:48Z): my first version of this note ended
+  # with a sentence prescribing what to do once the pace goal is gone. That
+  # prescription IS B1's oracle coaching point. I added it while
+  # fixing a DIFFERENT traceability gap, which is how this class of leak
+  # actually happens: not by carelessness about the rule, but by writing one
+  # sentence too many while being careful about something else. Stripped. The
+  # rule now tells the arm only that the pace goal is gone; arriving at
+  # reset-rather-than-quit is the arm's reasoning and what B1 scores.
   - id: EP_B_CONDITIONING_RULE
     reference_time: 2026-06-12T09:22:00-04:00
     source_description: "obsidian note — how to read the plan"
@@ -88,9 +97,8 @@ episodes:
       backwards from the race there are mid-programme time and distance
       checkpoints that say whether I am on track. If I am not hitting the target
       training pace by the halfway point of the programme, there is no path to
-      recovery for the pace goal — the honest move then is to reset the goal to
-      finishing healthy. And if I cannot run at race pace two weeks before the
-      race, I am unlikely to do it on race day.
+      recovery for the pace goal. And if I cannot run at race pace two weeks
+      before the race, I am unlikely to do it on race day.
     mentions: [OUT_5K]
 
 # --- the sessions ---------------------------------------------------------
@@ -110,26 +118,33 @@ episodes:
 generator_input:
   seed: 849-arc-b
   plan_ref: docs/design/research/849-arc-b-training-plan.md
-  # `counted: false` marks the five rows the ORACLE excludes. It is a generator
-  # instruction, never rendered. The rendered event for a counted and an
-  # uncounted miss are IDENTICAL in shape — what differs is the reason text and
-  # whether a Decision exists, which is exactly what the arm must judge.
+  # ⚠ R2 (design lead, 2026-09-24T04:48Z): this block names WHAT HAPPENED and
+  # nothing about how it is scored. It previously carried `counted:` and
+  # `then_silent:` flags — the oracle's per-miss classification. Even
+  # non-rendered, that put the answer key inside the seed artifact, which
+  # rubric §9 forbids: the oracle must be PHYSICALLY separate. They now live in
+  # oracle/arc-b-oracle.yaml.
+  #
+  # What remains here is emittable fact: a session was done, moved, or not
+  # done; the reason as the primitive it becomes; `decision: true` meaning
+  # "emit a Decision plus its provenance episode". `late_night: true` stays —
+  # it names events to emit, not a verdict.
   weeks:
     - {wk: 1,  mon: 2026-06-15, done: 3}
-    - {wk: 2,  mon: 2026-06-22, done: 3, moved: [{from: thu, to: fri_evening, reason: "friend's birthday dinner", decision: true, counted: false}]}
-    - {wk: 3,  mon: 2026-06-29, done: 2, missed: [{day: sat, reason: "July 4th weekend", decision: true, counted: false}]}
+    - {wk: 2,  mon: 2026-06-22, done: 3, moved: [{from: thu, to: fri_evening, reason: "friend's birthday dinner", decision: true}]}
+    - {wk: 3,  mon: 2026-06-29, done: 2, missed: [{day: sat, reason: "July 4th weekend", decision: true}]}
     - {wk: 4,  mon: 2026-07-06, done: 3, note: "first 20-min continuous run"}
-    - {wk: 5,  mon: 2026-07-13, done: 2, missed: [{day: tue, reason: "favour after work", decision: false, counted: true}]}
-    - {wk: 6,  mon: 2026-07-20, done: 1, missed: [{day: thu, reason: "07:30 meeting booked into the slot", decision: true, counted: true}, {day: sat, reason: null, decision: false, counted: true, late_night: true}]}
-    - {wk: 7,  mon: 2026-07-27, done: 1, missed: [{day: tue, reason: "moved to evening, then not run", decision: true, then_silent: true, counted: true}, {day: sat, reason: null, decision: false, counted: true, late_night: true}], note: "progression quicker-5-min run at 11:10"}
-    - {wk: 8,  mon: 2026-08-03, done: 1, missed: [{day: tue, reason: null, decision: false, counted: true, late_night: true}, {day: thu, reason: "07:30 meeting series", decision: true, counted: true}]}
+    - {wk: 5,  mon: 2026-07-13, done: 2, missed: [{day: tue, reason: "favour after work", decision: false}]}
+    - {wk: 6,  mon: 2026-07-20, done: 1, missed: [{day: thu, reason: "07:30 meeting booked into the slot", decision: true}, {day: sat, reason: null, decision: false, late_night: true}]}
+    - {wk: 7,  mon: 2026-07-27, done: 1, missed: [{day: tue, reason: "moved to evening, then not run", decision: true}, {day: sat, reason: null, decision: false, late_night: true}], note: "progression quicker-5-min run at 11:10"}
+    - {wk: 8,  mon: 2026-08-03, done: 1, missed: [{day: tue, reason: null, decision: false, late_night: true}, {day: thu, reason: "07:30 meeting series", decision: true}]}
     - {wk: 9,  mon: 2026-08-10, done: 3, note: "6 x 1 min at ~10:40 effort", late_night: true}
-    - {wk: 10, mon: 2026-08-17, done: 1, missed: [{day: thu, reason: "07:30 meeting series", decision: true, counted: true}, {day: sat, reason: "calf tightness worsening — backed off per the plan's red-flag rule", decision: true, counted: false}]}
-    - {wk: 11, mon: 2026-08-24, done: 2, missed: [{day: tue, reason: "favour after work", decision: false, counted: true}], late_night: true}
-    - {wk: 12, mon: 2026-08-31, done: 2, missed: [{day: sat, reason: "Labor Day weekend away", decision: true, counted: false}]}
-    - {wk: 13, mon: 2026-09-07, done: 2, missed: [{day: thu, reason: "moved to evening, then not run", decision: true, then_silent: true, counted: true}], late_night: true}
+    - {wk: 10, mon: 2026-08-17, done: 1, missed: [{day: thu, reason: "07:30 meeting series", decision: true}, {day: sat, reason: "calf tightness worsening — backed off per the plan's red-flag rule", decision: true}]}
+    - {wk: 11, mon: 2026-08-24, done: 2, missed: [{day: tue, reason: "favour after work", decision: false}], late_night: true}
+    - {wk: 12, mon: 2026-08-31, done: 2, missed: [{day: sat, reason: "Labor Day weekend away", decision: true}]}
+    - {wk: 13, mon: 2026-09-07, done: 2, missed: [{day: thu, reason: "moved to evening, then not run", decision: true}], late_night: true}
     - {wk: 14, mon: 2026-09-14, done: 3, note: "3 x 8 min at 10:35", late_night: true}
-    - {wk: 15, mon: 2026-09-21, done: 1, missed: [{day: all, reason: "head cold, three days off, plan adjusted", decision: true, counted: false}]}
+    - {wk: 15, mon: 2026-09-21, done: 1, missed: [{day: all, reason: "head cold, three days off, plan adjusted", decision: true}]}
     - {wk: 16, mon: 2026-09-28, done: 3, note: "2 x 1 mile at 10:25 and 10:40"}
     - {wk: 17, mon: 2026-10-05, done: 3, note: "taper as written"}
   race:

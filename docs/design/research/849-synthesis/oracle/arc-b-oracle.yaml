@@ -1,0 +1,88 @@
+# #849 HIDDEN ORACLE — Arc B
+#
+# ⛔ THIS FILE IS NEVER LOADED INTO EITHER ARM. ⛔
+#
+# It is the ground truth B1 and B2 are scored against. #844's hidden-oracle
+# rule: the story and its answer are kept together only while authoring, and
+# synthesis splits them into physically separate artifacts. Keeping the answer
+# key in the seed — even inside a block the renderer strips — was ruled
+# insufficient (design lead R2, 2026-09-24T04:48Z): "physically separate" means
+# a different file, not a different section.
+#
+# Everything here is DERIVED from the seed. Nothing here may be inferable only
+# from this file — if an oracle point has no primitive behind it in the seed,
+# that is a #844 Threats §1 defect and the fix belongs in the SEED, never here.
+# Two such gaps have already been found this way (Arc A's "paid, hard to
+# reschedule"; Arc B's halfway-point rule).
+
+meta:
+  arc: B
+  questions: [B1, B2]
+  seed_ref: ../seed/arc-b.yaml
+  never_load: true
+
+# --- per-miss classification (moved out of the seed under R2) --------------
+#
+# Ten COUNTED misses. Five rows are excluded as near-misses and must not be
+# counted by a correct answer.
+
+counted_misses:
+  - {wk: 5,  day: tue, reason: "favour after work",                  decided: false}
+  - {wk: 6,  day: thu, reason: "07:30 meeting booked into the slot", decided: true}
+  - {wk: 6,  day: sat, reason: null,                                 decided: false}
+  - {wk: 7,  day: tue, reason: "moved to evening, then not run",     decided: true, then_silent: true}
+  - {wk: 7,  day: sat, reason: null,                                 decided: false}
+  - {wk: 8,  day: tue, reason: null,                                 decided: false}
+  - {wk: 8,  day: thu, reason: "07:30 meeting series",               decided: true}
+  - {wk: 10, day: thu, reason: "07:30 meeting series",               decided: true}
+  - {wk: 11, day: tue, reason: "favour after work",                  decided: false}
+  - {wk: 13, day: thu, reason: "moved to evening, then not run",     decided: true, then_silent: true}
+
+excluded_near_misses:
+  - {wk: 2,  day: thu, why: "deferral with an acceptable reschedule — moved to Friday evening, within the week, no load lost"}
+  - {wk: 3,  day: sat, why: "holiday — July 4th weekend"}
+  - {wk: 10, day: sat, why: "legitimate back-off — calf tightness worsening, the plan's own red-flag rule prescribes it"}
+  - {wk: 12, day: sat, why: "holiday — Labor Day weekend away"}
+  - {wk: 15, day: all, why: "illness — head cold, three days off, plan adjusted"}
+
+# --- B1: asked Mon 2026-08-17, "Am I on track for the October 5K?" ---------
+
+B1:
+  must_identify:
+    - "No — the pace goal is no longer reachable"
+    - "the halfway point of the programme was missed: no 45-50 min continuous long run completed in Phase 2, and the week 7 progression ran 11:10 against a ~10:30 target"
+    - "the miss rate at that point is ~29% of core sessions"
+    - "four reasons repeat: late nights working (x3), the 07:30 meeting series booked into the Thursday quality slot (x3), 'I'll run tonight' then not (x2), a favour after work (x2)"
+    - "the 07:30 series is the largest single cause and was agreed to three times into a known quality-run slot"
+    - "five misses were silent and five were decided-then-silent"
+    - "no individual deferral was unreasonable — the failure is aggregate"
+    - "the coaching move is to reset the outcome to finishing healthy rather than abandon it, and to fix the 07:30 series and the late nights now"
+  earliest_catchable: "end of week 7, Sun 2026-08-02 — two consecutive weeks at 1/3, one reason already repeated, and one week left in which a change could still have mattered"
+
+  wrong_answers:
+    - "yes, on track — week 9 was a full week"
+    - "the calf tightness in week 10 is the cause"
+    - "the head cold in week 15 is the cause"
+    - "the miss rate is 33%" # a naive count that includes the holidays
+    - "give up on the race"
+
+# --- B2: asked after the race, "Why did I miss sub-10?" --------------------
+
+B2:
+  must_identify:
+    - "the same chain as B1"
+    - "the race result 32:50 is a 10:35/mi average against a sub-10:00 target"
+    - "the damage was done by week 8; weeks 9-17 could not recover it"
+    - "the retrospective is coaching, not failure: different scheduling (do not book the 07:30 series into the quality slot), commitment management (an evening move is a new commitment, not a deferral), delegation (the after-work favours), and a mindset shift"
+  wrong_answers:
+    - "insufficient training volume in the taper"
+    - "the plan was too aggressive"
+    - "illness and injury derailed it"
+
+# --- grader notes ----------------------------------------------------------
+
+notes:
+  - "The point of no return is the halfway point, NOT the last miss, NOT the first, and NOT either legitimate back-off. Both back-offs are prescribed by the plan itself and are the two most tempting wrong answers."
+  - "Week 9's full week looks like recovery and is arithmetically irrelevant after the halfway point. An answer that reads it as 'back on track' is wrong."
+  - "The strength sessions (Mon/Wed/Sun) run throughout and are never core runs; a miss there is not a miss here."
+  - "Arc A's PT sessions run through this window and do NOT drift — an answer that counts deferrals per commitment must not be rewarded for finding drift where there is none."

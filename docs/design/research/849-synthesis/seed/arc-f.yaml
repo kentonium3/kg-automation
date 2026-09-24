@@ -20,6 +20,14 @@
 #   anywhere. The Principle's own words say "near-daily" — that is Kent's
 #   verbatim text and stays; it is a value, not a threshold.
 #
+# CHOICE F-REP (design lead asked me to pick and say so): the check-in stream is
+# COMPLETIONS-ONLY. A Vikunja recurring task emits an event when completed and
+# emits nothing when not — that is what the adapter genuinely sees, and
+# inventing explicit "not done" rows would fabricate a signal no real adapter
+# produces. Consequence, and it is the right one here: a missed morning is an
+# ABSENCE in the stream, not a record. Arc F is about detecting absence, so
+# making the misses explicit would soften the exact thing it tests.
+#
 # THE TRAJECTORY IS NOT SEEDED EITHER. What is seeded is ~180 individual
 # check-in events and ~110 journal marks. The five phases, the rates, the
 # threshold crossing and the decided/silent split are all OTHER PEOPLE'S
@@ -31,7 +39,7 @@ meta:
   window: {start: 2026-04-06, end: 2026-09-25}
   ontology_ref: docs/design/second-brain-graph-layer.md@884d1c6e
   # See arc-b.yaml for why this declaration is load-bearing.
-  non_rendered: [generator_input, shared_late_nights]
+  non_rendered: [generator_input, shared_late_nights, email_first_mornings, near_miss_rules]
 
 principles:
   # Kent's verbatim text, 2026-09-23. Hard, global (no SCOPED_TO edge).
@@ -218,6 +226,46 @@ shared_late_nights:
     commits on spec-kitty repos, sent email, Slack messages). These same nights
     precede Arc B's missed Tuesday/Thursday runs in weeks 6, 7, 8, 13.
   consumed_by: [arc-f, arc-b]
+
+# GAP F5 (design lead, 2026-09-24T04:44Z) — CLOSED HERE.
+#
+# The oracle's "what filled the slot" names EMAIL-FIRST MORNINGS (wk 8 "an early
+# start on email"; wk 14-18 "email-first mornings are the default"), and nothing
+# in the seed emitted a primitive for it. Without this the arm can name the
+# calls and the late nights but not the DOMINANT filler — and would be scored
+# wrong for missing something the corpus never carried. Same class as Arc A's
+# "paid, hard to reschedule" and Arc B's halfway-point rule.
+#
+# Content is irrelevant; what matters is that Kent was sending mail in the
+# practice window. Nothing labels these as intrusions.
+email_first_mornings:
+  source: generator
+  seed: 849-arc-f-emailfirst
+  rule: >-
+    Emit 3-8 SENT-mail events from Kent between 06:00 and 07:00, on any account,
+    on: one morning in week 8; roughly three mornings a week through weeks
+    14-18; and roughly two a week through weeks 19-24. None on the mornings a
+    check-in was completed.
+
+# Three near-miss generator rules (design lead, same message).
+near_miss_rules:
+  # (a) The lighter-weekend convention, present from week 1 so a naive 7-day
+  #     count reads it as misses from the start rather than as new drift.
+  - id: NM_F_WEEKEND
+    rule: >-
+      From week 1 onward, Saturday and Sunday practice is shorter by design and
+      the journal entry is often skipped. Emit weekend check-ins at ~60% of the
+      weekday rate for the whole window, INCLUDING the healthy early phase.
+  # (b) One signal down, one up — an early warning, not a lapse.
+  - id: NM_F_WK9_DIP
+    rule: "Week 9 specifically: journal entries = 3, meditation check-ins = 6."
+  # (c) The practice kept at the wrong time, distinct from the wk-12 travel one.
+  - id: NM_F_LATE_EVENING
+    rule: >-
+      Week 17: on one day whose morning was lost, emit a meditation completion
+      at ~20:40. Counts as done for the slope; counts as a morning miss for the
+      calendar question. Must be a different day and cause from the wk-12
+      travel reschedule already seeded as EP_F_TRAVEL_EVENING.
 
 # --- what is NOT in this file, on purpose ---------------------------------
 #
