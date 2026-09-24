@@ -30,6 +30,12 @@ meta:
   contexts: [spec-kitty]
   window: {start: 2026-04-14, end: 2026-04-28}
   ontology_ref: docs/design/second-brain-graph-layer.md@fc3e4eea
+  non_rendered: []
+  emits:
+    - GEN_C_TRAFFIC         # the two weeks of other Kent<->Fred exchanges
+    - GEN_C_REPORT_THREAD   # the quarterly-report thread (trap AND clue)
+    - GEN_C_PROBE           # Fred's 04-28 oblique message
+    - GEN_C_RETRO_INVITE    # the launch-retrospective invite naming both presenters
 
 # --- entities -------------------------------------------------------------
 
@@ -141,6 +147,15 @@ traffic:
      text: "Covered, thanks. Save your cycles for the integration."}
   - {when: 2026-04-27T09:14, channel: email, direction: inbound,
      from: "dreyes@spec-kitty.example", subject: "pricing page — after launch?"}
+
+  # The retrospective invite. This is what grounds "Fred already knows how the
+  # launch went" — the oracle's evidence that his 04-28 message cannot be a
+  # sincere question about the launch. Without it that inference rests only on
+  # him drafting the report's launch section, which is weaker.
+  - {when: 2026-04-21T10:15, channel: calendar, direction: inbound,
+     from: "fokafor@spec-kitty.example",
+     subject: "Launch retrospective — exec staff",
+     text: "Mon 2026-05-05 10:00. Presenters: Kent Gale, Fred Okafor."}
 
   # THE LEXICAL NEAR-MISS. Fred + launch + recent + email: everything a
   # retrieval wants, and the wrong binding. It is also the ONLY evidence the

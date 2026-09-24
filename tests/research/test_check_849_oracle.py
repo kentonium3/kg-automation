@@ -202,3 +202,48 @@ def test_committed_oracles_carry_no_brittle_required_values():
         doc = _yaml.safe_load(strip_comments(path.read_text(encoding="utf-8")))
         for point in doc["must_identify"]:
             assert not _brittle(point["required_values"]), (path.name, point["id"])
+
+
+# --------------------------------------------------------------------------
+# Completeness — every question in the rubric has an oracle
+# --------------------------------------------------------------------------
+
+#: The eight questions rubric §3 defines. An arc with no oracle cannot be
+#: scored, and the failure would surface only when the run produced no number
+#: for it — after the corpus was frozen.
+EXPECTED_QUESTIONS = {"A", "B1", "B2", "C1", "E1", "E2", "F1", "F2"}
+
+
+def test_every_rubric_question_has_an_oracle():
+    present = {
+        yaml.safe_load(strip_comments(p.read_text(encoding="utf-8")))["question"]
+        for p in ORACLE_DIR.glob("*.yaml")
+        if not p.name.endswith("-appendix.yaml")
+    }
+    assert present == EXPECTED_QUESTIONS, {
+        "missing": sorted(EXPECTED_QUESTIONS - present),
+        "unexpected": sorted(present - EXPECTED_QUESTIONS),
+    }
+
+
+def test_each_oracle_declares_wrong_answers_and_grader_notes():
+    """Precision scoring needs wrong answers; a bare must_identify is half a test."""
+    for path in ORACLE_DIR.glob("*.yaml"):
+        if path.name.endswith("-appendix.yaml"):
+            continue
+        doc = yaml.safe_load(strip_comments(path.read_text(encoding="utf-8")))
+        assert doc.get("wrong_answers"), path.name
+        assert doc.get("grader_notes"), path.name
+
+
+def test_ask_times_are_ordered_within_each_arc():
+    """A retrospective question must not be asked before its mid-journey one."""
+    docs = {}
+    for path in ORACLE_DIR.glob("*.yaml"):
+        if path.name.endswith("-appendix.yaml"):
+            continue
+        d = yaml.safe_load(strip_comments(path.read_text(encoding="utf-8")))
+        docs[d["question"]] = str(d["ask_time"])
+
+    assert docs["B1"] < docs["B2"], (docs["B1"], docs["B2"])
+    assert docs["F1"] < docs["F2"], (docs["F1"], docs["F2"])

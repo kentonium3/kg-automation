@@ -23,6 +23,14 @@ meta:
   contexts: [personal, spec-kitty]
   window: {start: 2026-06-08, end: 2026-06-12}
   ontology_ref: docs/design/second-brain-graph-layer.md@fc3e4eea
+  non_rendered: []
+  emits:
+    - GEN_A_CALENDAR        # the week's calendar events, both accounts
+    - GEN_A_SHARING         # the free/busy share from personal into spec-kitty
+    - GEN_A_MOVED_1TO1      # the 1:1 in its post-move position
+    - GEN_A_NM_EXCEPTION    # near-miss 4: the move WITH notice and a stated reason
+    - GEN_A_NM_CEO          # near-miss 7a: the CEO announcement, importance stated
+    - GEN_A_NM_SELF         # near-miss 7b: the self-booked collision
 
 # --- entities -------------------------------------------------------------
 

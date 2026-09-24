@@ -1,0 +1,92 @@
+# #849 HIDDEN ORACLE — question C1
+# ⛔ NEVER LOADED INTO ANY ARM, RENDERER OR LOADER. ⛔
+
+question: C1
+ask_time: 2026-04-28T09:06:00-04:00
+question_text: "Fred just sent this. What is he referring to, and what do I owe him?"
+
+must_identify:
+  - id: C1-1
+    statement: >-
+      the original promise — 2026-04-14, outbound Slack: a design review with
+      Fred once past the launch, so the integration work can start
+    required_values: ["2026-04-14"]
+    traceability: [EP_C_PROMISE, COM_DESIGN_REVIEW, PER_FRED]
+
+  - id: C1-2
+    statement: >-
+      it was captured and deferred with no date or timeframe — a
+      condition-gated commitment — and NOTHING was ever created against it: no
+      calendar hold, no task, no revisit. A gap, not a delay
+    required_values: []
+    traceability: [EP_C_INTAKE, COM_DESIGN_REVIEW]
+
+  - id: C1-3
+    statement: >-
+      the condition has been met — the launch shipped on or before 2026-04-24,
+      inferable from the thread coordinating a report on HOW IT WENT, which can
+      only exist afterwards. So the deferred commitment is now due, even though
+      nothing is overdue
+    required_values: []
+    traceability: [GEN_C_REPORT_THREAD, OUT_LAUNCH, COM_DESIGN_REVIEW]
+
+  - id: C1-4
+    statement: >-
+      Fred's message refers to the DESIGN REVIEW, not the launch — he drafted
+      the report's launch section and co-presents the retrospective, so he
+      already knows how the launch went; the question only makes sense as a
+      probe on what was gated behind it
+    required_values: []
+    traceability: [GEN_C_PROBE, GEN_C_REPORT_THREAD, GEN_C_RETRO_INVITE]
+
+  - id: C1-5
+    statement: >-
+      the quarterly-report thread is the WRONG binding, despite being the
+      closest match on both person and topic
+    required_values: []
+    traceability: [GEN_C_REPORT_THREAD]
+
+  - id: C1-6
+    statement: >-
+      elapsed time and cost — two weeks; low but rising, because Fred's
+      integration work is waiting on a review that has no date and he has had
+      to ask sideways
+    required_values: []
+    traceability: [EP_C_PROMISE, GEN_C_PROBE, OUT_INTEGRATION]
+
+  - id: C1-7
+    statement: >-
+      the response is to propose the design review now, with dates — and the
+      coaching point is that a commitment deferred without a date needs a
+      TRIGGER ("ask me again the week after launch"), which intake could have
+      asked for on 04-14
+    required_values: []
+    traceability: [EP_C_INTAKE, COM_DESIGN_REVIEW]
+
+wrong_answers:
+  - "the quarterly report is on track"
+  - "he is asking how the launch went"
+  - "you already met with Fred, so the promise is kept"
+  - "nothing is owed — nothing is overdue"
+  - "he is chasing the pricing-page revisit"
+
+near_misses: [GEN_C_TRAFFIC, GEN_C_REPORT_THREAD]
+
+grader_notes: >-
+  C1-3: accept "on or before 2026-04-24". The exact ship day is deliberately
+  not in the corpus — Kent's own timeline gives that row no channel, so it is
+  background truth rather than an event. An answer naming 04-23 exactly is
+  fine but not required, and an answer that demands the corpus state it has
+  misread what is inferable.
+
+  "The quarterly report is on track" is the signature wrong answer and a hard
+  fail: it is what person-and-topic retrieval produces, it answers a question
+  Fred did not ask, and it is lexically the closest match in the window.
+
+  C1-2 is scored on the ABSENCE. An arm that finds the commitment but does not
+  notice that nothing was ever created against it has found the promise, not
+  the dropped ball.
+
+  The volume of other Fred traffic in the window is deliberate: recency and
+  frequency both point away from the promise. An arm that ranks by recency
+  lands on the report thread every time.

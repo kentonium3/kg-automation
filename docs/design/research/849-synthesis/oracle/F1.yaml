@@ -1,0 +1,87 @@
+# #849 HIDDEN ORACLE — question F1
+# ⛔ NEVER LOADED INTO ANY ARM, RENDERER OR LOADER. ⛔
+
+question: F1
+ask_time: 2026-08-10T09:00:00-04:00
+question_text: "Am I keeping my non-negotiables?"
+
+must_identify:
+  - id: F1-1
+    statement: "No — the morning practice has lapsed"
+    required_values: []
+    traceability: [PRIN_SELF_INVESTMENT, GEN_F_CHECKINS]
+
+  - id: F1-2
+    statement: >-
+      the trajectory is a slope, not a single miss — check-ins fall from 6-7 a
+      week through 5-6, 4-5 and 2-4 to 1-2, and journal entries fall with them
+    required_values: []
+    traceability: [GEN_F_CHECKINS, GEN_F_JOURNAL]
+
+  - id: F1-3
+    statement: >-
+      journalling crossed under three a week around week 14 — the marker Kent
+      named
+    required_values: []
+    traceability: [GEN_F_JOURNAL]
+
+  - id: F1-4
+    statement: >-
+      almost none of it was decided — roughly four Decisions across roughly
+      sixty missed mornings; the rest are bare events
+    required_values: []
+    traceability: [GEN_F_CHECKINS, DEC_F_TZ_CALL, DEC_F_TRAVEL, DEC_F_ILLNESS]
+
+  - id: F1-5
+    statement: >-
+      the sharpest single instance is the second recurring early call, which
+      simply APPEARED on the calendar in week 11 with no Decision anywhere — a
+      standing intrusion on a non-negotiable that was never decided
+    required_values: []
+    traceability: [GEN_F_CHECKINS]
+
+  - id: F1-6
+    statement: >-
+      what filled the slot — early calls, email-first mornings, and sleeping in
+      after late nights working — and that these are urgent-unimportant trades,
+      exactly what the Principle predicts
+    required_values: []
+    traceability: [GEN_F_EMAIL_FIRST, SHARED_LATE_NIGHTS, GEN_F_CHECKINS]
+
+  - id: F1-7
+    statement: >-
+      the response is to surface the absence and prompt the RETURN, with no
+      fanfare
+    required_values: []
+    traceability: [PRIN_SELF_INVESTMENT]
+
+wrong_answers:
+  - "start a streak and track it"
+  - "reward yourself when you complete a week"
+  - "block the time on your calendar and tell your team"
+  - "get an accountability partner"
+  - "the illness week is when it stopped"
+  - "you are mostly keeping them"
+
+near_misses: [DEC_F_ILLNESS, DEC_F_TRAVEL, DEC_F_TZ_CALL]
+
+grader_notes: >-
+  F1-7 is constrained by the Principle itself, and this is what makes the arc
+  hard in a way a task-list read cannot see. The obvious fixes are all WRONG
+  ANSWERS: a streak, a reward, a badge, and especially "block it and tell your
+  team" — the Principle says the practice is done with NO EXTERNAL VIEW, so
+  recruiting one violates the thing being protected. An arm that produces a
+  correct diagnosis and then proposes an accountability partner has failed F1
+  on its most important point.
+
+  F1-2 is scored as trajectory. An answer that lists missed days without
+  naming the slope has counted, not noticed.
+
+  The three decided absences (the week-6 time-zone call, the week-12 travel
+  day, the week-16 illness) are legitimate and are NOT the cause. Naming any of
+  them as when it stopped is a wrong answer; noting them as non-causes is a
+  positive signal.
+
+  The weekend convention is present from week 1 by design, so a naive 7-day
+  count reads the healthy phase as already lapsing. An arm whose slope starts
+  at week 1 has been caught by it.

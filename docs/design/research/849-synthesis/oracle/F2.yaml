@@ -1,0 +1,60 @@
+# #849 HIDDEN ORACLE — question F2
+# ⛔ NEVER LOADED INTO ANY ARM, RENDERER OR LOADER. ⛔
+
+question: F2
+ask_time: 2026-09-25T09:00:00-04:00
+question_text: "When should this have been caught?"
+
+must_identify:
+  - id: F2-1
+    statement: >-
+      weeks 9-10 — when misses went from "one here and there" to "a couple a
+      week" and the late-night cause had already repeated
+    required_values: []
+    traceability: [GEN_F_CHECKINS, SHARED_LATE_NIGHTS]
+
+  - id: F2-2
+    statement: >-
+      before the second early call was allowed to appear on the calendar in
+      week 11 — that is the point a standing intrusion became structural
+    required_values: []
+    traceability: [GEN_F_CHECKINS]
+
+  - id: F2-3
+    statement: >-
+      the week-25 return is a POSITIVE event — the practice working, not a data
+      point in the lapse. Returning after interruption is the muscle the
+      Principle names
+    required_values: []
+    traceability: [EP_F_RESTART, DEC_F_RESTART, PRIN_SELF_INVESTMENT]
+
+  - id: F2-4
+    statement: >-
+      the late nights that eroded this practice are the SAME late nights that
+      broke the 5K training in the same weeks — one cause, two Principles
+      eroding
+    required_values: []
+    traceability: [SHARED_LATE_NIGHTS, GEN_B_SESSIONS]
+
+wrong_answers:
+  - "week 23, when the check-ins reached zero"
+  - "week 16, the illness week"
+  - "week 14, when journalling crossed the threshold"
+  - "it could not have been caught earlier"
+
+near_misses: [DEC_F_ILLNESS, DEC_F_TRAVEL]
+
+grader_notes: >-
+  F2-4 is the coaching finding and the highest-value point in the whole corpus.
+  Kent's oracle says an arm that NAMES the shared cause has found it. This is
+  the only point that requires crossing between two arcs, and the corpus
+  supports it because the late-night events are ONE generated set consumed by
+  both — not two fabrications that happen to agree.
+
+  Week 14 is the tempting wrong answer for F2: it is where the journalling
+  threshold is crossed, so it is the most visible marker. But by then the
+  second early call is already standing and the slope is set — the catchable
+  moment is earlier and less visible, which is the point.
+
+  F2-3 is scored positively. An arm that reports week 25 as the end of the
+  decline has read the trajectory but not the Principle.

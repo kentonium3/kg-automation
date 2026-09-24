@@ -1,0 +1,90 @@
+# #849 HIDDEN ORACLE — question A
+# ⛔ NEVER LOADED INTO ANY ARM, RENDERER OR LOADER. ⛔
+
+question: A
+ask_time: 2026-06-09T09:15:00-04:00
+question_text: "Marcus just moved our Friday 1:1 to Thursday. Is that a problem, and what should I do?"
+
+must_identify:
+  - id: A-1
+    statement: >-
+      the moved 1:1 (Thu 2026-06-11 14:00-15:00) overlaps the PT session
+      (14:30-15:15) by 30 minutes
+    required_values: ["2026-06-11", "14:00", "14:30"]
+    traceability: [GEN_A_MOVED_1TO1, COM_PT_THU, GEN_A_CALENDAR]
+
+  - id: A-2
+    statement: >-
+      the Tue/Thu PT sessions carry NO travel blocks, while the Mon/Wed/Fri
+      workouts do — so the PT session's true footprint is 14:00-15:45 and the
+      whole meeting collides, not just 30 minutes of it
+    required_values: ["15:45"]
+    traceability: [GEN_A_CALENDAR, COM_PT_THU, COM_WORKOUT_MON, COM_WORKOUT_WED, COM_WORKOUT_FRI]
+
+  - id: A-3
+    statement: >-
+      the PT session is the fixed one — paid per session, 24-hour cancellation,
+      late changes forfeit the fee, trainer availability limited — and the 1:1
+      is the movable one, since Marcus moved it unilaterally
+    required_values: []
+    traceability: [EP_A_PT_BOOKING, COM_1TO1_MARCUS, GEN_A_MOVED_1TO1]
+
+  - id: A-4
+    statement: >-
+      the governing Principle is that pre-scheduled repeating personal
+      commitments take priority unless the competing request is of very high
+      importance AND arrives at least two days before the event, and that the
+      response is a counter-offer rather than a cancellation
+    required_values: []
+    traceability: [PRIN_PERSONAL_PRIORITY]
+
+  - id: A-5
+    statement: >-
+      the exception does NOT fire — a routine 1:1 moved for convenience is not
+      very high importance, so the notice test is not even reached
+    required_values: []
+    traceability: [PRIN_PERSONAL_PRIORITY, GEN_A_MOVED_1TO1]
+
+  - id: A-6
+    statement: >-
+      the resolution is a counter-offer of Wed 2026-06-10 14:00-15:00 — clear
+      of the 11:30-13:30 workout-plus-travel block and within the week, as the
+      1:1 rule requires
+    required_values: ["2026-06-10", "14:00"]
+    traceability: [PRIN_ONE_TO_ONE_MOVABLE, GEN_A_CALENDAR, COM_WORKOUT_WED]
+
+  - id: A-7
+    statement: >-
+      it should have been caught on Tuesday 2026-06-09, the moment the move
+      landed — not on Thursday morning
+    required_values: ["2026-06-09"]
+    traceability: [EP_A_MOVE]
+
+wrong_answers:
+  - "counter-offer Thursday at 15:15"
+  - "no conflict — the meeting ends before the PT session starts"
+  - "cancel the PT session"
+  - "the exception fires because two days' notice was given"
+  - "move the PT session; the 1:1 is with your boss"
+
+near_misses: [GEN_A_NM_EXCEPTION, GEN_A_NM_CEO, GEN_A_NM_SELF]
+
+grader_notes: >-
+  A-2 is the arc's harder half and the one the travel-block absence exists for.
+  An answer that resolves the overlap but never notices the PT sessions are
+  understated has found the easy finding only.
+
+  "Counter-offer Thursday at 15:15" is the specific wrong answer the
+  travel-time finding prevents — 15:15 is the calendar's stated end, not the
+  true one. It is a HARD FAIL, not a partial: it is what an arm produces when
+  it has A-1 and not A-2.
+
+  On A-5: the notice is exactly two days by construction and Kent kept it
+  borderline deliberately. An arm that reaches the notice test at all has
+  already mis-ordered the Principle — importance is the first gate, and it
+  fails. Reaching the right answer via the notice clause is a partial hit on
+  A-5 at most.
+
+  The working-days rider (a Friday move for a Monday event is short notice, and
+  so is a Tuesday move for a Thursday after a Wednesday holiday) is not
+  exercised by this instance and is not scored here.
