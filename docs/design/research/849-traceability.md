@@ -10,7 +10,7 @@ last_updated: 2026-09-24
 
 Rubric §8 closure of #844 Threats §1 (an oracle point with nothing in the seed behind it).
 Built from the worksheet oracles (`849-lattice-scenario-arcs.md@f3076643`) and the seeds at
-`2994bab7`. **Legend:** OK = inferable from the named primitives; OK-ABS = inferable from an
+`2994bab7` / `a489039d` / `938cd847`. **Legend:** OK = inferable from the named primitives; OK-ABS = inferable from an
 absence the seed constructs; GAP = no primitive yet, with the primitive that would close it;
 GRADE = a note for the grader, not a seed change. Arcs B and E are added when their seeds land.
 
@@ -32,7 +32,7 @@ GRADE = a note for the grader, not a seed change. Arcs B and E are added when th
 | # | oracle point | primitives | status |
 |---|---|---|---|
 | C1 | The promise: 04-14, Slack, outbound, exact wording | `EP_C_PROMISE` | OK |
-| C2 | Captured and deferred with no date/timeframe; nothing ever created against it | `EP_C_INTAKE`; `COM_DESIGN_REVIEW` with `datetime: null` + `trigger`; no inbound `DUE_BY`/`GATES`/`BLOCKS` (absence) | OK-ABS — after `DEC_C_DEFER` is removed per ruling; a Decision node here would over-state it |
+| C2 | Captured and deferred with no date/timeframe; nothing ever created against it | `EP_C_INTAKE`; `COM_DESIGN_REVIEW` with `datetime: null` + `trigger`; no inbound `DUE_BY`/`GATES`/`BLOCKS` (absence) | OK-ABS (`DEC_C_DEFER` removed a489039d) |
 | C3 | The condition has been met (launch shipped ~04-23), inferable only indirectly | `OUT_LAUNCH.target_date` 04-23 with no status advance; 04-24 email "Quarterly report … how the launch went" | OK — **GRADE:** accept "shipped on or before 04-24, target 04-23"; the exact day is not in the corpus by design |
 | C4 | Fred's message refers to the design review, not the launch; evidence: he already knows how the launch went | Fred drafted the launch section (04-24); "See you at the exec review" (04-27 outbound) | OK — inferable; the worksheet's "co-presents" is implied, not stated |
 | C5 | The quarterly-report thread is the wrong binding | same thread; `GATED_ON` → `OUT_LAUNCH` gives the arm what to check | OK |
@@ -45,9 +45,9 @@ GRADE = a note for the grader, not a seed change. Arcs B and E are added when th
 | # | oracle point | primitives | status |
 |---|---|---|---|
 | F1 | The Principle, verbatim, hard, global | `PRIN_SELF_INVESTMENT` | OK |
-| F2 | Five-phase trajectory; the signal is the slope | ~180 generated check-in completions + ~110 journal marks (jittered inside bands; bands never rendered) | OK — contingent on the render never emitting `generator_input` |
+| F2 | Five-phase trajectory; the signal is the slope | ~180 generated check-in completions + ~110 journal marks (jittered inside bands; bands never rendered) | OK — `meta.non_rendered` declares it and the detector rejects undeclared blocks (a489039d); the renderer test is still owed |
 | F3 | Journaling drops below 3/week at wk 14 | generated journal marks | OK (the "3/week" marker is oracle-only) |
-| F4 | ~4 of ~60 misses decided; the wk-11 APAC sync simply appeared with no Decision | four `DEC_F_*` + their source episodes (ruling: add provenance episodes for TZ_CALL, TRAVEL, ILLNESS); wk-11 `slot_fillers` entry with `recurrence_rule` and no decision | OK after provenance fix |
+| F4 | ~4 of ~60 misses decided; the wk-11 APAC sync simply appeared with no Decision | four `DEC_F_*` + their source episodes (ruling: add provenance episodes for TZ_CALL, TRAVEL, ILLNESS); wk-11 `slot_fillers` entry with `recurrence_rule` and no decision | OK (provenance episodes + dispositions a489039d) |
 | F5 | What filled the slot: early calls, **email-first mornings**, sleep after late nights | early calls: `slot_fillers` wk 6, 11; late nights: `shared_late_nights` generator; **email-first mornings: no primitive** | **GAP** — generator must emit sent-email events at 06:00–07:00 on the mornings the worksheet marks "early start on email" (wk 8) and "email-first mornings are the default" (wk 14–18) |
 | F6 | Root cause shared with Arc B's missed runs | `shared_late_nights` (single event set, consumed by arc-b and arc-f) | OK — contingent on Arc B referencing the same ids |
 | F7 | Response in the Principle's own terms; reward/badge/public commitment are wrong answers | Principle text ("no fanfare, no celebration, no external view") | OK |
