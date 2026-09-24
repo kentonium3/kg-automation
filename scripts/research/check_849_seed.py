@@ -141,6 +141,58 @@ STRUCTURAL_CHECKS = {
             ),
         ),
     ],
+    "B": [
+        (
+            "no checkpoint IDENTIFIERS or verdicts in the rendered view — "
+            "CP1-CP4 and their targets are the ORACLE's derivation from the "
+            "plan plus the conditioning rule. NOTE: the bare word "
+            "'checkpoints' is ALLOWED, because Kent's conditioning rule says "
+            "checkpoints exist — that is the primitive. What is forbidden is "
+            "naming or evaluating them.",
+            lambda d: not any(
+                k in yaml.safe_dump(_rendered_view(d)).lower()
+                for k in ("cp1", "cp2", "cp3", "cp4",
+                          "checkpoint missed", "checkpoint failed",
+                          "checkpoint hit", "50% point", "halfway checkpoint")
+            ),
+        ),
+        (
+            "the conditioning rule must be seeded as an episode — without it "
+            "the 'point of no return' oracle point has no primitive behind it "
+            "(#844 Threats §1)",
+            lambda d: any(
+                "halfway point" in (e.get("content") or "").lower()
+                for e in (d.get("episodes") or [])
+            ),
+        ),
+    ],
+    "E": [
+        (
+            "the automation spec must NOT be seeded — it is the oracle's "
+            "'what should be proposed' and seeding it answers E1 outright",
+            lambda d: not any(
+                k in yaml.safe_dump(_rendered_view(d)).lower()
+                for k in ("calendly", "auto-file", "auto_file", "digest of just",
+                          "30-day purge", "auto-purge")
+            ),
+        ),
+        (
+            "Interest must carry no status field — status as of a week is "
+            "derived from add/drop episodes, which is what makes near-miss 7 "
+            "bi-temporal rather than a lookup",
+            lambda d: all(
+                "status" not in (i or {}) for i in (d.get("interests") or [])
+            ),
+        ),
+        (
+            "no process vocabulary in the rendered view — the five "
+            "sub-activities must be inferable from the action shape, not named",
+            lambda d: not any(
+                k in yaml.safe_dump(_rendered_view(d)).lower()
+                for k in ("triage session", "sub-activit", "the same five")
+            ),
+        ),
+    ],
     "F": [
         (
             "a standing practice must have NO Outcome — an Outcome requires a "

@@ -1,0 +1,192 @@
+# #849 seed — Arc E: repeating pattern → automation
+#
+# SEED MATERIAL. Everything in the rendered view is a primitive the arms may see.
+#
+# Arc E sets the corpus VOLUME: ~200 emails/week across three accounts for ~24
+# weeks ≈ 5,000 items. That is not padding — it is the distractor mass every
+# other arc's near-misses are embedded in, and it is what makes the
+# cost-per-correct-answer axis bite.
+#
+# ───────────────────────────────────────────────────────────────────────────
+# THE HARDEST SEEDING JUDGEMENT IN THIS ARC, flagged for the design lead:
+#
+#   E1's oracle requires the arm to find that each marathon session is "the
+#   same five sub-activities in the same order". A calendar block reading
+#   "Email — 2h" cannot support that: the five steps would be invisible, and
+#   the oracle point would have no primitive behind it — the #844 Threats §1
+#   failure we have now hit twice (Arc A, Arc B).
+#
+#   But writing "triage session, steps 1-5" into the corpus asserts the
+#   process, which IS the finding.
+#
+#   RESOLUTION TAKEN: seed the session's OBSERVABLE ACTIONS, which is what an
+#   adapter genuinely sees — folder moves, deletions, stars, reads, replies,
+#   each with a timestamp. The five steps are then inferable from the SHAPE of
+#   the action sequence, repeated across 13 sessions. Nothing anywhere says
+#   "step", "session", "process" or "the same five".
+#
+#   This is the arc's equivalent of Arc A's missing travel blocks: the pattern
+#   is real in the data and named nowhere.
+# ───────────────────────────────────────────────────────────────────────────
+
+meta:
+  arc: E
+  contexts: [personal, Intentional, spec-kitty]
+  window: {start: 2026-04-06, end: 2026-09-25}
+  ontology_ref: docs/design/second-brain-graph-layer.md@884d1c6e
+  non_rendered: [generator_input, e2_sample_week, scored_items]
+
+# --- Interest: RATIFIED by Kent 2026-09-24, seeded first-class --------------
+#
+# Bi-temporal by nature: each add and drop is an EPISODE, so "as of week N" is
+# answered by anchored expansion under the state-vs-history rule. The current
+# list is never seeded as a snapshot — near-miss 7 turns on the list as it
+# stood in a particular week, and a snapshot would destroy that.
+
+interests:
+  - {id: INT_LOCAL_INFERENCE, topic: "local inference / small models"}
+  - {id: INT_GRAPH_DB, topic: "graph databases"}
+  - {id: INT_ENDURANCE, topic: "endurance training for masters athletes"}
+  - {id: INT_ACQUISITION, topic: "small-business acquisition"}
+  - {id: INT_TYPOGRAPHY, topic: "typography"}          # added wk 4, DROPPED wk 10
+  - {id: INT_K8S, topic: "kubernetes operators"}        # added wk 10
+
+# Interest status is NOT a field here. It is derived from these episodes.
+interest_episodes:
+  - id: EP_E_INT_ADD_TYPO
+    reference_time: 2026-04-28T08:14:00-04:00
+    source_description: "whatsapp voice note — +1-555-0199"
+    content: "Add typography to the topics I want to hear about."
+    mentions: [INT_TYPOGRAPHY]
+
+  # wk 10 — Kent's spec'd moment: two topics added, one dropped.
+  - id: EP_E_INT_WK10
+    reference_time: 2026-06-08T07:52:00-04:00
+    source_description: "whatsapp voice note — +1-555-0199"
+    content: >-
+      Two things I want to follow now — kubernetes operators, and keep the
+      local-inference stuff coming. And drop typography, I'm done with that one.
+    mentions: [INT_K8S, INT_LOCAL_INFERENCE, INT_TYPOGRAPHY]
+
+# --- the corpus mass -------------------------------------------------------
+
+generator_input:
+  seed: 849-arc-e
+  window: {start: 2026-04-06, end: 2026-09-25, weeks: 24}
+  accounts:
+    personal:   {per_week: 70}
+    Intentional: {per_week: 60}
+    spec-kitty: {per_week: 70}
+  senders:
+    vendor_orgs: 25      # offers, product announcements; sender domain only
+    newsletter_orgs: 15  # industry, research, learning
+  # Senders are episode provenance, never nodes (Q4 ruled 2026-09-24).
+
+  # The 13 marathon sessions. Rendered as their OBSERVABLE ACTIONS, never as a
+  # labelled session. Each emits, in this order:
+  #   a) a run of reads on vendor-offer mail
+  #   b) a run of reads on newsletters, of which 3-4 are long dwells
+  #   c) a run of folder moves, grouped by sender org
+  #   d) a run of deletions of previously-filed mail older than ~30 days
+  #   e) 1-3 replies to mail that had been sitting unread for days
+  # The ~2h duration is the span of the action timestamps, not a stated field.
+  sessions:
+    cadence_days: [10, 14]
+    count: 13
+    action_shape: [read_offers, read_newsletters, file_by_org, purge_old, late_replies]
+    # wk 5 is the third session — the oracle's "recognisable here". Nothing
+    # marks it; it is simply the third instance of the shape.
+
+  # ~2/week an important email is buried. SIX have a downstream consequence,
+  # and only the consequence is seeded — never the causal link back to the
+  # session or to the volume.
+  buried_with_consequence:
+    - {wk: 3,  account: Intentional, from: PER_CLIENT,     kind: meeting_request,
+       consequence: "replied 4 days after it arrived"}
+    - {wk: 6,  account: personal,    from: billing_org,    kind: bill,
+       consequence: "paid after the due date; late fee line on the next statement"}
+    - {wk: 9,  account: personal,    from: clinic_org,     kind: appointment_reminder,
+       consequence: "found after the slot lapsed; rebooked six weeks out"}
+    - {wk: 12, account: spec-kitty,  from: vendor_org,     kind: renewal_notice,
+       consequence: "auto-renewed at the old tier"}
+    - {wk: 17, account: personal,    from: PER_ACCOUNTANT, kind: document_request,
+       consequence: "chased by the accountant"}
+    - {wk: 21, account: personal,    from: PER_JOEL,       kind: personal_message,
+       consequence: "answered two weeks on"}
+
+  # E1 near-miss 5: something ALREADY automated whose output appears in the
+  # stream, so it looks like manual recurrence but is not.
+  already_automated:
+    - {daily: true, source_description: "felix calendar-orchestrator — daily summary"}
+
+  # E1 near-miss 4: a recurring activity that VARIES too much to automate.
+  # Same cadence, different content every time — "automate it" is wrong.
+  varying_recurrence:
+    - {weekly: true, label_in_corpus: "client status call — prep",
+       note: "content differs every week; seeded as genuinely different prep notes"}
+
+# --- E2: the sample week ---------------------------------------------------
+#
+# ~200 items, of which ~20 are scored. The scored set is listed here as
+# GENERATOR INPUT so the renderer emits them; their classification lives in the
+# hidden oracle, never here.
+
+e2_sample_week: {wk: 22, start: 2026-08-31, end: 2026-09-04}
+
+scored_items:
+  # Contacts — must surface. Sender is the test, not tone.
+  - {id: E2_01, from: PER_CLIENT, kind: ordinary_mail}
+  - {id: E2_02, from: PER_FRED, kind: ordinary_mail}
+  - {id: E2_03, from: PER_CLIENT, kind: meeting_request}      # -> Calendly reply
+  - {id: E2_04, from: PER_JOEL, kind: newsletter_from_contact} # near-miss 6
+
+  # To-dos with suggested dates
+  - {id: E2_05, from: billing_org, kind: bill, due: 2026-09-18}
+  - {id: E2_06, from: PER_ACCOUNTANT, kind: document_request, due: 2026-09-15}
+  - {id: E2_07, from: clinic_org, kind: appointment_reminder, due: 2026-09-09}
+
+  # Time-sensitive -> alert vs digest -> file, same sender
+  - {id: E2_08, from: vendor_org_a, kind: renewal_notice, renews: 2026-09-11}
+  - {id: E2_09, from: vendor_org_a, kind: weekly_promo}
+
+  # Kent's three near-misses — E2's traps
+  - {id: E2_10, from: unknown_sender, kind: friendly_spam,
+     note: "first-name salutation, casual tone, 'just checking in'"}   # nm 1
+  - {id: E2_11, from: unknown_sender, kind: linkedin_coldcall,
+     topic_area: "enterprise sales training"}                          # nm 2, OFF list
+  - {id: E2_12, from: unknown_sender, kind: linkedin_coldcall,
+     topic_area: "kubernetes operators"}                               # nm 2, ON list
+  - {id: E2_13, from: unknown_sender, kind: urgent_looking_spam,
+     note: "the loan department is reviewing your application for a $60K loan"}  # nm 3
+
+  # near-miss 7 — bi-temporal by construction
+  - {id: E2_14, from: newsletter_org_t, kind: newsletter, topic: INT_TYPOGRAPHY}
+  - {id: E2_15, from: newsletter_org_k, kind: newsletter, topic: INT_K8S}
+
+  # ordinary mass, scored as digest/file/drop
+  - {id: E2_16, from: vendor_org_b, kind: product_announcement}
+  - {id: E2_17, from: vendor_org_c, kind: weekly_promo}
+  - {id: E2_18, from: newsletter_org_r, kind: newsletter, topic: INT_GRAPH_DB}
+  - {id: E2_19, from: newsletter_org_e, kind: newsletter, topic: INT_ENDURANCE}
+  - {id: E2_20, from: unknown_sender, kind: bulk_promo}
+
+# --- what is NOT in this file, on purpose ---------------------------------
+#
+#  * THE AUTOMATION SPEC. Kent's eight-point automation is the ORACLE's
+#    "what should be proposed". Seeding it would answer E1 outright.
+#  * no session count, total hours, or cost-against-capacity arithmetic
+#  * no "process", "pattern", "recurring", "triage" or "step" label on any
+#    rendered event — the five sub-activities are inferable from the action
+#    shape and named nowhere
+#  * no link from the buried-email consequences back to the sessions or to the
+#    volume; that the misses are the sessions' cost is the finding
+#  * no marker on wk 5 as the recognisable point
+#  * no E2 classifications — which item surfaces, alerts, digests or drops
+#    lives only in the hidden oracle
+#  * no interest STATUS field — status as of a week is derived from the add
+#    and drop episodes, which is what makes near-miss 7 bi-temporal
+#  * no near-miss labels in the rendered corpus
+#
+# CROSS-ARC CONSTRAINT INHERITED FROM ARC A: the generator must NOT book
+# anything into Wed 2026-06-10 14:00-15:00. That slot has to stay free for
+# Arc A's counter-offer to be the unique right answer.

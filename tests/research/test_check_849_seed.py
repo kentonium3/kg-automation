@@ -252,33 +252,39 @@ def test_the_committed_arc_f_seed_has_no_outcome_and_anchors_both_tasks():
 def test_undeclared_generator_input_is_rejected(tmp_path):
     """An undeclared block is emitted verbatim by the renderer, so it leaks."""
     text = (
-        "meta: {arc: B}\n"
+        "meta: {arc: Z}\n"
         "generator_input:\n"
         "  weeks: [{wk: 1, counted: false}]\n"
     )
-    problems = check_file(_write(tmp_path, "arc-b.yaml", text))
+    problems = check_file(_write(tmp_path, "arc-z.yaml", text))
     assert any("not listed in meta.non_rendered" in p for p in problems), problems
 
 
 def test_declared_generator_input_may_carry_oracle_adjacent_structure(tmp_path):
-    """Declared is a contract: the renderer strips exactly this list."""
+    """Declared is a contract: the renderer strips exactly this list.
+
+    Uses a neutral arc so this exercises the declaration mechanism alone. It
+    originally said `arc: B` for convenience and started failing the moment
+    Arc B grew a structural requirement — a fixture borrowing a real arc's
+    identity inherits that arc's rules.
+    """
     text = (
-        "meta: {arc: B, non_rendered: [generator_input]}\n"
+        "meta: {arc: Z, non_rendered: [generator_input]}\n"
         "generator_input:\n"
         "  weeks: [{wk: 1, counted: false, point_of_no_return: true}]\n"
     )
-    assert check_file(_write(tmp_path, "arc-b.yaml", text)) == []
+    assert check_file(_write(tmp_path, "arc-z.yaml", text)) == []
 
 
 def test_declaring_a_block_does_not_exempt_the_rendered_part(tmp_path):
     """The exemption is scoped — a leak outside the declared block still fails."""
     text = (
-        "meta: {arc: B, non_rendered: [generator_input]}\n"
+        "meta: {arc: Z, non_rendered: [generator_input]}\n"
         "generator_input: {weeks: [{counted: false}]}\n"
         "episodes:\n"
         "  - {id: EP_X, content: 'x', point_of_no_return: '2026-08-09'}\n"
     )
-    problems = check_file(_write(tmp_path, "arc-b.yaml", text))
+    problems = check_file(_write(tmp_path, "arc-z.yaml", text))
     assert any("point_of_no_return" in p for p in problems), problems
 
 
@@ -331,3 +337,78 @@ def test_committed_seeds_have_no_orphan_decisions():
         decs = {d["id"] for d in (doc.get("decisions") or [])}
         mentioned = {m for e in (doc.get("episodes") or []) for m in (e.get("mentions") or [])}
         assert decs <= mentioned, (path.name, decs - mentioned)
+
+
+# --------------------------------------------------------------------------
+# Arc B and Arc E structural invariants
+# --------------------------------------------------------------------------
+
+ARC_B_OK = (
+    "meta: {arc: B}\n"
+    "episodes:\n"
+    "  - {id: EP_RULE, content: 'If I am not hitting pace by the halfway point "
+    "of the programme, there is no path to recovery.'}\n"
+)
+
+
+def test_arc_b_clean_case_passes(tmp_path):
+    assert check_file(_write(tmp_path, "arc-b.yaml", ARC_B_OK)) == []
+
+
+def test_arc_b_requires_the_conditioning_rule_to_be_seeded(tmp_path):
+    """Without it, 'point of no return' has no primitive — #844 Threats §1."""
+    text = "meta: {arc: B}\nepisodes:\n  - {id: EP_PLAN, content: 'the plan'}\n"
+    problems = check_file(_write(tmp_path, "arc-b.yaml", text))
+    assert any("no primitive behind it" in p for p in problems), problems
+
+
+@pytest.mark.parametrize("leak", ["CP2", "checkpoint missed", "50% point"])
+def test_arc_b_rejects_checkpoint_identifiers_and_verdicts(tmp_path, leak):
+    text = ARC_B_OK + f"notes:\n  - '{leak} was the turning point'\n"
+    problems = check_file(_write(tmp_path, "arc-b.yaml", text))
+    assert any("checkpoint IDENTIFIERS" in p for p in problems), (leak, problems)
+
+
+def test_arc_b_allows_the_bare_word_checkpoints(tmp_path):
+    """Kent's rule SAYS checkpoints exist — that sentence is the primitive.
+
+    The first version of this check banned the word outright and rejected the
+    very episode it exists to require. Precision matters more than breadth.
+    """
+    text = (
+        "meta: {arc: B}\n"
+        "episodes:\n"
+        "  - {id: EP_RULE, content: 'There are mid-programme checkpoints that "
+        "say whether I am on track. If I am not hitting pace by the halfway "
+        "point of the programme, there is no path to recovery.'}\n"
+    )
+    assert check_file(_write(tmp_path, "arc-b.yaml", text)) == []
+
+
+ARC_E_OK = "meta: {arc: E}\ninterests:\n  - {id: INT_X, topic: 'graphs'}\n"
+
+
+def test_arc_e_clean_case_passes(tmp_path):
+    assert check_file(_write(tmp_path, "arc-e.yaml", ARC_E_OK)) == []
+
+
+def test_arc_e_rejects_a_seeded_interest_status(tmp_path):
+    """Status as of a week must be derived from add/drop episodes."""
+    text = "meta: {arc: E}\ninterests:\n  - {id: INT_X, topic: 'x', status: active}\n"
+    problems = check_file(_write(tmp_path, "arc-e.yaml", text))
+    assert any("no status field" in p for p in problems), problems
+
+
+@pytest.mark.parametrize("leak", ["Calendly", "auto-purge", "digest of just"])
+def test_arc_e_rejects_the_automation_spec(tmp_path, leak):
+    """Kent's automation spec is the oracle's answer to E1."""
+    text = ARC_E_OK + f"notes:\n  - 'send a {leak} reply'\n"
+    problems = check_file(_write(tmp_path, "arc-e.yaml", text))
+    assert any("automation spec" in p for p in problems), (leak, problems)
+
+
+@pytest.mark.parametrize("leak", ["triage session", "the same five"])
+def test_arc_e_rejects_process_vocabulary(tmp_path, leak):
+    text = ARC_E_OK + f"events:\n  - {{title: '{leak}'}}\n"
+    problems = check_file(_write(tmp_path, "arc-e.yaml", text))
+    assert any("process vocabulary" in p for p in problems), (leak, problems)
