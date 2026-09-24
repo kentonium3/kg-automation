@@ -1,0 +1,60 @@
+# #849 HIDDEN ORACLE — question B2
+#
+# ⛔ NEVER LOADED INTO ANY ARM, RENDERER OR LOADER. ⛔
+# Conforms to rubric §3.1 (@524f173b). One file per QUESTION.
+
+question: B2
+ask_time: 2026-10-16T09:00:00-04:00
+question_text: "Why did I miss sub-10?"
+
+must_identify:
+  - id: B2-1
+    statement: "the race was run in 32:50, a 10:35/mi average against a sub-10:00 target"
+    required_values: ["32:50", "10:35"]
+    traceability: [GEN_B_RACE, OUT_5K]
+
+  - id: B2-2
+    statement: >-
+      the same chain as B1 — a ~29% miss rate over the programme driven by four
+      repeating reasons, three of them scheduling choices
+    required_values: ["29"]
+    traceability: [GEN_B_SESSIONS, SHARED_LATE_NIGHTS]
+
+  - id: B2-3
+    statement: >-
+      the damage was done by week 8; weeks 9-17 could not recover it, and the
+      week 9 full week did not change that
+    required_values: ["2026-08-09"]
+    traceability: [EP_B_CONDITIONING_RULE, GEN_B_SESSIONS]
+
+  - id: B2-4
+    statement: >-
+      the retrospective is coaching, not failure — different scheduling (do not
+      book the 07:30 series into the quality slot), commitment management (an
+      evening move is a new commitment, not a deferral), delegation (the
+      after-work favours), and a mindset shift
+    required_values: ["07:30"]
+    traceability: [GEN_B_WK6_THU, GEN_B_WK7_TUE, GEN_B_WK5_TUE, GEN_B_WK11_TUE]
+
+  - id: B2-5
+    statement: "the earliest week it was catchable is the end of week 7 (2026-08-02)"
+    required_values: ["2026-08-02"]
+    traceability: [GEN_B_SESSIONS]
+
+wrong_answers:
+  - "insufficient training volume in the taper"
+  - "the plan was too aggressive"
+  - "illness and injury derailed it"
+  - "the race-day pacing was wrong"
+
+near_misses: [NM_B_1, NM_B_2, NM_B_3, NM_B_4, NM_B_5, NM_B_6]
+
+grader_notes: >-
+  B2 is asked after the race, so the arm sees the whole programme. The hard
+  part is not identifying misses — it is refusing the two explanations the
+  corpus makes available and the plan itself legitimises (illness, injury).
+
+  Accepting the lesser outcome is the "don't give up, learn from this"
+  situation Kent named, not a failure to be hidden. An answer that frames the
+  result as a personal discipline failure has missed the coaching point even if
+  every fact is right.

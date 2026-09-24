@@ -40,6 +40,12 @@ meta:
   ontology_ref: docs/design/second-brain-graph-layer.md@884d1c6e
   # See arc-b.yaml for why this declaration is load-bearing.
   non_rendered: [generator_input, shared_late_nights, email_first_mornings, near_miss_rules]
+  # See arc-b.yaml for why `emits` is declared.
+  emits:
+    - SHARED_LATE_NIGHTS      # owned here; arc-b declares the dependency (R5)
+    - GEN_F_CHECKINS          # ~180 Vikunja completion events
+    - GEN_F_JOURNAL           # ~110 content-free journal timestamps
+    - GEN_F_EMAIL_FIRST       # the 06:00-07:00 sent-mail events (GAP F5)
 
 principles:
   # Kent's verbatim text, 2026-09-23. Hard, global (no SCOPED_TO edge).

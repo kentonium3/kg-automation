@@ -40,7 +40,9 @@ import sys
 import yaml
 
 REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]
-SEED_DIR = REPO_ROOT / "docs" / "design" / "research" / "849-synthesis" / "seed"
+SYNTH_DIR = REPO_ROOT / "docs" / "design" / "research" / "849-synthesis"
+SEED_DIR = SYNTH_DIR / "seed"
+ORACLE_DIR = SYNTH_DIR / "oracle"
 
 #: Tokens that are verdicts, not primitives. If one of these shows up in seed
 #: DATA, an oracle fact has been written into the corpus.
@@ -278,7 +280,14 @@ def check_file(path: pathlib.Path) -> list[str]:
     # the answer key. Running seed checks on it would be nonsense, and running
     # NO check on it would let an oracle file sit in the seed directory and be
     # loaded into an arm. So: identify it, and assert it is somewhere else.
-    if (doc.get("meta") or {}).get("never_load"):
+    #
+    # Identified by DIRECTORY first, then by a self-declaration. Directory is
+    # the physical separation rubric §3.1 actually mandates, and it does not
+    # depend on a field the oracle contract does not require — the per-question
+    # files (B1.yaml, B2.yaml) carry no `never_load`, and keying only on that
+    # made the seed checker treat them as seeds.
+    in_oracle_dir = path.resolve().parent == ORACLE_DIR.resolve()
+    if in_oracle_dir or (doc.get("meta") or {}).get("never_load"):
         if path.resolve().parent == SEED_DIR.resolve():
             return [
                 f"{path.name}: declares never_load but lives in the SEED "

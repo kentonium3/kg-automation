@@ -36,6 +36,25 @@ meta:
   # exactly this list, and the freeze check greps the rendered corpus for
   # their words. An undeclared block would be emitted and leak.
   non_rendered: [generator_input, shared_late_nights, non_drifting_control]
+  # Rendered-event ids this arc's generator MUST emit. Declared here so oracle
+  # traceability (rubric §3.1) is checkable before the renderer exists, and so
+  # the renderer is bound to produce exactly these. check_849_oracle unions
+  # these with the seed ids; a traceability entry naming anything else fails.
+  emits:
+    - GEN_B_SESSIONS      # the ~51 core-session events (done / moved / not done)
+    - GEN_B_DECISIONS     # the five Decisions + their provenance episodes
+    - GEN_B_RACE          # the race-result event (32:50)
+    - GEN_B_WK5_TUE
+    - GEN_B_WK6_THU
+    - GEN_B_WK6_SAT
+    - GEN_B_WK7_TUE
+    - GEN_B_WK7_SAT
+    - GEN_B_WK7_PROG      # the progression run logged at 11:10
+    - GEN_B_WK8_TUE
+    - GEN_B_WK8_THU
+    - GEN_B_WK10_THU
+    - GEN_B_WK11_TUE
+    - GEN_B_WK13_THU
 
 outcomes:
   - id: OUT_5K

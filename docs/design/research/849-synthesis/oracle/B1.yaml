@@ -1,0 +1,95 @@
+# #849 HIDDEN ORACLE — question B1
+#
+# ⛔ NEVER LOADED INTO ANY ARM, RENDERER OR LOADER. ⛔
+# Conforms to rubric §3.1 (@524f173b). One file per QUESTION.
+
+question: B1
+ask_time: 2026-08-17T09:00:00-04:00
+question_text: "Am I on track for the October 5K?"
+
+must_identify:
+  - id: B1-1
+    statement: "No — the sub-10:00/mi pace goal is no longer reachable"
+    required_values: ["no"]
+    traceability: [OUT_5K, EP_B_CONDITIONING_RULE]
+
+  - id: B1-2
+    statement: >-
+      the halfway point of the programme was missed: no 45-50 min continuous
+      long run completed in Phase 2 (wk 6 and wk 7 Saturdays both missed; wk 8
+      is the 40-min cutback), and the wk 7 progression ran 11:10 against a
+      ~10:30 target
+    required_values: ["2026-08-09", "11:10"]
+    traceability: [EP_B_PLAN, EP_B_CONDITIONING_RULE, GEN_B_WK6_SAT, GEN_B_WK7_SAT, GEN_B_WK7_PROG]
+
+  - id: B1-3
+    statement: "the miss rate at that point is ~29% of core sessions"
+    required_values: ["29"]
+    traceability: [GEN_B_SESSIONS]
+
+  - id: B1-4
+    statement: >-
+      four reasons repeat — late nights working (x3), the 07:30 meeting series
+      booked into the Thursday quality slot (x3), "I'll run tonight" then not
+      (x2), and a favour after work (x2)
+    required_values: ["07:30"]
+    traceability: [SHARED_LATE_NIGHTS, GEN_B_WK6_THU, GEN_B_WK8_THU, GEN_B_WK10_THU,
+                   GEN_B_WK7_TUE, GEN_B_WK13_THU, GEN_B_WK5_TUE, GEN_B_WK11_TUE]
+
+  - id: B1-5
+    statement: >-
+      the 07:30 meeting series is the largest single cause and was agreed to
+      three times into a known quality-run slot
+    required_values: ["three", "07:30"]
+    traceability: [GEN_B_WK6_THU, GEN_B_WK8_THU, GEN_B_WK10_THU]
+
+  - id: B1-6
+    statement: "five misses were silent and five were decided-then-silent"
+    required_values: ["five"]
+    traceability: [GEN_B_SESSIONS, GEN_B_DECISIONS]
+
+  - id: B1-7
+    statement: "no individual deferral was unreasonable — the failure is aggregate"
+    required_values: []
+    traceability: [GEN_B_SESSIONS]
+
+  - id: B1-8
+    statement: >-
+      the coaching move is to reset the outcome to finishing healthy rather
+      than abandon it, and to fix the 07:30 series and the late nights now
+    required_values: []
+    traceability: [EP_B_CONDITIONING_RULE, OUT_5K]
+
+  - id: B1-9
+    statement: >-
+      it should have been caught at the end of week 7 (Sun 2026-08-02) — two
+      consecutive weeks at 1/3, one reason already repeated, and one week left
+      in which a change could still have mattered
+    required_values: ["2026-08-02"]
+    traceability: [GEN_B_SESSIONS]
+
+wrong_answers:
+  - "yes, on track"
+  - "the week 10 calf tightness is the cause"
+  - "the week 15 head cold is the cause"
+  - "the miss rate is 33%"
+  - "give up on the race"
+  - "the plan was too aggressive"
+
+near_misses: [NM_B_1, NM_B_2, NM_B_3, NM_B_4, NM_B_5, NM_B_6]
+
+grader_notes: >-
+  B1-8 is scored on substance, not wording: any answer that keeps the race and
+  lowers the goal counts. An answer proposing to abandon the race is a wrong
+  answer, not a partial hit.
+
+  B1-3: accept 28-30 inclusive. The exact figure depends on how the grader
+  counts the wk-15 illness week, and the oracle's own count excludes it.
+
+  The two legitimate back-offs (wk 10 calf tightness, wk 15 head cold) are the
+  most tempting wrong answers because the plan's own red-flag rule prescribes
+  both. Naming either as THE cause is a hard fail; mentioning them as
+  non-causes is fine.
+
+  Week 9 is a full week and looks like recovery. It is arithmetically
+  irrelevant after the halfway point; reading it as "back on track" is wrong.
