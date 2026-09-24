@@ -39,7 +39,11 @@ provider are recorded, not prescribed (per-function seam, §Tool Selection).
 
 **Time-cut rule.** Every question is asked at its stream timestamp. An arm may only see material
 with `created_at ≤ ask time`. For D this means the dumped prefix differs per question — that is
-realistic, and the caching hit rate it produces is a finding, not a nuisance.
+realistic, and the caching hit rate it produces is a finding, not a nuisance. **State as of, not
+filtered:** G is built for each question by *replaying* primitives up to `ask_time`, never by
+filtering a final-state graph — otherwise every current-state attribute (`Interest.status`,
+`Task.scheduled_date`, `Outcome.status`) leaks the future. D and R likewise consume only rendered
+material with `created_at ≤ ask_time`.
 
 ## 3. Questions
 
@@ -163,6 +167,13 @@ regime-bound the way #844's was, and the findings say so up front.
   or *legitimately inferable primitive* and logged; (c) per-arc structural checks cover A, B, C,
   E and F as ruled on the bus; (d) every timestamp in seed data is tz-aware ISO (the time-cut
   rule depends on it). A non-empty unadjudicated hit list blocks freeze.
+- **Recoverability probe** for every oracle point that is an *inferred pattern* (Arc A's missing
+  travel blocks, Arc B's drift, Arc E's session shape, Arc F's slope): a deterministic, non-LLM
+  script recovers the claimed structure from the **rendered** events (for E1: cluster mail actions
+  by inter-event gap, order action types per session, ≥ 11 of 13 sessions share the shape with span
+  ≈ 2 h). Recovered → the signal is present and an arm that misses it failed on merit. Not
+  recovered → the corpus is too thin; add signal **before** any run. #844's seed-retrievability
+  check, generalised. Probe results are attached to the registration.
 - Corpus frozen at a commit hash before the first run; the hash is in the registration.
 
 ## 10. Artifacts
