@@ -59,7 +59,7 @@ rule). Keeping the story and its answer together here is an authoring convenienc
 | C | dropped ball (captured-and-deferred) | **Keep** | ☑ | ☑ |
 | D | cross-channel identity | **Cut** | — | — |
 | E | repeating pattern → automation | **Rewrite** | ☑ (invented values to confirm) | ☑ (3 of Kent's, 4 candidates) |
-| F | principle erosion | `TODO(kent)` | ☐ | ☐ |
+| F | principle erosion | **Keep** | ☑ (invented trajectory to confirm) | ◐ (7 candidates, none of Kent's yet) |
 
 ---
 
@@ -592,31 +592,124 @@ judged automatable: the steps are regular enough to specify, which Kent's spec d
 
 ## Arc F — Principle erosion at scale
 
-**Keep / Cut / Rewrite:** `TODO(kent)`
+**Keep / Cut / Rewrite:** **Keep** (Kent, 2026-09-23).
 
-**Context:** `TODO(kent)` — personal / Intentional / spec-kitty / PointerHealth
+**Context:** **personal**, solo. The pressure that erodes it comes from every context; the
+practice lives in this one.
 
-**The story (candidate).** A **hard** Principle — say, protecting deep-work mornings. Over ~3
-months about eleven exceptions are granted, each justified in the moment. **Some have a recorded
-reason; some are silent** — the meeting simply appears. Current state: mornings are routinely
-booked, and it reads as "that's just my schedule now."
+**The story (Kent, 2026-09-23).** Early-morning **meditation and personal growth time** —
+probably the most important time spent consistently on any given day, and cumulatively through
+the year. It is easy time to trade off to more urgent, less important tasks: it sits in the
+*not urgent / important* category, and nothing external defends it. **It shows up by its
+absence.** Journaling slows to less than three times a week, or stops. The daily Vikunja
+check-ins for meditation and other personal-investment time start to sputter — the days missed
+go from *one here and there*, to *a couple a week*, to *a few a week*, to *very sporadic or
+missing*. Nothing marks the moment it stopped being a practice.
 
-**The Principle** — `TODO(kent)`: state it, and confirm it is **hard**, not soft.
+**The Principle (Kent, 2026-09-23 — verbatim, hard, global):**
 
-**Timeline** — `TODO(kent)`: the exceptions, and critically **which were decided with a reason and
-which just happened**.
+> *Only I can make this investment in myself, and it must be a non-negotiable priority. There is
+> no external force; no one is coming to tell me to do it. Personal transformation is necessary
+> to achieve the vibrant, prosperous life I imagine, but it takes slowly transforming my mind
+> through persistent, consistent work. This needs to be a near-daily practice done with no
+> fanfare, no celebration, no external view, and for no one's fulfilment and satisfaction but my
+> own. This is where power comes from if recognised as such — but if not, it is easy to trade
+> away for trivial pursuits.*
+>
+> *Life will interfere at times, but the practice of returning to the habit in spite of
+> interruptions and pressures to do otherwise is itself strengthening a mental muscle.*
 
-**ORACLE.** `TODO(kent)`
-- [ ] the Principle, and that it is hard
-- [ ] the exception count and its trajectory
-- [ ] **the split between decided-with-reason and silent** — a bare event with no decision behind
-      it is itself the coaching signal
-- [ ] the downstream consequence (capacity, or another Principle also in scope)
+Rationale, in Kent's framing: a 1%-a-day improvement in mindset, emotional intelligence,
+consciousness and mindfulness, and interpersonal or professional skill compounds across a year.
+The cost of a missed morning is never the hour; it is the compounding.
 
-**Near-misses.** `TODO(kent)` — *exceptions that were genuinely correct calls.*
+**Two things the Principle fixes about the right answer:**
+- **The finding is the absence, and the response is *return*.** Not guilt, not a streak, not a
+  celebration — the Principle forbids fanfare explicitly. The right coaching output is *"the
+  practice has lapsed; return to it,"* with the evidence. Anything that proposes a reward, a
+  badge, or a public commitment is a **wrong answer**.
+- **Returning is the muscle.** A lapse followed by a return is not a failure to record; it is the
+  practice working. So the oracle scores *trajectory*, not *misses*: the signal is the slope, and
+  a return after interruption is a positive event.
 
-> Why this arc is hard: it requires noticing an **absence** — that a decision was never recorded.
-> Nothing in a dump of everything says "this wasn't decided."
+**Evidence streams** (this is what the corpus carries — three, all metadata, no content):
+
+| stream | what it shows | note |
+|---|---|---|
+| Vikunja | two recurring daily tasks — *meditation* and *personal-investment time* — with a check-in record per day (done / not done, time) | adapter-written events; the primary signal |
+| journal | **entry timestamps only** — one opaque event per entry, no content | the vault is out of scope and journal content is private by construction; the *count per week* is all Arc F needs, which is the "structure without content" rule applied |
+| calendar | what fills the **06:00–07:00** slot when the practice doesn't | the trade-off partner — early calls, email started early, sleep after late nights |
+
+**Timeline** (invented to Kent's sputter; ~6 months, Mon 2026-04-06 → Fri 2026-09-25).
+Check-ins are meditation-task completions per 7 days; journal is entries per 7 days.
+
+| phase | weeks | check-ins /7 | journal /wk | what filled the slot | decided or silent |
+|---|---|---|---|---|---|
+| practice | wk 1–5 | 6–7 | 5–6 | — | — |
+| one here and there | wk 6–8 | 5–6 | 4–5 | a 06:30 call with a colleague in another time zone (wk 6, **decided, reason recorded**); slept in after a late night working (wk 7, silent); an early start on email (wk 8, silent) | 1 decided / 2 silent |
+| a couple a week | wk 9–13 | 4–5 | 3–4 | the late-night → sleep-in pattern, now weekly (silent); a second recurring early call appears on the calendar (wk 11, **silent — it simply appears**); travel day (wk 12, decided) | 1 decided / ~9 silent |
+| a few a week | wk 14–18 | 2–4 | **<3 → 1–2** | the morning slot is booked 3×/wk; email-first mornings are the default; one illness week (wk 16, decided, legitimate) | 1 decided / ~14 silent |
+| sporadic | wk 19–22 | 1–2 | 0–1 | "that's just my schedule now" | ~14 silent |
+| missing | wk 23–24 | 0–1 | 0 | | |
+| **return** | wk 25 | 5 | 3 | Kent restarts after a WhatsApp voice note to Felix: *"I've let the mornings go"* | **decided** |
+
+Across the window roughly **60 missed mornings; 4 have a Decision behind them** (the time-zone
+call, the travel day, the illness week, the restart). The rest are bare events.
+
+**The question put to both arms** — build both:
+- **F1 — the absence, mid-lapse.** Asked Mon 2026-08-10 (wk 19): *"Am I keeping my
+  non-negotiables?"* Right answer: no — the morning practice has lapsed; here is the slope, the
+  point it crossed the journaling threshold, what has been filling the slot, and that almost none
+  of it was decided. Then: return.
+- **F2 — the earliest catch.** Asked retrospectively at wk 25: *"When should this have been
+  caught?"* Right answer: wk 9–10, when misses went from *one here and there* to *a couple a
+  week* and the late-night cause had repeated — before the second early call was allowed to
+  appear on the calendar.
+
+**ORACLE.** (Kent's Principle; invented trajectory to confirm)
+- [x] the Principle, verbatim in substance, and that it is **hard** and **global**
+- [x] the trajectory — the five phases with their rates — and that the signal is the **slope**,
+      not any one miss
+- [x] **the threshold crossing** — journaling under 3/week at wk 14, the marker Kent named
+- [x] **the decided-vs-silent split** — ~4 decided of ~60 missed; the second early call that
+      *simply appeared* on the calendar at wk 11 is the sharpest single instance: a standing
+      intrusion on a non-negotiable, with no Decision anywhere
+- [x] **what filled the slot** — early calls, email-first mornings, sleep after late nights —
+      and that these are *urgent-unimportant* trades, exactly what the Principle predicts
+- [x] the **root cause link** — the late nights working that eroded this practice are the same
+      late nights that broke Arc B's training in the same weeks. One cause, two Principles
+      eroding. An arm that names the shared cause has found the coaching finding
+- [x] **the response, in the Principle's own terms** — surface the absence, prompt the return, no
+      fanfare. A streak, a reward, a public accountability partner, or "block the calendar and
+      tell your team" are all **wrong answers** — the last one because the Principle says *no
+      external view*
+- [x] **the return is scored as positive** — wk 25 is the practice working, not a data point
+      in the lapse
+- [x] **when it should have been caught** — wk 9–10
+
+**Near-misses** (candidates — Kent did not name any; react to these):
+1. **The illness week** (wk 16) — decided, legitimate, and *not* the cause. A tempting wrong
+   answer for "when did it stop."
+2. **The travel day** (wk 12) — the practice moved to the evening and the check-in was done at
+   20:30. A reschedule, kept; must not count as a miss.
+3. **The time-zone call** (wk 6) — one early call with a recorded reason. Decided, one-off,
+   fine. Must be distinguished from the wk 11 call that *recurs* and was never decided.
+4. **A journaling dip with meditation held** (wk 9: journal 3, check-ins 6). One signal down,
+   one up — an early warning, not a lapse. Reading it as full erosion is wrong; ignoring it is
+   also wrong.
+5. **Arc B's running misses in the same weeks** — a *different* practice eroding from the same
+   cause. Must be linked as shared cause, not merged as one practice.
+6. **A "lighter weekend" convention** — Saturday and Sunday practice is shorter by design and
+   the journal entry is often skipped. Plan-absorbed; a naive 7-day count reads it as misses.
+7. **A late-evening meditation check-in** on a day the morning was lost — the practice was kept,
+   at the wrong time. Counts as done for the slope; counts as a *morning* miss for the calendar
+   question. The two readings must not be confused.
+
+> Why this arc is hard: it requires noticing an **absence** across three metadata streams, and
+> then noticing a *second* absence — that almost none of the intrusions were decided. Nothing in
+> a dump of everything says "this wasn't decided" or "this stopped." And the right response is
+> constrained by the Principle itself in a way a task-list read cannot see: the obvious fixes
+> (block it, tell people, reward yourself) are the ones the Principle forbids.
 
 ---
 
