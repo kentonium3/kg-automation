@@ -197,8 +197,17 @@ asserts the text's digest per run. **Registered digest (A4):** normalise as UTF-
 endings, trailing whitespace stripped per line, exactly one trailing newline, the two slots left
 as the literal tokens `{assembled_context}` and `{question_text}`; sha256 =
 `0aa7ee77560b1f5cbbb04a6c3dfa90749dfd79305b4207134c62d9fdd733af45`. The digest covers the
-template; the exact serialised request (template with slots filled, plus the chat template and
-special tokens the pinned server applies) is what token counts are measured on.
+template; the exact serialised request is what token counts are measured on.
+
+**Chat template (A4 clarification, 2026-09-25 00:46Z).** The ruled model is an instruct model
+trained on its chat format, so the registered text is sent as the **single user turn** of the
+model's own chat template (no system turn), with the template applied **client-side** through the
+same Qwen tokenizer that counts tokens, and the resulting string sent as the raw `prompt` of the
+native completion endpoint. This keeps the counted bytes equal to the sent bytes and leaves the
+telemetry mapping untouched. The serving configuration records `chat_template_applied: true` and
+the template's sha256; primary and secondary share it. Gate (b)'s memory and throughput figures
+stand (the template adds a constant of a few dozen tokens); the §2 table is re-measured on the
+templated request at code freeze.
 
 ```text
 You are the assistant of the person whose records follow. You are reviewing their own
