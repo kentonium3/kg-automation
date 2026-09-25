@@ -7,7 +7,11 @@
 - `view` is the ArmView the harness narrowed (`arm_view()`): D and R receive `view.links == []`.
 - `ctx` carries `repeat`, `attempt`, `seed` (= 1000 + repeat), `ServingConfiguration`, `Prompt`,
   the shared `Embedder` (G, R), the `calibration` record (R), and `limits = {trained, configured,
-  permitted}` (D-11).
+  permitted}` (D-11). **Dated 2026-09-25 (design-lead ruling, bus msg
+  20260925T185141534756Z7fc2eda03e):** `limits`, `limit_applied` and `limit` are derived by the
+  `CellContext` constructor from the configuration; arms check the applied pair against the
+  configuration and never receive them independently (an incoherent `CellContext` cannot be built —
+  WP08's contract, one implementation).
 - The arm assembles a `Block` via `arms849.text.render_block` and calls
   `ctx.prompt.render(block, question.text)` → the exact request text (chat template applied by
   `ctx.serving.serialize`); then `ctx.serving.count_tokens(request)`; if the count exceeds the
@@ -34,5 +38,12 @@
   the `AttemptsExhausted` path.
 - **G** exposes `build_graph(question, view) -> GraphStats` (once per question, before repeat 1;
   idempotent) and `drop_graph(question)`; assembly follows D-15 exactly.
-- **R** exposes `calibrate(g_repeat1_rows, views) -> Calibration` (D-10), called once by the
-  harness when all eight G repeat-1 cells are `ok`; the harness writes the `calibration` record.
+- **R** exposes the ONE bound adapter `calibration_inputs(text, tokenizer, embedder, views:
+  Mapping[qid, Loaded], index_cache) -> (availability: dict[qid, int], assemble_r_tokens:
+  Callable[[qid, k], int])`, which resolves each question's view and index internally and populates
+  the same index cache the R cells later read (calibration and cells embed once, identically);
+  `r_tokens_for` / `availability_cap` remain the primitives it composes. D-10 itself is implemented
+  ONCE, in `arms849.calibration.calibrate(ledger, availability, assemble_r_tokens)`, which the harness
+  calls as `calibrate(ledger, *R.calibration_inputs(...))` once all eight G repeat-1 cells are `ok`;
+  the harness writes the `calibration` record. **(Dated 2026-09-25, design-lead ruling R-1, bus msg
+  20260925T184854956609Z73c64e07a6; supersedes the earlier `calibrate(g_repeat1_rows, views)` line.)**
