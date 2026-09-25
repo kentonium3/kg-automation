@@ -97,7 +97,8 @@
       "model": "__resolved_model_absent__",
       "notes": [
         "WP03 ledger: 24 tests incl. kill-mid-write recovery, second-writer refusal, per-field binding refusal; full suite green",
-        "WP03 cycle 2: ten Codex findings fixed with tests (38); full suite green"
+        "WP03 cycle 2: ten Codex findings fixed with tests (38); full suite green",
+        "WP03 cycle 3: five Codex c2 findings fixed; 56 tests; full suite green"
       ],
       "provider": "__resolved_provider_absent__",
       "review": null,
