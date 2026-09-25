@@ -30,6 +30,7 @@ import hashlib
 import json
 import os
 import pathlib
+import re
 import statistics
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
@@ -43,7 +44,7 @@ from scripts.research.load_849_corpus import REGISTRATION, fingerprint
 __all__ = [
     "ARMS", "MAX_ATTEMPTS", "OUTCOMES", "REPEATS", "SCORED_OUTCOME",
     "AttemptsExhausted", "Binding", "Header", "Ledger", "LedgerBoundToAnotherConfig",
-    "LedgerCorrupt", "LedgerLocked", "RunKey", "SecondScoredRow", "open_ledger", "plan_keys",
+    "LedgerClosed", "LedgerCorrupt", "LedgerLocked", "RunKey", "SecondScoredRow", "open_ledger", "plan_keys",
 ]
 
 ARMS = ("G", "D", "R")
@@ -51,10 +52,19 @@ REPEATS = 3
 MAX_ATTEMPTS = 3
 #: Fields the ledger itself authors on a run row; a payload carrying one is refused.
 RESERVED_RUN_FIELDS = frozenset({"record", "arm", "question", "repeat", "attempt", "outcome", "serving", "ts"})
-#: Telemetry every scored row must carry (D-13); a missing measurement is a defect, never a zero.
-SCORED_ROW_FIELDS = ("assembled_context_tokens", "prompt_tokens", "cache_read_tokens", "uncached_tokens",
-                     "cache_state", "text")
+#: The run-row contract (data-model.md "Row run"): a row missing a required field is refused.
+RUN_ROW_ALWAYS = ("ask_time",)
+SCORED_INT_FIELDS = ("prompt_tokens", "assembled_context_tokens", "output_tokens", "cache_read_tokens",
+                     "uncached_tokens", "cache_write_tokens", "seed")
+SCORED_FLOAT_FIELDS = ("cache_fraction", "prefill_s", "generation_s", "generation_tok_s", "peak_gtt_gib")
+SCORED_OTHER_FIELDS = ("finish_reason", "cache_state", "assembled_context_sha256", "text", "plan")
+SCORED_ROW_FIELDS = SCORED_INT_FIELDS + SCORED_FLOAT_FIELDS + SCORED_OTHER_FIELDS
+SCORED_ARM_FIELDS = {"G": ("falkordb_rss_peak_mib",), "R": ("r_g_ratio",), "D": ()}
+D_ROW_FIELDS = ("context_limit_applied",)          # every D row, any outcome
 CACHE_STATES = ("cold", "warm")
+FINISH_REASONS = ("stop", "length")
+CONTEXT_LIMITS = ("trained", "permitted")
+RESERVED_CALIBRATION_FIELDS = frozenset({"record", "ts"})
 SCORED_OUTCOME = "ok"
 OUTCOMES = ("ok", "exceeds_model_context", "error", "not_implemented")
 Outcome = Literal["ok", "exceeds_model_context", "error", "not_implemented"]
@@ -79,6 +89,10 @@ class LedgerLocked(RuntimeError):
 
 class LedgerCorrupt(RuntimeError):
     """A malformed line that is not the final one."""
+
+
+class LedgerClosed(RuntimeError):
+    """An append after close(): the lock is no longer held, so the write is not ours to make."""
 
 
 class AttemptsExhausted(RuntimeError):
@@ -234,7 +248,9 @@ class Ledger:
     # -- append ------------------------------------------------------------
 
     def _append(self, record: dict[str, Any]) -> None:
-        """One JSON line, flushed and fsynced before returning (NFR-001)."""
+        """One JSON line, flushed and fsynced before returning (NFR-001); never after close()."""
+        if self._lock_fd < 0:
+            raise LedgerClosed(f"{self.path}: ledger is closed; the lock is not held")
         line = json.dumps(record, sort_keys=True, default=str)
         with self.path.open("a", encoding="utf-8") as fh:
             fh.write(line + "\n")
@@ -286,19 +302,36 @@ class Ledger:
         if any(r.get("record") == "run" and RunKey.of(r) == key and r.get("attempt") == attempt
                for r in self._rows):
             raise ValueError(f"{key}: attempt {attempt} already has a result; begin_attempt() first")
+        missing = [f for f in RUN_ROW_ALWAYS if f not in row]
+        if key.arm == "D":
+            missing += [f for f in D_ROW_FIELDS if f not in row]
+        if outcome == "error" and "error" not in row:
+            missing.append("error")
         if outcome == "exceeds_model_context":
             pt = int(row.get("prompt_tokens", -1))
             if pt <= self.header.binding.model_context_tokens:
                 raise ValueError(f"exceeds_model_context row must carry prompt_tokens > model context ({pt})")
         if outcome == SCORED_OUTCOME:
-            missing = [f for f in SCORED_ROW_FIELDS if f not in row]
-            if missing:
-                raise ValueError(f"scored row is missing telemetry {missing}")
-            for f in SCORED_ROW_FIELDS[:4]:
+            missing += [f for f in SCORED_ROW_FIELDS + SCORED_ARM_FIELDS.get(key.arm, ()) if f not in row]
+        if missing:
+            raise ValueError(f"{key} {outcome} row is missing required telemetry {missing}")
+        if key.arm == "D" and row["context_limit_applied"] not in CONTEXT_LIMITS:
+            raise ValueError(f"context_limit_applied must be one of {CONTEXT_LIMITS}")
+        if outcome == SCORED_OUTCOME:
+            for f in SCORED_INT_FIELDS:
                 if type(row[f]) is not int or row[f] < 0:
                     raise ValueError(f"scored row field {f} must be a non-negative int, got {row[f]!r}")
+            for f in SCORED_FLOAT_FIELDS:
+                if type(row[f]) not in (int, float) or row[f] < 0:
+                    raise ValueError(f"scored row field {f} must be a non-negative number, got {row[f]!r}")
             if row["cache_state"] not in CACHE_STATES:
                 raise ValueError(f"cache_state must be one of {CACHE_STATES}, got {row['cache_state']!r}")
+            if row["finish_reason"] not in FINISH_REASONS:
+                raise ValueError(f"finish_reason must be one of {FINISH_REASONS}, got {row['finish_reason']!r}")
+            if not re.fullmatch(r"[0-9a-f]{64}", str(row["assembled_context_sha256"])):
+                raise ValueError("assembled_context_sha256 must be a 64-hex sha256")
+            if not isinstance(row["text"], str) or not isinstance(row["plan"], dict):
+                raise ValueError("text must be a str and plan a dict")
         full = {**row, "record": "run", **key.as_dict(), "attempt": attempt, "outcome": outcome,
                 "serving": serving, "ts": _utc_now()}
         self._append(full)
@@ -331,7 +364,10 @@ class Ledger:
         unscored = [q.id for q in questions_mod.QUESTIONS if self.terminal(RunKey("G", q.id, 1)) != SCORED_OUTCOME]
         if unscored:
             raise ValueError(f"calibration needs all eight G repeat-1 cells scored; unscored: {unscored}")
-        self._append({"record": "calibration", **calibration, "ts": _utc_now()})
+        reserved = RESERVED_CALIBRATION_FIELDS & set(calibration)
+        if reserved:
+            raise ValueError(f"calibration payload carries ledger-authored fields {sorted(reserved)}")
+        self._append({**calibration, "record": "calibration", "ts": _utc_now()})
 
     def calibration(self) -> dict[str, Any] | None:
         return next((r for r in self._rows if r.get("record") == "calibration"), None)
@@ -350,21 +386,31 @@ class Ledger:
         return [r for r in self.run_rows() if r.get("outcome") == SCORED_OUTCOME]
 
     def summarise(self) -> dict[tuple[str, str], Summary]:
-        """Per (arm, question) over `ok` rows only; everything else counted, never summed."""
-        out: dict[tuple[str, str], Summary] = {}
-        cells: dict[tuple[str, str], list[dict[str, Any]]] = {}
-        for r in self.run_rows():
-            cells.setdefault((r["arm"], r["question"]), []).append(r)
+        """Per (arm, question): sums over `ok` rows only; every other key is COUNTED by its
+        terminal outcome (`pending` when none yet), including keys that only ever began
+        attempts and died — an exhausted cell with no run row is still a terminal error."""
+        keys: set[RunKey] = set()
         attempts: dict[tuple[str, str], int] = {}
         for r in self._rows:
+            if r.get("record") in ("run", "attempt_start"):
+                keys.add(RunKey.of(r))
             if r.get("record") == "attempt_start":
                 k = (r["arm"], r["question"]); attempts[k] = attempts.get(k, 0) + 1
-        for k, rs in cells.items():
-            ok = [r for r in rs if r["outcome"] == SCORED_OUTCOME]
-            counts = {o: sum(1 for r in rs if r["outcome"] == o) for o in OUTCOMES if o != SCORED_OUTCOME}
+        ok_rows: dict[tuple[str, str], list[dict[str, Any]]] = {}
+        counts: dict[tuple[str, str], dict[str, int]] = {}
+        for key in sorted(keys, key=lambda k: (k.arm, k.question, k.repeat)):
+            cell = (key.arm, key.question)
+            term = self.terminal(key) or "pending"
+            counts.setdefault(cell, {}); counts[cell][term] = counts[cell].get(term, 0) + 1
+            if term == SCORED_OUTCOME:
+                ok_rows.setdefault(cell, []).extend(
+                    r for r in self.run_rows() if RunKey.of(r) == key and r["outcome"] == SCORED_OUTCOME)
+        out: dict[tuple[str, str], Summary] = {}
+        for cell, cnt in counts.items():
+            ok = ok_rows.get(cell, [])
             assembled = [int(r["assembled_context_tokens"]) for r in ok]
             prompt = [int(r["prompt_tokens"]) for r in ok]
-            out[k] = Summary(
+            out[cell] = Summary(
                 n_scored=len(ok),
                 mean_assembled_tokens=statistics.fmean(assembled) if assembled else None,
                 range_assembled_tokens=(min(assembled), max(assembled)) if assembled else None,
@@ -375,7 +421,7 @@ class Ledger:
                 cold=sum(1 for r in ok if r["cache_state"] == "cold"),
                 warm=sum(1 for r in ok if r["cache_state"] == "warm"),
                 r_g_ratios=[r["r_g_ratio"] for r in ok if "r_g_ratio" in r],
-                counts=counts, attempts=attempts.get(k, 0),
+                counts={o: n for o, n in cnt.items() if o != SCORED_OUTCOME}, attempts=attempts.get(cell, 0),
             )
         return out
 
@@ -435,9 +481,9 @@ def open_ledger(path: pathlib.Path, binding: Binding, blinding_seed: int, plan: 
             pass
         os.close(fd)
         raise LedgerLocked(f"{path} is held by pid {holder or '?'}; one writer per ledger") from None
-    os.ftruncate(fd, 0)
-    os.write(fd, str(os.getpid()).encode())
     try:
+        os.ftruncate(fd, 0)
+        os.write(fd, str(os.getpid()).encode())
         return _open_locked(path, binding, blinding_seed, plan, fd)
     except BaseException:
         os.close(fd)          # releases the flock; a failed open must never hold the ledger

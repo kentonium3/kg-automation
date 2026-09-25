@@ -56,9 +56,30 @@ def fresh(tmp_path, **over) -> L.Ledger:
     return L.open_ledger(tmp_path / "ledger.jsonl", binding(**over), blinding_seed=7, plan=72)
 
 
-def ok_row(tokens=1000):
-    return {"assembled_context_tokens": tokens, "prompt_tokens": tokens + 300, "cache_read_tokens": 0,
-            "uncached_tokens": tokens + 300, "cache_state": "cold", "text": "x"}
+ASK = "2026-04-20T09:00:00-04:00"
+
+
+def ok_row(tokens=1000, arm="G"):
+    row = {"ask_time": ASK, "assembled_context_tokens": tokens, "prompt_tokens": tokens + 300,
+           "output_tokens": 120, "cache_read_tokens": 0, "uncached_tokens": tokens + 300,
+           "cache_write_tokens": tokens + 300, "cache_state": "cold", "cache_fraction": 0.0,
+           "prefill_s": 1.5, "generation_s": 2.0, "generation_tok_s": 60.0, "peak_gtt_gib": 40.0,
+           "finish_reason": "stop", "assembled_context_sha256": "0" * 64, "seed": 1001, "text": "x",
+           "plan": {"arm": arm}}
+    row.update({"G": {"falkordb_rss_peak_mib": 512.0}, "R": {"r_g_ratio": 1.0},
+                "D": {"context_limit_applied": "trained"}}[arm])
+    return row
+
+
+def err_row(msg="boom", arm="G"):
+    row = {"ask_time": ASK, "error": msg}
+    if arm == "D":
+        row["context_limit_applied"] = "trained"
+    return row
+
+
+def exceeds_row(pt=362_996):
+    return {"ask_time": ASK, "prompt_tokens": pt, "context_limit_applied": "trained"}
 
 
 # --------------------------------------------------------------------------
@@ -112,10 +133,10 @@ def test_attempt_start_precedes_run_and_a_fourth_attempt_is_refused(tmp_path):
     key = L.RunKey("D", "B2", 2)
     with fresh(tmp_path) as led:
         with pytest.raises(ValueError, match="before begin_attempt"):
-            rec(led, key, "error", {"error": "boom"})
+            rec(led, key, "error", err_row("boom", arm="D"))
         for n in (1, 2, 3):
             assert led.begin_attempt(key) == n
-            rec(led, key, "error", {"error": f"boom {n}"})
+            rec(led, key, "error", err_row(f"boom {n}", arm="D"))
         assert led.terminal(key) == "error"
         with pytest.raises(L.SecondScoredRow):
             led.begin_attempt(key)
@@ -137,8 +158,8 @@ def test_an_interrupted_attempt_counts_toward_three(tmp_path):
 def test_error_then_ok_is_legal_and_second_ok_is_not(tmp_path):
     key = L.RunKey("R", "F1", 3)
     with fresh(tmp_path) as led:
-        led.begin_attempt(key); rec(led, key, "error", {"error": "transient"})
-        led.begin_attempt(key); rec(led, key, "ok", ok_row())
+        led.begin_attempt(key); rec(led, key, "error", err_row("transient"))
+        led.begin_attempt(key); rec(led, key, "ok", ok_row(arm="R"))
         assert led.terminal(key) == "ok"
         with pytest.raises(L.SecondScoredRow):
             led.begin_attempt(key)
@@ -149,8 +170,8 @@ def test_exceeds_row_must_carry_a_count_above_the_model_context(tmp_path):
     with fresh(tmp_path) as led:
         led.begin_attempt(key)
         with pytest.raises(ValueError, match="prompt_tokens"):
-            rec(led, key, "exceeds_model_context", {"prompt_tokens": 100})
-        rec(led, key, "exceeds_model_context", {"prompt_tokens": 362_996})
+            rec(led, key, "exceeds_model_context", exceeds_row(100))
+        rec(led, key, "exceeds_model_context", exceeds_row())
         assert led.terminal(key) == "exceeds_model_context"
 
 
@@ -224,23 +245,24 @@ def test_second_writer_is_refused_while_the_first_holds_the_lock(tmp_path):
 def test_summarise_sums_ok_only_and_counts_the_rest(tmp_path):
     with fresh(tmp_path) as led:
         k1, k2, k3 = L.RunKey("D", "C1", 1), L.RunKey("D", "C1", 2), L.RunKey("D", "B2", 1)
-        led.begin_attempt(k1); rec(led, k1, "ok", {**ok_row(50_000), "cache_state": "cold"})
-        led.begin_attempt(k2); rec(led, k2, "ok", {**ok_row(52_000), "cache_state": "warm", "cache_read_tokens": 40_000})
-        led.begin_attempt(k3); rec(led, k3, "exceeds_model_context", {"prompt_tokens": 362_996})
+        led.begin_attempt(k1); rec(led, k1, "ok", {**ok_row(50_000, "D"), "cache_state": "cold"})
+        led.begin_attempt(k2); rec(led, k2, "ok", {**ok_row(52_000, "D"), "cache_state": "warm", "cache_read_tokens": 40_000})
+        led.begin_attempt(k3); rec(led, k3, "exceeds_model_context", exceeds_row())
         s = led.summarise()
     c1, b2 = s[("D", "C1")], s[("D", "B2")]
     assert c1.n_scored == 2 and c1.mean_assembled_tokens == 51_000 and c1.range_assembled_tokens == (50_000, 52_000)
     assert c1.mean_prompt_tokens == 51_300 and c1.range_prompt_tokens == (50_300, 52_300)
     assert b2.range_prompt_tokens is None
     assert c1.cold == 1 and c1.warm == 1 and c1.cache_read_tokens == 40_000
-    assert b2.n_scored == 0 and b2.mean_assembled_tokens is None and b2.counts["exceeds_model_context"] == 1
+    assert c1.counts == {} and c1.attempts == 2
+    assert b2.n_scored == 0 and b2.mean_assembled_tokens is None and b2.counts == {"exceeds_model_context": 1}
 
 
 def test_halt_input_is_visible_after_three_errors(tmp_path):
     with fresh(tmp_path) as led:
         k = L.RunKey("G", "C1", 1)
         for _ in range(3):
-            led.begin_attempt(k); rec(led, k, "error", {"error": "down"})
+            led.begin_attempt(k); rec(led, k, "error", err_row("down"))
         assert led.has_terminal_error("G", 1) == ["C1"]
 
 
@@ -276,17 +298,17 @@ def test_payload_cannot_carry_ledger_authored_fields(tmp_path):
         for bad in ({"outcome": "ok"}, {"attempt": 99}, {"arm": "D"}, {"serving": {}}, {"record": "header"}):
             with pytest.raises(ValueError, match="ledger-authored"):
                 rec(led, key, "error", {"error": "x", **bad})
-        row = rec(led, key, "error", {"error": "x"})
+        row = rec(led, key, "error", err_row("x"))
         assert row["attempt"] == 1 and row["outcome"] == "error" and row["serving"] == SERVING
 
 
 def test_one_result_per_attempt(tmp_path):
     key = L.RunKey("R", "A", 1)
     with fresh(tmp_path) as led:
-        led.begin_attempt(key); rec(led, key, "error", {"error": "1"})
+        led.begin_attempt(key); rec(led, key, "error", err_row("1"))
         with pytest.raises(ValueError, match="already has a result"):
-            rec(led, key, "error", {"error": "2"})
-        led.begin_attempt(key); rec(led, key, "ok", ok_row())
+            rec(led, key, "error", err_row("2"))
+        led.begin_attempt(key); rec(led, key, "ok", ok_row(arm="R"))
     rows = [json.loads(l) for l in (tmp_path / "ledger.jsonl").read_text().splitlines()]
     assert [r["attempt"] for r in rows if r["record"] == "run"] == [1, 2]
 
@@ -296,15 +318,15 @@ def test_serving_is_required_and_stored_on_every_run_row(tmp_path):
     with fresh(tmp_path) as led:
         led.begin_attempt(key)
         with pytest.raises(TypeError):
-            led.record(key, "error", {"error": "x"})   # type: ignore[call-arg]
+            led.record(key, "error", err_row("x"))   # type: ignore[call-arg]
         with pytest.raises(L.LedgerBoundToAnotherConfig):
-            rec(led, key, "error", {"error": "x"}, serving={**SERVING, "n_ctx": 1})
-        assert rec(led, key, "error", {"error": "x"})["serving"] == SERVING
+            rec(led, key, "error", err_row("x"), serving={**SERVING, "n_ctx": 1})
+        assert rec(led, key, "error", err_row("x"))["serving"] == SERVING
 
 
-@pytest.mark.parametrize("missing", ["assembled_context_tokens", "prompt_tokens", "cache_read_tokens",
-                                     "uncached_tokens", "cache_state", "text"])
+@pytest.mark.parametrize("missing", sorted(L.SCORED_ROW_FIELDS + L.RUN_ROW_ALWAYS + ("falkordb_rss_peak_mib",)))
 def test_scored_row_missing_telemetry_is_refused(tmp_path, missing):
+    """Every field data-model.md marks 'row refused if absent' (Codex c2: the list was short)."""
     key = L.RunKey("G", "C1", 1)
     with fresh(tmp_path) as led:
         led.begin_attempt(key)
@@ -317,6 +339,69 @@ def test_scored_row_missing_telemetry_is_refused(tmp_path, missing):
             rec(led, key, "ok", {**ok_row(), "cache_read_tokens": "0"})
 
 
+def test_per_arm_required_fields_and_d_rows_carry_the_limit(tmp_path):
+    with fresh(tmp_path) as led:
+        kr, kd = L.RunKey("R", "A", 1), L.RunKey("D", "A", 1)
+        led.begin_attempt(kr)
+        with pytest.raises(ValueError, match="r_g_ratio"):
+            rec(led, kr, "ok", {k: v for k, v in ok_row(arm="R").items() if k != "r_g_ratio"})
+        rec(led, kr, "ok", ok_row(arm="R"))
+        led.begin_attempt(kd)
+        with pytest.raises(ValueError, match="context_limit_applied"):
+            rec(led, kd, "error", {"ask_time": ASK, "error": "x"})
+        with pytest.raises(ValueError, match="context_limit_applied"):
+            rec(led, kd, "error", {**err_row(arm="D"), "context_limit_applied": "guessed"})
+        rec(led, kd, "error", err_row(arm="D"))
+        with pytest.raises(ValueError, match="error"):
+            led.begin_attempt(kd); rec(led, kd, "error", {"ask_time": ASK, "context_limit_applied": "trained"})
+
+
+def test_calibration_payload_cannot_forge_its_record_kind(tmp_path):
+    with fresh(tmp_path) as led:
+        score_all_g_repeat1(led)
+        with pytest.raises(ValueError, match="ledger-authored"):
+            led.write_calibration({"record": "event", "r_k": 1})
+        led.write_calibration({"r_k": 12})
+        with pytest.raises(ValueError, match="once"):
+            led.write_calibration({"r_k": 13})
+
+
+def test_closed_ledger_refuses_to_append(tmp_path):
+    """Codex c2: an old handle must not write after another opener owns the lock."""
+    key = L.RunKey("G", "C1", 1)
+    led = fresh(tmp_path)
+    led.close()
+    with fresh(tmp_path) as owner:
+        owner.begin_attempt(key)
+        with pytest.raises(L.LedgerClosed):
+            led.begin_attempt(key)
+        with pytest.raises(L.LedgerClosed):
+            led.event("stale")
+    assert owner.attempts_for(key) == 1
+
+
+def test_summarise_counts_attempt_only_exhausted_cells(tmp_path):
+    key = L.RunKey("D", "E1", 2)
+    for _ in range(3):
+        with fresh(tmp_path) as led:
+            led.begin_attempt(key)
+    with fresh(tmp_path) as led:
+        s = led.summarise()
+    cell = s[("D", "E1")]
+    assert cell.n_scored == 0 and cell.counts == {"error": 1} and cell.attempts == 3
+
+
+def test_lock_init_failure_releases_the_descriptor(tmp_path, monkeypatch):
+    def boom(fd, n):
+        raise OSError("disk full")
+    monkeypatch.setattr(L.os, "ftruncate", boom)
+    with pytest.raises(OSError):
+        fresh(tmp_path)
+    monkeypatch.undo()
+    with fresh(tmp_path):            # would raise LedgerLocked if the fd leaked
+        pass
+
+
 def test_unterminated_valid_final_line_is_terminated_not_concatenated(tmp_path):
     key = L.RunKey("G", "C1", 1)
     with fresh(tmp_path) as led:
@@ -325,7 +410,7 @@ def test_unterminated_valid_final_line_is_terminated_not_concatenated(tmp_path):
     p.write_bytes(p.read_bytes().rstrip(b"\n"))            # newline lost after a complete record
     with fresh(tmp_path) as led:
         assert led.attempts_for(key) == 1
-        rec(led, key, "error", {"error": "x"})
+        rec(led, key, "error", err_row("x"))
     lines = p.read_text().splitlines()
     assert all(json.loads(l) for l in lines)
     assert [r["kind"] for r in map(json.loads, lines) if r["record"] == "event"] == ["recovered_torn_tail"]
