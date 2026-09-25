@@ -1,7 +1,7 @@
 {
-  "event_count": 182,
-  "last_event_id": "01M3BBSAKVD8MK2EA8XYX83MRJ",
-  "materialized_at": "2026-09-25T04:04:43.771448+00:00",
+  "event_count": 183,
+  "last_event_id": "01M3BBWFNCY4NWAS4NT4RJ1RZ1",
+  "materialized_at": "2026-09-25T04:06:27.244188+00:00",
   "mission_number": "",
   "mission_slug": "arms-run-01M3APTA",
   "mission_type": "software-dev",
@@ -11,8 +11,8 @@
     "canceled": 0,
     "claimed": 0,
     "done": 0,
-    "for_review": 1,
-    "in_progress": 1,
+    "for_review": 2,
+    "in_progress": 0,
     "in_review": 0,
     "planned": 5
   },
@@ -113,7 +113,8 @@
         "WP03 cycle 5: three Codex c4 findings fixed; 71 tests; full suite green",
         "WP03 cycle 6: Codex c5 MAJOR+MINOR fixed; 76 tests; full suite green",
         "WP03 cycle 7: header binds gate_host_sha + gate_container_sha (design-lead ruling); 82 tests; full suite green",
-        "WP03 cycle 8: gate shas validated 64-hex at creation and resume; 100 tests; full suite green"
+        "WP03 cycle 8: gate shas validated 64-hex at creation and resume; 100 tests; full suite green",
+        "WP03 cycle 9: open_ledger validates directly constructed bindings; 103 tests; full suite green"
       ],
       "provider": "__resolved_provider_absent__",
       "review": null,
@@ -172,14 +173,14 @@
       }
     },
     "WP05": {
-      "actor": "claude",
+      "actor": "user",
       "agent": null,
       "agent_profile": "__resolved_profile_absent__",
       "agent_profile_version": "__resolved_profile_version_absent__",
       "force_count": 2,
-      "lane": "in_progress",
-      "last_event_id": "01M3BB9RY540SA061EQ0S17G62",
-      "last_transition_at": "2026-09-25T03:56:14.149280+00:00",
+      "lane": "for_review",
+      "last_event_id": "01M3BBWFNCY4NWAS4NT4RJ1RZ1",
+      "last_transition_at": "2026-09-25T04:06:27.244188+00:00",
       "model": "__resolved_model_absent__",
       "notes": [
         "WP05 cycle 1: arm G; 19 static tests + live build/assemble/replay-rule green on office4; full suite green",
@@ -197,11 +198,11 @@
       "shell_pid": null,
       "shell_pid_created_at": null,
       "subtasks": {
-        "T021": "planned",
-        "T022": "planned",
-        "T023": "planned",
-        "T024": "planned",
-        "T025": "planned"
+        "T021": "done",
+        "T022": "done",
+        "T023": "done",
+        "T024": "done",
+        "T025": "done"
       }
     },
     "WP06": {
