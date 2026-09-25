@@ -61,11 +61,9 @@ checkpoint (D-7..D-9). No `[NEEDS CLARIFICATION]` markers remain.
   arms comparable and keeps R's cache measurable.
 - **Alternatives considered**: rank-order assembly (rejected — destroys the prefix property and
   makes R's layout differ from D's for no retrieval reason).
-- **Open (Codex blocker A-2, referred to the design lead)**: §2 reads "embedding retrieval over
-  the stream **and rendered records**, top-k", which can be read as retrieval over both
-  populations; D-4 makes the entity records unconditional and retrieves over events only. The
-  design lead rules which is registered; the calibration procedure (D-10) is written so that
-  either population works without changing the harness.
+- **Registered (A4 @c980e812, closing Codex blocker A-2)**: the replay-visible records (entities
+  AND edges) are always present as the structured half; top-k is over events only; §2's earlier
+  wording is superseded, dated.
 
 ## D-5 — Sampling and output limit (01M3AX1QA44C6VMP2VFGPHTYF0)
 
@@ -94,11 +92,12 @@ checkpoint (D-7..D-9). No `[NEEDS CLARIFICATION]` markers remain.
 
 ## D-7 — The shared text form, enforced at final assembly (implementer's call; design lead reviews)
 
-- **Decision**: one module, `arms849.text`, renders **events, entities and edges** as their
-  rendered JSON line (`json.dumps(obj, sort_keys=True, default=str)`); every arm passes the
-  objects it assembled to `text.render_block(events, entities, edges)` at the **point of
-  insertion into the prompt slot** — there is no other way to obtain slot text — and the harness
-  counts the exact assembled bytes/tokens of what was inserted. D's dump is the whole replayed
+- **Decision (as corrected by the design lead's re-review, 00:05Z)**: one module, `arms849.text`,
+  returns **frozen bytes, never a re-dump**: an event's line is the exact line from
+  `stream.jsonl` for its ref; entities and edges get ONE canonical line each, produced once by
+  the loader from `entities.json` at load time (the only re-serialisation), digest recorded in
+  preflight; `render_block` only concatenates, at the **point of insertion into the prompt slot**,
+  and the harness counts the exact assembled bytes/tokens of what was inserted. D's dump is the whole replayed
   view: events, then entities, **then edges** (Codex blocker H-1: edges were omitted, so D was not
   the full dump and the flat arms lost relationships G received). R's records block is the same
   entity+edge block. G's `EpisodicNode.content` is the event's rendered line.
@@ -107,9 +106,10 @@ checkpoint (D-7..D-9). No `[NEEDS CLARIFICATION]` markers remain.
   meaningful (Codex major H-2).
 - **Alternatives considered**: NL rendering (deferred — a §2 re-measurement, design lead's call);
   storage-time equality only (rejected — the test could pass while prompt text diverged).
-- **Consequence for §2**: D's dump grows by the edge block (16 edges at B2, a few hundred tokens);
-  the prefix token figures are re-measured on the final assembly and re-registered by the design
-  lead before the run.
+- **Consequence for §2 (A4 ruling)**: the §2 token table is re-measured on the final assembled
+  bytes (exact serialised request) at code freeze, before the primary run; I post the table, the
+  design lead registers it as a dated amendment-log line. The six-of-eight finding cannot flip
+  (edges only add tokens).
 
 ## D-8 — Oracle-isolated execution boundary (implementer's call; FR-013)
 
@@ -157,9 +157,11 @@ checkpoint (D-7..D-9). No `[NEEDS CLARIFICATION]` markers remain.
   registered disposition — never a partial or substituted population. Procedure, deterministic:
   for each question build R's replayed view; for candidate k = 1, 2, … compute R's assembled
   tokens (records block + top-k events, exact assembled bytes, availability-capped); choose the
-  smallest k whose median over the eight questions is ≥ 0.8 × G's repeat-1 median of
-  `assembled_context_tokens`; ties to the smaller k; if no k reaches 0.8× within availability,
-  record `k = max available` and `parity: infeasible`. Written once as a **`calibration` record**
+  smallest k whose median over the eight questions lies **within the two-sided band 0.8×–1.2×**
+  of G's repeat-1 median of `assembled_context_tokens` (A4 reconciliation); ties to the smaller
+  k; if no k reaches 0.8× within availability, record `k = max available` and
+  `parity: infeasible`; if the records block alone already exceeds 1.2×, record
+  `parity: unattainable` — never silently accepted. Written once as a **`calibration` record**
   (a ledger line, not a header mutation) carrying k, the eight G medians, the eight R medians at k,
   and the ratio per question; every R cell must find it before running; a resume reads it back.
   Every R `ok` row carries `r_g_ratio` = R's assembled tokens ÷ G's repeat-1 median for that
@@ -203,12 +205,14 @@ checkpoint (D-7..D-9). No `[NEEDS CLARIFICATION]` markers remain.
 
 ## D-14 — Prompt digest and question manifest (Codex B-4)
 
-- **Decision**: `arms849.prompt.REGISTERED_TEXT` is the §3.2 text with the slot marker
-  `{{ASSEMBLED_CONTEXT}}`; digest = sha256 over UTF-8 bytes after normalisation (CRLF→LF, trailing
-  whitespace stripped per line, single trailing newline). The design lead records that digest in
-  rubric §3.2 (one hand); the gate compares against it. Question texts live in
-  `scripts/research/arms849/questions.py` — id, `ask_time`, text — an oracle-free manifest with
-  its own digest recorded in the header and asserted on resume.
+- **Decision (per A4 @c980e812)**: `arms849.prompt.REGISTERED_TEXT` is the §3.2 text as it
+  stands, with the literal slots `{assembled_context}` and `{question_text}`; digest = sha256 over
+  UTF-8 bytes after normalisation (CRLF→LF, per-line trailing whitespace stripped, exactly one
+  trailing newline) = `0aa7ee77560b1f5cbbb04a6c3dfa90749dfd79305b4207134c62d9fdd733af45`,
+  registered in §3.2 by the design lead; the gate compares to that **constant**. Question texts
+  live in `scripts/research/arms849/questions.py` (id, `ask_time`, text) and must digest to the
+  §3 constant `4864c31ccb1cc372229bcd808a4136a493d91b6c842c3ac018defa3537f97dfe`; neither digest
+  is ever computed-then-stored.
 
 ## D-15 — Deterministic G assembly (Codex C-5)
 
@@ -230,7 +234,7 @@ checkpoint (D-7..D-9). No `[NEEDS CLARIFICATION]` markers remain.
 | Codex finding | Disposition |
 |---|---|
 | H-1 edges omitted from D/R | **changed** — D-7 |
-| A-2 R population vs §2 | **referred** to the design lead — D-4 note; D-10 works either way |
+| A-2 R population vs §2 | **changed** — registered by A4 @c980e812 (records always + top-k events); D-4 |
 | A-3 zero anchors | **changed** — spec edge case now A3 verbatim; D-15 |
 | A-4 resolution paths | **changed** — IC-03 names all A3 paths + ambiguity rule |
 | D-1 export not a boundary | **changed** — D-8 container with allowlisted mounts + denied-access test |
@@ -282,6 +286,6 @@ claiming plan readiness; each contested finding's disposition:
 | A3 | "An export-based run environment can drift from the committed code" | **changed** — the harness records the export's source commit and refuses if the working tree at that commit differs from the export (hash of the exported file list). |
 | A4 | "The `openai` client could read `OPENAI_API_KEY` from the environment and call out" | **changed** — the harness asserts the variable is unset and the client base URL is `127.0.0.1`; a set key is a refusal, not a warning. |
 | A5 | "FastEmbed fetches a model at first use — a run-time network call" | **changed** — model fetched at setup, cached, sha recorded; the run asserts the cache is present and never fetches. |
-| A6 | "The JSON text form (D-7) leaks field names that hint at structure" | **deferred_with_rationale** — every arm sees the same text, so it is not a between-arm leak; whether it flatters all arms equally is a §2 question for the design lead at post-plan, noted in D-7. |
+| A6 | "The JSON text form (D-7) leaks field names that hint at structure" | **ruled out of scope by the design lead (A4)** — identical for every arm, so not a between-arm confound; JSON-vs-prose absolute effect is unmeasurable without a prose arm and goes to the findings' Threats section as a stated limitation. |
 
 No contested finding was dropped.

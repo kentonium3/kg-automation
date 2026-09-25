@@ -15,13 +15,13 @@ corpus, one prompt, one serving configuration.
 | `started` | ISO-8601 UTC | harness | explicit UTC (never bare `astimezone()`) |
 | `registration_commit` | str | loader `REGISTRATION` | `c0b35cd1` |
 | `corpus` | {file: sha256} | fingerprinted at open | must equal `REGISTRATION.files`; a resume with different values is refused |
-| `prompt_hash` | sha256 | `arms849.prompt` | over the registered §3.2 text with the slot empty; refused if it differs |
+| `prompt_hash` | sha256 | `arms849.prompt` | normalised §3.2 text with literal slots; must equal the A4 constant `0aa7ee77…733af45`; refused if it differs |
 | `serving` | ServingConfiguration | `arms849.serving` | equal across every row; the secondary differs in exactly `rope_scaling, rope_scale, yarn_orig_ctx, n_ctx` |
 | `model_context_tokens` | int | serving | 262,144 primary; 393,216 secondary |
 | `run_env_commit` | str | harness | commit the run environment was exported from |
 | `run_env_manifest_sha` | sha256 | harness | sha over the **contents** of every exported file, in path order (D-16) |
 | `code_hashes` | {path: sha256} | harness | every file under `scripts/research/arms849/` + harness + loader; compared on resume (D-16) |
-| `question_manifest_sha` | sha256 | `arms849.questions` | id + ask_time + text of the eight questions (D-14) |
+| `question_manifest_sha` | sha256 | `arms849.questions` | must equal the A4 constant `4864c31c…7f97dfe` (D-14) |
 | `preflight_sha` | sha256 | preflight | digest of `preflight.json` (gate results from the full checkout, IC-07) |
 | `blinding_seed` | int | harness | seed for per-cell blinded ids |
 | `recovery_log` | [str] | reader | e.g. `recovered_torn_tail@<ts>` (D-12) |
