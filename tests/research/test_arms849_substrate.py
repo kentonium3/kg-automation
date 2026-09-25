@@ -40,6 +40,10 @@ def test_compose_project_network_and_volume():
     c = _compose()
     assert c["name"] == "arms849"
     assert c["networks"]["arms849-net"]["internal"] is True
+    # The runner joins ONLY the internal network (design-lead 01:00Z: assert it, do not construct it).
+    cmd = SUB._runner_cmd(["-c", "pass"], entrypoint="python3")
+    nets = [cmd[i + 1] for i, a in enumerate(cmd) if a == "--network"]
+    assert nets == [SUB.NETWORK] and SUB.NETWORK.endswith("arms849-net")
     assert "arms849-falkor" in c["volumes"]
 
 
@@ -175,6 +179,31 @@ def test_live_self_test_passes_and_a_widened_mount_fails(tmp_path, live_http):
         SUB.down()
 
 
+def test_runner_refuses_a_missing_mount_source(tmp_path, monkeypatch):
+    """Docker would create a missing bind source as a root-owned dir; the runner refuses first."""
+    monkeypatch.setattr(SUB, "CACHE_DIR", tmp_path / "absent")
+    with pytest.raises(RuntimeError, match="mount source"):
+        SUB._runner_cmd(["-c", "pass"], entrypoint="python3")
+
+
+def test_runner_image_tag_follows_dockerfile_content(tmp_path, monkeypatch):
+    """A changed Dockerfile yields a different tag, so a stale image can never be reused."""
+    before = SUB._runner_dockerfile_sha()
+    assert SUB.RUNNER_IMAGE.endswith(before) and len(before) == 12
+    df = tmp_path / "runner.Dockerfile"; df.write_bytes((SUB.COMPOSE_DIR / "runner.Dockerfile").read_bytes() + b"\n# changed\n")
+    monkeypatch.setattr(SUB, "COMPOSE_DIR", tmp_path)
+    assert SUB._runner_dockerfile_sha() != before
+
+
+def test_runner_base_is_digest_pinned():
+    ref = SUB.runner_base_image()
+    assert ref.startswith("python:3.12-slim@sha256:") and len(ref.split("@sha256:")[1]) == 64
+
+
+def test_light_deps_carry_jinja2_and_never_torch():
+    assert "jinja2" in SUB.TOKENIZER_LIGHT_DEPS and "torch" not in SUB.TOKENIZER_LIGHT_DEPS
+
+
 def test_expected_gguf_sha_requires_exactly_one_full_filename_entry(tmp_path):
     sums = tmp_path / "SHA256SUMS"
     good = "a" * 64
@@ -193,7 +222,14 @@ def _fake_sh(stdout: str):
 
 
 def test_rope_mode_is_the_container_arg_and_unknown_when_uninspectable(monkeypatch):
-    monkeypatch.setattr(SUB, "_sh", _fake_sh('["--model","/models/x.gguf","--rope-scaling","yarn","--yarn-orig-ctx","262144"]'))
+    monkeypatch.setattr(SUB, "_sh", _fake_sh('["--model","/models/x.gguf","--rope-scaling","yarn","--rope-scale","2","--yarn-orig-ctx","262144"]'))
+    assert SUB._rope_mode() == "yarn"
+    # Codex c3: YaRN with other parameters is a DIFFERENT configuration, never "yarn".
+    monkeypatch.setattr(SUB, "_sh", _fake_sh('["--rope-scaling","yarn","--rope-scale","99","--yarn-orig-ctx","4096"]'))
+    assert SUB._rope_mode() == "yarn:99:4096"
+    monkeypatch.setattr(SUB, "_sh", _fake_sh('["--rope-scaling","yarn"]'))
+    assert SUB._rope_mode() == "yarn:None:None"
+    monkeypatch.setattr(SUB, "_sh", _fake_sh('["--rope-scaling=yarn","--rope-scale=2","--yarn-orig-ctx=262144"]'))
     assert SUB._rope_mode() == "yarn"
     monkeypatch.setattr(SUB, "_sh", _fake_sh('["--model","/models/x.gguf","-c","262144"]'))
     assert SUB._rope_mode() == "none"

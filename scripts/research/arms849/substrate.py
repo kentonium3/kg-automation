@@ -72,13 +72,21 @@ SETUP_JSON = RUNS_DIR / "setup.json"
 PROJECT = "arms849"
 NETWORK = f"{PROJECT}-net"
 VOLUME = f"{PROJECT}-falkor"
-RUNNER_IMAGE = f"{PROJECT}-runner:local"
+
+
+def _runner_dockerfile_sha() -> str:
+    return hashlib.sha256((COMPOSE_DIR / "runner.Dockerfile").read_bytes()).hexdigest()[:12]
+
+
+#: Tagged by the Dockerfile's content: a changed Dockerfile can never reuse a stale
+#: image, and `down` removes every `<project>-runner:*` tag (Codex WP02 c3).
+RUNNER_IMAGE = f"{PROJECT}-runner:{_runner_dockerfile_sha()}"
 FALKOR_PORT, LLAMA_PORT = 16379, 18080
 
 #: SOURCE.md's known-good serving image, by digest.
 LLAMA_IMAGE = ("ghcr.io/ggml-org/llama.cpp@sha256:"
                "063e88aef1c168cf4a0a4b3a7983604561f96870a3c4953bd1fad908b4e41716")
-#: #974 ran FalkorDB 4.20.1; #976 records only the digest prefix. ``setup`` resolves
+#: #974 (the spike) ran FalkorDB 4.20.1 and recorded only this digest prefix. ``setup`` resolves
 #: the full digest from this tag and records it — and says so if the prefix differs.
 FALKORDB_TAG = "falkordb/falkordb:v4.20.1"
 FALKORDB_DIGEST_PREFIX = "sha256:9042fdc4"
@@ -87,7 +95,8 @@ GGUF_DIR = pathlib.Path.home() / "models" / "gguf" / "unsloth" / "Qwen3-Next-80B
 GGUF_FILE = "Qwen3-Next-80B-A3B-Instruct-UD-Q4_K_XL.gguf"
 EMBEDDER_MODEL = "BAAI/bge-small-en-v1.5"
 #: What `transformers`' tokenizer path imports at runtime, minus torch.
-TOKENIZER_LIGHT_DEPS = ("regex", "filelock", "pyyaml", "requests", "tqdm", "packaging", "numpy", "safetensors")
+TOKENIZER_LIGHT_DEPS = ("regex", "filelock", "pyyaml", "requests", "tqdm", "packaging", "numpy", "safetensors",
+                        "jinja2")   # jinja2: apply_chat_template (rubric 939d9b29)
 TOKENIZER_REPO = "Qwen/Qwen3-Next-80B-A3B-Instruct"
 
 PRIMARY_N_CTX, SECONDARY_N_CTX = 262_144, 393_216
@@ -132,6 +141,17 @@ def gtt_used_gib() -> float | None:
 # --------------------------------------------------------------------------
 # setup
 # --------------------------------------------------------------------------
+
+
+def runner_base_image() -> str:
+    """The digest-pinned FROM line of the runner image, read from the Dockerfile (never a tag)."""
+    for line in (COMPOSE_DIR / "runner.Dockerfile").read_text(encoding="utf-8").splitlines():
+        if line.startswith("FROM "):
+            ref = line.split()[1]
+            if "@sha256:" not in ref:
+                raise RuntimeError(f"runner base image is not digest-pinned: {ref}")
+            return ref
+    raise RuntimeError("runner.Dockerfile has no FROM line")
 
 
 def expected_gguf_sha(sums_path: pathlib.Path, filename: str) -> str:
@@ -182,8 +202,8 @@ def setup(skip_gguf_verify: bool = False, python: pathlib.Path | None = None) ->
 
     falkor_digest = _resolve_digest(FALKORDB_TAG)
     falkor_ref = f"falkordb/falkordb@{falkor_digest}"
-    digest_note = ("matches the #976 prefix" if falkor_digest.startswith(FALKORDB_DIGEST_PREFIX)
-                   else f"DOES NOT match the #976 prefix {FALKORDB_DIGEST_PREFIX}; pinned to {FALKORDB_TAG}'s current digest and recorded here")
+    digest_note = ("matches the #974 prefix" if falkor_digest.startswith(FALKORDB_DIGEST_PREFIX)
+                   else f"DOES NOT match the #974 prefix {FALKORDB_DIGEST_PREFIX}; pinned to {FALKORDB_TAG}'s current digest and recorded here")
     _sh(["docker", "pull", falkor_ref])
     _sh(["docker", "pull", LLAMA_IMAGE])
     _sh(["docker", "build", "-t", RUNNER_IMAGE, "-f", str(COMPOSE_DIR / "runner.Dockerfile"), str(COMPOSE_DIR)])
@@ -210,7 +230,8 @@ def setup(skip_gguf_verify: bool = False, python: pathlib.Path | None = None) ->
         "recorded_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         "pins": req.read_text().splitlines(),
         "falkordb_image": falkor_ref, "falkordb_digest_note": digest_note,
-        "llama_image": LLAMA_IMAGE, "runner_image": RUNNER_IMAGE,
+        "llama_image": LLAMA_IMAGE,
+        "runner_base": runner_base_image(), "runner_image": RUNNER_IMAGE,
         "gguf": str(gguf), "gguf_sha256": gguf_sha, "gguf_sha256_expected": expected,
         "cache_dir": str(CACHE_DIR), "cache_shas": cache_shas,
         "embedder_model": EMBEDDER_MODEL, "tokenizer_repo": TOKENIZER_REPO,
@@ -268,26 +289,52 @@ def up(yarn: bool = False, wait_s: int = 3600) -> SubstrateState:
     return state
 
 
+YARN_EXPECTED = {"rope_scale": "2", "yarn_orig_ctx": "262144"}      # D-YaRN secondary (research.md D-6)
+
+
+def _llama_args(container: str = "arms849-llama-1") -> list[str] | None:
+    """The llama.cpp container's start arguments, or None when it cannot be inspected."""
+    try:
+        out = _sh(["docker", "inspect", "--format", "{{json .Args}}", container], capture=True).stdout
+        args = json.loads(out or "[]")
+        return [str(a) for a in args]
+    except Exception:  # noqa: BLE001 — could-not-check is its own answer
+        return None
+
+
+def _arg_value(args: list[str], flag: str) -> str | None:
+    for i, a in enumerate(args):
+        if a == flag and i + 1 < len(args):
+            return args[i + 1].lower()
+        if a.startswith(flag + "="):
+            return a.split("=", 1)[1].lower()
+    return None
+
+
 def _rope_mode(container: str = "arms849-llama-1") -> str:
-    """The rope setting the server was actually STARTED with, from the container's args.
+    """The rope configuration the server was actually STARTED with, from the container's args.
 
     llama.cpp's /props exposes no rope field (verified 2026-09-25 against the live
     server: only n_ctx under default_generation_settings), so the configured
     setting is read from the process arguments; the effective n_ctx in /props is
-    the runtime evidence that it took. 'unknown' when the container cannot be
-    inspected — which never satisfies an expectation.
+    the runtime evidence that it took. Returns 'none', 'yarn' (only when
+    --rope-scaling yarn AND --rope-scale 2 AND --yarn-orig-ctx 262144 are all
+    present — a YaRN with other parameters is a different serving configuration
+    and reports 'yarn:<scale>:<orig>'), or 'unknown' when the container cannot be
+    inspected, which never satisfies an expectation.
     """
-    try:
-        out = _sh(["docker", "inspect", "--format", "{{json .Args}}", container], capture=True).stdout
-        args = json.loads(out or "[]")
-    except Exception:  # noqa: BLE001 — could-not-check is its own answer
+    args = _llama_args(container)
+    if args is None:
         return "unknown"
-    for i, a in enumerate(args):
-        if a == "--rope-scaling" and i + 1 < len(args):
-            return str(args[i + 1]).lower()
-        if a.startswith("--rope-scaling="):
-            return a.split("=", 1)[1].lower()
-    return "none"
+    scaling = _arg_value(args, "--rope-scaling")
+    if scaling is None or scaling == "none":
+        return "none"
+    if scaling != "yarn":
+        return f"{scaling}"
+    scale, orig = _arg_value(args, "--rope-scale"), _arg_value(args, "--yarn-orig-ctx")
+    if scale == YARN_EXPECTED["rope_scale"] and orig == YARN_EXPECTED["yarn_orig_ctx"]:
+        return "yarn"
+    return f"yarn:{scale}:{orig}"
 
 
 def health(expect_n_ctx: int, expect_rope: str) -> SubstrateState:
@@ -343,7 +390,9 @@ def down() -> dict:
     env = compose_env(False, load_setup()) if SETUP_JSON.exists() else {
         "FALKORDB_IMAGE": "x", "LLAMA_IMAGE": "x", "GGUF_DIR": "/", "GGUF_FILE": "x", "N_CTX": "1", "ROPE_ARGS": ""}
     _compose("down", "-v", "--rmi", "all", env=env)
-    _sh(["docker", "image", "rm", "-f", RUNNER_IMAGE], check=False)
+    stale = _sh(["docker", "images", "--format", "{{.Repository}}:{{.Tag}}", f"{PROJECT}-runner"], check=False).stdout.split()
+    for ref in sorted(set(stale) | {RUNNER_IMAGE}):
+        _sh(["docker", "image", "rm", "-f", ref], check=False)
     leftovers = {
         "containers": _sh(["docker", "ps", "-a", "--format", "{{.Names}}"]).stdout.split(),
         "volumes": _sh(["docker", "volume", "ls", "--format", "{{.Name}}"]).stdout.split(),
@@ -423,11 +472,23 @@ def _ensure_runner_image() -> None:
         _sh(["docker", "build", "-t", RUNNER_IMAGE, "-f", str(COMPOSE_DIR / "runner.Dockerfile"), str(COMPOSE_DIR)])
 
 
+def _assert_mount_sources(*dirs: pathlib.Path) -> None:
+    """Every bind-mount source must already exist as OUR directory. Docker creates a
+    missing source as a root-owned empty dir (seen 2026-09-25: an empty root-owned
+    build/849-cache that then broke setup with PermissionError); refuse instead."""
+    for d in dirs:
+        if not d.is_dir():
+            raise RuntimeError(f"mount source {d} does not exist; run setup (never let docker create it)")
+        if not os.access(d, os.W_OK if d in (RUNS_DIR,) else os.R_OK):
+            raise RuntimeError(f"mount source {d} is not accessible by this user (owner {d.stat().st_uid})")
+
+
 def _runner_cmd(extra: Iterable[str], *, entrypoint: str | None = None,
                 env_extra: Sequence[tuple[str, str]] = ()) -> list[str]:
     """The ONLY docker-run shape the harness ever executes: allowlisted mounts, compose net."""
     RUNS_DIR.mkdir(parents=True, exist_ok=True)
     _ensure_runner_image()
+    _assert_mount_sources(EXPORT_DIR, CORPUS_DIR, CACHE_DIR, RUNS_DIR)
     cmd = ["docker", "run", "--rm", "--network", NETWORK,
            "-v", f"{EXPORT_DIR}:/work:ro", "-v", f"{CORPUS_DIR}:/corpus:ro",
            "-v", f"{CACHE_DIR}:/cache:ro", "-v", f"{RUNS_DIR}:/runs:rw",

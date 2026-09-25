@@ -2,7 +2,9 @@
 # research.md D-8 describes. It copies nothing from the repo; the export is
 # bind-mounted read-only at /work by `substrate run`. No torch, no network
 # beyond the compose network, no API keys.
-FROM python:3.12-slim
+# Pinned by digest (resolved 2026-09-25 from the python:3.12-slim tag); a rebuild after
+# teardown must produce the same environment. Recorded in setup.json as runner_base.
+FROM python:3.12-slim@sha256:44ff437bba879d4941b710a369a8f19266aea34b29002807f0c487fabc9eec9b
 
 RUN apt-get update && apt-get install -y --no-install-recommends curl \
     && rm -rf /var/lib/apt/lists/*
