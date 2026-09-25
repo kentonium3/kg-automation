@@ -145,7 +145,8 @@
         "WP04 cycle 1: 37 tests, full suite 7,125 green; live run_all in a real export not yet executed (WP09 re-runs it)",
         "WP04 cycle 2: seven Codex c1 findings fixed; 92 tests; full suite green",
         "WP04 cycle 3: four Codex c2 findings (two BLOCKERs) fixed; 94 tests; full suite green",
-        "WP04 cycle 4: Codex c3 three + design-lead three folded; 98 tests; full suite green"
+        "WP04 cycle 4: Codex c3 three + design-lead three folded; 98 tests; full suite green",
+        "WP04 cycle 5: Codex c4 MINOR (sampler closure race) fixed under a lock; 99 tests; full suite green"
       ],
       "provider": "__resolved_provider_absent__",
       "review": null,
