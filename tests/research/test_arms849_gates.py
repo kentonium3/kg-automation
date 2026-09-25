@@ -366,6 +366,8 @@ _LITERAL_ONLY_CAUGHT = {
     "bytes-in-tuple": 'X = tuple(map(bytes, [[111, 114, 97, 99, 108, 101]]))',  # bytes inside a tuple
     "set-sorted-reverse": 'X = "".join(sorted({"or", "acle"}, reverse=True))',  # an unordered container, ORDER-INSENSITIVELY consumed
     "set-max": 'X = max({"or" "acle", "a"})',
+    "reversed-sorted-set": 'X = "".join(reversed(sorted({"or", "acle"})))',   # sorted clears; reversed over a list is ordered
+    "fstring-sorted-set": 'X = f"{sorted({\'or\', \'acle\'})[1]}acle"[:6]',
 }
 
 
@@ -388,7 +390,9 @@ def test_excluded_gate_fails_on_a_literal_only_construction(tmp_path, monkeypatc
     'X = hash("or") and "acle"',                       # hash / id are NOT allowlisted (non-deterministic)
     'X = x.split()[0] + "acle"',
     'X = type("or")("acle")',
-], ids=["name-method", "user-call", "name-arg", "open", "getattr", "eval", "opaque-call", "hash", "name-split", "type"])
+    'X = "".join(type({"a"})(["or", "acle"]))',        # `type` is NEVER allowlisted (c9 ruling): opaque, not evaluated — the
+                                                       # c12 brief expected a refusal here; see the cycle report
+], ids=["name-method", "user-call", "name-arg", "open", "getattr", "eval", "opaque-call", "hash", "name-split", "type", "type-of-set"])
 def test_stateful_or_unlisted_calls_stay_opaque_and_the_gate_passes(tmp_path, monkeypatch, construction):
     """Design-lead ruling 2026-09-25: everything outside (i) allowlisted builtin on pure args and
     (ii) a method of a pure receiver is OPAQUE — the runtime boundary's job — never refused,
@@ -440,7 +444,6 @@ _ORDER_SENSITIVE = {
     "enumerate": 'X = list(enumerate({"or", "acle"}))',
     "fstring": 'X = f"{ {\'or\', \'acle\'} }"',
     "method": 'X = {"or", "acle"}.pop()',
-    "subscript": 'X = ("a", {"or", "acle"})[1]',
     "subset": 'X = {"or", "acle"} < {"or"}',
     "ifexp-test": 'X = "x" if {"or", "acle"} else "y"',
     "starred": 'X = sorted(*[{"or", "acle"}])',
@@ -452,6 +455,17 @@ _ORDER_SENSITIVE = {
     "sorted-tuple-in-list": 'X = sorted([({"or", "acle"},)])',
     "max-nested-boolop": 'X = max([{"or", "acle"}] or "x")',
     "sorted-frozenset-nested": 'X = sorted(frozenset([frozenset({"or", "acle"})]))',
+    "map-frozenset-sorted": 'X = "".join(sorted(map(frozenset, [["or", "acle"]]))[0])',   # Codex c12: sets built by a mapped callable
+    "map-set-sorted": 'X = "".join(sorted(map(set, [["or", "acle"]]))[0])',
+    "sorted-list-map-frozenset": 'X = sorted(list(map(frozenset, [["or", "acle"]])))[0]',
+    "min-map-frozenset": 'X = min(map(frozenset, [["or", "acle"]]))',
+    "frozenset-union": 'X = "".join(sorted(frozenset.union(frozenset(), ["or", "acle"])))',   # refused (a method over a set)
+    "map-str-nested": 'X = "".join(map(str, [{"or", "acle"}]))',                # a callable applied to tainted members
+    "subscript-copy": 'X = "".join([{"a"}][0].copy() | {"or", "acle"})',       # value-carried: the set came out of a subscript
+    "copy-union": 'X = "".join({"a"}.copy() | {"or", "acle"})',
+    "set-union-classmethod": 'X = "".join(set.union({"a"}, ["or", "acle"]))',
+    "subscript-frozenset-class": 'X = "".join([frozenset][0](["or", "acle"]))',   # the class reached through a subscript
+    "dict-fromkeys-set": 'X = dict.fromkeys({"or", "acle"})',
 }
 
 
@@ -477,7 +491,13 @@ def test_order_insensitive_consumers_of_an_unordered_container_stay_pure_and_det
     for c in ['X = len({"or", "acle"})', 'X = "or" in {"or", "acle"}', 'X = {"or", "acle"} == {"acle", "or"}',
               'X = frozenset({"or", "acle"})', 'X = any({"or", "acle"})', 'X = sorted({"or", "acle"})[0] + "x"',
               'X = max({"or", "acle"}, default="x")',              # Codex c11: an UNTAINTED default over a set of scalars
-              'X = len([{"or", "acle"}])', 'X = any([{"or", "acle"}])', 'X = [{"or", "acle"}] == [{"acle", "or"}]']:
+              'X = len([{"or", "acle"}])', 'X = any([{"or", "acle"}])', 'X = [{"or", "acle"}] == [{"acle", "or"}]',
+              'X = ("a", {"or", "acle"})[1]',                       # a subscript hands the Tainted set back, still Tainted
+              'X = len(list(map(frozenset, [["a"]])))',             # Codex c12: an ordered list OF sets is deterministic
+              'X = list(map(frozenset, [["or", "acle"]]))', 'X = list(reversed([{"or", "acle"}]))', 'X = dict([("k", {"or", "acle"})])',
+              'X = sorted(filter(frozenset, [["or", "acle"]]))',    # filter keeps the LISTS: no set is produced
+              'X = "".join(sorted(dict.fromkeys(["or", "acle"]).keys()))',   # dict keys are ordered → "acleor"
+              'X = "".join(sorted(["acle", "or"], key=frozenset))']:  # subset order is hash-free; stable → "acleor"
         assert litscan.string_constants(c + "\n") == litscan.string_constants(c + "\n"), c
         pkg = _fake_pkg(tmp_path / f"pkg_{abs(hash(c))}"); (pkg / "ok.py").write_text(c + "\n")
         monkeypatch.setattr(G, "PKG_DIR", pkg)

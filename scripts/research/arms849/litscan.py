@@ -16,19 +16,30 @@ name, comprehension, lambda or attribute of a name is the RUNTIME boundary's job
 (a NUL in its place inside an f-string, so a word cannot be smuggled around it).
 
 Materialised values are read RECURSIVELY (Codex WP04 c10): str/bytes yield
-themselves, list/tuple/set/frozenset/dict (keys AND values) recurse, so
-`dict.fromkeys(map("".join, [...]))` and `list(zip(map("".join, [...])))` are seen;
-depth is bounded only by the child's rlimits (a pathological nesting fails closed).
-Unordered containers (a Set literal, set()/frozenset()) are hash-seed dependent, so a
-pure subtree that consumes one ORDER-SENSITIVELY — `"".join({...})`, list()/tuple(),
-iteration through map/zip/enumerate/reversed, subscripting, %-formatting, str()/repr(),
-any method of a set, sorted/min/max with a `key` — is REFUSED: a gate whose answer can
-differ between runs is not a gate. Order-INSENSITIVE consumers (closed list: sorted,
-len, min, max, any, all, set/frozenset re-wrapping, `in`/`not in`, `==`/`!=`) are
-allowed; set members are extracted in sorted order so every scan is reproducible. Taint
-is two-level (Codex WP04 c11): sorted/min/max clear it only over a set of SCALARS; a set
-nested inside a list/tuple/dict or a set of containers, or a tainted key=/default=,
-REFUSES — `sorted([{"or", "acle"}])[0]` would hand the set back unsorted.
+themselves, list/tuple/set/frozenset/dict (keys AND values) recurse; iterators are
+materialised; depth is bounded only by the child's rlimits (a pathological nesting
+fails closed).
+
+Unordered containers are hash-seed dependent, so the taint is VALUE-CARRIED
+(design-lead ruling 2026-09-25, Codex WP04 c12; it replaced a syntactic enumeration
+of set producers that c10–c12 kept finding holes in): evaluation is bottom-up, every
+result is `_mark`ed — a set/frozenset becomes `TaintedSet`/`TaintedFrozenset`,
+containers are rebuilt with marked members — and the child's `set`/`frozenset`
+builtins ARE the Tainted classes, so `map(frozenset, …)`, `[frozenset][0](…)`,
+`{"a"}.copy()`, set algebra and every future path yield Tainted values with no
+syntax rule. Before ANY allowlisted builtin or ANY method runs, its arguments are
+inspected against a CLOSED table keyed by callable identity: scalar-result consumers
+(len, any, all, and `in`/`not in`/`==`/`!=`) accept any taint; sorted/min/max accept
+a Tainted value only as the DIRECT positional operand with no Tainted members (a set
+of scalars) and never with a tainted key=/default= or a `key=` at all (ties fall in
+hash order); set/frozenset re-wrap keeps the taint; re-container builders (list,
+tuple, reversed, enumerate, zip, dict) iterate in their INPUT's order, so they refuse
+a direct set but carry a nested one; map/filter apply a callable to members and
+refuse any taint; EVERY other callable or method (join, dict.fromkeys, str()/format/
+%-format/f-string, a method on a Tainted receiver, Starred unpacking, BinOp/UnaryOp,
+an ordering Compare, a conditional's test) refuses any taint: "order-sensitive
+consumption of an unordered value". A gate whose answer can differ between runs is
+not a gate. Set members are extracted in sorted order so every scan is reproducible.
 
 Shadowing: a module that rebinds any allowlisted builtin name at any scope
 (assignment target, def/class name, import alias, global/nonlocal, comprehension,
@@ -60,7 +71,15 @@ import json
 import pathlib
 import subprocess
 import sys
-from collections.abc import Iterable, Sequence
+from collections.abc import (
+    ItemsView,
+    Iterable,
+    Iterator,
+    KeysView,
+    Sequence,
+    ValuesView,
+)
+from typing import Any
 
 __all__ = ["ScanBudgetExceeded", "ScanRefused", "find_words", "string_constants"]
 
@@ -77,10 +96,20 @@ class ScanBudgetExceeded(RuntimeError):
 
 
 class ScanRefused(RuntimeError):
-    """The scan met syntax it does not classify, a literal call that raised, or a module
-    that rebinds an allowlisted builtin — the gate fails closed rather than pass over what
-    it could not read."""
+    """The scan met syntax it does not classify, a literal call that raised, a module that
+    rebinds an allowlisted builtin, or an order-sensitive use of an unordered value — the
+    gate fails closed rather than pass over what it could not read."""
 
+
+class TaintedSet(set):                  # type: ignore[type-arg]
+    """A set the evaluator built — its iteration order depends on the hash seed."""
+
+
+class TaintedFrozenset(frozenset):      # type: ignore[type-arg]
+    """A frozenset the evaluator built — its iteration order depends on the hash seed."""
+
+
+_TAINTED = (TaintedSet, TaintedFrozenset)
 
 # Literal structure Python evaluates safely. Listed by NAME, never derived as "everything
 # that is not opaque": a node absent from ALL three tuples is refused.
@@ -112,11 +141,15 @@ _PURE_BUILTINS: frozenset[str] = frozenset({
     "round", "divmod", "pow", "hex", "oct", "bin", "format", "slice", "range", "enumerate", "zip",
     "map", "filter", "any", "all",
 })
-_EVAL_BUILTINS: dict[str, object] = {name: getattr(builtins, name) for name in sorted(_PURE_BUILTINS)}
-# The CLOSED list of consumers whose result does not depend on the iteration order of an
-# unordered argument (set()/frozenset() re-wrap it; the rest reduce it to a scalar or sort it).
-_ORDER_INSENSITIVE_CONSUMERS: frozenset[str] = frozenset({"sorted", "len", "min", "max", "any", "all", "set", "frozenset"})
-_UNORDERED_MAKERS: frozenset[str] = frozenset({"set", "frozenset"})
+# The child's builtins: exactly the allowlist, with set/frozenset → the Tainted classes.
+_EVAL_BUILTINS: dict[str, Any] = {name: getattr(builtins, name) for name in sorted(_PURE_BUILTINS)}
+_EVAL_BUILTINS["set"], _EVAL_BUILTINS["frozenset"] = TaintedSet, TaintedFrozenset
+# The CLOSED consumer table, by callable IDENTITY (however the callable was reached):
+_SCALAR_CONSUMERS: tuple[Any, ...] = (len, any, all)                # a scalar result: any taint is fine
+_SORTING: tuple[Any, ...] = (sorted, min, max)                       # elements come back: a DIRECT set of scalars only
+_REWRAP: tuple[Any, ...] = (TaintedSet, TaintedFrozenset)            # stays Tainted (nesting survives)
+_RECONTAINER: tuple[Any, ...] = (list, tuple, reversed, enumerate, zip, dict)   # iterate in the INPUT's order: a direct set refuses
+_APPLYING: tuple[Any, ...] = (map, filter)                           # apply a callable to members: any taint refuses
 _ORDER_INSENSITIVE_OPS: tuple[type[ast.cmpop], ...] = (ast.In, ast.NotIn, ast.Eq, ast.NotEq)
 
 
@@ -144,84 +177,218 @@ def _is_pure(node: ast.AST) -> bool:
     return all(_is_pure(child) for child in ast.iter_child_nodes(node))
 
 
+# ---------------------------------------------------------------------------
+# value-carried taint
+# ---------------------------------------------------------------------------
+
+
+def _mark(value: Any) -> Any:
+    """Every evaluated result passes through here: sets become Tainted, containers are
+    rebuilt with marked members, iterators and dict views are materialised, scalars pass."""
+    if isinstance(value, (set, frozenset)):
+        cls = TaintedFrozenset if isinstance(value, frozenset) else TaintedSet
+        return cls(_mark(v) for v in value)
+    if isinstance(value, list):
+        return [_mark(v) for v in value]
+    if isinstance(value, tuple):
+        return tuple(_mark(v) for v in value)
+    if isinstance(value, dict):
+        return {_mark(k): _mark(v) for k, v in value.items()}
+    if isinstance(value, (Iterator, KeysView, ValuesView, ItemsView)):
+        return [_mark(v) for v in value]
+    return value
+
+
+def _holds_tainted(value: Any) -> bool:
+    if isinstance(value, _TAINTED):
+        return True
+    if isinstance(value, (list, tuple, set, frozenset)):
+        return any(_holds_tainted(v) for v in value)
+    if isinstance(value, dict):
+        return any(_holds_tainted(k) or _holds_tainted(v) for k, v in value.items())
+    return False
+
+
+def _direct_only(value: Any) -> bool:
+    """A Tainted value whose members hold no Tainted value: a set of scalars."""
+    return isinstance(value, _TAINTED) and not any(_holds_tainted(v) for v in value)
+
+
 def _refuse_order(node: ast.AST, what: str) -> None:
     where = f"line {getattr(node, 'lineno', '?')}:{getattr(node, 'col_offset', '?')}"
-    raise ScanRefused(f"order-sensitive consumption of an unordered container at {where} ({what}) — "
+    raise ScanRefused(f"order-sensitive consumption of an unordered value at {where} ({what}) — "
                       f"the result depends on the hash seed")
 
 
-_TAINT_NONE, _TAINT_TOP, _TAINT_NESTED = 0, 1, 2
-_SORTING_CONSUMERS: frozenset[str] = frozenset({"sorted", "min", "max"})
+# ---------------------------------------------------------------------------
+# bottom-up evaluation
+# ---------------------------------------------------------------------------
 
 
-def _unordered(node: ast.AST) -> int:
-    """For a PURE subtree: a two-level taint (Codex WP04 c11). _TAINT_TOP — the node's value IS
-    a set/frozenset (a Set literal, set()/frozenset(), or a re-wrap); _TAINT_NESTED — an
-    unordered container sits somewhere INSIDE the value (in a list/tuple/dict/set, or reachable
-    through a materialised iterator). Raises ScanRefused when a tainted value is consumed by
-    anything but a closed list of order-insensitive consumers (Codex WP04 c10: `"".join({"or",
-    "acle"})` flipped with PYTHONHASHSEED). sorted/min/max clear taint ONLY over a top-tainted
-    positional with NO nested taint and untainted kwargs — a set of scalars sorts the same
-    under every seed; a set OF containers, or a list holding a set, does not."""
-    kind = type(node)
-    if kind is ast.Set:
-        inner = _TAINT_NESTED if any(_unordered(elt) for elt in node.elts) else _TAINT_NONE   # type: ignore[attr-defined]
-        return _TAINT_TOP | inner
-    if kind is ast.Call:
-        call: ast.Call = node                                  # type: ignore[assignment]
-        pos = [_unordered(a) for a in call.args]
-        kw = {k.arg: _unordered(k.value) for k in call.keywords}
-        any_taint = any(pos) or any(kw.values())
-        if isinstance(call.func, ast.Name):
-            name = call.func.id
-            if name in _UNORDERED_MAKERS:                      # a re-wrap stays top-tainted; nesting survives it
-                return _TAINT_TOP | (_TAINT_NESTED if any(t & _TAINT_NESTED or t for t in kw.values()) or
-                                     any(t & _TAINT_NESTED for t in pos) else _TAINT_NONE)
-            if name in _SORTING_CONSUMERS:
-                if any(kw.values()):
-                    _refuse_order(node, f"{name}() with a tainted keyword (key/default holding an unordered container)")
-                if any(t & _TAINT_NESTED for t in pos):
-                    _refuse_order(node, f"{name}() over a value with an unordered container NESTED inside it")
-                if any(pos) and "key" in kw:
-                    _refuse_order(node, f"{name}() with a key: ties fall in hash order")
-                return _TAINT_NONE                             # a sorted/min/max of scalars is deterministic
-            if name in _ORDER_INSENSITIVE_CONSUMERS:           # len / any / all: a non-container result
-                return _TAINT_NONE
-            if any_taint:
-                _refuse_order(node, f"{name}() over an unordered argument")
-            return _TAINT_NONE
-        if _unordered(call.func.value) or any_taint:          # type: ignore[attr-defined]
-            _refuse_order(node, "a method over an unordered receiver or argument")
-        return _TAINT_NONE
-    if kind is ast.Compare:
-        cmp: ast.Compare = node                                # type: ignore[assignment]
-        taints = [_unordered(cmp.left)] + [_unordered(c) for c in cmp.comparators]
-        if any(taints) and not all(isinstance(op, _ORDER_INSENSITIVE_OPS) for op in cmp.ops):
-            _refuse_order(node, "an ordering comparison")
-        return _TAINT_NONE
-    if kind in (ast.Tuple, ast.List, ast.Dict):                # the container HOLDS the set: nested
-        return _TAINT_NESTED if any(_unordered(c) for c in ast.iter_child_nodes(node) if isinstance(c, ast.expr)) else _TAINT_NONE
-    if kind is ast.BoolOp:                                     # the value is one of the operands
-        taint = _TAINT_NONE
-        for c in node.values:                                  # type: ignore[attr-defined]
-            taint |= _unordered(c)
-        return taint
-    if kind is ast.IfExp:
-        ifexp: ast.IfExp = node                                # type: ignore[assignment]
-        if _unordered(ifexp.test):
-            _refuse_order(node, "a conditional on an unordered container")
-        return _unordered(ifexp.body) | _unordered(ifexp.orelse)
-    if kind is ast.Attribute:
-        return _unordered(node.value)                          # type: ignore[attr-defined]
-    children = [c for c in ast.iter_child_nodes(node) if isinstance(c, ast.expr)]
-    if any(_unordered(c) for c in children):                   # BinOp, UnaryOp, Subscript, Slice, Starred, f-strings
-        _refuse_order(node, f"{kind.__name__} over an unordered container")
-    return _TAINT_NONE
+def _bind(child: ast.expr, names: dict[str, Any]) -> ast.Name:
+    key = f"__v{len(names)}"
+    names[key] = _value(child)
+    return ast.Name(id=key, ctx=ast.Load())
 
 
-def _strings_from(value: object, out: list[str]) -> None:
+def _subst(node: ast.AST, names: dict[str, Any]) -> ast.AST:
+    """A copy of `node` whose expression children are evaluated and replaced by names bound
+    in `names` (Starred keeps its star; f-string structure is kept, its values bound)."""
+    if isinstance(node, ast.Starred):
+        return ast.Starred(value=_bind(node.value, names), ctx=ast.Load())
+    if isinstance(node, ast.JoinedStr):
+        values: list[ast.expr] = [_subst(v, names) if isinstance(v, ast.FormattedValue) else v   # type: ignore[misc]
+                                  for v in node.values]
+        return ast.JoinedStr(values=values)
+    if isinstance(node, ast.FormattedValue):
+        spec: Any = _subst(node.format_spec, names) if node.format_spec is not None else None
+        return ast.FormattedValue(value=_bind(node.value, names), conversion=node.conversion, format_spec=spec)
+    if isinstance(node, ast.keyword):
+        return ast.keyword(arg=node.arg, value=_bind(node.value, names))
+    fields: dict[str, Any] = {}
+    for name, val in ast.iter_fields(node):
+        if isinstance(val, ast.expr):
+            fields[name] = _bind(val, names)
+        elif isinstance(val, list):
+            fields[name] = [_subst(v, names) if isinstance(v, (ast.Starred, ast.keyword))
+                            else _bind(v, names) if isinstance(v, ast.expr) else v for v in val]
+        elif isinstance(val, ast.keyword):
+            fields[name] = _subst(val, names)
+        else:
+            fields[name] = val
+    return type(node)(**fields)
+
+
+def _eval_subst(node: ast.expr, names: dict[str, Any]) -> Any:
+    expr = ast.Expression(body=_subst(node, names))            # type: ignore[arg-type]
+    ast.fix_missing_locations(expr)
+    return _mark(eval(compile(expr, "<litscan>", "eval"), {"__builtins__": dict(_EVAL_BUILTINS)}, names))
+
+
+def _call(node: ast.Call) -> Any:
+    """Evaluate func, receiver and arguments first; inspect the VALUES for Tainted members
+    against the closed consumer list; then invoke. Any exception in the invocation refuses."""
+    if isinstance(node.func, ast.Attribute):
+        receiver = _value(node.func.value)
+        if _holds_tainted(receiver):
+            _refuse_order(node, "a method on an unordered receiver")
+        try:
+            func = getattr(receiver, node.func.attr)
+        except Exception as exc:  # an absent method is refused, never skipped
+            raise ScanRefused(f"literal call at line {getattr(node, 'lineno', '?')} raised {type(exc).__name__}: {exc}") from exc
+    else:
+        func = _value(node.func)
+    args: list[Any] = []
+    for a in node.args:
+        if isinstance(a, ast.Starred):
+            unpacked = _value(a.value)
+            if _holds_tainted(unpacked):
+                _refuse_order(node, "unpacking an unordered value")
+            args.extend(unpacked)
+        else:
+            args.append(_value(a))
+    kwargs: dict[str, Any] = {}
+    for k in node.keywords:
+        v = _value(k.value)
+        if k.arg is None:
+            if _holds_tainted(v):
+                _refuse_order(node, "unpacking an unordered value")
+            kwargs.update(v)
+        else:
+            kwargs[k.arg] = v
+    tainted_pos = [a for a in args if _holds_tainted(a)]
+    tainted_kw = [k for k, v in kwargs.items() if _holds_tainted(v)]
+    what = getattr(func, "__name__", type(func).__name__)
+    if any(func is f for f in _SCALAR_CONSUMERS):
+        pass
+    elif any(func is f for f in _SORTING):
+        if tainted_kw:
+            _refuse_order(node, f"{what}() with an unordered value in {tainted_kw}")
+        if any(not _direct_only(a) for a in tainted_pos):
+            _refuse_order(node, f"{what}() over a value with an unordered value NESTED inside it")
+        if tainted_pos and "key" in kwargs:
+            _refuse_order(node, f"{what}() with a key: ties fall in hash order")
+    elif any(func is f for f in _REWRAP):
+        pass
+    elif any(func is f for f in _RECONTAINER):
+        if any(isinstance(a, _TAINTED) for a in args):
+            _refuse_order(node, f"{what}() iterates an unordered value")
+    elif tainted_pos or tainted_kw:                              # map/filter and every other callable or method
+        _refuse_order(node, f"{what}() over an unordered value")
+    try:
+        return _mark(func(*args, **kwargs))
+    except (MemoryError, RecursionError, OverflowError):
+        raise
+    except Exception as exc:  # a literal call that raises is refused, never skipped (fail closed)
+        raise ScanRefused(f"literal call at line {getattr(node, 'lineno', '?')} raised {type(exc).__name__}: {exc}") from exc
+
+
+def _value(node: ast.expr) -> Any:
+    """Python's own value of a PURE node, computed bottom-up with every result marked."""
+    if isinstance(node, ast.Constant):
+        return node.value
+    if isinstance(node, ast.Name):
+        return _EVAL_BUILTINS[node.id]
+    if isinstance(node, ast.Call):
+        return _call(node)
+    if isinstance(node, ast.Slice):                            # cannot stand alone as an expression body
+        bounds = [_value(b) if b is not None else None for b in (node.lower, node.upper, node.step)]
+        if any(_holds_tainted(b) for b in bounds):
+            _refuse_order(node, "Slice over an unordered value")
+        return slice(*bounds)
+    if isinstance(node, ast.IfExp):
+        test = _value(node.test)
+        if _holds_tainted(test):
+            _refuse_order(node, "a conditional on an unordered value")
+        return _value(node.body) if test else _value(node.orelse)
+    if isinstance(node, ast.BoolOp):                           # the value is one operand; truthiness is order-free
+        result: Any = None
+        for v in node.values:
+            result = _value(v)
+            if (isinstance(node.op, ast.Or) and result) or (isinstance(node.op, ast.And) and not result):
+                return result
+        return result
+    names: dict[str, Any] = {}
+    out = _eval_subst(node, names)
+    values = list(names.values())
+    if isinstance(node, ast.Compare):                          # in / not in / == / != are order-free (any nesting)
+        if any(_holds_tainted(v) for v in values) and not all(isinstance(op, _ORDER_INSENSITIVE_OPS) for op in node.ops):
+            _refuse_order(node, "an ordering comparison over an unordered value")
+    elif isinstance(node, (ast.BinOp, ast.UnaryOp, ast.Slice, ast.Starred, ast.JoinedStr, ast.FormattedValue)):
+        if any(_holds_tainted(v) for v in values):
+            _refuse_order(node, f"{type(node).__name__} over an unordered value")
+    elif isinstance(node, ast.Subscript) and values and isinstance(values[0], _TAINTED):
+        _refuse_order(node, "subscripting an unordered value")
+    return out                                                  # Tuple/List/Set/Dict/Subscript/Attribute: marked, taint carried
+
+
+def _const_eval(node: ast.AST) -> Any:
+    if isinstance(node, ast.JoinedStr) and not _is_pure(node):
+        out = []
+        for v in node.values:
+            if isinstance(v, ast.Constant):
+                out.append(str(v.value))
+            else:
+                piece = _const_eval(v)
+                out.append("\0" if piece is _UNKNOWN else str(piece))
+        return "".join(out)
+    if isinstance(node, ast.FormattedValue):
+        if not _is_pure(node):
+            return _UNKNOWN
+        node = ast.JoinedStr(values=[node])
+    if not isinstance(node, ast.expr) or isinstance(node, ast.Starred) or not _is_pure(node):
+        return _UNKNOWN                                         # a bare Starred cannot stand alone; its owner evaluates it
+    try:
+        return _value(node)
+    except (MemoryError, RecursionError, OverflowError, ScanRefused):
+        raise
+    except (ValueError, TypeError, ArithmeticError, LookupError, AttributeError, SyntaxError):
+        return _UNKNOWN             # not a constant (a Call that raised has already refused)
+
+
+def _strings_from(value: Any, out: list[str]) -> None:
     """Every str the materialised value holds, recursively: containers, dict keys AND
-    values; set members in sorted order (reproducible). A raw iterator is left unconsumed."""
+    values; set members in sorted order (reproducible)."""
     if isinstance(value, (bytes, bytearray)):
         out.append(bytes(value).decode("utf-8", "replace"))
     elif isinstance(value, str):
@@ -265,44 +432,6 @@ def _refuse_shadowed_builtins(tree: ast.AST) -> None:
                       for name, node in _bound_names(tree) if name in _PURE_BUILTINS)
     if shadowed:
         raise ScanRefused(f"module rebinds allowlisted builtin(s) {shadowed} — the scan cannot vouch for it")
-
-
-def _eval(node: ast.expr) -> object:
-    expr = ast.Expression(body=node)
-    ast.fix_missing_locations(expr)
-    return eval(compile(expr, "<litscan>", "eval"), {"__builtins__": dict(_EVAL_BUILTINS)}, {})
-
-
-def _const_eval(node: ast.AST) -> object:
-    if isinstance(node, ast.JoinedStr) and not _is_pure(node):
-        out = []
-        for v in node.values:
-            if isinstance(v, ast.Constant):
-                out.append(str(v.value))
-            else:
-                piece = _const_eval(v)
-                out.append("\0" if piece is _UNKNOWN else str(piece))
-        return "".join(out)
-    if isinstance(node, ast.FormattedValue):
-        if not _is_pure(node):
-            return _UNKNOWN
-        node = ast.JoinedStr(values=[node])
-    if not isinstance(node, ast.expr) or not _is_pure(node):
-        return _UNKNOWN
-    _unordered(node)                                            # refuses hash-order-dependent consumption
-    if isinstance(node, ast.Call):
-        try:
-            return _eval(node)
-        except (MemoryError, RecursionError, OverflowError):
-            raise
-        except Exception as exc:  # a literal call that raises (or a method that is absent) is refused, never skipped
-            raise ScanRefused(f"literal call at line {getattr(node, 'lineno', '?')} raised {type(exc).__name__}: {exc}") from exc
-    try:
-        return _eval(node)
-    except (MemoryError, RecursionError, OverflowError):
-        raise
-    except (ValueError, TypeError, ArithmeticError, LookupError, AttributeError, SyntaxError):
-        return _UNKNOWN             # not a constant — or a node that cannot stand alone (bare Starred/Slice)
 
 
 def _string_constants_inprocess(source: str) -> list[str]:
