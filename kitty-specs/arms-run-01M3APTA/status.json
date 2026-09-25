@@ -220,7 +220,8 @@
       "model": "__resolved_model_absent__",
       "notes": [
         "arm D: six/zero split measured; B2 = 363,004 tokens; Codex out of credits -> Opus fallback review",
-        "cycle 2: Opus c1 minors folded"
+        "cycle 2: Opus c1 minors folded",
+        "cycle 3: Opus c2 minors folded"
       ],
       "provider": "__resolved_provider_absent__",
       "review": null,
