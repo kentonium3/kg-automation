@@ -10,7 +10,8 @@ Three things live here and nowhere else:
   ``/tokenize`` (D-11): an upstream tokenizer is only usable once shown equal to the
   served one.
 * :func:`complete` — the ``/completion`` client with the **explicit** llama.cpp
-  ``timings`` mapping (D-13). A scored row is never produced without every
+  ``timings`` mapping (D-13, corrected: ``prompt_n`` excludes cache hits, so
+  total = ``prompt_n + cache_n``). A scored row is never produced without every
   required measurement: a missing field raises :class:`TelemetryMissing`.
 
 On the chat template: the request goes to llama.cpp's native ``/completion`` with
@@ -266,14 +267,24 @@ class Completion:
 
 
 def map_timings(response: dict[str, Any]) -> Completion:
-    """D-13's explicit mapping; refuses rather than guessing a missing field."""
+    """D-13's explicit mapping; refuses rather than guessing a missing field.
+
+    llama.cpp semantics (tools/server, confirmed by Codex WP01 cycle 2 against
+    the source): ``prompt_n`` is the number of prompt tokens PROCESSED this
+    request — it already EXCLUDES cache hits — and ``cache_n`` is the number
+    reused from the prompt cache. So the whole prompt is ``prompt_n +
+    cache_n``, the uncached (and therefore newly cached) tokens are
+    ``prompt_n``, and the cache fraction is ``cache_n / (prompt_n + cache_n)``.
+    The first version subtracted the cache twice and went negative on a warm
+    request.
+    """
     timings = response.get("timings") or {}
     missing = [k for k in REQUIRED_TIMINGS if k not in timings]
     if missing:
         raise TelemetryMissing(f"llama.cpp response lacks timings {missing}; no scored row")
-    prompt_n = int(timings["prompt_n"])
-    cache_n = int(timings["cache_n"])
-    uncached = prompt_n - cache_n
+    processed = int(timings["prompt_n"])
+    cached = int(timings["cache_n"])
+    total = processed + cached
     predicted_n = int(timings["predicted_n"])
     prompt_ms = float(timings["prompt_ms"])
     predicted_ms = float(timings["predicted_ms"])
@@ -282,15 +293,15 @@ def map_timings(response: dict[str, Any]) -> Completion:
     finish: Literal["stop", "length"] = "length" if (stop_type == "limit" or stopped_limit) else "stop"
     return Completion(
         text=str(response.get("content", "")),
-        prompt_tokens=prompt_n,  # llama.cpp's prompt_n is the whole prompt, cached or not
+        prompt_tokens=total,
         output_tokens=predicted_n,
         finish_reason=finish,
         truncated=finish == "length",
-        cache_read_tokens=cache_n,
-        uncached_tokens=uncached,
-        cache_write_tokens=uncached,
-        cache_state="cold" if cache_n == 0 else "warm",
-        cache_fraction=(cache_n / prompt_n) if prompt_n else 0.0,
+        cache_read_tokens=cached,
+        uncached_tokens=processed,
+        cache_write_tokens=processed,
+        cache_state="cold" if cached == 0 else "warm",
+        cache_fraction=(cached / total) if total else 0.0,
         prefill_s=prompt_ms / 1000.0,
         generation_s=predicted_ms / 1000.0,
         generation_tok_s=(predicted_n / (predicted_ms / 1000.0)) if predicted_ms else 0.0,

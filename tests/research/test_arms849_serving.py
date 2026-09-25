@@ -52,8 +52,9 @@ def test_missing_telemetry_refuses_a_scored_row():
 
 
 def test_telemetry_mapping_is_explicit():
+    """prompt_n EXCLUDES cache hits (llama.cpp tools/server): total = prompt_n + cache_n."""
     c = S.map_timings({"content": "answer", "stop_type": "eos",
-                       "timings": {"prompt_n": 1000, "cache_n": 900, "prompt_ms": 2000.0,
+                       "timings": {"prompt_n": 100, "cache_n": 900, "prompt_ms": 2000.0,
                                    "predicted_n": 50, "predicted_ms": 2500.0}})
     assert c.prompt_tokens == 1000 and c.cache_read_tokens == 900
     assert c.uncached_tokens == 100 and c.cache_write_tokens == 100
@@ -97,3 +98,15 @@ def test_b2_full_block_exceeds_the_trained_context():
     body = S.serialize(Prompt().render(fct.render_full_view(view), "Why did I miss sub-10?"),
                        S.ServingConfiguration.primary(IDENT), 1001)
     assert S.count_tokens(body, tok) > 262_144
+
+
+def test_warm_request_regression_from_codex_cycle_2():
+    """Codex WP01 cycle 2: prompt_n=1, cache_n=236 must give total 237, uncached 1,
+    fraction 236/237 — the first mapping produced -235 and a fraction of 236."""
+    c = S.map_timings({"content": "x", "stop_type": "eos",
+                       "timings": {"prompt_n": 1, "cache_n": 236, "prompt_ms": 10.0,
+                                   "predicted_n": 3, "predicted_ms": 30.0}})
+    assert c.prompt_tokens == 237 and c.uncached_tokens == 1 and c.cache_write_tokens == 1
+    assert c.cache_read_tokens == 236 and c.cache_state == "warm"
+    assert abs(c.cache_fraction - 236 / 237) < 1e-12
+    assert c.uncached_tokens >= 0 and 0.0 <= c.cache_fraction <= 1.0
