@@ -1,7 +1,7 @@
 {
   "rows": {
     "#693": {
-      "evidence_ref": "<link or commit>",
+      "evidence_ref": "rubric section 7 decides #693 after the run; this mission delivers the ledgers, not the verdict",
       "fr": null,
       "nfr": null,
       "repo": null,
@@ -9,8 +9,8 @@
       "scope": null,
       "source_file": "spec.md",
       "title": "<fill at WP-implementation time>",
-      "verdict": "unknown",
-      "wp": null
+      "verdict": "deferred-with-followup",
+      "wp": "WP01"
     },
     "#849": {
       "evidence_ref": "4029e012",
