@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+import json
 import os
 import pathlib
 import subprocess
 import sys
+import urllib.request
 
 import pytest
 import yaml
@@ -16,6 +18,13 @@ sys.path.insert(0, str(REPO_ROOT))
 from scripts.research.arms849 import substrate as SUB
 
 live = pytest.mark.skipif(os.environ.get("ARMS849_LIVE") != "1", reason="live substrate tests need ARMS849_LIVE=1")
+_REAL_URLOPEN = urllib.request.urlopen   # captured before the conftest guard patches it
+
+
+@pytest.fixture
+def live_http(monkeypatch):
+    """Live tests deliberately probe the local stack; lift the repo-wide no-live-HTTP guard."""
+    monkeypatch.setattr(urllib.request, "urlopen", _REAL_URLOPEN)
 
 
 # --------------------------------------------------------------------------
@@ -131,7 +140,7 @@ def test_export_refuses_a_dirty_tree(tmp_path):
 
 
 @live
-def test_live_up_health_down():
+def test_live_up_health_down(live_http):
     state = SUB.up(yarn=False)
     assert state.falkordb_ok and state.llama_ok and state.n_ctx == 262_144
     rep = SUB.down()
@@ -139,10 +148,87 @@ def test_live_up_health_down():
 
 
 @live
-def test_live_self_test_passes_and_a_widened_mount_fails(tmp_path):
+def test_live_self_test_passes_and_a_widened_mount_fails(tmp_path, live_http):
+    """The negative half is the point: an extra bind mount must be DETECTED from inside."""
     SUB.up(yarn=False)
     try:
         rep = SUB.self_test()
         assert rep["passed"], rep
+        leak = tmp_path / "leak"; leak.mkdir(); (leak / "secret.txt").write_text("x")
+        widened = SUB.self_test(widen_with=["-v", f"{leak}:/leak:ro"])
+        assert not widened["passed"], widened
+        assert widened["checks"].get("no_extra_mounts") is False
+        assert "/leak" in widened["checks"].get("extra_mounts", [])
     finally:
         SUB.down()
+
+
+def test_expected_gguf_sha_requires_exactly_one_full_filename_entry(tmp_path):
+    sums = tmp_path / "SHA256SUMS"
+    good = "a" * 64
+    sums.write_text(f"{good}  model.gguf\n{'b' * 64}  model.gguf.wrong\n")
+    assert SUB.expected_gguf_sha(sums, "model.gguf") == good
+    sums.write_text("nothing here\n")
+    with pytest.raises(RuntimeError, match="exactly one"):
+        SUB.expected_gguf_sha(sums, "model.gguf")
+    sums.write_text(f"{good}  model.gguf\n{good}  model.gguf\n")
+    with pytest.raises(RuntimeError, match="exactly one"):
+        SUB.expected_gguf_sha(sums, "model.gguf")
+
+
+def _fake_sh(stdout: str):
+    return lambda cmd, check=True, capture=True, **k: type("P", (), {"stdout": stdout, "returncode": 0})()
+
+
+def test_rope_mode_is_the_container_arg_and_unknown_when_uninspectable(monkeypatch):
+    monkeypatch.setattr(SUB, "_sh", _fake_sh('["--model","/models/x.gguf","--rope-scaling","yarn","--yarn-orig-ctx","262144"]'))
+    assert SUB._rope_mode() == "yarn"
+    monkeypatch.setattr(SUB, "_sh", _fake_sh('["--model","/models/x.gguf","-c","262144"]'))
+    assert SUB._rope_mode() == "none"
+    def boom(*a, **k): raise RuntimeError("no such container")
+    monkeypatch.setattr(SUB, "_sh", boom)
+    assert SUB._rope_mode() == "unknown"
+
+
+def _answering(answers: dict[str, bytes]):
+    class R:
+        def __init__(self, url, *a, **k): self.body = answers["/" + url.rsplit("/", 1)[-1]]
+        def __enter__(self): return self
+        def __exit__(self, *a): return False
+        def read(self): return self.body
+    return lambda url, *a, **k: R(url)
+
+
+def test_health_rejects_empty_props_wrong_model_and_wrong_n_ctx(monkeypatch):
+    import urllib.request
+    cases = [
+        ({}, False),
+        ({"default_generation_settings": {"n_ctx": 262144}, "model_path": "/models/other.gguf"}, False),
+        ({"default_generation_settings": {"n_ctx": 4096}, "model_path": f"/models/{SUB.GGUF_FILE}"}, False),
+        ({"default_generation_settings": {"n_ctx": 262144}, "model_path": f"/models/{SUB.GGUF_FILE}"}, True),
+    ]
+    monkeypatch.setattr(SUB, "_rope_mode", lambda *a, **k: "none")
+    monkeypatch.setattr(SUB, "load_setup", lambda: {"falkordb_image": "x", "llama_image": "y"})
+    monkeypatch.setattr(SUB, "_sh", _fake_sh(""))          # falkordb GRAPH.LIST → rc 0
+    for props, ok in cases:
+        answers = {"/health": b'{"status": "ok"}', "/props": json.dumps(props).encode()}
+        monkeypatch.setattr(urllib.request, "urlopen", _answering(answers))
+        st = SUB.health(expect_n_ctx=262144, expect_rope="none")
+        assert st.llama_ok is ok, (props, st)
+
+
+def test_exclusion_matching_is_exact_for_files_and_prefix_for_dirs():
+    ex = ("docs/a/", "docs/b.md")
+    assert SUB._excluded("docs/a/x.yaml", ex) and SUB._excluded("docs/a", ex)
+    assert SUB._excluded("docs/b.md", ex)
+    assert not SUB._excluded("docs/b.md.backup", ex)
+    assert not SUB._excluded("docs/ab/x", ex)
+
+
+def test_down_report_is_not_clean_without_a_gtt_measurement(monkeypatch):
+    monkeypatch.setattr(SUB, "gtt_used_gib", lambda: None)
+    monkeypatch.setattr(SUB, "_compose", lambda *a, **k: None)
+    monkeypatch.setattr(SUB, "_sh", lambda cmd, check=True, capture=True, **k: type("P", (), {"stdout": "", "returncode": 0})())
+    monkeypatch.setattr(SUB, "load_setup", lambda: {"falkordb_image": "x", "llama_image": "y"})
+    rep = SUB.down()
+    assert rep["gtt_verified"] is False and rep["clean"] is False

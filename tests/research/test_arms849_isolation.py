@@ -21,10 +21,32 @@ FORBIDDEN = ("or" + "acle", "se" + "ed/", "trace" + "ability")
 
 
 def _string_constants(source: str) -> list[str]:
+    """Every statically resolvable string: str and bytes constants, f-string literal
+    parts, and `+` concatenations of constants (folded)."""
     out: list[str] = []
-    for node in ast.walk(ast.parse(source)):
+
+    def fold(node: ast.AST) -> str | None:
         if isinstance(node, ast.Constant) and isinstance(node.value, str):
-            out.append(node.value)
+            return node.value
+        if isinstance(node, ast.Constant) and isinstance(node.value, bytes):
+            return node.value.decode("utf-8", "replace")
+        if isinstance(node, ast.JoinedStr):
+            parts = [fold(v) for v in node.values]
+            return "".join(p if p is not None else "\0" for p in parts)
+        if isinstance(node, ast.FormattedValue):
+            # A constant interpolation with no conversion/spec is just its value.
+            inner = fold(node.value) if node.conversion == -1 and node.format_spec is None else None
+            return inner if inner is not None else "\0"
+        if isinstance(node, ast.BinOp) and isinstance(node.op, ast.Add):
+            left, right = fold(node.left), fold(node.right)
+            if left is not None and right is not None:
+                return left + right
+        return None
+
+    for node in ast.walk(ast.parse(source)):
+        folded = fold(node)
+        if folded is not None:
+            out.append(folded)
     return out
 
 
@@ -40,11 +62,19 @@ def test_no_module_names_the_excluded_material(module: pathlib.Path):
         assert word not in joined
 
 
-def test_the_scan_itself_can_fail(tmp_path):
+@pytest.mark.parametrize("construction", [
+    'X = "or" "acle"',                     # adjacent literals (parse-time concatenation)
+    'X = "or" + "acle"',                   # `+` of constants (folded)
+    'X = f"or{\'\'}acle"',                 # f-string literal parts around an empty expression
+    'X = b"or" + b"acle"',                 # bytes literals
+    'X = "trace" + "ability"',
+], ids=["adjacent", "plus", "fstring", "bytes", "plus2"])
+def test_the_scan_catches_constructed_forbidden_strings(tmp_path, construction):
+    """Codex WP02 cycle 1: the first scan missed constructed strings."""
     bad = tmp_path / "bad.py"
-    bad.write_text('X = "or" "acle"\n')  # adjacent literals concatenate at parse time
+    bad.write_text(construction + "\n")
     joined = "\n".join(_string_constants(bad.read_text())).lower()
-    assert FORBIDDEN[0] in joined
+    assert any(word in joined for word in FORBIDDEN), joined
 
 
 def test_export_excludes_live_in_a_data_file_not_a_module():

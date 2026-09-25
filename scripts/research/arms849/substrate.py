@@ -26,6 +26,7 @@ import hashlib
 import json
 import os
 import pathlib
+import re
 import shutil
 import subprocess
 import sys
@@ -133,6 +134,22 @@ def gtt_used_gib() -> float | None:
 # --------------------------------------------------------------------------
 
 
+def expected_gguf_sha(sums_path: pathlib.Path, filename: str) -> str:
+    """Exactly ONE SHA256SUMS entry whose filename field equals `filename`; anything else refuses.
+
+    A missing entry used to make the comparison conditional and setup succeeded
+    without verifying anything (Codex, WP02 cycle 1).
+    """
+    entries = []
+    for line in sums_path.read_text(encoding="utf-8").splitlines():
+        parts = line.split()
+        if len(parts) >= 2 and parts[1].lstrip("*") == filename and re.fullmatch(r"[0-9a-f]{64}", parts[0]):
+            entries.append(parts[0])
+    if len(entries) != 1:
+        raise RuntimeError(f"SHA256SUMS must carry exactly one entry for {filename}; found {len(entries)}")
+    return entries[0]
+
+
 def _resolve_digest(ref: str) -> str:
     out = _sh(["docker", "manifest", "inspect", "-v", ref]).stdout
     data = json.loads(out)
@@ -184,9 +201,9 @@ def setup(skip_gguf_verify: bool = False, python: pathlib.Path | None = None) ->
                   for p in sorted(CACHE_DIR.rglob("*")) if p.is_file()}
 
     gguf = GGUF_DIR / GGUF_FILE
-    expected = next((l.split()[0] for l in (GGUF_DIR / "SHA256SUMS").read_text().splitlines() if GGUF_FILE in l), None)
+    expected = expected_gguf_sha(GGUF_DIR / "SHA256SUMS", GGUF_FILE)
     gguf_sha = "skipped" if skip_gguf_verify else _sha256_file(gguf)
-    if not skip_gguf_verify and expected and gguf_sha != expected:
+    if not skip_gguf_verify and gguf_sha != expected:
         raise RuntimeError(f"GGUF sha256 {gguf_sha} != SHA256SUMS {expected}")
 
     record = {
@@ -251,6 +268,28 @@ def up(yarn: bool = False, wait_s: int = 3600) -> SubstrateState:
     return state
 
 
+def _rope_mode(container: str = "arms849-llama-1") -> str:
+    """The rope setting the server was actually STARTED with, from the container's args.
+
+    llama.cpp's /props exposes no rope field (verified 2026-09-25 against the live
+    server: only n_ctx under default_generation_settings), so the configured
+    setting is read from the process arguments; the effective n_ctx in /props is
+    the runtime evidence that it took. 'unknown' when the container cannot be
+    inspected — which never satisfies an expectation.
+    """
+    try:
+        out = _sh(["docker", "inspect", "--format", "{{json .Args}}", container], capture=True).stdout
+        args = json.loads(out or "[]")
+    except Exception:  # noqa: BLE001 — could-not-check is its own answer
+        return "unknown"
+    for i, a in enumerate(args):
+        if a == "--rope-scaling" and i + 1 < len(args):
+            return str(args[i + 1]).lower()
+        if a.startswith("--rope-scaling="):
+            return a.split("=", 1)[1].lower()
+    return "none"
+
+
 def health(expect_n_ctx: int | None = None, expect_rope: str | None = None) -> SubstrateState:
     """FalkorDB answers GRAPH.LIST; llama /health ok and /props reports what we expect.
 
@@ -276,14 +315,20 @@ def health(expect_n_ctx: int | None = None, expect_rope: str | None = None) -> S
         llama_ok = False
         probe_error = f"{type(exc).__name__}: {exc}"
     gen = props.get("default_generation_settings") or {}
-    n_ctx = int(gen.get("n_ctx") or props.get("n_ctx") or 0)
-    model_file = str(props.get("model_path") or props.get("model") or "")
+    n_ctx = int(gen.get("n_ctx") or 0)
+    model_file = str(props.get("model_path") or "")
+    # Health means VERIFIED, not merely answering: props must be present and
+    # name the exact model basename and the expected context; rope comes from
+    # the container's start arguments (/props has no rope field), never from a
+    # substring of the whole payload.
+    if not props or not gen or not model_file:
+        llama_ok = False
+    if pathlib.PurePosixPath(model_file).name != GGUF_FILE:
+        llama_ok = False
     if expect_n_ctx is not None and n_ctx != expect_n_ctx:
         llama_ok = False
-    if props and GGUF_FILE not in model_file:
-        llama_ok = False
-    rope = "yarn" if "yarn" in json.dumps(props).lower() else "none"
-    if expect_rope is not None and props and rope != expect_rope:
+    rope = _rope_mode()
+    if expect_rope is not None and rope != expect_rope:
         llama_ok = False
     if probe_error:
         props = {"probe_error": probe_error}
@@ -308,8 +353,10 @@ def down() -> dict:
     matched = {k: [x for x in v if any(s in x.lower() for s in (PROJECT, "falkor", "llama"))]
                for k, v in leftovers.items()}
     gtt = gtt_used_gib()
+    # SC-008 is a VERIFICATION: an unreadable GTT counter is "could not check", never "clean".
     report = {"leftovers": matched, "gtt_used_gib": gtt, "gguf_intact": (GGUF_DIR / GGUF_FILE).exists(),
-              "clean": not any(matched.values()) and (gtt is None or gtt < 2.0)}
+              "gtt_verified": gtt is not None,
+              "clean": not any(matched.values()) and gtt is not None and gtt < 2.0}
     return report
 
 
@@ -321,6 +368,17 @@ def down() -> dict:
 def excluded_prefixes() -> tuple[str, ...]:
     lines = (COMPOSE_DIR / "export-excludes.txt").read_text(encoding="utf-8").splitlines()
     return tuple(l.strip() for l in lines if l.strip() and not l.startswith("#"))
+
+
+def _excluded(name: str, prefixes: Sequence[str]) -> bool:
+    """Directory entries (trailing slash) match by slash-delimited prefix; file entries match exactly."""
+    for p in prefixes:
+        if p.endswith("/"):
+            if name == p.rstrip("/") or name.startswith(p):
+                return True
+        elif name == p:
+            return True
+    return False
 
 
 def content_manifest_sha(root: pathlib.Path) -> str:
@@ -342,8 +400,7 @@ def export(commit: str = "HEAD", repo: pathlib.Path = REPO_ROOT, dest: pathlib.P
     try:
         _sh(["git", "-C", str(repo), "archive", "--format=tar", "-o", str(tar_path), sha])
         with tarfile.open(tar_path) as tar:
-            members = [m for m in tar.getmembers()
-                       if not any(m.name == p.rstrip("/") or m.name.startswith(p) for p in excludes)]
+            members = [m for m in tar.getmembers() if not _excluded(m.name, excludes)]
             tar.extractall(dest, members=members, filter="data")
     finally:
         tar_path.unlink(missing_ok=True)
@@ -420,15 +477,40 @@ for name, port in (("llama", 8080), ("falkordb", 6379)):
     except OSError:
         checks["reaches_" + name] = False
 checks["no_torch"] = importlib.util.find_spec("torch") is None
+# Every bind mount must be one of the four the runner is allowed; an extra mount
+# is a widened boundary and fails the test (it is not enough that it is unused).
+allowed = {"/work", "/corpus", "/cache", "/runs"}
+system_prefixes = ("/proc", "/sys", "/dev", "/etc/resolv.conf", "/etc/hostname", "/etc/hosts")
+extra = []
+for line in open("/proc/self/mounts", encoding="utf-8"):
+    parts = line.split()
+    if len(parts) < 2:
+        continue
+    target = parts[1]
+    if target == "/" or target in allowed or target.startswith(system_prefixes):
+        continue
+    if target.startswith(tuple(a + "/" for a in allowed)):
+        continue
+    extra.append(target)
+checks["no_extra_mounts"] = not extra
+if extra:
+    checks["extra_mounts"] = extra
 print(json.dumps(checks, indent=2))
 sys.exit(0 if all(checks.values()) else 1)
 """
 
 
-def self_test(host_checkout: pathlib.Path = REPO_ROOT) -> dict:
-    """Denied-access test from INSIDE the boundary (contracts/gates.md `boundary`)."""
+def self_test(host_checkout: pathlib.Path = REPO_ROOT, widen_with: Sequence[str] = ()) -> dict:
+    """Denied-access test from INSIDE the boundary (contracts/gates.md `boundary`).
+
+    `widen_with` exists for the NEGATIVE test only: extra `docker run` args (an
+    extra bind mount) that must make the self-test FAIL.
+    """
     cmd = _runner_cmd(["-c", SELF_TEST], entrypoint="python3",
                       env_extra=[("HOST_CHECKOUT", str(host_checkout))])
+    if widen_with:
+        idx = cmd.index(RUNNER_IMAGE)
+        cmd = cmd[:idx] + list(widen_with) + cmd[idx:]
     proc = _sh(cmd, check=False)
     try:
         checks = json.loads(proc.stdout.strip()) if proc.stdout.strip() else {}
