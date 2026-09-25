@@ -6,7 +6,7 @@ status: approved
 level: reference
 owners: [kgale]
 audience: agents_and_humans
-last_updated: '2026-07-04'
+last_updated: '2026-09-25'
 last_validated: '2026-07-04'
 version: '1.0'
 tags: [spec-kitty, review, codex, workflow, governance]
@@ -171,3 +171,18 @@ independent Opus reviewer (e.g. `reviewer-renata`) with the same adversarial pro
 same artifacts, and fix its findings the same way. Codex stays the default; Opus is the
 automatic fallback, so the review discipline is never dropped just because Codex is out of
 hours.
+
+**Prompt wording for guard / scanner / isolation / determinism reviews (added 2026-09-25,
+team-lead ruling on the #849 arms-run WP04 cycle).** State the PROPERTY to confirm and the
+inputs or seeds to confirm it under; never ask Codex to find a way past the guard. On
+2026-09-25 a review of a static scanner phrased as "find a path that yields X without passing
+the check" was aborted by OpenAI's content classifier (`ERROR: This content was flagged for
+possible cybersecurity risk …`, exit 0, no verdict); the identical checklist phrased as
+"confirm the classification is identical under both seeds" completed normally. If a prompt is
+flagged anyway, rephrase ONCE with the checklist intact; if the second run is flagged, that
+review function falls back to the independent (non-implementing) Claude reviewer and the
+fallback is recorded in the WP's review artifact — same rule as rate-limit exhaustion. Detect
+a real abort by the line `^ERROR: This content was flagged` — the phrase alone also appears in
+review artifacts Codex may read. Under `--sandbox read-only`, tests that bind sockets or spawn
+children fail with `PermissionError`; that is environment, not a finding — judge by Codex's
+direct probes.
