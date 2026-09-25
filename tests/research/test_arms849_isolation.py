@@ -145,6 +145,14 @@ def test_no_module_names_the_excluded_material(module: pathlib.Path):
         assert word not in joined
 
 
+def test_every_expression_node_is_classified():
+    """The grammar is finite: each ast.expr subclass is exactly one of pure / opaque."""
+    every = set(ast.expr.__subclasses__())
+    assert _OPAQUE_EXPR <= every
+    assert _PURE_EXPR | _OPAQUE_EXPR == every and not (_PURE_EXPR & _OPAQUE_EXPR)
+    assert ast.Starred in _PURE_EXPR and ast.Call in _OPAQUE_EXPR
+
+
 @pytest.mark.parametrize("construction", [
     'X = "or" "acle"',                     # adjacent literals (parse-time concatenation)
     'X = "or" + "acle"',                   # `+` of constants (folded)
@@ -175,14 +183,6 @@ def test_no_module_names_the_excluded_material(module: pathlib.Path):
     'X = "%s%s" % (*("or", "acle"),)',        # literal unpacking (Codex c11)
     'X = "".join if False else ("%s%s" % (*["or", "acle"],))',
 ], ids=["adjacent", "plus", "fstring", "bytes", "plus2", "conv", "spec", "fplus", "inner-plus", "nested", "numc", "numc-plus", "arith", "arith2", "mult", "none", "none-plus", "bool", "uplus", "div", "percent", "tuple-sub", "call-opaque", "call-opaque2", "pow65", "pow70", "starred", "starred-list"])
-def test_every_expression_node_is_classified():
-    """The grammar is finite: each ast.expr subclass is exactly one of pure / opaque."""
-    every = set(ast.expr.__subclasses__())
-    assert _OPAQUE_EXPR <= every
-    assert _PURE_EXPR | _OPAQUE_EXPR == every and not (_PURE_EXPR & _OPAQUE_EXPR)
-    assert ast.Starred in _PURE_EXPR and ast.Call in _OPAQUE_EXPR
-
-
 def test_the_scan_catches_constructed_forbidden_strings(tmp_path, construction):
     """Codex WP02 cycle 1: the first scan missed constructed strings."""
     bad = tmp_path / "bad.py"
