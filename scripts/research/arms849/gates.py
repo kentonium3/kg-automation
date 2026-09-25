@@ -95,7 +95,7 @@ class GateEnv:
     expect_n_ctx: int = serving.PRIMARY_N_CTX
     expect_rope: str = "none"
     expected_chat_template_sha256: str = ""            # ServingConfiguration.chat_template_sha256
-    up_ts: str = ""                                     # host: when `up` reported healthy (ISO UTC)
+    up_ts: str = ""                                     # BOTH phases: when the CURRENT stack's `up` reported healthy (ISO, tz-aware)
     host_record_path: pathlib.Path | None = None        # container: the host phase's signed record
     container_start_ts: str = ""                        # container: when this process started (ISO UTC)
     props_probe: Callable[[str], dict[str, Any]] | None = None   # container: GET /props (injectable)
@@ -274,13 +274,35 @@ def _props_get(base_url: str) -> dict[str, Any]:
         return json.loads(r.read().decode())
 
 
-def record_sha(record: dict[str, Any]) -> str:
-    """sha256 over the canonical JSON without the record's own sha field(s)."""
+def record_sha(record: dict[str, Any], own_field: str) -> str:
+    """sha256 over the canonical JSON without the record's OWN digest field only — every cited
+    digest (gate_host_sha inside the container record, preflight_sha, export sha) is covered,
+    so substituting a cited value changes the record's sha (Codex WP04 c6)."""
     import hashlib
     import json
 
-    body = {k: v for k, v in record.items() if not k.endswith("_sha") or k in ("export_content_sha", "preflight_sha")}
+    body = {k: v for k, v in record.items() if k != own_field}
     return hashlib.sha256(json.dumps(body, sort_keys=True, ensure_ascii=False, separators=(",", ":")).encode()).hexdigest()
+
+
+def _parse_ts(value: Any) -> Any:
+    """A timezone-aware datetime from an ISO string (fractional seconds and any UTC spelling
+    accepted); None when absent or naive — a naive timestamp cannot be ordered honestly."""
+    from datetime import datetime
+
+    if not value:
+        return None
+    try:
+        dt = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    return dt if dt.tzinfo is not None else None
+
+
+def now_iso() -> str:
+    from datetime import datetime, timezone
+
+    return datetime.now(timezone.utc).isoformat()          # full precision, never truncated
 
 
 def substrate_health_inside(env: GateEnv) -> tuple[bool, str]:
@@ -303,7 +325,7 @@ def substrate_health_inside(env: GateEnv) -> tuple[bool, str]:
     if env.host_record_path is None or not pathlib.Path(env.host_record_path).is_file():
         return False, "; ".join([*problems, "no host-phase record (gate-host.json) — the host phase must run first"])
     rec = json.loads(pathlib.Path(env.host_record_path).read_text(encoding="utf-8"))
-    if rec.get("gate_host_sha") != record_sha(rec):
+    if rec.get("gate_host_sha") != record_sha(rec, "gate_host_sha"):
         problems.append("gate-host.json: gate_host_sha does not recompute")
     if rec.get("export_content_sha") != export_content_sha(env.run_root):
         problems.append("gate-host.json: export_content_sha differs from this environment's export")
@@ -323,10 +345,25 @@ def substrate_health_inside(env: GateEnv) -> tuple[bool, str]:
     if sorted(r.get("name") for r in rec.get("results", [])) != sorted(expected_names) or failed:
         problems.append(f"gate-host.json: results {sorted(r.get('name') for r in rec.get('results', []))} "
                         f"must be exactly {sorted(expected_names)} all passed; failed={failed}")
-    ts, up_ts, start = str(rec.get("ts") or ""), str(rec.get("up_ts") or ""), env.container_start_ts
-    if not (ts and up_ts and start) or not (up_ts <= ts <= start):
-        problems.append(f"gate-host.json: ts {ts!r} must satisfy up_ts {up_ts!r} ≤ ts ≤ container start {start!r} "
-                        f"(a stale record from a previous stack is refused)")
+    # Freshness is judged against the CURRENT stack's up_ts, supplied to the container
+    # independently by the harness (env.up_ts) — never against the record's own claim, or an
+    # earlier stack's record would replay (Codex WP04 c6). Comparisons are on parsed
+    # timezone-aware datetimes; fractional seconds are kept.
+    if not env.up_ts:
+        problems.append("no current-stack up_ts supplied to the container phase — cannot judge freshness")
+    else:
+        cur_up, rec_up = _parse_ts(env.up_ts), _parse_ts(rec.get("up_ts"))
+        ts, start = _parse_ts(rec.get("ts")), _parse_ts(env.container_start_ts)
+        if cur_up is None or rec_up is None or ts is None or start is None:
+            problems.append(f"gate-host.json: timestamps must be timezone-aware ISO (up_ts {rec.get('up_ts')!r}, "
+                            f"ts {rec.get('ts')!r}, current up_ts {env.up_ts!r}, container start {env.container_start_ts!r})")
+        else:
+            if rec_up != cur_up:
+                problems.append(f"gate-host.json: up_ts {rec.get('up_ts')!r} is not the current stack's {env.up_ts!r} "
+                                f"(a previous stack's record is refused)")
+            if not (cur_up <= ts <= start):
+                problems.append(f"gate-host.json: ts {rec.get('ts')!r} must satisfy current up_ts ≤ ts ≤ container start "
+                                f"{env.container_start_ts!r} (a stale record is refused)")
     return (not problems), ("; ".join(problems) or f"/props n_ctx {gen.get('n_ctx')}, model ok; host record "
                                                     f"{str(rec.get('gate_host_sha'))[:12]} verified")
 
@@ -390,7 +427,7 @@ def _refuse_if_failed(results: list[GateResult], phase: str) -> None:
 def _write_signed(path: pathlib.Path, record: dict[str, Any], sha_field: str) -> str:
     import json
 
-    record[sha_field] = record_sha(record)
+    record[sha_field] = record_sha(record, sha_field)
     path = pathlib.Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp = path.with_suffix(path.suffix + ".tmp")
@@ -403,16 +440,15 @@ def run_host_phase(env: GateEnv, out_path: pathlib.Path) -> tuple[list[GateResul
     """HOST phase, right before the runner launches: refuses on any failure, else writes the
     signed gate-host.json and returns (results, gate_host_sha)."""
     import json
-    from datetime import datetime, timezone
 
-    if not env.up_ts:
-        raise GatesRefused("host phase refused: up_ts (when `up` reported healthy) is required")
+    if _parse_ts(env.up_ts) is None:
+        raise GatesRefused("host phase refused: a timezone-aware up_ts (when `up` reported healthy) is required")
     results = _run_gates(env, HOST_GATES)
     _refuse_if_failed(results, "host")
     preflight = load_preflight(env.preflight_path)
     manifest = json.loads(env.export_manifest_path.read_text(encoding="utf-8"))
     record: dict[str, Any] = {
-        "phase": "host", "ts": datetime.now(timezone.utc).isoformat(timespec="seconds"), "up_ts": env.up_ts,
+        "phase": "host", "ts": now_iso(), "up_ts": env.up_ts,
         "export_content_sha": export_content_sha(env.run_root), "export_source_commit": manifest.get("source_commit"),
         "preflight_sha": preflight["preflight_sha"],
         "results": [{"name": r.name, "passed": r.passed, "seconds": r.seconds, "detail": r.detail}
@@ -426,16 +462,15 @@ def run_container_phase(env: GateEnv, out_path: pathlib.Path) -> tuple[list[Gate
     """CONTAINER phase, before the header: refuses on any failure, else writes the signed
     gate-container.json (which cites the host record's sha) and returns (results, sha)."""
     import json
-    from datetime import datetime, timezone
 
-    if not env.container_start_ts:
-        raise GatesRefused("container phase refused: container_start_ts is required")
+    if _parse_ts(env.container_start_ts) is None or _parse_ts(env.up_ts) is None:
+        raise GatesRefused("container phase refused: timezone-aware container_start_ts and the current stack's up_ts are required")
     results = _run_gates(env, CONTAINER_GATES)
     _refuse_if_failed(results, "container")
     host = json.loads(pathlib.Path(env.host_record_path).read_text(encoding="utf-8"))  # type: ignore[arg-type]
     preflight = load_preflight(env.preflight_path)
     record: dict[str, Any] = {
-        "phase": "container", "ts": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "phase": "container", "ts": now_iso(), "up_ts": env.up_ts,
         "container_start_ts": env.container_start_ts, "gate_host_sha": host["gate_host_sha"],
         "preflight_sha": preflight["preflight_sha"], "export_content_sha": export_content_sha(env.run_root),
         "results": [{"name": r.name, "passed": r.passed, "seconds": r.seconds, "detail": r.detail}

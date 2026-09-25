@@ -512,7 +512,7 @@ def test_host_phase_writes_a_signed_record_and_container_phase_verifies_it(tmp_p
     results, host_sha = G.run_host_phase(env, host_path)
     assert [r.name for r in results][:3] == ["boundary", "substrate_health", "preflight_present_and_matching"]
     rec = json.loads(host_path.read_text())
-    assert rec["gate_host_sha"] == host_sha == G.record_sha(rec) and rec["up_ts"] == env.up_ts and rec["preflight_sha"]
+    assert rec["gate_host_sha"] == host_sha == G.record_sha(rec, "gate_host_sha") and rec["up_ts"] == env.up_ts and rec["preflight_sha"]
     # container phase with injected probes: tokenizer + props
     from scripts.research.arms849 import serving
     class Tok:
@@ -523,12 +523,14 @@ def test_host_phase_writes_a_signed_record_and_container_phase_verifies_it(tmp_p
     monkeypatch.setattr(G, "PKG_DIR", tmp_path / "emptypkg"); (tmp_path / "emptypkg").mkdir()
     c_results, c_sha = G.run_container_phase(env, tmp_path / "gate-container.json")
     crec = json.loads((tmp_path / "gate-container.json").read_text())
-    assert crec["gate_container_sha"] == c_sha == G.record_sha(crec) and crec["gate_host_sha"] == host_sha
+    assert crec["gate_container_sha"] == c_sha == G.record_sha(crec, "gate_container_sha") and crec["gate_host_sha"] == host_sha
+    # substituting the cited host digest changes the container record's sha (Codex c6)
+    assert G.record_sha({**crec, "gate_host_sha": "0" * 64}, "gate_container_sha") != c_sha
     assert "boundary" not in [r.name for r in c_results] and "substrate_health_inside" in [r.name for r in c_results]
 
 
 @needs_corpus
-@pytest.mark.parametrize("tamper", ["stale", "other_export", "failed_result", "resigned_other_preflight"])
+@pytest.mark.parametrize("tamper", ["stale", "other_export", "failed_result", "resigned_other_preflight", "previous_stack"])
 def test_container_phase_refuses_a_bad_host_record(tmp_path, monkeypatch, tamper):
     """(a) a host record older than up… (b) …or for another export is refused; so is one with a
     failed gate or a preflight sha that is not this run's."""
@@ -546,9 +548,11 @@ def test_container_phase_refuses_a_bad_host_record(tmp_path, monkeypatch, tamper
         rec["export_content_sha"] = "e" * 64
     elif tamper == "failed_result":
         rec["results"][0]["passed"] = False
+    elif tamper == "previous_stack":
+        env.up_ts = "2026-09-25T03:05:00+00:00"                 # the stack came up AGAIN; the record is unchanged
     else:
         rec["preflight_sha"] = "f" * 64
-    rec["gate_host_sha"] = G.record_sha(rec)                       # re-signed: the content itself must be caught
+    rec["gate_host_sha"] = G.record_sha(rec, "gate_host_sha")      # re-signed: the content itself must be caught
     host_path.write_text(json.dumps(rec))
     env.host_record_path = host_path; env.container_start_ts = _later(); env.props_probe = _props()
     ok, detail = G.substrate_health_inside(env)
@@ -559,8 +563,26 @@ def test_container_phase_refuses_a_bad_host_record(tmp_path, monkeypatch, tamper
     assert not ok and "does not recompute" in detail
 
 
+def test_timestamps_compare_as_parsed_datetimes_with_fractions_and_z(tmp_path, monkeypatch):
+    """Codex c6 MINOR: same-second completion and "Z" spellings must not refuse a healthy run."""
+    monkeypatch.setattr(P, "_run_checker", _fake_checker(True))
+    env = _env(tmp_path, run_root=_export_like(tmp_path / "export"))
+    env.export_manifest_path = env.run_root / ".export-manifest.json"
+    P.run_preflight(REPO_ROOT, CORPUS, env.export_manifest_path, env.preflight_path, cache_dir=CACHE)
+    env.up_ts = G.now_iso()                                   # fractional seconds, same second as the host ts
+    host_path = tmp_path / "gate-host.json"
+    G.run_host_phase(env, host_path)
+    env.host_record_path = host_path; env.props_probe = _props()
+    env.container_start_ts = _later().replace("+00:00", "Z")   # an equivalent UTC spelling
+    ok, detail = G.substrate_health_inside(env)
+    assert ok, detail
+    env.up_ts = env.up_ts[:19]                                # naive → refused, not misordered
+    ok, detail = G.substrate_health_inside(env)
+    assert not ok and "timezone-aware" in detail
+
+
 def test_container_phase_refuses_without_a_host_record_or_with_wrong_props(tmp_path):
-    env = _env(tmp_path, props_probe=_props(n_ctx=4096), container_start_ts=_later())
+    env = _env(tmp_path, props_probe=_props(n_ctx=4096), container_start_ts=_later(), up_ts=G.now_iso())
     ok, detail = G.substrate_health_inside(env)
     assert not ok and "n_ctx" in detail and "no host-phase record" in detail
 
