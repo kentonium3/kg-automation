@@ -110,6 +110,8 @@ def test_resume_refuses_on_every_binding_field(tmp_path, field):
         changed = {**current, "__probe__": "x"}
     elif isinstance(current, int):
         changed = current + 1
+    elif field.endswith("_sha") and field != "run_env_manifest_sha":
+        changed = "f" * 64                              # another VALID digest: the mismatch is what must be caught
     else:
         changed = str(current) + "-changed"
     with pytest.raises(L.LedgerBoundToAnotherConfig, match=field):
