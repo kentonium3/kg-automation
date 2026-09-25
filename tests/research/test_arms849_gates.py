@@ -347,12 +347,76 @@ def test_excluded_gate_refuses_a_missing_empty_or_partial_package_inventory(tmp_
     'X = "OR".lower() + "acle"',
     'X = "xxor".strip("x") + "acle"',
     'X = "".join(["or", "acle"]).upper()',             # a literal call on a literal call
-], ids=["format", "adjacent", "percent", "join", "format_map", "lower", "strip", "chained"])
-def test_excluded_gate_fails_on_a_literal_formatting_call(tmp_path, monkeypatch, construction):
+    'X = str("or") + "acle"',                          # Codex c9: an allowlisted builtin on a literal
+    'X = "or acle".split()[0] + "or acle".split()[1]', # Codex c9: ANY method of a literal, subscripted
+    'X = bytes([111, 114, 97, 99, 108, 101]).decode()',  # Codex c9: builtin → method chain
+    'X = ("or" + "acle")[::-1][::-1]',
+    'X = ("OR" "ACLE").lower()',
+    'X = "o" * 1 + "racle"',
+    'X = "".join(reversed("elcaro"))',                 # an iterator materialised by a consuming pure call
+    'X = "or\\x61cle"',                                # an escape in the literal
+    'X = chr(111) + "racle"',
+    'X = bytes.fromhex("6f7261636c65").decode()',      # an attribute of an allowlisted builtin
+    'X = RuntimeError("or" + "acle")',                 # the CALL is opaque; its pure ARG is caught on its own
+    'X = "".join(sorted(["acle", "or"], key=len))',    # a keyword whose value is an allowlisted builtin
+], ids=["format", "adjacent", "percent", "join", "format_map", "lower", "strip", "chained", "str", "split", "bytes-decode",
+        "slice-twice", "upper-lower", "mult", "reversed", "escape", "chr", "fromhex", "opaque-call-pure-arg", "sorted-key"])
+def test_excluded_gate_fails_on_a_literal_only_construction(tmp_path, monkeypatch, construction):
     pkg = _fake_pkg(tmp_path / "pkg"); (pkg / "bad.py").write_text(construction + "\n")
     monkeypatch.setattr(G, "PKG_DIR", pkg)
     ok, detail = G.excluded_material_absent(_env(tmp_path))
     assert not ok and "bad.py" in detail and "statically producible" in detail, detail
+
+
+@pytest.mark.parametrize("construction", [
+    'X = name.upper()',                                # a method of a NAME
+    'def f(s): return s\nX = f("or") + "acle"',       # a literal-only call to a non-allowlisted name
+    'X = "{}{}".format("or", tail)',                   # a non-literal argument
+    'X = open("x").read()',                            # never evaluated (not allowlisted) — opaque, not refused
+    'X = getattr("or", "upper")()',
+    'X = eval("\'or\' + \'acle\'")',
+    'X = RuntimeError("or", "acle")',                  # the call is opaque: its fragments stay separate
+    'X = hash("or") and "acle"',                       # hash / id are NOT allowlisted (non-deterministic)
+    'X = x.split()[0] + "acle"',
+    'X = type("or")("acle")',
+], ids=["name-method", "user-call", "name-arg", "open", "getattr", "eval", "opaque-call", "hash", "name-split", "type"])
+def test_stateful_or_unlisted_calls_stay_opaque_and_the_gate_passes(tmp_path, monkeypatch, construction):
+    """Design-lead ruling 2026-09-25: everything outside (i) allowlisted builtin on pure args and
+    (ii) a method of a pure receiver is OPAQUE — the runtime boundary's job — never refused,
+    so legitimate package code (RuntimeError("…"), @dataclass(frozen=True)) still scans."""
+    pkg = _fake_pkg(tmp_path / "pkg"); (pkg / "ok.py").write_text(construction + "\n")
+    monkeypatch.setattr(G, "PKG_DIR", pkg)
+    ok, detail = G.excluded_material_absent(_env(tmp_path))
+    assert ok and "no hit" in detail, detail
+
+
+@pytest.mark.parametrize("construction", [
+    'str = lambda x: x',                               # assignment target
+    'str: int = 2',                                    # annotated assignment
+    'def list(): pass',                                # def name
+    'class bytes: pass',                               # class name
+    'import os as chr',                                # import alias
+    'from os import path as ord',
+    'def g():\n    global len',                        # global declaration
+    'Y = [0 for range in ()]',                         # comprehension target
+    'for map in (): pass',                             # for-target
+    'with a as sum: pass',                             # with-as
+    'try:\n    pass\nexcept E as min:\n    pass',      # except-as
+    'def h(format): pass',                             # a parameter (a rebind in its scope)
+], ids=["assign", "annassign", "def", "class", "import-as", "from-as", "global", "comprehension", "for", "with", "except", "param"])
+def test_a_module_that_shadows_an_allowlisted_builtin_is_refused(tmp_path, monkeypatch, construction):
+    """The allowlist is only closed while its names mean what the interpreter says."""
+    with pytest.raises(litscan.ScanRefused, match="rebinds allowlisted builtin"):
+        litscan.string_constants(construction + "\n")
+    pkg = _fake_pkg(tmp_path / "pkg"); (pkg / "shadow.py").write_text(construction + "\n")
+    monkeypatch.setattr(G, "PKG_DIR", pkg)
+    ok, detail = G.excluded_material_absent(_env(tmp_path))
+    assert not ok and "failed closed" in detail and "shadow.py" in detail and "rebinds" in detail, detail
+
+
+def test_an_absent_method_of_a_literal_refuses_the_scan(tmp_path, monkeypatch):
+    with pytest.raises(litscan.ScanRefused, match="AttributeError"):
+        litscan.string_constants('X = "or".nosuch()\n')
 
 
 def test_a_literal_call_that_raises_refuses_the_scan(tmp_path, monkeypatch):
@@ -603,15 +667,19 @@ def test_production_scanner_partitions_the_grammar_explicitly():
     """Codex c8: both sets are EXPLICIT tuples of ast classes (never a complement), and every
     ast.expr subclass of the running interpreter is in exactly one — a grammar the interpreter
     grows (a new node type) fails HERE, loudly, instead of passing the scan silently."""
-    pure, opaque = litscan._PURE_EXPR, litscan._OPAQUE_EXPR
-    assert isinstance(pure, tuple) and isinstance(opaque, tuple)
-    assert all(isinstance(c, type) and issubclass(c, ast.expr) for c in pure + opaque)
-    assert not (set(pure) & set(opaque))
+    pure, parts, opaque = litscan._PURE_EXPR, litscan._BY_PARTS_EXPR, litscan._OPAQUE_EXPR
+    assert all(isinstance(t, tuple) for t in (pure, parts, opaque))
+    assert all(isinstance(c, type) and issubclass(c, ast.expr) for c in pure + parts + opaque)
+    assert len(set(pure) | set(parts) | set(opaque)) == len(pure) + len(parts) + len(opaque)   # disjoint
     every = {c for c in ast.expr.__subclasses__() if c.__module__ == "ast"}
-    unclassified = sorted(c.__name__ for c in every - set(pure) - set(opaque))
-    assert not unclassified, f"{sys.version}: ast.expr subclasses in neither explicit set: {unclassified}"
-    assert set(pure) | set(opaque) == every
-    assert ast.Call in opaque and ast.Attribute in opaque and ast.Starred in pure and ast.Constant in pure
+    unclassified = sorted(c.__name__ for c in every - set(pure) - set(parts) - set(opaque))
+    assert not unclassified, f"{sys.version}: ast.expr subclasses in no explicit set: {unclassified}"
+    assert set(pure) | set(parts) | set(opaque) == every
+    assert set(parts) == {ast.Name, ast.Call, ast.Attribute} and ast.Starred in pure and ast.Lambda in opaque
+    # the CLOSED allowlist (design-lead ruling 2026-09-25): deterministic, no reflection, no I/O
+    assert {"hash", "id", "type", "getattr", "eval", "exec", "open", "object", "super", "isinstance",
+            "__import__", "print", "vars", "globals"}.isdisjoint(litscan._PURE_BUILTINS)
+    assert {"str", "bytes", "chr", "sorted", "reversed", "format", "map"} <= litscan._PURE_BUILTINS
 
 
 def test_litscan_sees_literal_structure_and_treats_stateful_calls_as_opaque():
@@ -623,7 +691,6 @@ def test_litscan_sees_literal_structure_and_treats_stateful_calls_as_opaque():
     assert FORBIDDEN[0] not in on_name and "or" in on_name and "acle" in on_name
     with_name_arg = "\n".join(litscan.string_constants('X = "{}{}".format("or", tail)\n')).lower()
     assert FORBIDDEN[0] not in with_name_arg and "or" in with_name_arg
-    assert ".__class__" not in litscan._LITERAL_STR_METHODS and "__getattribute__" not in litscan._LITERAL_STR_METHODS
 
 
 # ---------------------------------------------------------------------------

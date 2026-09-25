@@ -1,29 +1,46 @@
 """Static string scan for the arms package (WP04, used by the `reference_absent` gate).
 
 Every string a static reading of a module can produce: source text lowered, plus
-every expression built ONLY from literals and operators evaluated by Python
-itself — in a child process under memory/CPU/time limits that FAIL CLOSED. A
-name, comprehension, lambda or attribute is opaque here (a NUL in its place, so a
-word cannot be smuggled around it) and is the RUNTIME boundary's job. The one
-call that is NOT opaque is a pure string method on a literal receiver with literal
-arguments (`"{}{}".format("or", "acle")`, `"".join([...])`, `.replace`, …): Python
-evaluates it in the same child, and any exception there REFUSES the scan (Codex WP04
-c8). This is the same boundary the WP02 isolation test states; that test carries its
-own copy so it can run before this module exists.
+every expression built ONLY from literals, operators, the CLOSED builtin allowlist
+and methods of literals, evaluated by Python itself — in a child process under
+memory/CPU/time limits that FAIL CLOSED. A Call is classified BY ITS PARTS
+(design-lead ruling 2026-09-25, Codex WP04 c9): (i) func is a Name in
+`_PURE_BUILTINS` and every arg/kwarg is pure → evaluated; (ii) func is an Attribute
+on a pure receiver — ANY method name; receiver purity recurses through evaluated
+calls, so `bytes([...]).decode()` and `"x y".split()[0]` are covered — and every arg
+is pure → evaluated, and a method that raises or is absent REFUSES the scan
+(`ScanRefused`). EVERYTHING ELSE IS OPAQUE: a literal-only call to any other name
+(`RuntimeError("or" + "acle")`, `@dataclass(frozen=True)`) is opaque — its pure
+arguments are still evaluated on their own, so the BinOp above is caught — and a
+name, comprehension, lambda or attribute of a name is the RUNTIME boundary's job
+(a NUL in its place inside an f-string, so a word cannot be smuggled around it).
+
+Shadowing: a module that rebinds any allowlisted builtin name at any scope
+(assignment target, def/class name, import alias, global/nonlocal, comprehension,
+for/with/except target, parameter) is REFUSED — the allowlist is only closed while
+its names mean what the interpreter says they mean.
 
 The grammar is enumerated EXPLICITLY (Codex WP04 c8): every expression node is in
-`_PURE_EXPR` or `_OPAQUE_EXPR` by name. A node in neither — a new Python version's
-grammar, or anything synthetic — makes the scan REFUSE (`ScanRefused`, which the gate
-turns into a failure) instead of silently passing. The partition test asserts every
-`ast.expr` subclass of the running interpreter is in exactly one set.
+`_PURE_EXPR`, `_BY_PARTS_EXPR` or `_OPAQUE_EXPR` by name. A node in none — a new
+Python version's grammar, or anything synthetic — makes the scan REFUSE instead of
+silently passing. The partition test asserts every `ast.expr` subclass of the running
+interpreter is in exactly one set.
 
-The forbidden words are never written here: callers build them from parts or
-read them from the export exclusion data file.
+Closure (2026-09-25, design-lead ruling): A further finding is folded only if it is a
+construction built from literals + operators + the closed builtin allowlist + methods
+of literals that the scan misclassifies (an implementation bug of this ruling). A
+finding that needs a name binding, an import, or attribute access on a module is
+runtime-boundary territory (D-8) and is out of scope.
+
+This is the same boundary the WP02 isolation test states; that test carries its own
+copy so it can run before this module exists. The forbidden words are never written
+here: callers build them from parts or read them from the export exclusion data file.
 """
 
 from __future__ import annotations
 
 import ast
+import builtins
 import json
 import pathlib
 import subprocess
@@ -45,54 +62,60 @@ class ScanBudgetExceeded(RuntimeError):
 
 
 class ScanRefused(RuntimeError):
-    """The scan met syntax it does not classify, or a literal call that raised — the gate
-    fails closed rather than pass over what it could not read."""
+    """The scan met syntax it does not classify, a literal call that raised, or a module
+    that rebinds an allowlisted builtin — the gate fails closed rather than pass over what
+    it could not read."""
 
 
-# Literal structure Python evaluates safely with empty builtins. Listed by NAME, never
-# derived as "everything that is not opaque": a node absent from BOTH tuples is refused.
+# Literal structure Python evaluates safely. Listed by NAME, never derived as "everything
+# that is not opaque": a node absent from ALL three tuples is refused.
 _PURE_EXPR: tuple[type[ast.expr], ...] = (
     ast.Constant, ast.JoinedStr, ast.FormattedValue,
     ast.BinOp, ast.UnaryOp, ast.BoolOp, ast.Compare, ast.IfExp,
     ast.Tuple, ast.List, ast.Set, ast.Dict, ast.Subscript, ast.Slice, ast.Starred,
 )
-# Nodes that can reference state or execute code (a Call is opaque UNLESS it is a
-# literal string-method call, see _literal_method_call).
+# Classified by their parts (see _is_pure): an allowlisted builtin Name is pure, any other
+# Name is opaque; an Attribute is as pure as its receiver; a Call as its func and args.
+_BY_PARTS_EXPR: tuple[type[ast.expr], ...] = (ast.Name, ast.Call, ast.Attribute)
+# Nodes that reference state or execute code — always opaque.
 _OPAQUE_EXPR: tuple[type[ast.expr], ...] = (
-    ast.Name, ast.Call, ast.Attribute, ast.Lambda,
-    ast.ListComp, ast.SetComp, ast.DictComp, ast.GeneratorExp,
+    ast.Lambda, ast.ListComp, ast.SetComp, ast.DictComp, ast.GeneratorExp,
     ast.Await, ast.Yield, ast.YieldFrom, ast.NamedExpr,
 )
 # Non-expression nodes that occur INSIDE a pure expression tree.
 _PURE_HELPERS: tuple[type[ast.AST], ...] = (
     ast.Expression, ast.expr_context, ast.operator, ast.unaryop, ast.boolop, ast.cmpop,
 )
-# Pure str/bytes methods: no state, no side effects, a literal in → a literal out.
-_LITERAL_STR_METHODS = frozenset({
-    "format", "format_map", "join", "replace", "upper", "lower", "casefold", "strip", "lstrip",
-    "rstrip", "title", "capitalize", "swapcase", "center", "ljust", "rjust", "zfill",
-    "removeprefix", "removesuffix", "translate", "expandtabs", "encode", "decode",
+# The CLOSED allowlist (design-lead ruling 2026-09-25): deterministic, no I/O, no imports,
+# no attribute reflection. NOT hash / id (salted, address-based); never type, getattr,
+# setattr, vars, dir, globals, locals, eval, exec, compile, open, __import__, input, print,
+# breakpoint, memoryview, object, super, iter, next, callable, isinstance, issubclass,
+# property, staticmethod, classmethod.
+_PURE_BUILTINS: frozenset[str] = frozenset({
+    "str", "bytes", "bytearray", "int", "float", "bool", "complex", "len", "repr", "chr", "ord",
+    "tuple", "list", "dict", "set", "frozenset", "sorted", "reversed", "min", "max", "sum", "abs",
+    "round", "divmod", "pow", "hex", "oct", "bin", "format", "slice", "range", "enumerate", "zip",
+    "map", "filter", "any", "all",
 })
-
-
-def _literal_method_call(node: ast.AST) -> bool:
-    """`<pure literal>.<allowlisted str method>(<pure literals> …)` — the ONE call shape the scan
-    evaluates instead of treating as opaque (Codex WP04 c8: `"{}{}".format("or", "acle")`)."""
-    if not isinstance(node, ast.Call) or not isinstance(node.func, ast.Attribute):
-        return False
-    if node.func.attr not in _LITERAL_STR_METHODS or not _is_pure(node.func.value):
-        return False
-    return all(_is_pure(a) for a in node.args) and all(_is_pure(k.value) for k in node.keywords)
+_EVAL_BUILTINS: dict[str, object] = {name: getattr(builtins, name) for name in sorted(_PURE_BUILTINS)}
 
 
 def _is_pure(node: ast.AST) -> bool:
-    """True when the subtree is literal structure; False when it touches state; a node in
-    NEITHER explicit set raises ScanRefused (the grammar has grown — fail closed)."""
+    """True when the subtree is literal structure the child can evaluate; False when it
+    touches state; a node in NO explicit set raises ScanRefused (fail closed)."""
     if isinstance(node, _PURE_HELPERS):
         return True
-    if _literal_method_call(node):
-        return True
     kind = type(node)
+    if kind is ast.Name:
+        return node.id in _PURE_BUILTINS                       # type: ignore[attr-defined]
+    if kind is ast.Attribute:
+        return _is_pure(node.value)                            # type: ignore[attr-defined]
+    if kind is ast.Call:
+        call: ast.Call = node                                  # type: ignore[assignment]
+        args_pure = all(_is_pure(a) for a in call.args) and all(_is_pure(k.value) for k in call.keywords)
+        if isinstance(call.func, ast.Name):
+            return args_pure and call.func.id in _PURE_BUILTINS
+        return args_pure and _is_pure(call.func)               # an Attribute on a pure receiver, any method
     if kind in _OPAQUE_EXPR:
         return False
     if kind not in _PURE_EXPR:
@@ -101,10 +124,37 @@ def _is_pure(node: ast.AST) -> bool:
     return all(_is_pure(child) for child in ast.iter_child_nodes(node))
 
 
+def _bound_names(tree: ast.AST) -> Iterable[tuple[str, ast.AST]]:
+    """Every name the module binds, at any scope, with the node that binds it."""
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Name) and isinstance(node.ctx, (ast.Store, ast.Del)):
+            yield node.id, node
+        elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            yield node.name, node
+        elif isinstance(node, ast.arg):
+            yield node.arg, node
+        elif isinstance(node, ast.alias):
+            yield (node.asname or node.name.split(".", 1)[0]), node
+        elif isinstance(node, (ast.Global, ast.Nonlocal)):
+            for name in node.names:
+                yield name, node
+        elif isinstance(node, (ast.ExceptHandler, ast.MatchAs, ast.MatchStar)) and node.name:
+            yield node.name, node
+        elif isinstance(node, ast.MatchMapping) and node.rest:
+            yield node.rest, node
+
+
+def _refuse_shadowed_builtins(tree: ast.AST) -> None:
+    shadowed = sorted(f"{name} at line {getattr(node, 'lineno', '?')}"
+                      for name, node in _bound_names(tree) if name in _PURE_BUILTINS)
+    if shadowed:
+        raise ScanRefused(f"module rebinds allowlisted builtin(s) {shadowed} — the scan cannot vouch for it")
+
+
 def _eval(node: ast.expr) -> object:
     expr = ast.Expression(body=node)
     ast.fix_missing_locations(expr)
-    return eval(compile(expr, "<litscan>", "eval"), {"__builtins__": {}}, {})
+    return eval(compile(expr, "<litscan>", "eval"), {"__builtins__": dict(_EVAL_BUILTINS)}, {})
 
 
 def _const_eval(node: ast.AST) -> object:
@@ -123,12 +173,12 @@ def _const_eval(node: ast.AST) -> object:
         node = ast.JoinedStr(values=[node])
     if not isinstance(node, ast.expr) or not _is_pure(node):
         return _UNKNOWN
-    if _literal_method_call(node):
+    if isinstance(node, ast.Call):
         try:
             return _eval(node)
         except (MemoryError, RecursionError, OverflowError):
             raise
-        except Exception as exc:  # a literal call that raises is refused, never skipped (fail closed)
+        except Exception as exc:  # a literal call that raises (or a method that is absent) is refused, never skipped
             raise ScanRefused(f"literal call at line {getattr(node, 'lineno', '?')} raised {type(exc).__name__}: {exc}") from exc
     try:
         return _eval(node)
@@ -139,18 +189,20 @@ def _const_eval(node: ast.AST) -> object:
 
 
 def _string_constants_inprocess(source: str) -> list[str]:
+    tree = ast.parse(source)
+    _refuse_shadowed_builtins(tree)
     out: list[str] = []
-    for node in ast.walk(ast.parse(source)):
+    for node in ast.walk(tree):
         val = _const_eval(node)
         if val is _UNKNOWN:
             continue
-        if isinstance(val, bytes):
-            out.append(val.decode("utf-8", "replace"))
+        if isinstance(val, (bytes, bytearray)):
+            out.append(bytes(val).decode("utf-8", "replace"))
         elif isinstance(val, str):
             out.append(val)
         elif isinstance(val, (tuple, list, set, frozenset)):
-            out.extend(v.decode("utf-8", "replace") if isinstance(v, bytes) else v
-                       for v in val if isinstance(v, (str, bytes)))
+            out.extend(bytes(v).decode("utf-8", "replace") if isinstance(v, (bytes, bytearray)) else v
+                       for v in val if isinstance(v, (str, bytes, bytearray)))
     return out
 
 
