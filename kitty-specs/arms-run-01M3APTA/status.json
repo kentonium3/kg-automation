@@ -105,7 +105,8 @@
         "WP03 ledger: 24 tests incl. kill-mid-write recovery, second-writer refusal, per-field binding refusal; full suite green",
         "WP03 cycle 2: ten Codex findings fixed with tests (38); full suite green",
         "WP03 cycle 3: five Codex c2 findings fixed; 56 tests; full suite green",
-        "WP03 cycle 4: five Codex c3 findings + design-lead invariant fixed; 69 tests; full suite green; lane on lane-a 80e0a48a"
+        "WP03 cycle 4: five Codex c3 findings + design-lead invariant fixed; 69 tests; full suite green; lane on lane-a 80e0a48a",
+        "WP03 cycle 5: three Codex c4 findings fixed; 71 tests; full suite green"
       ],
       "provider": "__resolved_provider_absent__",
       "review": null,
