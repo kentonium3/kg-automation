@@ -1,7 +1,7 @@
 {
-  "event_count": 192,
-  "last_event_id": "01M3BCBZBSDGSAZTTA7T9W9W7J",
-  "materialized_at": "2026-09-25T04:14:54.841543+00:00",
+  "event_count": 193,
+  "last_event_id": "01M3BCQ7X1K5VBKT8XB2ZNN765",
+  "materialized_at": "2026-09-25T04:21:04.033567+00:00",
   "mission_number": "",
   "mission_slug": "arms-run-01M3APTA",
   "mission_type": "software-dev",
@@ -11,8 +11,8 @@
     "canceled": 0,
     "claimed": 0,
     "done": 0,
-    "for_review": 1,
-    "in_progress": 1,
+    "for_review": 2,
+    "in_progress": 0,
     "in_review": 0,
     "planned": 4
   },
@@ -114,7 +114,8 @@
         "WP03 cycle 6: Codex c5 MAJOR+MINOR fixed; 76 tests; full suite green",
         "WP03 cycle 7: header binds gate_host_sha + gate_container_sha (design-lead ruling); 82 tests; full suite green",
         "WP03 cycle 8: gate shas validated 64-hex at creation and resume; 100 tests; full suite green",
-        "WP03 cycle 9: open_ledger validates directly constructed bindings; 103 tests; full suite green"
+        "WP03 cycle 9: open_ledger validates directly constructed bindings; 103 tests; full suite green",
+        "cycle 10: fullmatch on gate digests; Codex out of credits -> Opus fallback review"
       ],
       "provider": "__resolved_provider_absent__",
       "review": null,
@@ -211,14 +212,18 @@
       "agent_profile": "__resolved_profile_absent__",
       "agent_profile_version": "__resolved_profile_version_absent__",
       "force_count": 0,
-      "lane": "in_progress",
-      "last_event_id": "01M3BC7QB76F4FVPRAHYTXX8H4",
-      "last_transition_at": "2026-09-25T04:12:35.558912+00:00",
+      "lane": "for_review",
+      "last_event_id": "01M3BCQ7X1K5VBKT8XB2ZNN765",
+      "last_transition_at": "2026-09-25T04:21:04.033567+00:00",
       "model": "__resolved_model_absent__",
       "provider": "__resolved_provider_absent__",
       "role": "implementer",
       "shell_pid": 2017401,
-      "shell_pid_created_at": "1790309552.37"
+      "shell_pid_created_at": "1790309552.37",
+      "subtasks": {
+        "T026": "done",
+        "T027": "done"
+      }
     },
     "WP07": {
       "actor": "finalize-tasks",
