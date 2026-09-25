@@ -1,7 +1,7 @@
 {
-  "event_count": 198,
-  "last_event_id": "01M3BD4Y1HQ42VVENK5M2JCQ3X",
-  "materialized_at": "2026-09-25T04:28:32.689968+00:00",
+  "event_count": 199,
+  "last_event_id": "01M3BDCCKJTDWBJFAXMF1A12HX",
+  "materialized_at": "2026-09-25T04:32:36.978627+00:00",
   "mission_number": "",
   "mission_slug": "arms-run-01M3APTA",
   "mission_type": "software-dev",
@@ -11,9 +11,9 @@
     "canceled": 0,
     "claimed": 0,
     "done": 0,
-    "for_review": 2,
+    "for_review": 1,
     "in_progress": 0,
-    "in_review": 0,
+    "in_review": 1,
     "planned": 4
   },
   "work_packages": {
@@ -213,17 +213,17 @@
       "agent_profile": "__resolved_profile_absent__",
       "agent_profile_version": "__resolved_profile_version_absent__",
       "force_count": 0,
-      "lane": "for_review",
-      "last_event_id": "01M3BCQ7X1K5VBKT8XB2ZNN765",
-      "last_transition_at": "2026-09-25T04:21:04.033567+00:00",
+      "lane": "in_review",
+      "last_event_id": "01M3BDCCKJTDWBJFAXMF1A12HX",
+      "last_transition_at": "2026-09-25T04:32:36.978627+00:00",
       "model": "__resolved_model_absent__",
       "notes": [
         "arm D: six/zero split measured; B2 = 363,004 tokens; Codex out of credits -> Opus fallback review"
       ],
       "provider": "__resolved_provider_absent__",
-      "role": "implementer",
-      "shell_pid": 2017401,
-      "shell_pid_created_at": "1790309552.37",
+      "role": "reviewer",
+      "shell_pid": 2056605,
+      "shell_pid_created_at": "1790310754.21",
       "subtasks": {
         "T026": "done",
         "T027": "done"
