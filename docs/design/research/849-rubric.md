@@ -380,6 +380,36 @@ regime-bound the way #844's was, and the findings say so up front.
 `stream/` (deterministic RNG for Arc E's mass, hand-authored scored events), `oracle/` (hidden),
 harness code, `results/<run>.json`, grading sheet. Findings are written against this rubric.
 
+### Preconditions for the run (added 2026-09-25 23:08Z, design lead)
+
+Registered here rather than left in a working note, so the list outlives any one session. The
+run's **first live cell of any arm** may not start until all four hold, and each is verified by a
+test, not by assertion:
+
+- **C4 — the isolation gate's inventory is complete.** `REQUIRED_MODULES` names every module of
+  the run package, the three arms included, with a two-way test (every module in the package is
+  registered, and every registered module is present). Without it a truncated export certifies
+  isolation by scanning a smaller set than it should.
+- **C8 — a live-style resume succeeds end to end.** A ledger created with timestamp-bearing gate
+  records, closed mid-run, reopened by a fresh session that re-runs both gate phases, writes its
+  own `session_gates`, and completes with the earlier rows intact and no double-recording. With
+  the two negatives: a failing fresh gate stops and records; a session that skips the gate phase
+  cannot write a row. Timestamp-stable fakes do not satisfy this — they are what hid the defect.
+- **C9 — the graph-store memory series is wired end to end.** The host-side 1 Hz writer, the
+  runner-side reader and the harness reading a G cell's peak from real samples, with the
+  fail-closed conditions (absent, stale, gapped, wrong container) driven through the real path.
+  Until it lands the G arm cannot run: its required sampler is unreadable and the harness refuses
+  the cell, which is the correct failure and should not be mistaken for a bug at run time.
+- **C11 — the ceiling guard runs at the last point the protocol controls.** A `before_send`
+  callback invoked after the permitted-limit count and immediately before the request is sent,
+  for every live cell, its exception propagating unwrapped with nothing sent.
+
+One further item gates the **post-merge review** rather than the run: **C10** — every contract
+sentence prescribed by an in-mission ruling must have landed before the review runs, because that
+review works by checking merged code against those sentences. A review against a contract known
+to be stale is not a check.
+
+
 ## Amendment log
 
 | # | date (UTC) | what changed | why | frozen commit |
