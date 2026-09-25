@@ -43,7 +43,7 @@ whether free-prose extraction works (no extraction is used in this run; the seed
 |---|---|---|
 | **G** — tuned graph | Graphiti + FalkorDB over the typed ontology, seeded by structured writes (no LLM) | node + edge hybrid retrieval; typed constraint pull, one query per label (`Capacity`, `Commitment`, `Principle`, `Interest`); anchored history expansion (entity → its episodes via `MENTIONS`); **no BFS by default**; `group_id` in `[A-Za-z0-9_]`; retrieval budget recorded per question. **Query plan (A3):** anchors are derived **from the question text** by deterministic resolution against the loaded entities (names/aliases → Person; commitment and outcome descriptions by exact or normalised match; typed labels for the constraint pull) — never from a per-question list, which would be the oracle leaking through configuration. Per question: resolve anchors → hybrid search on the question text → typed constraint pull → anchored history expansion per anchor → assemble, under a fixed cap of **60 items** (nodes + edges + episodes), set once; the ledger records the anchors resolved, the plan, and the actual count. Zero anchors → search-only path, recorded |
 | **D** — full dump | the entire corpus (rendered seed + full stream) in the prompt, in the ruled **native** configuration | prompt caching **on**; hit rate logged. **(A2)** Where the prompt exceeds the model's trained context (262,144 tokens on Qwen3-Next-80B: F1, B1, E2, E1, F2, B2) the cell is recorded as `exceeds_model_context` with the measured token count — never a zero, never a truncated run |
-| **R** — vector-RAG + records | embedding retrieval over the stream and rendered records, top-k | ONE global k, chosen so R's median assembled context is within ±20 % of G's median; the per-question ratio R_context / G_context is a reported column so a parity breach is visible, never silent; caching on for any stable prefix. **k procedure (A3):** arm-major order G → D → R; k is chosen **once** from G's **repeat-1** medians of assembled-context tokens (G's repeats 2–3 never move R's configuration), fixed for all R repeats, and recorded with the medians it was derived from; R never runs before G's repeat 1 is complete |
+| **R** — vector-RAG + records | **(A4)** the replay-visible **records** (entities and edges, as of ask_time) are always present as R's structured half, placed after events like D; **top-k embedding retrieval over events only** | ONE global k; the per-question ratio R_context / G_context is a reported column (explicit `unavailable` when G's figure is missing) so a parity breach is visible, never silent; caching on for any stable prefix. **k procedure (A3, made deterministic in A4):** arm-major order G → D → R; after all eight G repeat-1 cells are `ok`, for each question build R's view and compute R_context(k) = tokens of the *exact assembled text* (records block + the k top-ranked events re-sorted chronologically), same tokenizer and bytes as the request; k = the **smallest** integer whose median over the eight questions lies within ±20 % of G's repeat-1 median; per-question availability caps recorded; if no k satisfies (the records block alone exceeds the band) the run records `parity: unattainable` with the closest k and continues; written once as a durable `calibration` record and recovered before any R cell; if any G repeat-1 cell ends `error` after three attempts the run halts for a registered disposition |
 
 Common to all arms: the **same reasoning model**, the **same fixed prompt**, the **same question
 wording**; the arm assembles context, the model answers; nothing else differs. The model and its
@@ -106,6 +106,12 @@ silently degraded. The ruling:
 The empirical gate runs at n_ctx 262,144 (the largest valid configuration) and records
 configured n_ctx, peak GTT and tok/s at the longest prompt that fits.
 
+**Three context limits (A4):** *trained* (262,144 — the model's `max_position_embeddings`),
+*configured* (the served `n_ctx`), and *permitted* (what a cell may send). Primary: permitted =
+trained. Secondary (D-YaRN): permitted = configured = 393,216, so all eight D cells run; the
+secondary's own gate demonstrates all eight before its first cell. A cell exceeding its permitted
+limit is `exceeds_model_context`; server acceptance beyond the trained limit is never relied on.
+
 **Time-cut rule.** Every question is asked at its stream timestamp. An arm may only see material
 with `created_at ≤ ask time`. For D this means the dumped prefix differs per question — that is
 realistic, and the caching hit rate it produces is a finding, not a nuisance. **State as of, not
@@ -118,16 +124,23 @@ material with `created_at ≤ ask_time`.
 
 Eight, from the worksheet (`docs/design/research/849-lattice-scenario-arcs.md@f3076643`):
 
-| id | arc | ask time | question (verbatim from the worksheet) |
+| id | arc | ask_time (ISO, America/New_York) | question_text (verbatim; the registered manifest) |
 |---|---|---|---|
-| A | A | Tue 2026-06-09, on the calendar move | the collision + the travel-time absence |
-| B1 | B | Mon 2026-08-17 | "Am I on track for the October 5K?" |
-| B2 | B | after 2026-10-15 | "Why did I miss sub-10?" |
-| C | C | Tue 04-28 on receipt | "Fred just sent this. What is he referring to, and what do I owe him?" |
-| E1 | E | wk 24 | "What recurring manual work am I doing that should be automated?" |
-| E2 | E | one sample week | "Which of this week's emails should reach me / become to-dos / be digested / filed / dropped?" |
-| F1 | F | Mon 2026-08-10 | "Am I keeping my non-negotiables?" |
-| F2 | F | wk 25 | "When should this have been caught?" |
+| C1 | C | 2026-04-28T09:06:00-04:00 | Fred just sent this. What is he referring to, and what do I owe him? |
+| A | A | 2026-06-09T09:15:00-04:00 | Marcus just moved our Friday 1:1 to Thursday. Is that a problem, and what should I do? |
+| F1 | F | 2026-08-10T09:00:00-04:00 | Am I keeping my non-negotiables? |
+| B1 | B | 2026-08-17T09:00:00-04:00 | Am I on track for the October 5K? |
+| E2 | E | 2026-09-04T17:00:00-04:00 | For this week's email across all three accounts: which should reach me, which become to-dos, which are digested, which are filed, and which are dropped? |
+| E1 | E | 2026-09-21T09:00:00-04:00 | What recurring manual work am I doing that should be automated? |
+| F2 | F | 2026-09-25T09:00:00-04:00 | When should this have been caught? |
+| B2 | B | 2026-10-16T09:00:00-04:00 | Why did I miss sub-10? |
+
+**Question manifest (A4).** The eight rows above, in this order, are the oracle-free registry the
+harness reads; the manifest digest is the sha256 of the eight JSON lines
+`{"ask_time": …, "question": …, "question_text": …}` (keys sorted, one line each, LF, UTF-8):
+`4864c31ccb1cc372229bcd808a4136a493d91b6c842c3ac018defa3537f97dfe`. The harness refuses if its
+manifest digest differs; the oracle files' `question_text`/`ask_time` must equal these rows
+(checked by `check_849_oracle`, in the full checkout, never in the run environment).
 
 Each question's oracle block is the worksheet's `must_identify` list plus its explicit wrong
 answers, held in the hidden oracle artifact and **never loaded into any arm**.
@@ -175,7 +188,12 @@ literal does (implementer, 2026-09-24; accepted).
 
 Identical for G, D and R; the arm inserts its assembled context at the single slot and nothing
 else varies. Authored by the design lead; wired in verbatim by the implementer; the harness
-asserts the text's hash per run.
+asserts the text's digest per run. **Registered digest (A4):** normalise as UTF-8, LF line
+endings, trailing whitespace stripped per line, exactly one trailing newline, the two slots left
+as the literal tokens `{assembled_context}` and `{question_text}`; sha256 =
+`0aa7ee77560b1f5cbbb04a6c3dfa90749dfd79305b4207134c62d9fdd733af45`. The digest covers the
+template; the exact serialised request (template with slots filled, plus the chat template and
+special tokens the pinned server applies) is what token counts are measured on.
 
 ```text
 You are the assistant of the person whose records follow. You are reviewing their own
@@ -233,7 +251,8 @@ Per question, per run, per arm — recorded, never estimated:
   scales with the prefix, ~7× across questions), sampled from the serving process during the
   question; *per run* for G's graph store, which is dominated by the loaded graph and near
   constant per question. A number, not a pass/fail;
-- D and R: prompt-cache **hit rate** under the time-cut arrival pattern — **load-bearing** for D (A3): with ask_time ordering and events-first layout, later questions reuse 87–99.9 % of their prefix; the hit rate is the difference between a ~30-minute cold question and a seconds-long warm one. `cache_prompt` ON is the only valid D configuration.
+- D and R: prompt-cache **hit rate** under the time-cut arrival pattern — **load-bearing** for D (A3): with ask_time ordering and events-first layout, later questions reuse 87–99.9 % of their prefix; the hit rate is the difference between a ~30-minute cold question and a seconds-long warm one. `cache_prompt` ON is the only valid D configuration. **(A4)** *cold* and *warm* are classified from **observed reuse** (`cache_read_tokens` from the server's timings), never inferred from the repeat index; every server restart and cache reset is a ledger event. **Telemetry mapping (A4):** the cost columns come from the pinned server's `timings` object (prompt token count, tokens served from cache, predicted token count, prompt and generation milliseconds), validated once against the pinned image at setup; a scored row is **refused** when a required measurement is absent, never filled with a plausible value. Client-side token counts are validated against the pinned server's `/tokenize` at setup (tokenizer equivalence) and count the exact serialised request including the chat template; the configured output allowance is reserved inside the permitted limit.
+- **Memory (A4), two measures with defined windows:** *inference* — peak memory attributed to the serving process, sampled at 1 Hz from request start to response end, per cell (D and R); *graph store* — peak memory attributed to the graph-database process from the question's load through its last query, per question (G). Neither is a pass/fail; both are columns.
 
 Dollar conversions are derived afterwards from the token columns for any provider; they are not
 what is scored.
@@ -347,3 +366,4 @@ harness code, `results/<run>.json`, grading sheet. Findings are written against 
 | A1 | 2026-09-24 18:15 | Entity allowlist (`arcs` stripped); `loader_links.jsonl` written, G-only; loader gate added; §2 replay rules, prompt layout, measured prefix tokens (B2 = 362,772) | loader-side structural pass found L12 and L13; prefix figure was a prose-ratio estimate | `c0b35cd1` |
 | A2 | 2026-09-24 18:20 | Arm D: native config, `exceeds_model_context` outcome on six questions, pre-registered expected result; D-YaRN secondary; §7 reading | ruled model's trained context is 262,144 tokens; six D prompts exceed it (Kent ruled the design lead's recommendation) | `c0b35cd1` (no corpus change) |
 | A3 | 2026-09-24 19:20 | §3.2 the fixed prompt (registered text); §2 G query plan (anchors from question text, 60-item cap) and R k procedure (once, from G repeat-1 medians); §5 reporting at context length, cache hit rate load-bearing | the arms cannot be built without these registered; gate (b) measured non-linear prefill | `c0b35cd1` (no corpus change) |
+| A4 | 2026-09-25 00:05 | §2 R = records always + top-k events, deterministic k, calibration record, halt rule; three context limits; §3 canonical question manifest + digest; §3.2 prompt digest + normalisation; §5 cache labelling by observed reuse, telemetry mapping, tokenizer equivalence, two memory windows | Codex post-plan checkpoint (7 blockers / 17 majors on arms-run-01M3APTA plan): three contested rubric readings and four contract gaps were on the rubric side | `c0b35cd1` (no corpus change) |
