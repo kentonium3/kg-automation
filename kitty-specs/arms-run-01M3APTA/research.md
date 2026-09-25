@@ -192,10 +192,14 @@ checkpoint (D-7..D-9). No `[NEEDS CLARIFICATION]` markers remain.
 
 ## D-13 — Telemetry mapping, cache state, memory attribution (Codex I-1, C-3, B-2)
 
-- **Decision**: llama.cpp `/completion` response `timings` map: `prompt_n` → prompt tokens
-  processed this request, `cache_n` → tokens served from cache, `prompt_ms`/`predicted_ms`/`
-  predicted_n` → prefill_s / generation_s / output tokens; `uncached = prompt_n − cache_n`,
-  `cache_read = cache_n`, `cache_write = uncached` (all newly processed tokens enter the cache).
+- **Decision (corrected 2026-09-25 after Codex WP01 cycle 2)**: llama.cpp `/completion`
+  `timings` map: `prompt_n` = prompt tokens **processed** this request — it already **excludes**
+  cache hits; `cache_n` = tokens reused from the prompt cache; `prompt_ms`/`predicted_ms`/
+  `predicted_n` → prefill_s / generation_s / output tokens. So **total prompt = `prompt_n +
+  cache_n`**, `uncached = cache_write = prompt_n`, `cache_read = cache_n`, `cache_fraction =
+  cache_n / total`. (The first text said `uncached = prompt_n − cache_n`, which subtracts the
+  cache twice and goes negative on any warm request; the code carried the same error until
+  the review caught it with the fixture `prompt_n=1, cache_n=236`.)
   A scored row is **refused** if any of these is absent. `cache_state` per cell is classified
   from observation: `cold` if `cache_n == 0`, `warm` otherwise, with `cache_fraction` recorded;
   "repeat 1 = cold" is a prediction, never a label. Server restarts and `/slots` cache clears are
