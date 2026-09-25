@@ -175,10 +175,18 @@ only a direct set of ordered members with no tainted keyword; list/tuple/reverse
 set and carry a nested one; map/filter and every other callable or operator refuse any taint. The syntactic taint
 pass is deleted. (2) **Carrier rule.** An intermediate value handed to a consumer must be a scalar, a marked
 container, or an allowlisted builtin callable; anything referencing another value through an attribute (bound
-methods first) is refused unless invoked in its own node. The check fires on CONSUMPTION, not on a subtree's
-terminal value, so builtin-generic annotations (`dict[str, int]`, `str | None`) are ordinary subtrees and their
-constructed strings are still scanned. (3) **Dunder refusal.** Invocation of any dunder method on a pure receiver,
-in every form incl. the descriptor route, is refused: the evaluator's guarantee is "every evaluated call is a pure
+methods first) is refused unless invoked in its own node. **Type expressions — the ruled fallback (a) was TAKEN (correction
+2026-09-25 21:34Z to the paragraph first landed @742c7c82, which described option (d)):** firing the check on
+consumption only (d) was a one-line predicate but refused 4 of the 12 real modules, because a nested annotation
+consumes an inner type expression as an index or operand (gates.py:110 `dict[str, str] | None`, ledger.py:320
+`tuple[int, int] | None`, serving.py:62 `dict[str, float | int]`, substrate.py:303 `list[str] | None`). So the
+ACCOMMODATION stands, stated: builtin-generic type expressions (GenericAlias / UnionType) are carried when their
+origin and every argument are allowlisted builtins, None or Ellipsis, recursively; any other value inside one is a
+carrier and refuses — annotations are not produced values, but their constructed strings must still be scanned,
+which is why annotation positions are NOT opaque (option (b) rejected). Consequence: `x: tuple["or" + "acle"]` is
+REFUSED as a carrier rather than caught; the gate fails either way. (3) **Dunder refusal.** Invocation of any dunder method on a pure receiver,
+in every form incl. the descriptor route, is refused (this includes `("a","b").__iter__()` — previously caught,
+now refused; fail closed either way): the evaluator's guarantee is "every evaluated call is a pure
 function of its arguments", which holds for the allowlisted builtins and the non-dunder methods of the allowlisted
 literal types, and dunders are where process and platform state enters. (4) **Double-seed gate invariant.** The
 isolation gate runs the literal scan over the real package in two child processes under different fixed
