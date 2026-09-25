@@ -1,7 +1,7 @@
 {
-  "event_count": 289,
-  "last_event_id": "01M3D6SABY3S0Z1B5J2XQPRMHP",
-  "materialized_at": "2026-09-25T21:15:49.502456+00:00",
+  "event_count": 291,
+  "last_event_id": "01M3D6WM07H3W81CDE3WYME0JJ",
+  "materialized_at": "2026-09-25T21:17:37.670835+00:00",
   "mission_number": "",
   "mission_slug": "arms-run-01M3APTA",
   "mission_type": "software-dev",
@@ -12,9 +12,9 @@
     "claimed": 0,
     "done": 0,
     "for_review": 0,
-    "in_progress": 0,
+    "in_progress": 1,
     "in_review": 0,
-    "planned": 3
+    "planned": 2
   },
   "work_packages": {
     "WP01": {
@@ -143,9 +143,9 @@
       "agent_profile": "__resolved_profile_absent__",
       "agent_profile_version": "__resolved_profile_version_absent__",
       "force_count": 14,
-      "lane": "planned",
-      "last_event_id": "01M3D6SABY3S0Z1B5J2XQPRMHP",
-      "last_transition_at": "2026-09-25T21:15:49.502456+00:00",
+      "lane": "in_progress",
+      "last_event_id": "01M3D6WM07H3W81CDE3WYME0JJ",
+      "last_transition_at": "2026-09-25T21:17:37.670835+00:00",
       "model": "__resolved_model_absent__",
       "notes": [
         "WP04 cycle 1: 37 tests, full suite 7,125 green; live run_all in a real export not yet executed (WP09 re-runs it)",
@@ -164,7 +164,7 @@
         "reviewer": "claude",
         "verdict": "changes_requested"
       },
-      "role": "reviewer",
+      "role": "implementer",
       "shell_pid": null,
       "shell_pid_created_at": null,
       "subtasks": {
