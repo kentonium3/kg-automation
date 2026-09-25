@@ -285,6 +285,11 @@ def test_live_build_search_assemble_and_replay_rule(live_http):
                 assert step["count"] == by_label.get(label, 0), (label, step, by_label)
         assert p1.foreign_items == 0
         assert p1.items_assembled > 0 and all(k in ("node", "edge", "episode") for k in p1.items_by_kind)
+        # every MENTIONS edge carries its episode's time (Codex c2): compare saved created_at per edge
+        rows, _, _ = await driver.execute_query(
+            "MATCH (e:Episodic {group_id: $g})-[m:MENTIONS]->(n:Entity) RETURN e.name AS ref, m.created_at AS c, e.valid_at AS v",
+            g="arms_A")
+        assert rows and all(str(r["c"]) == str(r["v"]) for r in rows), rows[:3]
         # the replay rule made visible: DEC_F_RESTART absent for F1, present for B2
         qf1 = next(q for q in Q.QUESTIONS if q.id == "F1"); qb2 = next(q for q in Q.QUESTIONS if q.id == "B2")
         for q, present in ((qf1, False), (qb2, True)):

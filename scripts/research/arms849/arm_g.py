@@ -375,9 +375,11 @@ class GraphArm:
 
         episodes = 0
         ep_uuid: dict[str, str] = {}
+        ep_when: dict[str, datetime] = {}
         for event in view.events:
             ref = str(event["ref"])
             when = _ts(event.get("at"), ask)
+            ep_when[ref] = when
             ep = EpisodicNode(uuid=stable_uuid(group, "episode", ref), name=ref, group_id=group, labels=[],
                               source=EpisodeType.text,
                               source_description=str(event.get("source_description") or event.get("channel") or ""),
@@ -396,8 +398,10 @@ class GraphArm:
                 dst = uuid_by_id.get(str(mention))
                 if dst is None:
                     continue
+                # The MENTIONS edge carries ITS EPISODE's time, not ask_time (Codex WP05 c2).
                 await EpisodicEdge(uuid=stable_uuid(group, "link", f"{link.get('ref')}->{mention}"), group_id=group,
-                                   source_node_uuid=src, target_node_uuid=dst, created_at=ask).save(self.driver)
+                                   source_node_uuid=src, target_node_uuid=dst,
+                                   created_at=ep_when[str(link.get("ref"))]).save(self.driver)
                 links += 1
 
         self._uuid_by_id[group] = uuid_by_id
