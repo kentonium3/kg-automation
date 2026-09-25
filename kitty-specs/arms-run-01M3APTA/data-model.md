@@ -18,14 +18,26 @@ corpus, one prompt, one serving configuration.
 | `prompt_hash` | sha256 | `arms849.prompt` | over the registered §3.2 text with the slot empty; refused if it differs |
 | `serving` | ServingConfiguration | `arms849.serving` | equal across every row; the secondary differs in exactly `rope_scaling, rope_scale, yarn_orig_ctx, n_ctx` |
 | `model_context_tokens` | int | serving | 262,144 primary; 393,216 secondary |
-| `run_env_commit` | str | harness | commit the run environment was exported from; oracle path absent |
-| `run_env_manifest_sha` | sha256 | harness | hash of the exported file list (adversarial A3) |
-| `blinding_seed` | int | harness | seed for per-question label randomisation |
-| `r_k` | int \| null | written when R starts | derived once from G repeat-1 medians; null until then |
-| `r_k_derivation` | {question: g_median_context_tokens} | written with `r_k` | the medians used |
+| `run_env_commit` | str | harness | commit the run environment was exported from |
+| `run_env_manifest_sha` | sha256 | harness | sha over the **contents** of every exported file, in path order (D-16) |
+| `code_hashes` | {path: sha256} | harness | every file under `scripts/research/arms849/` + harness + loader; compared on resume (D-16) |
+| `question_manifest_sha` | sha256 | `arms849.questions` | id + ask_time + text of the eight questions (D-14) |
+| `preflight_sha` | sha256 | preflight | digest of `preflight.json` (gate results from the full checkout, IC-07) |
+| `blinding_seed` | int | harness | seed for per-cell blinded ids |
+| `recovery_log` | [str] | reader | e.g. `recovered_torn_tail@<ts>` (D-12) |
 | `plan` | int | harness | 72 primary / 24 secondary |
 
-| Field (Row) | Type | When | Notes |
+Note: the header is immutable after write. R's calibration is a **`calibration` record line**
+(below), never a header mutation.
+
+Record kinds after the header: `attempt_start`, `run`, `calibration`, `event`.
+
+| `attempt_start` | `arm, question, repeat, attempt, ts` — appended BEFORE every attempt so a death mid-cell is counted (D-12) |
+|---|---|
+| `calibration` | `r_k, g_repeat1_medians{q}, r_medians_at_k{q}, ratio{q}, parity: ok|infeasible, ts` — written once, before the first R cell (D-10) |
+| `event` | `kind: server_restart|cache_clear|gate|halt, detail, ts` (D-13) |
+
+| Field (Row `run`) | Type | When | Notes |
 |---|---|---|---|
 | `record` | `"run"` | always | |
 | `arm`, `question`, `repeat` | str, str, int | always | the Cell key |
@@ -36,9 +48,14 @@ corpus, one prompt, one serving configuration.
 | `assembled_context_tokens` | int | `ok` | the slot's tokens only — the cost primitive |
 | `output_tokens` | int | `ok` | |
 | `finish_reason` | `"stop"` \| `"length"` | `ok` | `length` sets `truncated: true` — scored with a flag |
-| `cache_write_tokens`, `cache_read_tokens`, `uncached_tokens` | int | `ok` | from llama.cpp timings; `cache_hit_rate` derived = read / prompt_tokens |
-| `prefill_s`, `generation_s`, `generation_tok_s` | float | `ok` | from llama.cpp timings |
-| `peak_gtt_gib` | float | `ok`, `error` | sampled 1 Hz beside the request by the harness |
+| `cache_read_tokens` (= `cache_n`), `uncached_tokens` (= `prompt_n − cache_n`), `cache_write_tokens` (= uncached) | int | `ok` | explicit llama.cpp `timings` mapping (D-13); row refused if absent |
+| `cache_state`, `cache_fraction` | `cold`\|`warm`, float | `ok` | classified from observation, never from repeat index (D-13) |
+| `prefill_s` (= `prompt_ms`/1000), `generation_s` (= `predicted_ms`/1000), `generation_tok_s` | float | `ok` | from `timings`; row refused if absent |
+| `peak_gtt_gib` | float | `ok`, `error` | serving-process peak, 1 Hz beside the request |
+| `falkordb_rss_peak_mib` | float | G `ok` | per-question build+retrieval window (D-13) |
+| `assembled_context_sha256` | sha256 | `ok` | asserted equal across repeats and resumes (NFR-005, D-15) |
+| `r_g_ratio` | float \| `"unavailable:<reason>"` | R `ok` | R assembled ÷ G repeat-1 median for the question (D-10) |
+| `context_limit_applied` | `trained`\|`permitted` | D rows | which limit the gate used (D-11) |
 | `seed` | int | `ok` | `1000 + repeat` |
 | `text` | str | `ok` | the answer; never shown to the grader from here (GradingView) |
 | `plan` | PlanRecord | `ok` | per arm, below |
@@ -99,28 +116,36 @@ Equality across all rows of a ledger is asserted at every append.
 
 ## PlanRecord (per arm, on `ok` rows)
 
-- **G**: `anchors_resolved: [entity ids]`, `anchor_resolution: "alias"`, `plan_steps: [label
-  pulls..., anchored expansions...]`, `items_assembled: int (≤ 60)`, `items_by_kind`, `llm_calls:
-  0`, `group_id`.
-- **D**: `layout: "events_first"` (asserted), `events_in_dump`, `entities_in_dump`.
+- **G**: `anchors_resolved: [entity ids]`, `anchor_resolution_paths: {alias: [...], commitment_desc: [...], outcome_desc: [...]}`,
+  `ambiguous_mentions: [...]`, `path: "anchored" | "search_only"`, `plan_steps: [typed pulls…, search…, expansions…]`,
+  `items_assembled: int (≤ 60)`, `items_by_kind`, `llm_calls: 0`, `group_id` (D-15).
+- **D**: `layout: "events_entities_edges"` (asserted), `events_in_dump`, `entities_in_dump`, `edges_in_dump`.
 - **R**: `k`, `retrieved_refs_by_rank: [ref…]` (rank order — recorded, not shown to the model),
-  `assembled_order: "ask_time"`, `entities_in_records`.
+  `assembled_order: "ask_time"`, `entities_in_records`, `edges_in_records`, `availability_capped: bool`.
 
-## GradingView and Seal
+## GradingView, AdminReport and Seal
 
-- **GradingView** (`build/849-runs/<ledger>-grading.json`): per question, the three `ok`
-  answers under labels `X/Y/Z` re-randomised per question from `blinding_seed`; includes
-  `question_text`, `ask_time`, the answer texts and `truncated` flags; contains **no** arm name,
-  no timings, no tokens, no plan records. For a cell with no `ok` row the slot reads
-  `{"outcome": "exceeds_model_context" | "error"}` under its label, so the grader knows an answer
-  is absent without knowing whose.
-- **Seal** (`build/849-runs/<ledger>-seal.json`, written to a **different directory** from the
-  view): `{question: {label: arm}}` plus `blinding_seed` and the ledger's header hash. Reproducible
-  from the seed; the grader opens it only after scores are in.
+- **GradingView** (`build/849-runs/views/<ledger>-grading.json`): per question, **every scored
+  (`ok`) cell** as an entry under a blinded id — `q<Q>-<6 hex>` drawn from
+  `Random(f"{blinding_seed}:{question}:{arm}:{repeat}")`, ordered by id — carrying
+  `question_text`, `ask_time`, `text`, `truncated`. Nine entries for a fully scored question,
+  fewer where cells are non-scored. Contains **no** arm name, repeat index, timing, token count,
+  plan record, seed or ledger path. Blinded ids encode neither arm nor repeat.
+- **AdminReport** (`build/849-runs/admin/<ledger>-admin.json`): the non-scored cells
+  (`exceeds_model_context`, `error`) with arm, question, repeat and token counts — for the
+  reader of the run, **never** for the grader; the view carries no trace of them.
+- **Seal** (`build/849-runs/seals/<ledger>-seal.json`): `{blinded_id: {arm, question, repeat}}`,
+  the seed, and the header hash; reproducible from the seed; opened only after scores are in.
+  Views, admin reports and seals live in three separate directories.
 
 ## Gate
 
-`(name, passed: bool, detail)` for each of `check_849_seed`, `check_849_oracle`,
-`check_849_freeze`, `check_849_loader`, `prompt_hash`, `oracle_absent`, `env_clean` (no
-`OPENAI_API_KEY`; FastEmbed cache present; tokenizer cache present). All must pass before the
-Header is written.
+Two phases (IC-07). **Preflight, from the full checkout**: `check_849_seed`, `check_849_oracle`,
+`check_849_freeze`, `check_849_loader` (these load the oracle and would pass vacuously in the
+export) → `preflight.json` with results, corpus fingerprints and the export's content manifest
+sha. **In-container, before the header**: `preflight_present_and_matching`, `prompt_digest`,
+`question_manifest_digest`, `oracle_absent` (path + static scan), `boundary` (denied-access test:
+original checkout, oracle, seeds, narrative files unreachable), `env_clean` (no `OPENAI_API_KEY`,
+FastEmbed and tokenizer caches present, no `torch`), `tokenizer_equivalence` (100 lines vs the
+server's `/tokenize`), `substrate_health` (FalkorDB `GRAPH.LIST`; llama-server `/health` + `/props`
+n_ctx, model file, rope settings). All must pass before the Header is written.

@@ -108,68 +108,122 @@ docs/design/research/849-synthesis/
 
 ## Implementation Concern Map
 
-> Concerns are not work packages. `/spec-kitty.tasks` decomposes them.
+> Concerns are not work packages. `/spec-kitty.tasks` decomposes them. Revised after the Codex
+> post-plan checkpoint (7 blockers / 17 majors, dispositions in research.md §Codex checkpoint).
 
-### IC-01 — Shared contracts: text form, prompt, serving configuration
+### IC-01 — Shared contracts: text form, prompt, question manifest, serving configuration
 
-- **Purpose**: the three things every arm must share have exactly one definition each, or the comparison measures the definitions instead of the arms.
+- **Purpose**: the things every arm must share have exactly one definition each, enforced at
+  **final assembly**, or the comparison measures the definitions instead of the arms.
 - **Relevant requirements**: FR-011, FR-003, C-002, NFR-005, SC-004
-- **Affected surfaces**: `scripts/research/arms849/{text,prompt,serving}.py`; `tests/research/test_arms849_{text,prompt}.py`
-- **Sequencing/depends-on**: none — everything else depends on this
-- **Risks**: the text form decides §5's token counts (research.md D-7: the JSON line is the text form; an NL rendering would re-measure §2 and is the design lead's to overturn at post-plan). The prompt hash must be computed over the registered text with the slot empty, so the slot marker itself is part of the contract.
+- **Affected surfaces**: `scripts/research/arms849/{text,prompt,questions,serving}.py`; tests
+- **Sequencing/depends-on**: none
+- **Risks**: the text form is applied at the point the arm hands text to the prompt slot (events,
+  entities **and edges** all go through it — contracts/text-form.md); the prompt digest is
+  computed over normalised bytes (UTF-8, `\n`, no trailing whitespace) of the registered text
+  with the slot marker present, and that digest is written into the rubric by the design lead as
+  the registered value (research.md D-14); question texts live in an oracle-free manifest with
+  its own digest (D-14); the tokenizer is validated against the pinned server's `/tokenize` on the
+  exact serialized request (D-11).
 
-### IC-02 — Substrate lifecycle and the sandbox note
+### IC-02 — Substrate lifecycle, run boundary and the sandbox note
 
-- **Purpose**: bring FalkorDB and llama-server up on office4 from pinned images, health-check them before use, keep the model resident between cells, tear down on completion, and record the envelope before the first container runs.
-- **Relevant requirements**: FR-016, FR-018, NFR-004, C-004, C-005, SC-008
-- **Affected surfaces**: `scripts/research/arms849/substrate.py`; the sandbox note in `research.md` §Sandbox envelope (written now, before any container) and the run record
+- **Purpose**: pinned FalkorDB and llama-server on office4, health-checked; the arms execute
+  inside a **container whose only mounted filesystem is the oracle-free export** (D-8); teardown;
+  the envelope recorded before the first container runs.
+- **Relevant requirements**: FR-016, FR-018, FR-013, NFR-004, C-004, C-005, SC-008
+- **Affected surfaces**: `scripts/research/arms849/substrate.py`; research.md D-8/D-9; run record
 - **Sequencing/depends-on**: none (parallel with IC-01)
-- **Risks**: FalkorDB image digest must be re-verified against #976's record; ports 16379/18080 must be free; `render` gid 992 for `/dev/dri`; everything binds to 127.0.0.1.
+- **Risks**: the runner container must reach the two services over the compose network and
+  nothing else; a denied-access test proves the original checkout, the oracle and the seed
+  commentary are unreachable from inside; FalkorDB digest re-verified against #976.
 
-### IC-03 — Arm G: Graphiti typed writes, tripwire, hybrid retrieval
+### IC-03 — Arm G: Graphiti typed writes, tripwire, deterministic hybrid retrieval
 
-- **Purpose**: the arm under test, built exactly as the design lead ruled — Graphiti's data model and retrieval, none of its extraction.
-- **Relevant requirements**: FR-008, FR-012, FR-004 (plan record), C-004, SC-007
-- **Affected surfaces**: `scripts/research/arms849/{arm_g,embed}.py`; `tests/research/test_arms849_arm_g.py`
+- **Purpose**: the arm under test, exactly as ruled (D-1..D-3), with **every resolution path A3
+  names** and a **deterministic assembly** so repeats are byte-identical.
+- **Relevant requirements**: FR-008, FR-012, FR-004, NFR-005, C-004, SC-007
+- **Affected surfaces**: `scripts/research/arms849/{arm_g,embed}.py`; tests
 - **Sequencing/depends-on**: IC-01, IC-02
-- **Risks**: RQ-6a (hyphenated group_id zeroes BM25 → `arms_<Q>` only), RQ-6e (multi-label filter errors → one query per label), RQ-6d (edge_type_map not enforced → the loader-side pass already validates pairs); Graphiti 0.30.2 API surface for direct saves is the #974 harness's, pinned; anchor resolution from question text is deterministic alias resolution against `Person.aliases` and entity ids — must never consult a per-question list.
+- **Risks**: resolution = names/aliases → Person; Commitment and Outcome descriptions by exact
+  or normalised (case-fold, whitespace-collapse, punctuation-strip) match; typed labels for the
+  constraint pull; ambiguity keeps all candidates; zero anchors → search-only path recorded.
+  Assembly order and cap allocation are fixed (D-15): typed pulls, then hybrid search hits, then
+  anchored expansions, each ordered by (score desc, uuid asc), de-duplicated by uuid, cut at 60;
+  the per-question assembled-context sha256 is recorded and must match across repeats and
+  resumes. RQ-6a/6e/6d mitigations as before.
 
-### IC-04 — Arm D: dump assembly and client-side context gate
+### IC-04 — Arm D: full dump (events, entities, edges), client-side context gate
 
-- **Purpose**: the honest upper bound on recall where it can run, and a correctly classified non-result where it cannot.
+- **Purpose**: the honest upper bound where it can run and a correctly classified non-result
+  where it cannot — over the **whole** replay-visible view, edges included.
 - **Relevant requirements**: FR-009, FR-006, FR-012, SC-002
-- **Affected surfaces**: `scripts/research/arms849/arm_d.py`; `tests/research/test_arms849_arm_d.py`
+- **Affected surfaces**: `scripts/research/arms849/arm_d.py`; tests
 - **Sequencing/depends-on**: IC-01
-- **Risks**: token counting must use the Qwen tokenizer client-side (server acceptance proves nothing); entities-after-events is asserted per cell as `layout=events_first`; `cache_prompt` on with the hit rate read from llama.cpp's response timings.
+- **Risks**: token gate compares the exact serialized request (prompt + context + question,
+  chat-templated) against the **permitted** limit = configured `n_ctx` − `max_tokens` reserve,
+  with the trained limit governing the primary only (D-11); layout asserted per cell.
 
-### IC-05 — Arm R: event index, derived k, chronological assembly
+### IC-05 — Arm R: index over events and records, deterministic k calibration
 
-- **Purpose**: the realistic-deployment arm, with its one free parameter derived from G rather than chosen.
+- **Purpose**: the realistic-deployment arm with its one free parameter derived by a fixed
+  procedure from a complete calibration population.
 - **Relevant requirements**: FR-010, FR-012, SC-007
-- **Affected surfaces**: `scripts/research/arms849/arm_r.py`; `tests/research/test_arms849_arm_r.py`
-- **Sequencing/depends-on**: IC-01, IC-03 (k derives from G's repeat-1 medians, so R cannot start before G's repeat-1 cells exist in the ledger)
-- **Risks**: k is set ONCE and written to the header (H3) — a resume must read it back, never re-derive; the ratio column must be present even when parity holds.
+- **Affected surfaces**: `scripts/research/arms849/arm_r.py`; harness calibration record; tests
+- **Sequencing/depends-on**: IC-01, IC-03 (calibration needs all eight G repeat-1 `ok` cells)
+- **Risks**: calibration (D-10) requires **all eight** G repeat-1 cells `ok`; if any is `error`
+  after three attempts the run **halts** with `blocked: calibration_population_incomplete` and
+  posts to the bus — never a partial population. k is chosen deterministically over all eight
+  replayed R views (records overhead included, availability caps applied) as the smallest k whose
+  median assembled tokens is ≥ 0.8 × G's median, ties to the smaller k; written as a single
+  durable `calibration` record. The population question itself (events-only top-k + full records
+  vs retrieval over both) is the design lead's pending ruling (research.md D-4 note).
 
-### IC-06 — Harness extensions: header, columns, retry, timeout, lock, sampler, isolation
+### IC-06 — Harness core: binding, attempts, torn-tail recovery, telemetry, memory, lock
 
-- **Purpose**: turn the existing resumable harness into the one the rubric's §5 and the spec's NFRs describe.
-- **Relevant requirements**: FR-001–FR-007, FR-013, FR-017, NFR-001–NFR-004, NFR-007, NFR-008
-- **Affected surfaces**: `scripts/research/run_849_harness.py`; `tests/research/test_run_849_harness.py`, `test_arms849_isolation.py`
-- **Sequencing/depends-on**: IC-01 (header needs the prompt hash and serving configuration)
-- **Risks**: the run environment is a `git archive` export minus the oracle directory (research.md D-8) — the harness must locate its repo root and refuse if the oracle path exists; the GTT sampler runs beside the request in a thread, not in the arm; the single-writer lock is a file lock on the ledger path, held for the session.
+- **Purpose**: the existing resumable harness becomes the one the rubric's §5 and the NFRs
+  describe, with every crash path explicit.
+- **Relevant requirements**: FR-001–FR-007, FR-017, NFR-001–NFR-004, NFR-007, NFR-008
+- **Affected surfaces**: `scripts/research/run_849_harness.py`; tests
+- **Sequencing/depends-on**: IC-01
+- **Risks**: header binds corpus + prompt digest + question manifest digest + serving config +
+  **arm code content hashes** (D-16); `attempt_start` rows precede every attempt so a death
+  mid-cell is counted (D-12); the reader tolerates exactly one torn final line under the lock and
+  rejects interior corruption (D-12); llama.cpp `timings` fields are mapped explicitly and a
+  scored row is refused when any required measurement is absent (D-13); cache state is classified
+  from observed `prompt_n` vs `cache_n` per response, with server restarts recorded as events
+  (D-13); memory = per-cell serving-process peak via `/metrics`/GTT sampling **and** a per-question
+  FalkorDB RSS peak for G (D-13); R/G ratio is a row field on every R `ok` row with an explicit
+  `unavailable` state when G's median is missing (D-10).
 
-### IC-07 — Grading view, seal, secondary run, run record
+### IC-07 — Gates and preflight binding
 
-- **Purpose**: the hand-off the design lead grades blind, and the labelled secondary that keeps D interpretable.
+- **Purpose**: oracle-dependent checks run once from the **full checkout** before export and
+  their result is bound into the run; the run-boundary gates run inside the container.
+- **Relevant requirements**: FR-001, FR-013, SC-004
+- **Affected surfaces**: `run_849_harness.py --preflight`; contracts/gates.md
+- **Sequencing/depends-on**: IC-01, IC-02, IC-06
+- **Risks**: `check_849_freeze` and `check_849_oracle` load the oracle and pass **vacuously**
+  when it is absent — they never run inside the export; the preflight writes a signed
+  `preflight.json` (gate results + corpus fingerprints + export manifest content-sha) that the
+  in-container run must find and match before writing a header.
+
+### IC-08 — Grading export and secondary-run implementation (code only)
+
+- **Purpose**: the blinded per-**cell** export with a sealed mapping, an administrative report for
+  non-scored cells, and the `--secondary` mode with its own context gate — all implemented and
+  tested against synthetic ledgers, without executing any run.
 - **Relevant requirements**: FR-014, FR-015, NFR-006, SC-005, SC-006
-- **Affected surfaces**: `scripts/research/arms849/grading.py`; `run_849_harness.py --secondary`; `docs/design/research/849-synthesis/README.md`; the run record
-- **Sequencing/depends-on**: IC-06 (ledger complete), IC-04 (secondary is D under YaRN)
-- **Risks**: the secondary's context-window gate at n_ctx 393,216 must run before its first cell (research.md D-6); the seal must never be written next to the grading view under a guessable name.
+- **Affected surfaces**: `scripts/research/arms849/grading.py`; `run_849_harness.py`
+- **Sequencing/depends-on**: IC-06
+- **Risks**: nine scored answers per question carry blinded ids that encode neither arm nor
+  repeat; non-scored classifications never appear in the view (they would identify D).
 
-### IC-08 — Pre-run gate and the primary run (integration)
+### IC-09 — Execution: primary run, hand-off, secondary run
 
-- **Purpose**: the live verification: all four checkers plus prompt hash green on `c0b35cd1`, then the 72 cells, with one deliberate interrupt-and-resume demonstrated.
-- **Relevant requirements**: FR-001, FR-002, SC-001, SC-003
-- **Affected surfaces**: the run itself; `build/849-runs/primary.jsonl`; the run record
-- **Sequencing/depends-on**: IC-02 through IC-07
-- **Risks**: wall-clock — G's 24 cells are minutes each, D's 6 native cells ~28 min cold and much less warm, R's 24 cells minutes; the whole primary fits in one long session or two; the secondary adds 24 D-YaRN cells at up to ~50 min cold each and must be planned as its own session(s).
+- **Purpose**: the live verification — preflight, primary 72 cells with one deliberate
+  interrupt-and-resume, grading export and seal, then the secondary's gate and its 24 cells.
+- **Relevant requirements**: FR-002, SC-001, SC-003, SC-005, SC-006
+- **Affected surfaces**: `build/849-runs/`; the run record; README Run section
+- **Sequencing/depends-on**: IC-02 through IC-08 (all code merged first)
+- **Risks**: wall-clock as before; this concern contains no code and cannot cycle with IC-08.

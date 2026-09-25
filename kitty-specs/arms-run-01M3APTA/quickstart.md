@@ -19,10 +19,11 @@ python3 -m scripts.research.check_849_freeze
 python3 -m scripts.research.check_849_loader
 ```
 
-## 2. Build the oracle-free run environment (FR-013)
+## 2. Preflight (full checkout) and the oracle-free export (FR-013, IC-07)
 
 ```bash
-python3 -m scripts.research.arms849.substrate export     # git archive HEAD → build/849-run-env/ minus the oracle dir; writes the manifest sha
+python3 -m scripts.research.run_849_harness --preflight   # runs the four checkers HERE, writes build/849-runs/preflight.json (bound to the export sha)
+python3 -m scripts.research.arms849.substrate export      # git archive HEAD → build/849-run-env/ minus oracle/, seed/, narrative + traceability; content-manifest sha recorded
 ```
 
 ## 3. Bring the substrates up (sandbox note: research.md D-9)
@@ -31,10 +32,10 @@ python3 -m scripts.research.arms849.substrate export     # git archive HEAD → 
 python3 -m scripts.research.arms849.substrate up          # FalkorDB :16379 + llama-server :18080 on 127.0.0.1, health-checked
 ```
 
-## 4. Run the primary (resumable; re-run the same command after any interruption)
+## 4. Run the primary inside the runner container (resumable; re-run after any interruption)
 
 ```bash
-cd build/849-run-env && python3 -m scripts.research.run_849_harness --ledger ../849-runs/primary.jsonl
+python3 -m scripts.research.arms849.substrate run -- --ledger /runs/primary.jsonl   # runner container: mounts ONLY the export (ro), corpus (ro), /runs (rw); compose network only
 python3 -m scripts.research.run_849_harness --status --ledger build/849-runs/primary.jsonl
 ```
 
@@ -48,7 +49,7 @@ python3 -m scripts.research.run_849_harness --grading-view --ledger build/849-ru
 
 ```bash
 python3 -m scripts.research.arms849.substrate up --yarn                                            # n_ctx 393216, rope yarn ×2
-cd build/849-run-env && python3 -m scripts.research.run_849_harness --secondary --ledger ../849-runs/secondary-yarn.jsonl
+python3 -m scripts.research.arms849.substrate run -- --secondary --primary /runs/primary.jsonl --ledger /runs/secondary-yarn.jsonl
 ```
 
 ## 7. Teardown (SC-008)

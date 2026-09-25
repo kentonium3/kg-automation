@@ -1,27 +1,26 @@
 # Contract: arm interface
 
-Every arm is a callable registered in `run_849_harness.ARM_IMPLEMENTATIONS` under `"G"`, `"D"`
-or `"R"` with the signature
+    arm(question: Question, view: Loaded, ctx: CellContext) -> Answer
 
-    arm(question: str, ask_time: datetime, view: Loaded, ctx: CellContext) -> Answer
-
-- `view` is the ArmView the harness already narrowed (`arm_view()`): D and R receive
-  `view.links == []`; the arm must not construct links from any other source.
-- `ctx` carries `repeat`, `seed` (= 1000 + repeat), the `ServingConfiguration`, the `Prompt`
-  (registered text + slot), the shared `Embedder` (G, R), and for R the header's `r_k`.
-- The arm **assembles context only**; it calls `ctx.prompt.render(assembled_text)` to obtain the
-  request text and `ctx.serving.complete(text, seed)` to obtain the completion. It never builds
-  a request any other way (the prompt hash is asserted inside `render`).
-- **Before sending**, the arm counts `prompt_tokens` with `ctx.serving.count_tokens(text)`; if the
-  count exceeds `ctx.serving.n_ctx_trained` it raises `ContextExceeded(prompt_tokens)` and sends
-  nothing.
-- `Answer` carries: `text`, `assembled_context_tokens`, `prompt_tokens`, `output_tokens`,
-  `finish_reason`, `cache_write_tokens`, `cache_read_tokens`, `uncached_tokens`, `prefill_s`,
-  `generation_s`, `generation_tok_s`, `plan: PlanRecord`. The harness adds `peak_gtt_gib`,
-  `seed`, `attempt`, `elapsed_s`, the load counts.
-- Any other exception is an infrastructure failure: the harness health-checks the substrate,
-  retries up to twice, then records `error`.
-- G additionally exposes `build_graph(question, view) -> GraphStats` (called once per question,
-  before repeat 1) and `drop_graph(question)` (after repeat 3); both idempotent.
-- R additionally exposes `derive_k(ledger_rows) -> (k, medians)` used once by the harness when the
-  first R cell is reached; the harness writes `r_k` to the header and passes it in `ctx`.
+- `Question` comes from `arms849.questions` (id, ask_time, text) — the oracle-free manifest whose
+  digest is in the header; the harness never passes a bare id.
+- `view` is the ArmView the harness narrowed (`arm_view()`): D and R receive `view.links == []`.
+- `ctx` carries `repeat`, `attempt`, `seed` (= 1000 + repeat), `ServingConfiguration`, `Prompt`,
+  the shared `Embedder` (G, R), the `calibration` record (R), and `limits = {trained, configured,
+  permitted}` (D-11).
+- The arm assembles a `Block` via `arms849.text.render_block` and calls
+  `ctx.prompt.render(block, question.text)` → the exact request text (chat template applied by
+  `ctx.serving.serialize`); then `ctx.serving.count_tokens(request)`; if the count exceeds the
+  limit the ctx names for this ledger (`trained` primary, `permitted` secondary) it raises
+  `ContextExceeded(prompt_tokens, limit_applied)` and sends nothing. Otherwise
+  `ctx.serving.complete(request, seed)`.
+- `Answer` = `text, assembled_context_tokens, prompt_tokens, output_tokens, finish_reason,
+  cache_read_tokens, uncached_tokens, cache_write_tokens, cache_state, cache_fraction, prefill_s,
+  generation_s, generation_tok_s, assembled_context_sha256, plan: PlanRecord` — every telemetry
+  field mandatory (D-13); the harness adds `peak_gtt_gib`, `falkordb_rss_peak_mib` (G), `seed`,
+  `attempt`, `elapsed_s`, load counts, `r_g_ratio` (R).
+- Any other exception: infrastructure failure → health check → retry ≤ 2 → `error`.
+- **G** exposes `build_graph(question, view) -> GraphStats` (once per question, before repeat 1;
+  idempotent) and `drop_graph(question)`; assembly follows D-15 exactly.
+- **R** exposes `calibrate(g_repeat1_rows, views) -> Calibration` (D-10), called once by the
+  harness when all eight G repeat-1 cells are `ok`; the harness writes the `calibration` record.

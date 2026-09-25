@@ -61,6 +61,11 @@ checkpoint (D-7..D-9). No `[NEEDS CLARIFICATION]` markers remain.
   arms comparable and keeps R's cache measurable.
 - **Alternatives considered**: rank-order assembly (rejected — destroys the prefix property and
   makes R's layout differ from D's for no retrieval reason).
+- **Open (Codex blocker A-2, referred to the design lead)**: §2 reads "embedding retrieval over
+  the stream **and rendered records**, top-k", which can be read as retrieval over both
+  populations; D-4 makes the entity records unconditional and retrieves over events only. The
+  design lead rules which is registered; the calibration procedure (D-10) is written so that
+  either population works without changing the harness.
 
 ## D-5 — Sampling and output limit (01M3AX1QA44C6VMP2VFGPHTYF0)
 
@@ -87,33 +92,45 @@ checkpoint (D-7..D-9). No `[NEEDS CLARIFICATION]` markers remain.
   than factor 4; 393,216 gives headroom over B2 without paying for 524k.
 - **Alternatives considered**: factor 4 / 1M (rejected — more perturbation than needed).
 
-## D-7 — The shared text form (implementer's call; design lead reviews at post-plan)
+## D-7 — The shared text form, enforced at final assembly (implementer's call; design lead reviews)
 
-- **Decision**: the **rendered JSON line** of an event (`json.dumps(event, sort_keys=True)`) is the
-  single text form for every arm — D's dump line, R's chunk, G's `EpisodicNode.content`. Entities
-  likewise as their JSON records. One function, `arms849.text.render_event_text`, used by all
-  three, with a test asserting the three arms' texts for any `ref` are byte-identical.
-- **Rationale**: D-4 says "the same natural-language rendering the renderer produces for D's
-  dump" — but the renderer produces **no** natural-language rendering; D's dump, gate (b) and the
-  362,772-token measurement were all JSON lines. Adopting an NL rendering now would change what
-  §5 counts and re-measure §2 for every question. The JSON line is what was frozen and measured.
-- **Alternatives considered**: a natural-language rendering per channel (deferred — a §2
-  re-measurement, not a corpus change; the design lead can rule it in at post-plan and IC-01
-  absorbs it as one function change).
-- **Disposition**: flagged to the design lead on the bus at 23:49Z; open until post-plan.
+- **Decision**: one module, `arms849.text`, renders **events, entities and edges** as their
+  rendered JSON line (`json.dumps(obj, sort_keys=True, default=str)`); every arm passes the
+  objects it assembled to `text.render_block(events, entities, edges)` at the **point of
+  insertion into the prompt slot** — there is no other way to obtain slot text — and the harness
+  counts the exact assembled bytes/tokens of what was inserted. D's dump is the whole replayed
+  view: events, then entities, **then edges** (Codex blocker H-1: edges were omitted, so D was not
+  the full dump and the flat arms lost relationships G received). R's records block is the same
+  entity+edge block. G's `EpisodicNode.content` is the event's rendered line.
+- **Rationale**: the renderer produces no natural-language rendering; the JSON line is what was
+  frozen and measured. Enforcing at assembly (not at storage) is what makes the byte-identity test
+  meaningful (Codex major H-2).
+- **Alternatives considered**: NL rendering (deferred — a §2 re-measurement, design lead's call);
+  storage-time equality only (rejected — the test could pass while prompt text diverged).
+- **Consequence for §2**: D's dump grows by the edge block (16 edges at B2, a few hundred tokens);
+  the prefix token figures are re-measured on the final assembly and re-registered by the design
+  lead before the run.
 
-## D-8 — Oracle-isolated execution environment (implementer's call; FR-013)
+## D-8 — Oracle-isolated execution boundary (implementer's call; FR-013)
 
-- **Decision**: the run executes from `build/849-run-env/`, a `git archive` export of the mission
-  branch at the run commit with `docs/design/research/849-synthesis/oracle/` **excluded**. The
-  harness locates its own repo root and refuses to start if that path exists. Separately, a
-  static test scans every module under `scripts/research/arms849/` for the string `oracle` and the
-  oracle path, and the harness runs the same scan at start. Both refusals print what they found.
-- **Rationale**: "enforced twice" (DM4): an arm cannot read what is not there, and a module that
-  names the path is refused before it could run. An export beats a worktree because a worktree
-  cannot have a tracked directory absent without a commit.
-- **Alternatives considered**: a worktree with the directory deleted (rejected — dirty tree, and
-  `git checkout` restores it); trusting review (rejected by DM4).
+- **Decision**: the arms execute **inside a runner container** (the repo's Python image built
+  from the pinned base, with the venv) whose **only** bind mount is `build/849-run-env/` — a
+  `git archive` export of the mission branch at the run commit with
+  `docs/design/research/849-synthesis/oracle/`, `seed/`, the two narrative files
+  (`00-context-chains.md`, `01-cast.md`), `849-lattice-scenario-arcs.md`, `849-traceability.md`
+  and the oracle's appendix **excluded** — plus the corpus directory read-only and the ledger
+  directory read-write. The container is on the compose network with the two services and has no
+  other network. A **denied-access test** run from inside the container asserts that the original
+  checkout path, the oracle, the seeds and the narrative files do not exist and that the
+  filesystem outside the mounts is the image's own. The static scan of `arms849/` for the strings
+  `oracle`, `seed/`, `traceability` and the export's **content** manifest sha (not filenames)
+  are recorded in the header.
+- **Rationale**: Codex blocker D-1 — an export beneath the full checkout is not a boundary: the
+  parent checkout stays reachable, and seeds and commentary carry answer-bearing material. A
+  container with an allowlisted mount is a boundary the test can prove.
+- **Alternatives considered**: export under the checkout (rejected as above); a worktree
+  (rejected — a tracked directory cannot be absent); chroot/user separation (viable but the
+  container already exists for the services and is the simpler proof).
 
 ## D-9 — Sandbox envelope on office4 (implementer's call; FR-018 — recorded BEFORE any container runs)
 
@@ -131,6 +148,111 @@ checkpoint (D-7..D-9). No `[NEEDS CLARIFICATION]` markers remain.
   is kept. **Touches**: no production state, no credential, nothing on office2.
 - **Rationale**: the deploy discipline's carve-out is conjunctive and self-certified; this note is
   the certification, and it exists before the first `docker run`.
+
+## D-10 — R's k calibration: population, procedure, durability (Codex F-1, F-2, E-1, B-3)
+
+- **Decision**: calibration requires **all eight** G repeat-1 cells `ok`. If any G repeat-1 cell
+  ends `error` after three attempts, the run **halts** before any R cell with
+  `blocked: calibration_population_incomplete`, posts `blocked` to the bus, and waits for a
+  registered disposition — never a partial or substituted population. Procedure, deterministic:
+  for each question build R's replayed view; for candidate k = 1, 2, … compute R's assembled
+  tokens (records block + top-k events, exact assembled bytes, availability-capped); choose the
+  smallest k whose median over the eight questions is ≥ 0.8 × G's repeat-1 median of
+  `assembled_context_tokens`; ties to the smaller k; if no k reaches 0.8× within availability,
+  record `k = max available` and `parity: infeasible`. Written once as a **`calibration` record**
+  (a ledger line, not a header mutation) carrying k, the eight G medians, the eight R medians at k,
+  and the ratio per question; every R cell must find it before running; a resume reads it back.
+  Every R `ok` row carries `r_g_ratio` = R's assembled tokens ÷ G's repeat-1 median for that
+  question, or `"unavailable"` with a reason (never 0, never null).
+- **Rationale**: A3 fixes the population as G repeat-1 medians; the rest was unspecified and two
+  implementations could pick different k while both claiming compliance.
+
+## D-11 — Context limits and token counting (Codex G-1, A-5)
+
+- **Decision**: three limits, distinct: **trained** (262,144, primary gate), **configured**
+  (`n_ctx`: 262,144 primary, 393,216 secondary), **permitted** = configured − `max_tokens`
+  (2,048). The arm counts the **exact serialized request** (chat-templated, special tokens
+  included) with a tokenizer whose equivalence to the served GGUF is **validated at setup**: 100
+  corpus lines tokenized client-side and via the pinned server's `/tokenize`, identical or the
+  setup refuses. Primary: refuse (`exceeds_model_context`) when the count exceeds the trained
+  limit; secondary: when it exceeds the permitted limit. All eight secondary cells are asserted
+  to fit under 393,216 − 2,048 by test before the secondary runs.
+- **Rationale**: server acceptance proves nothing; an upstream tokenizer is only usable once shown
+  equal to the served one; the secondary would otherwise refuse the six cells it exists to run.
+
+## D-12 — Attempt durability and torn-tail recovery (Codex E-3, C-4)
+
+- **Decision**: an `attempt_start` row is appended **before** every attempt (key + attempt + ts);
+  a death mid-attempt therefore leaves evidence and counts toward FR-007's three. On open under the
+  lock, the reader accepts exactly one malformed **final** line (a torn append), truncates it,
+  records `recovered_torn_tail` in the header's recovery log, and rejects any interior malformed
+  line as corruption. A test kills the writer mid-line and resumes.
+
+## D-13 — Telemetry mapping, cache state, memory attribution (Codex I-1, C-3, B-2)
+
+- **Decision**: llama.cpp `/completion` response `timings` map: `prompt_n` → prompt tokens
+  processed this request, `cache_n` → tokens served from cache, `prompt_ms`/`predicted_ms`/`
+  predicted_n` → prefill_s / generation_s / output tokens; `uncached = prompt_n − cache_n`,
+  `cache_read = cache_n`, `cache_write = uncached` (all newly processed tokens enter the cache).
+  A scored row is **refused** if any of these is absent. `cache_state` per cell is classified
+  from observation: `cold` if `cache_n == 0`, `warm` otherwise, with `cache_fraction` recorded;
+  "repeat 1 = cold" is a prediction, never a label. Server restarts and `/slots` cache clears are
+  recorded as `event` rows in the ledger. Memory: `peak_gtt_gib` sampled at 1 Hz during the
+  attempt (serving process) **and**, for G, `falkordb_rss_peak_mib` sampled over the per-question
+  build+retrieval window — the two labelled §5 measures.
+
+## D-14 — Prompt digest and question manifest (Codex B-4)
+
+- **Decision**: `arms849.prompt.REGISTERED_TEXT` is the §3.2 text with the slot marker
+  `{{ASSEMBLED_CONTEXT}}`; digest = sha256 over UTF-8 bytes after normalisation (CRLF→LF, trailing
+  whitespace stripped per line, single trailing newline). The design lead records that digest in
+  rubric §3.2 (one hand); the gate compares against it. Question texts live in
+  `scripts/research/arms849/questions.py` — id, `ask_time`, text — an oracle-free manifest with
+  its own digest recorded in the header and asserted on resume.
+
+## D-15 — Deterministic G assembly (Codex C-5)
+
+- **Decision**: assembly order: typed constraint pulls (label order Capacity, Commitment,
+  Principle, Interest), then hybrid-search hits, then anchored expansions per anchor (anchors in
+  resolution order); within each group ordered by (score desc, uuid asc); de-duplicated by uuid;
+  cut at 60. The assembled-context sha256 is recorded per cell and asserted equal across the three
+  repeats and across a resume (NFR-005). Zero anchors → the search-only path (§2 A3), recorded.
+
+## D-16 — Ledger binding includes code and questions (Codex E-2)
+
+- **Decision**: the header records sha256 of every file under `scripts/research/arms849/` plus
+  `run_849_harness.py` and `load_849_corpus.py` (content, not names), the question-manifest
+  digest, and the export's content manifest; a resume compares all of them and refuses on any
+  difference — changed retrieval code or question wording can never append to an existing ledger.
+
+## Codex post-plan checkpoint — dispositions (2026-09-24 23:58Z; 7 blockers, 17 majors)
+
+| Codex finding | Disposition |
+|---|---|
+| H-1 edges omitted from D/R | **changed** — D-7 |
+| A-2 R population vs §2 | **referred** to the design lead — D-4 note; D-10 works either way |
+| A-3 zero anchors | **changed** — spec edge case now A3 verbatim; D-15 |
+| A-4 resolution paths | **changed** — IC-03 names all A3 paths + ambiguity rule |
+| D-1 export not a boundary | **changed** — D-8 container with allowlisted mounts + denied-access test |
+| D-2 freeze gate vacuous in export | **changed** — IC-07 preflight from the full checkout, results bound |
+| C-1 grading view has no repeat dimension | **changed** — contracts/grading-view.md per-cell blinded ids |
+| C-2 classifications identify D | **changed** — admin report separate from the view |
+| F-1 calibration population incomplete | **changed** — D-10 halt rule |
+| F-2 k derivation unspecified | **changed** — D-10 procedure |
+| E-1 header mutation for r_k | **changed** — D-10 calibration record |
+| E-2 resume binding lacks code/questions | **changed** — D-16 |
+| E-3 torn tail | **changed** — D-12 |
+| C-4 attempt starts not durable | **changed** — D-12 |
+| G-1 tokenizer equivalence / exact request | **changed** — D-11 |
+| A-5 trained vs configured limit | **changed** — D-11 |
+| C-3 cold/warm by repeat index | **changed** — D-13 observed classification |
+| I-1 telemetry mapping | **changed** — D-13 |
+| B-2 memory measures | **changed** — D-13 |
+| H-2 text form at assembly | **changed** — D-7 |
+| B-4 prompt digest / question manifest | **changed** — D-14 |
+| C-5 G assembly determinism | **changed** — D-15 |
+| J-1 IC-07/IC-08 cycle | **changed** — IC-08 (code) / IC-09 (execution) split |
+| B-3 R/G ratio field | **changed** — D-10 row field with explicit unavailable state |
 
 ## Supply chain (DIRECTIVE 051 — advisory, recorded)
 
