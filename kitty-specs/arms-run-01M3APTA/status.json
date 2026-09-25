@@ -1,7 +1,7 @@
 {
-  "event_count": 304,
-  "last_event_id": "01M3DAS2QM5S125RR0FD22Y5K8",
-  "materialized_at": "2026-09-25T22:25:35.988373+00:00",
+  "event_count": 306,
+  "last_event_id": "01M3DASC1C90P5T4FA1KRST6NJ",
+  "materialized_at": "2026-09-25T22:25:45.515701+00:00",
   "mission_number": "",
   "mission_slug": "arms-run-01M3APTA",
   "mission_type": "software-dev",
@@ -12,9 +12,9 @@
     "claimed": 0,
     "done": 0,
     "for_review": 0,
-    "in_progress": 0,
+    "in_progress": 1,
     "in_review": 0,
-    "planned": 2
+    "planned": 1
   },
   "work_packages": {
     "WP01": {
@@ -268,13 +268,13 @@
     },
     "WP08": {
       "actor": "claude",
-      "agent": "claude",
+      "agent": null,
       "agent_profile": "__resolved_profile_absent__",
       "agent_profile_version": "__resolved_profile_version_absent__",
       "force_count": 2,
-      "lane": "planned",
-      "last_event_id": "01M3DAS2QM5S125RR0FD22Y5K8",
-      "last_transition_at": "2026-09-25T22:25:35.988373+00:00",
+      "lane": "in_progress",
+      "last_event_id": "01M3DASC1C90P5T4FA1KRST6NJ",
+      "last_transition_at": "2026-09-25T22:25:45.515701+00:00",
       "model": "__resolved_model_absent__",
       "provider": "__resolved_provider_absent__",
       "review": null,
@@ -284,15 +284,15 @@
         "reviewer": "claude",
         "verdict": "changes_requested"
       },
-      "role": "reviewer",
-      "shell_pid": 411394,
-      "shell_pid_created_at": "1790375122.33",
+      "role": "implementer",
+      "shell_pid": null,
+      "shell_pid_created_at": null,
       "subtasks": {
-        "T031": "done",
-        "T032": "done",
-        "T033": "done",
-        "T034": "done",
-        "T035": "done"
+        "T031": "planned",
+        "T032": "planned",
+        "T033": "planned",
+        "T034": "planned",
+        "T035": "planned"
       }
     },
     "WP09": {
