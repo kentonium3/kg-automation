@@ -74,7 +74,8 @@
         "WP02 cycle 8: scan evaluator replaced by Python's own evaluation of pure-literal subtrees; 24 fixtures; static green",
         "WP02 cycle 9: scan runs in an rlimited child and fails closed on budget violations; static 50 green",
         "WP02 cycle 10: magnitude guards removed; rlimited child is the only bound; static green",
-        "WP02 cycle 11: /etc bind source-identity + content checks; static 52, live green incl. excluded-file-at-/etc/hostname negative"
+        "WP02 cycle 11: /etc bind source-identity + content checks; static 52, live green incl. excluded-file-at-/etc/hostname negative",
+        "WP02 cycle 12: expression nodes classified over the whole grammar (partition test); static green"
       ],
       "provider": "__resolved_provider_absent__",
       "review": null,
