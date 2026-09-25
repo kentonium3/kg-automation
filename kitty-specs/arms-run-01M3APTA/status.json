@@ -216,6 +216,9 @@
       "last_event_id": "01M3BCQ7X1K5VBKT8XB2ZNN765",
       "last_transition_at": "2026-09-25T04:21:04.033567+00:00",
       "model": "__resolved_model_absent__",
+      "notes": [
+        "arm D: six/zero split measured; B2 = 363,004 tokens; Codex out of credits -> Opus fallback review"
+      ],
       "provider": "__resolved_provider_absent__",
       "role": "implementer",
       "shell_pid": 2017401,
