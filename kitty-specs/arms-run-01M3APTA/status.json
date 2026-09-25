@@ -27,6 +27,9 @@
       "last_event_id": "01M3B08S9C80X8F0X7G2WWJWDJ",
       "last_transition_at": "2026-09-25T00:43:27.404056+00:00",
       "model": "__resolved_model_absent__",
+      "notes": [
+        "WP01 shared contracts: 27 tests green, ruff/mypy clean, static scan clean; six-of-eight reproduced on exact requests"
+      ],
       "provider": "__resolved_provider_absent__",
       "role": "implementer",
       "shell_pid": 1188403,
