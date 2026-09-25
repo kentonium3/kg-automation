@@ -225,17 +225,41 @@ def _refuse_order(node: ast.AST, what: str) -> None:
 # ---------------------------------------------------------------------------
 
 
-def _bind(child: ast.expr, names: dict[str, Any]) -> ast.Name:
+def _bind_value(value: Any, names: dict[str, Any]) -> ast.Name:
     key = f"__v{len(names)}"
-    names[key] = _value(child)
+    names[key] = value
     return ast.Name(id=key, ctx=ast.Load())
+
+
+def _bind(child: ast.expr, names: dict[str, Any]) -> ast.Name:
+    return _bind_value(_value(child), names)
 
 
 def _subst(node: ast.AST, names: dict[str, Any]) -> ast.AST:
     """A copy of `node` whose expression children are evaluated and replaced by names bound
-    in `names` (Starred keeps its star; f-string structure is kept, its values bound)."""
+    in `names` (Starred keeps its star; f-string structure is kept, its values bound). The
+    two places compiled code would EXPAND a child — `*x` in a display and `**x` in a dict
+    display — inspect the operand first (Codex WP04 c13): expansion iterates it, so any
+    taint refuses, before the compiled container could absorb the set's order."""
     if isinstance(node, ast.Starred):
-        return ast.Starred(value=_bind(node.value, names), ctx=ast.Load())
+        operand = _value(node.value)
+        if _holds_tainted(operand):
+            _refuse_order(node, "starred expansion")
+        return ast.Starred(value=_bind_value(operand, names), ctx=ast.Load())
+    if isinstance(node, ast.Dict):
+        keys: list[Any] = []
+        values_out: list[ast.expr] = []
+        for k, v in zip(node.keys, node.values):
+            if k is None:                                      # `**x`: a set here is a TypeError → refused, not skipped
+                unpacked = _value(v)
+                if isinstance(unpacked, _TAINTED):
+                    _refuse_order(node, "** expansion of an unordered value")
+                keys.append(None)
+                values_out.append(_bind_value(unpacked, names))   # a dict holding a set as a VALUE carries it (keys ordered)
+            else:
+                keys.append(_bind(k, names))
+                values_out.append(_bind(v, names))
+        return ast.Dict(keys=keys, values=values_out)
     if isinstance(node, ast.JoinedStr):
         values: list[ast.expr] = [_subst(v, names) if isinstance(v, ast.FormattedValue) else v   # type: ignore[misc]
                                   for v in node.values]
@@ -259,8 +283,8 @@ def _subst(node: ast.AST, names: dict[str, Any]) -> ast.AST:
     return type(node)(**fields)
 
 
-def _eval_subst(node: ast.expr, names: dict[str, Any]) -> Any:
-    expr = ast.Expression(body=_subst(node, names))            # type: ignore[arg-type]
+def _eval_subst(rebuilt: ast.AST, names: dict[str, Any]) -> Any:
+    expr = ast.Expression(body=rebuilt)                        # type: ignore[arg-type]
     ast.fix_missing_locations(expr)
     return _mark(eval(compile(expr, "<litscan>", "eval"), {"__builtins__": dict(_EVAL_BUILTINS)}, names))
 
@@ -349,7 +373,7 @@ def _value(node: ast.expr) -> Any:
                 return result
         return result
     names: dict[str, Any] = {}
-    out = _eval_subst(node, names)
+    rebuilt = _subst(node, names)                              # children evaluated; consumer checks BEFORE execution
     values = list(names.values())
     if isinstance(node, ast.Compare):                          # in / not in / == / != are order-free (any nesting)
         if any(_holds_tainted(v) for v in values) and not all(isinstance(op, _ORDER_INSENSITIVE_OPS) for op in node.ops):
@@ -357,9 +381,10 @@ def _value(node: ast.expr) -> Any:
     elif isinstance(node, (ast.BinOp, ast.UnaryOp, ast.Slice, ast.Starred, ast.JoinedStr, ast.FormattedValue)):
         if any(_holds_tainted(v) for v in values):
             _refuse_order(node, f"{type(node).__name__} over an unordered value")
-    elif isinstance(node, ast.Subscript) and values and isinstance(values[0], _TAINTED):
-        _refuse_order(node, "subscripting an unordered value")
-    return out                                                  # Tuple/List/Set/Dict/Subscript/Attribute: marked, taint carried
+    elif isinstance(node, ast.Subscript) and values and (isinstance(values[0], _TAINTED)
+                                                          or any(_holds_tainted(v) for v in values[1:])):
+        _refuse_order(node, "subscripting an unordered value, or with one")
+    return _eval_subst(rebuilt, names)                          # Tuple/List/Set/Dict/Subscript/Attribute: marked, taint carried
 
 
 def _const_eval(node: ast.AST) -> Any:

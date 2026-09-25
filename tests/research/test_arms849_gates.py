@@ -368,6 +368,8 @@ _LITERAL_ONLY_CAUGHT = {
     "set-max": 'X = max({"or" "acle", "a"})',
     "reversed-sorted-set": 'X = "".join(reversed(sorted({"or", "acle"})))',   # sorted clears; reversed over a list is ordered
     "fstring-sorted-set": 'X = f"{sorted({\'or\', \'acle\'})[1]}acle"[:6]',
+    "starred-list-literal": 'X = "".join([*["or", "acle"]])',        # Codex c13 guard: an ORDERED expansion is caught
+    "starred-tuple-literal": 'X = "".join((*("or", "acle"),))',
 }
 
 
@@ -466,6 +468,15 @@ _ORDER_SENSITIVE = {
     "set-union-classmethod": 'X = "".join(set.union({"a"}, ["or", "acle"]))',
     "subscript-frozenset-class": 'X = "".join([frozenset][0](["or", "acle"]))',   # the class reached through a subscript
     "dict-fromkeys-set": 'X = dict.fromkeys({"or", "acle"})',
+    "starred-list": 'X = "".join([*{"or", "acle"}])',                # Codex c13: display expansion consumed the set
+    "starred-tuple": 'X = "".join((*{"or", "acle"},))',
+    "starred-set-display": 'X = "".join(sorted({*{"or", "acle"}}))',  # (harmless here, but expansion is the act)
+    "starred-then-sorted": 'X = "".join(sorted([*{"or", "acle"}]))',  # expansion is order-sensitive even if sorted follows
+    "starred-nested": 'X = [*[{"or", "acle"}]]',                      # any taint refuses (the ruled table)
+    "starred-call-str": 'X = str(*[{"or", "acle"}])',
+    "dict-kwargs-unpack": 'X = dict(**{"k": {"or", "acle"}})',
+    "dict-display-unpack-set": 'X = {**{"or", "acle"}}',              # a TypeError at runtime: refused, never skipped
+    "subscript-with-set": 'X = ("or", "acle")[frozenset()]',
 }
 
 
@@ -497,7 +508,8 @@ def test_order_insensitive_consumers_of_an_unordered_container_stay_pure_and_det
               'X = list(map(frozenset, [["or", "acle"]]))', 'X = list(reversed([{"or", "acle"}]))', 'X = dict([("k", {"or", "acle"})])',
               'X = sorted(filter(frozenset, [["or", "acle"]]))',    # filter keeps the LISTS: no set is produced
               'X = "".join(sorted(dict.fromkeys(["or", "acle"]).keys()))',   # dict keys are ordered → "acleor"
-              'X = "".join(sorted(["acle", "or"], key=frozenset))']:  # subset order is hash-free; stable → "acleor"
+              'X = "".join(sorted(["acle", "or"], key=frozenset))',   # subset order is hash-free; stable → "acleor"
+              'X = {**{"k": {"or", "acle"}}}']:                       # Codex c13: a dict VALUE that is a set is carried
         assert litscan.string_constants(c + "\n") == litscan.string_constants(c + "\n"), c
         pkg = _fake_pkg(tmp_path / f"pkg_{abs(hash(c))}"); (pkg / "ok.py").write_text(c + "\n")
         monkeypatch.setattr(G, "PKG_DIR", pkg)
