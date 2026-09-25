@@ -42,6 +42,13 @@ def score_all_g_repeat1(led):
             led.begin_attempt(k); rec(led, k, "ok", ok_row())
 
 
+def calibrated(led):
+    """All eight G repeat-1 cells scored and the calibration record written (D-10 precondition for R)."""
+    score_all_g_repeat1(led)
+    if led.calibration() is None:
+        led.write_calibration({"r_k": 12, "parity": "ok"})
+
+
 def binding(**over) -> L.Binding:
     cfg = S.ServingConfiguration.primary(IDENT)
     b = L.Binding.from_environment(DEFAULT_CORPUS, cfg.as_header_dict(), "trained", "c0ffee",
@@ -100,13 +107,34 @@ def test_header_is_first_line_and_carries_every_binding_field(tmp_path):
     assert "scripts/research/arms849/text.py" in first["code_hashes"]
 
 
-@pytest.mark.parametrize("field", sorted(L.Binding.__dataclass_fields__))
+HEADER_FIELDS = sorted(set(L.Header.__dataclass_fields__) - {"record", "started", "binding"}
+                       | set(L.Binding.__dataclass_fields__))
+
+
+def test_every_header_field_is_covered_by_the_resume_test():
+    """Opus c10: the exhaustiveness test was over Binding, so Header's own fields went uncompared."""
+    assert set(HEADER_FIELDS) >= set(L.Binding.__dataclass_fields__)
+    assert {"blinding_seed", "plan"} <= set(HEADER_FIELDS)
+
+
+@pytest.mark.parametrize("field", HEADER_FIELDS)
 def test_resume_refuses_on_every_binding_field(tmp_path, field):
-    """Parametrised over the dataclass so a new field cannot be added uncompared."""
+    """Parametrised over EVERY header field (Binding's and the Header's own) so a new field
+    cannot be added uncompared."""
     with fresh(tmp_path):
         pass
+    if field in ("blinding_seed", "plan"):
+        kw = {"blinding_seed": 7, "plan": 72}
+        kw[field] += 1
+        with pytest.raises(L.LedgerBoundToAnotherConfig, match=field):
+            L.open_ledger(tmp_path / "ledger.jsonl", binding(), **kw)
+        return
     current = binding().as_dict()[field]
-    if isinstance(current, dict):
+    if field == "corpus":
+        changed = {**current, "stream.jsonl": "f" * 64}     # a VALID-looking but different fingerprint
+    elif field == "limit_applied":
+        changed = "permitted"                                # the other legal value
+    elif isinstance(current, dict):
         changed = {**current, "__probe__": "x"}
     elif isinstance(current, int):
         changed = current + 1
@@ -141,7 +169,9 @@ def test_attempt_start_precedes_run_and_a_fourth_attempt_is_refused(tmp_path):
             assert led.begin_attempt(key) == n
             rec(led, key, "error", err_row(f"boom {n}", arm="D"))
         assert led.terminal(key) == "error"
-        with pytest.raises(L.SecondScoredRow):
+        with pytest.raises(L.AttemptsExhausted):                # T012.1: the named type, reachable
+            led.begin_attempt(key)
+        with pytest.raises(L.AttemptsExhausted):
             led.begin_attempt(key)
     kinds = [json.loads(l)["record"] for l in (tmp_path / "ledger.jsonl").read_text().splitlines()]
     assert kinds == ["header"] + ["attempt_start", "run"] * 3
@@ -161,11 +191,18 @@ def test_an_interrupted_attempt_counts_toward_three(tmp_path):
 def test_error_then_ok_is_legal_and_second_ok_is_not(tmp_path):
     key = L.RunKey("R", "F1", 3)
     with fresh(tmp_path) as led:
+        calibrated(led)
         led.begin_attempt(key); rec(led, key, "error", err_row("transient"))
         led.begin_attempt(key); rec(led, key, "ok", ok_row(arm="R"))
         assert led.terminal(key) == "ok"
-        with pytest.raises(L.SecondScoredRow):
+        with pytest.raises(L.SecondScoredRow):                  # a REAL terminal row, not exhaustion
             led.begin_attempt(key)
+        kx = L.RunKey("D", "B2", 1)
+        led.begin_attempt(kx)
+        rec(led, kx, "exceeds_model_context", {"ask_time": ASK, "elapsed_s": 1.0, "prompt_tokens": 400_000,
+                                                "context_limit_applied": "trained"})
+        with pytest.raises(L.SecondScoredRow):
+            led.begin_attempt(kx)
 
 
 def test_exceeds_row_must_carry_a_count_above_the_model_context(tmp_path):
@@ -291,7 +328,7 @@ def test_three_interrupted_attempts_are_terminal_error(tmp_path):
         assert led.terminal(key) == "error"
         assert key not in led.pending_keys(L.plan_keys())
         assert led.has_terminal_error("D", 2) == ["E1"]
-        with pytest.raises(L.SecondScoredRow):
+        with pytest.raises(L.AttemptsExhausted):
             led.begin_attempt(key)
 
 
@@ -309,12 +346,13 @@ def test_payload_cannot_carry_ledger_authored_fields(tmp_path):
 def test_one_result_per_attempt(tmp_path):
     key = L.RunKey("R", "A", 1)
     with fresh(tmp_path) as led:
+        calibrated(led)
         led.begin_attempt(key); rec(led, key, "error", err_row("1"))
         with pytest.raises(ValueError, match="already has a result"):
             rec(led, key, "error", err_row("2"))
         led.begin_attempt(key); rec(led, key, "ok", ok_row(arm="R"))
     rows = [json.loads(l) for l in (tmp_path / "ledger.jsonl").read_text().splitlines()]
-    assert [r["attempt"] for r in rows if r["record"] == "run"] == [1, 2]
+    assert [r["attempt"] for r in rows if r["record"] == "run" and r["arm"] == "R"] == [1, 2]
 
 
 def test_serving_is_required_and_stored_on_every_run_row(tmp_path):
@@ -362,6 +400,7 @@ def test_scored_row_missing_telemetry_is_refused(tmp_path, missing):
 def test_per_arm_required_fields_and_d_rows_carry_the_limit(tmp_path):
     with fresh(tmp_path) as led:
         kr, kd = L.RunKey("R", "A", 1), L.RunKey("D", "A", 1)
+        calibrated(led)
         led.begin_attempt(kr)
         with pytest.raises(ValueError, match="r_g_ratio"):
             rec(led, kr, "ok", {k: v for k, v in ok_row(arm="R").items() if k != "r_g_ratio"})
@@ -455,7 +494,7 @@ def test_failed_open_releases_the_lock(tmp_path):
     with fresh(tmp_path):
         pass
     with pytest.raises(L.LedgerBoundToAnotherConfig):
-        fresh(tmp_path, limit_applied="configured")
+        fresh(tmp_path, limit_applied="permitted")
     with fresh(tmp_path):            # would raise LedgerLocked if the fd leaked
         pass
 
@@ -493,6 +532,7 @@ def test_truncated_is_derived_from_finish_reason_never_supplied(tmp_path):
 def test_r_g_ratio_must_be_a_number_or_an_unavailable_reason(tmp_path):
     key = L.RunKey("R", "A", 1)
     with fresh(tmp_path) as led:
+        calibrated(led)
         led.begin_attempt(key)
         for bad in (None, 0, -1.0, "unavailable", "unavailable:", "n/a"):
             with pytest.raises(ValueError, match="r_g_ratio"):
@@ -531,7 +571,7 @@ def test_mismatched_opener_does_not_repair_the_tail(tmp_path):
         fh.write(b'{"record": "run", "torn')
     before = p.read_bytes()
     with pytest.raises(L.LedgerBoundToAnotherConfig):
-        fresh(tmp_path, limit_applied="configured")
+        fresh(tmp_path, limit_applied="permitted")
     assert p.read_bytes() == before                  # refused opener changed nothing
     with fresh(tmp_path) as led:                     # the rightful opener recovers and logs it
         assert [r for r in led.rows if r.get("record") == "event" and r["kind"] == "recovered_torn_tail"]
@@ -580,6 +620,7 @@ def test_measurements_must_be_finite_non_negative_numbers(tmp_path, bad):
         for text in ("", "   ", None):
             with pytest.raises(ValueError, match="error"):
                 rec(led, kg, "error", {**err_row(), "error": text})
+        calibrated(led)
         led.begin_attempt(kr)
         if isinstance(bad, float):
             with pytest.raises(ValueError, match="r_g_ratio"):
@@ -642,3 +683,96 @@ def test_open_ledger_validates_a_directly_constructed_binding(tmp_path, field):
     assert not (tmp_path / "ledger.jsonl.lock").exists() or True   # the lock file may exist; the fd is released:
     with fresh(tmp_path):                                          # a valid opener succeeds (no leaked lock)
         pass
+
+
+# ---------------------------------------------------------------------------
+# Opus fallback cycle 10 (Codex out of credits)
+# ---------------------------------------------------------------------------
+
+
+def test_corpus_binding_is_verified_not_computed(tmp_path):
+    """The header binds the REGISTERED fingerprints; a missing or tampered file, or an empty
+    directory, is refused at binding time — never stored as whatever happened to exist."""
+    cfg = S.ServingConfiguration.primary(IDENT).as_header_dict()
+
+    def bind(corpus_dir):
+        return L.Binding.from_environment(corpus_dir, cfg, "trained", "c0ffee", "export-sha",
+                                          "a" * 64, "b" * 64, "c" * 64, repo_root=REPO_ROOT,
+                                          model_context_tokens=S.TRAINED_CONTEXT)
+
+    from scripts.research.load_849_corpus import REGISTRATION
+    assert bind(DEFAULT_CORPUS).corpus == REGISTRATION["files"]
+    empty = tmp_path / "empty"; empty.mkdir()
+    with pytest.raises(L.LedgerBoundToAnotherConfig, match="MISSING"):
+        bind(empty)
+    partial = tmp_path / "partial"; partial.mkdir()
+    for name in REGISTRATION["files"]:
+        (partial / name).write_bytes((DEFAULT_CORPUS / name).read_bytes())
+    (partial / "stream.jsonl").write_bytes(b'{"ref": "x", "at": "2026-01-01"}\n')
+    with pytest.raises(L.LedgerBoundToAnotherConfig, match="stream.jsonl"):
+        bind(partial)
+    # A directly constructed Binding with no corpus (or a partial one) is refused at open.
+    with pytest.raises(L.LedgerBoundToAnotherConfig, match="registered corpus"):
+        L.open_ledger(tmp_path / "l1.jsonl", binding(corpus={}), blinding_seed=7, plan=72)
+    part = dict(REGISTRATION["files"]); part.pop("stream.jsonl")
+    with pytest.raises(L.LedgerBoundToAnotherConfig, match="registered corpus"):
+        L.open_ledger(tmp_path / "l2.jsonl", binding(corpus=part), blinding_seed=7, plan=72)
+
+
+def test_limit_applied_is_validated_and_d_rows_must_agree_with_the_header(tmp_path):
+    cfg = S.ServingConfiguration.primary(IDENT).as_header_dict()
+    with pytest.raises(ValueError, match="limit_applied"):
+        L.Binding.from_environment(DEFAULT_CORPUS, cfg, "banana", "c0ffee", "export-sha", "a" * 64, "b" * 64,
+                                   "c" * 64, repo_root=REPO_ROOT, model_context_tokens=S.TRAINED_CONTEXT)
+    with pytest.raises(ValueError, match="limit_applied"):
+        L.open_ledger(tmp_path / "l.jsonl", binding(limit_applied="banana"), blinding_seed=7, plan=72)
+    key = L.RunKey("D", "A", 1)
+    with fresh(tmp_path) as led:                         # header bound to "trained"
+        led.begin_attempt(key)
+        with pytest.raises(ValueError, match="one limit per ledger"):
+            rec(led, key, "ok", {**ok_row(arm="D"), "context_limit_applied": "permitted"})
+        rec(led, key, "ok", {**ok_row(arm="D"), "context_limit_applied": "trained"})
+
+
+def test_rows_are_the_same_on_a_fresh_and_a_resumed_ledger(tmp_path):
+    key = L.RunKey("G", "C1", 1)
+    with fresh(tmp_path) as led:
+        led.begin_attempt(key); rec(led, key, "ok", ok_row())
+        fresh_rows = led.rows
+    with fresh(tmp_path) as led:
+        assert led.rows == fresh_rows
+    assert [r["record"] for r in fresh_rows] == ["attempt_start", "run"]
+    assert fresh_rows[0]["record"] != "header"
+
+
+def test_assembled_context_sha_must_be_a_string(tmp_path):
+    key = L.RunKey("G", "C1", 1)
+    with fresh(tmp_path) as led:
+        led.begin_attempt(key)
+        with pytest.raises(ValueError, match="STRING"):
+            rec(led, key, "ok", {**ok_row(), "assembled_context_sha256": int("1" * 64)})
+        with pytest.raises(ValueError, match="STRING"):
+            rec(led, key, "ok", {**ok_row(), "assembled_context_sha256": b"1" * 64})
+        rec(led, key, "ok", {**ok_row(), "assembled_context_sha256": "1" * 64})
+
+
+def test_summarise_counts_an_in_flight_key_as_pending(tmp_path):
+    key = L.RunKey("D", "F2", 2)
+    with fresh(tmp_path) as led:
+        led.begin_attempt(key)                           # in flight, nothing recorded yet
+        s = led.summarise()[("D", "F2")]
+        assert s.counts == {"pending": 1} and s.n_scored == 0
+    with fresh(tmp_path) as led:
+        led.begin_attempt(key); rec(led, key, "ok", {**ok_row(arm="D"), "context_limit_applied": "trained"})
+        assert "pending" not in led.summarise()[("D", "F2")].counts
+
+
+def test_r_ok_row_requires_the_calibration_record(tmp_path):
+    key = L.RunKey("R", "C1", 1)
+    with fresh(tmp_path) as led:
+        led.begin_attempt(key)
+        with pytest.raises(ValueError, match="calibration record first"):
+            rec(led, key, "ok", ok_row(arm="R"))
+        rec(led, key, "error", err_row("no k yet"))      # an error row needs no calibration
+        calibrated(led)
+        led.begin_attempt(key); rec(led, key, "ok", ok_row(arm="R"))

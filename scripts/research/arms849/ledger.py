@@ -41,7 +41,11 @@ from typing import Any, Literal
 
 from scripts.research.arms849 import prompt as prompt_mod
 from scripts.research.arms849 import questions as questions_mod
-from scripts.research.load_849_corpus import REGISTRATION, fingerprint
+from scripts.research.load_849_corpus import (
+    REGISTRATION,
+    UnfrozenCorpus,
+    verify_registration,
+)
 
 __all__ = [
     "ARMS", "MAX_ATTEMPTS", "OUTCOMES", "REPEATS", "SCORED_OUTCOME",
@@ -174,8 +178,14 @@ class Binding:
                          preflight_sha: str, gate_host_sha: str, gate_container_sha: str,
                          repo_root: pathlib.Path | None = None,
                          model_context_tokens: int | None = None) -> Binding:
-        corpus = {name: fingerprint(pathlib.Path(corpus_dir) / name)
-                  for name in REGISTRATION["files"] if (pathlib.Path(corpus_dir) / name).exists()}
+        # VERIFIED, not computed-and-stored: a missing or tampered file is refused here, so the
+        # header can never bind a partial or foreign corpus (Opus WP03 c10).
+        try:
+            corpus = verify_registration(pathlib.Path(corpus_dir))
+        except UnfrozenCorpus as exc:
+            raise LedgerBoundToAnotherConfig(str(exc)) from exc
+        if limit_applied not in CONTEXT_LIMITS:
+            raise ValueError(f"limit_applied must be one of {CONTEXT_LIMITS}, got {limit_applied!r}")
         ok_p, detail_p = prompt_mod.verify()
         ok_q, detail_q = questions_mod.verify()
         if not (ok_p and ok_q):
@@ -283,8 +293,10 @@ class Ledger:
 
     # -- append ------------------------------------------------------------
 
-    def _append(self, record: dict[str, Any]) -> None:
-        """One JSON line, flushed and fsynced before returning (NFR-001); never after close()."""
+    def _append(self, record: dict[str, Any], *, keep: bool = True) -> None:
+        """One JSON line, flushed and fsynced before returning (NFR-001); never after close().
+        ``keep=False`` writes the header without making it a row: ``rows`` is the same on a
+        fresh and a resumed ledger."""
         if self._lock_fd < 0:
             raise LedgerClosed(f"{self.path}: ledger is closed; the lock is not held")
         line = json.dumps(record, sort_keys=True, default=str)
@@ -292,7 +304,8 @@ class Ledger:
             fh.write(line + "\n")
             fh.flush()
             os.fsync(fh.fileno())
-        self._rows.append(json.loads(line))
+        if keep:
+            self._rows.append(json.loads(line))
 
     @property
     def rows(self) -> list[dict[str, Any]]:
@@ -309,10 +322,12 @@ class Ledger:
 
     def begin_attempt(self, key: RunKey) -> int:
         """Append the attempt_start row BEFORE anything happens (D-12); return the attempt number."""
-        if self.terminal(key) is not None:
-            raise SecondScoredRow(f"{key} is already terminal ({self.terminal(key)})")
+        if self._terminal_row(key) is not None:
+            raise SecondScoredRow(f"{key} is already terminal ({self._terminal_row(key)})")
         n = self.attempts_for(key) + 1
         if n > MAX_ATTEMPTS:
+            # Three attempts begun and none terminal: exhausted (FR-007, D-12) — the harness
+            # catches THIS type, so it must be the one raised (Opus WP03 c10).
             raise AttemptsExhausted(f"{key} already used {MAX_ATTEMPTS} attempts")
         self._append({"record": "attempt_start", **key.as_dict(), "attempt": n, "ts": _utc_now()})
         return n
@@ -354,6 +369,11 @@ class Ledger:
             raise ValueError(f"{key} {outcome} row is missing required telemetry {missing}")
         if key.arm == "D" and row["context_limit_applied"] not in CONTEXT_LIMITS:
             raise ValueError(f"context_limit_applied must be one of {CONTEXT_LIMITS}")
+        if key.arm == "D" and row["context_limit_applied"] != self._header.binding.limit_applied:
+            raise ValueError(f"D row applied the {row['context_limit_applied']} limit under a header bound to "
+                             f"{self._header.binding.limit_applied} (D-11: one limit per ledger)")
+        if key.arm == "R" and outcome == SCORED_OUTCOME and self.calibration() is None:
+            raise ValueError("an R ok row needs the calibration record first (D-10: k is never defaulted)")
         # A measurement is a FINITE non-negative number — None, NaN and inf are a missing
         # measurement wearing a value (Codex WP03 c5); error text is a non-empty string.
         if outcome == SCORED_OUTCOME:
@@ -371,8 +391,10 @@ class Ledger:
                 raise ValueError(f"cache_state must be one of {CACHE_STATES}, got {row['cache_state']!r}")
             if row["finish_reason"] not in FINISH_REASONS:
                 raise ValueError(f"finish_reason must be one of {FINISH_REASONS}, got {row['finish_reason']!r}")
-            if not re.fullmatch(r"[0-9a-f]{64}", str(row["assembled_context_sha256"])):
-                raise ValueError("assembled_context_sha256 must be a 64-hex sha256")
+            sha = row["assembled_context_sha256"]
+            if not isinstance(sha, str) or not re.fullmatch(r"[0-9a-f]{64}", sha):
+                raise ValueError("assembled_context_sha256 must be a 64-hex sha256 STRING (an int would "
+                                 "compare unequal after the JSON round-trip)")
             if not isinstance(row["text"], str) or not isinstance(row["plan"], dict):
                 raise ValueError("text must be a str and plan a dict")
             # §2 (client count of the sent prompt) and §5 (server prompt_n + cache_n) are ONE quantity.
@@ -393,11 +415,18 @@ class Ledger:
         self._append(full)
         return full
 
-    def terminal(self, key: RunKey) -> Outcome | None:
-        runs = [r for r in self._rows if r.get("record") == "run" and RunKey.of(r) == key]
-        for r in runs:
-            if r["outcome"] in ("ok", "exceeds_model_context", "not_implemented"):
+    def _terminal_row(self, key: RunKey) -> Outcome | None:
+        """A recorded outcome that ends the key (ok / exceeds / not_implemented), or None."""
+        for r in self._rows:
+            if r.get("record") == "run" and RunKey.of(r) == key and \
+                    r["outcome"] in ("ok", "exceeds_model_context", "not_implemented"):
                 return r["outcome"]
+        return None
+
+    def terminal(self, key: RunKey) -> Outcome | None:
+        found = self._terminal_row(key)
+        if found is not None:
+            return found
         # Three attempts begun and none reached a terminal outcome — whether they
         # recorded `error` or died before recording — is exhausted: terminal error.
         if self.attempts_for(key) >= MAX_ATTEMPTS:
@@ -467,6 +496,8 @@ class Ledger:
                     counts[cell][r["outcome"]] = counts[cell].get(r["outcome"], 0) + 1
             if not key_runs and self.terminal(key) == "error":
                 counts[cell]["error"] = counts[cell].get("error", 0) + 1
+            elif not key_runs:
+                counts[cell]["pending"] = counts[cell].get("pending", 0) + 1     # in flight, nothing recorded
             ok_rows.setdefault(cell, []).extend(r for r in key_runs if r["outcome"] == SCORED_OUTCOME)
         out: dict[tuple[str, str], Summary] = {}
         for cell, cnt in counts.items():
@@ -573,10 +604,15 @@ def _open_locked(path: pathlib.Path, binding: Binding, blinding_seed: int, plan:
     # can be written: a ledger persisted with a bad sha could never resume (Codex WP03 c8).
     for name in ("preflight_sha", "gate_host_sha", "gate_container_sha"):
         _require_sha256(name, getattr(binding, name))
+    if binding.limit_applied not in CONTEXT_LIMITS:
+        raise ValueError(f"limit_applied must be one of {CONTEXT_LIMITS}, got {binding.limit_applied!r}")
+    if binding.corpus != REGISTRATION["files"]:
+        raise LedgerBoundToAnotherConfig("binding.corpus is not the registered corpus fingerprints "
+                                         "(data-model.md § Ledger: must equal REGISTRATION.files)")
     if not path.exists() or path.stat().st_size == 0:
         header = Header(binding=binding, started=_utc_now(), blinding_seed=blinding_seed, plan=plan)
         ledger = Ledger(path, header, [], fd)
-        ledger._append(header.as_dict())
+        ledger._append(header.as_dict(), keep=False)      # the header is not a row (Opus c10, minor)
         return ledger
 
     # Validate the header and the binding BEFORE repairing anything: a mismatched
@@ -595,6 +631,12 @@ def _open_locked(path: pathlib.Path, binding: Binding, blinding_seed: int, plan:
     header = Header.from_dict(rows[0])
     differences = {k: (getattr(header.binding, k), getattr(binding, k))
                    for k in Binding.__dataclass_fields__ if getattr(header.binding, k) != getattr(binding, k)}
+    # Every Header field that is not the record marker or the start time is compared too:
+    # `plan` says whether this is the 72-cell primary or the 24-cell secondary and
+    # `blinding_seed` fixes the grading ids (Opus WP03 c10).
+    for k, ours in (("blinding_seed", int(blinding_seed)), ("plan", int(plan))):
+        if getattr(header, k) != ours:
+            differences[k] = (getattr(header, k), ours)
     if differences:
         detail = "\n".join(f"  {k}: ledger={a!r} environment={b!r}" for k, (a, b) in differences.items())
         raise LedgerBoundToAnotherConfig(
