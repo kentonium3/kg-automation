@@ -30,16 +30,27 @@ _UNKNOWN = object()     # distinct from the constant None, which IS a value (Cod
 # comprehension is opaque here and is the RUNTIME boundary's job (the export exclusion
 # and the in-container self-test). An opaque interpolation renders as a NUL so a word
 # cannot be smuggled around it.
-_PURE_NODES = (ast.Expression, ast.Constant, ast.BinOp, ast.UnaryOp, ast.BoolOp, ast.Compare, ast.IfExp,
-               ast.JoinedStr, ast.FormattedValue, ast.Tuple, ast.List, ast.Set, ast.Dict, ast.Subscript,
-               ast.Slice, ast.Load, ast.operator, ast.unaryop, ast.boolop, ast.cmpop)
+# Every expression node in the grammar is classified: OPAQUE nodes can reference state or
+# execute code; everything else is literal structure Python evaluates safely with empty
+# builtins. test_every_expression_node_is_classified enumerates ast.expr's subclasses so a
+# forgotten node (Codex c11: ast.Starred) cannot silently become "opaque" — that made the
+# scan fall OPEN on the fragments.
+_OPAQUE_EXPR = frozenset({ast.Name, ast.Call, ast.Attribute, ast.Lambda, ast.ListComp, ast.SetComp,
+                          ast.DictComp, ast.GeneratorExp, ast.Await, ast.Yield, ast.YieldFrom, ast.NamedExpr})
+_PURE_EXPR = frozenset(cls for cls in ast.expr.__subclasses__() if cls not in _OPAQUE_EXPR)
+_PURE_HELPERS = (ast.Expression, ast.expr_context, ast.operator, ast.unaryop, ast.boolop, ast.cmpop)
 
 
 def _is_pure(node: ast.AST) -> bool:
-    """Only literals and operators — no magnitude guards here: a guard that rejects a legal
+    """Only literal structure — no magnitude guards here: a guard that rejects a legal
     literal (1 ** 65) makes the scan fall OPEN on fragments (Codex c9). The rlimited child
     is the only bound; a blow-up fails closed there."""
-    return all(isinstance(sub, _PURE_NODES) for sub in ast.walk(node))
+    for sub in ast.walk(node):
+        if isinstance(sub, _PURE_HELPERS):
+            continue
+        if type(sub) in _OPAQUE_EXPR or type(sub) not in _PURE_EXPR:
+            return False
+    return True
 
 
 def _const_eval(node: ast.AST):
@@ -161,7 +172,17 @@ def test_no_module_names_the_excluded_material(module: pathlib.Path):
     'X = "or" + str("acle") if False else "or" "acle"',
     'X = "or" + "acle" * (1 ** 65)',        # a legal literal a magnitude guard used to reject (Codex c9)
     'X = ("or" "acle") * (2 ** 70 // 2 ** 70)',
-], ids=["adjacent", "plus", "fstring", "bytes", "plus2", "conv", "spec", "fplus", "inner-plus", "nested", "numc", "numc-plus", "arith", "arith2", "mult", "none", "none-plus", "bool", "uplus", "div", "percent", "tuple-sub", "call-opaque", "call-opaque2", "pow65", "pow70"])
+    'X = "%s%s" % (*("or", "acle"),)',        # literal unpacking (Codex c11)
+    'X = "".join if False else ("%s%s" % (*["or", "acle"],))',
+], ids=["adjacent", "plus", "fstring", "bytes", "plus2", "conv", "spec", "fplus", "inner-plus", "nested", "numc", "numc-plus", "arith", "arith2", "mult", "none", "none-plus", "bool", "uplus", "div", "percent", "tuple-sub", "call-opaque", "call-opaque2", "pow65", "pow70", "starred", "starred-list"])
+def test_every_expression_node_is_classified():
+    """The grammar is finite: each ast.expr subclass is exactly one of pure / opaque."""
+    every = set(ast.expr.__subclasses__())
+    assert _OPAQUE_EXPR <= every
+    assert _PURE_EXPR | _OPAQUE_EXPR == every and not (_PURE_EXPR & _OPAQUE_EXPR)
+    assert ast.Starred in _PURE_EXPR and ast.Call in _OPAQUE_EXPR
+
+
 def test_the_scan_catches_constructed_forbidden_strings(tmp_path, construction):
     """Codex WP02 cycle 1: the first scan missed constructed strings."""
     bad = tmp_path / "bad.py"
