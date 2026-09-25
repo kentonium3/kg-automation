@@ -19,9 +19,14 @@ the same ``body["prompt"]``.
 ``ctx.prompt`` (the registered :class:`Prompt`), ``ctx.seed`` (= 1000 + repeat),
 ``ctx.limit`` / ``ctx.limit_applied`` (``ServingConfiguration.limit_applied()``:
 the trained limit for the primary ledger, the permitted limit for the secondary
-— D-11), and ``ctx.serving`` with ``serialize(request_bytes, seed) -> body``,
+— D-11), the :class:`ServingConfiguration` itself (``ctx.config``, or carried by
+the serving facade as ``ctx.serving.config`` — contracts/arm-interface.md lists
+it on ctx), and ``ctx.serving`` with ``serialize(request_bytes, seed) -> body``,
 ``count_tokens(body) -> int``, ``count_text(bytes) -> int`` and
-``complete(body) -> Completion``.
+``complete(body) -> Completion``. The arm does not trust ``ctx.limit``: before
+counting it checks BOTH fields against what the configuration's
+``limit_applied()`` says (Codex c4) — a pair that disagrees is a configuration
+defect, refused, never a measured outcome.
 
 The arm seam is ``arm(question, view, ctx)`` (contracts/arm-interface.md); this module's
 :func:`arm_d` also takes the :class:`FrozenCorpusText` it renders from, so the harness binds it
@@ -29,9 +34,10 @@ once with :func:`bind` (``functools.partial``) and gets the contract's three-arg
 arm G holds its text on ``self`` the same way.
 
 Refusals that are a CONFIGURATION defect, not an infrastructure failure — a view carrying
-loader links, a request without ``cache_prompt``, an empty view — raise :class:`ArmRefusal`;
-the harness records them as the cell's terminal ``error`` without the retry ladder
-(arm-interface: retries are for infrastructure).
+loader links, a request without ``cache_prompt``, an empty view, a ctx limit that is not the
+configuration's, a request the gate admits but ``complete``'s last line refuses — raise
+:class:`ArmRefusal`; the harness records them as the cell's terminal ``error`` without the
+retry ladder (arm-interface: retries are for infrastructure).
 """
 
 from __future__ import annotations
@@ -62,18 +68,19 @@ class ArmRefusal(RuntimeError):
 class ContextExceeded(serving.ContextExceeded):
     """The exact request exceeds the limit this ledger applies; nothing was sent.
 
-    A subclass of the serving module's exception, and the ONLY shape the arm lets out:
-    the arm's own gate raises it, and a refusal from ``complete``'s last-line guard
-    (the serving module's bare exception, which carries only a message) is re-raised
-    as this type with the same plan and ``limit_applied = "permitted"`` — the limit
-    that actually refused — so every D ``exceeds_model_context`` row carries
-    ``prompt_tokens`` and a truthful ``context_limit_applied`` whichever line fired
-    (D-11). Data-model I4's "> model_context_tokens" half holds only on the gate
-    path: on the primary the last line sits ``max_tokens`` below the trained limit
-    (260,096 vs 262,144), so a count in that window is refused by the permitted
-    limit while being ≤ the model context. No question on this corpus lands in the
-    window (nearest: A 139,517 and F1 273,024); the ledger's I4 check will refuse
-    such a row, which is the correct outcome for a request the protocol cannot send.
+    A subclass of the serving module's exception, and the ONLY exceeds shape the arm lets
+    out: the arm's own gate raises it, carrying the plan, the count and the limit the gate
+    compared against, so every D ``exceeds_model_context`` row carries ``prompt_tokens`` >
+    the limit (data-model I4) and a truthful ``context_limit_applied`` (D-11).
+
+    A refusal from ``complete``'s last-line guard (the serving module's bare exception) is
+    NOT re-raised as this type. On the primary the last line sits ``max_tokens`` below the
+    trained limit (permitted 260,096 vs trained 262,144), so a count in that window passes
+    the gate and is refused by the permitted limit while being ≤ the model context — I4
+    cannot hold for it, and the earlier re-wrap named a "permitted limit 262144" that does
+    not exist (Codex c4). Such a request is one the protocol cannot send: :class:`ArmRefusal`,
+    terminal, with the true limit and its name read from the configuration. No registered
+    question lands in the window (nearest: A 139,517 and F1 273,024).
     """
 
     def __init__(self, prompt_tokens: int, limit: int, limit_applied: str, plan: PlanRecord) -> None:
@@ -161,22 +168,52 @@ def prefix_check(text: FrozenCorpusText, view_prev: Loaded, view_next: Loaded) -
     return later.startswith(earlier)
 
 
+def _configuration(ctx: Any) -> serving.ServingConfiguration:
+    """The active :class:`ServingConfiguration`: ``ctx.config`` (arm-interface lists it on ctx) or the
+    one the serving facade serialises with (``ctx.serving.config``). Without it the limit cannot be
+    checked, and an unchecked limit is a configuration defect in itself."""
+    config = getattr(ctx, "config", None)
+    if config is None:
+        config = getattr(getattr(ctx, "serving", None), "config", None)
+    if not isinstance(config, serving.ServingConfiguration):
+        raise ArmRefusal("ctx carries no ServingConfiguration (neither ctx.config nor ctx.serving.config); "
+                         "the context limit cannot be checked against the configuration (D-11)")
+    return config
+
+
+def _check_limit(ctx: Any, config: serving.ServingConfiguration) -> None:
+    """``ctx.limit_applied`` and ``ctx.limit`` must BOTH be what ``config.limit_applied()`` says.
+
+    A well-formed pair that is not the configuration's — ``("trained", 1)`` under the primary,
+    the secondary's pair under the primary — would otherwise turn a configuration defect into a
+    measured ``exceeds_model_context`` outcome and move the registered six-of-eight split
+    (Codex c4)."""
+    if ctx.limit_applied not in LIMIT_NAMES or type(ctx.limit) is not int or ctx.limit <= 0:
+        raise ArmRefusal(f"incoherent context limit in ctx: {ctx.limit_applied!r} = {ctx.limit!r} "
+                         f"(D-11: one of {LIMIT_NAMES}, a positive int, from ServingConfiguration.limit_applied())")
+    name, limit = config.limit_applied()
+    if (ctx.limit_applied, ctx.limit) != (name, limit):
+        raise ArmRefusal(f"ctx applies the {ctx.limit_applied} limit {ctx.limit}, but the {config.kind} configuration "
+                         f"applies the {name} limit {limit} (ServingConfiguration.limit_applied(), D-11) — "
+                         f"a configuration defect, not an experimental outcome")
+
+
 def arm_d(question: Any, view: Loaded, ctx: Any, text: FrozenCorpusText) -> dict[str, Any]:
     """contracts/arm-interface.md for D: dump → render → serialize → count → gate → complete.
 
     Returns the Answer as the dict the ledger's run row takes (WP05's shape, plus
     ``context_limit_applied``); raises :class:`ContextExceeded` — carrying the plan and the
-    count — when the exact request exceeds ``ctx.limit``. ``complete`` is reached only through
-    the gate, with the very ``body`` that was counted.
+    count — when the exact request exceeds ``ctx.limit`` (checked against the configuration
+    first). ``complete`` is reached only through the gate, with the very ``body`` that was
+    counted; a refusal from its last line is :class:`ArmRefusal`.
     """
     block, (n_events, n_entities, n_edges) = render_dump(text, view)
     request = ctx.prompt.render(block, question.text)
     body = ctx.serving.serialize(request, ctx.seed)
     if body.get("cache_prompt") is not True:
         raise ArmRefusal("arm D's requests carry cache_prompt: true (D-7: the prefix is the measurement)")
-    if ctx.limit_applied not in LIMIT_NAMES or type(ctx.limit) is not int or ctx.limit <= 0:
-        raise ArmRefusal(f"incoherent context limit in ctx: {ctx.limit_applied!r} = {ctx.limit!r} "
-                         f"(D-11: one of {LIMIT_NAMES}, a positive int, from ServingConfiguration.limit_applied())")
+    config = _configuration(ctx)
+    _check_limit(ctx, config)
     prompt_tokens = ctx.serving.count_tokens(body)                 # counts body["prompt"] — the string sent
     plan = PlanRecord(
         layout=LAYOUT, events_in_dump=n_events, entities_in_dump=n_entities, edges_in_dump=n_edges,
@@ -190,9 +227,16 @@ def arm_d(question: Any, view: Loaded, ctx: Any, text: FrozenCorpusText) -> dict
     except ContextExceeded:
         raise                                                        # already carries the plan: propagate as is
     except serving.ContextExceeded as exc:                           # the last-line guard (permitted limit)
-        permitted = getattr(ctx, "permitted", None)
-        raise ContextExceeded(prompt_tokens, permitted if type(permitted) is int else ctx.limit, "permitted",
-                              PlanRecord(**{**plan.as_dict(), "context_limit_applied": "permitted"})) from exc
+        # The gate admitted the request under this ledger's limit, so the count is ≤ the model
+        # context and an exceeds_model_context row could not satisfy I4. The limit that refused
+        # is the configuration's permitted one (n_ctx − max_tokens) — serving's exception carries
+        # only a message, so it is read from the configuration, never from ctx.limit (Codex c4).
+        lim = config.limits()
+        raise ArmRefusal(f"complete refused the request at the permitted limit {lim.permitted} (configured "
+                         f"{lim.configured} − max_tokens {config.max_tokens}) although it counted {prompt_tokens} "
+                         f"tokens, within the {ctx.limit_applied} limit {ctx.limit} this ledger gates on; a request "
+                         f"the gate admits and the protocol cannot send is a configuration defect, terminal — not "
+                         f"exceeds_model_context (data-model I4 needs prompt_tokens > the model context)") from exc
     for name in ("cache_read_tokens", "uncached_tokens", "cache_write_tokens", "cache_state", "cache_fraction",
                  "prefill_s", "generation_s", "generation_tok_s", "prompt_tokens", "output_tokens", "finish_reason"):
         if getattr(completion, name, None) is None:

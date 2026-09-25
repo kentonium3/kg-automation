@@ -36,6 +36,26 @@ ASK_ORDER = tuple(q.id for q in Q.QUESTIONS)                       # C1 A F1 B1 
 REGISTERED_B2_PREFIX = 362_772                                     # rubric §2, A1 @c0b35cd1 — a floor now
 EXPECTED_EXCEEDING = frozenset({"F1", "B1", "E2", "E1", "F2", "B2"})   # rubric A2: six of eight
 SECONDARY_PERMITTED = S.SECONDARY_N_CTX - S.MAX_TOKENS             # 393,216 − 2,048
+ARTIFACT_DIR_ENV = "ARMS849_ARTIFACT_DIR"                          # Codex c4: a read-only checkout redirects the write
+DEFAULT_ARTIFACT_DIR = REPO_ROOT / "build" / "849-runs"
+ARTIFACT_NAME = "arm-d-measured-prompt-tokens.json"
+
+
+def artifact_dir() -> pathlib.Path:
+    """Where the MEASURED-figures artifact goes: the build directory unless ARMS849_ARTIFACT_DIR says otherwise."""
+    override = os.environ.get(ARTIFACT_DIR_ENV)
+    return pathlib.Path(override) if override else DEFAULT_ARTIFACT_DIR
+
+
+def write_measurement_artifact(counts: dict[str, int], exceeded: set[str]) -> pathlib.Path:
+    """For WP10's re-measurement: every question's exact serialised request size, as JSON that
+    survives pytest's capture (Opus c2). Returns the path written."""
+    artifact = artifact_dir() / ARTIFACT_NAME
+    artifact.parent.mkdir(parents=True, exist_ok=True)
+    artifact.write_text(json.dumps({"chat_templated_request_tokens": {q: counts[q] for q in ASK_ORDER},
+                                    "trained_limit": S.TRAINED_CONTEXT, "secondary_permitted": SECONDARY_PERMITTED,
+                                    "exceeding_trained": sorted(exceeded)}, indent=2) + "\n")
+    return artifact
 
 
 # ---------------------------------------------------------------------------
@@ -151,13 +171,14 @@ def test_primary_refuses_exactly_six_and_secondary_refuses_none(run_all):
     exceeded = {q for q, o in primary.items() if isinstance(o, D.ContextExceeded)}
     counts = {q: (o.prompt_tokens if isinstance(o, D.ContextExceeded) else o["prompt_tokens"]) for q, o in primary.items()}
     assert exceeded == EXPECTED_EXCEEDING, f"exceeded {sorted(exceeded)}; measured {counts}"
-    # For WP10's re-measurement: every question's exact serialised request size, written to a JSON
-    # artifact that survives pytest's capture (Opus c2) — and printed for a -s run.
-    artifact = REPO_ROOT / "build" / "849-runs" / "arm-d-measured-prompt-tokens.json"
-    artifact.parent.mkdir(parents=True, exist_ok=True)
-    artifact.write_text(json.dumps({"chat_templated_request_tokens": {q: counts[q] for q in ASK_ORDER},
-                                    "trained_limit": S.TRAINED_CONTEXT, "secondary_permitted": SECONDARY_PERMITTED,
-                                    "exceeding_trained": sorted(exceeded)}, indent=2) + "\n")
+    # The artifact is written on every run — into the build directory by default, or wherever
+    # ARMS849_ARTIFACT_DIR points (a read-only review sandbox; Codex c4) — and printed for a -s run.
+    artifact = write_measurement_artifact(counts, exceeded)
+    assert artifact.is_file() and json.loads(artifact.read_text())["exceeding_trained"] == sorted(EXPECTED_EXCEEDING)
+    if ARTIFACT_DIR_ENV not in os.environ:
+        assert artifact == DEFAULT_ARTIFACT_DIR / ARTIFACT_NAME       # a default run writes into the checkout's build dir
+    else:
+        assert artifact.parent == pathlib.Path(os.environ[ARTIFACT_DIR_ENV])
     print("MEASURED prompt_tokens (chat-templated request) " + json.dumps({q: counts[q] for q in ASK_ORDER}))
     assert len(exceeded) == 6
     assert len(facade.sent) == 2 and {json.loads(json.dumps(b))["seed"] for b in facade.sent} == {1001}
@@ -183,6 +204,20 @@ def test_primary_refuses_exactly_six_and_secondary_refuses_none(run_all):
     # The same request under both configurations counts the same (the template and the text
     # are identical; only the limit differs).
     assert {q: o["prompt_tokens"] for q, o in secondary.items()} == counts
+
+
+def test_the_measurement_artifact_honours_the_output_override(tmp_path, monkeypatch):
+    """Codex c4 MINOR: a read-only checkout cannot take the build-directory write; ARMS849_ARTIFACT_DIR
+    redirects it, and its absence keeps the build-directory default."""
+    counts = {q: i for i, q in enumerate(ASK_ORDER, start=1)}
+    monkeypatch.setenv(ARTIFACT_DIR_ENV, str(tmp_path / "elsewhere"))
+    written = write_measurement_artifact(counts, {"B2"})
+    assert written == tmp_path / "elsewhere" / ARTIFACT_NAME and written.is_file()
+    assert not (DEFAULT_ARTIFACT_DIR / "elsewhere").exists()
+    assert json.loads(written.read_text()) == {"chat_templated_request_tokens": counts, "trained_limit": S.TRAINED_CONTEXT,
+                                               "secondary_permitted": SECONDARY_PERMITTED, "exceeding_trained": ["B2"]}
+    monkeypatch.delenv(ARTIFACT_DIR_ENV)
+    assert artifact_dir() == DEFAULT_ARTIFACT_DIR                     # nothing written: the default is only resolved
 
 
 # ---------------------------------------------------------------------------
@@ -314,6 +349,40 @@ def test_an_incoherent_ctx_limit_is_refused_before_counting(tok, identity, text,
     assert facade.counted == [] and facade.sent == []
 
 
+@needs_corpus
+@needs_tokenizer
+def test_a_ctx_limit_that_disagrees_with_the_configuration_is_refused_before_counting(tok, identity, text, views):
+    """Codex c4 MAJOR: a well-formed (name, int) pair is not enough — BOTH fields must be what
+    ServingConfiguration.limit_applied() says for the active configuration. `trained`, 1 under the
+    primary is the probe that produced ContextExceeded(51425) instead of a refusal."""
+    primary = S.ServingConfiguration.primary(identity)
+    secondary = S.ServingConfiguration.secondary_yarn(identity)
+    permitted_secondary = secondary.limits().permitted
+    probes = [(primary, "trained", 1), (primary, "trained", S.TRAINED_CONTEXT - 1), (primary, "trained", S.TRAINED_CONTEXT + 1),
+              (primary, "permitted", permitted_secondary),           # the secondary's pair under the primary
+              (primary, "permitted", primary.limits().permitted),   # the right value for the wrong ledger
+              (secondary, "trained", S.TRAINED_CONTEXT),            # the primary's pair under the secondary
+              (secondary, "permitted", permitted_secondary + 1)]
+    for config, name, limit in probes:
+        facade = Facade(tok, config)
+        ctx = SimpleNamespace(prompt=Prompt(), seed=1001, limit=limit, limit_applied=name, serving=facade)
+        with pytest.raises(D.ArmRefusal, match="configuration") as info:
+            D.arm_d(Q.by_id("C1"), views["C1"], ctx, text)
+        assert not isinstance(info.value, S.ContextExceeded)
+        assert facade.counted == [] and facade.sent == [], (name, limit)
+    # A ctx that carries no configuration at all cannot be checked — refused the same way.
+    facade = Facade(tok, primary)
+    bare = SimpleNamespace(serialize=facade.serialize, count_tokens=facade.count_tokens, count_text=facade.count_text,
+                           complete=facade.complete)
+    ctx = SimpleNamespace(prompt=Prompt(), seed=1001, limit=S.TRAINED_CONTEXT, limit_applied="trained", serving=bare)
+    with pytest.raises(D.ArmRefusal, match="ServingConfiguration"):
+        D.arm_d(Q.by_id("C1"), views["C1"], ctx, text)
+    assert facade.counted == [] and facade.sent == []
+    # And the coherent pair still runs: the same probe under the primary's own limit answers C1.
+    facade = Facade(tok, primary)
+    assert D.arm_d(Q.by_id("C1"), views["C1"], ctx_for(facade, "primary"), text)["context_limit_applied"] == "trained"
+
+
 # ---------------------------------------------------------------------------
 # (e) telemetry missing → no Answer
 # ---------------------------------------------------------------------------
@@ -410,27 +479,32 @@ def test_cache_prompt_off_is_refused_before_counting(tok, identity, text, views)
 
 @needs_corpus
 @needs_tokenizer
-def test_last_line_refusal_from_complete_keeps_the_row_contract(tok, identity, text, views):
-    """serving.complete's own guard raises the BASE exception with only a message; the arm
-    re-raises it as its ContextExceeded carrying the plan, so the exceeds row is complete."""
-    facade = Facade(tok, S.ServingConfiguration.primary(identity))
+def test_a_bare_last_line_refusal_from_complete_is_terminal_and_names_the_true_limit(tok, identity, text, views):
+    """serving.complete's own guard raises the BASE exception with only a message. The gate said the
+    request fits the ledger's limit, so a refusal here is a request the protocol cannot send: a
+    configuration defect (ArmRefusal, terminal), never an exceeds_model_context row — I4 could not
+    hold — and the message names the limit that refused, read from the configuration (Codex c4)."""
+    config = S.ServingConfiguration.primary(identity)
+    facade = Facade(tok, config)
 
     def refuse(body):
         facade.sent.append(body)
         raise S.ContextExceeded("prompt is N tokens; permitted limit M — not sent")
 
     facade.complete = refuse
-    with pytest.raises(D.ContextExceeded) as info:
+    with pytest.raises(D.ArmRefusal) as info:
         D.arm_d(Q.by_id("C1"), views["C1"], ctx_for(facade, "primary"), text)
     exc = info.value
-    assert isinstance(exc.__cause__, S.ContextExceeded) and not isinstance(exc.__cause__, D.ContextExceeded)
-    # The limit that actually refused is the permitted one, and the plan says so (Opus c2).
-    assert exc.plan.layout == D.LAYOUT and exc.limit_applied == "permitted" == exc.plan.context_limit_applied
-    assert exc.prompt_tokens == exc.plan.prompt_tokens and exc.limit == S.TRAINED_CONTEXT   # no ctx.permitted: falls back
+    assert isinstance(exc.__cause__, S.ContextExceeded) and not isinstance(exc, S.ContextExceeded)
+    permitted = config.limits().permitted
+    assert permitted == S.PRIMARY_N_CTX - S.MAX_TOKENS == 260_096
+    assert f"permitted limit {permitted}" in str(exc) and f"trained limit {S.TRAINED_CONTEXT}" in str(exc)
+    assert "permitted limit 262144" not in str(exc)                # the invented limit of the old re-wrap
+    assert "exceeds_model_context" in str(exc) and str(facade._count(facade.sent[0]["prompt"])) in str(exc)
     assert len(facade.sent) == 1
 
     # The arm's OWN exception raised from inside complete propagates as the identical object.
-    facade2 = Facade(tok, S.ServingConfiguration.primary(identity))
+    facade2 = Facade(tok, config)
     block, _ = D.render_dump(text, views["C1"])
     own = D.ContextExceeded(1, 2, "trained", D.PlanRecord(D.LAYOUT, 1, 1, 1, block.sha256, 1, "trained", 1))
 
@@ -441,6 +515,33 @@ def test_last_line_refusal_from_complete_keeps_the_row_contract(tok, identity, t
     with pytest.raises(D.ContextExceeded) as info2:
         D.arm_d(Q.by_id("C1"), views["C1"], ctx_for(facade2, "primary"), text)
     assert info2.value is own and info2.value.__cause__ is None
+
+
+@needs_corpus
+@needs_tokenizer
+def test_a_request_in_the_window_below_the_trained_limit_is_a_configuration_error(tok, identity, text, views, monkeypatch):
+    """Codex c4 MAJOR, reproduced with the REAL client: C1's view plus a padded question counts inside
+    the window (permitted 260,096 < count ≤ trained 262,144). The gate admits it under the primary;
+    serving.complete refuses it at the permitted limit before any network call. That is not an
+    exceeds_model_context outcome (prompt_tokens ≤ model context, so I4 cannot hold) and the old
+    re-wrap called it 'permitted limit 262144' — a limit that does not exist."""
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    config = S.ServingConfiguration.primary(identity)
+    lim = config.limits()
+    facade = Facade(tok, config)
+    facade.complete = lambda body: S.complete(body, tok, lim.permitted)     # the real last line; refuses before POST
+    ctx = ctx_for(facade, "primary")
+    padded = SimpleNamespace(id="C1", text=" x" * 210_000)
+    with pytest.raises(D.ArmRefusal) as info:
+        D.arm_d(padded, views["C1"], ctx, text)
+    counted = facade._count(facade.serialize(Prompt().render(D.render_dump(text, views["C1"])[0], padded.text), 1001)["prompt"])
+    assert lim.permitted < counted <= lim.trained, f"the probe must land in the window: {counted}"
+    exc = info.value
+    assert isinstance(exc.__cause__, S.ContextExceeded) and not isinstance(exc, S.ContextExceeded)
+    assert f"permitted limit {lim.permitted}" in str(exc) and f"{counted} tokens" in str(exc)
+    assert "permitted limit 262144" not in str(exc) and "permitted limit 262144" not in str(exc.__cause__)
+    assert f"permitted limit {lim.permitted}" in str(exc.__cause__)      # serving's own message agrees
+    assert len(facade.counted) == 1                                # the gate counted once; the client counted its own
 
 
 @needs_corpus
