@@ -149,3 +149,7 @@ original checkout, oracle, seeds, narrative files unreachable), `env_clean` (no 
 FastEmbed and tokenizer caches present, no `torch`), `tokenizer_equivalence` (100 lines vs the
 server's `/tokenize`), `substrate_health` (FalkorDB `GRAPH.LIST`; llama-server `/health` + `/props`
 n_ctx, model file, rope settings). All must pass before the Header is written.
+
+**Dated correction (2026-09-25, design-lead ruling 20260925T033758187296Z4e2f3be79e):** gates run in two phases
+(see contracts/gates.md); the **LedgerHeader / Binding gains `gate_host_sha` and `gate_container_sha`** beside
+`preflight_sha`, all three required, all three compared on resume.
