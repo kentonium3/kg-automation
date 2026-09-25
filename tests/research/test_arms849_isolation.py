@@ -8,6 +8,7 @@ trips the gate.
 from __future__ import annotations
 
 import ast
+import json
 import pathlib
 import sys
 
@@ -70,12 +71,15 @@ def _const_eval(node: ast.AST):
         expr = ast.Expression(body=node)
         ast.fix_missing_locations(expr)
         return eval(compile(expr, "<isolation-scan>", "eval"), {"__builtins__": {}}, {})
-    except Exception:  # noqa: BLE001 — a type/zero/format error is simply "not a constant"
-        return _UNKNOWN
+    except (MemoryError, RecursionError, OverflowError):
+        raise                       # a budget blow-up is NEVER "not a constant": the child exits, the gate fails closed
+    except (ValueError, TypeError, ArithmeticError, LookupError, AttributeError):
+        return _UNKNOWN             # a type/zero/format error is simply "not a constant"
 
 
-def _string_constants(source: str) -> list[str]:
-    """Every string a static reading of the module can produce (see _const_eval)."""
+def _string_constants_inprocess(source: str) -> list[str]:
+    """Every string a static reading of the module can produce (see _const_eval). Runs
+    only inside the rlimited child (see _string_constants)."""
     out: list[str] = []
     for node in ast.walk(ast.parse(source)):
         val = _const_eval(node)
@@ -88,6 +92,41 @@ def _string_constants(source: str) -> list[str]:
         elif isinstance(val, (tuple, list, set, frozenset)):
             out.extend(v.decode("utf-8", "replace") if isinstance(v, bytes) else v for v in val if isinstance(v, (str, bytes)))
     return out
+
+
+SCAN_MEMORY_BYTES = 256 * 1024 * 1024
+SCAN_CPU_SECONDS = 5
+SCAN_WALL_SECONDS = 30
+
+
+class ScanBudgetExceeded(RuntimeError):
+    """The literal evaluation blew its memory/CPU/time budget — the gate FAILS CLOSED
+    (Codex WP02 c8: a giant format spec, shift or repetition must not hang pytest)."""
+
+
+def _string_constants(source: str) -> list[str]:
+    """Run the evaluation in a child process under RLIMIT_AS / RLIMIT_CPU and a wall-clock
+    timeout; any violation raises ScanBudgetExceeded, which fails the gate."""
+    import subprocess
+    proc = subprocess.run([sys.executable, str(pathlib.Path(__file__).resolve()), "--scan"],
+                          input=source, capture_output=True, text=True, timeout=SCAN_WALL_SECONDS, check=False)
+    if proc.returncode != 0:
+        raise ScanBudgetExceeded(f"scan child exited {proc.returncode}: {proc.stderr[-300:]}")
+    return json.loads(proc.stdout)
+
+
+def _scan_main() -> int:
+    import resource
+    resource.setrlimit(resource.RLIMIT_AS, (SCAN_MEMORY_BYTES, SCAN_MEMORY_BYTES))
+    resource.setrlimit(resource.RLIMIT_CPU, (SCAN_CPU_SECONDS, SCAN_CPU_SECONDS))
+    source = sys.stdin.read()
+    try:
+        strings = _string_constants_inprocess(source)
+    except (MemoryError, RecursionError, OverflowError) as exc:
+        print(f"budget: {type(exc).__name__}", file=sys.stderr)
+        return 3
+    sys.stdout.write(json.dumps(strings))
+    return 0
 
 
 @pytest.mark.parametrize("module", sorted(PKG.glob("*.py")), ids=lambda p: p.name)
@@ -142,3 +181,18 @@ def test_export_excludes_live_in_a_data_file_not_a_module():
     assert data.exists()
     body = data.read_text().lower()
     assert all(word in body for word in FORBIDDEN[:1])
+
+
+@pytest.mark.parametrize("construction", [
+    'X = f"{0:1000000000}"',                 # a 1 GB format spec (Codex c8)
+    'X = 1 << 10000000000',                  # a giant shift
+    'X = "x" * (10000 ** 3)',                # a giant repetition through an expression
+], ids=["fmt-1G", "shift", "repeat"])
+def test_the_scan_fails_closed_on_a_budget_violation(construction):
+    """A literal that would exhaust memory or time must FAIL the gate, never pass it or hang."""
+    with pytest.raises((ScanBudgetExceeded, __import__("subprocess").TimeoutExpired)):
+        _string_constants(construction + "\n")
+
+
+if __name__ == "__main__" and "--scan" in sys.argv:
+    raise SystemExit(_scan_main())
