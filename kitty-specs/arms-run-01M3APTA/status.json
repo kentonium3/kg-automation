@@ -184,7 +184,8 @@
       "model": "__resolved_model_absent__",
       "notes": [
         "WP05 cycle 1: arm G; 19 static tests + live build/assemble/replay-rule green on office4; full suite green",
-        "WP05 cycle 2: five Codex c1 findings fixed; 64 static + live green; full suite green"
+        "WP05 cycle 2: five Codex c1 findings fixed; 64 static + live green; full suite green",
+        "WP05 cycle 3: MENTIONS edges carry episode time (asserted live); full suite green"
       ],
       "provider": "__resolved_provider_absent__",
       "review": null,
