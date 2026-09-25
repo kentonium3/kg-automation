@@ -1,12 +1,12 @@
 {
-  "event_count": 209,
-  "last_event_id": "01M3BDS6W83HHDHSCXSP132FCT",
-  "materialized_at": "2026-09-25T04:39:37.096153+00:00",
+  "event_count": 210,
+  "last_event_id": "01M3BDVDTV5V3PESFVFDFSHTBV",
+  "materialized_at": "2026-09-25T04:40:49.755572+00:00",
   "mission_number": "",
   "mission_slug": "arms-run-01M3APTA",
   "mission_type": "software-dev",
   "summary": {
-    "approved": 4,
+    "approved": 3,
     "blocked": 0,
     "canceled": 0,
     "claimed": 0,
@@ -14,7 +14,7 @@
     "for_review": 1,
     "in_progress": 2,
     "in_review": 0,
-    "planned": 2
+    "planned": 3
   },
   "work_packages": {
     "WP01": {
@@ -96,14 +96,14 @@
       }
     },
     "WP03": {
-      "actor": "claude",
+      "actor": "user",
       "agent": "claude",
       "agent_profile": "__resolved_profile_absent__",
       "agent_profile_version": "__resolved_profile_version_absent__",
-      "force_count": 10,
-      "lane": "approved",
-      "last_event_id": "01M3BDPXH96WR98SYDXM7YY5XK",
-      "last_transition_at": "2026-09-25T04:38:21.993931+00:00",
+      "force_count": 11,
+      "lane": "planned",
+      "last_event_id": "01M3BDVDTV5V3PESFVFDFSHTBV",
+      "last_transition_at": "2026-09-25T04:40:49.755572+00:00",
       "model": "__resolved_model_absent__",
       "notes": [
         "WP03 ledger: 24 tests incl. kill-mid-write recovery, second-writer refusal, per-field binding refusal; full suite green",
