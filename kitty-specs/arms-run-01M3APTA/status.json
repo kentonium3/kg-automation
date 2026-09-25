@@ -142,7 +142,8 @@
       "last_transition_at": "2026-09-25T03:02:12.894994+00:00",
       "model": "__resolved_model_absent__",
       "notes": [
-        "WP04 cycle 1: 37 tests, full suite 7,125 green; live run_all in a real export not yet executed (WP09 re-runs it)"
+        "WP04 cycle 1: 37 tests, full suite 7,125 green; live run_all in a real export not yet executed (WP09 re-runs it)",
+        "WP04 cycle 2: seven Codex c1 findings fixed; 92 tests; full suite green"
       ],
       "provider": "__resolved_provider_absent__",
       "review": null,
