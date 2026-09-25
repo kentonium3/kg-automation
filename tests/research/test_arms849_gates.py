@@ -338,29 +338,38 @@ def test_excluded_gate_refuses_a_missing_empty_or_partial_package_inventory(tmp_
         assert G.REQUIRED_MODULES[-1] in detail
 
 
-@pytest.mark.parametrize("construction", [
-    'X = "{}{}".format("or", "acle")',                 # Codex c8: a literal format call
-    'X = "or" "acle"',                                 # implicit concatenation
-    'X = "%s%s" % ("or", "acle")',                     # %-formatting on literals
-    'X = "".join(["or", "acle"])',                     # a literal join
-    'X = "{a}{b}".format_map({"a": "or", "b": "acle"})',
-    'X = "OR".lower() + "acle"',
-    'X = "xxor".strip("x") + "acle"',
-    'X = "".join(["or", "acle"]).upper()',             # a literal call on a literal call
-    'X = str("or") + "acle"',                          # Codex c9: an allowlisted builtin on a literal
-    'X = "or acle".split()[0] + "or acle".split()[1]', # Codex c9: ANY method of a literal, subscripted
-    'X = bytes([111, 114, 97, 99, 108, 101]).decode()',  # Codex c9: builtin → method chain
-    'X = ("or" + "acle")[::-1][::-1]',
-    'X = ("OR" "ACLE").lower()',
-    'X = "o" * 1 + "racle"',
-    'X = "".join(reversed("elcaro"))',                 # an iterator materialised by a consuming pure call
-    'X = "or\\x61cle"',                                # an escape in the literal
-    'X = chr(111) + "racle"',
-    'X = bytes.fromhex("6f7261636c65").decode()',      # an attribute of an allowlisted builtin
-    'X = RuntimeError("or" + "acle")',                 # the CALL is opaque; its pure ARG is caught on its own
-    'X = "".join(sorted(["acle", "or"], key=len))',    # a keyword whose value is an allowlisted builtin
-], ids=["format", "adjacent", "percent", "join", "format_map", "lower", "strip", "chained", "str", "split", "bytes-decode",
-        "slice-twice", "upper-lower", "mult", "reversed", "escape", "chr", "fromhex", "opaque-call-pure-arg", "sorted-key"])
+_LITERAL_ONLY_CAUGHT = {
+    "format": 'X = "{}{}".format("or", "acle")',                 # Codex c8: a literal format call
+    "adjacent": 'X = "or" "acle"',                                # implicit concatenation
+    "percent": 'X = "%s%s" % ("or", "acle")',                     # %-formatting on literals
+    "join": 'X = "".join(["or", "acle"])',                        # a literal join
+    "format_map": 'X = "{a}{b}".format_map({"a": "or", "b": "acle"})',
+    "lower": 'X = "OR".lower() + "acle"',
+    "strip": 'X = "xxor".strip("x") + "acle"',
+    "chained": 'X = "".join(["or", "acle"]).upper()',             # a literal call on a literal call
+    "str": 'X = str("or") + "acle"',                              # Codex c9: an allowlisted builtin on a literal
+    "split": 'X = "or acle".split()[0] + "or acle".split()[1]',   # Codex c9: ANY method of a literal, subscripted
+    "bytes-decode": 'X = bytes([111, 114, 97, 99, 108, 101]).decode()',   # Codex c9: builtin → method chain
+    "slice-twice": 'X = ("or" + "acle")[::-1][::-1]',
+    "upper-lower": 'X = ("OR" "ACLE").lower()',
+    "mult": 'X = "o" * 1 + "racle"',
+    "reversed": 'X = "".join(reversed("elcaro"))',                # an iterator materialised by a consuming pure call
+    "escape": 'X = "or\\x61cle"',                                 # an escape in the literal
+    "chr": 'X = chr(111) + "racle"',
+    "fromhex": 'X = bytes.fromhex("6f7261636c65").decode()',      # an attribute of an allowlisted builtin
+    "opaque-call-pure-arg": 'X = RuntimeError("or" + "acle")',    # the CALL is opaque; its pure ARG is caught on its own
+    "sorted-key": 'X = "".join(sorted(["acle", "or"], key=len))', # a keyword whose value is an allowlisted builtin
+    "dict-fromkeys": 'X = dict.fromkeys(map("".join, [("or", "acle")]))',        # Codex c10: a dict KEY
+    "list-zip": 'X = list(zip(map("".join, [("or", "acle")])))',                 # Codex c10: a tuple inside a list
+    "nested-3": 'X = tuple(map(tuple, [map(tuple, [map("".join, [("or", "acle")])])]))',   # three containers deep
+    "dict-value": 'X = dict(zip(["k"], map("".join, [("or", "acle")])))',       # a dict VALUE
+    "bytes-in-tuple": 'X = tuple(map(bytes, [[111, 114, 97, 99, 108, 101]]))',  # bytes inside a tuple
+    "set-sorted-reverse": 'X = "".join(sorted({"or", "acle"}, reverse=True))',  # an unordered container, ORDER-INSENSITIVELY consumed
+    "set-max": 'X = max({"or" "acle", "a"})',
+}
+
+
+@pytest.mark.parametrize("construction", list(_LITERAL_ONLY_CAUGHT.values()), ids=list(_LITERAL_ONLY_CAUGHT))
 def test_excluded_gate_fails_on_a_literal_only_construction(tmp_path, monkeypatch, construction):
     pkg = _fake_pkg(tmp_path / "pkg"); (pkg / "bad.py").write_text(construction + "\n")
     monkeypatch.setattr(G, "PKG_DIR", pkg)
@@ -417,6 +426,68 @@ def test_a_module_that_shadows_an_allowlisted_builtin_is_refused(tmp_path, monke
 def test_an_absent_method_of_a_literal_refuses_the_scan(tmp_path, monkeypatch):
     with pytest.raises(litscan.ScanRefused, match="AttributeError"):
         litscan.string_constants('X = "or".nosuch()\n')
+
+
+_ORDER_SENSITIVE = {
+    "join": 'X = "".join({"or", "acle"})',                          # Codex c10: flipped with PYTHONHASHSEED
+    "list": 'X = list({"or", "acle"})',
+    "tuple-frozenset": 'X = tuple(frozenset({"or", "acle"}))',
+    "percent": 'X = "%s" % {"or", "acle"}',
+    "str": 'X = str({"or", "acle"})',
+    "sorted-key": 'X = "".join(sorted({"or", "acle"}, key=len))',   # ties fall in hash order
+    "min-key": 'X = min({"or", "acle"}, key=len)',
+    "map": 'X = "".join(map(str, {"or", "acle"}))',
+    "enumerate": 'X = list(enumerate({"or", "acle"}))',
+    "fstring": 'X = f"{ {\'or\', \'acle\'} }"',
+    "method": 'X = {"or", "acle"}.pop()',
+    "subscript": 'X = ("a", {"or", "acle"})[1]',
+    "subset": 'X = {"or", "acle"} < {"or"}',
+    "ifexp-test": 'X = "x" if {"or", "acle"} else "y"',
+    "starred": 'X = sorted(*[{"or", "acle"}])',
+}
+
+
+@pytest.mark.parametrize("construction", list(_ORDER_SENSITIVE.values()), ids=list(_ORDER_SENSITIVE))
+@pytest.mark.parametrize("seed", ["0", "3"])
+def test_order_sensitive_consumption_of_an_unordered_container_is_refused_under_any_hash_seed(tmp_path, monkeypatch, seed, construction):
+    """Codex c10 MAJOR: `"".join({"or","acle"})` was a hit under PYTHONHASHSEED=0 and a pass under
+    3 — a gate whose answer depends on the hash seed is not a gate. Consumed in any
+    order-sensitive way, an unordered container REFUSES (child spawned under BOTH seeds)."""
+    monkeypatch.setenv("PYTHONHASHSEED", seed)
+    with pytest.raises(litscan.ScanRefused, match="order-sensitive"):
+        litscan.string_constants(construction + "\n")
+    pkg = _fake_pkg(tmp_path / "pkg"); (pkg / "unordered.py").write_text(construction + "\n")
+    monkeypatch.setattr(G, "PKG_DIR", pkg)
+    ok, detail = G.excluded_material_absent(_env(tmp_path))
+    assert not ok and "failed closed" in detail and "unordered.py" in detail and "order-sensitive" in detail, detail
+
+
+@pytest.mark.parametrize("seed", ["0", "3"])
+def test_order_insensitive_consumers_of_an_unordered_container_stay_pure_and_deterministic(tmp_path, monkeypatch, seed):
+    monkeypatch.setenv("PYTHONHASHSEED", seed)
+    # the closed list of order-insensitive consumers: pure, and the gate passes
+    for c in ['X = len({"or", "acle"})', 'X = "or" in {"or", "acle"}', 'X = {"or", "acle"} == {"acle", "or"}',
+              'X = frozenset({"or", "acle"})', 'X = any({"or", "acle"})', 'X = sorted({"or", "acle"})[0] + "x"']:
+        assert litscan.string_constants(c + "\n") == litscan.string_constants(c + "\n"), c
+        pkg = _fake_pkg(tmp_path / f"pkg_{abs(hash(c))}"); (pkg / "ok.py").write_text(c + "\n")
+        monkeypatch.setattr(G, "PKG_DIR", pkg)
+        ok, detail = G.excluded_material_absent(_env(tmp_path / f"e_{abs(hash(c))}"))
+        assert ok and "no hit" in detail, (c, detail)
+    # sorted() makes the consumption deterministic: reverse=True yields the word under EVERY seed…
+    assert FORBIDDEN[0] in "\n".join(litscan.string_constants('X = "".join(sorted({"or", "acle"}, reverse=True))\n')).lower()
+    # …and plain sorted() yields "acle" + "or" (no hit) under every seed — the same answer each time
+    plain = litscan.string_constants('X = "".join(sorted({"or", "acle"}))\n')
+    assert FORBIDDEN[0] not in "\n".join(plain).lower() and "acleor" in plain
+    assert plain == litscan.string_constants('X = "".join(sorted({"or", "acle"}))\n')
+
+
+@pytest.mark.parametrize("construction", list(_LITERAL_ONLY_CAUGHT.values()), ids=list(_LITERAL_ONLY_CAUGHT))
+def test_two_consecutive_scans_of_a_construction_agree(construction):
+    """Every child process draws its own hash seed; the strings the scan reports must not
+    depend on it (set members are reported in sorted order)."""
+    first = litscan.string_constants(construction + "\n")
+    assert first == litscan.string_constants(construction + "\n")
+    assert FORBIDDEN[0] in "\n".join(first).lower()
 
 
 def test_a_literal_call_that_raises_refuses_the_scan(tmp_path, monkeypatch):

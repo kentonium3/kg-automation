@@ -15,6 +15,18 @@ arguments are still evaluated on their own, so the BinOp above is caught — and
 name, comprehension, lambda or attribute of a name is the RUNTIME boundary's job
 (a NUL in its place inside an f-string, so a word cannot be smuggled around it).
 
+Materialised values are read RECURSIVELY (Codex WP04 c10): str/bytes yield
+themselves, list/tuple/set/frozenset/dict (keys AND values) recurse, so
+`dict.fromkeys(map("".join, [...]))` and `list(zip(map("".join, [...])))` are seen;
+depth is bounded only by the child's rlimits (a pathological nesting fails closed).
+Unordered containers (a Set literal, set()/frozenset()) are hash-seed dependent, so a
+pure subtree that consumes one ORDER-SENSITIVELY — `"".join({...})`, list()/tuple(),
+iteration through map/zip/enumerate/reversed, subscripting, %-formatting, str()/repr(),
+any method of a set, sorted/min/max with a `key` — is REFUSED: a gate whose answer can
+differ between runs is not a gate. Order-INSENSITIVE consumers (closed list: sorted,
+len, min, max, any, all, set/frozenset re-wrapping, `in`/`not in`, `==`/`!=`) are
+allowed; set members are extracted in sorted order so every scan is reproducible.
+
 Shadowing: a module that rebinds any allowlisted builtin name at any scope
 (assignment target, def/class name, import alias, global/nonlocal, comprehension,
 for/with/except target, parameter) is REFUSED — the allowlist is only closed while
@@ -98,6 +110,11 @@ _PURE_BUILTINS: frozenset[str] = frozenset({
     "map", "filter", "any", "all",
 })
 _EVAL_BUILTINS: dict[str, object] = {name: getattr(builtins, name) for name in sorted(_PURE_BUILTINS)}
+# The CLOSED list of consumers whose result does not depend on the iteration order of an
+# unordered argument (set()/frozenset() re-wrap it; the rest reduce it to a scalar or sort it).
+_ORDER_INSENSITIVE_CONSUMERS: frozenset[str] = frozenset({"sorted", "len", "min", "max", "any", "all", "set", "frozenset"})
+_UNORDERED_MAKERS: frozenset[str] = frozenset({"set", "frozenset"})
+_ORDER_INSENSITIVE_OPS: tuple[type[ast.cmpop], ...] = (ast.In, ast.NotIn, ast.Eq, ast.NotEq)
 
 
 def _is_pure(node: ast.AST) -> bool:
@@ -122,6 +139,81 @@ def _is_pure(node: ast.AST) -> bool:
         where = f"line {getattr(node, 'lineno', '?')}:{getattr(node, 'col_offset', '?')}"
         raise ScanRefused(f"unclassified expression node {kind.__name__} at {where} — the scan cannot vouch for it")
     return all(_is_pure(child) for child in ast.iter_child_nodes(node))
+
+
+def _refuse_order(node: ast.AST, what: str) -> None:
+    where = f"line {getattr(node, 'lineno', '?')}:{getattr(node, 'col_offset', '?')}"
+    raise ScanRefused(f"order-sensitive consumption of an unordered container at {where} ({what}) — "
+                      f"the result depends on the hash seed")
+
+
+def _unordered(node: ast.AST) -> bool:
+    """For a PURE subtree: True when its value is or contains an unordered container.
+    Raises ScanRefused when such a value is consumed by anything but a closed list of
+    order-insensitive consumers (Codex WP04 c10: `"".join({"or", "acle"})` flipped with
+    PYTHONHASHSEED)."""
+    kind = type(node)
+    if kind is ast.Set:
+        for elt in node.elts:                                  # type: ignore[attr-defined]
+            _unordered(elt)
+        return True
+    if kind is ast.Call:
+        call: ast.Call = node                                  # type: ignore[assignment]
+        arg_taint = [_unordered(a) for a in call.args] + [_unordered(k.value) for k in call.keywords]
+        if isinstance(call.func, ast.Name):
+            name = call.func.id
+            if name in _UNORDERED_MAKERS:
+                return True
+            if name in _ORDER_INSENSITIVE_CONSUMERS:
+                if any(arg_taint) and any(k.arg == "key" for k in call.keywords):
+                    _refuse_order(node, f"{name}() with a key: ties fall in hash order")
+                return False
+            if any(arg_taint):
+                _refuse_order(node, f"{name}() over an unordered argument")
+            return False
+        if _unordered(call.func.value) or any(arg_taint):     # type: ignore[attr-defined]
+            _refuse_order(node, "a method over an unordered receiver or argument")
+        return False
+    if kind is ast.Compare:
+        cmp: ast.Compare = node                                # type: ignore[assignment]
+        taints = [_unordered(cmp.left)] + [_unordered(c) for c in cmp.comparators]
+        if any(taints) and not all(isinstance(op, _ORDER_INSENSITIVE_OPS) for op in cmp.ops):
+            _refuse_order(node, "an ordering comparison")
+        return False
+    if kind in (ast.Tuple, ast.List, ast.Dict, ast.BoolOp):
+        return any(_unordered(child) for child in ast.iter_child_nodes(node) if isinstance(child, ast.expr))
+    if kind is ast.IfExp:
+        ifexp: ast.IfExp = node                                # type: ignore[assignment]
+        if _unordered(ifexp.test):
+            _refuse_order(node, "a conditional on an unordered container")
+        return _unordered(ifexp.body) or _unordered(ifexp.orelse)
+    if kind is ast.Attribute:
+        return _unordered(node.value)                          # type: ignore[attr-defined]
+    children = [c for c in ast.iter_child_nodes(node) if isinstance(c, ast.expr)]
+    if any(_unordered(c) for c in children):                   # BinOp, UnaryOp, Subscript, Slice, Starred, f-strings
+        _refuse_order(node, f"{kind.__name__} over an unordered container")
+    return False
+
+
+def _strings_from(value: object, out: list[str]) -> None:
+    """Every str the materialised value holds, recursively: containers, dict keys AND
+    values; set members in sorted order (reproducible). A raw iterator is left unconsumed."""
+    if isinstance(value, (bytes, bytearray)):
+        out.append(bytes(value).decode("utf-8", "replace"))
+    elif isinstance(value, str):
+        out.append(value)
+    elif isinstance(value, (set, frozenset)):
+        members: list[str] = []
+        for v in value:
+            _strings_from(v, members)
+        out.extend(sorted(members))
+    elif isinstance(value, dict):
+        for k, v in value.items():
+            _strings_from(k, out)
+            _strings_from(v, out)
+    elif isinstance(value, (tuple, list)):
+        for v in value:
+            _strings_from(v, out)
 
 
 def _bound_names(tree: ast.AST) -> Iterable[tuple[str, ast.AST]]:
@@ -173,6 +265,7 @@ def _const_eval(node: ast.AST) -> object:
         node = ast.JoinedStr(values=[node])
     if not isinstance(node, ast.expr) or not _is_pure(node):
         return _UNKNOWN
+    _unordered(node)                                            # refuses hash-order-dependent consumption
     if isinstance(node, ast.Call):
         try:
             return _eval(node)
@@ -196,13 +289,7 @@ def _string_constants_inprocess(source: str) -> list[str]:
         val = _const_eval(node)
         if val is _UNKNOWN:
             continue
-        if isinstance(val, (bytes, bytearray)):
-            out.append(bytes(val).decode("utf-8", "replace"))
-        elif isinstance(val, str):
-            out.append(val)
-        elif isinstance(val, (tuple, list, set, frozenset)):
-            out.extend(bytes(v).decode("utf-8", "replace") if isinstance(v, (bytes, bytearray)) else v
-                       for v in val if isinstance(v, (str, bytes, bytearray)))
+        _strings_from(val, out)
     return out
 
 
