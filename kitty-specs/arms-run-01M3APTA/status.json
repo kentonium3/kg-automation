@@ -69,7 +69,8 @@
         "WP02 cycle 2: six Codex findings fixed with negative tests; both live tests green on office4",
         "WP02 cycle 3: three Codex c2 findings fixed; live boundary tests green with seven widening targets",
         "WP02 cycle 4: three Codex c3 findings + design-lead items fixed; static 31, live green with rebuilt image",
-        "WP02 cycle 5: three Codex c4 findings fixed; static 34, live green incl. in-runner chat-template probe"
+        "WP02 cycle 5: three Codex c4 findings fixed; static 34, live green incl. in-runner chat-template probe",
+        "WP02 cycle 6: three Codex c5 findings fixed; static 38, live green incl. /dev/shm identity negative"
       ],
       "provider": "__resolved_provider_absent__",
       "review": null,
