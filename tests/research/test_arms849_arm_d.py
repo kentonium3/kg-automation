@@ -151,6 +151,8 @@ def test_primary_refuses_exactly_six_and_secondary_refuses_none(run_all):
     exceeded = {q for q, o in primary.items() if isinstance(o, D.ContextExceeded)}
     counts = {q: (o.prompt_tokens if isinstance(o, D.ContextExceeded) else o["prompt_tokens"]) for q, o in primary.items()}
     assert exceeded == EXPECTED_EXCEEDING, f"exceeded {sorted(exceeded)}; measured {counts}"
+    # For WP10's re-measurement: every question's exact serialised request size, on a green run.
+    print("MEASURED prompt_tokens (chat-templated request) " + json.dumps({q: counts[q] for q in ASK_ORDER}))
     assert len(exceeded) == 6
     assert len(facade.sent) == 2 and {json.loads(json.dumps(b))["seed"] for b in facade.sent} == {1001}
     for q in exceeded:
@@ -252,14 +254,44 @@ def test_render_dump_refuses_a_reordered_or_incomplete_full_view(text, views, mo
     monkeypatch.setattr(text, "render_full_view", lambda v: text.render_block(good.event_refs[::-1], good.record_keys))
     with pytest.raises(AssertionError, match="view order"):
         D.render_dump(text, view)
+    # Same refs, same keys, same section boundary — but the record LINES rotated by one: only the
+    # byte-equality guard can see this (Opus WP06 c1).
+    lines = [text.record_line(k) + b"\n" for k in good.record_keys]
+    rotated = b"".join(text.event_line(r) + b"\n" for r in good.event_refs) + b"".join(lines[1:] + lines[:1])
+    monkeypatch.setattr(text, "render_full_view",
+                        lambda v: good.__class__(event_refs=good.event_refs, record_keys=good.record_keys, data=rotated))
+    with pytest.raises(AssertionError, match="event section \\+ record section"):
+        D.render_dump(text, view)
+
+
+@needs_corpus
+def test_an_empty_or_recordless_view_is_refused(text):
+    from scripts.research.load_849_corpus import Loaded
+    empty = Loaded(ask_time=Q.ask_time_dt(Q.by_id("C1")))
+    with pytest.raises(D.ArmRefusal, match="empty view"):
+        D.render_dump(text, empty)
+    full = replay(CORPUS, Q.ask_time_dt(Q.by_id("C1")), verify=False)
+    full.links = []
+    recordless = Loaded(ask_time=full.ask_time, events=full.events)
+    with pytest.raises(D.ArmRefusal, match="empty view"):
+        D.render_dump(text, recordless)
+    eventless = Loaded(ask_time=full.ask_time, entities=full.entities, edges=full.edges)
+    with pytest.raises(D.ArmRefusal, match="empty view"):
+        D.render_dump(text, eventless)
 
 
 @needs_corpus
 def test_a_view_with_links_is_refused(text, views):
     view = replay(CORPUS, Q.ask_time_dt(Q.by_id("B2")), verify=False)
     assert view.links, "the un-narrowed B2 view carries loader links"
-    with pytest.raises(ValueError, match="loader links"):
+    with pytest.raises(D.ArmRefusal, match="loader links"):
         D.render_dump(text, view)
+
+    class NoLinksAttribute:                                        # not a narrowed view either
+        events, entities, edges = view.events, view.entities, view.edges
+
+    with pytest.raises(AttributeError):
+        D.render_dump(text, NoLinksAttribute())
 
 
 # ---------------------------------------------------------------------------
@@ -310,10 +342,6 @@ def test_c1_block_bytes_equal_the_frozen_corpus_lines(text, views):
     for line in (CORPUS / "stream.jsonl").read_bytes().split(b"\n"):
         if line.strip():
             raw_by_ref[json.loads(line)["ref"]] = line
-    entities = json.loads((CORPUS / "entities.json").read_text(encoding="utf-8"))
-    by_key = {}
-    for rec in entities:
-        by_key[(rec.get("id"), rec.get("kind"))] = record_line_bytes(rec)
     expected = b"".join(raw_by_ref[str(e["ref"])] + b"\n" for e in view.events)
     expected += b"".join(record_line_bytes(e) + b"\n" for e in view.entities)
     expected += b"".join(record_line_bytes(e) + b"\n" for e in view.edges)
@@ -355,9 +383,63 @@ def test_cache_prompt_off_is_refused_before_counting(tok, identity, text, views)
     facade = Facade(tok, S.ServingConfiguration.primary(identity))
     real = facade.serialize
     facade.serialize = lambda req, seed: {**real(req, seed), "cache_prompt": False}
-    with pytest.raises(ValueError, match="cache_prompt"):
+    with pytest.raises(D.ArmRefusal, match="cache_prompt"):
         D.arm_d(Q.by_id("C1"), views["C1"], ctx_for(facade, "primary"), text)
     assert facade.sent == [] and facade.counted == []
+
+
+@needs_corpus
+@needs_tokenizer
+def test_last_line_refusal_from_complete_keeps_the_row_contract(tok, identity, text, views):
+    """serving.complete's own guard raises the BASE exception with only a message; the arm
+    re-raises it as its ContextExceeded carrying the plan, so the exceeds row is complete."""
+    facade = Facade(tok, S.ServingConfiguration.primary(identity))
+
+    def refuse(body):
+        facade.sent.append(body)
+        raise S.ContextExceeded("prompt is N tokens; permitted limit M — not sent")
+
+    facade.complete = refuse
+    with pytest.raises(D.ContextExceeded) as info:
+        D.arm_d(Q.by_id("C1"), views["C1"], ctx_for(facade, "primary"), text)
+    exc = info.value
+    assert isinstance(exc.__cause__, S.ContextExceeded) and not isinstance(exc.__cause__, D.ContextExceeded)
+    assert exc.plan.layout == D.LAYOUT and exc.limit_applied == "trained" and exc.prompt_tokens == exc.plan.prompt_tokens
+    assert len(facade.sent) == 1
+
+
+@needs_corpus
+@needs_tokenizer
+def test_a_completion_shaped_object_missing_telemetry_or_for_another_request_is_refused(tok, identity, text, views):
+    """The post-complete checks are a live net: a facade that returns a Completion-shaped object
+    with a None field, or one made for a different request, produces no Answer."""
+    facade = Facade(tok, S.ServingConfiguration.primary(identity))
+    real = facade.complete
+
+    def none_field(body):
+        c = real(body)
+        return SimpleNamespace(**{**c.__dict__, "cache_fraction": None})
+
+    facade.complete = none_field
+    with pytest.raises(S.TelemetryMissing, match="cache_fraction"):
+        D.arm_d(Q.by_id("C1"), views["C1"], ctx_for(facade, "primary"), text)
+
+    def other_request(body):
+        c = real(body)
+        return SimpleNamespace(**{**c.__dict__, "client_prompt_tokens": c.client_prompt_tokens + 1})
+
+    facade.complete = other_request
+    with pytest.raises(S.TelemetryMissing, match="not the same request"):
+        D.arm_d(Q.by_id("C1"), views["C1"], ctx_for(facade, "primary"), text)
+
+
+@needs_corpus
+@needs_tokenizer
+def test_bind_gives_the_contracts_three_argument_arm(tok, identity, text, views):
+    facade = Facade(tok, S.ServingConfiguration.primary(identity))
+    arm = D.bind(text)
+    row = arm(Q.by_id("C1"), views["C1"], ctx_for(facade, "primary"))
+    assert row["plan"]["layout"] == D.LAYOUT and "truncated" not in row      # the ledger derives truncated
 
 
 @needs_corpus
