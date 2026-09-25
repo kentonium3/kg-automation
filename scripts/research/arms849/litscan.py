@@ -41,6 +41,29 @@ an ordering Compare, a conditional's test) refuses any taint: "order-sensitive
 consumption of an unordered value". A gate whose answer can differ between runs is
 not a gate. Set members are extracted in sorted order so every scan is reproducible.
 
+Carriers (design-lead ruling 2026-09-25, Codex WP04 c14): in the evaluated subtree an
+intermediate value must be a scalar, a marked container, or an allowlisted builtin
+callable. ANY OTHER value — anything that references another value through an
+attribute, a bound method first of all — is refused ("value carrying an unordered
+reference: <kind>") UNLESS it is invoked within the same node, where the receiver
+check applies: `{"or", "acle"}.copy()` is checked at invocation; `{"or", "acle"}.copy`
+as a VALUE (in a list, handed to map, subscripted out and called later) is refused
+outright. The refusal is by SHAPE, not by taint: an untainted receiver's bound method
+as a value (`["a"].copy`, `"".join` handed to map) is refused too. Audit, one line per
+carrier type:
+  - bound methods / method descriptors: refused as a value; checked at invocation.
+  - iterators from reversed/enumerate/zip/map/filter: materialised to lists by `_mark`
+    at production, so no iterator object is ever an intermediate value.
+  - dict views (keys/values/items): materialised to lists by `_mark` likewise.
+  - slice objects: allowlisted constructor; a tainted component can only reach a
+    subscript, which already refuses a tainted index.
+  - range objects: allowlisted, immutable and ordered — a scalar-like value.
+  - type expressions (GenericAlias / UnionType, i.e. annotations such as `dict[str, int]`
+    or `str | None`): carried ONLY when every part is an allowlisted builtin, None or
+    `...` (recursively) — they reference classes, not values; any other part refuses.
+  - generators, comprehensions, lambdas: opaque by grammar — never evaluated.
+  - iter / next / memoryview / type / getattr: on the NEVER list — opaque by name.
+
 Shadowing: a module that rebinds any allowlisted builtin name at any scope
 (assignment target, def/class name, import alias, global/nonlocal, comprehension,
 for/with/except target, parameter) is REFUSED — the allowlist is only closed while
@@ -71,6 +94,7 @@ import json
 import pathlib
 import subprocess
 import sys
+import types
 from collections.abc import (
     ItemsView,
     Iterable,
@@ -347,7 +371,41 @@ def _call(node: ast.Call) -> Any:
         raise ScanRefused(f"literal call at line {getattr(node, 'lineno', '?')} raised {type(exc).__name__}: {exc}") from exc
 
 
+_PLAIN_VALUE_TYPES: tuple[type, ...] = (type(None), type(Ellipsis), bool, int, float, complex, str, bytes, bytearray,
+                                        list, tuple, dict, set, frozenset, slice, range)
+
+
+def _is_builtin(value: Any) -> bool:
+    return any(value is b for b in _EVAL_BUILTINS.values())
+
+
+def _inert_type_expr(value: Any) -> bool:
+    """A type expression built ONLY from allowlisted builtins (`dict[str, int]`, `tuple[str, ...]`,
+    `str | None`): it references nothing but classes, so it carries no value. Anything else
+    inside one (`tuple[{"or", "acle"}]`) keeps it a carrier."""
+    if isinstance(value, types.GenericAlias):
+        parts: tuple[Any, ...] = (value.__origin__, *value.__args__)
+    elif isinstance(value, types.UnionType):
+        parts = value.__args__
+    else:
+        return False
+    return all(p is Ellipsis or p is type(None) or _is_builtin(p) or _inert_type_expr(p) for p in parts)
+
+
 def _value(node: ast.expr) -> Any:
+    """Python's own value of a PURE node, refused when it is a CARRIER: anything that is not a
+    scalar, a marked container or an allowlisted builtin callable (see the module docstring).
+    A Call's own func is obtained in `_call`, never through here, so a method invoked in
+    the same node is checked at invocation instead."""
+    value = _node_value(node)
+    if isinstance(value, _PLAIN_VALUE_TYPES) or _is_builtin(value) or _inert_type_expr(value):
+        return value
+    where = f"line {getattr(node, 'lineno', '?')}:{getattr(node, 'col_offset', '?')}"
+    raise ScanRefused(f"value carrying an unordered reference: {type(value).__name__} at {where} — "
+                      f"only scalars, marked containers and allowlisted builtins may be carried")
+
+
+def _node_value(node: ast.expr) -> Any:
     """Python's own value of a PURE node, computed bottom-up with every result marked."""
     if isinstance(node, ast.Constant):
         return node.value
@@ -462,8 +520,13 @@ def _refuse_shadowed_builtins(tree: ast.AST) -> None:
 def _string_constants_inprocess(source: str) -> list[str]:
     tree = ast.parse(source)
     _refuse_shadowed_builtins(tree)
+    # A Call's func is invoked within its own node (the receiver check applies there); it is
+    # never evaluated on its own as a VALUE, or `"".join` would be refused as a carrier.
+    call_funcs = {id(n.func) for n in ast.walk(tree) if isinstance(n, ast.Call)}
     out: list[str] = []
     for node in ast.walk(tree):
+        if id(node) in call_funcs:
+            continue
         val = _const_eval(node)
         if val is _UNKNOWN:
             continue

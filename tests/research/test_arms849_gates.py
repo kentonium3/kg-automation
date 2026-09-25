@@ -359,10 +359,6 @@ _LITERAL_ONLY_CAUGHT = {
     "fromhex": 'X = bytes.fromhex("6f7261636c65").decode()',      # an attribute of an allowlisted builtin
     "opaque-call-pure-arg": 'X = RuntimeError("or" + "acle")',    # the CALL is opaque; its pure ARG is caught on its own
     "sorted-key": 'X = "".join(sorted(["acle", "or"], key=len))', # a keyword whose value is an allowlisted builtin
-    "dict-fromkeys": 'X = dict.fromkeys(map("".join, [("or", "acle")]))',        # Codex c10: a dict KEY
-    "list-zip": 'X = list(zip(map("".join, [("or", "acle")])))',                 # Codex c10: a tuple inside a list
-    "nested-3": 'X = tuple(map(tuple, [map(tuple, [map("".join, [("or", "acle")])])]))',   # three containers deep
-    "dict-value": 'X = dict(zip(["k"], map("".join, [("or", "acle")])))',       # a dict VALUE
     "bytes-in-tuple": 'X = tuple(map(bytes, [[111, 114, 97, 99, 108, 101]]))',  # bytes inside a tuple
     "set-sorted-reverse": 'X = "".join(sorted({"or", "acle"}, reverse=True))',  # an unordered container, ORDER-INSENSITIVELY consumed
     "set-max": 'X = max({"or" "acle", "a"})',
@@ -370,6 +366,7 @@ _LITERAL_ONLY_CAUGHT = {
     "fstring-sorted-set": 'X = f"{sorted({\'or\', \'acle\'})[1]}acle"[:6]',
     "starred-list-literal": 'X = "".join([*["or", "acle"]])',        # Codex c13 guard: an ORDERED expansion is caught
     "starred-tuple-literal": 'X = "".join((*("or", "acle"),))',
+    "bound-iter-ordered": 'X = "".join(("or", "acle").__iter__())',          # Codex c14 guard: an ORDERED receiver
 }
 
 
@@ -477,7 +474,47 @@ _ORDER_SENSITIVE = {
     "dict-kwargs-unpack": 'X = dict(**{"k": {"or", "acle"}})',
     "dict-display-unpack-set": 'X = {**{"or", "acle"}}',              # a TypeError at runtime: refused, never skipped
     "subscript-with-set": 'X = ("or", "acle")[frozenset()]',
+    "generic-alias-with-set": 'X = str(tuple[{"or", "acle"}])',        # a type expression holding a set
 }
+
+
+_CARRIERS = {                                                           # design-lead ruling (Codex c14): refused by SHAPE
+    "bound-iter-tuple": 'X = "".join(({"or", "acle"}.__iter__,)[0]())',  # Codex c14
+    "bound-copy-list": 'X = "".join([{"or", "acle"}.copy][0]())',
+    "bound-union-map": 'X = list(map({"or", "acle"}.union, [set()]))',
+    "bound-iter-boolop": 'X = "".join((0 or {"or", "acle"}.__iter__)())',
+    "bound-copy-boolop": 'X = "".join(({"or", "acle"}.copy or 0)())',
+    "bound-iter-ifexp": 'X = "".join(({"or", "acle"}.__iter__ if 1 else 0)())',
+    "untainted-carrier": 'X = "".join([["or", "acle"].copy][0]())',       # STRUCTURAL: an ordered receiver, still refused
+    "untainted-carrier-ordered-iter": 'X = "".join((("or", "acle").__iter__,)[0]())',
+    "dict-fromkeys": 'X = dict.fromkeys(map("".join, [("or", "acle")]))',                 # was caught (c10); `"".join` handed to map is a carrier
+    "list-zip": 'X = list(zip(map("".join, [("or", "acle")])))',                 # was caught (c10); `"".join` handed to map is a carrier
+    "nested-3": 'X = tuple(map(tuple, [map(tuple, [map("".join, [("or", "acle")])])]))',                 # was caught (c10); `"".join` handed to map is a carrier
+    "dict-value": 'X = dict(zip(["k"], map("".join, [("or", "acle")])))',                 # was caught (c10); `"".join` handed to map is a carrier
+}
+
+
+@pytest.mark.parametrize("construction", list(_CARRIERS.values()), ids=list(_CARRIERS))
+@pytest.mark.parametrize("seed", ["0", "3"])
+def test_a_carrier_value_is_refused_by_shape_under_any_hash_seed(tmp_path, monkeypatch, seed, construction):
+    """An intermediate value must be a scalar, a marked container or an allowlisted builtin;
+    a bound method taken as a VALUE (not invoked in its own node) is refused outright,
+    tainted receiver or not — so no later call can reach a set's order through it."""
+    monkeypatch.setenv("PYTHONHASHSEED", seed)
+    with pytest.raises(litscan.ScanRefused, match="value carrying an unordered reference"):
+        litscan.string_constants(construction + "\n")
+    pkg = _fake_pkg(tmp_path / "pkg"); (pkg / "carrier.py").write_text(construction + "\n")
+    monkeypatch.setattr(G, "PKG_DIR", pkg)
+    ok, detail = G.excluded_material_absent(_env(tmp_path))
+    assert not ok and "failed closed" in detail and "carrier.py" in detail and "carrying" in detail, detail
+
+
+def test_inert_type_expressions_are_carried_but_one_holding_a_value_is_not():
+    """Annotations (`dict[str, int]`, `tuple[str, ...]`, `str | None`) reference only classes;
+    every real package module carries them. A type expression holding a value refuses."""
+    assert litscan.string_constants('X = dict[str, tuple[int, ...]] | None\nY: list[str] = []\n') == []
+    with pytest.raises(litscan.ScanRefused, match="value carrying"):
+        litscan.string_constants('X = tuple[("a", "b").__iter__]\n')
 
 
 @pytest.mark.parametrize("construction", list(_ORDER_SENSITIVE.values()), ids=list(_ORDER_SENSITIVE))
