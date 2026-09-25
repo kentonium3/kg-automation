@@ -1,7 +1,7 @@
 {
-  "event_count": 222,
-  "last_event_id": "01M3CXFPS1KBHWY7N2VRE67CBJ",
-  "materialized_at": "2026-09-25T18:33:17.345774+00:00",
+  "event_count": 223,
+  "last_event_id": "01M3CXH4BYVQASWTGKZV03MVF8",
+  "materialized_at": "2026-09-25T18:34:04.030803+00:00",
   "mission_number": "",
   "mission_slug": "arms-run-01M3APTA",
   "mission_type": "software-dev",
@@ -13,8 +13,8 @@
     "done": 0,
     "for_review": 3,
     "in_progress": 0,
-    "in_review": 1,
-    "planned": 2
+    "in_review": 0,
+    "planned": 3
   },
   "work_packages": {
     "WP01": {
@@ -243,15 +243,21 @@
       "agent": "claude",
       "agent_profile": "__resolved_profile_absent__",
       "agent_profile_version": "__resolved_profile_version_absent__",
-      "force_count": 0,
-      "lane": "in_review",
-      "last_event_id": "01M3CXFPS1KBHWY7N2VRE67CBJ",
-      "last_transition_at": "2026-09-25T18:33:17.345774+00:00",
+      "force_count": 1,
+      "lane": "planned",
+      "last_event_id": "01M3CXH4BYVQASWTGKZV03MVF8",
+      "last_transition_at": "2026-09-25T18:34:04.030803+00:00",
       "model": "__resolved_model_absent__",
       "notes": [
         "arm R: view-order re-sort, k from calibration only, records byte-identical to D; Opus fallback review"
       ],
       "provider": "__resolved_provider_absent__",
+      "review_result": {
+        "feedback_path": "/home/kgale/repos/kg-automation/kitty-specs/arms-run-01M3APTA/tasks/WP07-arm-r/review-cycle-1.md",
+        "reference": "review-cycle://arms-run-01M3APTA/WP07-arm-r/review-cycle-1.md",
+        "reviewer": "claude",
+        "verdict": "changes_requested"
+      },
       "role": "reviewer",
       "shell_pid": 59050,
       "shell_pid_created_at": "1790361195.4",
