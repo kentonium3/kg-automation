@@ -1,7 +1,7 @@
 {
-  "event_count": 223,
-  "last_event_id": "01M3CXH4BYVQASWTGKZV03MVF8",
-  "materialized_at": "2026-09-25T18:34:04.030803+00:00",
+  "event_count": 224,
+  "last_event_id": "01M3CXKBFNGM60N2C3W8Q6RRRC",
+  "materialized_at": "2026-09-25T18:35:16.853381+00:00",
   "mission_number": "",
   "mission_slug": "arms-run-01M3APTA",
   "mission_type": "software-dev",
@@ -11,9 +11,9 @@
     "canceled": 0,
     "claimed": 0,
     "done": 0,
-    "for_review": 3,
+    "for_review": 2,
     "in_progress": 0,
-    "in_review": 0,
+    "in_review": 1,
     "planned": 3
   },
   "work_packages": {
@@ -96,14 +96,14 @@
       }
     },
     "WP03": {
-      "actor": "user",
-      "agent": null,
+      "actor": "claude",
+      "agent": "claude",
       "agent_profile": "__resolved_profile_absent__",
       "agent_profile_version": "__resolved_profile_version_absent__",
       "force_count": 11,
-      "lane": "for_review",
-      "last_event_id": "01M3BE4RR7PDQJ003EDFQ3HBCH",
-      "last_transition_at": "2026-09-25T04:45:55.847952+00:00",
+      "lane": "in_review",
+      "last_event_id": "01M3CXKBFNGM60N2C3W8Q6RRRC",
+      "last_transition_at": "2026-09-25T18:35:16.853381+00:00",
       "model": "__resolved_model_absent__",
       "notes": [
         "WP03 ledger: 24 tests incl. kill-mid-write recovery, second-writer refusal, per-field binding refusal; full suite green",
@@ -126,9 +126,9 @@
         "reviewer": "Kent Gale",
         "verdict": "approved"
       },
-      "role": "implementer",
-      "shell_pid": null,
-      "shell_pid_created_at": null,
+      "role": "reviewer",
+      "shell_pid": 60387,
+      "shell_pid_created_at": "1790361314.89",
       "subtasks": {
         "T011": "done",
         "T012": "done",
@@ -240,7 +240,7 @@
     },
     "WP07": {
       "actor": "claude",
-      "agent": "claude",
+      "agent": null,
       "agent_profile": "__resolved_profile_absent__",
       "agent_profile_version": "__resolved_profile_version_absent__",
       "force_count": 1,
@@ -252,6 +252,7 @@
         "arm R: view-order re-sort, k from calibration only, records byte-identical to D; Opus fallback review"
       ],
       "provider": "__resolved_provider_absent__",
+      "review": null,
       "review_result": {
         "feedback_path": "/home/kgale/repos/kg-automation/kitty-specs/arms-run-01M3APTA/tasks/WP07-arm-r/review-cycle-1.md",
         "reference": "review-cycle://arms-run-01M3APTA/WP07-arm-r/review-cycle-1.md",
@@ -259,12 +260,12 @@
         "verdict": "changes_requested"
       },
       "role": "reviewer",
-      "shell_pid": 59050,
-      "shell_pid_created_at": "1790361195.4",
+      "shell_pid": null,
+      "shell_pid_created_at": null,
       "subtasks": {
-        "T028": "done",
-        "T029": "done",
-        "T030": "done"
+        "T028": "planned",
+        "T029": "planned",
+        "T030": "planned"
       }
     },
     "WP08": {
