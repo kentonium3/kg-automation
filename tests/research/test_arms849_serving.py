@@ -57,21 +57,21 @@ def test_serialize_carries_the_exact_prompt_and_sampling():
 
 def test_missing_telemetry_refuses_a_scored_row():
     with pytest.raises(S.TelemetryMissing, match="cache_n"):
-        S.map_timings({"content": "x", "timings": {"prompt_n": 10, "prompt_ms": 1, "predicted_n": 1, "predicted_ms": 1}})
+        S.map_timings({"content": "x", "timings": {"prompt_n": 10, "prompt_ms": 1, "predicted_n": 1, "predicted_ms": 1}}, 10)
 
 
 def test_telemetry_mapping_is_explicit():
     """prompt_n EXCLUDES cache hits (llama.cpp tools/server): total = prompt_n + cache_n."""
     c = S.map_timings({"content": "answer", "stop_type": "eos",
                        "timings": {"prompt_n": 100, "cache_n": 900, "prompt_ms": 2000.0,
-                                   "predicted_n": 50, "predicted_ms": 2500.0}})
+                                   "predicted_n": 50, "predicted_ms": 2500.0}}, 1000)
     assert c.prompt_tokens == 1000 and c.cache_read_tokens == 900
     assert c.uncached_tokens == 100 and c.cache_write_tokens == 100
     assert c.cache_state == "warm" and c.cache_fraction == 0.9
     assert c.prefill_s == 2.0 and c.generation_s == 2.5 and c.generation_tok_s == 20.0
     assert c.finish_reason == "stop" and not c.truncated
     cold = S.map_timings({"content": "", "stopped_limit": True,
-                          "timings": {"prompt_n": 10, "cache_n": 0, "prompt_ms": 1, "predicted_n": 2048, "predicted_ms": 1}})
+                          "timings": {"prompt_n": 10, "cache_n": 0, "prompt_ms": 1, "predicted_n": 2048, "predicted_ms": 1}}, 10)
     assert cold.cache_state == "cold" and cold.finish_reason == "length" and cold.truncated
 
 
@@ -115,7 +115,7 @@ def test_warm_request_regression_from_codex_cycle_2():
     fraction 236/237 — the first mapping produced -235 and a fraction of 236."""
     c = S.map_timings({"content": "x", "stop_type": "eos",
                        "timings": {"prompt_n": 1, "cache_n": 236, "prompt_ms": 10.0,
-                                   "predicted_n": 3, "predicted_ms": 30.0}})
+                                   "predicted_n": 3, "predicted_ms": 30.0}}, 237)
     assert c.prompt_tokens == 237 and c.uncached_tokens == 1 and c.cache_write_tokens == 1
     assert c.cache_read_tokens == 236 and c.cache_state == "warm"
     assert abs(c.cache_fraction - 236 / 237) < 1e-12
@@ -143,3 +143,61 @@ def test_real_tokenizer_template_is_qwen_chat_and_counted():
     assert body["prompt"].startswith("<|im_start|>user\nhello world<|im_end|>") and body["prompt"].endswith("<|im_start|>assistant\n")
     assert S.count_tokens(body, tok) > tok.count("hello world")   # the template overhead is counted
     assert len(tok.chat_template_sha256()) == 64
+
+
+def test_hosts_allowlist_is_a_constant_not_configuration(monkeypatch):
+    """Design-lead MAJOR 1: an env var must not widen the guard."""
+    monkeypatch.setenv("ARMS849_LLAMA_HOSTS", "api.openai.com,127.0.0.1")
+    importlib.reload(S)
+    with pytest.raises(S.UnsafeEndpoint):
+        S._assert_safe("https://api.openai.com/v1")
+    assert S.ALLOWED_HOSTS == frozenset({"127.0.0.1", "localhost", "llama"})
+
+
+def _ok_response(prompt_n=100, cache_n=0, **over):
+    r = {"content": "x", "stop_type": "eos",
+         "timings": {"prompt_n": prompt_n, "cache_n": cache_n, "prompt_ms": 10.0, "predicted_n": 5, "predicted_ms": 50.0}}
+    r.update(over)
+    return r
+
+
+def test_server_truncation_is_refused_not_scored():
+    """Design-lead MAJOR 2: truncated=true is the context case, never a plausible ok row."""
+    with pytest.raises(S.PromptTruncated):
+        S.map_timings(_ok_response(truncated=True), 100)
+    c = S.map_timings(_ok_response(truncated=False), 100)
+    assert c.client_prompt_tokens == 100 and c.prompt_tokens == 100
+
+
+def test_client_and_server_prompt_counts_must_agree():
+    """Design-lead MAJOR 3: §2 (client) and §5 (server) count the same quantity."""
+    with pytest.raises(S.TelemetryMissing, match="drift"):
+        S.map_timings(_ok_response(prompt_n=60, cache_n=40), 99)
+    assert S.map_timings(_ok_response(prompt_n=60, cache_n=40), 100).cache_state == "warm"
+
+
+class _CountingTok(_FakeTok):
+    def count(self, text): return len(text.split())
+
+
+def test_complete_refuses_before_sending_when_over_the_permitted_limit(monkeypatch):
+    import urllib.request
+    def never(*a, **k): raise AssertionError("request must not be sent")
+    monkeypatch.setattr(urllib.request, "urlopen", never)
+    body = {"prompt": "one two three four five"}
+    with pytest.raises(S.ContextExceeded):
+        S.complete(body, _CountingTok(), permitted_limit=4)
+
+
+def test_equivalence_sample_must_carry_a_templated_line():
+    with pytest.raises(ValueError, match="templated"):
+        S.require_templated_sample(['{"ref": 1}', '{"ref": 2}'])
+    S.require_templated_sample(['{"ref": 1}', "<|im_start|>user\nx<|im_end|>\n<|im_start|>assistant\n"])
+
+
+@needs_tokenizer
+def test_real_equivalence_sample_appends_the_templated_probe():
+    tok = S.Tokenizer()
+    sample = tok.equivalence_sample(['{"ref": 1}'])
+    assert len(sample) == 2 and sample[1].startswith("<|im_start|>user")
+    S.require_templated_sample(sample)
