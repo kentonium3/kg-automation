@@ -31,7 +31,8 @@
         "WP01 shared contracts: 27 tests green, ruff/mypy clean, static scan clean; six-of-eight reproduced on exact requests",
         "Cycle 2: Codex cycle-1 findings 1-3 fixed @95489899 (one-pass slot substitution; bytes-only Block; sorted record digest); 29 tests green; ruff/mypy clean on the package",
         "Cycle 3: Codex cycle-2 finding fixed @4029e012 (prompt_n excludes cache hits; total = prompt_n + cache_n; regression fixture); D-13 corrected @8dc8c798",
-        "Codex read-only review cycle 3 (gpt-6-astra): VERDICT APPROVE. Cycles 1-2 found four genuine defects, all fixed (95489899, 4029e012). 30 tests green, ruff/mypy clean on the package."
+        "Codex read-only review cycle 3 (gpt-6-astra): VERDICT APPROVE. Cycles 1-2 found four genuine defects, all fixed (95489899, 4029e012). 30 tests green, ruff/mypy clean on the package.",
+        "WP01 cycle 4: rubric 939d9b29 chat template folded on lane-a; 33 tests with the tokenizer cache"
       ],
       "provider": "__resolved_provider_absent__",
       "review": null,
