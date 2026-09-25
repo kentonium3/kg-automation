@@ -61,6 +61,9 @@
       "last_event_id": "01M3B1HKPVAJ1BQXM4M6JZ0CZT",
       "last_transition_at": "2026-09-25T01:05:45.179869+00:00",
       "model": "__resolved_model_absent__",
+      "notes": [
+        "WP02 substrate + boundary: 13 static tests; live on office4 — setup (pins, digests, caches, GGUF sha verified), export outside the repo (content sha d479a954…), up healthy at n_ctx 262144, runner self-test PASSED (excluded paths absent, /work ro, no outbound, services reachable, no torch, no key, host checkout unreachable), down clean (GTT 1.5 GiB)"
+      ],
       "provider": "__resolved_provider_absent__",
       "role": "implementer",
       "shell_pid": 1219305,
