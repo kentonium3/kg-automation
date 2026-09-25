@@ -626,3 +626,16 @@ def test_gate_shas_are_validated_on_creation_and_on_resume(tmp_path, field, bad)
     p.write_text("\n".join([json.dumps(head), *lines[1:]]) + "\n")
     with pytest.raises(L.LedgerCorrupt, match=field):
         fresh(tmp_path)
+
+
+@pytest.mark.parametrize("field", ["preflight_sha", "gate_host_sha", "gate_container_sha"])
+def test_open_ledger_validates_a_directly_constructed_binding(tmp_path, field):
+    """Codex c8: Binding(**dict) skips from_environment; open_ledger must still refuse a bad sha
+    BEFORE writing a header (a persisted bad header could never resume)."""
+    b = L.Binding(**{**binding().as_dict(), field: None})
+    with pytest.raises(ValueError, match=field):
+        L.open_ledger(tmp_path / "ledger.jsonl", b, blinding_seed=7, plan=72)
+    assert not (tmp_path / "ledger.jsonl").exists() or (tmp_path / "ledger.jsonl").stat().st_size == 0
+    assert not (tmp_path / "ledger.jsonl.lock").exists() or True   # the lock file may exist; the fd is released:
+    with fresh(tmp_path):                                          # a valid opener succeeds (no leaked lock)
+        pass

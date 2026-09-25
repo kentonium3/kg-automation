@@ -568,6 +568,10 @@ def open_ledger(path: pathlib.Path, binding: Binding, blinding_seed: int, plan: 
 def _open_locked(path: pathlib.Path, binding: Binding, blinding_seed: int, plan: int, fd: int) -> Ledger:
     # Snapshot: the header's binding is OURS, not the caller's mutable dicts (Codex WP03 c3).
     binding = Binding(**copy.deepcopy(binding.as_dict()))
+    # A Binding built directly (not via from_environment) is validated HERE, before any header
+    # can be written: a ledger persisted with a bad sha could never resume (Codex WP03 c8).
+    for name in ("preflight_sha", "gate_host_sha", "gate_container_sha"):
+        _require_sha256(name, getattr(binding, name))
     if not path.exists() or path.stat().st_size == 0:
         header = Header(binding=binding, started=_utc_now(), blinding_seed=blinding_seed, plan=plan)
         ledger = Ledger(path, header, [], fd)
