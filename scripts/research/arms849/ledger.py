@@ -25,6 +25,7 @@ is the harness's job (WP08).
 
 from __future__ import annotations
 
+import copy
 import fcntl
 import hashlib
 import json
@@ -51,11 +52,14 @@ ARMS = ("G", "D", "R")
 REPEATS = 3
 MAX_ATTEMPTS = 3
 #: Fields the ledger itself authors on a run row; a payload carrying one is refused.
-RESERVED_RUN_FIELDS = frozenset({"record", "arm", "question", "repeat", "attempt", "outcome", "serving", "ts"})
+RESERVED_RUN_FIELDS = frozenset({"record", "arm", "question", "repeat", "attempt", "outcome", "serving", "ts",
+                                 "truncated"})   # truncated is DERIVED from finish_reason
 #: The run-row contract (data-model.md "Row run"): a row missing a required field is refused.
-RUN_ROW_ALWAYS = ("ask_time",)
-SCORED_INT_FIELDS = ("prompt_tokens", "assembled_context_tokens", "output_tokens", "cache_read_tokens",
-                     "uncached_tokens", "cache_write_tokens", "seed")
+RUN_ROW_ALWAYS = ("ask_time", "elapsed_s")                       # every run row, any outcome
+ERROR_ROW_FIELDS = ("error", "peak_gtt_gib")                       # every error row
+SCORED_INT_FIELDS = ("prompt_tokens", "client_prompt_tokens", "assembled_context_tokens", "output_tokens",
+                     "cache_read_tokens", "uncached_tokens", "cache_write_tokens", "seed",
+                     "events_loaded", "nodes_loaded", "edges_loaded", "links_loaded")
 SCORED_FLOAT_FIELDS = ("cache_fraction", "prefill_s", "generation_s", "generation_tok_s", "peak_gtt_gib")
 SCORED_OTHER_FIELDS = ("finish_reason", "cache_state", "assembled_context_sha256", "text", "plan")
 SCORED_ROW_FIELDS = SCORED_INT_FIELDS + SCORED_FLOAT_FIELDS + SCORED_OTHER_FIELDS
@@ -305,8 +309,8 @@ class Ledger:
         missing = [f for f in RUN_ROW_ALWAYS if f not in row]
         if key.arm == "D":
             missing += [f for f in D_ROW_FIELDS if f not in row]
-        if outcome == "error" and "error" not in row:
-            missing.append("error")
+        if outcome == "error":
+            missing += [f for f in ERROR_ROW_FIELDS if f not in row]
         if outcome == "exceeds_model_context":
             pt = int(row.get("prompt_tokens", -1))
             if pt <= self.header.binding.model_context_tokens:
@@ -332,8 +336,22 @@ class Ledger:
                 raise ValueError("assembled_context_sha256 must be a 64-hex sha256")
             if not isinstance(row["text"], str) or not isinstance(row["plan"], dict):
                 raise ValueError("text must be a str and plan a dict")
+            # §2 (client count of the sent prompt) and §5 (server prompt_n + cache_n) are ONE quantity.
+            if row["client_prompt_tokens"] != row["prompt_tokens"]:
+                raise ValueError(f"client_prompt_tokens {row['client_prompt_tokens']} != prompt_tokens "
+                                 f"{row['prompt_tokens']}: tokenizer drift is never a scored row")
+            if key.arm == "R":
+                ratio = row["r_g_ratio"]
+                ok_ratio = (type(ratio) in (int, float) and ratio > 0) or (
+                    isinstance(ratio, str) and ratio.startswith("unavailable:") and len(ratio) > len("unavailable:"))
+                if not ok_ratio:
+                    raise ValueError(f"r_g_ratio must be a positive number or 'unavailable:<reason>', got {ratio!r} (D-10)")
+        if "elapsed_s" in row and (type(row["elapsed_s"]) not in (int, float) or row["elapsed_s"] < 0):
+            raise ValueError(f"elapsed_s must be a non-negative number, got {row['elapsed_s']!r}")
         full = {**row, "record": "run", **key.as_dict(), "attempt": attempt, "outcome": outcome,
                 "serving": serving, "ts": _utc_now()}
+        if outcome == SCORED_OUTCOME:
+            full["truncated"] = row["finish_reason"] == "length"     # derived, never supplied
         self._append(full)
         return full
 
@@ -431,10 +449,10 @@ class Ledger:
 # --------------------------------------------------------------------------
 
 
-def _read_with_recovery(path: pathlib.Path) -> tuple[list[dict[str, Any]], str | None]:
-    """Parse every line. Exactly one torn FINAL line is repaired IN PLACE — truncated at its
-    byte offset (never a rewrite of the durable prefix) or, when it is complete JSON that
-    merely lost its newline, terminated — and reported; interior corruption raises."""
+def _scan(path: pathlib.Path) -> tuple[list[dict[str, Any]], str | None, int]:
+    """Parse every line WITHOUT touching the file. Returns (rows, torn_kind, byte offset of
+    the torn/unterminated final line). Exactly one torn FINAL line is tolerated; interior
+    corruption raises."""
     raw = path.read_bytes()
     terminated = raw.endswith(b"\n")
     lines = raw.split(b"\n")
@@ -449,20 +467,32 @@ def _read_with_recovery(path: pathlib.Path) -> tuple[list[dict[str, Any]], str |
         except json.JSONDecodeError:
             if not last:
                 raise LedgerCorrupt(f"malformed line {i + 1} of {len(lines)} in {path}") from None
-            with path.open("r+b") as fh:
-                fh.truncate(offset)
-                fh.flush()
-                os.fsync(fh.fileno())
-            return parsed, "truncated_torn_tail"
+            return parsed, "truncated_torn_tail", offset
         if last and not terminated:
-            with path.open("r+b") as fh:
-                fh.seek(0, os.SEEK_END)
-                fh.write(b"\n")
-                fh.flush()
-                os.fsync(fh.fileno())
-            return parsed, "terminated_final_line"
+            return parsed, "terminated_final_line", offset
         offset += len(line) + 1
-    return parsed, None
+    return parsed, None, offset
+
+
+def _repair(path: pathlib.Path, torn_kind: str, offset: int) -> None:
+    """Repair IN PLACE — truncate at the byte offset (never a rewrite of the durable prefix)
+    or terminate a complete final record that lost its newline — and fsync."""
+    with path.open("r+b") as fh:
+        if torn_kind == "truncated_torn_tail":
+            fh.truncate(offset)
+        else:
+            fh.seek(0, os.SEEK_END)
+            fh.write(b"\n")
+        fh.flush()
+        os.fsync(fh.fileno())
+
+
+def _read_with_recovery(path: pathlib.Path) -> tuple[list[dict[str, Any]], str | None]:
+    """Scan then repair (kept for callers that own the ledger already)."""
+    rows, kind, offset = _scan(path)
+    if kind:
+        _repair(path, kind, offset)
+    return rows, kind
 
 
 def open_ledger(path: pathlib.Path, binding: Binding, blinding_seed: int, plan: int) -> Ledger:
@@ -491,13 +521,17 @@ def open_ledger(path: pathlib.Path, binding: Binding, blinding_seed: int, plan: 
 
 
 def _open_locked(path: pathlib.Path, binding: Binding, blinding_seed: int, plan: int, fd: int) -> Ledger:
+    # Snapshot: the header's binding is OURS, not the caller's mutable dicts (Codex WP03 c3).
+    binding = Binding(**copy.deepcopy(binding.as_dict()))
     if not path.exists() or path.stat().st_size == 0:
         header = Header(binding=binding, started=_utc_now(), blinding_seed=blinding_seed, plan=plan)
         ledger = Ledger(path, header, [], fd)
         ledger._append(header.as_dict())
         return ledger
 
-    rows, recovered = _read_with_recovery(path)
+    # Validate the header and the binding BEFORE repairing anything: a mismatched
+    # opener must not modify a ledger it is refused (Codex WP03 c3, minor).
+    rows, torn_kind, offset = _scan(path)
     if not rows or rows[0].get("record") != "header":
         raise LedgerCorrupt(f"{path}: first line is not a header")
     header = Header.from_dict(rows[0])
@@ -508,7 +542,9 @@ def _open_locked(path: pathlib.Path, binding: Binding, blinding_seed: int, plan:
         raise LedgerBoundToAnotherConfig(
             f"{path} was written against a different configuration; runs from two configurations "
             f"averaged together are indistinguishable from runs from one. Start a new ledger.\n{detail}")
+    if torn_kind:
+        _repair(path, torn_kind, offset)
     ledger = Ledger(path, header, rows[1:], fd)
-    if recovered:
-        ledger.event("recovered_torn_tail", {"how": recovered, "at": _utc_now()})
+    if torn_kind:
+        ledger.event("recovered_torn_tail", {"how": torn_kind, "at": _utc_now()})
     return ledger

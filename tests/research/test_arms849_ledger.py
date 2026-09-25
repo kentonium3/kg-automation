@@ -26,7 +26,7 @@ pytestmark = pytest.mark.skipif(
     not (DEFAULT_CORPUS / "entities.json").exists(),
     reason="rendered corpus absent; run render_849_corpus first")
 
-IDENT = S.ServingIdentity("gguf", "sha256:img", "emb", "tok")
+IDENT = S.ServingIdentity("gguf", "sha256:img", "emb", "tok", "c" * 64)
 SERVING = S.ServingConfiguration.primary(IDENT).as_header_dict()
 QUESTIONS = ["C1", "A", "F1", "B1", "E2", "E1", "F2", "B2"]
 
@@ -60,8 +60,9 @@ ASK = "2026-04-20T09:00:00-04:00"
 
 
 def ok_row(tokens=1000, arm="G"):
-    row = {"ask_time": ASK, "assembled_context_tokens": tokens, "prompt_tokens": tokens + 300,
-           "output_tokens": 120, "cache_read_tokens": 0, "uncached_tokens": tokens + 300,
+    row = {"ask_time": ASK, "elapsed_s": 3.5, "assembled_context_tokens": tokens, "prompt_tokens": tokens + 300,
+           "client_prompt_tokens": tokens + 300, "output_tokens": 120, "cache_read_tokens": 0, "uncached_tokens": tokens + 300,
+           "events_loaded": 10, "nodes_loaded": 5, "edges_loaded": 4, "links_loaded": 3,
            "cache_write_tokens": tokens + 300, "cache_state": "cold", "cache_fraction": 0.0,
            "prefill_s": 1.5, "generation_s": 2.0, "generation_tok_s": 60.0, "peak_gtt_gib": 40.0,
            "finish_reason": "stop", "assembled_context_sha256": "0" * 64, "seed": 1001, "text": "x",
@@ -72,14 +73,14 @@ def ok_row(tokens=1000, arm="G"):
 
 
 def err_row(msg="boom", arm="G"):
-    row = {"ask_time": ASK, "error": msg}
+    row = {"ask_time": ASK, "elapsed_s": 1.0, "error": msg, "peak_gtt_gib": 12.0}
     if arm == "D":
         row["context_limit_applied"] = "trained"
     return row
 
 
 def exceeds_row(pt=362_996):
-    return {"ask_time": ASK, "prompt_tokens": pt, "context_limit_applied": "trained"}
+    return {"ask_time": ASK, "elapsed_s": 0.2, "prompt_tokens": pt, "context_limit_applied": "trained"}
 
 
 # --------------------------------------------------------------------------
@@ -221,7 +222,7 @@ def test_second_writer_is_refused_while_the_first_holds_the_lock(tmp_path):
             from scripts.research.arms849 import ledger as L
             from scripts.research.arms849 import serving as S
             b = L.Binding.from_environment({str(DEFAULT_CORPUS)!r}, S.ServingConfiguration.primary(
-                S.ServingIdentity("gguf", "sha256:img", "emb", "tok")).as_header_dict(), "trained",
+                S.ServingIdentity("gguf", "sha256:img", "emb", "tok", "c" * 64)).as_header_dict(), "trained",
                 "c0ffee", "export-sha", "preflight-sha", repo_root={str(REPO_ROOT)!r},
                 model_context_tokens=S.TRAINED_CONTEXT)
             try:
@@ -324,9 +325,25 @@ def test_serving_is_required_and_stored_on_every_run_row(tmp_path):
         assert rec(led, key, "error", err_row("x"))["serving"] == SERVING
 
 
-@pytest.mark.parametrize("missing", sorted(L.SCORED_ROW_FIELDS + L.RUN_ROW_ALWAYS + ("falkordb_rss_peak_mib",)))
+# The contract, restated INDEPENDENTLY of the implementation's tuples (Codex c3): the
+# data-model.md "Row run" fields marked `ok` / all, plus G's arm field.
+CONTRACT_OK_FIELDS = (
+    "ask_time", "elapsed_s", "prompt_tokens", "client_prompt_tokens", "assembled_context_tokens",
+    "output_tokens", "finish_reason", "cache_read_tokens", "uncached_tokens", "cache_write_tokens",
+    "cache_state", "cache_fraction", "prefill_s", "generation_s", "generation_tok_s", "peak_gtt_gib",
+    "assembled_context_sha256", "seed", "text", "plan",
+    "events_loaded", "nodes_loaded", "edges_loaded", "links_loaded", "falkordb_rss_peak_mib",
+)
+
+
+def test_contract_field_list_matches_the_implementation():
+    impl = set(L.SCORED_ROW_FIELDS) | set(L.RUN_ROW_ALWAYS) | set(L.SCORED_ARM_FIELDS["G"])
+    assert impl == set(CONTRACT_OK_FIELDS)
+
+
+@pytest.mark.parametrize("missing", CONTRACT_OK_FIELDS)
 def test_scored_row_missing_telemetry_is_refused(tmp_path, missing):
-    """Every field data-model.md marks 'row refused if absent' (Codex c2: the list was short)."""
+    """Every field data-model.md marks 'row refused if absent' — list derived from the contract."""
     key = L.RunKey("G", "C1", 1)
     with fresh(tmp_path) as led:
         led.begin_attempt(key)
@@ -348,12 +365,12 @@ def test_per_arm_required_fields_and_d_rows_carry_the_limit(tmp_path):
         rec(led, kr, "ok", ok_row(arm="R"))
         led.begin_attempt(kd)
         with pytest.raises(ValueError, match="context_limit_applied"):
-            rec(led, kd, "error", {"ask_time": ASK, "error": "x"})
+            rec(led, kd, "error", {"ask_time": ASK, "elapsed_s": 1.0, "error": "x", "peak_gtt_gib": 1.0})
         with pytest.raises(ValueError, match="context_limit_applied"):
             rec(led, kd, "error", {**err_row(arm="D"), "context_limit_applied": "guessed"})
         rec(led, kd, "error", err_row(arm="D"))
         with pytest.raises(ValueError, match="error"):
-            led.begin_attempt(kd); rec(led, kd, "error", {"ask_time": ASK, "context_limit_applied": "trained"})
+            led.begin_attempt(kd); rec(led, kd, "error", {"ask_time": ASK, "elapsed_s": 1.0, "peak_gtt_gib": 1.0, "context_limit_applied": "trained"})
 
 
 def test_calibration_payload_cannot_forge_its_record_kind(tmp_path):
@@ -445,3 +462,73 @@ def test_plan_keys_are_protocol_ordered():
     assert len(keys) == 72 and len(set(keys)) == 72
     assert [k.question for k in keys[:8]] == ["C1", "A", "F1", "B1", "E2", "E1", "F2", "B2"]
     assert [k.arm for k in keys[::24]] == ["G", "D", "R"]
+
+
+def test_error_rows_carry_elapsed_and_peak_gtt(tmp_path):
+    key = L.RunKey("G", "C1", 1)
+    with fresh(tmp_path) as led:
+        led.begin_attempt(key)
+        for drop in ("elapsed_s", "peak_gtt_gib", "error"):
+            row = err_row(); del row[drop]
+            with pytest.raises(ValueError, match="telemetry"):
+                rec(led, key, "error", row)
+        rec(led, key, "error", err_row())
+
+
+def test_truncated_is_derived_from_finish_reason_never_supplied(tmp_path):
+    k1, k2 = L.RunKey("G", "C1", 1), L.RunKey("G", "A", 1)
+    with fresh(tmp_path) as led:
+        led.begin_attempt(k1)
+        with pytest.raises(ValueError, match="ledger-authored"):
+            rec(led, k1, "ok", {**ok_row(), "truncated": False})
+        assert rec(led, k1, "ok", {**ok_row(), "finish_reason": "length"})["truncated"] is True
+        led.begin_attempt(k2)
+        assert rec(led, k2, "ok", ok_row())["truncated"] is False
+        assert [r["truncated"] for r in led.grading_rows()] == [True, False]
+
+
+def test_r_g_ratio_must_be_a_number_or_an_unavailable_reason(tmp_path):
+    key = L.RunKey("R", "A", 1)
+    with fresh(tmp_path) as led:
+        led.begin_attempt(key)
+        for bad in (None, 0, -1.0, "unavailable", "unavailable:", "n/a"):
+            with pytest.raises(ValueError, match="r_g_ratio"):
+                rec(led, key, "ok", {**ok_row(arm="R"), "r_g_ratio": bad})
+        rec(led, key, "ok", {**ok_row(arm="R"), "r_g_ratio": "unavailable: G repeat-1 median absent"})
+
+
+def test_client_and_server_prompt_counts_must_agree_on_scored_rows(tmp_path):
+    key = L.RunKey("G", "C1", 1)
+    with fresh(tmp_path) as led:
+        led.begin_attempt(key)
+        with pytest.raises(ValueError, match="client_prompt_tokens"):
+            rec(led, key, "ok", {**ok_row(), "client_prompt_tokens": 1})
+
+
+def test_binding_is_snapshotted_at_open(tmp_path):
+    """Codex c3: mutating the caller's dicts after open must not move the append target."""
+    b = binding()
+    led = L.open_ledger(tmp_path / "ledger.jsonl", b, blinding_seed=7, plan=72)
+    try:
+        b.serving["n_ctx"] = 1                       # caller mutates its own object
+        key = L.RunKey("G", "C1", 1); led.begin_attempt(key)
+        rec(led, key, "error", err_row())            # the ORIGINAL serving still matches
+        with pytest.raises(L.LedgerBoundToAnotherConfig):
+            rec(led, key, "error", err_row(), serving=b.serving)
+    finally:
+        led.close()
+
+
+def test_mismatched_opener_does_not_repair_the_tail(tmp_path):
+    key = L.RunKey("G", "C1", 1)
+    with fresh(tmp_path) as led:
+        led.begin_attempt(key); rec(led, key, "ok", ok_row())
+    p = tmp_path / "ledger.jsonl"
+    with p.open("ab") as fh:
+        fh.write(b'{"record": "run", "torn')
+    before = p.read_bytes()
+    with pytest.raises(L.LedgerBoundToAnotherConfig):
+        fresh(tmp_path, limit_applied="configured")
+    assert p.read_bytes() == before                  # refused opener changed nothing
+    with fresh(tmp_path) as led:                     # the rightful opener recovers and logs it
+        assert [r for r in led.rows if r.get("record") == "event" and r["kind"] == "recovered_torn_tail"]
