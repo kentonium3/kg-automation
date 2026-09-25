@@ -1,0 +1,55 @@
+# The #849 arms sandbox on office4 — research.md D-9 is the certification this file implements.
+# Project name: arms849. Everything binds to 127.0.0.1. Nothing here touches office2.
+#
+# Variables come from `.env` written by `substrate up`:
+#   FALKORDB_IMAGE   falkordb/falkordb@sha256:<resolved at setup, recorded in setup.json>
+#   LLAMA_IMAGE      ghcr.io/ggml-org/llama.cpp@sha256:063e88ae… (SOURCE.md known-good)
+#   GGUF_DIR         directory holding the GGUF (mounted read-only)
+#   GGUF_FILE        the .gguf filename
+#   N_CTX            262144 (primary) | 393216 (secondary)
+#   ROPE_ARGS        "" (primary) | "--rope-scaling yarn --rope-scale 2 --yarn-orig-ctx 262144" (secondary)
+name: arms849
+
+networks:
+  arms849-net:
+    driver: bridge
+    internal: true          # the runner reaches the two services and nothing else
+
+volumes:
+  arms849-falkor: {}
+
+services:
+  falkordb:
+    image: ${FALKORDB_IMAGE}
+    networks: [arms849-net]
+    ports:
+      - "127.0.0.1:16379:6379"
+    volumes:
+      - arms849-falkor:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-p", "6379", "PING"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  llama:
+    image: ${LLAMA_IMAGE}
+    networks: [arms849-net]
+    ports:
+      - "127.0.0.1:18080:8080"
+    devices:
+      - /dev/dri:/dev/dri
+    group_add:
+      - "992"                # render group on office4 (SOURCE.md)
+    volumes:
+      - ${GGUF_DIR}:/models:ro
+    command: >
+      -m /models/${GGUF_FILE}
+      --parallel 1 --n-gpu-layers 999 --jinja
+      --host 0.0.0.0 --port 8080
+      --ctx-size ${N_CTX} ${ROPE_ARGS}
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8080/health || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 240           # a 46 GB load takes minutes; 240 × 15 s = 1 h ceiling
