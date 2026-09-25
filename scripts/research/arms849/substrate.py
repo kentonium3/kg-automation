@@ -605,6 +605,30 @@ for line in open("/proc/self/mounts", encoding="utf-8"):
     if target.startswith("/proc/") and fstype in ("proc", "tmpfs"):
         continue
     extra.append(target)
+# Docker's own /etc binds must come from docker's container directory — an excluded
+# file bound at /etc/hostname would otherwise sit at an allowed path (Codex WP02 c10).
+# /proc/self/mountinfo field 4 is the bind's root inside its filesystem.
+import re as _re
+_docker_root = _re.compile(r"(^|/)containers/[0-9a-f]{64}/(hostname|hosts|resolv\.conf)$")
+_mountinfo_root = {}
+for line in open("/proc/self/mountinfo", encoding="utf-8"):
+    parts = line.split()
+    if len(parts) >= 5:
+        _mountinfo_root[parts[4]] = parts[3]
+for etc in sorted(docker_etc):
+    root = _mountinfo_root.get(etc)
+    if root is None or not _docker_root.search(root) or not root.endswith("/" + etc.rsplit("/", 1)[1]):
+        extra.append(f"{etc}:source={root}")
+try:
+    _hn = open("/etc/hostname", encoding="utf-8").read().strip()
+    if _hn != socket.gethostname() or not (1 <= len(_hn) <= 64):
+        extra.append("/etc/hostname:content")
+    if _hn not in open("/etc/hosts", encoding="utf-8").read():
+        extra.append("/etc/hosts:content")
+    if "nameserver" not in open("/etc/resolv.conf", encoding="utf-8").read():
+        extra.append("/etc/resolv.conf:content")
+except OSError as _e:
+    extra.append(f"/etc:unreadable:{_e}")
 # The data mounts must be OUR data, not a checkout wearing the right path.
 if not os.path.isfile("/work/scripts/research/arms849/compose/export-excludes.txt") or os.path.exists("/work/.git"):
     extra.append("/work:identity")

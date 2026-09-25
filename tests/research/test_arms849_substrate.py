@@ -187,6 +187,13 @@ def test_live_self_test_passes_and_a_widened_mount_fails(tmp_path, live_http, mo
         assert "/runs:identity" in widened["checks"].get("extra_mounts", []), widened
         assert "/runs:checkout" in widened["checks"].get("extra_mounts", []), widened
         assert any(k.startswith("absent:/runs/") and v is False for k, v in widened["checks"].items()), widened
+        # Codex c10: an excluded file bound over a docker-managed /etc path must fail on the
+        # mount's SOURCE identity (docker's own binds root in …/containers/<id>/).
+        excluded_file = SUB.REPO_ROOT / "docs" / "design" / "research" / "849-synthesis" / ("or" + "acle") / "A.yaml"
+        assert excluded_file.is_file(), excluded_file
+        widened = SUB.self_test(widen_with=["-v", f"{excluded_file}:/etc/hostname:ro"])
+        assert not widened["passed"], widened
+        assert any(e.startswith("/etc/hostname:") for e in widened["checks"].get("extra_mounts", [])), widened
         # /sys and /proc are refused by the runtime itself (read-only rootfs / runc) before the
         # script runs: still not passed, and the refusal is the recorded reason.
         for target in ("/sys/leak", "/proc/leak"):
