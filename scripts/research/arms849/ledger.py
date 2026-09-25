@@ -29,6 +29,7 @@ import copy
 import fcntl
 import hashlib
 import json
+import math
 import os
 import pathlib
 import re
@@ -81,6 +82,11 @@ BOUND_CODE_GLOBS = ("scripts/research/arms849/*.py", "scripts/research/run_849_h
 def _utc_now() -> str:
     # Explicit UTC, never a bare astimezone() (#759).
     return datetime.now(timezone.utc).isoformat()
+
+
+def _require_measurement(name: str, value: Any) -> None:
+    if type(value) not in (int, float) or not math.isfinite(value) or value < 0:
+        raise ValueError(f"{name} must be a finite non-negative number, got {value!r}")
 
 
 class LedgerBoundToAnotherConfig(RuntimeError):
@@ -216,6 +222,7 @@ class Summary:
     range_prompt_tokens: tuple[int, int] | None
     cache_read_tokens: int
     uncached_tokens: int
+    cache_write_tokens: int
     cold: int
     warm: int
     r_g_ratios: list[Any]
@@ -329,13 +336,19 @@ class Ledger:
             raise ValueError(f"{key} {outcome} row is missing required telemetry {missing}")
         if key.arm == "D" and row["context_limit_applied"] not in CONTEXT_LIMITS:
             raise ValueError(f"context_limit_applied must be one of {CONTEXT_LIMITS}")
+        # A measurement is a FINITE non-negative number — None, NaN and inf are a missing
+        # measurement wearing a value (Codex WP03 c5); error text is a non-empty string.
         if outcome == SCORED_OUTCOME:
             for f in SCORED_INT_FIELDS:
                 if type(row[f]) is not int or row[f] < 0:
                     raise ValueError(f"scored row field {f} must be a non-negative int, got {row[f]!r}")
-            for f in SCORED_FLOAT_FIELDS:
-                if type(row[f]) not in (int, float) or row[f] < 0:
-                    raise ValueError(f"scored row field {f} must be a non-negative number, got {row[f]!r}")
+            for f in SCORED_FLOAT_FIELDS + tuple(x for x in SCORED_ARM_FIELDS.get(key.arm, ()) if x != "r_g_ratio"):
+                _require_measurement(f, row[f])
+        if outcome == "error":
+            if not isinstance(row["error"], str) or not row["error"].strip():
+                raise ValueError("error rows must carry a non-empty error string")
+            _require_measurement("peak_gtt_gib", row["peak_gtt_gib"])
+        if outcome == SCORED_OUTCOME:
             if row["cache_state"] not in CACHE_STATES:
                 raise ValueError(f"cache_state must be one of {CACHE_STATES}, got {row['cache_state']!r}")
             if row["finish_reason"] not in FINISH_REASONS:
@@ -350,12 +363,11 @@ class Ledger:
                                  f"{row['prompt_tokens']}: tokenizer drift is never a scored row")
             if key.arm == "R":
                 ratio = row["r_g_ratio"]
-                ok_ratio = (type(ratio) in (int, float) and ratio > 0) or (
+                ok_ratio = (type(ratio) in (int, float) and math.isfinite(ratio) and ratio > 0) or (
                     isinstance(ratio, str) and ratio.startswith("unavailable:") and len(ratio) > len("unavailable:"))
                 if not ok_ratio:
                     raise ValueError(f"r_g_ratio must be a positive number or 'unavailable:<reason>', got {ratio!r} (D-10)")
-        if "elapsed_s" in row and (type(row["elapsed_s"]) not in (int, float) or row["elapsed_s"] < 0):
-            raise ValueError(f"elapsed_s must be a non-negative number, got {row['elapsed_s']!r}")
+        _require_measurement("elapsed_s", row["elapsed_s"])
         full = {**row, "record": "run", **key.as_dict(), "attempt": attempt, "outcome": outcome,
                 "serving": serving, "ts": _utc_now()}
         if outcome == SCORED_OUTCOME:
@@ -451,6 +463,7 @@ class Ledger:
                 range_prompt_tokens=(min(prompt), max(prompt)) if prompt else None,
                 cache_read_tokens=sum(int(r["cache_read_tokens"]) for r in ok),
                 uncached_tokens=sum(int(r["uncached_tokens"]) for r in ok),
+                cache_write_tokens=sum(int(r["cache_write_tokens"]) for r in ok),
                 cold=sum(1 for r in ok if r["cache_state"] == "cold"),
                 warm=sum(1 for r in ok if r["cache_state"] == "warm"),
                 r_g_ratios=[r["r_g_ratio"] for r in ok if "r_g_ratio" in r],

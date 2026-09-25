@@ -255,6 +255,7 @@ def test_summarise_sums_ok_only_and_counts_the_rest(tmp_path):
     assert c1.mean_prompt_tokens == 51_300 and c1.range_prompt_tokens == (50_300, 52_300)
     assert b2.range_prompt_tokens is None
     assert c1.cold == 1 and c1.warm == 1 and c1.cache_read_tokens == 40_000
+    assert c1.cache_write_tokens == 50_300 + 52_300 and c1.uncached_tokens == 50_300 + 52_300
     assert c1.counts == {} and c1.attempts == 2
     assert b2.n_scored == 0 and b2.mean_assembled_tokens is None and b2.counts == {"exceeds_model_context": 1}
 
@@ -560,3 +561,24 @@ def test_summary_counts_every_non_scored_row_even_when_the_key_later_succeeds(tm
         led.begin_attempt(key); rec(led, key, "ok", ok_row(arm="D"))
         s = led.summarise()[("D", "C1")]
     assert s.n_scored == 1 and s.counts == {"error": 1} and s.attempts == 2
+
+
+@pytest.mark.parametrize("bad", [None, float("nan"), float("inf"), -1.0, "12"], ids=["none", "nan", "inf", "neg", "str"])
+def test_measurements_must_be_finite_non_negative_numbers(tmp_path, bad):
+    """Codex c5: None/NaN/inf are a missing measurement wearing a value."""
+    with fresh(tmp_path) as led:
+        kg, kr = L.RunKey("G", "C1", 1), L.RunKey("R", "C1", 1)
+        led.begin_attempt(kg)
+        for f in ("prefill_s", "peak_gtt_gib", "falkordb_rss_peak_mib", "elapsed_s", "cache_fraction"):
+            with pytest.raises(ValueError, match=f):
+                rec(led, kg, "ok", {**ok_row(), f: bad})
+        for f in ("peak_gtt_gib", "elapsed_s"):
+            with pytest.raises(ValueError, match=f):
+                rec(led, kg, "error", {**err_row(), f: bad})
+        for text in ("", "   ", None):
+            with pytest.raises(ValueError, match="error"):
+                rec(led, kg, "error", {**err_row(), "error": text})
+        led.begin_attempt(kr)
+        if isinstance(bad, float):
+            with pytest.raises(ValueError, match="r_g_ratio"):
+                rec(led, kr, "ok", {**ok_row(arm="R"), "r_g_ratio": bad})
