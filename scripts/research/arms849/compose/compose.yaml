@@ -11,9 +11,17 @@
 name: arms849
 
 networks:
-  arms849-net:
+  # Two networks on purpose (learned live): an `internal: true` network disables
+  # published ports, so host-side health probes on 127.0.0.1 could not reach a
+  # healthy server. The services sit on both; the runner joins ONLY the
+  # internal one, so it reaches the two services and nothing else.
+  arms849-host:
+    name: arms849-host
     driver: bridge
-    internal: true          # the runner reaches the two services and nothing else
+  arms849-net:
+    name: arms849-net       # explicit, or compose would name it arms849_arms849-net
+    driver: bridge
+    internal: true
 
 volumes:
   arms849-falkor: {}
@@ -21,7 +29,7 @@ volumes:
 services:
   falkordb:
     image: ${FALKORDB_IMAGE}
-    networks: [arms849-net]
+    networks: [arms849-host, arms849-net]
     ports:
       - "127.0.0.1:16379:6379"
     volumes:
@@ -34,7 +42,7 @@ services:
 
   llama:
     image: ${LLAMA_IMAGE}
-    networks: [arms849-net]
+    networks: [arms849-host, arms849-net]
     ports:
       - "127.0.0.1:18080:8080"
     devices:

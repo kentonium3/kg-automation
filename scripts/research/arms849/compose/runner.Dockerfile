@@ -10,6 +10,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends curl \
 COPY requirements-arms849.txt /tmp/requirements-arms849.txt
 RUN pip install --no-cache-dir -r /tmp/requirements-arms849.txt \
     && pip install --no-cache-dir --no-deps transformers tokenizers huggingface-hub \
+    && pip install --no-cache-dir regex filelock pyyaml requests tqdm packaging numpy safetensors \
     && python -c "import importlib.util,sys; sys.exit(1 if importlib.util.find_spec('torch') else 0)"
 
 ENV HF_HUB_OFFLINE=1 \

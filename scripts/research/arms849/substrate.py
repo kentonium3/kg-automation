@@ -59,7 +59,10 @@ __all__ = [
 REPO_ROOT = pathlib.Path(__file__).resolve().parents[3]
 COMPOSE_DIR = pathlib.Path(__file__).resolve().parent / "compose"
 BUILD_DIR = REPO_ROOT / "build"
-EXPORT_DIR = BUILD_DIR / "849-run-env"
+#: OUTSIDE the repo tree (learned live): the export is a full repo copy, and the
+#: repo's pre-commit secret scan walks even gitignored build/ directories, so an
+#: export under build/ aborts every commit with the test fixtures' fake secrets.
+EXPORT_DIR = pathlib.Path(os.environ.get("ARMS849_RUN_ENV", str(pathlib.Path.home() / ".cache" / "arms849" / "run-env")))
 RUNS_DIR = BUILD_DIR / "849-runs"
 CACHE_DIR = pathlib.Path(os.environ.get("ARMS849_CACHE", str(BUILD_DIR / "849-cache")))
 CORPUS_DIR = BUILD_DIR / "849-corpus"
@@ -82,6 +85,8 @@ FALKORDB_DIGEST_PREFIX = "sha256:9042fdc4"
 GGUF_DIR = pathlib.Path.home() / "models" / "gguf" / "unsloth" / "Qwen3-Next-80B-A3B-Instruct-GGUF"
 GGUF_FILE = "Qwen3-Next-80B-A3B-Instruct-UD-Q4_K_XL.gguf"
 EMBEDDER_MODEL = "BAAI/bge-small-en-v1.5"
+#: What `transformers`' tokenizer path imports at runtime, minus torch.
+TOKENIZER_LIGHT_DEPS = ("regex", "filelock", "pyyaml", "requests", "tqdm", "packaging", "numpy", "safetensors")
 TOKENIZER_REPO = "Qwen/Qwen3-Next-80B-A3B-Instruct"
 
 PRIMARY_N_CTX, SECONDARY_N_CTX = 262_144, 393_216
@@ -149,7 +154,11 @@ def setup(skip_gguf_verify: bool = False, python: pathlib.Path | None = None) ->
     py = str(python or pathlib.Path(sys.executable))
     req = COMPOSE_DIR / "requirements-arms849.txt"
     _sh(["uv", "pip", "install", "--python", py, "-r", str(req)])
+    # transformers' tokenizer classes need a handful of light deps; torch is
+    # not one of them and is asserted absent below (adversarial A2, refined:
+    # "no torch", not "no deps" — --no-deps alone leaves `regex` missing).
     _sh(["uv", "pip", "install", "--python", py, "--no-deps", "transformers", "tokenizers", "huggingface-hub"])
+    _sh(["uv", "pip", "install", "--python", py, *TOKENIZER_LIGHT_DEPS])
     torch_probe = _sh([py, "-c", "import importlib.util; print(importlib.util.find_spec('torch') is not None)"]).stdout.strip()
     if torch_probe == "True":
         raise RuntimeError("torch is importable after setup; env_clean forbids it (adversarial A2)")
@@ -243,7 +252,12 @@ def up(yarn: bool = False, wait_s: int = 3600) -> SubstrateState:
 
 
 def health(expect_n_ctx: int | None = None, expect_rope: str | None = None) -> SubstrateState:
-    """FalkorDB answers GRAPH.LIST; llama /health ok and /props reports what we expect."""
+    """FalkorDB answers GRAPH.LIST; llama /health ok and /props reports what we expect.
+
+    /props on the pinned image: ``default_generation_settings.n_ctx`` and
+    ``model_path`` at the top level; any other shape is reported as-is and
+    fails the expectation rather than being guessed at.
+    """
     falkor_ok = False
     try:
         out = _sh(["docker", "exec", f"{PROJECT}-falkordb-1", "redis-cli", "-p", "6379", "GRAPH.LIST"], check=False)
@@ -252,22 +266,27 @@ def health(expect_n_ctx: int | None = None, expect_rope: str | None = None) -> S
         pass
     props: dict = {}
     llama_ok = False
+    probe_error = ""
     try:
         with urllib.request.urlopen(f"http://127.0.0.1:{LLAMA_PORT}/health", timeout=10) as r:
             llama_ok = json.loads(r.read().decode())["status"] == "ok"
         with urllib.request.urlopen(f"http://127.0.0.1:{LLAMA_PORT}/props", timeout=10) as r:
             props = json.loads(r.read().decode())
-    except Exception:  # noqa: BLE001 — health is a probe; the caller decides
+    except Exception as exc:  # noqa: BLE001 — health is a probe; the caller decides
         llama_ok = False
-    n_ctx = int(((props.get("default_generation_settings") or {}).get("n_ctx")) or 0)
-    model_file = str(props.get("model_path", ""))
+        probe_error = f"{type(exc).__name__}: {exc}"
+    gen = props.get("default_generation_settings") or {}
+    n_ctx = int(gen.get("n_ctx") or props.get("n_ctx") or 0)
+    model_file = str(props.get("model_path") or props.get("model") or "")
     if expect_n_ctx is not None and n_ctx != expect_n_ctx:
         llama_ok = False
-    if GGUF_FILE not in model_file:
-        llama_ok = llama_ok and not props  # unknown model path only tolerable when props unavailable
+    if props and GGUF_FILE not in model_file:
+        llama_ok = False
     rope = "yarn" if "yarn" in json.dumps(props).lower() else "none"
     if expect_rope is not None and props and rope != expect_rope:
         llama_ok = False
+    if probe_error:
+        props = {"probe_error": probe_error}
     setup_record = load_setup() if SETUP_JSON.exists() else {}
     return SubstrateState(n_ctx=n_ctx, rope=rope, falkordb_image=setup_record.get("falkordb_image", ""),
                           llama_image=LLAMA_IMAGE, model_file=model_file, falkordb_ok=falkor_ok,
@@ -341,10 +360,17 @@ def export(commit: str = "HEAD", repo: pathlib.Path = REPO_ROOT, dest: pathlib.P
 # --------------------------------------------------------------------------
 
 
+def _ensure_runner_image() -> None:
+    """`down --rmi all` removes the runner image (SC-008); rebuild it on demand (cached, fast)."""
+    if _sh(["docker", "image", "inspect", RUNNER_IMAGE], check=False).returncode != 0:
+        _sh(["docker", "build", "-t", RUNNER_IMAGE, "-f", str(COMPOSE_DIR / "runner.Dockerfile"), str(COMPOSE_DIR)])
+
+
 def _runner_cmd(extra: Iterable[str], *, entrypoint: str | None = None,
                 env_extra: Sequence[tuple[str, str]] = ()) -> list[str]:
     """The ONLY docker-run shape the harness ever executes: allowlisted mounts, compose net."""
     RUNS_DIR.mkdir(parents=True, exist_ok=True)
+    _ensure_runner_image()
     cmd = ["docker", "run", "--rm", "--network", NETWORK,
            "-v", f"{EXPORT_DIR}:/work:ro", "-v", f"{CORPUS_DIR}:/corpus:ro",
            "-v", f"{CACHE_DIR}:/cache:ro", "-v", f"{RUNS_DIR}:/runs:rw",
