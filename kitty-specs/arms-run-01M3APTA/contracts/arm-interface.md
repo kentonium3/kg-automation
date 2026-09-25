@@ -5,13 +5,18 @@
 - `Question` comes from `arms849.questions` (id, ask_time, text) — the oracle-free manifest whose
   digest is in the header; the harness never passes a bare id.
 - `view` is the ArmView the harness narrowed (`arm_view()`): D and R receive `view.links == []`.
-- `ctx` carries `repeat`, `attempt`, `seed` (= 1000 + repeat), `ServingConfiguration`, `Prompt`,
-  the shared `Embedder` (G, R), the `calibration` record (R), and `limits = {trained, configured,
-  permitted}` (D-11). **Dated 2026-09-25 (design-lead ruling, bus msg
-  20260925T185141534756Z7fc2eda03e):** `limits`, `limit_applied` and `limit` are derived by the
-  `CellContext` constructor from the configuration; arms check the applied pair against the
-  configuration and never receive them independently (an incoherent `CellContext` cannot be built —
-  WP08's contract, one implementation).
+- `ctx` (CellContext, built by the harness — WP08) carries `repeat`, `attempt`, `seed` (= 1000 +
+  repeat), `config: ServingConfiguration` (the configuration of record for this ledger), `serving`
+  (the facade: `serialize`, `count_tokens`, `count_text`, `complete`), `prompt: Prompt`, the shared
+  `embedder` (G, R), the `calibration` record (R), and the limits. **Dated 2026-09-25 (design-lead
+  ruling, bus 20260925T185141534756Z7fc2eda03e / 20260925T185305021831Z58b4e9a1b9):** `limits =
+  {trained, configured, permitted}`, `limit_applied` and `limit` are DERIVED by the CellContext
+  constructor from `config` (`config.limits()`, `config.limit_applied()`) and cannot be passed
+  independently; a test asserts an incoherent CellContext cannot be constructed. Arms check the
+  applied pair they act on against `ctx.config` before counting (arm D `_check_limit`; arm R adopts
+  the same shape) and never re-verify `limits` as a dict. `ctx.config` is the contract name; arm D's
+  `ctx.serving.config` fallback is tolerated until WP08 lands CellContext and is removed in D's next
+  fold after that.
 - The arm assembles a `Block` via `arms849.text.render_block` and calls
   `ctx.prompt.render(block, question.text)` → the exact request text (chat template applied by
   `ctx.serving.serialize`); then `ctx.serving.count_tokens(request)`; if the count exceeds the
@@ -23,7 +28,12 @@
   generation_s, generation_tok_s, assembled_context_sha256, plan: PlanRecord` — every telemetry
   field mandatory (D-13); the harness adds `peak_gtt_gib`, `falkordb_rss_peak_mib` (G), `seed`,
   `attempt`, `elapsed_s`, load counts, `r_g_ratio` (R).
-- Any other exception: infrastructure failure → health check → retry ≤ 2 → `error`.
+- Any other exception **except `ArmRefusal` (and its subclasses)**: infrastructure failure → health
+  check → retry ≤ 2 → `error`. **`ArmRefusal` is terminal: an `error` row on the first attempt, zero
+  retries** (dated 2026-09-25; the note below defines the class). The 261,409-token case — above
+  `permitted`, below `trained`, refused by the server's last-line guard — is an `ArmRefusal` naming
+  the true refusing limit and is never retried; a retry would burn two ~28-minute attempts on a
+  permanent configuration fact.
 - **Exception classes (dated note 2026-09-25, design-lead ruling, bus msg
   20260925T043533517516Z003ce84a20, landed with the WP06 cycle-2 fold):** an arm lets out exactly
   three classes. (1) `ContextExceeded` → the context outcome row (`exceeds_model_context`),
