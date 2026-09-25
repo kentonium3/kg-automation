@@ -574,3 +574,104 @@ def test_bind_caches_the_index_per_question_and_matches_a_rebuild(c1, text, tok,
     fresh_index = R.EventIndex.build(c1, embedder, text)
     block, _ = R.assemble(text, c1, fresh_index, fresh_index.retrieve(q.text, 3), 3)
     assert block.sha256 == row["assembled_context_sha256"]
+
+
+# ---------------------------------------------------------------------------
+# the context gate and the last line (contracts/arm-interface.md exception classes; arm D's shape)
+# ---------------------------------------------------------------------------
+
+
+@needs_corpus
+@needs_cache
+def test_the_gate_refusal_carries_the_plan_and_the_count_and_sends_nothing(c1, c1_index, text, tok, embedder):
+    """The arm's own ContextExceeded (a serving.ContextExceeded subclass) carries prompt_tokens, the limit,
+    its name and the plan, so the harness's exceeds_model_context row is complete and I4-truthful. No
+    registered question exceeds the trained limit under R's small k on the real corpus, so the question
+    text is padded (as arm D's window test does) until the exact request does."""
+    q = Q.by_id("C1")
+    padded = SimpleNamespace(id="C1", text=q.text + " x" * 262_144)
+    ctx = ctx_for(tok, embedder, {"record": "calibration", "k": 3})
+    with pytest.raises(R.ContextExceeded) as info:
+        R.arm_r(padded, c1, ctx, text, c1_index)
+    exc = info.value
+    assert isinstance(exc, S.ContextExceeded) and ctx.serving.sent == [] and len(ctx.serving.counted) == 1
+    block, plan = R.assemble(text, c1, c1_index, c1_index.retrieve(padded.text, 3), 3)
+    counted = tok.count(ctx.serving.serialize(Prompt().render(block, padded.text), 1001)["prompt"])
+    assert exc.prompt_tokens == counted > S.TRAINED_CONTEXT == exc.limit and exc.limit_applied == "trained"
+    assert isinstance(exc.plan, R.PlanRecord) and exc.plan.prompt_tokens == counted
+    assert exc.plan.k == 3 and exc.plan.retrieved_refs_by_rank == plan["retrieved_refs_by_rank"]
+    assert exc.plan.assembled_context_sha256 == block.sha256 and exc.plan.assembled_context_tokens == tok.count(block.data)
+    assert exc.plan.context_limit_applied == "trained"
+    assert f"{counted} tokens" in str(exc) and "exceeds_model_context" in str(exc) and "not sent" in str(exc)
+
+
+@needs_corpus
+@needs_cache
+def test_a_bare_last_line_refusal_from_complete_is_terminal_and_names_the_true_limit(c1, c1_index, text, tok, embedder):
+    """serving.complete's own guard raises the BASE exception with only a message. The gate said the request
+    fits the ledger's limit, so a refusal here is a configuration defect (ArmRefusal, terminal), never an
+    exceeds_model_context row, and the message names the permitted limit read from the configuration —
+    260,096, not an invented 'permitted limit 262144' (arm D, Codex c4)."""
+    q = Q.by_id("C1")
+    cal = {"record": "calibration", "k": 3}
+    ctx = ctx_for(tok, embedder, cal)
+    facade, config = ctx.serving, ctx.serving.config
+
+    def refuse(body):
+        facade.sent.append(body)
+        raise S.ContextExceeded("prompt is N tokens; permitted limit M — not sent")
+
+    facade.complete = refuse
+    with pytest.raises(R.ArmRefusal) as info:
+        R.arm_r(q, c1, ctx, text, c1_index)
+    exc = info.value
+    assert isinstance(exc.__cause__, S.ContextExceeded) and not isinstance(exc, S.ContextExceeded)
+    permitted = config.limits().permitted
+    assert permitted == S.PRIMARY_N_CTX - S.MAX_TOKENS == 260_096
+    assert f"permitted limit {permitted}" in str(exc) and f"trained limit {S.TRAINED_CONTEXT}" in str(exc)
+    assert "permitted limit 262144" not in str(exc)
+    assert "exceeds_model_context" in str(exc) and str(tok.count(facade.sent[0]["prompt"])) in str(exc)
+    assert len(facade.sent) == 1 and facade.counted == [id(facade.sent[0])]
+
+    # The arm's OWN exception raised from inside complete propagates as the identical object.
+    ctx2 = ctx_for(tok, embedder, cal)
+    block, _ = R.assemble(text, c1, c1_index, c1_index.retrieve(q.text, 3), 3)
+    own = R.ContextExceeded(1, 2, "trained", R.PlanRecord(3, [], "ask_time", 1, 1, False, 1, block.sha256, 1, "trained", 1))
+
+    def raise_own(body):
+        raise own
+
+    ctx2.serving.complete = raise_own
+    with pytest.raises(R.ContextExceeded) as info2:
+        R.arm_r(q, c1, ctx2, text, c1_index)
+    assert info2.value is own and info2.value.__cause__ is None
+
+
+@needs_corpus
+@needs_cache
+def test_a_request_in_the_window_below_the_trained_limit_is_a_configuration_error(c1, c1_index, text, tok, embedder, monkeypatch):
+    """With the REAL last line (serving.complete, which refuses before any network call): C1 at k = 3 plus
+    a padded question counts inside the window (permitted 260,096 < count ≤ trained 262,144). The gate admits
+    it under the primary; complete refuses it at the permitted limit. Not exceeds_model_context (I4 cannot
+    hold) and the message names the true limit. The corpus + records under R's k cannot reach the window,
+    so the question is padded, as arm D's test does."""
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    q = Q.by_id("C1")
+    ctx = ctx_for(tok, embedder, {"record": "calibration", "k": 3})
+    config = ctx.serving.config
+    lim = config.limits()
+    ctx.serving.complete = lambda body: S.complete(body, tok, lim.permitted)   # the real last line
+    block, _ = R.assemble(text, c1, c1_index, c1_index.retrieve(q.text, 3), 3)
+    base = tok.count(ctx.serving.serialize(Prompt().render(block, q.text), 1001)["prompt"])
+    padded = SimpleNamespace(id="C1", text=q.text + " x" * (lim.permitted - base + 1_000))
+    with pytest.raises(R.ArmRefusal) as info:
+        R.arm_r(padded, c1, ctx, text, c1_index)
+    block_p, _ = R.assemble(text, c1, c1_index, c1_index.retrieve(padded.text, 3), 3)
+    counted = tok.count(ctx.serving.serialize(Prompt().render(block_p, padded.text), 1001)["prompt"])
+    assert lim.permitted < counted <= lim.trained, f"the probe must land in the window: {counted}"
+    exc = info.value
+    assert isinstance(exc.__cause__, S.ContextExceeded) and not isinstance(exc, S.ContextExceeded)
+    assert f"permitted limit {lim.permitted}" in str(exc) and f"{counted} tokens" in str(exc)
+    assert "permitted limit 262144" not in str(exc) and "permitted limit 262144" not in str(exc.__cause__)
+    assert f"permitted limit {lim.permitted}" in str(exc.__cause__)      # serving's own message agrees
+    assert len(ctx.serving.counted) == 1                                 # the gate counted once

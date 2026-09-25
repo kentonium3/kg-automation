@@ -39,8 +39,8 @@ from scripts.research.arms849.embed import Embedder, cosine
 from scripts.research.arms849.text import Block, FrozenCorpusText, edge_key, entity_key
 from scripts.research.load_849_corpus import Loaded
 
-__all__ = ["ASSEMBLED_ORDER", "ArmRefusal", "EventIndex", "PlanRecord", "arm_r", "assemble", "availability_cap",
-           "bind", "calibration_inputs", "index_for", "r_tokens_for", "records_keys"]
+__all__ = ["ASSEMBLED_ORDER", "ArmRefusal", "ContextExceeded", "EventIndex", "PlanRecord", "arm_r", "assemble",
+           "availability_cap", "bind", "calibration_inputs", "index_for", "r_tokens_for", "records_keys"]
 
 ASSEMBLED_ORDER = "ask_time"
 _MISSING = object()
@@ -51,6 +51,27 @@ class ArmRefusal(RuntimeError):
     """A configuration defect (contracts/arm-interface.md, dated note 2026-09-25): terminal, never retried —
     links handed to the flat arm, an empty view, no usable calibration record, cache_prompt off, a ctx
     limit that is not the configuration's, an index built for another view."""
+
+
+class ContextExceeded(serving.ContextExceeded):
+    """The exact request exceeds the limit this ledger applies; nothing was sent.
+
+    A subclass of the serving module's exception, and the ONLY exceeds shape the arm lets out
+    (contracts/arm-interface.md, exception classes; arm D's shape): the arm's own gate raises it,
+    carrying the plan, the count and the limit the gate compared against, so every R
+    ``exceeds_model_context`` row carries ``prompt_tokens`` > the limit (data-model I4) and a truthful
+    ``context_limit_applied`` (D-11). A bare ``serving.ContextExceeded`` from ``complete``'s last-line
+    guard is NOT re-raised as this type — see :func:`arm_r` — because on the primary the last line
+    sits ``max_tokens`` below the trained limit and a count in that window cannot satisfy I4.
+    """
+
+    def __init__(self, prompt_tokens: int, limit: int, limit_applied: str, plan: PlanRecord) -> None:
+        self.prompt_tokens = int(prompt_tokens)
+        self.limit = int(limit)
+        self.limit_applied = str(limit_applied)
+        self.plan = plan
+        super().__init__(f"prompt is {self.prompt_tokens} tokens; {self.limit_applied} limit "
+                         f"{self.limit} — exceeds_model_context, not sent")
 
 
 @dataclass(frozen=True)
@@ -301,7 +322,8 @@ def arm_r(question: Any, view: Loaded, ctx: Any, text: FrozenCorpusText, index: 
     k = _calibrated_k(ctx)
     _refuse_links(view)
     _refuse_empty(view)
-    _check_limit(ctx, _configuration(ctx))                          # before anything is counted
+    config = _configuration(ctx)
+    _check_limit(ctx, config)                                        # before anything is counted
     if index is None:
         index = EventIndex.build(view, ctx.embedder, text)
     retrieved = index.retrieve(question.text, k)
@@ -315,8 +337,22 @@ def arm_r(question: Any, view: Loaded, ctx: Any, text: FrozenCorpusText, index: 
     record = PlanRecord(**plan, assembled_context_tokens=assembled_tokens,
                         context_limit_applied=str(ctx.limit_applied), prompt_tokens=prompt_tokens)
     if prompt_tokens > ctx.limit:
-        raise serving.ContextExceeded(f"prompt is {prompt_tokens} tokens; {ctx.limit_applied} limit {ctx.limit} — not sent")
-    completion = ctx.serving.complete(body)                          # the same object that was counted
+        raise ContextExceeded(prompt_tokens, ctx.limit, ctx.limit_applied, record)
+    try:
+        completion = ctx.serving.complete(body)                      # the same object that was counted
+    except ContextExceeded:
+        raise                                                        # already carries the plan: propagate as is
+    except serving.ContextExceeded as exc:                           # the last-line guard (permitted limit)
+        # The gate admitted the request under this ledger's limit, so the count is ≤ the model
+        # context and an exceeds_model_context row could not satisfy I4. The limit that refused
+        # is the configuration's permitted one (n_ctx − max_tokens) — serving's exception carries
+        # only a message, so it is read from the configuration, never from ctx.limit (arm D, Codex c4).
+        lim = config.limits()
+        raise ArmRefusal(f"complete refused the request at the permitted limit {lim.permitted} (configured "
+                         f"{lim.configured} − max_tokens {config.max_tokens}) although it counted {prompt_tokens} "
+                         f"tokens, within the {ctx.limit_applied} limit {ctx.limit} this ledger gates on; a request "
+                         f"the gate admits and the protocol cannot send is a configuration defect, terminal — not "
+                         f"exceeds_model_context (data-model I4 needs prompt_tokens > the model context)") from exc
     if completion.client_prompt_tokens != prompt_tokens:
         raise serving.TelemetryMissing("the completion was not made for the counted request")
     # r_g_ratio is the HARNESS's field (contracts/arm-interface.md: "the harness adds … r_g_ratio (R)")
