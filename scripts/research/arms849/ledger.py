@@ -162,7 +162,15 @@ class RunKey:
 
     @classmethod
     def of(cls, row: dict[str, Any]) -> RunKey:
-        return cls(str(row["arm"]), str(row["question"]), int(row["repeat"]))
+        """The key of a persisted row, WITHOUT coercion: a repeat of 1.9, "1" or True is not
+        repeat 1 — int() made it so and let an invalid cell satisfy the repeat-1 checks on
+        resume (Codex WP03 c15). __post_init__ then validates the domain."""
+        arm, question, repeat = row.get("arm"), row.get("question"), row.get("repeat")
+        if not isinstance(arm, str) or not isinstance(question, str):
+            raise ValueError(f"arm and question must be strings, got {arm!r}, {question!r}")
+        if type(repeat) is not int:
+            raise ValueError(f"repeat must be an int, got {repeat!r}")
+        return cls(arm, question, repeat)
 
 
 def plan_keys(arms: Sequence[str] = ARMS, questions: Sequence[str] | None = None,
@@ -505,6 +513,7 @@ class Ledger:
     # -- other record kinds ------------------------------------------------
 
     def event(self, kind: str, detail: Any = None) -> None:
+        _check_event_kind(kind)                 # the same check replay applies (Codex WP03 c15)
         self._append({"record": "event", "kind": kind, "detail": detail, "ts": _utc_now()})
 
     def write_calibration(self, calibration: dict[str, Any]) -> None:
@@ -596,6 +605,13 @@ class Ledger:
 
 
 _UNPARSED = object()          # json.loads raised — distinct from a line that parsed to None
+
+
+def _check_event_kind(kind: Any) -> None:
+    """An event's kind is a non-empty string — enforced on write so the public writer can never
+    persist a row the resume replay refuses (Codex WP03 c15)."""
+    if not isinstance(kind, str) or not kind.strip():
+        raise ValueError(f"event kind must be a non-empty string, got {kind!r}")
 _RECORD_KINDS = ("attempt_start", "run", "calibration", "event")
 
 
@@ -615,7 +631,7 @@ def _replay_validate(path: pathlib.Path, header: Header, rows: list[dict[str, An
             if kind == "attempt_start":
                 key = RunKey.of(row)
                 n = shadow._check_attempt_start(key)
-                if row.get("attempt") != n:
+                if type(row.get("attempt")) is not int or row["attempt"] != n:        # 1.0 == 1, so type first
                     raise ValueError(f"attempt_start carries attempt {row.get('attempt')!r}, expected {n}")
             elif kind == "run":
                 key = RunKey.of(row)
@@ -627,7 +643,7 @@ def _replay_validate(path: pathlib.Path, header: Header, rows: list[dict[str, An
                 if not isinstance(serving, dict):
                     raise ValueError("run row carries no serving configuration")
                 attempt = shadow._check_run(key, outcome, payload, serving)
-                if row.get("attempt") != attempt:
+                if type(row.get("attempt")) is not int or row["attempt"] != attempt:
                     raise ValueError(f"run row carries attempt {row.get('attempt')!r}, expected {attempt}")
                 if outcome == SCORED_OUTCOME:
                     if row.get("truncated") is not (payload["finish_reason"] == "length"):
@@ -637,8 +653,7 @@ def _replay_validate(path: pathlib.Path, header: Header, rows: list[dict[str, An
             elif kind == "calibration":
                 shadow._check_calibration({k: v for k, v in row.items() if k not in RESERVED_CALIBRATION_FIELDS})
             elif kind == "event":
-                if not isinstance(row.get("kind"), str) or not row["kind"]:
-                    raise ValueError("event carries no kind")
+                _check_event_kind(row.get("kind"))
             else:
                 raise ValueError(f"unknown record kind {kind!r} (expected one of {_RECORD_KINDS})")
         except (ValueError, KeyError, TypeError, SecondScoredRow, AttemptsExhausted,
@@ -720,6 +735,8 @@ def open_ledger(path: pathlib.Path, binding: Binding, blinding_seed: int, plan: 
         os.ftruncate(fd, 0)
         os.write(fd, str(os.getpid()).encode())
         return _open_locked(path, binding, blinding_seed, plan, fd)
+    except LedgerWriteFailed:
+        raise                 # the header append failed: _append already closed fd (one owner — Codex c15)
     except BaseException:
         os.close(fd)          # releases the flock; a failed open must never hold the ledger
         raise

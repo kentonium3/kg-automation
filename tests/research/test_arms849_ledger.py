@@ -1068,3 +1068,91 @@ def test_a_final_null_line_is_corruption_not_a_torn_tail(tmp_path):
     path.write_bytes(before + b'{"record": "event", "kind": "y", "ts": "2026-09-25T00:00:00Z"')   # a REAL torn tail
     with fresh(tmp_path) as led:                                # is still recovered
         assert [r for r in led.rows if r.get("record") == "event" and r["kind"] == "recovered_torn_tail"]
+
+
+# --------------------------------------------------------------------------
+# Codex cycle 15 — no key coercion on replay, header-write failure type, event kind on write
+# --------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize("row", [
+    {"arm": "G", "question": "C1", "repeat": 1.9}, {"arm": "G", "question": "C1", "repeat": 1.0},
+    {"arm": "G", "question": "C1", "repeat": "1"}, {"arm": "G", "question": "C1", "repeat": True},
+    {"arm": 1, "question": "C1", "repeat": 1}, {"arm": "G", "question": None, "repeat": 1},
+    {"arm": "G", "question": "C1"},
+], ids=["float", "float-int", "str", "bool", "int-arm", "none-question", "missing-repeat"])
+def test_run_key_of_never_coerces(row):
+    """Codex WP03 c15: `int(1.9)` made a persisted repeat of 1.9 read as repeat 1, so an invalid cell
+    satisfied the repeat-1 completion and calibration checks on resume."""
+    with pytest.raises(ValueError):
+        L.RunKey.of(row)
+
+
+def _c_fractional_repeat(rows):
+    _find(rows, record="attempt_start", arm="G", question="C1")["repeat"] = 1.9
+    _find(rows, record="run", arm="G", question="C1")["repeat"] = 1.9; return rows
+
+def _c_float_attempt(rows):
+    _find(rows, record="attempt_start", arm="G", question="C1")["attempt"] = 1.0
+    _find(rows, record="run", arm="G", question="C1")["attempt"] = 1.0; return rows
+
+def _c_empty_event_kind(rows):
+    rows.append({"record": "event", "kind": "", "detail": None, "ts": rows[-1]["ts"]}); return rows
+
+
+@pytest.mark.parametrize("corruption", ["fractional_repeat", "float_attempt", "empty_event_kind"])
+def test_resume_refuses_coerced_keys_attempts_and_empty_event_kinds(tmp_path, corruption):
+    path = _persisted(tmp_path)
+    rows = {"fractional_repeat": _c_fractional_repeat, "float_attempt": _c_float_attempt,
+            "empty_event_kind": _c_empty_event_kind}[corruption](_rows_of(path))
+    _write_rows(path, rows); before = path.read_bytes()
+    with pytest.raises(L.LedgerCorrupt, match="on resume"):
+        fresh(tmp_path)
+    assert path.read_bytes() == before
+
+
+@pytest.mark.parametrize("stage", ["write", "fsync"])
+def test_header_write_failure_is_ledger_write_failed_and_releases_the_lock(tmp_path, monkeypatch, stage):
+    """Codex WP03 c15: a failure writing the FRESH header surfaced as OSError(EBADF) because open_ledger
+    closed a descriptor _append had already closed; the promised type and message were lost."""
+    armed = {"on": True}
+    if stage == "fsync":
+        real_fsync = os.fsync
+
+        def fsync_once_fails(fd):
+            if armed["on"]:
+                armed["on"] = False; raise OSError(28, "No space left on device")
+            return real_fsync(fd)
+        monkeypatch.setattr(L.os, "fsync", fsync_once_fails)
+    else:
+        real_open = pathlib.Path.open
+
+        class Failing:
+            def __init__(self, real): self.real = real
+            def __enter__(self): return self
+            def __exit__(self, *a): self.real.close()
+            def write(self, s):
+                armed["on"] = False; raise OSError(5, "Input/output error")
+            def flush(self): self.real.flush()
+            def fileno(self): return self.real.fileno()
+
+        def fake_open(self, mode="r", *a, **k):
+            fh = real_open(self, mode, *a, **k)
+            return Failing(fh) if (mode == "a" and armed["on"]) else fh
+        monkeypatch.setattr(pathlib.Path, "open", fake_open)
+    with pytest.raises(L.LedgerWriteFailed, match="reopen the ledger"):
+        L.open_ledger(tmp_path / "ledger.jsonl", binding(), blinding_seed=7, plan=72)
+    with fresh(tmp_path) as led:                               # the lock is free; the file is the truth
+        assert led.rows == [] and (tmp_path / "ledger.jsonl").read_text().count("\n") == 1   # header only, either way
+
+
+@pytest.mark.parametrize("bad", ["", "   ", None, 3, b"x"], ids=["empty", "blank", "none", "int", "bytes"])
+def test_event_kind_must_be_a_non_empty_string_on_write(tmp_path, bad):
+    """Codex WP03 c15: event("") persisted a row that the resume replay then refused, so the public
+    writer could make an otherwise valid run unresumable."""
+    with fresh(tmp_path) as led:
+        with pytest.raises(ValueError, match="event kind"):
+            led.event(bad)
+        led.event("fine")
+    with fresh(tmp_path) as led:
+        assert [r["kind"] for r in led.rows if r.get("record") == "event"] == ["fine"]
