@@ -1,7 +1,7 @@
 {
-  "event_count": 194,
-  "last_event_id": "01M3BCYNBVT0B137X7M0H1VHEQ",
-  "materialized_at": "2026-09-25T04:25:07.195206+00:00",
+  "event_count": 195,
+  "last_event_id": "01M3BCZ0TTT483G4NVXT61VHV8",
+  "materialized_at": "2026-09-25T04:25:18.938397+00:00",
   "mission_number": "",
   "mission_slug": "arms-run-01M3APTA",
   "mission_type": "software-dev",
@@ -13,8 +13,8 @@
     "done": 0,
     "for_review": 1,
     "in_progress": 0,
-    "in_review": 1,
-    "planned": 4
+    "in_review": 0,
+    "planned": 5
   },
   "work_packages": {
     "WP01": {
@@ -100,10 +100,10 @@
       "agent": "claude",
       "agent_profile": "__resolved_profile_absent__",
       "agent_profile_version": "__resolved_profile_version_absent__",
-      "force_count": 9,
-      "lane": "in_review",
-      "last_event_id": "01M3BCYNBVT0B137X7M0H1VHEQ",
-      "last_transition_at": "2026-09-25T04:25:07.195206+00:00",
+      "force_count": 10,
+      "lane": "planned",
+      "last_event_id": "01M3BCZ0TTT483G4NVXT61VHV8",
+      "last_transition_at": "2026-09-25T04:25:18.938397+00:00",
       "model": "__resolved_model_absent__",
       "notes": [
         "WP03 ledger: 24 tests incl. kill-mid-write recovery, second-writer refusal, per-field binding refusal; full suite green",
@@ -120,8 +120,8 @@
       "provider": "__resolved_provider_absent__",
       "review": null,
       "review_result": {
-        "feedback_path": "/home/kgale/repos/kg-automation/kitty-specs/arms-run-01M3APTA/tasks/WP03-ledger/review-cycle-10.md",
-        "reference": "review-cycle://arms-run-01M3APTA/WP03-ledger/review-cycle-10.md",
+        "feedback_path": "/home/kgale/repos/kg-automation/kitty-specs/arms-run-01M3APTA/tasks/WP03-ledger/review-cycle-11.md",
+        "reference": "review-cycle://arms-run-01M3APTA/WP03-ledger/review-cycle-11.md",
         "reviewer": "claude",
         "verdict": "changes_requested"
       },
