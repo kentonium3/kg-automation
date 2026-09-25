@@ -24,8 +24,9 @@ FORBIDDEN = ("or" + "acle", "se" + "ed/", "trace" + "ability")
 _UNKNOWN = object()     # distinct from the constant None, which IS a value (Codex c6)
 
 # The gate's boundary, stated: every expression built ONLY from literals and operators is
-# evaluated by Python itself (no hand-written evaluator to keep extending — Codex c3..c7
-# each found a construction it missed); anything involving a name, call, attribute or
+# evaluated by Python itself, in a child process under memory/CPU/time limits that FAIL
+# CLOSED (no hand-written evaluator and no magnitude guard to keep extending — Codex c3..c9
+# each found a construction one missed); anything involving a name, call, attribute or
 # comprehension is opaque here and is the RUNTIME boundary's job (the export exclusion
 # and the in-container self-test). An opaque interpolation renders as a NUL so a word
 # cannot be smuggled around it.
@@ -35,18 +36,10 @@ _PURE_NODES = (ast.Expression, ast.Constant, ast.BinOp, ast.UnaryOp, ast.BoolOp,
 
 
 def _is_pure(node: ast.AST) -> bool:
-    for sub in ast.walk(node):
-        if not isinstance(sub, _PURE_NODES):
-            return False
-        if isinstance(sub, ast.BinOp) and isinstance(sub.op, ast.Pow):
-            exp = sub.right
-            if not (isinstance(exp, ast.Constant) and isinstance(exp.value, int) and abs(exp.value) <= 64):
-                return False        # no unbounded exponentiation in a scan
-        if isinstance(sub, ast.BinOp) and isinstance(sub.op, ast.Mult):
-            for side in (sub.left, sub.right):
-                if isinstance(side, ast.Constant) and isinstance(side.value, int) and abs(side.value) > 10_000:
-                    return False    # no giant repetition
-    return True
+    """Only literals and operators — no magnitude guards here: a guard that rejects a legal
+    literal (1 ** 65) makes the scan fall OPEN on fragments (Codex c9). The rlimited child
+    is the only bound; a blow-up fails closed there."""
+    return all(isinstance(sub, _PURE_NODES) for sub in ast.walk(node))
 
 
 def _const_eval(node: ast.AST):
@@ -166,7 +159,9 @@ def test_no_module_names_the_excluded_material(module: pathlib.Path):
     'X = "{}{}".format if False else ("or" "acle",)[0]',   # tuple subscript
     'X = "".join(["or", "acle"]) if False else "orac" "le"',
     'X = "or" + str("acle") if False else "or" "acle"',
-], ids=["adjacent", "plus", "fstring", "bytes", "plus2", "conv", "spec", "fplus", "inner-plus", "nested", "numc", "numc-plus", "arith", "arith2", "mult", "none", "none-plus", "bool", "uplus", "div", "percent", "tuple-sub", "call-opaque", "call-opaque2"])
+    'X = "or" + "acle" * (1 ** 65)',        # a legal literal a magnitude guard used to reject (Codex c9)
+    'X = ("or" "acle") * (2 ** 70 // 2 ** 70)',
+], ids=["adjacent", "plus", "fstring", "bytes", "plus2", "conv", "spec", "fplus", "inner-plus", "nested", "numc", "numc-plus", "arith", "arith2", "mult", "none", "none-plus", "bool", "uplus", "div", "percent", "tuple-sub", "call-opaque", "call-opaque2", "pow65", "pow70"])
 def test_the_scan_catches_constructed_forbidden_strings(tmp_path, construction):
     """Codex WP02 cycle 1: the first scan missed constructed strings."""
     bad = tmp_path / "bad.py"
