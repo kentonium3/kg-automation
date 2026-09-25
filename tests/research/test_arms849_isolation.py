@@ -22,49 +22,56 @@ FORBIDDEN = ("or" + "acle", "se" + "ed/", "trace" + "ability")
 
 _UNKNOWN = object()     # distinct from the constant None, which IS a value (Codex c6)
 
+# The gate's boundary, stated: every expression built ONLY from literals and operators is
+# evaluated by Python itself (no hand-written evaluator to keep extending — Codex c3..c7
+# each found a construction it missed); anything involving a name, call, attribute or
+# comprehension is opaque here and is the RUNTIME boundary's job (the export exclusion
+# and the in-container self-test). An opaque interpolation renders as a NUL so a word
+# cannot be smuggled around it.
+_PURE_NODES = (ast.Expression, ast.Constant, ast.BinOp, ast.UnaryOp, ast.BoolOp, ast.Compare, ast.IfExp,
+               ast.JoinedStr, ast.FormattedValue, ast.Tuple, ast.List, ast.Set, ast.Dict, ast.Subscript,
+               ast.Slice, ast.Load, ast.operator, ast.unaryop, ast.boolop, ast.cmpop)
+
+
+def _is_pure(node: ast.AST) -> bool:
+    for sub in ast.walk(node):
+        if not isinstance(sub, _PURE_NODES):
+            return False
+        if isinstance(sub, ast.BinOp) and isinstance(sub.op, ast.Pow):
+            exp = sub.right
+            if not (isinstance(exp, ast.Constant) and isinstance(exp.value, int) and abs(exp.value) <= 64):
+                return False        # no unbounded exponentiation in a scan
+        if isinstance(sub, ast.BinOp) and isinstance(sub.op, ast.Mult):
+            for side in (sub.left, sub.right):
+                if isinstance(side, ast.Constant) and isinstance(side.value, int) and abs(side.value) > 10_000:
+                    return False    # no giant repetition
+    return True
+
 
 def _const_eval(node: ast.AST):
-    """Evaluate a statically resolvable expression: constants of any type (None included),
-    arithmetic on numbers, concatenation of str/bytes, f-strings with conversions and
-    format specs. Returns _UNKNOWN when anything is not a constant (an opaque
-    interpolation renders as a NUL so a word cannot be smuggled around it)."""
-    if isinstance(node, ast.Constant):
-        return node.value
-    if isinstance(node, ast.BinOp):
-        left, right = _const_eval(node.left), _const_eval(node.right)
-        if left is _UNKNOWN or right is _UNKNOWN:
-            return _UNKNOWN
-        ops = {ast.Add: lambda a, b: a + b, ast.Sub: lambda a, b: a - b, ast.Mult: lambda a, b: a * b,
-               ast.FloorDiv: lambda a, b: a // b, ast.Mod: lambda a, b: a % b, ast.Pow: lambda a, b: a ** b}
-        fn = ops.get(type(node.op))
-        if fn is None:
-            return _UNKNOWN
-        try:
-            return fn(left, right)
-        except Exception:  # noqa: BLE001 — a type/zero error is simply "not constant"
-            return _UNKNOWN
-    if isinstance(node, ast.UnaryOp) and isinstance(node.op, ast.USub):
-        v = _const_eval(node.operand)
-        return -v if isinstance(v, (int, float)) else _UNKNOWN
-    if isinstance(node, ast.JoinedStr):
+    """Python's own value of a pure-literal expression, or _UNKNOWN."""
+    if isinstance(node, ast.JoinedStr) and not _is_pure(node):
+        # Evaluate the resolvable interpolations, NUL the opaque ones.
         out = []
         for v in node.values:
-            piece = _const_eval(v)
-            out.append("\0" if piece is _UNKNOWN else str(piece))
+            if isinstance(v, ast.Constant):
+                out.append(str(v.value))
+            else:
+                piece = _const_eval(v)
+                out.append("\0" if piece is _UNKNOWN else str(piece))
         return "".join(out)
     if isinstance(node, ast.FormattedValue):
-        val = _const_eval(node.value)
-        if val is _UNKNOWN:
+        if not _is_pure(node):
             return _UNKNOWN
-        conv = {-1: lambda v: v, 115: str, 114: repr, 97: ascii}[node.conversion](val)
-        spec = _const_eval(node.format_spec) if node.format_spec is not None else ""
-        if spec is _UNKNOWN:
-            return _UNKNOWN
-        try:
-            return format(conv, spec) if spec else str(conv)
-        except (ValueError, TypeError):
-            return _UNKNOWN
-    return _UNKNOWN
+        node = ast.JoinedStr(values=[node])
+    if not isinstance(node, ast.expr) or not _is_pure(node):
+        return _UNKNOWN
+    try:
+        expr = ast.Expression(body=node)
+        ast.fix_missing_locations(expr)
+        return eval(compile(expr, "<isolation-scan>", "eval"), {"__builtins__": {}}, {})
+    except Exception:  # noqa: BLE001 — a type/zero/format error is simply "not a constant"
+        return _UNKNOWN
 
 
 def _string_constants(source: str) -> list[str]:
@@ -78,6 +85,8 @@ def _string_constants(source: str) -> list[str]:
             out.append(val.decode("utf-8", "replace"))
         elif isinstance(val, str):
             out.append(val)
+        elif isinstance(val, (tuple, list, set, frozenset)):
+            out.extend(v.decode("utf-8", "replace") if isinstance(v, bytes) else v for v in val if isinstance(v, (str, bytes)))
     return out
 
 
@@ -112,7 +121,13 @@ def test_no_module_names_the_excluded_material(module: pathlib.Path):
     'X = f"or{None!s:.0}acle"',              # the constant None is a VALUE, not "unknown" (Codex c6)
     'X = f"or{None!s:.0}" + "acle"',
     'X = f"or{True:d}acle"[0:2] if False else "or" "acle"',
-], ids=["adjacent", "plus", "fstring", "bytes", "plus2", "conv", "spec", "fplus", "inner-plus", "nested", "numc", "numc-plus", "arith", "arith2", "mult", "none", "none-plus", "bool"])
+    'X = f"{+111:c}racle"',                  # unary plus (Codex c7)
+    'X = f"or{1 / 2!s:.0}acle"',             # true division
+    'X = "%s%s" % ("or", "acle")',           # %-formatting with a tuple
+    'X = "{}{}".format if False else ("or" "acle",)[0]',   # tuple subscript
+    'X = "".join(["or", "acle"]) if False else "orac" "le"',
+    'X = "or" + str("acle") if False else "or" "acle"',
+], ids=["adjacent", "plus", "fstring", "bytes", "plus2", "conv", "spec", "fplus", "inner-plus", "nested", "numc", "numc-plus", "arith", "arith2", "mult", "none", "none-plus", "bool", "uplus", "div", "percent", "tuple-sub", "call-opaque", "call-opaque2"])
 def test_the_scan_catches_constructed_forbidden_strings(tmp_path, construction):
     """Codex WP02 cycle 1: the first scan missed constructed strings."""
     bad = tmp_path / "bad.py"
