@@ -1,7 +1,7 @@
 {
-  "event_count": 159,
-  "last_event_id": "01M3BAQHEMN4PQ3EX0QET9H3PH",
-  "materialized_at": "2026-09-25T03:46:16.660505+00:00",
+  "event_count": 161,
+  "last_event_id": "01M3BAQVAQRMFHKYM4RBMP3ME4",
+  "materialized_at": "2026-09-25T03:46:26.774836+00:00",
   "mission_number": "",
   "mission_slug": "arms-run-01M3APTA",
   "mission_type": "software-dev",
@@ -12,9 +12,9 @@
     "claimed": 0,
     "done": 0,
     "for_review": 1,
-    "in_progress": 0,
+    "in_progress": 1,
     "in_review": 0,
-    "planned": 5
+    "planned": 4
   },
   "work_packages": {
     "WP01": {
@@ -132,14 +132,14 @@
       }
     },
     "WP04": {
-      "actor": "user",
-      "agent": "claude",
+      "actor": "claude",
+      "agent": null,
       "agent_profile": "__resolved_profile_absent__",
       "agent_profile_version": "__resolved_profile_version_absent__",
       "force_count": 5,
-      "lane": "planned",
-      "last_event_id": "01M3BAQHEMN4PQ3EX0QET9H3PH",
-      "last_transition_at": "2026-09-25T03:46:16.660505+00:00",
+      "lane": "in_progress",
+      "last_event_id": "01M3BAQVAQRMFHKYM4RBMP3ME4",
+      "last_transition_at": "2026-09-25T03:46:26.774836+00:00",
       "model": "__resolved_model_absent__",
       "notes": [
         "WP04 cycle 1: 37 tests, full suite 7,125 green; live run_all in a real export not yet executed (WP09 re-runs it)",
@@ -155,15 +155,15 @@
         "reviewer": "Kent Gale",
         "verdict": "approved"
       },
-      "role": "reviewer",
-      "shell_pid": 1856674,
-      "shell_pid_created_at": "1790307685.66",
+      "role": "implementer",
+      "shell_pid": null,
+      "shell_pid_created_at": null,
       "subtasks": {
-        "T016": "done",
-        "T017": "done",
-        "T018": "done",
-        "T019": "done",
-        "T020": "done"
+        "T016": "planned",
+        "T017": "planned",
+        "T018": "planned",
+        "T019": "planned",
+        "T020": "planned"
       }
     },
     "WP05": {
