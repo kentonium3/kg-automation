@@ -115,7 +115,8 @@
         "WP03 cycle 7: header binds gate_host_sha + gate_container_sha (design-lead ruling); 82 tests; full suite green",
         "WP03 cycle 8: gate shas validated 64-hex at creation and resume; 100 tests; full suite green",
         "WP03 cycle 9: open_ledger validates directly constructed bindings; 103 tests; full suite green",
-        "cycle 10: fullmatch on gate digests; Codex out of credits -> Opus fallback review"
+        "cycle 10: fullmatch on gate digests; Codex out of credits -> Opus fallback review",
+        "cycle 11: Opus c10 findings fixed (AttemptsExhausted, Header compare, verified corpus)"
       ],
       "provider": "__resolved_provider_absent__",
       "review": null,
