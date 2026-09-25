@@ -1,0 +1,203 @@
+{
+  "version": 1,
+  "mission_slug": "arms-run-01M3APTA",
+  "mission_id": "01M3APTADS39MF0NDWG9HDSW50",
+  "mission_branch": "kitty/mission-arms-run-01M3APTA",
+  "target_branch": "feat/849-arms-run",
+  "lanes": [
+    {
+      "lane_id": "lane-a",
+      "wp_ids": [
+        "WP01"
+      ],
+      "write_scope": [
+        "scripts/research/arms849/__init__.py",
+        "scripts/research/arms849/prompt.py",
+        "scripts/research/arms849/questions.py",
+        "scripts/research/arms849/serving.py",
+        "scripts/research/arms849/text.py",
+        "tests/research/test_arms849_prompt.py",
+        "tests/research/test_arms849_questions.py",
+        "tests/research/test_arms849_serving.py",
+        "tests/research/test_arms849_text.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "artifact-rendering"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    },
+    {
+      "lane_id": "lane-b",
+      "wp_ids": [
+        "WP02"
+      ],
+      "write_scope": [
+        "scripts/research/arms849/compose/compose.yaml",
+        "scripts/research/arms849/compose/runner.Dockerfile",
+        "scripts/research/arms849/substrate.py",
+        "tests/research/test_arms849_isolation.py",
+        "tests/research/test_arms849_substrate.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "artifact-rendering",
+        "legacy-cleanup"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    },
+    {
+      "lane_id": "lane-c",
+      "wp_ids": [
+        "WP03"
+      ],
+      "write_scope": [
+        "scripts/research/arms849/ledger.py",
+        "tests/research/test_arms849_ledger.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "tracker-integration"
+      ],
+      "depends_on_lanes": [
+        "lane-a"
+      ],
+      "parallel_group": 1
+    },
+    {
+      "lane_id": "lane-e",
+      "wp_ids": [
+        "WP05"
+      ],
+      "write_scope": [
+        "scripts/research/arms849/arm_g.py",
+        "scripts/research/arms849/embed.py",
+        "tests/research/test_arms849_arm_g.py",
+        "tests/research/test_arms849_embed.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "artifact-rendering"
+      ],
+      "depends_on_lanes": [
+        "lane-a",
+        "lane-b"
+      ],
+      "parallel_group": 1
+    },
+    {
+      "lane_id": "lane-f",
+      "wp_ids": [
+        "WP06"
+      ],
+      "write_scope": [
+        "scripts/research/arms849/arm_d.py",
+        "tests/research/test_arms849_arm_d.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "app-shell",
+        "artifact-rendering"
+      ],
+      "depends_on_lanes": [
+        "lane-a"
+      ],
+      "parallel_group": 1
+    },
+    {
+      "lane_id": "lane-d",
+      "wp_ids": [
+        "WP04"
+      ],
+      "write_scope": [
+        "scripts/research/arms849/calibration.py",
+        "scripts/research/arms849/gates.py",
+        "scripts/research/arms849/preflight.py",
+        "scripts/research/arms849/sampler.py",
+        "tests/research/test_arms849_calibration.py",
+        "tests/research/test_arms849_gates.py"
+      ],
+      "predicted_surfaces": [
+        "api"
+      ],
+      "depends_on_lanes": [
+        "lane-a",
+        "lane-c"
+      ],
+      "parallel_group": 2
+    },
+    {
+      "lane_id": "lane-g",
+      "wp_ids": [
+        "WP07"
+      ],
+      "write_scope": [
+        "scripts/research/arms849/arm_r.py",
+        "tests/research/test_arms849_arm_r.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "app-shell",
+        "artifact-rendering"
+      ],
+      "depends_on_lanes": [
+        "lane-a",
+        "lane-c"
+      ],
+      "parallel_group": 2
+    },
+    {
+      "lane_id": "lane-h",
+      "wp_ids": [
+        "WP08"
+      ],
+      "write_scope": [
+        "scripts/research/arms849/grading.py",
+        "scripts/research/run_849_harness.py",
+        "tests/research/test_arms849_grading.py",
+        "tests/research/test_arms849_integration.py",
+        "tests/research/test_run_849_harness.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "tests"
+      ],
+      "depends_on_lanes": [
+        "lane-c",
+        "lane-d",
+        "lane-e",
+        "lane-f",
+        "lane-g"
+      ],
+      "parallel_group": 3
+    },
+    {
+      "lane_id": "lane-planning",
+      "wp_ids": [
+        "WP09"
+      ],
+      "write_scope": [
+        "docs/DEVELOPER_PORTAL.md",
+        "docs/INDEX.md",
+        "docs/design/research/849-synthesis/README.md",
+        "docs/design/research/849-synthesis/run-record-arms-run.md"
+      ],
+      "predicted_surfaces": [
+        "planning"
+      ],
+      "depends_on_lanes": [
+        "lane-b",
+        "lane-h"
+      ],
+      "parallel_group": 4
+    }
+  ],
+  "computed_at": "2026-09-25T00:28:48.707497+00:00",
+  "computed_from": "dependency_graph+ownership",
+  "planning_artifact_wps": [
+    "WP09"
+  ],
+  "planning_commit_sha": "19855c358ee16132d2e5a392374406a8faddc77c"
+}
