@@ -4,7 +4,7 @@ artifact_type: spec-kitty.analysis-report
 command: /spec-kitty.analyze
 mission_slug: arms-run-01M3APTA
 mission_id: 01M3APTADS39MF0NDWG9HDSW50
-generated_at: '2026-09-25T00:35:23.114368+00:00'
+generated_at: '2026-09-25T01:06:36.771806+00:00'
 analyzer_agent: unknown
 input_artifacts:
   spec.md:
@@ -12,7 +12,7 @@ input_artifacts:
     sha256: da4de122bb4bc101670c1cf8300673bb13d8898f6f2cfd32203a1d06ff1879d5
   plan.md:
     path: kitty-specs/arms-run-01M3APTA/plan.md
-    sha256: ecfae0d3d44e43777344e4e9f306910b09afffac16837553d84ace6c0086d760
+    sha256: ff759096aba2fe7fa731695bde104bd882c497d950de27aac4f74eb22e0e921b
   tasks.md:
     path: kitty-specs/arms-run-01M3APTA/tasks.md
     sha256: e5c48322179840ddf64caf437d01b668b3a90f48ee88819c14438c7dd47be388
@@ -22,9 +22,9 @@ input_artifacts:
 verdict: ready
 issue_counts:
   low: 1
-  medium: 0
   critical: 0
   high: 0
+  medium: 0
   info: 0
 findings:
 - id: S1
@@ -33,9 +33,9 @@ findings:
   summary: WP09 bundles documentation with execution in one planning_artifact package for ownership reasons, so the README run section lands only after the run; stated, and accepted by the design lead (00:29Z).
 ---
 
-## Specification Analysis Report (third run — after the design lead's tasks review E1–E3 and the manifest digest re-registration)
+## Specification Analysis Report (fourth run — plan.md D-8 export path moved outside the repo after a WP02 live finding; findings unchanged)
 
-Mission `arms-run-01M3APTA` — spec @63952fa4, plan @aa30c122 (+@51707915, @3cac7d1a), tasks @c00b54d7, rubric @c8237d27, charter `.kittify/charter/charter.md`.
+Mission `arms-run-01M3APTA` — spec @63952fa4, plan @aa30c122 (+@51707915, @3cac7d1a, @12116a64), tasks @c00b54d7, rubric @c8237d27, charter `.kittify/charter/charter.md`.
 
 | ID | Category | Severity | Location(s) | Summary | Recommendation |
 |----|----------|----------|-------------|---------|----------------|
