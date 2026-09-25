@@ -259,7 +259,10 @@ Per question, per run:
 Per question, per run, per arm — recorded, never estimated:
 
 - **input tokens per correct answer** = total input tokens ÷ points hit (the primitive), with
-  sub-columns **cache-write / cache-read / uncached**;
+  sub-columns **cache-write / cache-read / uncached**. *Clarification (2026-09-25, D-13 corrected):*
+  from llama.cpp `/completion` `timings`, `prompt_n` counts tokens **processed** this request and already
+  excludes cache hits, so total input = `prompt_n + cache_n`; cache-read = `cache_n`; uncached = cache-write
+  = `prompt_n`; hit rate = `cache_n / (prompt_n + cache_n)`. No quantity is derived by subtracting the cache;
 - output tokens; wall-clock latency from question to answer, **reported at the context length the question ran at** (A3: prefill throughput fell 630 → 154 tok/s cumulative and generation 43 → 20 tok/s between 16k and 256k on the ruled model, measured in `849-synthesis/gate-b-context-window.md`), never as one figure per arm;
 - **peak memory**, two labelled columns: *per question* for D and R inference (the KV cache
   scales with the prefix, ~7× across questions), sampled from the serving process during the
