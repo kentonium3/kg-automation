@@ -1,7 +1,7 @@
 {
-  "event_count": 251,
-  "last_event_id": "01M3CZ6CMKWG2WN4YTZ6J4B5C7",
-  "materialized_at": "2026-09-25T19:03:09.202725+00:00",
+  "event_count": 253,
+  "last_event_id": "01M3CZ6NQETMG4SC4904VXW1P1",
+  "materialized_at": "2026-09-25T19:03:18.510644+00:00",
   "mission_number": "",
   "mission_slug": "arms-run-01M3APTA",
   "mission_type": "software-dev",
@@ -12,9 +12,9 @@
     "claimed": 0,
     "done": 0,
     "for_review": 0,
-    "in_progress": 1,
+    "in_progress": 2,
     "in_review": 0,
-    "planned": 3
+    "planned": 2
   },
   "work_packages": {
     "WP01": {
@@ -244,9 +244,9 @@
       "agent_profile": "__resolved_profile_absent__",
       "agent_profile_version": "__resolved_profile_version_absent__",
       "force_count": 1,
-      "lane": "planned",
-      "last_event_id": "01M3CXH4BYVQASWTGKZV03MVF8",
-      "last_transition_at": "2026-09-25T18:34:04.030803+00:00",
+      "lane": "in_progress",
+      "last_event_id": "01M3CZ6NQETMG4SC4904VXW1P1",
+      "last_transition_at": "2026-09-25T19:03:18.510644+00:00",
       "model": "__resolved_model_absent__",
       "notes": [
         "arm R: view-order re-sort, k from calibration only, records byte-identical to D; Opus fallback review"
@@ -259,7 +259,7 @@
         "reviewer": "claude",
         "verdict": "changes_requested"
       },
-      "role": "reviewer",
+      "role": "implementer",
       "shell_pid": null,
       "shell_pid_created_at": null,
       "subtasks": {
