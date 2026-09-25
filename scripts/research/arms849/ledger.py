@@ -126,10 +126,12 @@ def _validate_binding_types(binding: Binding) -> None:
     for name in ("registration_commit", "prompt_hash", "question_manifest_sha", "limit_applied",
                  "run_env_commit", "run_env_manifest_sha", "preflight_sha", "gate_host_sha", "gate_container_sha"):
         if not isinstance(getattr(binding, name), str):
-            raise ValueError(f"binding.{name} must be a str, got {getattr(binding, name)!r}")
+            # ValueError on purpose (ruff TRY004): the ledger's contract is "invalid value → ValueError on
+            # write, LedgerCorrupt on resume", and _open_locked translates exactly ValueError.
+            raise ValueError(f"binding.{name} must be a str, got {getattr(binding, name)!r}")  # noqa: TRY004
     for name in ("corpus", "serving", "code_hashes"):
         if not isinstance(getattr(binding, name), dict):
-            raise ValueError(f"binding.{name} must be a dict, got {getattr(binding, name)!r}")
+            raise ValueError(f"binding.{name} must be a dict, got {getattr(binding, name)!r}")  # noqa: TRY004
     _positive_int("model_context_tokens", binding.model_context_tokens)
     if binding.limit_applied not in CONTEXT_LIMITS:
         raise ValueError(f"limit_applied must be one of {CONTEXT_LIMITS}, got {binding.limit_applied!r}")
