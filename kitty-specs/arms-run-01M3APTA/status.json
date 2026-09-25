@@ -71,7 +71,8 @@
         "WP02 cycle 5: three Codex c4 findings fixed; static 34, live green incl. in-runner chat-template probe",
         "WP02 cycle 6: three Codex c5 findings fixed; static 38, live green incl. /dev/shm identity negative",
         "WP02 cycle 7: two Codex c6 findings fixed; static 41, live green incl. checkout-at-/runs negative",
-        "WP02 cycle 8: scan evaluator replaced by Python's own evaluation of pure-literal subtrees; 24 fixtures; static green"
+        "WP02 cycle 8: scan evaluator replaced by Python's own evaluation of pure-literal subtrees; 24 fixtures; static green",
+        "WP02 cycle 9: scan runs in an rlimited child and fails closed on budget violations; static 50 green"
       ],
       "provider": "__resolved_provider_absent__",
       "review": null,
