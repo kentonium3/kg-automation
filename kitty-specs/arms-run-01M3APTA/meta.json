@@ -11,5 +11,7 @@
   "purpose_tldr": "Build the three retrieval arms (graph, full-dump, vector-RAG) and run the pre-registered #849 comparison so #692's build direction is decided by measurement, not argument.",
   "slug": "arms-run-01M3APTA",
   "target_branch": "feat/849-arms-run",
-  "topology": "single_branch"
+  "topology": "single_branch",
+  "vcs": "git",
+  "vcs_locked_at": "2026-09-25T00:35:27.404275+00:00"
 }
