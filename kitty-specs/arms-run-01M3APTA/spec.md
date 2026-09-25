@@ -29,25 +29,25 @@ Kent (through the office4 session) starts the run. The harness verifies every pr
 
 ### User Story 2 - Three arms, one prompt, one model (Priority: P2)
 
-Each arm assembles context for a question from what it is allowed to see at that question's ask time, inserts it into the registered prompt at the single slot, and asks the same model. G reads the replayed graph and its episode links; D reads the whole event stream and entity set, entities after events; R retrieves from an index over the same material. Nothing else differs between arms.
+Each arm assembles context for a question from what it is allowed to see at that question's ask time, inserts it into the registered prompt at the single slot, and asks the same model. G reads the replayed graph and its episode links; D reads the whole replay-visible view — events, then entities, then edges; R retrieves over the events and carries the same entity-and-edge records. Nothing else differs between arms.
 
 **Why this priority**: the comparison is only valid if the arms differ in *retrieval* and in nothing else. This story is what makes User Story 1's numbers mean something.
 
-**Independent Test**: for one question, run each arm once and confirm all three requests carry the identical prompt text (by hash) with only the assembled-context slot differing, that G's assembled items respect the 60-item cap, that D's context is the full replayed stream with entities last, and that R's k equals the value derived from G's repeat-1 medians.
+**Independent Test**: for one question, run each arm once and confirm all three requests carry the identical prompt text (by hash) with only the assembled-context slot differing, that G's assembled items respect the 60-item cap, that D's context is the full replayed view with the records last, and that R's k equals the value in the calibration record derived from G's repeat-1 medians.
 
 **Acceptance Scenarios**:
 
 1. **Given** any question, **When** any arm builds its request, **Then** the prompt text outside the context slot hashes to the registered §3.2 hash.
 2. **Given** arm G, **When** it resolves anchors, **Then** they come from the question text by deterministic alias resolution against the loaded graph, never from a per-question list, and the resolved anchors, plan steps and item count are recorded on the cell.
-3. **Given** arms D or R, **When** they load material, **Then** they receive no episode-to-entity links; **Given** arm G, **Then** it receives them.
+3. **Given** arms D or R, **When** they load material, **Then** they receive no episode-to-entity links; **Given** arm G, **Then** it receives them. **Given** arm D, **When** it assembles, **Then** the block is events, then entities, then edges — the whole replay-visible view.
 4. **Given** the corpus replayed to a question's ask time, **When** any arm assembles context, **Then** nothing dated after the ask time appears in it.
-5. **Given** G's repeat-1 cells are complete, **When** R starts, **Then** its single global k is set once from G's per-question median assembled context and recorded in the ledger header; **Given** R's median lands outside ±20 % of G's, **Then** the per-question ratio column makes the breach visible rather than silent.
+5. **Given** G's repeat-1 cells are complete, **When** R starts, **Then** its single global k is set once from G's per-question median assembled context and written as a durable calibration record the R cells require; **Given** R's median lands outside ±20 % of G's, **Then** the per-question ratio column makes the breach visible rather than silent.
 
 ---
 
 ### User Story 3 - Hand-off the design lead can grade blind, then the secondary (Priority: P3)
 
-When the primary ledger is complete, the harness exports a grading view: per question, the three answers under labels re-randomised per question, with the label-to-arm mapping sealed in a separate file the grader does not open until scores are in. Only after the primary is complete does the D-YaRN secondary run — the same weights under a scaled-context serving configuration, all eight questions, its own ledger — so "what would a full dump have given" is answered without ever entering the §7 decision.
+When the primary ledger is complete, the harness exports a grading view: per question, every scored answer under a blinded identity that encodes neither arm nor repeat, with the identity-to-cell mapping sealed in a separate file the grader does not open until scores are in. Only after the primary is complete does the D-YaRN secondary run — the same weights under a scaled-context serving configuration, all eight questions, its own ledger — so "what would a full dump have given" is answered without ever entering the §7 decision.
 
 **Why this priority**: blind grading is what keeps the verdict honest; the secondary is what keeps the D result interpretable. Both matter; neither is worth anything without Stories 1 and 2.
 
@@ -55,7 +55,7 @@ When the primary ledger is complete, the harness exports a grading view: per que
 
 **Acceptance Scenarios**:
 
-1. **Given** a complete primary ledger, **When** the grading view is exported, **Then** the grader file carries answers under per-question randomised labels only, and the seal file carries the mapping and the seed.
+1. **Given** a complete primary ledger, **When** the grading view is exported, **Then** the grader file carries every scored answer under a blinded per-cell identity (up to nine per question), no classification of non-scored cells, and the seal file carries the mapping and the seed.
 2. **Given** the primary is incomplete, **When** the secondary is requested, **Then** it refuses to start.
 3. **Given** the secondary runs, **When** its ledger opens, **Then** its header records the scaled-context configuration and the harness refuses to append a secondary cell to the primary ledger or vice-versa.
 
@@ -89,15 +89,15 @@ When the primary ledger is complete, the harness exports a grading view: per que
 | FR-006 | Arm D context-limit classification | As the operator, I want arm D to measure its prompt's token count client-side before sending and to record `exceeds_model_context` with that count when it exceeds the model's trained context, so that no degraded over-limit answer is ever recorded as a result. | High | Open |
 | FR-007 | Bounded retry on infrastructure failure | As the operator, I want a cell that fails for an infrastructure reason to be retried at most twice after a substrate health check passes, then recorded as `error` with the cause, with every attempt written to the ledger, so that transient failures heal and persistent ones are visible. | High | Open |
 | FR-008 | Arm G: typed graph retrieval | As the experimenter, I want arm G to build its graph per question by replaying the corpus to ask time, to pull one query per registered label, to resolve anchors from the question text by deterministic alias resolution, to expand each anchor to its episodes through the episode links, to apply the 60-item cap, and never to traverse breadth-first by default, so that G's retrieval is the one §2 registers. | High | Open |
-| FR-009 | Arm D: full replayed dump, entities last | As the experimenter, I want arm D's context to be the complete replayed event stream followed by the entity set, with prompt caching on and the hit rate recorded, so that each D prompt is a literal prefix of the next and the cache measurement is a property of the protocol. | High | Open |
+| FR-009 | Arm D: full replayed dump, records last | As the experimenter, I want arm D's context to be the complete replayed event stream followed by the replay-visible records — entities, then edges — with prompt caching on and the hit rate recorded, so that D is the full dump and each D prompt is a literal prefix of the next, making the cache measurement a property of the protocol. | High | Open |
 | FR-010 | Arm R: retrieval with one derived global k | As the experimenter, I want arm R to retrieve top-k over an index of the same replayed material, with k set once from G's repeat-1 per-question medians so R's median assembled context is within ±20 % of G's, and the per-question ratio recorded, so that a parity breach is visible. | High | Open |
 | FR-011 | Registered prompt wired verbatim | As the experimenter, I want every arm to insert its assembled context into the registered §3.2 prompt at its single slot and to send nothing else, so that arms differ only in retrieval. | High | Open |
 | FR-012 | Episode links are arm G's input only | As the experimenter, I want arms D and R to be handed material with no episode-to-entity links, and arm G to be handed them, so that the flat arms cannot receive the traversal the graph arm must earn. | High | Open |
 | FR-013 | Oracle isolation enforced twice | As the experimenter, I want the run to refuse to start if any arm module references the oracle location, and arms to execute from an environment where the oracle directory does not exist, so that the hidden oracle cannot be read even by mistake. | High | Open |
-| FR-014 | Blinded grading view with sealed label map | As the grader, I want a grading export per question with the three answers under labels re-randomised per question from a recorded seed, and the label-to-arm mapping written to a separate sealed file, so that I grade without knowing which arm produced which answer. | Medium | Open |
+| FR-014 | Blinded grading view with sealed label map | As the grader, I want a grading export per question with **every scored cell** under a blinded identity that encodes neither arm nor repeat (drawn from a recorded seed), non-scored classifications kept in a separate administrative report, and the identity-to-cell mapping written to a separate sealed file, so that I grade all repeats without knowing which arm or repeat produced which answer. | Medium | Open |
 | FR-015 | D-YaRN secondary in its own ledger, after the primary | As the experimenter, I want the scaled-context D variant to run on all eight questions only after the primary ledger is complete, in a separate ledger whose header records the scaled configuration, so that it informs "what a full dump would have given" without entering the §7 decision. | Medium | Open |
 | FR-016 | Substrate lifecycle and health | As the operator, I want the harness to bring each arm's substrate up, verify it with a health check before use, keep the model resident between cells, and tear everything down on completion, so that the run needs no manual setup and leaves the machine clean. | Medium | Open |
-| FR-017 | Status and progress reporting | As the operator, I want a status command showing per-arm completion, outcome counts, and elapsed time, and a bus post at run start, resume, completion and any halt, so that other agents can see the run's state without reading the ledger. | Medium | Open |
+| FR-017 | Status and progress reporting | As the operator, I want a status command showing per-arm completion, outcome counts and elapsed time, the harness recording start, resume, completion and halt as ledger events and printing a one-line status for each, and the operator posting that line to the agent bus at each transition, so that other agents can see the run's state without reading the ledger. | Medium | Open |
 | FR-018 | Sandbox note before any container runs | As the operator, I want the network, volumes, ports, resource ceiling and teardown command recorded in the mission record before the first container starts, so that the deploy discipline's carve-out is met on the record rather than assumed. | Medium | Open |
 
 ### Non-Functional Requirements
