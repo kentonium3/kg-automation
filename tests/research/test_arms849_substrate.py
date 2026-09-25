@@ -156,7 +156,7 @@ def test_live_up_health_down(live_http):
 
 
 @live
-def test_live_self_test_passes_and_a_widened_mount_fails(tmp_path, live_http):
+def test_live_self_test_passes_and_a_widened_mount_fails(tmp_path, live_http, monkeypatch):
     """The negative half is the point: an extra bind mount must be DETECTED from inside."""
     SUB.up(yarn=False)
     try:
@@ -175,6 +175,18 @@ def test_live_self_test_passes_and_a_widened_mount_fails(tmp_path, live_http):
         widened = SUB.self_test(widen_with=["-v", f"{SUB.REPO_ROOT}:/dev/shm:ro"])
         assert not widened["passed"], widened
         assert any(e.startswith("/dev/shm:fstype=") for e in widened["checks"].get("extra_mounts", [])), widened
+        # Codex c6: the checkout mounted AS a data mount (/runs) must fail on identity — the
+        # runner's own configuration is changed here, so the argv itself carries the leak.
+        # (SELF_TEST never writes under /runs, so the checkout stays clean.)
+        monkeypatch.setattr(SUB, "RUNS_DIR", SUB.REPO_ROOT)
+        try:
+            widened = SUB.self_test()
+        finally:
+            monkeypatch.undo()
+        assert not widened["passed"], widened
+        assert "/runs:identity" in widened["checks"].get("extra_mounts", []), widened
+        assert "/runs:checkout" in widened["checks"].get("extra_mounts", []), widened
+        assert any(k.startswith("absent:/runs/") and v is False for k, v in widened["checks"].items()), widened
         # /sys and /proc are refused by the runtime itself (read-only rootfs / runc) before the
         # script runs: still not passed, and the refusal is the recorded reason.
         for target in ("/sys/leak", "/proc/leak"):

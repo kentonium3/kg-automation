@@ -20,46 +20,51 @@ PKG = REPO_ROOT / "scripts" / "research" / "arms849"
 FORBIDDEN = ("or" + "acle", "se" + "ed/", "trace" + "ability")
 
 
+_UNKNOWN = object()     # distinct from the constant None, which IS a value (Codex c6)
+
+
 def _const_eval(node: ast.AST):
-    """Evaluate a statically resolvable expression: constants of any type, arithmetic on
-    numbers, concatenation of str/bytes, f-strings with conversions and format specs.
-    Returns None when anything is not a constant (an opaque interpolation renders as
-    a NUL so a word cannot be smuggled around it)."""
+    """Evaluate a statically resolvable expression: constants of any type (None included),
+    arithmetic on numbers, concatenation of str/bytes, f-strings with conversions and
+    format specs. Returns _UNKNOWN when anything is not a constant (an opaque
+    interpolation renders as a NUL so a word cannot be smuggled around it)."""
     if isinstance(node, ast.Constant):
         return node.value
     if isinstance(node, ast.BinOp):
         left, right = _const_eval(node.left), _const_eval(node.right)
-        if left is None or right is None:
-            return None
+        if left is _UNKNOWN or right is _UNKNOWN:
+            return _UNKNOWN
         ops = {ast.Add: lambda a, b: a + b, ast.Sub: lambda a, b: a - b, ast.Mult: lambda a, b: a * b,
                ast.FloorDiv: lambda a, b: a // b, ast.Mod: lambda a, b: a % b, ast.Pow: lambda a, b: a ** b}
         fn = ops.get(type(node.op))
         if fn is None:
-            return None
+            return _UNKNOWN
         try:
             return fn(left, right)
         except Exception:  # noqa: BLE001 — a type/zero error is simply "not constant"
-            return None
+            return _UNKNOWN
     if isinstance(node, ast.UnaryOp) and isinstance(node.op, ast.USub):
         v = _const_eval(node.operand)
-        return -v if isinstance(v, (int, float)) else None
+        return -v if isinstance(v, (int, float)) else _UNKNOWN
     if isinstance(node, ast.JoinedStr):
         out = []
         for v in node.values:
             piece = _const_eval(v)
-            out.append("\0" if piece is None else str(piece))
+            out.append("\0" if piece is _UNKNOWN else str(piece))
         return "".join(out)
     if isinstance(node, ast.FormattedValue):
         val = _const_eval(node.value)
-        if val is None:
-            return None
+        if val is _UNKNOWN:
+            return _UNKNOWN
         conv = {-1: lambda v: v, 115: str, 114: repr, 97: ascii}[node.conversion](val)
         spec = _const_eval(node.format_spec) if node.format_spec is not None else ""
+        if spec is _UNKNOWN:
+            return _UNKNOWN
         try:
             return format(conv, spec) if spec else str(conv)
         except (ValueError, TypeError):
-            return None
-    return None
+            return _UNKNOWN
+    return _UNKNOWN
 
 
 def _string_constants(source: str) -> list[str]:
@@ -67,6 +72,8 @@ def _string_constants(source: str) -> list[str]:
     out: list[str] = []
     for node in ast.walk(ast.parse(source)):
         val = _const_eval(node)
+        if val is _UNKNOWN:
+            continue
         if isinstance(val, bytes):
             out.append(val.decode("utf-8", "replace"))
         elif isinstance(val, str):
@@ -102,7 +109,10 @@ def test_no_module_names_the_excluded_material(module: pathlib.Path):
     'X = f"{110 + 1:c}racle"',               # arithmetic on numeric constants (Codex c5)
     'X = f"{(37 * 3):c}" "racle"',
     'X = "or" * 1 + "acle"',
-], ids=["adjacent", "plus", "fstring", "bytes", "plus2", "conv", "spec", "fplus", "inner-plus", "nested", "numc", "numc-plus", "arith", "arith2", "mult"])
+    'X = f"or{None!s:.0}acle"',              # the constant None is a VALUE, not "unknown" (Codex c6)
+    'X = f"or{None!s:.0}" + "acle"',
+    'X = f"or{True:d}acle"[0:2] if False else "or" "acle"',
+], ids=["adjacent", "plus", "fstring", "bytes", "plus2", "conv", "spec", "fplus", "inner-plus", "nested", "numc", "numc-plus", "arith", "arith2", "mult", "none", "none-plus", "bool"])
 def test_the_scan_catches_constructed_forbidden_strings(tmp_path, construction):
     """Codex WP02 cycle 1: the first scan missed constructed strings."""
     bad = tmp_path / "bad.py"

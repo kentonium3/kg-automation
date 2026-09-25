@@ -535,8 +535,11 @@ try:
 except OSError:
     checks["excludes_file_present"] = False
 checks["excludes_file_present"] = bool(excl)
+# Excluded material must be absent under EVERY data mount, not only /work — a
+# checkout bound at /runs would otherwise carry it in unchecked (Codex WP02 c6).
 for rel in excl:
-    checks["absent:/work/" + rel] = not os.path.exists("/work/" + rel)
+    for mnt in ("/work", "/corpus", "/cache", "/runs"):
+        checks["absent:" + mnt + "/" + rel] = not os.path.exists(mnt + "/" + rel)
 # The base image has an empty /home; what must be unreachable is any host home
 # CONTENT and the host checkout itself.
 checks["home_empty_or_absent"] = (not os.path.exists("/home")) or (os.listdir("/home") == [])
@@ -609,6 +612,11 @@ if not os.path.isfile("/corpus/stream.jsonl") or not os.path.isfile("/corpus/ent
     extra.append("/corpus:identity")
 if not os.path.isdir("/cache/qwen-tokenizer"):
     extra.append("/cache:identity")
+if not os.path.isfile("/runs/setup.json") or os.path.exists("/runs/.git"):
+    extra.append("/runs:identity")
+for mnt in ("/work", "/corpus", "/cache", "/runs"):
+    if os.path.exists(mnt + "/.git"):
+        extra.append(mnt + ":checkout")
 checks["no_extra_mounts"] = not extra
 if extra:
     checks["extra_mounts"] = extra
