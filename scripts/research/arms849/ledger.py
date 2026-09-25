@@ -167,9 +167,9 @@ class RunKey:
         resume (Codex WP03 c15). __post_init__ then validates the domain."""
         arm, question, repeat = row.get("arm"), row.get("question"), row.get("repeat")
         if not isinstance(arm, str) or not isinstance(question, str):
-            raise ValueError(f"arm and question must be strings, got {arm!r}, {question!r}")
+            raise TypeError(f"arm and question must be strings, got {arm!r}, {question!r}")
         if type(repeat) is not int:
-            raise ValueError(f"repeat must be an int, got {repeat!r}")
+            raise TypeError(f"repeat must be an int, got {repeat!r}")
         return cls(arm, question, repeat)
 
 

@@ -1084,7 +1084,7 @@ def test_a_final_null_line_is_corruption_not_a_torn_tail(tmp_path):
 def test_run_key_of_never_coerces(row):
     """Codex WP03 c15: `int(1.9)` made a persisted repeat of 1.9 read as repeat 1, so an invalid cell
     satisfied the repeat-1 completion and calibration checks on resume."""
-    with pytest.raises(ValueError):
+    with pytest.raises((TypeError, ValueError)):       # TypeError for the wrong type, ValueError for the domain
         L.RunKey.of(row)
 
 
