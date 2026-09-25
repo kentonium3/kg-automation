@@ -217,7 +217,7 @@ class Tokenizer:
         out = self._tok.apply_chat_template([{"role": "user", "content": user_turn}],
                                             add_generation_prompt=True, tokenize=False)
         if not isinstance(out, str):
-            raise RuntimeError("apply_chat_template did not return a string")
+            raise TypeError("apply_chat_template did not return a string")
         return out
 
     def encode(self, text: str) -> list[int]:
