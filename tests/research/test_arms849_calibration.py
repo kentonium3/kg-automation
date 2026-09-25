@@ -98,3 +98,11 @@ def test_ratio_for_never_returns_null_or_zero():
     assert isinstance(C.ratio_for("C1", 8_500, cal), float) and C.ratio_for("C1", 8_500, cal) > 0
     for r in (C.ratio_for("C1", None, cal), C.ratio_for("C1", 0, cal), C.ratio_for("ZZ", 10, cal), C.ratio_for("C1", 10, None)):
         assert isinstance(r, str) and r.startswith("unavailable:") and len(r) > len("unavailable:")
+
+
+def test_k_zero_is_never_a_successful_candidate():
+    """Codex c3: G=10_000, R(k)=10_000+4_000k → k=0 sits in the band but candidates start at 1."""
+    g = {q: 10_000 for q in QUESTIONS}
+    cal = C.calibrate(FakeLedger(g), AVAIL, linear(10_000, 4_000), QUESTIONS)
+    assert cal.k != 0 or cal.parity != "ok"
+    assert cal.parity == "unattainable" and cal.k == 1

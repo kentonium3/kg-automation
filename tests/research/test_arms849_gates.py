@@ -8,6 +8,7 @@ from __future__ import annotations
 import json
 import os
 import pathlib
+import shutil
 import socket
 import sys
 import time
@@ -47,6 +48,17 @@ def _export_like(dest: pathlib.Path) -> pathlib.Path:
     return dest
 
 
+def _template_sha() -> str:
+    from scripts.research.arms849.serving import Tokenizer
+    try:
+        return Tokenizer(CACHE / "qwen-tokenizer").chat_template_sha256()
+    except RuntimeError:
+        return ""
+
+
+TEMPLATE_SHA = _template_sha()          # once, at import — before any test monkeypatches Tokenizer
+
+
 def _closed_port() -> int:
     s = socket.socket(); s.bind(("127.0.0.1", 0)); port = s.getsockname()[1]; s.close()
     return port
@@ -67,14 +79,15 @@ def test_preflight_writes_a_signed_record_binding_everything(tmp_path, monkeypat
     manifest = tmp_path / ".export-manifest.json"
     manifest.write_text(json.dumps({"source_commit": "abc", "content_sha": "d" * 64, "excludes": []}))
     out = tmp_path / "preflight.json"
-    rec = P.run_preflight(REPO_ROOT, CORPUS, manifest, out, chat_template_sha256="e" * 64)
+    rec = P.run_preflight(REPO_ROOT, CORPUS, manifest, out, cache_dir=CACHE)
     payload = P.load_preflight(out)                       # verifies its own sha
     assert [g["name"] for g in payload["gates"]] == list(P.checkers()) and all(g["passed"] for g in payload["gates"])
     assert set(payload["corpus"]) == set(REGISTRATION["files"])
     assert payload["prompt_hash"] == prompt_mod.REGISTERED_DIGEST
     assert payload["question_manifest_sha"] == questions_mod.MANIFEST_DIGEST
     assert payload["export_content_sha"] == "d" * 64 and payload["export_source_commit"] == "abc"
-    assert payload["extra"]["chat_template_sha256"] == "e" * 64 and len(payload["preflight_sha"]) == 64
+    assert len(payload["chat_template_sha256"]) == 64 and payload["rubric_commit"] == P.RUBRIC_COMMIT
+    assert len(payload["preflight_sha"]) == 64 and "extra" in payload
     assert rec.record_lines_digest == payload["record_lines_digest"]
 
 
@@ -83,7 +96,7 @@ def test_preflight_refuses_when_a_checker_fails_and_writes_nothing(tmp_path, mon
     monkeypatch.setattr(P, "_run_checker", _fake_checker(False))
     manifest = tmp_path / "m.json"; manifest.write_text(json.dumps({"source_commit": "abc", "content_sha": "d" * 64}))
     with pytest.raises(P.PreflightRefused, match="gate"):
-        P.run_preflight(REPO_ROOT, CORPUS, manifest, tmp_path / "preflight.json")
+        P.run_preflight(REPO_ROOT, CORPUS, manifest, tmp_path / "preflight.json", cache_dir=CACHE)
     assert not (tmp_path / "preflight.json").exists()
 
 
@@ -91,23 +104,54 @@ def test_preflight_refuses_when_a_checker_fails_and_writes_nothing(tmp_path, mon
 def test_vacuous_pass_guard_refuses_absent_empty_or_incomplete_reference_dir(tmp_path, monkeypatch, shape):
     """T016's whole point: the checkers pass for the wrong reason when the reference is absent —
     exercised on a REAL directory shape under a temp root, with the data file re-pointed."""
-    root = tmp_path / "root"; ref = root / "docs" / "ref"
+    root = REPO_ROOT; ref = REPO_ROOT / "build" / f"_guard_probe_{shape}"
+    shutil.rmtree(ref, ignore_errors=True)
     if shape != "absent":
         ref.mkdir(parents=True)
     if shape == "incomplete":
         for f in P.REFERENCE_FILES[:-1]:
             (ref / f).write_text("x: 1\n")
-    data = tmp_path / "export-excludes.txt"; data.write_text("docs/ref/\nkitty-specs/\n")
+    data = tmp_path / "export-excludes.txt"; data.write_text(f"build/_guard_probe_{shape}/\nkitty-specs/\n")
     monkeypatch.setattr(P, "EXCLUDES_FILE", data)
     calls = []
     monkeypatch.setattr(P, "_run_checker", lambda name: calls.append(name) or _fake_checker(True)(name))
     with pytest.raises(P.PreflightRefused, match="vacuously"):
-        P.run_preflight(root, CORPUS, tmp_path / "m.json", tmp_path / "preflight.json")
+        P.run_preflight(REPO_ROOT, CORPUS, tmp_path / "m.json", tmp_path / "preflight.json", cache_dir=CACHE)
     assert calls == []                                     # refused BEFORE running anything
     # and the complete shape passes the guard (the checkers then run)
     for f in P.REFERENCE_FILES:
         ref.mkdir(parents=True, exist_ok=True); (ref / f).write_text("x: 1\n")
     assert P.reference_dir(root) == ref
+    shutil.rmtree(ref, ignore_errors=True)
+
+
+def test_empty_or_headless_data_file_refuses(tmp_path, monkeypatch):
+    """Design lead 02:54Z: the guard fails when the data file is empty or its first entry is not a dir."""
+    for body in ("", "# only comments\n", "docs/design/research/849-traceability.md\n"):
+        data = tmp_path / "x.txt"; data.write_text(body)
+        monkeypatch.setattr(P, "EXCLUDES_FILE", data)
+        with pytest.raises(P.PreflightRefused):
+            P.reference_prefix()
+
+
+@needs_corpus
+def test_preflight_refuses_a_checkout_or_corpus_the_checkers_cannot_vouch_for(tmp_path, monkeypatch):
+    """Codex c3: the checkers inspect their own checkout and default corpus; overrides are refused."""
+    monkeypatch.setattr(P, "_run_checker", _fake_checker(True))
+    with pytest.raises(P.PreflightRefused, match="own checkout"):
+        P.run_preflight(tmp_path, CORPUS, tmp_path / "m.json", tmp_path / "p.json", cache_dir=CACHE)
+    with pytest.raises(P.PreflightRefused, match="default corpus"):
+        P.run_preflight(REPO_ROOT, tmp_path / "corpus", tmp_path / "m.json", tmp_path / "p.json", cache_dir=CACHE)
+
+
+@needs_corpus
+def test_preflight_refuses_without_the_tokenizer_cache(tmp_path, monkeypatch):
+    """Design lead MAJOR: no chat template sha → no preflight."""
+    monkeypatch.setattr(P, "_run_checker", _fake_checker(True))
+    manifest = tmp_path / "m.json"; manifest.write_text(json.dumps({"source_commit": "abc", "content_sha": "d" * 64}))
+    with pytest.raises(P.PreflightRefused, match="chat template"):
+        P.run_preflight(REPO_ROOT, CORPUS, manifest, tmp_path / "p.json", cache_dir=tmp_path / "no-cache")
+    assert not (tmp_path / "p.json").exists()
 
 
 def test_tampered_preflight_record_is_refused(tmp_path):
@@ -134,7 +178,7 @@ def test_preflight_record_with_an_empty_or_partial_gate_list_is_refused(tmp_path
     monkeypatch.setattr(P, "_run_checker", _fake_checker(True))
     env = _env(tmp_path, run_root=_export_like(tmp_path / "export"))
     env.export_manifest_path = env.run_root / ".export-manifest.json"
-    P.run_preflight(REPO_ROOT, CORPUS, env.export_manifest_path, env.preflight_path)
+    P.run_preflight(REPO_ROOT, CORPUS, env.export_manifest_path, env.preflight_path, cache_dir=CACHE)
     payload = json.loads(env.preflight_path.read_text())
     for gates in ([], payload["gates"][:3], [{**payload["gates"][0], "exit_code": 1}] + payload["gates"][1:],
                   [{**g, "passed": "yes"} for g in payload["gates"]]):
@@ -155,6 +199,7 @@ def _env(tmp_path, **over) -> G.GateEnv:
             "preflight_path": tmp_path / "preflight.json", "export_manifest_path": tmp_path / "work" / ".export-manifest.json",
             "excluded_prefixes": ("docs/design/research/849-synthesis/" + FORBIDDEN[0] + "/",),
             "forbidden_words": FORBIDDEN, "outbound_probe": ("127.0.0.1", _closed_port()),
+            "expected_chat_template_sha256": TEMPLATE_SHA,
             "self_test": lambda: {"passed": True, "checks": {"x": True}},
             "health": lambda n, r: type("S", (), {"falkordb_ok": True, "llama_ok": True, "n_ctx": n, "rope": r})()}
     base.update(over)
@@ -167,7 +212,7 @@ def test_preflight_gate_matches_this_environment_and_fails_on_one_flipped_finger
     monkeypatch.setattr(P, "_run_checker", _fake_checker(True))
     env = _env(tmp_path, run_root=_export_like(tmp_path / "export"))
     env.export_manifest_path = env.run_root / ".export-manifest.json"
-    P.run_preflight(REPO_ROOT, CORPUS, env.export_manifest_path, env.preflight_path)
+    P.run_preflight(REPO_ROOT, CORPUS, env.export_manifest_path, env.preflight_path, cache_dir=CACHE)
     ok, detail = G.preflight_present_and_matching(env)
     assert ok, detail
     # a manifest whose claim is fictitious must NOT pass: the gate hashes the bytes itself
@@ -184,6 +229,12 @@ def test_preflight_gate_matches_this_environment_and_fails_on_one_flipped_finger
     env.preflight_path.write_text(json.dumps(payload))
     ok, detail = G.preflight_present_and_matching(env)
     assert not ok and "stream.jsonl" in detail
+    # the chat template sha must match the serving configuration's (design-lead MAJOR)
+    env2 = G.GateEnv(**{**env.__dict__, "expected_chat_template_sha256": "f" * 64})
+    payload = json.loads(env.preflight_path.read_text()); payload["corpus"]["stream.jsonl"] = env.corpus_dir and P.load_preflight(env.preflight_path)["corpus"]["stream.jsonl"]
+    env.preflight_path.write_text(json.dumps(payload))
+    ok, detail = G.preflight_present_and_matching(env2)
+    assert not ok and "chat_template_sha256" in detail
 
 
 def test_preflight_gate_fails_when_absent(tmp_path):
@@ -308,7 +359,7 @@ def test_run_all_records_wall_clock_and_refuses_with_every_failing_detail(tmp_pa
     monkeypatch.setattr(P, "_run_checker", _fake_checker(True))
     env = _env(tmp_path, run_root=_export_like(tmp_path / "export"))   # the checkout itself would be refused: it holds the reference dir
     env.export_manifest_path = env.run_root / ".export-manifest.json"
-    P.run_preflight(REPO_ROOT, CORPUS, env.export_manifest_path, env.preflight_path)
+    P.run_preflight(REPO_ROOT, CORPUS, env.export_manifest_path, env.preflight_path, cache_dir=CACHE)
     skip = {"tokenizer_equivalence"}                       # needs the live server
     t0 = time.monotonic()
     results = G.run_all(env, only=[n for n, _ in G.GATE_ORDER if n not in skip])

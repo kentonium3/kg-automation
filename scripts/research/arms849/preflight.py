@@ -83,6 +83,8 @@ class Preflight:
     export_source_commit: str
     source_commit: str
     registration_commit: str
+    rubric_commit: str
+    chat_template_sha256: str            # REQUIRED: the serving protocol depends on it (939d9b29)
     ts: str
     wall_seconds: float
     extra: dict[str, Any] = field(default_factory=dict)
@@ -148,15 +150,31 @@ def _git_head(repo_root: pathlib.Path) -> str:
     return out.stdout.strip()
 
 
+#: The rubric state this record cites (HEAD of the last commit that touched a registered
+#: quantity or clarification: A1–A4, 939d9b29, c166e836). Re-cited by the design lead when a
+#: later clarification lands; the run record and T039's registration point at one rubric.
+RUBRIC_COMMIT = "c166e836"
+
+
 def run_preflight(repo_root: pathlib.Path, corpus_dir: pathlib.Path, export_manifest_path: pathlib.Path,
-                  out_path: pathlib.Path, *, chat_template_sha256: str | None = None) -> Preflight:
+                  out_path: pathlib.Path, *, cache_dir: pathlib.Path | None = None) -> Preflight:
     """Run the four checkers from the full checkout and bind everything into `out_path`.
 
-    Refuses (writes nothing) when the reference is absent, a checker fails, a registered
-    digest does not verify, or the export manifest is missing.
+    Refuses (writes nothing) when the reference material is absent, a checker fails, a
+    registered digest does not verify, the export manifest is missing, or the tokenizer
+    cache (and so the chat template) is unavailable. The checkers inspect THEIR OWN
+    checkout and the loader's default corpus; a `repo_root` or `corpus_dir` they cannot
+    vouch for is refused rather than silently ignored (Codex WP04 c3).
     """
     t0 = time.monotonic()
     repo_root = pathlib.Path(repo_root).resolve()
+    corpus_dir = pathlib.Path(corpus_dir).resolve()
+    if repo_root != REPO_ROOT.resolve():
+        raise PreflightRefused(f"the checkers can only vouch for their own checkout {REPO_ROOT}; got {repo_root}")
+    from scripts.research.load_849_corpus import DEFAULT_CORPUS
+
+    if corpus_dir != pathlib.Path(DEFAULT_CORPUS).resolve():
+        raise PreflightRefused(f"the checkers read the loader's default corpus {DEFAULT_CORPUS}; got {corpus_dir}")
     assert_reference_present(repo_root)
     gates = [_run_checker(name) for name in checkers()]
     failed = [g for g in gates if not g.passed]
@@ -171,12 +189,11 @@ def run_preflight(repo_root: pathlib.Path, corpus_dir: pathlib.Path, export_mani
     if not ok_q:
         raise PreflightRefused(f"question manifest does not verify: {detail_q}")
 
-    corpus_dir = pathlib.Path(corpus_dir)
     registered: dict[str, str] = dict(REGISTRATION["files"])  # type: ignore[arg-type]
     corpus = {name: fingerprint(corpus_dir / name) for name in registered}
     for name, expected in registered.items():
-        if not corpus[name].startswith(str(expected)):
-            raise PreflightRefused(f"corpus file {name} fingerprint {corpus[name][:16]} != registered {expected}")
+        if corpus[name] != str(expected):
+            raise PreflightRefused(f"corpus file {name} fingerprint {corpus[name][:16]} != registered {str(expected)[:16]}")
     text = FrozenCorpusText(corpus_dir)
     record_digest = text.record_lines_digest
 
@@ -188,13 +205,20 @@ def run_preflight(repo_root: pathlib.Path, corpus_dir: pathlib.Path, export_mani
         if not manifest.get(key):
             raise PreflightRefused(f"export manifest lacks {key}")
 
+    from scripts.research.arms849.serving import Tokenizer
+
+    try:
+        template_sha = Tokenizer(pathlib.Path(cache_dir) / "qwen-tokenizer" if cache_dir else None).chat_template_sha256()
+    except RuntimeError as exc:
+        raise PreflightRefused(f"chat template unavailable — {exc}") from exc
+
     record = Preflight(
         gates=gates, corpus=corpus, record_lines_digest=record_digest,
         prompt_hash=prompt_mod.REGISTERED_DIGEST, question_manifest_sha=questions_mod.MANIFEST_DIGEST,
         export_content_sha=str(manifest["content_sha"]), export_source_commit=str(manifest["source_commit"]),
         source_commit=_git_head(repo_root), registration_commit=str(REGISTRATION["commit"]),
+        rubric_commit=RUBRIC_COMMIT, chat_template_sha256=template_sha,
         ts=datetime.now(timezone.utc).isoformat(timespec="seconds"), wall_seconds=round(time.monotonic() - t0, 3),
-        extra={"chat_template_sha256": chat_template_sha256} if chat_template_sha256 else {},
     )
     payload = record.as_dict()
     payload["preflight_sha"] = preflight_sha(payload)

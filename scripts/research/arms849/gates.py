@@ -30,6 +30,7 @@ from scripts.research.arms849 import (
 from scripts.research.arms849 import prompt as prompt_mod
 from scripts.research.arms849 import questions as questions_mod
 from scripts.research.arms849.preflight import (
+    RUBRIC_COMMIT,
     PreflightRefused,
     load_preflight,
 )
@@ -78,6 +79,7 @@ class GateEnv:
     llama_base_url: str = "http://llama:8080"
     expect_n_ctx: int = serving.PRIMARY_N_CTX
     expect_rope: str = "none"
+    expected_chat_template_sha256: str = ""            # ServingConfiguration.chat_template_sha256
     header_code_hashes: dict[str, str] | None = None   # on resume: the ledger header's
     excluded_prefixes: tuple[str, ...] = ()            # from the export's data file
     forbidden_words: tuple[str, ...] = ()              # built from parts by the caller
@@ -158,6 +160,15 @@ def preflight_present_and_matching(env: GateEnv) -> tuple[bool, str]:
         problems.append("preflight prompt_hash is not the registered digest")
     if rec.get("question_manifest_sha") != questions_mod.MANIFEST_DIGEST:
         problems.append("preflight question_manifest_sha is not the registered digest")
+    sha = rec.get("chat_template_sha256")
+    if not isinstance(sha, str) or len(sha) != 64:
+        problems.append("preflight carries no chat_template_sha256 (939d9b29 requires it)")
+    elif not env.expected_chat_template_sha256:
+        problems.append("no expected chat_template_sha256 supplied (ServingConfiguration) — cannot compare")
+    elif sha != env.expected_chat_template_sha256:
+        problems.append(f"chat_template_sha256 {sha[:12]} != serving configuration {env.expected_chat_template_sha256[:12]}")
+    if rec.get("rubric_commit") != RUBRIC_COMMIT:
+        problems.append(f"preflight cites rubric {rec.get('rubric_commit')!r}; this build cites {RUBRIC_COMMIT}")
     return (not problems), ("; ".join(problems) or f"preflight {rec.get('preflight_sha', '')[:12]} matches this environment")
 
 

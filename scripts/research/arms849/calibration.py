@@ -115,10 +115,11 @@ def calibrate(ledger: Any, availability: Mapping[str, int],
         if med > hi:
             # The curve is monotone in k; crossing the band without landing in it means the
             # step from k-1 to k jumped over — take the closer side, recorded as ok only if inside.
-            prev = r_at(k - 1) if k > 1 else r0
-            prev_med = statistics.median(prev[q] for q in questions)
-            if lo <= prev_med <= hi:
-                return finish(k - 1, "ok", prev)
+            if k > 1:                                  # candidates start at k = 1; k = 0 is never "ok"
+                prev = r_at(k - 1)
+                prev_med = statistics.median(prev[q] for q in questions)
+                if lo <= prev_med <= hi:
+                    return finish(k - 1, "ok", prev)
             return finish(k, "unattainable", r)
     return finish(max_k, "infeasible", r_at(max_k))  # availability exhausted below 0.8×
 

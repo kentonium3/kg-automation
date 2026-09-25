@@ -91,7 +91,8 @@ class _Sampler:
             now = time.monotonic()
             if now > deadline:
                 missed = int((now - deadline) // self.interval_s) + 1
-                self.sample.missed_intervals += missed
+                if not self._closed:                  # nothing in the sample moves after exit
+                    self.sample.missed_intervals += missed
                 deadline += missed * self.interval_s
 
     def _check(self, value: float) -> None:
