@@ -20,6 +20,18 @@
   field mandatory (D-13); the harness adds `peak_gtt_gib`, `falkordb_rss_peak_mib` (G), `seed`,
   `attempt`, `elapsed_s`, load counts, `r_g_ratio` (R).
 - Any other exception: infrastructure failure → health check → retry ≤ 2 → `error`.
+- **Exception classes (dated note 2026-09-25, design-lead ruling, bus msg
+  20260925T043533517516Z003ce84a20, landed with the WP06 cycle-2 fold):** an arm lets out exactly
+  three classes. (1) `ContextExceeded` → the context outcome row (`exceeds_model_context`),
+  complete with the plan and `prompt_tokens` — the arm re-raises a bare `serving.ContextExceeded`
+  from `complete`'s last-line guard as its own carrying the plan, so the row is complete whichever
+  line fired. (2) `ArmRefusal` (a configuration defect: a view carrying loader links handed to a
+  flat arm, `cache_prompt` off, an empty / recordless / eventless view) → a **terminal `error` row
+  on the first attempt, zero retries**; the row's `error` carries the refusal message
+  (`ArmRefusal: …`); retrying a permanent defect would burn a primary attempt and count against
+  NFR-008's per-attempt bound. (3) Everything else → the infrastructure ladder above (≤ 2
+  retries). The ledger treats an `error` row whose `error` begins `ArmRefusal:` as terminal without
+  the `AttemptsExhausted` path.
 - **G** exposes `build_graph(question, view) -> GraphStats` (once per question, before repeat 1;
   idempotent) and `drop_graph(question)`; assembly follows D-15 exactly.
 - **R** exposes `calibrate(g_repeat1_rows, views) -> Calibration` (D-10), called once by the
