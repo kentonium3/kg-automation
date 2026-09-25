@@ -23,7 +23,7 @@ python3 -m scripts.research.check_849_loader
 
 ```bash
 python3 -m scripts.research.run_849_harness --preflight   # runs the four checkers HERE, writes build/849-runs/preflight.json (bound to the export sha)
-python3 -m scripts.research.arms849.substrate export      # git archive HEAD → build/849-run-env/ minus oracle/, seed/, narrative + traceability; content-manifest sha recorded
+python3 -m scripts.research.arms849.substrate export      # git archive HEAD → ~/.cache/arms849/run-env/ (outside the repo) minus the excluded paths; content-manifest sha recorded
 ```
 
 ## 3. Bring the substrates up (sandbox note: research.md D-9)

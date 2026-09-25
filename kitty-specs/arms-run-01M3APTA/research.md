@@ -114,7 +114,11 @@ checkpoint (D-7..D-9). No `[NEEDS CLARIFICATION]` markers remain.
 ## D-8 — Oracle-isolated execution boundary (implementer's call; FR-013)
 
 - **Decision**: the arms execute **inside a runner container** (the repo's Python image built
-  from the pinned base, with the venv) whose **only** bind mount is `build/849-run-env/` — a
+  from the pinned base, with the venv) whose **only** bind mount is the export directory —
+  `~/.cache/arms849/run-env/` by default (`ARMS849_RUN_ENV`), **outside the repo tree**, because
+  the export is a full repo copy and the pre-commit secret scan walks even gitignored `build/`
+  (learned live in WP02: an export under `build/` aborted every commit on the test fixtures'
+  fake secrets) — a
   `git archive` export of the mission branch at the run commit with
   `docs/design/research/849-synthesis/oracle/`, `seed/`, the two narrative files
   (`00-context-chains.md`, `01-cast.md`), `849-lattice-scenario-arcs.md`, `849-traceability.md`

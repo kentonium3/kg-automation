@@ -94,7 +94,7 @@ tests/research/
 ├── test_arms849_arm_r.py        # NEW — k derivation, ±20% ratio column, chronological assembly
 ├── test_arms849_grading.py      # NEW — blinding integrity, seal reproduces mapping
 └── test_arms849_isolation.py    # NEW — oracle absent in run env; static scan; second writer refused
-build/849-run-env/               # git-archive export of the mission branch MINUS the oracle dir (FR-013); not committed
+~/.cache/arms849/run-env/        # git-archive export MINUS the excluded paths (FR-013); OUTSIDE the repo — the pre-commit secret scan walks build/ (WP02 live finding)
 build/849-runs/                  # ledgers, grading views, seals; not committed (run record cites them)
 docs/design/research/849-synthesis/
 └── README.md                    # Run section + hand-off record
