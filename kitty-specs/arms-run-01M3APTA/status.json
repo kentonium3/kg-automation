@@ -1,7 +1,7 @@
 {
-  "event_count": 150,
-  "last_event_id": "01M3B9JGFMA7B5AW2YDRR9WCZ2",
-  "materialized_at": "2026-09-25T03:26:03.252873+00:00",
+  "event_count": 151,
+  "last_event_id": "01M3B9R72S233W7CHF422WBEMR",
+  "materialized_at": "2026-09-25T03:29:10.233324+00:00",
   "mission_number": "",
   "mission_slug": "arms-run-01M3APTA",
   "mission_type": "software-dev",
@@ -11,8 +11,8 @@
     "canceled": 0,
     "claimed": 0,
     "done": 0,
-    "for_review": 1,
-    "in_progress": 1,
+    "for_review": 2,
+    "in_progress": 0,
     "in_review": 0,
     "planned": 4
   },
@@ -173,14 +173,21 @@
       "agent_profile": "__resolved_profile_absent__",
       "agent_profile_version": "__resolved_profile_version_absent__",
       "force_count": 0,
-      "lane": "in_progress",
-      "last_event_id": "01M3B7R9290T69Z9P1CJHT5RFP",
-      "last_transition_at": "2026-09-25T02:54:15.113681+00:00",
+      "lane": "for_review",
+      "last_event_id": "01M3B9R72S233W7CHF422WBEMR",
+      "last_transition_at": "2026-09-25T03:29:10.233324+00:00",
       "model": "__resolved_model_absent__",
       "provider": "__resolved_provider_absent__",
       "role": "implementer",
       "shell_pid": 1651998,
-      "shell_pid_created_at": "1790304851.95"
+      "shell_pid_created_at": "1790304851.95",
+      "subtasks": {
+        "T021": "done",
+        "T022": "done",
+        "T023": "done",
+        "T024": "done",
+        "T025": "done"
+      }
     },
     "WP06": {
       "actor": "finalize-tasks",
