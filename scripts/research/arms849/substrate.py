@@ -483,23 +483,34 @@ def _assert_mount_sources(*dirs: pathlib.Path) -> None:
             raise RuntimeError(f"mount source {d} is not accessible by this user (owner {d.stat().st_uid})")
 
 
-def _runner_cmd(extra: Iterable[str], *, entrypoint: str | None = None,
-                env_extra: Sequence[tuple[str, str]] = ()) -> list[str]:
-    """The ONLY docker-run shape the harness ever executes: allowlisted mounts, compose net."""
-    RUNS_DIR.mkdir(parents=True, exist_ok=True)
-    _ensure_runner_image()
-    _assert_mount_sources(EXPORT_DIR, CORPUS_DIR, CACHE_DIR, RUNS_DIR)
+def _runner_argv(extra: Iterable[str], *, entrypoint: str | None = None,
+                 env_extra: Sequence[tuple[str, str]] = ()) -> list[str]:
+    """The ONLY docker-run shape the harness ever executes — pure: no docker, no filesystem.
+
+    Static tests assert on this; :func:`_runner_cmd` adds the side effects.
+    """
     cmd = ["docker", "run", "--rm", "--network", NETWORK,
            "-v", f"{EXPORT_DIR}:/work:ro", "-v", f"{CORPUS_DIR}:/corpus:ro",
            "-v", f"{CACHE_DIR}:/cache:ro", "-v", f"{RUNS_DIR}:/runs:rw",
            "-e", "HF_HUB_OFFLINE=1", "-e", "ARMS849_CORPUS=/corpus", "-e", "ARMS849_CACHE=/cache",
-           "-e", "ARMS849_LLAMA_HOSTS=llama", "-e", "OPENAI_API_KEY=", "-w", "/work"]
+           "-e", "OPENAI_API_KEY=", "-w", "/work"]
     for k, v in env_extra:
         cmd += ["-e", f"{k}={v}"]
     if entrypoint:
         cmd += ["--entrypoint", entrypoint]
     cmd += [RUNNER_IMAGE, *extra]
     return cmd
+
+
+def _runner_cmd(extra: Iterable[str], *, entrypoint: str | None = None,
+                env_extra: Sequence[tuple[str, str]] = ()) -> list[str]:
+    """:func:`_runner_argv` after the preconditions: mount sources exist and are ours
+    (checked BEFORE anything touches docker), then the runner image exists for this
+    Dockerfile."""
+    RUNS_DIR.mkdir(parents=True, exist_ok=True)
+    _assert_mount_sources(EXPORT_DIR, CORPUS_DIR, CACHE_DIR, RUNS_DIR)
+    _ensure_runner_image()
+    return _runner_argv(extra, entrypoint=entrypoint, env_extra=env_extra)
 
 
 SELF_TEST = r"""
@@ -538,6 +549,16 @@ for name, port in (("llama", 8080), ("falkordb", 6379)):
     except OSError:
         checks["reaches_" + name] = False
 checks["no_torch"] = importlib.util.find_spec("torch") is None
+# Rubric 939d9b29: the arms apply the chat template inside this container, so jinja2
+# and the cached tokenizer must render it here — not only on the host.
+try:
+    import transformers
+    _t = transformers.AutoTokenizer.from_pretrained("/cache/qwen-tokenizer")
+    _s = _t.apply_chat_template([{"role": "user", "content": "probe"}], add_generation_prompt=True, tokenize=False)
+    checks["chat_template_renders"] = isinstance(_s, str) and "<|im_start|>user" in _s and "probe" in _s
+except Exception as exc:  # noqa: BLE001
+    checks["chat_template_renders"] = False
+    checks["chat_template_error"] = f"{type(exc).__name__}: {exc}"[:300]
 # Every bind mount must be one of the four the runner is allowed; an extra mount
 # is a widened boundary and fails the test (it is not enough that it is unused).
 # Every mount target must be EXACTLY one the runner is allowed — the four data

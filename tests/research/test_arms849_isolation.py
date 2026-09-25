@@ -36,9 +36,14 @@ def _string_constants(source: str) -> list[str]:
         if isinstance(node, ast.FormattedValue):
             # A constant interpolation is evaluated: conversion (!s !r !a) and a
             # constant format spec included. Anything non-constant is opaque.
-            inner = fold(node.value)          # any statically resolvable expression, recursively
-            if inner is not None and "\0" not in inner:
-                val = node.value.value if isinstance(node.value, ast.Constant) else inner
+            # Any constant (str, bytes, int, float, bool, None — `{111:c}` is a letter) or
+            # any statically resolvable expression, recursively.
+            if isinstance(node.value, ast.Constant):
+                inner, val = "", node.value.value
+            else:
+                inner = fold(node.value)
+                val = inner
+            if inner is not None and "\0" not in (inner or ""):
                 conv = {-1: lambda v: v, 115: str, 114: repr, 97: ascii}[node.conversion](val)
                 spec = fold(node.format_spec) if node.format_spec is not None else ""
                 try:
@@ -82,7 +87,9 @@ def test_no_module_names_the_excluded_material(module: pathlib.Path):
     'X = f"{\'or\'}" + "acle"',             # f-string constant + concatenation
     'X = f"or{\'ac\' + \'le\'}"',             # concatenation INSIDE the interpolation (Codex c3)
     'X = f"or{f\'ac{\"le\"}\'}"',             # nested f-string
-], ids=["adjacent", "plus", "fstring", "bytes", "plus2", "conv", "spec", "fplus", "inner-plus", "nested"])
+    'X = f"{111:c}racle"',                   # numeric constant + format spec (Codex c4)
+    'X = f"{111:c}" + "racle"',
+], ids=["adjacent", "plus", "fstring", "bytes", "plus2", "conv", "spec", "fplus", "inner-plus", "nested", "numc", "numc-plus"])
 def test_the_scan_catches_constructed_forbidden_strings(tmp_path, construction):
     """Codex WP02 cycle 1: the first scan missed constructed strings."""
     bad = tmp_path / "bad.py"

@@ -41,9 +41,10 @@ def test_compose_project_network_and_volume():
     assert c["name"] == "arms849"
     assert c["networks"]["arms849-net"]["internal"] is True
     # The runner joins ONLY the internal network (design-lead 01:00Z: assert it, do not construct it).
-    cmd = SUB._runner_cmd(["-c", "pass"], entrypoint="python3")
+    cmd = SUB._runner_argv(["-c", "pass"], entrypoint="python3")     # pure: no docker in a static test
     nets = [cmd[i + 1] for i, a in enumerate(cmd) if a == "--network"]
     assert nets == [SUB.NETWORK] and SUB.NETWORK.endswith("arms849-net")
+    assert not any(a.startswith("ARMS849_LLAMA_HOSTS") for a in cmd)   # the allowlist is a constant (WP01)
     assert "arms849-falkor" in c["volumes"]
 
 
@@ -182,8 +183,19 @@ def test_live_self_test_passes_and_a_widened_mount_fails(tmp_path, live_http):
 def test_runner_refuses_a_missing_mount_source(tmp_path, monkeypatch):
     """Docker would create a missing bind source as a root-owned dir; the runner refuses first."""
     monkeypatch.setattr(SUB, "CACHE_DIR", tmp_path / "absent")
+    def no_docker(): raise AssertionError("docker must not be reached before the mount check")
+    monkeypatch.setattr(SUB, "_ensure_runner_image", no_docker)
     with pytest.raises(RuntimeError, match="mount source"):
         SUB._runner_cmd(["-c", "pass"], entrypoint="python3")
+
+
+def test_runner_image_installs_every_light_dep_and_no_openai():
+    df = (SUB.COMPOSE_DIR / "runner.Dockerfile").read_text()
+    for dep in SUB.TOKENIZER_LIGHT_DEPS:
+        assert dep in df, dep
+    assert "ARMS849_LLAMA_HOSTS" not in df
+    req = (SUB.COMPOSE_DIR / "requirements-arms849.txt").read_text()
+    assert "openai" not in [line.split("==")[0] for line in req.splitlines() if line and not line.startswith("#")]
 
 
 def test_runner_image_tag_follows_dockerfile_content(tmp_path, monkeypatch):
