@@ -1,19 +1,19 @@
 {
-  "event_count": 25,
-  "last_event_id": "01M3B192NJKK525WF4WCEA8XEF",
-  "materialized_at": "2026-09-25T01:01:05.586519+00:00",
+  "event_count": 26,
+  "last_event_id": "01M3B1DDSA9AWZ2E7QKRB9PB0M",
+  "materialized_at": "2026-09-25T01:03:28.042979+00:00",
   "mission_number": "",
   "mission_slug": "arms-run-01M3APTA",
   "mission_type": "software-dev",
   "summary": {
-    "approved": 0,
+    "approved": 1,
     "blocked": 0,
     "canceled": 0,
     "claimed": 0,
     "done": 0,
     "for_review": 0,
     "in_progress": 1,
-    "in_review": 1,
+    "in_review": 0,
     "planned": 7
   },
   "work_packages": {
@@ -23,9 +23,9 @@
       "agent_profile": "__resolved_profile_absent__",
       "agent_profile_version": "__resolved_profile_version_absent__",
       "force_count": 2,
-      "lane": "in_review",
-      "last_event_id": "01M3B192NJKK525WF4WCEA8XEF",
-      "last_transition_at": "2026-09-25T01:01:05.586519+00:00",
+      "lane": "approved",
+      "last_event_id": "01M3B1DDSA9AWZ2E7QKRB9PB0M",
+      "last_transition_at": "2026-09-25T01:03:28.042979+00:00",
       "model": "__resolved_model_absent__",
       "notes": [
         "WP01 shared contracts: 27 tests green, ruff/mypy clean, static scan clean; six-of-eight reproduced on exact requests",
@@ -35,10 +35,9 @@
       "provider": "__resolved_provider_absent__",
       "review": null,
       "review_result": {
-        "feedback_path": "/home/kgale/repos/kg-automation/kitty-specs/arms-run-01M3APTA/tasks/WP01-shared-contracts/review-cycle-2.md",
-        "reference": "review-cycle://arms-run-01M3APTA/WP01-shared-contracts/review-cycle-2.md",
-        "reviewer": "claude",
-        "verdict": "changes_requested"
+        "reference": "Codex read-only review cycle 3 (gpt-6-astra): VERDICT APPROVE. Cycles 1-2 found four genuine defects, all fixed (95489899, 4029e012). 30 tests green, ruff/mypy clean on the package.",
+        "reviewer": "Kent Gale",
+        "verdict": "approved"
       },
       "role": "reviewer",
       "shell_pid": 1255252,
