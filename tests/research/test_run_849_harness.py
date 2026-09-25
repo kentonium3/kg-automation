@@ -221,10 +221,13 @@ def test_a_failing_gate_stops_the_run(tmp_path, monkeypatch):
         raise GatesRefused("container phase refused:\n  preflight_present_and_matching: "
                            "preflight gate check_849_loader did not pass")
 
+    monkeypatch.setattr(h, "RUNS_DIR", tmp_path / "runs")
     with pytest.raises(GatesRefused, match="check_849_loader"):
         h.live_binding(tmp_path / "ledger.jsonl", CORPUS, PRIMARY, "2026-09-25T00:00:00+00:00",
                        skip_gates=False, container_phase=refuse)
     assert not (tmp_path / "ledger.jsonl").exists(), "no ledger on a failed gate"
+    record = json.loads((tmp_path / "runs" / "gate-container.json").read_text(encoding="utf-8"))
+    assert record["passed"] is False and record["failed"][0]["name"] == "preflight_present_and_matching"
 
 
 # --------------------------------------------------------------------------

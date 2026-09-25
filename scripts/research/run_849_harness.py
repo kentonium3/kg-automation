@@ -156,6 +156,9 @@ LLAMA_URL = "http://llama:8080"
 FALKORDB_ADDR = ("falkordb", 6379)
 PROCESS_START = datetime.now(timezone.utc).isoformat()
 
+#: CLI exit codes. EXIT_GATES_FAILED is distinct from every other failure (design-lead rider 1).
+EXIT_OK, EXIT_FAILED, EXIT_STOPPED, EXIT_GATES_FAILED = 0, 1, 2, 3
+
 
 class HarnessStopped(RuntimeError):
     """The session stopped on a condition the operator must see (halt, ceiling, write failure)."""
@@ -293,9 +296,12 @@ class ArmRegistration:
     drop_graph: Callable[[Question], Any] | None = None
 
     def __post_init__(self) -> None:
-        if not (isinstance(self.refusal, type) and issubclass(self.refusal, BaseException)):
-            raise TypeError(f"refusal must be the arm's ArmRefusal exception class, got {self.refusal!r}")
-        if self.refusal in (BaseException, Exception):
+        if not (isinstance(self.refusal, type) and issubclass(self.refusal, Exception)):
+            # An Exception subclass, never a bare BaseException one: the worker wrapper propagates
+            # non-Exception BaseExceptions as real interruption (KeyboardInterrupt, SystemExit), so a
+            # refusal outside Exception would escape as an interrupt, not a terminal row (Codex c2).
+            raise TypeError(f"refusal must be the arm's ArmRefusal class, an Exception subclass; got {self.refusal!r}")
+        if self.refusal is Exception:
             raise TypeError("refusal must be the arm's own refusal class, not a catch-all")
         if (self.answer is None) == (self.bind is None):
             raise TypeError("a registration carries exactly one of answer (G, D) or bind (R)")
@@ -600,6 +606,12 @@ class Session:
 
     def _record_raised(self, key: RunKey, reg: ArmRegistration, exc: Any, base: dict[str, Any],
                        peak_gtt: float | None) -> tuple[str | None, bool]:
+        """Record a raised attempt. Terminal refusal is ``isinstance(exc, reg.refusal)`` (W8-1).
+
+        W8-1's STRING HALF (design lead): non-refusal errors are recorded with the module-qualified
+        class name whenever the plain ``Name: message`` text would begin with the ledger's
+        ``ArmRefusal:`` prefix, so the prefix rule cannot confer terminality on an unrelated
+        same-named class. The contract sentence about the prefix is unchanged."""
         if isinstance(exc, serving.ContextExceeded):
             tokens = getattr(exc, "prompt_tokens", None)
             if key.arm == "D" and type(tokens) is int:
@@ -923,11 +935,43 @@ def live_gates(ledger_path: pathlib.Path, corpus: pathlib.Path, config: serving.
         host = json.loads((RUNS_DIR / "gate-host.json").read_text(encoding="utf-8"))
         preflight_sha = str(load_preflight(RUNS_DIR / "preflight.json")["preflight_sha"])
     except Exception as exc:  # noqa: BLE001 — a gate that refuses or raises has failed, with the reason
-        return SessionGates(passed=False, up_ts=up_ts, container_start_ts=PROCESS_START,
-                            error=f"{type(exc).__name__}: {exc}")
+        error = f"{type(exc).__name__}: {exc}"
+        failed = write_gate_failure(RUNS_DIR / "gate-container.json", "container", exc, up_ts)
+        return SessionGates(passed=False, up_ts=up_ts, container_start_ts=PROCESS_START, error=error,
+                            details=tuple(failed))
     details = tuple({"name": r.name, "passed": r.passed, "detail": r.detail} for r in results)
     return SessionGates(passed=True, gate_host_sha=str(host["gate_host_sha"]), gate_container_sha=gate_container_sha,
                         preflight_sha=preflight_sha, up_ts=up_ts, container_start_ts=PROCESS_START, details=details)
+
+
+def failed_gates(exc: BaseException) -> list[dict[str, Any]]:
+    """The failing gates named by a ``GatesRefused`` (``"<phase> phase refused:"`` then one
+    ``"  <name>: <detail>"`` line per failing gate), or the exception itself as one entry."""
+    lines = str(exc).splitlines()
+    out = [{"name": ln.strip().split(": ", 1)[0], "passed": False,
+            "detail": ln.strip().split(": ", 1)[1] if ": " in ln else ""}
+           for ln in lines[1:] if ln.startswith("  ")]
+    return out or [{"name": type(exc).__name__, "passed": False, "detail": str(exc)}]
+
+
+def write_gate_failure(path: pathlib.Path, phase: str, exc: BaseException, up_ts: str) -> list[dict[str, Any]]:
+    """Design-lead rider 1: a failing phase still leaves its record (``gate-<phase>.json``) naming the
+    failing gate(s) and detail — ``passed: false`` and self-hashed like the passing records, so it
+    can never be mistaken for, or verified as, a passing one. No ledger or header is touched."""
+    from scripts.research.arms849 import gates
+
+    failed = failed_gates(exc)
+    sha_field = f"gate_{phase}_sha"
+    record: dict[str, Any] = {"phase": phase, "passed": False, "ts": datetime.now(timezone.utc).isoformat(),
+                              "up_ts": up_ts, "container_start_ts": PROCESS_START if phase == "container" else None,
+                              "error": f"{type(exc).__name__}: {exc}", "failed": failed, "results": failed}
+    record[sha_field] = gates.record_sha(record, sha_field)
+    path = pathlib.Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_suffix(path.suffix + ".tmp")
+    tmp.write_text(json.dumps(record, indent=2, sort_keys=True, ensure_ascii=False) + "\n", encoding="utf-8")
+    tmp.replace(path)
+    return failed
 
 
 def binding_for(gates_outcome: SessionGates, corpus: pathlib.Path, config: serving.ServingConfiguration) -> Binding:
@@ -978,23 +1022,48 @@ def _props_n_ctx() -> int:
         return int((json.loads(r.read().decode()).get("default_generation_settings") or {}).get("n_ctx") or 0)
 
 
+def _gtt_guard(gtt: Any) -> dict[str, Any]:
+    """A fresh synchronous GTT reading plus the window's state. NFR-004 (design-lead rider 3): the
+    ceiling is breached STRICTLY ABOVE ``sampler.GTT_CEILING_GIB`` (62.5 GiB budget, ≥ 5 GiB
+    headroom ⇒ exactly 57.5 is compliant) — the one constant, imported, never copied."""
+    try:
+        reading: float | None = float(gtt.read_once())
+        error = None
+    except Exception as exc:  # noqa: BLE001 — unreadable is could-not-check, never a pass
+        reading, error = None, f"{type(exc).__name__}: {exc}"
+    peak = _peak(gtt, "peak_gib")
+    window_valid = peak is not None and reading is not None
+    breached = bool(getattr(gtt, "breached", False)) or any(
+        v is not None and v > GTT_CEILING_GIB for v in (reading, peak))
+    return {"reading": reading, "peak": peak, "window_valid": window_valid, "breached": breached,
+            "safe": window_valid and not breached, "error": error}
+
+
+def _probe_refusal(guard: Mapping[str, Any], when: str) -> dict[str, Any]:
+    what = "GTT unreadable" if not guard["window_valid"] else f"GTT above the {GTT_CEILING_GIB} GiB ceiling"
+    return {"passed": False, "sent": False, "trigger_gtt_gib": guard["reading"], "peak_gtt_gib": guard["peak"],
+            "gtt_breached": guard["breached"], "gtt_window_valid": guard["window_valid"],
+            "ceiling_gib": GTT_CEILING_GIB, "sampler_error": guard["error"],
+            "reason": f"{what} {when}; nothing sent"}
+
+
 def live_secondary_gate(runtime: Runtime, props_n_ctx: Callable[[], int] = _props_n_ctx) -> Callable[[], dict[str, Any]]:
     """n_ctx 393216 (+ yarn, verified by the host phase) and one ~363k-token prompt — the full D view
     at the last question's ask_time — through ``serving.complete``, with peak GTT and rates.
 
-    NFR-004 holds here as for every cell: when the GTT sampler cannot read, or already reads at or
-    over the 57.5 GiB ceiling, the probe REFUSES BEFORE SENDING (the gate fails); a window that
-    breaches the ceiling or becomes unreadable during the request FAILS the gate."""
+    NFR-004 holds here as for every cell: the GTT reading is checked when the probe starts AND again
+    immediately before ``complete()`` (tokenising ~363k tokens takes long enough for GTT to move);
+    unreadable, or strictly above the ceiling, at either point → REFUSED BEFORE SENDING, the gate
+    fails, and the triggering reading is recorded. A window that breaches or becomes unreadable
+    during the request FAILS the gate."""
     def probe() -> dict[str, Any]:
         from scripts.research.arms849.text import FrozenCorpusText
 
         config = runtime.config
         with runtime.gtt_sampler() as gtt:
-            first = _peak(gtt, "peak_gib")
-            if first is None or getattr(gtt, "breached", False) or first >= GTT_CEILING_GIB:
-                return {"passed": False, "sent": False, "peak_gtt_gib": first, "ceiling_gib": GTT_CEILING_GIB,
-                        "reason": ("GTT unreadable" if first is None else "GTT at or over the ceiling")
-                                  + " before the probe; nothing sent"}
+            guard = _gtt_guard(gtt)
+            if not guard["safe"]:
+                return _probe_refusal(guard, "before the probe")
             n_ctx = props_n_ctx()
             last = questions_mod.QUESTIONS[-1]
             view = arm_view(RunKey("D", last.id, 1),
@@ -1004,6 +1073,10 @@ def live_secondary_gate(runtime: Runtime, props_n_ctx: Callable[[], int] = _prop
             body = facade.serialize(runtime.prompt.render(block, "context-window gate: summarise the material."),
                                     config.seed_for(1))
             tokens = facade.count_tokens(body)
+            guard = _gtt_guard(gtt)                   # immediately before sending
+            if not guard["safe"]:
+                return {**_probe_refusal(guard, "immediately before sending"), "prompt_tokens": tokens,
+                        "n_ctx": n_ctx}
             completion = facade.complete(body)
         peak = _peak(gtt, "peak_gib")
         breached = bool(getattr(gtt, "breached", False)) or (peak is not None and peak > GTT_CEILING_GIB)
@@ -1032,7 +1105,11 @@ def host_phase(up_ts: str, config: serving.ServingConfiguration) -> str:
         export_manifest_path=substrate.EXPORT_DIR / ".export-manifest.json", up_ts=up_ts,
         expect_n_ctx=config.n_ctx, expect_rope=_expect_rope(config),
         expected_chat_template_sha256=config.chat_template_sha256, self_test=substrate.self_test, health=substrate.health, forbidden_words=forbidden_words())
-    _, sha = gates.run_host_phase(env, substrate.RUNS_DIR / "gate-host.json")
+    try:
+        _, sha = gates.run_host_phase(env, substrate.RUNS_DIR / "gate-host.json")
+    except gates.GatesRefused as exc:
+        write_gate_failure(substrate.RUNS_DIR / "gate-host.json", "host", exc, up_ts)
+        raise
     return sha
 
 
@@ -1077,7 +1154,7 @@ def _refuse_session(ledger_path: pathlib.Path, gates_outcome: SessionGates) -> i
             write_session_gates(ledger, gates_outcome, session_identity())
             print(status_line(ledger))
     print(f"arms849 status: STOPPED — this session's gates failed: {gates_outcome.error}")
-    return 1
+    return EXIT_GATES_FAILED
 
 
 def main(argv: list[str]) -> int:
@@ -1122,13 +1199,25 @@ def main(argv: list[str]) -> int:
             return 0
         config = live_config(args.secondary)
         if args.host_gates:
-            print(f"gate-host.json written: gate_host_sha {host_phase(args.up_ts, config)}")
+            from scripts.research.arms849.gates import GatesRefused
+
+            try:
+                sha = host_phase(args.up_ts, config)
+            except GatesRefused as exc:
+                print(f"arms849 status: host gates FAILED — gate-host.json records it\n{exc}")
+                return EXIT_GATES_FAILED
+            print(f"gate-host.json written: gate_host_sha {sha}")
             return 0
         if args.gates:
             from scripts.research.arms849 import gates
 
-            results, sha = gates.run_container_phase(_gate_env(args.corpus, config, args.up_ts),
-                                                     RUNS_DIR / "gate-container.json")
+            try:
+                results, sha = gates.run_container_phase(_gate_env(args.corpus, config, args.up_ts),
+                                                         RUNS_DIR / "gate-container.json")
+            except gates.GatesRefused as exc:
+                write_gate_failure(RUNS_DIR / "gate-container.json", "container", exc, args.up_ts)
+                print(f"arms849 status: container gates FAILED — gate-container.json records it\n{exc}")
+                return EXIT_GATES_FAILED
             for r in results:
                 print(f"  {'PASS' if r.passed else 'FAIL'} {r.name}: {r.detail}")
             print(f"gate_container_sha {sha}")

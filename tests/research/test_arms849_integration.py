@@ -671,7 +671,8 @@ def test_dry_run_prints_the_seventy_two_cell_plan():
     assert len(cells) == 72 and cells[0] == ["G", "C1", "r1"] and cells[-1] == ["R", "B2", "r3"]
 
 
-def test_a_failing_container_gate_writes_no_ledger(tmp_path):
+def test_a_failing_container_gate_writes_no_ledger(tmp_path, monkeypatch):
+    monkeypatch.setattr(h, "RUNS_DIR", tmp_path / "runs")
     from scripts.research.arms849.gates import GatesRefused
 
     def refuse(env: Any, out: Any) -> Any:
@@ -709,7 +710,10 @@ def test_a_registration_without_its_refusal_class_is_refused():
     """W8-1: the refusal class is required and must be a real, specific exception class."""
     with pytest.raises(TypeError):
         h.ArmRegistration(answer=fake_d)                               # type: ignore[call-arg]
-    for bad in (Exception, BaseException, "ArmRefusal", None):
+    class DirectBase(BaseException):             # would escape the worker wrapper as an "interrupt"
+        pass
+
+    for bad in (Exception, BaseException, DirectBase, KeyboardInterrupt, "ArmRefusal", None):
         with pytest.raises(TypeError):
             h.ArmRegistration(refusal=bad, answer=fake_d)              # type: ignore[arg-type]
     with pytest.raises(TypeError, match="exactly one"):
@@ -784,16 +788,17 @@ class UnreadableGtt(FakeGtt):
         raise PermissionError("sysfs")
 
 
-class RisingGtt(FakeGtt):
-    """Under the ceiling at the start, over it once the request is in flight."""
+class InFlightFacade(ProbeFacade):
+    """Moves the sampler once the request is IN FLIGHT (inside complete), then holds so the 1 Hz
+    sampler thread reads the new state."""
 
-    def __init__(self) -> None:
-        super().__init__()
-        self.n = 0
+    def __init__(self, sampler: Any, shift: Callable[[Any], None]) -> None:
+        super().__init__(hold_s=1.3)
+        self.sampler, self.shift = sampler, shift
 
-    def read_once(self) -> float:
-        self.n += 1
-        return 30.0 if self.n == 1 else 60.0
+    def complete(self, body: dict[str, Any]) -> Any:
+        self.shift(self.sampler)
+        return super().complete(body)
 
 
 def test_secondary_probe_refuses_before_sending_over_the_ceiling(tmp_path):
@@ -807,20 +812,74 @@ def test_secondary_probe_refuses_before_sending_over_the_ceiling(tmp_path):
         assert not h.secondary_context_gate(ledger, h.live_secondary_gate(runtime, props_n_ctx=lambda: 393_216))
     assert facade.sent == []
     gate = [x for x in rows_of(tmp_path / "secondary.jsonl") if x.get("kind") == "secondary_context_gate"]
-    assert gate[0]["detail"]["passed"] is False and gate[0]["detail"]["sent"] is False
+    d = gate[0]["detail"]
+    assert d["passed"] is False and d["sent"] is False
+    assert d["gtt_breached"] is True and d["gtt_window_valid"] is True and d["trigger_gtt_gib"] == 58.0
 
 
-def test_secondary_probe_at_the_ceiling_or_unreadable_sends_nothing():
-    for gtt in (lambda: FakeGtt(57.5), UnreadableGtt):
-        facade = ProbeFacade()
-        result = _probe(gtt, facade)
-        assert result["passed"] is False and result["sent"] is False and facade.sent == []
+def test_secondary_probe_over_the_ceiling_or_unreadable_sends_nothing():
+    """Rider 3: breached STRICTLY above 57.5; the pre-send refusal carries both window flags."""
+    over = _probe(lambda: FakeGtt(57.500001), facade := ProbeFacade())
+    assert over["sent"] is False and over["passed"] is False and facade.sent == []
+    assert over["gtt_breached"] is True and over["gtt_window_valid"] is True and over["trigger_gtt_gib"] == 57.500001
+    blind = _probe(UnreadableGtt, facade := ProbeFacade())
+    assert blind["sent"] is False and blind["passed"] is False and facade.sent == []
+    assert blind["gtt_window_valid"] is False and blind["gtt_breached"] is False and blind["trigger_gtt_gib"] is None
 
 
-def test_secondary_probe_fails_when_the_window_breaches_during_the_request():
-    facade = ProbeFacade(hold_s=1.3)                  # the 1 Hz sampler reads again mid-request
-    result = _probe(RisingGtt, facade)
-    assert len(facade.sent) == 1 and result["gtt_breached"] is True and result["passed"] is False
+def test_secondary_probe_at_exactly_the_ceiling_is_compliant():
+    """Rider 3: NFR-004's 62.5 GiB budget with ≥ 5 GiB headroom — exactly 57.5 sends."""
+    facade = ProbeFacade()
+    result = _probe(lambda: FakeGtt(57.5), facade)
+    assert result["sent"] is True and result["passed"] is True and len(facade.sent) == 1
+
+
+class ShiftingGtt(FakeGtt):
+    """Changes state when the probe tokenises (the facade flips it in count_tokens)."""
+
+    def __init__(self) -> None:
+        super().__init__(30.0)
+        self.fail = False
+
+    def read_once(self) -> float:
+        if self.fail:
+            raise PermissionError("sysfs went away")
+        return self.value
+
+
+class ShiftingFacade(ProbeFacade):
+    def __init__(self, sampler: ShiftingGtt, shift: Callable[[ShiftingGtt], None]) -> None:
+        super().__init__()
+        self.sampler, self.shift = sampler, shift
+
+    def count_tokens(self, body: dict[str, Any]) -> int:
+        self.shift(self.sampler)                      # GTT moves while ~363k tokens are counted
+        return super().count_tokens(body)
+
+
+@pytest.mark.parametrize("shift", [lambda s: setattr(s, "value", 58.0), lambda s: setattr(s, "fail", True)],
+                         ids=["rises-past-the-ceiling", "becomes-unreadable"])
+def test_secondary_probe_rechecks_immediately_before_sending(shift):
+    """Codex c2 :1007 — a transition during tokenisation refuses without sending."""
+    sampler = ShiftingGtt()
+    facade = ShiftingFacade(sampler, shift)
+    result = _probe(lambda: sampler, facade)
+    assert result["sent"] is False and result["passed"] is False and facade.sent == []
+    assert "immediately before sending" in result["reason"]
+
+
+@pytest.mark.parametrize(("shift", "flag"), [(lambda s: setattr(s, "value", 60.0), "gtt_breached"),
+                                             (lambda s: setattr(s, "fail", True), "invalid")],
+                         ids=["breaches", "becomes-unreadable"])
+def test_secondary_probe_fails_when_the_window_goes_bad_during_the_request(shift, flag):
+    sampler = ShiftingGtt()
+    facade = InFlightFacade(sampler, shift)
+    result = _probe(lambda: sampler, facade)
+    assert len(facade.sent) == 1 and result["sent"] is True and result["passed"] is False
+    if flag == "gtt_breached":
+        assert result["gtt_breached"] is True
+    else:
+        assert result["gtt_window_valid"] is False
 
 
 def test_secondary_probe_passes_under_the_ceiling():
@@ -896,8 +955,47 @@ def test_a_resumed_live_session_with_failing_gates_records_them_and_stops(tmp_pa
     before = len(rows_of(path))
     monkeypatch.setattr(h, "live_config", lambda secondary: PRIMARY)
     monkeypatch.setattr(h, "live_gates", lambda *a, **k: h.SessionGates(passed=False, error="GatesRefused: boundary"))
-    assert h.main(["harness", "--ledger", str(path)]) == 1
+    assert h.main(["harness", "--ledger", str(path)]) == h.EXIT_GATES_FAILED
     rows = rows_of(path)
     assert len(rows) == before + 1 and rows[-1]["kind"] == "session_gates" and rows[-1]["detail"]["passed"] is False
     fresh = tmp_path / "fresh.jsonl"
-    assert h.main(["harness", "--ledger", str(fresh)]) == 1 and not fresh.exists()
+    assert h.main(["harness", "--ledger", str(fresh)]) == h.EXIT_GATES_FAILED and not fresh.exists()
+
+
+def test_a_fresh_run_with_failing_gates_records_them_and_exits_distinctly(tmp_path, monkeypatch):
+    """Rider 1, through main: no ledger or header, but gate-container.json names the failing gate and
+    its detail, and the exit status is the distinct gates-failed code."""
+    from scripts.research.arms849 import gates
+
+    def refuse(env: Any, out: Any) -> Any:
+        raise gates.GatesRefused("container phase refused:\n  env_clean: OPENAI_API_KEY is set\n"
+                                 "  tokenizer_equivalence: line 3 differs")
+
+    monkeypatch.setattr(h, "RUNS_DIR", tmp_path / "runs")
+    monkeypatch.setattr(h, "live_config", lambda secondary: PRIMARY)
+    monkeypatch.setattr(gates, "run_container_phase", refuse)
+    fresh = tmp_path / "fresh.jsonl"
+    code = h.main(["harness", "--ledger", str(fresh), "--up-ts", "2026-09-25T00:00:00+00:00"])
+    assert code == h.EXIT_GATES_FAILED and code not in (h.EXIT_OK, h.EXIT_FAILED, h.EXIT_STOPPED)
+    assert not fresh.exists()
+    record = json.loads((tmp_path / "runs" / "gate-container.json").read_text(encoding="utf-8"))
+    assert record["passed"] is False and record["phase"] == "container"
+    assert [(f["name"], f["detail"]) for f in record["failed"]] == [
+        ("env_clean", "OPENAI_API_KEY is set"), ("tokenizer_equivalence", "line 3 differs")]
+    assert record["gate_container_sha"] == gates.record_sha(record, "gate_container_sha")
+
+
+def test_failing_host_gates_record_them_and_exit_distinctly(tmp_path, monkeypatch):
+    from scripts.research.arms849 import gates, substrate
+
+    def refuse(env: Any, out: Any) -> Any:
+        raise gates.GatesRefused("host phase refused:\n  boundary: boundary self-test failed: ['host_checkout']")
+
+    monkeypatch.setattr(substrate, "RUNS_DIR", tmp_path / "runs")
+    monkeypatch.setattr(h, "live_config", lambda secondary: SECONDARY if secondary else PRIMARY)
+    monkeypatch.setattr(h, "_IN_CONTAINER", False)
+    monkeypatch.setattr(gates, "run_host_phase", refuse)
+    code = h.main(["harness", "--host-gates", "--secondary", "--up-ts", "2026-09-25T00:00:00+00:00"])
+    assert code == h.EXIT_GATES_FAILED
+    record = json.loads((tmp_path / "runs" / "gate-host.json").read_text(encoding="utf-8"))
+    assert record["passed"] is False and record["failed"][0]["name"] == "boundary"
