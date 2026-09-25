@@ -532,3 +532,31 @@ def test_mismatched_opener_does_not_repair_the_tail(tmp_path):
     assert p.read_bytes() == before                  # refused opener changed nothing
     with fresh(tmp_path) as led:                     # the rightful opener recovers and logs it
         assert [r for r in led.rows if r.get("record") == "event" and r["kind"] == "recovered_torn_tail"]
+
+
+def test_header_and_rows_are_exposed_as_copies_only(tmp_path):
+    """Codex c4: editing what the ledger hands out must change nothing it checks against."""
+    key = L.RunKey("G", "C1", 1)
+    with fresh(tmp_path) as led:
+        led.header.binding.serving["n_ctx"] = 1                   # edits a copy
+        led.begin_attempt(key); rec(led, key, "ok", ok_row())      # the real serving still matches
+        with pytest.raises(L.LedgerBoundToAnotherConfig):
+            rec(led, key, "error", err_row(), serving={**SERVING, "n_ctx": 1})
+        led.run_rows()[0]["outcome"] = "error"                     # edits a copy
+        led.rows[-1]["outcome"] = "error"
+        led.grading_rows()[0]["outcome"] = "error"
+        with pytest.raises(L.SecondScoredRow):                     # I2 still holds
+            led.begin_attempt(key)
+        score_all_g_repeat1(led)
+        led.write_calibration({"r_k": 12})
+        led.calibration()["r_k"] = 99
+        assert led.calibration()["r_k"] == 12
+
+
+def test_summary_counts_every_non_scored_row_even_when_the_key_later_succeeds(tmp_path):
+    key = L.RunKey("D", "C1", 1)
+    with fresh(tmp_path) as led:
+        led.begin_attempt(key); rec(led, key, "error", err_row(arm="D"))
+        led.begin_attempt(key); rec(led, key, "ok", ok_row(arm="D"))
+        s = led.summarise()[("D", "C1")]
+    assert s.n_scored == 1 and s.counts == {"error": 1} and s.attempts == 2

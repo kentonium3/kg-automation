@@ -229,9 +229,16 @@ class Ledger:
     def __init__(self, path: pathlib.Path, header: Header, rows: list[dict[str, Any]],
                  lock_fd: int) -> None:
         self.path = pathlib.Path(path)
-        self.header = header
+        # The authoritative header is PRIVATE and its own deep copy: a caller who edits
+        # `ledger.header.binding.serving` edits a copy (Codex WP03 c4).
+        self._header = Header.from_dict(copy.deepcopy(header.as_dict()))
         self._rows = rows
         self._lock_fd = lock_fd
+
+    @property
+    def header(self) -> Header:
+        """A deep copy; editing it changes nothing the ledger compares against."""
+        return Header.from_dict(copy.deepcopy(self._header.as_dict()))
 
     # -- lifecycle ---------------------------------------------------------
 
@@ -264,10 +271,11 @@ class Ledger:
 
     @property
     def rows(self) -> list[dict[str, Any]]:
-        return list(self._rows)
+        """Deep copies: a caller can never edit the rows the invariants are checked against."""
+        return copy.deepcopy(self._rows)
 
     def run_rows(self) -> list[dict[str, Any]]:
-        return [r for r in self._rows if r.get("record") == "run"]
+        return copy.deepcopy([r for r in self._rows if r.get("record") == "run"])
 
     # -- attempts ----------------------------------------------------------
 
@@ -294,7 +302,7 @@ class Ledger:
         reserved = RESERVED_RUN_FIELDS & set(row)
         if reserved:
             raise ValueError(f"payload carries ledger-authored fields {sorted(reserved)}")
-        if serving != self.header.binding.serving:
+        if serving != self._header.binding.serving:
             raise LedgerBoundToAnotherConfig("serving configuration differs from the header on append")
         if outcome == SCORED_OUTCOME and any(
                 r.get("record") == "run" and r.get("outcome") == SCORED_OUTCOME and RunKey.of(r) == key
@@ -313,7 +321,7 @@ class Ledger:
             missing += [f for f in ERROR_ROW_FIELDS if f not in row]
         if outcome == "exceeds_model_context":
             pt = int(row.get("prompt_tokens", -1))
-            if pt <= self.header.binding.model_context_tokens:
+            if pt <= self._header.binding.model_context_tokens:
                 raise ValueError(f"exceeds_model_context row must carry prompt_tokens > model context ({pt})")
         if outcome == SCORED_OUTCOME:
             missing += [f for f in SCORED_ROW_FIELDS + SCORED_ARM_FIELDS.get(key.arm, ()) if f not in row]
@@ -388,7 +396,8 @@ class Ledger:
         self._append({**calibration, "record": "calibration", "ts": _utc_now()})
 
     def calibration(self) -> dict[str, Any] | None:
-        return next((r for r in self._rows if r.get("record") == "calibration"), None)
+        found = next((r for r in self._rows if r.get("record") == "calibration"), None)
+        return copy.deepcopy(found) if found is not None else None
 
     def has_terminal_error(self, arm: str, repeat: int) -> list[str]:
         """Questions whose (arm, repeat) cell is terminal `error` — D-10's halt input."""
@@ -416,13 +425,19 @@ class Ledger:
                 k = (r["arm"], r["question"]); attempts[k] = attempts.get(k, 0) + 1
         ok_rows: dict[tuple[str, str], list[dict[str, Any]]] = {}
         counts: dict[tuple[str, str], dict[str, int]] = {}
+        runs = [r for r in self._rows if r.get("record") == "run"]
         for key in sorted(keys, key=lambda k: (k.arm, k.question, k.repeat)):
             cell = (key.arm, key.question)
-            term = self.terminal(key) or "pending"
-            counts.setdefault(cell, {}); counts[cell][term] = counts[cell].get(term, 0) + 1
-            if term == SCORED_OUTCOME:
-                ok_rows.setdefault(cell, []).extend(
-                    r for r in self.run_rows() if RunKey.of(r) == key and r["outcome"] == SCORED_OUTCOME)
+            counts.setdefault(cell, {})
+            key_runs = [r for r in runs if RunKey.of(r) == key]
+            # Every recorded non-scored row is COUNTED (T014), even when the key later
+            # succeeded; a key exhausted with no run rows at all counts as one error.
+            for r in key_runs:
+                if r["outcome"] != SCORED_OUTCOME:
+                    counts[cell][r["outcome"]] = counts[cell].get(r["outcome"], 0) + 1
+            if not key_runs and self.terminal(key) == "error":
+                counts[cell]["error"] = counts[cell].get("error", 0) + 1
+            ok_rows.setdefault(cell, []).extend(r for r in key_runs if r["outcome"] == SCORED_OUTCOME)
         out: dict[tuple[str, str], Summary] = {}
         for cell, cnt in counts.items():
             ok = ok_rows.get(cell, [])
@@ -439,7 +454,7 @@ class Ledger:
                 cold=sum(1 for r in ok if r["cache_state"] == "cold"),
                 warm=sum(1 for r in ok if r["cache_state"] == "warm"),
                 r_g_ratios=[r["r_g_ratio"] for r in ok if "r_g_ratio" in r],
-                counts={o: n for o, n in cnt.items() if o != SCORED_OUTCOME}, attempts=attempts.get(cell, 0),
+                counts=dict(cnt), attempts=attempts.get(cell, 0),
             )
         return out
 
