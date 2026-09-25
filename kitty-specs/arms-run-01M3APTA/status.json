@@ -1,7 +1,7 @@
 {
-  "event_count": 171,
-  "last_event_id": "01M3BBA1VJV16Q497BMGB34WQ2",
-  "materialized_at": "2026-09-25T03:56:23.282199+00:00",
+  "event_count": 172,
+  "last_event_id": "01M3BBAD330HEP5N7Q440DK9CG",
+  "materialized_at": "2026-09-25T03:56:34.787796+00:00",
   "mission_number": "",
   "mission_slug": "arms-run-01M3APTA",
   "mission_type": "software-dev",
@@ -13,8 +13,8 @@
     "done": 0,
     "for_review": 1,
     "in_progress": 1,
-    "in_review": 1,
-    "planned": 4
+    "in_review": 0,
+    "planned": 5
   },
   "work_packages": {
     "WP01": {
@@ -100,10 +100,10 @@
       "agent": "claude",
       "agent_profile": "__resolved_profile_absent__",
       "agent_profile_version": "__resolved_profile_version_absent__",
-      "force_count": 6,
-      "lane": "in_review",
-      "last_event_id": "01M3BBA1VJV16Q497BMGB34WQ2",
-      "last_transition_at": "2026-09-25T03:56:23.282199+00:00",
+      "force_count": 7,
+      "lane": "planned",
+      "last_event_id": "01M3BBAD330HEP5N7Q440DK9CG",
+      "last_transition_at": "2026-09-25T03:56:34.787796+00:00",
       "model": "__resolved_model_absent__",
       "notes": [
         "WP03 ledger: 24 tests incl. kill-mid-write recovery, second-writer refusal, per-field binding refusal; full suite green",
@@ -117,9 +117,10 @@
       "provider": "__resolved_provider_absent__",
       "review": null,
       "review_result": {
-        "reference": "auto-approval:WP03:20260925",
-        "reviewer": "Kent Gale",
-        "verdict": "approved"
+        "feedback_path": "/home/kgale/repos/kg-automation/kitty-specs/arms-run-01M3APTA/tasks/WP03-ledger/review-cycle-8.md",
+        "reference": "review-cycle://arms-run-01M3APTA/WP03-ledger/review-cycle-8.md",
+        "reviewer": "claude",
+        "verdict": "changes_requested"
       },
       "role": "reviewer",
       "shell_pid": 1927380,
