@@ -148,6 +148,23 @@ under every data mount, every mount's type/source/content, and the host checkout
 A review finding of a further evaluator construction is recorded as out of scope; a finding
 against the runtime boundary is folded (as c10's docker `/etc` bind identity was).
 
+**Dated closure 2026-09-25 (design-lead ruling, bus msg 20260925T192614559952Z2743cd9757, landed with the WP04
+cycle-10 fold):** "literal structure" for the static scan = literals, operators, f-strings, containers,
+subscripts/slices over them, PLUS, by construction: (i) a call whose func is a Name in a CLOSED pure-builtin
+allowlist (str, bytes, bytearray, int, float, bool, complex, len, repr, chr, ord, tuple, list, dict, set,
+frozenset, sorted, reversed, min, max, sum, abs, round, divmod, pow, hex, oct, bin, format, slice, range,
+enumerate, zip, map, filter, any, all — never hash or id, which are process-salted) with every argument pure,
+evaluated in the resource-limited child; (ii) a call whose func is an attribute on a pure receiver (any method
+name, receiver purity recursive through evaluated calls) with pure arguments, evaluated in the child — a method
+that raises or is absent is `ScanRefused`. Everything else is OPAQUE: a literal-only call to any other name
+(`RuntimeError("…")`, `ArmRefusal("…")`, a decorator) is code and belongs to the runtime boundary; its pure
+arguments are still scanned. The scan REFUSES a module that rebinds any allowlisted builtin name at any scope
+(assignment, def/class, import alias, global/nonlocal, comprehension/with/except/for target). **Cycle-class
+closure:** a further finding is folded only if it is a construction built from literals + operators + this
+allowlist + methods of literals that the scan misclassifies (an implementation bug of this ruling). A finding
+that needs a name binding, an import, or attribute access on a module is runtime-boundary territory, recorded
+against D-8 as out of scope, and not folded (as ruled 2026-09-25 02:39Z).
+
 ## D-9 — Sandbox envelope on office4 (implementer's call; FR-018 — recorded BEFORE any container runs)
 
 - **Compose project**: `arms849`. **Network**: `arms849-net` (bridge, internal). **Volumes**:
