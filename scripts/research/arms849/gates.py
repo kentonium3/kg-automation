@@ -138,12 +138,12 @@ def preflight_present_and_matching(env: GateEnv) -> tuple[bool, str]:
         if g.get("passed") is not True or g.get("exit_code") != 0:
             problems.append(f"preflight gate {name} did not pass (passed={g.get('passed')!r}, exit={g.get('exit_code')!r})")
     registered: dict[str, str] = dict(REGISTRATION["files"])  # type: ignore[arg-type]
-    for name, expected in registered.items():
+    for name, registered_fp in registered.items():
         here = fingerprint(env.corpus_dir / name) if (env.corpus_dir / name).exists() else "absent"
         if rec.get("corpus", {}).get(name) != here:
             problems.append(f"corpus {name}: preflight {str(rec.get('corpus', {}).get(name))[:16]} != here {here[:16]}")
-        if not here.startswith(str(expected)):
-            problems.append(f"corpus {name}: here {here[:16]} != registered {expected}")
+        if here != str(registered_fp):
+            problems.append(f"corpus {name}: here {here[:16]} != registered {str(registered_fp)[:16]}")
     digest = FrozenCorpusText(env.corpus_dir).record_lines_digest
     if rec.get("record_lines_digest") != digest:
         problems.append("record_lines_digest differs from this corpus")

@@ -424,6 +424,21 @@ def test_an_outstanding_read_at_exit_invalidates_the_window(tmp_path):
     assert s.peak_gib is None                                # …and does not revive the window
 
 
+def test_returned_sample_is_frozen_after_exit_even_with_a_read_in_flight(tmp_path):
+    """Codex c4: the closure check and the mutation are one critical section; the sample a
+    caller holds after exit never changes, however the worker is scheduled."""
+    import copy
+    class Slow(SM.GttSampler):
+        def read_once(self):
+            time.sleep(0.35); return 3.0
+    s = Slow(tmp_path / "unused"); s.interval_s = 0.1
+    with s:
+        time.sleep(0.5)
+    snap = copy.deepcopy(s.sample.__dict__)
+    time.sleep(1.5)                                          # any in-flight read completes here
+    assert s.sample.__dict__ == snap
+
+
 def test_samplers_never_raise_into_the_arm(tmp_path, monkeypatch):
     s = SM.GttSampler(tmp_path / "absent")
     with s:

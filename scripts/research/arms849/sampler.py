@@ -56,30 +56,36 @@ class _Sampler:
         self.sample = Sample(peak=None, reason="not started")
         self._valid = True
         self._closed = False
+        self._lock = threading.Lock()
 
     def read_once(self) -> float:  # pragma: no cover - overridden
         raise NotImplementedError
 
     def _take(self) -> None:
+        # The reading itself runs unlocked (it may block); the closure check and every
+        # mutation of the sample happen under ONE lock, so a window closed between the
+        # check and the write can never be mutated (Codex WP04 c4).
         try:
             value = self.read_once()
         except Exception as exc:  # noqa: BLE001 — never into the arm; the window is invalid from here
-            if self._closed:
-                return                      # a late failure after exit: the window was already invalidated
-            self.sample.failures += 1
-            self._valid = False
-            self.sample.reason = f"{type(exc).__name__}: {exc}"[:200]
-            self.sample.peak = None
+            with self._lock:
+                if self._closed:
+                    return
+                self.sample.failures += 1
+                self._valid = False
+                self.sample.reason = f"{type(exc).__name__}: {exc}"[:200]
+                self.sample.peak = None
             return
-        if self._closed:
-            return                          # a late success after exit must not mutate the window
-        self.sample.readings += 1
-        self.sample.samples.append(value)
-        if self._valid:
-            if self.sample.peak is None or value > self.sample.peak:
-                self.sample.peak = value
-            self.sample.reason = None
-        self._check(value)
+        with self._lock:
+            if self._closed:
+                return
+            self.sample.readings += 1
+            self.sample.samples.append(value)
+            if self._valid:
+                if self.sample.peak is None or value > self.sample.peak:
+                    self.sample.peak = value
+                self.sample.reason = None
+            self._check(value)
 
     def _loop(self) -> None:
         # Readings are scheduled against monotonic deadlines so the period is the interval,
@@ -91,8 +97,9 @@ class _Sampler:
             now = time.monotonic()
             if now > deadline:
                 missed = int((now - deadline) // self.interval_s) + 1
-                if not self._closed:                  # nothing in the sample moves after exit
-                    self.sample.missed_intervals += missed
+                with self._lock:
+                    if not self._closed:              # nothing in the sample moves after exit
+                        self.sample.missed_intervals += missed
                 deadline += missed * self.interval_s
 
     def _check(self, value: float) -> None:
@@ -112,13 +119,15 @@ class _Sampler:
         self._stop.set()
         if self._thread is not None:
             self._thread.join(timeout=self.interval_s * 3)
-            if self._thread.is_alive():
+        with self._lock:
+            if self._thread is not None and self._thread.is_alive():
                 # A read is still outstanding: the window cannot be called complete. Invalidate
                 # it now; the late result is discarded (self._closed) when it arrives.
                 self._valid = False
                 self.sample.peak = None
                 self.sample.reason = "a reading was still outstanding at exit; window incomplete"
-        self._closed = True
+            self._closed = True
+            self.sample.samples = list(self.sample.samples)      # detach: the returned object is frozen from here
 
 
 class GttSampler(_Sampler):
