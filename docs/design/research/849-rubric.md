@@ -252,7 +252,12 @@ Per question, per run:
   Fred's message to the report thread) scores 0 for that run regardless of hits.
 - Grading is **blind to arm**: answers are re-labelled per question; the grader holds the oracle.
   First pass by an LLM grader with the oracle in context; Kent spot-checks every hard fail and a
-  random 25 % of the rest. Disagreements resolve to Kent.
+  random 25 % of the rest. **Grader independence (added 2026-09-25 23:06Z, design-lead coherence
+  pass):** the grader MUST NOT be the model that produced the answers — all three arms share one
+  reasoning model (§2), so that model may not also grade, and the grader's identity and version are
+  recorded in the run record beside the arms'. A grader indistinguishable from the answering model
+  is not a blind grade, whatever the labels say; Kent's spot-check is the backstop, not the control.
+  Disagreements resolve to Kent.
 
 ## 5. Axis 2 — cost
 
