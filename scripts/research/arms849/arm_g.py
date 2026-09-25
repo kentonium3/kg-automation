@@ -37,6 +37,7 @@ from __future__ import annotations
 
 import re
 import time
+import uuid as _uuid
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
@@ -50,9 +51,6 @@ from graphiti_core.search.search_config import (
     EdgeReranker,
     EdgeSearchConfig,
     EdgeSearchMethod,
-    EpisodeReranker,
-    EpisodeSearchConfig,
-    EpisodeSearchMethod,
     NodeReranker,
     NodeSearchConfig,
     NodeSearchMethod,
@@ -69,7 +67,7 @@ from scripts.research.arms849.embed import (
     TripwireLLMClient,
 )
 from scripts.research.arms849.text import Block, FrozenCorpusText, edge_key, entity_key
-from scripts.research.load_849_corpus import Loaded
+from scripts.research.load_849_corpus import Loaded, edge_effective_time
 
 __all__ = ["CAP", "GROUP_RE", "TYPED_LABELS", "GraphArm", "GraphStats", "Item", "PlanRecord", "Resolution",
            "assemble", "group_id_for", "link_targets", "normalise", "resolve_anchors"]
@@ -78,6 +76,16 @@ GROUP_RE = re.compile(r"^arms_[A-Z0-9]+$")
 TYPED_LABELS = ("Capacity", "Commitment", "Principle", "Interest")
 CAP = 60
 MIN_PHRASE_TOKENS = 3
+
+
+#: Stable identity for every graph object: uuid5 over (group, kind, corpus key), so a rebuild —
+#: and therefore a resume — reproduces the same uuids and D-15's (score desc, uuid asc) tie-break
+#: selects the same items (Codex WP05 c1).
+UUID_NS = _uuid.UUID("9b1c0a8e-7f14-5c3d-9e2a-849849849849")
+
+
+def stable_uuid(group: str, kind: str, key: str) -> str:
+    return str(_uuid.uuid5(UUID_NS, f"{group}\0{kind}\0{key}"))
 
 
 def group_id_for(question_id: str) -> str:
@@ -185,6 +193,21 @@ def _longest_common_phrase(a_tokens: Sequence[str], b_tokens: Sequence[str]) -> 
     return best
 
 
+def _longest_common_phrase_text(a_tokens: Sequence[str], b_tokens: Sequence[str]) -> str:
+    """The longest common contiguous token run itself (first occurrence on ties)."""
+    best, end = 0, 0
+    prev = [0] * (len(b_tokens) + 1)
+    for i in range(1, len(a_tokens) + 1):
+        cur = [0] * (len(b_tokens) + 1)
+        for j in range(1, len(b_tokens) + 1):
+            if a_tokens[i - 1] == b_tokens[j - 1]:
+                cur[j] = prev[j - 1] + 1
+                if cur[j] > best:
+                    best, end = cur[j], i
+        prev = cur
+    return " ".join(a_tokens[end - best:end])
+
+
 def resolve_anchors(question_text: str, view: Loaded) -> Resolution:
     """A3's three resolution paths, deterministic, from the question text only."""
     q_norm = normalise(question_text)
@@ -226,12 +249,16 @@ def resolve_anchors(question_text: str, view: Loaded) -> Resolution:
             if not desc:
                 continue
             d_tokens = desc.split()
-            exact = _phrase_in(desc, q_norm) or _phrase_in(q_norm, desc)
-            fragment = _longest_common_phrase(q_tokens, d_tokens) >= MIN_PHRASE_TOKENS
-            if exact or fragment:
+            if _phrase_in(desc, q_norm) or _phrase_in(q_norm, desc):
+                matched = desc if _phrase_in(desc, q_norm) else q_norm
+            else:
+                matched = _longest_common_phrase_text(q_tokens, d_tokens)
+                if len(matched.split()) < MIN_PHRASE_TOKENS:
+                    matched = ""
+            if matched:
                 bucket = "commitment_desc" if kind == "Commitment" else "outcome_desc"
                 paths[bucket].append(eid)
-                mention_hits.setdefault(f"{bucket}:{desc[:40]}", set()).add(eid)
+                mention_hits.setdefault(matched, set()).add(eid)      # keyed by the PHRASE that matched
 
     for k, ids in list(paths.items()):
         paths[k] = sorted(set(ids))
@@ -245,13 +272,13 @@ def resolve_anchors(question_text: str, view: Loaded) -> Resolution:
 # search configurations — hybrid, NO BFS
 # ---------------------------------------------------------------------------
 
+#: "node+edge hybrid" means exactly that: episodes reach the context only through anchored
+#: expansion (MENTIONS), never as direct hits that would consume the cap first (A3; Codex WP05 c1).
 HYBRID_NODE_EDGE = SearchConfig(
     node_config=NodeSearchConfig(search_methods=[NodeSearchMethod.bm25, NodeSearchMethod.cosine_similarity],
                                  reranker=NodeReranker.cross_encoder),
     edge_config=EdgeSearchConfig(search_methods=[EdgeSearchMethod.bm25, EdgeSearchMethod.cosine_similarity],
                                  reranker=EdgeReranker.cross_encoder),
-    episode_config=EpisodeSearchConfig(search_methods=[EpisodeSearchMethod.bm25],
-                                       reranker=EpisodeReranker.cross_encoder),
     limit=CAP,
 )
 TYPED_PULL = SearchConfig(
@@ -313,8 +340,8 @@ class GraphArm:
             eid, kind = entity_key(entity), str(entity.get("kind"))
             attrs = {("display_name" if k == "name" else k): v for k, v in entity.items() if k not in ("id", "kind")}
             summary = str(entity.get("description") or entity.get("name") or entity.get("topic") or eid)
-            node = EntityNode(name=eid, group_id=group, labels=[kind], summary=summary, attributes=attrs,
-                              created_at=ask)
+            node = EntityNode(uuid=stable_uuid(group, "node", eid), name=eid, group_id=group, labels=[kind],
+                              summary=summary, attributes=attrs, created_at=ask)
             node.name_embedding = self.embedder.embed_one(f"{eid}: {summary}")
             await node.save(self.driver)
             uuid_by_id[eid] = node.uuid
@@ -327,11 +354,18 @@ class GraphArm:
             if src is None or dst is None:
                 continue                                              # the loader withholds dangling edges
             key = edge_key(edge)
-            when = _ts(edge.get("made_at"), ask)
+            # The edge's effective time is the LOADER's derivation (made_at, else the source
+            # Decision's decided_at, else the endpoints' visibility) — the replay rule's own clock;
+            # ask_time only when the loader itself has no time for it (Codex WP05 c1).
+            eff = edge_effective_time(edge, view.entities)
+            when = eff if eff is not None else ask
+            if when.tzinfo is None:
+                when = when.replace(tzinfo=timezone.utc)
             attrs = {k: v for k, v in edge.items() if k not in ("from", "to", "type", "kind")}
             fact = self.text.record_line(key).decode("utf-8")
-            e = EntityEdge(group_id=group, source_node_uuid=src, target_node_uuid=dst, name=str(edge["type"]),
-                           fact=fact, created_at=when, valid_at=when, attributes=attrs)
+            e = EntityEdge(uuid=stable_uuid(group, "edge", key), group_id=group, source_node_uuid=src,
+                           target_node_uuid=dst, name=str(edge["type"]), fact=fact, created_at=when, valid_at=when,
+                           attributes=attrs)
             e.fact_embedding = self.embedder.embed_one(fact)
             await e.save(self.driver)
             key_by_uuid[e.uuid] = ("edge", key)
@@ -342,7 +376,8 @@ class GraphArm:
         for event in view.events:
             ref = str(event["ref"])
             when = _ts(event.get("at"), ask)
-            ep = EpisodicNode(name=ref, group_id=group, labels=[], source=EpisodeType.text,
+            ep = EpisodicNode(uuid=stable_uuid(group, "episode", ref), name=ref, group_id=group, labels=[],
+                              source=EpisodeType.text,
                               source_description=str(event.get("source_description") or event.get("channel") or ""),
                               content=self.text.event_line(ref).decode("utf-8"), valid_at=when, created_at=when)
             await ep.save(self.driver)
@@ -359,7 +394,8 @@ class GraphArm:
                 dst = uuid_by_id.get(str(mention))
                 if dst is None:
                     continue
-                await EpisodicEdge(group_id=group, source_node_uuid=src, target_node_uuid=dst, created_at=ask).save(self.driver)
+                await EpisodicEdge(uuid=stable_uuid(group, "link", f"{link.get('ref')}->{mention}"), group_id=group,
+                                   source_node_uuid=src, target_node_uuid=dst, created_at=ask).save(self.driver)
                 links += 1
 
         self._uuid_by_id[group] = uuid_by_id

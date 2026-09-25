@@ -67,3 +67,17 @@ def test_graphiti_adapter_returns_vectors_for_str_and_batch():
     v = asyncio.run(ad.create("hello"))
     assert len(v) == 384 and v == emb.embed_one("hello")
     assert asyncio.run(ad.create_batch(["a", "b"])) == emb.embed(["a", "b"])
+
+
+def test_incomplete_cache_never_downloads_even_with_offline_mode_disabled(tmp_path, monkeypatch):
+    """Codex WP05 c1: local_files_only is explicit; HF_HUB_OFFLINE=0 outside must not trigger a fetch."""
+    monkeypatch.setenv("HF_HUB_OFFLINE", "0")
+    (tmp_path / "fastembed").mkdir()                      # present but empty: an incomplete cache
+    import socket
+    calls = []
+    real = socket.create_connection
+    monkeypatch.setattr(socket, "create_connection", lambda *a, **k: calls.append(a) or (_ for _ in ()).throw(OSError("network forbidden in this test")))
+    with pytest.raises(ValueError, match="Could not load model"):   # fastembed's local-only refusal
+        E.Embedder(cache_dir=tmp_path / "fastembed")
+    assert calls == []                                              # no socket was ever opened
+    monkeypatch.setattr(socket, "create_connection", real)

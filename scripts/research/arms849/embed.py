@@ -41,14 +41,15 @@ class Embedder:
     """FastEmbed from the local cache only; deterministic."""
 
     def __init__(self, cache_dir: pathlib.Path | None = None, model: str = EMBEDDER_MODEL) -> None:
-        os.environ.setdefault("HF_HUB_OFFLINE", "1")
         self.cache_dir = pathlib.Path(cache_dir) if cache_dir else _cache_dir() / "fastembed"
         if not self.cache_dir.is_dir():
             raise RuntimeError(f"embedder cache absent at {self.cache_dir}; run substrate setup — the run never fetches")
         from fastembed import TextEmbedding
 
         self.model = model
-        self._model = TextEmbedding(model, cache_dir=str(self.cache_dir))
+        # local_files_only is passed explicitly: HF_HUB_OFFLINE=0 set outside must not turn an
+        # incomplete cache into a download (Codex WP05 c1).
+        self._model = TextEmbedding(model, cache_dir=str(self.cache_dir), local_files_only=True)
         self.dimension = 384
 
     def embed(self, texts: Sequence[str]) -> list[list[float]]:

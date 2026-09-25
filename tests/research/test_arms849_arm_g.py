@@ -113,6 +113,25 @@ def test_link_targets_cover_both_loader_link_shapes():
     assert A.link_targets({"ref": "e4"}) == []
 
 
+def test_hybrid_search_enables_only_nodes_and_edges():
+    cfg = A.HYBRID_NODE_EDGE
+    assert cfg.node_config is not None and cfg.edge_config is not None
+    assert cfg.episode_config is None and cfg.community_config is None
+
+
+def test_uuids_are_stable_across_rebuilds_and_distinct_across_groups():
+    a1 = A.stable_uuid("arms_A", "node", "PER_MARCUS"); a2 = A.stable_uuid("arms_A", "node", "PER_MARCUS")
+    assert a1 == a2 and len(a1) == 36
+    assert A.stable_uuid("arms_B1", "node", "PER_MARCUS") != a1 and A.stable_uuid("arms_A", "episode", "PER_MARCUS") != a1
+
+
+def test_description_ambiguity_is_keyed_by_the_matched_phrase():
+    ents = [{"id": "COM_X", "kind": "Commitment", "description": "the design review for Fred"},
+            {"id": "COM_Y", "kind": "Commitment", "description": "the design review for Priya"}]
+    r = A.resolve_anchors("When is the design review?", _view(ents))
+    assert set(r.anchors) == {"COM_X", "COM_Y"} and r.ambiguous == ("the design review",)
+
+
 def test_typed_labels_and_cap_are_the_ruled_values():
     assert A.TYPED_LABELS == ("Capacity", "Commitment", "Principle", "Interest") and A.CAP == 60
 
@@ -230,6 +249,11 @@ def test_live_build_search_assemble_and_replay_rule(live_http):
         b1, p1 = await arm.plan_and_assemble(qa, view)
         b2, _ = await arm.plan_and_assemble(qa, view)
         assert b1.sha256 == b2.sha256 == p1.assembled_context_sha256 and p1.items_assembled <= 60 and p1.llm_calls == 0
+        # rebuild → identical uuids → identical selection and sha (resume safety, D-15)
+        stats2 = await arm.build_graph(qa, view)
+        assert stats2.nodes == stats.nodes
+        b3, _ = await arm.plan_and_assemble(qa, view)
+        assert b3.sha256 == b1.sha256
         assert p1.plan_steps[0]["step"] == "typed_pull:Capacity" and any(s["step"] == "hybrid_search" for s in p1.plan_steps)
         assert p1.items_assembled > 0 and all(k in ("node", "edge", "episode") for k in p1.items_by_kind)
         # the replay rule made visible: DEC_F_RESTART absent for F1, present for B2
