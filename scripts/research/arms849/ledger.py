@@ -49,6 +49,12 @@ __all__ = [
 ARMS = ("G", "D", "R")
 REPEATS = 3
 MAX_ATTEMPTS = 3
+#: Fields the ledger itself authors on a run row; a payload carrying one is refused.
+RESERVED_RUN_FIELDS = frozenset({"record", "arm", "question", "repeat", "attempt", "outcome", "serving", "ts"})
+#: Telemetry every scored row must carry (D-13); a missing measurement is a defect, never a zero.
+SCORED_ROW_FIELDS = ("assembled_context_tokens", "prompt_tokens", "cache_read_tokens", "uncached_tokens",
+                     "cache_state", "text")
+CACHE_STATES = ("cold", "warm")
 SCORED_OUTCOME = "ok"
 OUTCOMES = ("ok", "exceeds_model_context", "error", "not_implemented")
 Outcome = Literal["ok", "exceeds_model_context", "error", "not_implemented"]
@@ -189,6 +195,7 @@ class Summary:
     mean_assembled_tokens: float | None
     range_assembled_tokens: tuple[int, int] | None
     mean_prompt_tokens: float | None
+    range_prompt_tokens: tuple[int, int] | None
     cache_read_tokens: int
     uncached_tokens: int
     cold: int
@@ -258,11 +265,16 @@ class Ledger:
         return n
 
     def record(self, key: RunKey, outcome: Outcome, row: dict[str, Any],
-               serving: dict[str, Any] | None = None) -> dict[str, Any]:
-        """Append a `run` row for the CURRENT attempt, enforcing I2–I4 and serving equality."""
+               serving: dict[str, Any]) -> dict[str, Any]:
+        """Append the ONE `run` row for the current attempt, enforcing I2–I4, serving equality
+        and the scored-row telemetry contract. Authoritative fields are set last so a payload
+        can never overwrite them; carrying one is refused outright."""
         if outcome not in OUTCOMES:
             raise ValueError(f"unknown outcome {outcome!r}")
-        if serving is not None and serving != self.header.binding.serving:
+        reserved = RESERVED_RUN_FIELDS & set(row)
+        if reserved:
+            raise ValueError(f"payload carries ledger-authored fields {sorted(reserved)}")
+        if serving != self.header.binding.serving:
             raise LedgerBoundToAnotherConfig("serving configuration differs from the header on append")
         if outcome == SCORED_OUTCOME and any(
                 r.get("record") == "run" and r.get("outcome") == SCORED_OUTCOME and RunKey.of(r) == key
@@ -271,11 +283,24 @@ class Ledger:
         attempt = self.attempts_for(key)
         if attempt == 0:
             raise ValueError(f"{key}: record() before begin_attempt()")
+        if any(r.get("record") == "run" and RunKey.of(r) == key and r.get("attempt") == attempt
+               for r in self._rows):
+            raise ValueError(f"{key}: attempt {attempt} already has a result; begin_attempt() first")
         if outcome == "exceeds_model_context":
             pt = int(row.get("prompt_tokens", -1))
             if pt <= self.header.binding.model_context_tokens:
                 raise ValueError(f"exceeds_model_context row must carry prompt_tokens > model context ({pt})")
-        full = {"record": "run", **key.as_dict(), "attempt": attempt, "outcome": outcome, **row}
+        if outcome == SCORED_OUTCOME:
+            missing = [f for f in SCORED_ROW_FIELDS if f not in row]
+            if missing:
+                raise ValueError(f"scored row is missing telemetry {missing}")
+            for f in SCORED_ROW_FIELDS[:4]:
+                if type(row[f]) is not int or row[f] < 0:
+                    raise ValueError(f"scored row field {f} must be a non-negative int, got {row[f]!r}")
+            if row["cache_state"] not in CACHE_STATES:
+                raise ValueError(f"cache_state must be one of {CACHE_STATES}, got {row['cache_state']!r}")
+        full = {**row, "record": "run", **key.as_dict(), "attempt": attempt, "outcome": outcome,
+                "serving": serving, "ts": _utc_now()}
         self._append(full)
         return full
 
@@ -284,7 +309,9 @@ class Ledger:
         for r in runs:
             if r["outcome"] in ("ok", "exceeds_model_context", "not_implemented"):
                 return r["outcome"]
-        if self.attempts_for(key) >= MAX_ATTEMPTS and runs and all(r["outcome"] == "error" for r in runs):
+        # Three attempts begun and none reached a terminal outcome — whether they
+        # recorded `error` or died before recording — is exhausted: terminal error.
+        if self.attempts_for(key) >= MAX_ATTEMPTS:
             return "error"
         return None
 
@@ -298,8 +325,12 @@ class Ledger:
         self._append({"record": "event", "kind": kind, "detail": detail, "ts": _utc_now()})
 
     def write_calibration(self, calibration: dict[str, Any]) -> None:
+        """Once, and only after every G repeat-1 cell is scored (k comes from their medians, A3)."""
         if self.calibration() is not None:
             raise ValueError("a calibration record already exists; it is written once")
+        unscored = [q.id for q in questions_mod.QUESTIONS if self.terminal(RunKey("G", q.id, 1)) != SCORED_OUTCOME]
+        if unscored:
+            raise ValueError(f"calibration needs all eight G repeat-1 cells scored; unscored: {unscored}")
         self._append({"record": "calibration", **calibration, "ts": _utc_now()})
 
     def calibration(self) -> dict[str, Any] | None:
@@ -332,16 +363,17 @@ class Ledger:
             ok = [r for r in rs if r["outcome"] == SCORED_OUTCOME]
             counts = {o: sum(1 for r in rs if r["outcome"] == o) for o in OUTCOMES if o != SCORED_OUTCOME}
             assembled = [int(r["assembled_context_tokens"]) for r in ok]
-            prompt = [int(r["prompt_tokens"]) for r in ok if "prompt_tokens" in r]
+            prompt = [int(r["prompt_tokens"]) for r in ok]
             out[k] = Summary(
                 n_scored=len(ok),
                 mean_assembled_tokens=statistics.fmean(assembled) if assembled else None,
                 range_assembled_tokens=(min(assembled), max(assembled)) if assembled else None,
                 mean_prompt_tokens=statistics.fmean(prompt) if prompt else None,
-                cache_read_tokens=sum(int(r.get("cache_read_tokens", 0)) for r in ok),
-                uncached_tokens=sum(int(r.get("uncached_tokens", 0)) for r in ok),
-                cold=sum(1 for r in ok if r.get("cache_state") == "cold"),
-                warm=sum(1 for r in ok if r.get("cache_state") == "warm"),
+                range_prompt_tokens=(min(prompt), max(prompt)) if prompt else None,
+                cache_read_tokens=sum(int(r["cache_read_tokens"]) for r in ok),
+                uncached_tokens=sum(int(r["uncached_tokens"]) for r in ok),
+                cold=sum(1 for r in ok if r["cache_state"] == "cold"),
+                warm=sum(1 for r in ok if r["cache_state"] == "warm"),
                 r_g_ratios=[r["r_g_ratio"] for r in ok if "r_g_ratio" in r],
                 counts=counts, attempts=attempts.get(k, 0),
             )
@@ -353,23 +385,38 @@ class Ledger:
 # --------------------------------------------------------------------------
 
 
-def _read_with_recovery(path: pathlib.Path) -> tuple[list[dict[str, Any]], bool]:
-    """Parse every line; tolerate exactly one torn FINAL line (truncate it); reject interior corruption."""
+def _read_with_recovery(path: pathlib.Path) -> tuple[list[dict[str, Any]], str | None]:
+    """Parse every line. Exactly one torn FINAL line is repaired IN PLACE — truncated at its
+    byte offset (never a rewrite of the durable prefix) or, when it is complete JSON that
+    merely lost its newline, terminated — and reported; interior corruption raises."""
     raw = path.read_bytes()
+    terminated = raw.endswith(b"\n")
     lines = raw.split(b"\n")
     if lines and lines[-1] == b"":
         lines.pop()
     parsed: list[dict[str, Any]] = []
+    offset = 0
     for i, line in enumerate(lines):
+        last = i == len(lines) - 1
         try:
             parsed.append(json.loads(line))
         except json.JSONDecodeError:
-            if i == len(lines) - 1:
-                keep = b"\n".join(lines[:-1]) + (b"\n" if lines[:-1] else b"")
-                path.write_bytes(keep)
-                return parsed, True
-            raise LedgerCorrupt(f"malformed line {i + 1} of {len(lines)} in {path}")
-    return parsed, False
+            if not last:
+                raise LedgerCorrupt(f"malformed line {i + 1} of {len(lines)} in {path}") from None
+            with path.open("r+b") as fh:
+                fh.truncate(offset)
+                fh.flush()
+                os.fsync(fh.fileno())
+            return parsed, "truncated_torn_tail"
+        if last and not terminated:
+            with path.open("r+b") as fh:
+                fh.seek(0, os.SEEK_END)
+                fh.write(b"\n")
+                fh.flush()
+                os.fsync(fh.fileno())
+            return parsed, "terminated_final_line"
+        offset += len(line) + 1
+    return parsed, None
 
 
 def open_ledger(path: pathlib.Path, binding: Binding, blinding_seed: int, plan: int) -> Ledger:
@@ -390,7 +437,14 @@ def open_ledger(path: pathlib.Path, binding: Binding, blinding_seed: int, plan: 
         raise LedgerLocked(f"{path} is held by pid {holder or '?'}; one writer per ledger") from None
     os.ftruncate(fd, 0)
     os.write(fd, str(os.getpid()).encode())
+    try:
+        return _open_locked(path, binding, blinding_seed, plan, fd)
+    except BaseException:
+        os.close(fd)          # releases the flock; a failed open must never hold the ledger
+        raise
 
+
+def _open_locked(path: pathlib.Path, binding: Binding, blinding_seed: int, plan: int, fd: int) -> Ledger:
     if not path.exists() or path.stat().st_size == 0:
         header = Header(binding=binding, started=_utc_now(), blinding_seed=blinding_seed, plan=plan)
         ledger = Ledger(path, header, [], fd)
@@ -399,18 +453,16 @@ def open_ledger(path: pathlib.Path, binding: Binding, blinding_seed: int, plan: 
 
     rows, recovered = _read_with_recovery(path)
     if not rows or rows[0].get("record") != "header":
-        os.close(fd)
         raise LedgerCorrupt(f"{path}: first line is not a header")
     header = Header.from_dict(rows[0])
     differences = {k: (getattr(header.binding, k), getattr(binding, k))
                    for k in Binding.__dataclass_fields__ if getattr(header.binding, k) != getattr(binding, k)}
     if differences:
-        os.close(fd)
         detail = "\n".join(f"  {k}: ledger={a!r} environment={b!r}" for k, (a, b) in differences.items())
         raise LedgerBoundToAnotherConfig(
             f"{path} was written against a different configuration; runs from two configurations "
             f"averaged together are indistinguishable from runs from one. Start a new ledger.\n{detail}")
     ledger = Ledger(path, header, rows[1:], fd)
     if recovered:
-        ledger.event("recovered_torn_tail", {"at": _utc_now()})
+        ledger.event("recovered_torn_tail", {"how": recovered, "at": _utc_now()})
     return ledger

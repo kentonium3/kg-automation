@@ -27,6 +27,19 @@ pytestmark = pytest.mark.skipif(
     reason="rendered corpus absent; run render_849_corpus first")
 
 IDENT = S.ServingIdentity("gguf", "sha256:img", "emb", "tok")
+SERVING = S.ServingConfiguration.primary(IDENT).as_header_dict()
+QUESTIONS = ["C1", "A", "F1", "B1", "E2", "E1", "F2", "B2"]
+
+
+def rec(led, key, outcome, row, serving=SERVING):
+    return led.record(key, outcome, row, serving)
+
+
+def score_all_g_repeat1(led):
+    for q in QUESTIONS:
+        k = L.RunKey("G", q, 1)
+        if led.terminal(k) is None:
+            led.begin_attempt(k); rec(led, k, "ok", ok_row())
 
 
 def binding(**over) -> L.Binding:
@@ -84,7 +97,7 @@ def test_resume_refuses_on_every_binding_field(tmp_path, field):
 def test_resume_with_identical_binding_reads_rows_back(tmp_path):
     key = L.RunKey("G", "C1", 1)
     with fresh(tmp_path) as led:
-        led.begin_attempt(key); led.record(key, "ok", ok_row())
+        led.begin_attempt(key); rec(led, key, "ok", ok_row())
     with fresh(tmp_path) as led:
         assert led.terminal(key) == "ok"
         assert len(led.run_rows()) == 1
@@ -99,10 +112,10 @@ def test_attempt_start_precedes_run_and_a_fourth_attempt_is_refused(tmp_path):
     key = L.RunKey("D", "B2", 2)
     with fresh(tmp_path) as led:
         with pytest.raises(ValueError, match="before begin_attempt"):
-            led.record(key, "error", {"error": "boom"})
+            rec(led, key, "error", {"error": "boom"})
         for n in (1, 2, 3):
             assert led.begin_attempt(key) == n
-            led.record(key, "error", {"error": f"boom {n}"})
+            rec(led, key, "error", {"error": f"boom {n}"})
         assert led.terminal(key) == "error"
         with pytest.raises(L.SecondScoredRow):
             led.begin_attempt(key)
@@ -124,8 +137,8 @@ def test_an_interrupted_attempt_counts_toward_three(tmp_path):
 def test_error_then_ok_is_legal_and_second_ok_is_not(tmp_path):
     key = L.RunKey("R", "F1", 3)
     with fresh(tmp_path) as led:
-        led.begin_attempt(key); led.record(key, "error", {"error": "transient"})
-        led.begin_attempt(key); led.record(key, "ok", ok_row())
+        led.begin_attempt(key); rec(led, key, "error", {"error": "transient"})
+        led.begin_attempt(key); rec(led, key, "ok", ok_row())
         assert led.terminal(key) == "ok"
         with pytest.raises(L.SecondScoredRow):
             led.begin_attempt(key)
@@ -136,8 +149,8 @@ def test_exceeds_row_must_carry_a_count_above_the_model_context(tmp_path):
     with fresh(tmp_path) as led:
         led.begin_attempt(key)
         with pytest.raises(ValueError, match="prompt_tokens"):
-            led.record(key, "exceeds_model_context", {"prompt_tokens": 100})
-        led.record(key, "exceeds_model_context", {"prompt_tokens": 362_996})
+            rec(led, key, "exceeds_model_context", {"prompt_tokens": 100})
+        rec(led, key, "exceeds_model_context", {"prompt_tokens": 362_996})
         assert led.terminal(key) == "exceeds_model_context"
 
 
@@ -147,7 +160,7 @@ def test_serving_mismatch_on_append_is_refused(tmp_path):
         led.begin_attempt(key)
         other = S.ServingConfiguration.secondary_yarn(IDENT).as_header_dict()
         with pytest.raises(L.LedgerBoundToAnotherConfig):
-            led.record(key, "ok", ok_row(), serving=other)
+            rec(led, key, "ok", ok_row(), serving=other)
 
 
 # --------------------------------------------------------------------------
@@ -158,7 +171,7 @@ def test_serving_mismatch_on_append_is_refused(tmp_path):
 def test_torn_final_line_is_recovered_and_logged(tmp_path):
     key = L.RunKey("G", "C1", 1)
     with fresh(tmp_path) as led:
-        led.begin_attempt(key); led.record(key, "ok", ok_row())
+        led.begin_attempt(key); rec(led, key, "ok", ok_row())
     p = tmp_path / "ledger.jsonl"
     with p.open("ab") as fh:
         fh.write(b'{"record": "run", "arm": "G", "question": "A", "repeat": 1, "outc')   # killed mid-line
@@ -171,7 +184,7 @@ def test_torn_final_line_is_recovered_and_logged(tmp_path):
 def test_interior_corruption_is_rejected(tmp_path):
     key = L.RunKey("G", "C1", 1)
     with fresh(tmp_path) as led:
-        led.begin_attempt(key); led.record(key, "ok", ok_row())
+        led.begin_attempt(key); rec(led, key, "ok", ok_row())
     p = tmp_path / "ledger.jsonl"
     lines = p.read_text().splitlines()
     lines[1] = lines[1][:20]                                   # torn in the MIDDLE
@@ -211,26 +224,135 @@ def test_second_writer_is_refused_while_the_first_holds_the_lock(tmp_path):
 def test_summarise_sums_ok_only_and_counts_the_rest(tmp_path):
     with fresh(tmp_path) as led:
         k1, k2, k3 = L.RunKey("D", "C1", 1), L.RunKey("D", "C1", 2), L.RunKey("D", "B2", 1)
-        led.begin_attempt(k1); led.record(k1, "ok", {**ok_row(50_000), "cache_state": "cold"})
-        led.begin_attempt(k2); led.record(k2, "ok", {**ok_row(52_000), "cache_state": "warm", "cache_read_tokens": 40_000})
-        led.begin_attempt(k3); led.record(k3, "exceeds_model_context", {"prompt_tokens": 362_996})
+        led.begin_attempt(k1); rec(led, k1, "ok", {**ok_row(50_000), "cache_state": "cold"})
+        led.begin_attempt(k2); rec(led, k2, "ok", {**ok_row(52_000), "cache_state": "warm", "cache_read_tokens": 40_000})
+        led.begin_attempt(k3); rec(led, k3, "exceeds_model_context", {"prompt_tokens": 362_996})
         s = led.summarise()
     c1, b2 = s[("D", "C1")], s[("D", "B2")]
     assert c1.n_scored == 2 and c1.mean_assembled_tokens == 51_000 and c1.range_assembled_tokens == (50_000, 52_000)
+    assert c1.mean_prompt_tokens == 51_300 and c1.range_prompt_tokens == (50_300, 52_300)
+    assert b2.range_prompt_tokens is None
     assert c1.cold == 1 and c1.warm == 1 and c1.cache_read_tokens == 40_000
     assert b2.n_scored == 0 and b2.mean_assembled_tokens is None and b2.counts["exceeds_model_context"] == 1
 
 
-def test_calibration_is_written_once_and_halt_input_is_visible(tmp_path):
+def test_halt_input_is_visible_after_three_errors(tmp_path):
     with fresh(tmp_path) as led:
         k = L.RunKey("G", "C1", 1)
         for _ in range(3):
-            led.begin_attempt(k); led.record(k, "error", {"error": "down"})
+            led.begin_attempt(k); rec(led, k, "error", {"error": "down"})
         assert led.has_terminal_error("G", 1) == ["C1"]
+
+
+def test_calibration_needs_all_eight_g_repeat1_scored_and_is_written_once(tmp_path):
+    with fresh(tmp_path) as led:
+        with pytest.raises(ValueError, match="unscored"):
+            led.write_calibration({"r_k": 12})
+        score_all_g_repeat1(led)
         led.write_calibration({"r_k": 12, "parity": "ok"})
         assert led.calibration()["r_k"] == 12
         with pytest.raises(ValueError, match="once"):
             led.write_calibration({"r_k": 13})
+
+
+def test_three_interrupted_attempts_are_terminal_error(tmp_path):
+    """Codex WP03 c1: attempts that died before recording must still exhaust the key."""
+    key = L.RunKey("D", "E1", 2)
+    for _ in range(3):
+        with fresh(tmp_path) as led:
+            led.begin_attempt(key)                  # dies before any run row
+    with fresh(tmp_path) as led:
+        assert led.terminal(key) == "error"
+        assert key not in led.pending_keys(L.plan_keys())
+        assert led.has_terminal_error("D", 2) == ["E1"]
+        with pytest.raises(L.SecondScoredRow):
+            led.begin_attempt(key)
+
+
+def test_payload_cannot_carry_ledger_authored_fields(tmp_path):
+    key = L.RunKey("G", "C1", 1)
+    with fresh(tmp_path) as led:
+        led.begin_attempt(key)
+        for bad in ({"outcome": "ok"}, {"attempt": 99}, {"arm": "D"}, {"serving": {}}, {"record": "header"}):
+            with pytest.raises(ValueError, match="ledger-authored"):
+                rec(led, key, "error", {"error": "x", **bad})
+        row = rec(led, key, "error", {"error": "x"})
+        assert row["attempt"] == 1 and row["outcome"] == "error" and row["serving"] == SERVING
+
+
+def test_one_result_per_attempt(tmp_path):
+    key = L.RunKey("R", "A", 1)
+    with fresh(tmp_path) as led:
+        led.begin_attempt(key); rec(led, key, "error", {"error": "1"})
+        with pytest.raises(ValueError, match="already has a result"):
+            rec(led, key, "error", {"error": "2"})
+        led.begin_attempt(key); rec(led, key, "ok", ok_row())
+    rows = [json.loads(l) for l in (tmp_path / "ledger.jsonl").read_text().splitlines()]
+    assert [r["attempt"] for r in rows if r["record"] == "run"] == [1, 2]
+
+
+def test_serving_is_required_and_stored_on_every_run_row(tmp_path):
+    key = L.RunKey("G", "C1", 1)
+    with fresh(tmp_path) as led:
+        led.begin_attempt(key)
+        with pytest.raises(TypeError):
+            led.record(key, "error", {"error": "x"})   # type: ignore[call-arg]
+        with pytest.raises(L.LedgerBoundToAnotherConfig):
+            rec(led, key, "error", {"error": "x"}, serving={**SERVING, "n_ctx": 1})
+        assert rec(led, key, "error", {"error": "x"})["serving"] == SERVING
+
+
+@pytest.mark.parametrize("missing", ["assembled_context_tokens", "prompt_tokens", "cache_read_tokens",
+                                     "uncached_tokens", "cache_state", "text"])
+def test_scored_row_missing_telemetry_is_refused(tmp_path, missing):
+    key = L.RunKey("G", "C1", 1)
+    with fresh(tmp_path) as led:
+        led.begin_attempt(key)
+        row = ok_row(); del row[missing]
+        with pytest.raises(ValueError, match="telemetry"):
+            rec(led, key, "ok", row)
+        with pytest.raises(ValueError, match="cache_state"):
+            rec(led, key, "ok", {**ok_row(), "cache_state": "lukewarm"})
+        with pytest.raises(ValueError, match="non-negative int"):
+            rec(led, key, "ok", {**ok_row(), "cache_read_tokens": "0"})
+
+
+def test_unterminated_valid_final_line_is_terminated_not_concatenated(tmp_path):
+    key = L.RunKey("G", "C1", 1)
+    with fresh(tmp_path) as led:
+        led.begin_attempt(key)
+    p = tmp_path / "ledger.jsonl"
+    p.write_bytes(p.read_bytes().rstrip(b"\n"))            # newline lost after a complete record
+    with fresh(tmp_path) as led:
+        assert led.attempts_for(key) == 1
+        rec(led, key, "error", {"error": "x"})
+    lines = p.read_text().splitlines()
+    assert all(json.loads(l) for l in lines)
+    assert [r["kind"] for r in map(json.loads, lines) if r["record"] == "event"] == ["recovered_torn_tail"]
+
+
+def test_torn_tail_recovery_truncates_in_place_preserving_the_prefix_bytes(tmp_path):
+    key = L.RunKey("G", "C1", 1)
+    with fresh(tmp_path) as led:
+        led.begin_attempt(key); rec(led, key, "ok", ok_row())
+    p = tmp_path / "ledger.jsonl"
+    before = p.read_bytes(); ino = p.stat().st_ino
+    with p.open("ab") as fh:
+        fh.write(b'{"record": "run", "arm": "G", "question": "A"')
+    with fresh(tmp_path):
+        pass
+    after = p.read_bytes()
+    assert after.startswith(before) and p.stat().st_ino == ino
+
+
+def test_failed_open_releases_the_lock(tmp_path):
+    """Codex WP03 c1: a refused open must not leave the lock held for the process lifetime."""
+    with fresh(tmp_path):
+        pass
+    with pytest.raises(L.LedgerBoundToAnotherConfig):
+        fresh(tmp_path, limit_applied="configured")
+    with fresh(tmp_path):            # would raise LedgerLocked if the fd leaked
+        pass
 
 
 def test_plan_keys_are_protocol_ordered():
