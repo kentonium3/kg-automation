@@ -1156,3 +1156,74 @@ def test_event_kind_must_be_a_non_empty_string_on_write(tmp_path, bad):
         led.event("fine")
     with fresh(tmp_path) as led:
         assert [r["kind"] for r in led.rows if r.get("record") == "event"] == ["fine"]
+
+
+# --------------------------------------------------------------------------
+# Codex cycle 16 — exact header types, type-aware binding/serving equality
+# --------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize("field,bad", [("plan", 72.9), ("plan", 72.0), ("plan", "72"), ("plan", True), ("plan", 0),
+                                       ("blinding_seed", 7.9), ("blinding_seed", 7.0), ("blinding_seed", "7"),
+                                       ("blinding_seed", True), ("started", 3), ("started", "")],
+                         ids=lambda v: repr(v))
+def test_persisted_header_int_fields_are_exact_types_never_coerced(tmp_path, field, bad):
+    """Codex WP03 c16: Header.from_dict applied int(), so plan=72.9 / blinding_seed=7.9 resumed as 72 / 7
+    and silently satisfied the binding; the seed fixes the grading ids, so its meaning changed."""
+    with fresh(tmp_path):
+        pass
+    path = tmp_path / "ledger.jsonl"
+    rows = _rows_of(path); rows[0][field] = bad; _write_rows(path, rows); before = path.read_bytes()
+    with pytest.raises(L.LedgerCorrupt, match="header"):
+        fresh(tmp_path)
+    assert path.read_bytes() == before
+
+
+@pytest.mark.parametrize("field,bad", [("plan", 72.0), ("plan", True), ("blinding_seed", 7.0), ("blinding_seed", "7")],
+                         ids=lambda v: repr(v))
+def test_header_creation_refuses_non_int_seed_and_plan(tmp_path, field, bad):
+    kwargs = {"blinding_seed": 7, "plan": 72}; kwargs[field] = bad
+    with pytest.raises(ValueError):
+        L.open_ledger(tmp_path / "ledger.jsonl", binding(), **kwargs)
+    with pytest.raises(ValueError):
+        L.Header(binding=binding(), started="2026-09-25T00:00:00Z", **kwargs)
+
+
+def test_persisted_binding_fields_are_type_checked_on_resume(tmp_path):
+    """Codex WP03 c16: model_context_tokens=262144.0 passed the header comparison against 262144."""
+    with fresh(tmp_path):
+        pass
+    path = tmp_path / "ledger.jsonl"
+    for field, bad, exc in (("model_context_tokens", 262144.0, L.LedgerCorrupt), ("model_context_tokens", True, L.LedgerCorrupt),
+                            ("limit_applied", 1, L.LedgerCorrupt), ("serving", "primary", L.LedgerCorrupt),
+                            ("run_env_commit", 12, L.LedgerCorrupt)):
+        rows = _rows_of(path); good = rows[0][field]; rows[0][field] = bad; _write_rows(path, rows)
+        with pytest.raises(exc):
+            fresh(tmp_path)
+        rows[0][field] = good; _write_rows(path, rows)
+    with fresh(tmp_path) as led:                                # restored: resumes
+        assert led.rows == []
+
+
+def test_serving_comparison_is_type_aware_on_resume_and_on_append(tmp_path):
+    """Codex WP03 c16: a scored row with serving parallel=True was accepted under a header with parallel=1."""
+    key_name = next(k for k, v in SERVING.items() if type(v) is int and v == 1) if any(
+        type(v) is int and v == 1 for v in SERVING.values()) else None
+    assert key_name is not None, "the serving header dict needs an int field equal to 1 for this probe"
+    with fresh(tmp_path) as led:
+        key = L.RunKey("G", "C1", 1); led.begin_attempt(key)
+        with pytest.raises(L.LedgerBoundToAnotherConfig, match="type-aware"):
+            rec(led, key, "ok", ok_row(), serving={**SERVING, key_name: True})
+        with pytest.raises(L.LedgerBoundToAnotherConfig):
+            rec(led, key, "ok", ok_row(), serving={**SERVING, key_name: 1.0})
+        rec(led, key, "ok", ok_row())                            # the exact dict still records
+    path = tmp_path / "ledger.jsonl"
+    rows = _rows_of(path); rows[0]["serving"][key_name] = True; _write_rows(path, rows)
+    with pytest.raises(L.LedgerBoundToAnotherConfig):            # persisted True vs live 1: a different configuration
+        fresh(tmp_path)
+
+
+def test_same_is_type_aware_at_every_level():
+    assert L._same({"a": [1, {"b": 2}]}, {"a": [1, {"b": 2}]})
+    assert not L._same(1, True) and not L._same(1, 1.0) and not L._same([1], (1,)) and not L._same({"a": 1}, {"a": True})
+    assert not L._same({"a": 1}, {"a": 1, "b": 2}) and not L._same([1, 2], [1]) and not L._same("1", 1)

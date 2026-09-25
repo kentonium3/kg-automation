@@ -107,6 +107,34 @@ def _require_sha256(name: str, value: Any) -> None:
         raise ValueError(f"{name} must be a 64-hex sha256, got {value!r}")
 
 
+def _same(a: Any, b: Any) -> bool:
+    """Type-aware deep equality: Python's `==` says True == 1 and 262144.0 == 262144, so a
+    schema-invalid persisted value could satisfy the configuration binding (Codex WP03 c16).
+    Same type at every level (bool is not int, float is not int), then same value."""
+    if type(a) is not type(b):
+        return False
+    if isinstance(a, dict):
+        return a.keys() == b.keys() and all(_same(a[k], b[k]) for k in a)
+    if isinstance(a, (list, tuple)):
+        return len(a) == len(b) and all(_same(x, y) for x, y in zip(a, b, strict=True))
+    return bool(a == b)
+
+
+def _validate_binding_types(binding: Binding) -> None:
+    """Every Binding field has exactly its declared shape — on creation and on resume, so a persisted
+    header cannot carry 262144.0 where an int is bound (Codex WP03 c16)."""
+    for name in ("registration_commit", "prompt_hash", "question_manifest_sha", "limit_applied",
+                 "run_env_commit", "run_env_manifest_sha", "preflight_sha", "gate_host_sha", "gate_container_sha"):
+        if not isinstance(getattr(binding, name), str):
+            raise ValueError(f"binding.{name} must be a str, got {getattr(binding, name)!r}")
+    for name in ("corpus", "serving", "code_hashes"):
+        if not isinstance(getattr(binding, name), dict):
+            raise ValueError(f"binding.{name} must be a dict, got {getattr(binding, name)!r}")
+    _positive_int("model_context_tokens", binding.model_context_tokens)
+    if binding.limit_applied not in CONTEXT_LIMITS:
+        raise ValueError(f"limit_applied must be one of {CONTEXT_LIMITS}, got {binding.limit_applied!r}")
+
+
 def _require_measurement(name: str, value: Any) -> None:
     if type(value) not in (int, float) or not math.isfinite(value) or value < 0:
         raise ValueError(f"{name} must be a finite non-negative number, got {value!r}")
@@ -260,11 +288,22 @@ class Header:
         return {"record": "header", "started": self.started, "blinding_seed": self.blinding_seed,
                 "plan": self.plan, **self.binding.as_dict()}
 
+    def __post_init__(self) -> None:
+        # Exact types, never coerced: a persisted plan of 72.9 or blinding_seed of 7.9 must not
+        # resume as 72 / 7 — the seed fixes the grading ids (Codex WP03 c16).
+        if type(self.blinding_seed) is not int:
+            raise ValueError(f"blinding_seed must be an int, got {self.blinding_seed!r}")
+        _positive_int("plan", self.plan)
+        if not isinstance(self.started, str) or not self.started:
+            raise ValueError(f"started must be a non-empty str, got {self.started!r}")
+        if self.record != "header":
+            raise ValueError(f"record must be 'header', got {self.record!r}")
+
     @classmethod
     def from_dict(cls, d: dict[str, Any]) -> Header:
         fields = {k: d[k] for k in Binding.__dataclass_fields__}
-        return cls(binding=Binding(**fields), started=d["started"], blinding_seed=int(d["blinding_seed"]),
-                   plan=int(d["plan"]))
+        return cls(binding=Binding(**fields), started=d["started"], blinding_seed=d["blinding_seed"],
+                   plan=d["plan"])
 
 
 # --------------------------------------------------------------------------
@@ -411,8 +450,9 @@ class Ledger:
         reserved = RESERVED_RUN_FIELDS & set(row)
         if reserved:
             raise ValueError(f"payload carries ledger-authored fields {sorted(reserved)}")
-        if serving != self._header.binding.serving:
-            raise LedgerBoundToAnotherConfig("serving configuration differs from the header on append")
+        if not _same(serving, self._header.binding.serving):
+            raise LedgerBoundToAnotherConfig("serving configuration differs from the header on append "
+                                             "(type-aware: True is not 1, 262144.0 is not 262144)")
         if outcome == SCORED_OUTCOME and any(
                 r.get("record") == "run" and r.get("outcome") == SCORED_OUTCOME and RunKey.of(r) == key
                 for r in self._rows):
@@ -749,10 +789,11 @@ def _open_locked(path: pathlib.Path, binding: Binding, blinding_seed: int, plan:
     # can be written: a ledger persisted with a bad sha could never resume (Codex WP03 c8).
     for name in ("preflight_sha", "gate_host_sha", "gate_container_sha"):
         _require_sha256(name, getattr(binding, name))
-    if binding.limit_applied not in CONTEXT_LIMITS:
-        raise ValueError(f"limit_applied must be one of {CONTEXT_LIMITS}, got {binding.limit_applied!r}")
-    _positive_int("model_context_tokens", binding.model_context_tokens)
-    if binding.corpus != REGISTRATION["files"]:
+    _validate_binding_types(binding)
+    if type(blinding_seed) is not int:
+        raise ValueError(f"blinding_seed must be an int, got {blinding_seed!r}")
+    _positive_int("plan", plan)
+    if not _same(binding.corpus, REGISTRATION["files"]):
         raise LedgerBoundToAnotherConfig("binding.corpus is not the registered corpus fingerprints "
                                          "(data-model.md § Ledger: must equal REGISTRATION.files)")
     if not path.exists() or path.stat().st_size == 0:
@@ -774,14 +815,19 @@ def _open_locked(path: pathlib.Path, binding: Binding, blinding_seed: int, plan:
             _require_sha256(name, rows[0].get(name))
         except ValueError as exc:
             raise LedgerCorrupt(f"{path}: header {exc}") from None
-    header = Header.from_dict(rows[0])
+    try:
+        header = Header.from_dict(rows[0])          # exact int types; never coerced (Codex c16)
+        _validate_binding_types(header.binding)
+    except ValueError as exc:
+        raise LedgerCorrupt(f"{path}: header {exc}") from None
+    # Type-aware comparison: a persisted True must not match 1, nor 262144.0 match 262144.
     differences = {k: (getattr(header.binding, k), getattr(binding, k))
-                   for k in Binding.__dataclass_fields__ if getattr(header.binding, k) != getattr(binding, k)}
+                   for k in Binding.__dataclass_fields__ if not _same(getattr(header.binding, k), getattr(binding, k))}
     # Every Header field that is not the record marker or the start time is compared too:
     # `plan` says whether this is the 72-cell primary or the 24-cell secondary and
     # `blinding_seed` fixes the grading ids (Opus WP03 c10).
-    for k, ours in (("blinding_seed", int(blinding_seed)), ("plan", int(plan))):
-        if getattr(header, k) != ours:
+    for k, ours in (("blinding_seed", blinding_seed), ("plan", plan)):
+        if not _same(getattr(header, k), ours):
             differences[k] = (getattr(header, k), ours)
     if differences:
         detail = "\n".join(f"  {k}: ledger={a!r} environment={b!r}" for k, (a, b) in differences.items())
