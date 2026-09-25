@@ -33,7 +33,7 @@ injected defect"), so every code WP carries its tests.
 | T017 | `arms849/gates.py`: in-container gates (preflight match, prompt/question digests vs constants, oracle_absent + static scan, boundary, env_clean, tokenizer_equivalence, substrate_health, code_hashes) | WP04 | [P] |
 | T018 | `arms849/sampler.py`: 1 Hz GTT sampler beside a request; FalkorDB RSS sampler over a window | WP04 | [P] |
 | T019 | `arms849/calibration.py`: deterministic k (two-sided 0.8×–1.2× band, availability caps, `parity`), `calibration` record, halt rule when a G repeat-1 cell is terminal `error` | WP04 | [P] |
-| T020 | Tests for T016–T019 with injected defects (vacuous-pass guard, wrong digest, missing telemetry, incomplete population) | WP04 | [P] |
+| T020 | Tests for T016–T019 with injected defects (vacuous-pass guard, wrong digest, missing telemetry, incomplete population); NFR-003 gate wall-clock, NFR-004 ceiling flag | WP04 | [P] |
 | T021 | `arms849/embed.py`: FastEmbed bge-small (one definition for G and R) + #974 cosine reranker | WP05 | |
 | T022 | `arms849/arm_g.py` writes: typed `EntityNode`/`EntityEdge`/`EpisodicNode`/`EpisodicEdge` saved directly, tripwire LLM client, `valid_at`/`created_at` from `at`, `build_graph`/`drop_graph`, `group_id = arms_<Q>` | WP05 | |
 | T023 | `arm_g.py` retrieval: anchor resolution (aliases → Person; commitment/outcome descriptions exact/normalised; ambiguity keeps all), hybrid `search(group_ids=[…])`, one typed pull per label, anchored expansion via `get_by_entity_node_uuid`, no BFS | WP05 | |
@@ -48,7 +48,7 @@ injected defect"), so every code WP carries its tests.
 | T032 | CLI: `--preflight`, `--status`, `--grading-view`, `--secondary --primary <ledger>`; four-gate precondition retained; bus/status events | WP08 | |
 | T033 | Secondary binding: refuses unless the primary is complete; its own context gate; header differs in exactly the four rope/n_ctx fields | WP08 | |
 | T034 | `arms849/grading.py`: per-cell blinded ids, view / admin report / seal in three directories | WP08 | |
-| T035 | Integration tests with fake arms: full 72-cell run, interrupt mid-cell + resume, torn tail, second writer, grading forbidden-string scan, secondary refusal | WP08 | |
+| T035 | Integration tests with fake arms: full 72-cell run, interrupt mid-cell + resume (NFR-002 < 30 s), torn tail, second writer, memory-ceiling refusal (NFR-004), grading forbidden-string scan, secondary refusal | WP08 | |
 | T036 | README "Run" section + hand-off record skeleton; sandbox note copied from research.md D-9 | WP09 | [P] |
 | T037 | `docs/INDEX.md` + `docs/DEVELOPER_PORTAL.md` entries for the run record | WP09 | [P] |
 | T038 | Preflight from the full checkout, export, substrates up, in-container gates green (record the gate output) | WP09 | |
@@ -82,7 +82,7 @@ injected defect"), so every code WP carries its tests.
 - **Goal**: oracle-dependent checks run from the full checkout and bind into the run; every in-container gate compares to a registered constant; memory samplers; deterministic k with the halt rule.
 - **Priority**: P0. **Independent test**: each gate proven to fail on its injected defect; calibration halts on an incomplete population.
 - Subtasks: T016 (WP04) · T017 (WP04) · T018 (WP04) · T019 (WP04) · T020 (WP04)
-- **Deps**: WP01, WP03. **Est. prompt**: ~470 lines. **Prompt**: [tasks/WP04-gates-preflight-calibration.md](./tasks/WP04-gates-preflight-calibration.md)
+- **Deps**: WP01, WP02 (calls its self-test), WP03. **Est. prompt**: ~470 lines. **Prompt**: [tasks/WP04-gates-preflight-calibration.md](./tasks/WP04-gates-preflight-calibration.md)
 
 ### WP05 — Arm G: Graphiti typed writes and deterministic hybrid retrieval (IC-03)
 - **Goal**: the arm under test exactly as ruled — Graphiti's data model and retrieval, none of its extraction; every A3 resolution path; byte-identical assembly across repeats.
@@ -100,7 +100,7 @@ injected defect"), so every code WP carries its tests.
 - **Goal**: the realistic-deployment arm with its one free parameter derived by D-10 from a complete calibration population.
 - **Priority**: P1. **Independent test**: same inputs → same k; band checks incl. `unattainable`; chronological assembly; ratio unavailable state.
 - Subtasks: T028 (WP07) · T029 (WP07) · T030 (WP07)
-- **Deps**: WP01, WP03. **Est. prompt**: ~330 lines. **Prompt**: [tasks/WP07-arm-r.md](./tasks/WP07-arm-r.md)
+- **Deps**: WP01, WP03, WP05 (imports `arms849.embed`). **Est. prompt**: ~330 lines. **Prompt**: [tasks/WP07-arm-r.md](./tasks/WP07-arm-r.md)
 
 ### WP08 — Harness integration, CLI, secondary binding, grading export (IC-06 orchestration + IC-08)
 - **Goal**: `run_849_harness.py` rebuilt on the modules; the CLI the quickstart names; the secondary's binding; the blinded export — all proven with fake arms end to end.
@@ -118,6 +118,6 @@ injected defect"), so every code WP carries its tests.
 
 - **Lane A (foundation)**: WP01 → WP03 → WP04 → WP08.
 - **Lane B (substrate)**: WP02 → (joins WP05 and WP10).
-- **Lane C (arms)**: WP05 (needs WP01+WP02), WP06 (needs WP01), WP07 (needs WP01+WP03) — parallel once their deps land.
+- **Lane C (arms)**: WP05 (needs WP01+WP02), WP06 (needs WP01), WP07 (needs WP01+WP03+WP05) — parallel once their deps land.
 - **WP09** runs last: its docs subtasks land first, and T038 onward only after everything is merged and the post-merge Codex review of the full diff has passed (Kent's standing checkpoint) — it is the live verification, and it must run on reviewed code.
 - MVP = WP01 + WP03 + WP08 with fake arms: a complete, resumable, blinded-exportable 72-cell run of `not_implemented` cells proves the harness before any substrate exists.

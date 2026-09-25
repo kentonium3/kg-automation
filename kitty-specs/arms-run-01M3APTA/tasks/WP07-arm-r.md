@@ -4,6 +4,7 @@ title: Arm R — index, records, deterministic k
 dependencies:
 - WP01
 - WP03
+- WP05
 requirement_refs:
 - FR-010
 - FR-012

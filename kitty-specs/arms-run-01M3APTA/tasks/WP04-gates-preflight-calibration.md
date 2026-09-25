@@ -3,6 +3,7 @@ work_package_id: WP04
 title: Gates, preflight, samplers, calibration
 dependencies:
 - WP01
+- WP02
 - WP03
 requirement_refs:
 - FR-001
@@ -131,7 +132,11 @@ one changed text fails; a temp package file containing the string `oracle` fails
 `OPENAI_API_KEY=x` fails `env_clean`. Calibration: synthetic G medians and R token curves →
 deterministic k; `unattainable` when records alone exceed 1.2×; `infeasible` when availability
 caps; `CalibrationPopulationIncomplete` when one G repeat-1 cell is `error`; same inputs twice →
-identical record.
+identical record. **NFR-003**: `run_all` records its own wall-clock in `preflight.json`/the gate
+output and a test asserts the in-container gate set (excluding `substrate_health` waits)
+completes in under 5 minutes on the real corpus. **NFR-004**: `GttSampler` exposes
+`ceiling_gib = 57.5` and a `breached` flag; a test injects a reading above it and asserts the
+flag — the harness (WP08) refuses to start a cell while `breached` is true.
 
 ## Definition of Done
 

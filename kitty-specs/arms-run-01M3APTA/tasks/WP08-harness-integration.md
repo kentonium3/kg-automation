@@ -83,7 +83,9 @@ file names. Read first: `contracts/arm-interface.md`, `contracts/ledger-schema.m
 1. `execute(key, corpus_dir, ctx) -> row`: `attempt = ledger.begin_attempt(key)`; replay via
    `load_849_corpus.replay` and narrow via `arm_view` (existing); build `CellContext` (repeat,
    attempt, seed = 1000 + repeat, serving, prompt, embedder, calibration for R, limits,
-   ledger_kind); start `GttSampler` (and `RssSampler` for G) as context managers; call the arm
+   ledger_kind); start `GttSampler` (and `RssSampler` for G) as context managers — refuse to start the cell
+   (an `event: memory_ceiling` row, no attempt) if the sampler's current reading already exceeds
+   the 57.5 GiB ceiling (NFR-004); call the arm
    under a **per-attempt timeout** of 90 minutes (a worker thread + join; on expiry record
    `error: timeout`); catch `ContextExceeded` → `exceeds_model_context` row with `prompt_tokens`
    and `limit_applied`; catch any other exception → run `substrate.health()`; if healthy and
@@ -135,7 +137,10 @@ after `attempt_start`) then resume → the key has two `attempt_start` rows and 
 ledger resumes; second writer refused; a fake G whose repeat-1 cell errors three times → `halt`
 event and no R rows; grading view: entry count == `ok` count, no `G`/`D`/`R` values, no repeat
 index, no timings; seal reproduces the mapping from the seed; `--secondary` refuses on an
-incomplete primary and, on a complete one, produces a header differing in exactly four fields.
+incomplete primary and, on a complete one, produces a header differing in exactly four fields;
+**NFR-002**: resuming a 40-cell fake ledger reaches the next cell in under 30 s (measured in the
+test, substrate start-up excluded); **NFR-004**: with the sampler's `breached` flag forced true,
+`execute` refuses to start the cell and records an `event: memory_ceiling` row.
 
 ## Definition of Done
 
