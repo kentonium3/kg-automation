@@ -1,12 +1,12 @@
 {
-  "event_count": 158,
-  "last_event_id": "01M3BAF32A8QJ8H8394FFDXEAJ",
-  "materialized_at": "2026-09-25T03:41:39.786201+00:00",
+  "event_count": 159,
+  "last_event_id": "01M3BAQHEMN4PQ3EX0QET9H3PH",
+  "materialized_at": "2026-09-25T03:46:16.660505+00:00",
   "mission_number": "",
   "mission_slug": "arms-run-01M3APTA",
   "mission_type": "software-dev",
   "summary": {
-    "approved": 4,
+    "approved": 3,
     "blocked": 0,
     "canceled": 0,
     "claimed": 0,
@@ -14,7 +14,7 @@
     "for_review": 1,
     "in_progress": 0,
     "in_review": 0,
-    "planned": 4
+    "planned": 5
   },
   "work_packages": {
     "WP01": {
@@ -132,14 +132,14 @@
       }
     },
     "WP04": {
-      "actor": "claude",
+      "actor": "user",
       "agent": "claude",
       "agent_profile": "__resolved_profile_absent__",
       "agent_profile_version": "__resolved_profile_version_absent__",
-      "force_count": 4,
-      "lane": "approved",
-      "last_event_id": "01M3BAF32A8QJ8H8394FFDXEAJ",
-      "last_transition_at": "2026-09-25T03:41:39.786201+00:00",
+      "force_count": 5,
+      "lane": "planned",
+      "last_event_id": "01M3BAQHEMN4PQ3EX0QET9H3PH",
+      "last_transition_at": "2026-09-25T03:46:16.660505+00:00",
       "model": "__resolved_model_absent__",
       "notes": [
         "WP04 cycle 1: 37 tests, full suite 7,125 green; live run_all in a real export not yet executed (WP09 re-runs it)",
