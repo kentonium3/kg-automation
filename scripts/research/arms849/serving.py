@@ -299,13 +299,20 @@ def serialize(request_text: bytes, config: ServingConfiguration, seed: int,
     actual = tokenizer.chat_template_sha256()
     if actual != config.chat_template_sha256:
         raise ValueError(f"tokenizer chat template {actual[:12]} != configuration {config.chat_template_sha256[:12]}")
+    # The sampling block may carry EXACTLY the registered keys — a stray key such as
+    # "prompt" or "seed" would otherwise overwrite an authoritative field (Codex WP01
+    # cycle 4). Authoritative fields are set LAST.
+    extra = set(config.sampling) - set(SAMPLING)
+    missing = set(SAMPLING) - set(config.sampling)
+    if extra or missing:
+        raise ValueError(f"sampling keys must be exactly {sorted(SAMPLING)}; extra {sorted(extra)}, missing {sorted(missing)}")
     return {
+        **config.sampling,
         "prompt": tokenizer.apply_chat_template(request_text.decode("utf-8")),
         "n_predict": config.max_tokens,
         "seed": seed,
         "cache_prompt": config.cache_prompt,
         "stream": False,
-        **config.sampling,
     }
 
 

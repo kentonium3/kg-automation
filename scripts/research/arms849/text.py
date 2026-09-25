@@ -51,9 +51,10 @@ def record_line_bytes(record: Mapping[str, object]) -> bytes:
     """THE one serialisation in the arms package (D-7).
 
     Deterministic and stable across processes: sorted keys, UTF-8 without
-    ASCII escaping, ``default=str`` for the dates YAML parsed into objects.
+    ASCII escaping, and NO ``default=str``: the input is the frozen corpus's own JSON,
+    so a value json cannot serialise means the input was not the corpus — raise.
     """
-    return json.dumps(record, sort_keys=True, ensure_ascii=False, default=str).encode("utf-8")
+    return json.dumps(record, sort_keys=True, ensure_ascii=False).encode("utf-8")
 
 
 @dataclass(frozen=True)
@@ -157,7 +158,10 @@ class FrozenCorpusText:
     def render_full_view(self, view: Loaded) -> Block:
         """Arm D's block: every event in view order, then entities, then edges.
 
-        Events first because each D prompt must be a byte prefix of the next
+        Events first so the SHARED PREFIX across D prompts is the event run (A3):
+        the records sit between Q_n's events and Q_{n+1}'s new events, so a whole
+        prompt is not a byte prefix of the next — the event run is, and that is
+        what the cache reuses.
         in ask-time order (rubric §2 layout protocol); edges last because they
         were the part Codex found missing from the "full" dump.
         """

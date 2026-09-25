@@ -145,12 +145,16 @@ def test_real_tokenizer_template_is_qwen_chat_and_counted():
     assert len(tok.chat_template_sha256()) == 64
 
 
-def test_hosts_allowlist_is_a_constant_not_configuration(monkeypatch):
-    """Design-lead MAJOR 1: an env var must not widen the guard."""
-    monkeypatch.setenv("ARMS849_LLAMA_HOSTS", "api.openai.com,127.0.0.1")
-    importlib.reload(S)
-    with pytest.raises(S.UnsafeEndpoint):
-        S._assert_safe("https://api.openai.com/v1")
+def test_hosts_allowlist_is_a_constant_not_configuration():
+    """Design-lead MAJOR 1: an env var must not widen the guard. Checked in a subprocess so
+    no module is reloaded under the running test session (reload rebinds exception classes)."""
+    import subprocess
+    env = {**os.environ, "ARMS849_LLAMA_HOSTS": "api.openai.com,127.0.0.1"}
+    proc = subprocess.run([sys.executable, "-c",
+                           "import sys; sys.path.insert(0, %r); import scripts.research.arms849.serving as S; "
+                           "S._assert_safe('https://api.openai.com/v1')" % str(REPO_ROOT)],
+                          env=env, capture_output=True, text=True, timeout=120)
+    assert proc.returncode != 0 and "UnsafeEndpoint" in proc.stderr, proc.stderr[-400:]
     assert S.ALLOWED_HOSTS == frozenset({"127.0.0.1", "localhost", "llama"})
 
 
@@ -201,3 +205,17 @@ def test_real_equivalence_sample_appends_the_templated_probe():
     sample = tok.equivalence_sample(['{"ref": 1}'])
     assert len(sample) == 2 and sample[1].startswith("<|im_start|>user")
     S.require_templated_sample(sample)
+
+
+def test_sampling_cannot_overwrite_authoritative_request_fields():
+    """Codex WP01 cycle 4: `**sampling` must never reach past the templated prompt."""
+    p = S.ServingConfiguration.primary(IDENT)
+    poisoned = S.ServingConfiguration(**{**p.as_header_dict(), "sampling": {**S.SAMPLING, "prompt": "UNTEMPLATED"}})
+    with pytest.raises(ValueError, match="sampling keys"):
+        S.serialize(b"REGISTERED", poisoned, seed=1001, tokenizer=_FakeTok())
+    short = S.ServingConfiguration(**{**p.as_header_dict(), "sampling": {k: v for k, v in S.SAMPLING.items() if k != "top_k"}})
+    with pytest.raises(ValueError, match="missing"):
+        S.serialize(b"REGISTERED", short, seed=1001, tokenizer=_FakeTok())
+    body = S.serialize(b"REGISTERED", p, seed=1001, tokenizer=_FakeTok())
+    assert set(body) == set(S.SAMPLING) | {"prompt", "n_predict", "seed", "cache_prompt", "stream"}
+    assert body["prompt"].startswith("<|im_start|>user\nREGISTERED")
