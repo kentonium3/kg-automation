@@ -41,6 +41,7 @@ from scripts.research.arms849 import (
     litscan,
     serving,
 )
+from scripts.research.arms849 import preflight as preflight_mod
 from scripts.research.arms849 import prompt as prompt_mod
 from scripts.research.arms849 import questions as questions_mod
 from scripts.research.arms849.preflight import (
@@ -51,10 +52,17 @@ from scripts.research.arms849.preflight import (
 from scripts.research.arms849.text import FrozenCorpusText
 from scripts.research.load_849_corpus import REGISTRATION, fingerprint
 
-__all__ = ["CONTAINER_GATES", "GATE_EXCLUDED_ABSENT", "GATE_ORDER", "HOST_GATES", "GateEnv", "GateResult",
-           "GatesRefused", "record_sha", "run_all", "run_container_phase", "run_host_phase"]
+__all__ = ["CONTAINER_GATES", "GATE_EXCLUDED_ABSENT", "GATE_ORDER", "HOST_GATES", "REQUIRED_MODULES", "GateEnv",
+           "GateResult", "GatesRefused", "record_sha", "run_all", "run_container_phase", "run_host_phase"]
 
 PKG_DIR = pathlib.Path(__file__).resolve().parent
+#: The modules the static scan MUST find under PKG_DIR (registered, not discovered): a package
+#: directory that is missing, empty or mispointed cannot certify isolation by scanning nothing
+#: (Codex WP04 c8). A new module is scanned without being listed; a missing one fails the gate.
+REQUIRED_MODULES: tuple[str, ...] = (
+    "__init__.py", "calibration.py", "gates.py", "ledger.py", "litscan.py", "preflight.py",
+    "prompt.py", "questions.py", "sampler.py", "serving.py", "substrate.py", "text.py",
+)
 
 
 def _gate_name_from_data() -> str:
@@ -100,8 +108,9 @@ class GateEnv:
     container_start_ts: str = ""                        # container: when this process started (ISO UTC)
     props_probe: Callable[[str], dict[str, Any]] | None = None   # container: GET /props (injectable)
     header_code_hashes: dict[str, str] | None = None   # on resume: the ledger header's
-    excluded_prefixes: tuple[str, ...] = ()            # from the export's data file
     forbidden_words: tuple[str, ...] = ()              # built from parts by the caller
+    # The excluded prefixes are NOT injectable: the gate reads the canonical data file
+    # (preflight.EXCLUDES_FILE) itself and refuses an empty or absent list (Codex WP04 c8).
     # Injection points so the gate set is testable without the stack.
     self_test: Callable[[], dict[str, Any]] | None = None
     health: Callable[[int, str], Any] | None = None
@@ -200,16 +209,35 @@ def question_manifest_digest(env: GateEnv) -> tuple[bool, str]:
 
 
 def excluded_material_absent(env: GateEnv) -> tuple[bool, str]:
-    present = [p for p in env.excluded_prefixes if (env.run_root / p.rstrip("/")).exists()]
+    """The excluded paths are absent under the run root AND no package module can produce
+    their names. Both inputs must be non-vacuous (Codex WP04 c8): the exclusion list comes
+    from the canonical data file and must be non-empty; the module inventory must hold every
+    registered module — an empty list or an empty/missing package directory REFUSES."""
+    try:
+        prefixes = tuple(preflight_mod.excluded_prefixes())
+        preflight_mod.reference_prefix()                    # refuses an empty or headless list
+    except (OSError, PreflightRefused) as exc:
+        return False, f"exclusion list {preflight_mod.EXCLUDES_FILE} unusable — {type(exc).__name__}: {exc}"
+    if not prefixes:
+        return False, f"exclusion list {preflight_mod.EXCLUDES_FILE} is empty — nothing can be proven absent"
+    present = [p for p in prefixes if (env.run_root / p.rstrip("/")).exists()]
     if present:
         return False, f"excluded paths present under {env.run_root}: {present}"
     if not env.forbidden_words:
         return False, "no forbidden words supplied — the scan would pass vacuously"
+    if not PKG_DIR.is_dir():
+        return False, f"package directory {PKG_DIR} is missing — nothing was scanned"
+    inventory = sorted(PKG_DIR.rglob("*.py"))                                    # recursive: subpackages too
+    names = {p.relative_to(PKG_DIR).as_posix() for p in inventory}
+    missing = sorted(m for m in REQUIRED_MODULES if m not in names)
+    if not inventory or missing:
+        return False, (f"package inventory under {PKG_DIR} is incomplete ({len(inventory)} modules; "
+                       f"missing {missing}) — a partial scan proves nothing")
     try:
-        hits = litscan.find_words(sorted(PKG_DIR.rglob("*.py")), env.forbidden_words)   # recursive: subpackages too
-    except litscan.ScanBudgetExceeded as exc:
+        hits = litscan.find_words(inventory, env.forbidden_words)
+    except (litscan.ScanBudgetExceeded, litscan.ScanRefused) as exc:
         return False, f"static scan failed closed: {exc}"
-    return (not hits), ("; ".join(hits) or f"{len(list(PKG_DIR.rglob('*.py')))} modules scanned, no hit")
+    return (not hits), ("; ".join(hits) or f"{len(inventory)} modules scanned ({len(REQUIRED_MODULES)} registered present), no hit")
 
 
 def boundary(env: GateEnv) -> tuple[bool, str]:

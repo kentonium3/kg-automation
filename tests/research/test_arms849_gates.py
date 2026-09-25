@@ -5,10 +5,10 @@ The forbidden words are assembled from parts so this file does not carry them.
 
 from __future__ import annotations
 
+import ast
 import json
 import os
 import pathlib
-import shutil
 import socket
 import sys
 import time
@@ -103,26 +103,27 @@ def test_preflight_refuses_when_a_checker_fails_and_writes_nothing(tmp_path, mon
 @pytest.mark.parametrize("shape", ["absent", "empty", "incomplete"])
 def test_vacuous_pass_guard_refuses_absent_empty_or_incomplete_reference_dir(tmp_path, monkeypatch, shape):
     """T016's whole point: the checkers pass for the wrong reason when the reference is absent —
-    exercised on a REAL directory shape under a temp root, with the data file re-pointed."""
-    root = REPO_ROOT; ref = REPO_ROOT / "build" / f"_guard_probe_{shape}"
-    shutil.rmtree(ref, ignore_errors=True)
+    exercised on a REAL directory shape under a temp root (never the checkout: the review
+    sandbox is read-only — Codex c8), with the checkout root and the data file re-pointed."""
+    root = tmp_path / "root"; root.mkdir(); ref = root / "probe" / shape
+    monkeypatch.setattr(P, "REPO_ROOT", root)              # the "own checkout" the checkers vouch for
     if shape != "absent":
         ref.mkdir(parents=True)
     if shape == "incomplete":
         for f in P.REFERENCE_FILES[:-1]:
             (ref / f).write_text("x: 1\n")
-    data = tmp_path / "export-excludes.txt"; data.write_text(f"build/_guard_probe_{shape}/\nkitty-specs/\n")
+    data = tmp_path / "export-excludes.txt"; data.write_text(f"probe/{shape}/\nkitty-specs/\n")
     monkeypatch.setattr(P, "EXCLUDES_FILE", data)
     calls = []
     monkeypatch.setattr(P, "_run_checker", lambda name: calls.append(name) or _fake_checker(True)(name))
     with pytest.raises(P.PreflightRefused, match="vacuously"):
-        P.run_preflight(REPO_ROOT, CORPUS, tmp_path / "m.json", tmp_path / "preflight.json", cache_dir=CACHE)
+        P.run_preflight(root, CORPUS, tmp_path / "m.json", tmp_path / "preflight.json", cache_dir=CACHE)
     assert calls == []                                     # refused BEFORE running anything
+    assert not (REPO_ROOT / "build").exists() or not list((REPO_ROOT / "build").glob("_guard_probe_*"))
     # and the complete shape passes the guard (the checkers then run)
     for f in P.REFERENCE_FILES:
         ref.mkdir(parents=True, exist_ok=True); (ref / f).write_text("x: 1\n")
     assert P.reference_dir(root) == ref
-    shutil.rmtree(ref, ignore_errors=True)
 
 
 def test_empty_or_headless_data_file_refuses(tmp_path, monkeypatch):
@@ -193,11 +194,19 @@ def test_preflight_record_with_an_empty_or_partial_gate_list_is_refused(tmp_path
 # ---------------------------------------------------------------------------
 
 
+def _fake_pkg(where: pathlib.Path) -> pathlib.Path:
+    """A package directory carrying every registered module as a clean stub — the inventory
+    the gate REQUIRES before it will scan (an empty directory no longer passes)."""
+    where.mkdir(parents=True, exist_ok=True)
+    for name in G.REQUIRED_MODULES:
+        (where / name).write_text("X = 'fine'\n")
+    return where
+
+
 def _env(tmp_path, **over) -> G.GateEnv:
     cache = tmp_path / "cache"; (cache / "qwen-tokenizer").mkdir(parents=True); (cache / "fastembed").mkdir()
     base = {"run_root": tmp_path / "work", "corpus_dir": CORPUS, "cache_dir": cache,
             "preflight_path": tmp_path / "preflight.json", "export_manifest_path": tmp_path / "work" / ".export-manifest.json",
-            "excluded_prefixes": ("docs/design/research/849-synthesis/" + FORBIDDEN[0] + "/",),
             "forbidden_words": FORBIDDEN, "outbound_probe": ("127.0.0.1", _closed_port()),
             "expected_chat_template_sha256": TEMPLATE_SHA,
             "self_test": lambda: {"passed": True, "checks": {"x": True}},
@@ -258,11 +267,12 @@ def test_question_manifest_fails_on_one_changed_text(monkeypatch):
 
 
 def test_static_scan_gate_fails_on_a_package_file_naming_the_material(tmp_path, monkeypatch):
-    pkg = tmp_path / "pkg"; pkg.mkdir()
+    pkg = _fake_pkg(tmp_path / "pkg")
     (pkg / "clean.py").write_text("X = 'fine'\n")
     monkeypatch.setattr(G, "PKG_DIR", pkg)
     env = _env(tmp_path)
-    assert G.excluded_material_absent(env)[0]
+    ok, detail = G.excluded_material_absent(env)
+    assert ok and "no hit" in detail, detail
     (pkg / "bad.py").write_text('X = "or" + "acle"\n')          # concatenation, not the literal word
     ok, detail = G.excluded_material_absent(env)
     assert not ok and "bad.py" in detail and "statically producible" in detail
@@ -277,7 +287,7 @@ def test_static_scan_gate_fails_on_a_package_file_naming_the_material(tmp_path, 
 
 
 def test_static_scan_gate_fails_closed_on_a_budget_violation(tmp_path, monkeypatch):
-    pkg = tmp_path / "pkg"; pkg.mkdir(); (pkg / "huge.py").write_text('X = "x" * (10000 ** 3)\n')
+    pkg = _fake_pkg(tmp_path / "pkg"); (pkg / "huge.py").write_text('X = "x" * (10000 ** 3)\n')
     monkeypatch.setattr(G, "PKG_DIR", pkg)
     ok, detail = G.excluded_material_absent(_env(tmp_path))
     assert not ok and "failed closed" in detail
@@ -290,9 +300,124 @@ def test_static_scan_gate_refuses_a_vacuous_word_list(tmp_path):
 
 def test_excluded_path_present_under_the_run_root_fails(tmp_path):
     env = _env(tmp_path)
-    p = env.run_root / env.excluded_prefixes[0].rstrip("/"); p.mkdir(parents=True)
+    p = env.run_root / P.reference_prefix().rstrip("/"); p.mkdir(parents=True)
     ok, detail = G.excluded_material_absent(env)
     assert not ok and "present" in detail
+
+
+@pytest.mark.parametrize("shape", ["empty", "comments_only", "absent"])
+def test_excluded_gate_refuses_an_empty_or_absent_exclusion_list(tmp_path, monkeypatch, shape):
+    """Codex c8 MAJOR: with no exclusion list the gate used to pass over hidden material. The list
+    is read from the canonical data file and an empty/absent one REFUSES — even though the
+    reference directory IS present under the run root here."""
+    env = _env(tmp_path)
+    (env.run_root / P.reference_prefix().rstrip("/")).mkdir(parents=True)     # hidden material present
+    data = tmp_path / "export-excludes.txt"
+    if shape == "empty":
+        data.write_text("")
+    elif shape == "comments_only":
+        data.write_text("# nothing\n\n")
+    monkeypatch.setattr(P, "EXCLUDES_FILE", data)
+    ok, detail = G.excluded_material_absent(env)
+    assert not ok and "exclusion list" in detail, detail
+
+
+@pytest.mark.parametrize("shape", ["missing_dir", "empty_dir", "partial"])
+def test_excluded_gate_refuses_a_missing_empty_or_partial_package_inventory(tmp_path, monkeypatch, shape):
+    """Codex c8 MAJOR: a missing package directory passed as "0 modules scanned". The inventory
+    must hold every registered module before the scan counts."""
+    pkg = tmp_path / "pkg"
+    if shape == "empty_dir":
+        pkg.mkdir()
+    elif shape == "partial":
+        _fake_pkg(pkg); (pkg / G.REQUIRED_MODULES[-1]).unlink()
+    monkeypatch.setattr(G, "PKG_DIR", pkg)
+    ok, detail = G.excluded_material_absent(_env(tmp_path))
+    assert not ok and ("missing" in detail or "incomplete" in detail), detail
+    if shape == "partial":
+        assert G.REQUIRED_MODULES[-1] in detail
+
+
+@pytest.mark.parametrize("construction", [
+    'X = "{}{}".format("or", "acle")',                 # Codex c8: a literal format call
+    'X = "or" "acle"',                                 # implicit concatenation
+    'X = "%s%s" % ("or", "acle")',                     # %-formatting on literals
+    'X = "".join(["or", "acle"])',                     # a literal join
+    'X = "{a}{b}".format_map({"a": "or", "b": "acle"})',
+    'X = "OR".lower() + "acle"',
+    'X = "xxor".strip("x") + "acle"',
+    'X = "".join(["or", "acle"]).upper()',             # a literal call on a literal call
+], ids=["format", "adjacent", "percent", "join", "format_map", "lower", "strip", "chained"])
+def test_excluded_gate_fails_on_a_literal_formatting_call(tmp_path, monkeypatch, construction):
+    pkg = _fake_pkg(tmp_path / "pkg"); (pkg / "bad.py").write_text(construction + "\n")
+    monkeypatch.setattr(G, "PKG_DIR", pkg)
+    ok, detail = G.excluded_material_absent(_env(tmp_path))
+    assert not ok and "bad.py" in detail and "statically producible" in detail, detail
+
+
+def test_a_literal_call_that_raises_refuses_the_scan(tmp_path, monkeypatch):
+    """Fail closed on ANY exception inside an allowlisted literal call — never skip it."""
+    pkg = _fake_pkg(tmp_path / "pkg"); (pkg / "odd.py").write_text('X = "{}".format()\n')
+    monkeypatch.setattr(G, "PKG_DIR", pkg)
+    with pytest.raises(litscan.ScanRefused, match="IndexError"):
+        litscan.string_constants('X = "{}".format()\n')
+    ok, detail = G.excluded_material_absent(_env(tmp_path))
+    assert not ok and "failed closed" in detail and "odd.py" in detail, detail
+
+
+_SITECUSTOMIZE = """
+import ast
+_real_parse = ast.parse
+
+
+class Novel(ast.expr):
+    _fields = ()
+
+
+def parse(source, *a, **k):
+    tree = _real_parse(source, *a, **k)
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Assign):
+            v = node.value
+            node.value = Novel(lineno=v.lineno, col_offset=v.col_offset, end_lineno=v.end_lineno, end_col_offset=v.end_col_offset)
+            break
+    return tree
+
+
+ast.parse = parse
+"""
+
+
+def test_unclassified_expression_node_refuses_the_scan_and_fails_the_gate(tmp_path, monkeypatch):
+    """Codex c8 MAJOR: an expression node in neither explicit set used to be _UNKNOWN → [] →
+    pass. Now the scan REFUSES, naming the node and its location, and the gate fails.
+    In-process first; then END TO END through the rlimited child, whose ast.parse is patched by
+    a sitecustomize on PYTHONPATH to hand back a synthetic node."""
+    import gc
+
+    def novel_parse(real):
+        class Novel(ast.expr):
+            _fields = ()
+
+        def parse(src, *a, **k):
+            tree = real(src, *a, **k)
+            tree.body[0].value = Novel(lineno=1, col_offset=4, end_lineno=1, end_col_offset=5)
+            return tree
+        return parse
+    monkeypatch.setattr(ast, "parse", novel_parse(ast.parse))
+    try:
+        with pytest.raises(litscan.ScanRefused, match=r"Novel at line 1:4"):
+            litscan._string_constants_inprocess("X = 1\n")
+    finally:
+        monkeypatch.undo(); gc.collect()                 # the partition tests enumerate ast.expr's live subclasses
+    shim = tmp_path / "shim"; shim.mkdir(); (shim / "sitecustomize.py").write_text(_SITECUSTOMIZE)
+    monkeypatch.setenv("PYTHONPATH", str(shim) + os.pathsep + os.environ.get("PYTHONPATH", ""))
+    with pytest.raises(litscan.ScanRefused, match="Novel"):
+        litscan.string_constants("X = 1\n")
+    pkg = _fake_pkg(tmp_path / "pkg")
+    monkeypatch.setattr(G, "PKG_DIR", pkg)
+    ok, detail = G.excluded_material_absent(_env(tmp_path))
+    assert not ok and "failed closed" in detail and "Novel" in detail, detail
 
 
 def test_env_clean_fails_on_a_key_torch_missing_cache_or_outbound(tmp_path, monkeypatch):
@@ -474,16 +599,31 @@ def test_production_scanner_catches_wp02s_adversarial_constructions(construction
     assert FORBIDDEN[0] in "\n".join(litscan.string_constants(construction + "\n")).lower()
 
 
-def test_production_scanner_partitions_the_grammar():
-    every = set(__import__("ast").expr.__subclasses__())
-    assert litscan._PURE_EXPR | litscan._OPAQUE_EXPR == every and not (litscan._PURE_EXPR & litscan._OPAQUE_EXPR)
+def test_production_scanner_partitions_the_grammar_explicitly():
+    """Codex c8: both sets are EXPLICIT tuples of ast classes (never a complement), and every
+    ast.expr subclass of the running interpreter is in exactly one — a grammar the interpreter
+    grows (a new node type) fails HERE, loudly, instead of passing the scan silently."""
+    pure, opaque = litscan._PURE_EXPR, litscan._OPAQUE_EXPR
+    assert isinstance(pure, tuple) and isinstance(opaque, tuple)
+    assert all(isinstance(c, type) and issubclass(c, ast.expr) for c in pure + opaque)
+    assert not (set(pure) & set(opaque))
+    every = {c for c in ast.expr.__subclasses__() if c.__module__ == "ast"}
+    unclassified = sorted(c.__name__ for c in every - set(pure) - set(opaque))
+    assert not unclassified, f"{sys.version}: ast.expr subclasses in neither explicit set: {unclassified}"
+    assert set(pure) | set(opaque) == every
+    assert ast.Call in opaque and ast.Attribute in opaque and ast.Starred in pure and ast.Constant in pure
 
 
-def test_litscan_sees_literal_structure_and_treats_calls_as_opaque():
-    """The stated boundary: a literal concatenation is seen; a call's arguments are separate fragments."""
+def test_litscan_sees_literal_structure_and_treats_stateful_calls_as_opaque():
+    """The stated boundary: literal structure — including a pure str method on a literal — is
+    seen; a call that touches a name is opaque (its literal arguments stay separate fragments)."""
     assert FORBIDDEN[0] in "\n".join(litscan.string_constants('Y = "or" + "acle"\n')).lower()
-    only_call = "\n".join(litscan.string_constants('X = "".join(["or", "acle"])\n')).lower()
-    assert FORBIDDEN[0] not in only_call and "or" in only_call and "acle" in only_call
+    assert FORBIDDEN[0] in "\n".join(litscan.string_constants('X = "".join(["or", "acle"])\n')).lower()
+    on_name = "\n".join(litscan.string_constants('X = sep.join(["or", "acle"])\n')).lower()
+    assert FORBIDDEN[0] not in on_name and "or" in on_name and "acle" in on_name
+    with_name_arg = "\n".join(litscan.string_constants('X = "{}{}".format("or", tail)\n')).lower()
+    assert FORBIDDEN[0] not in with_name_arg and "or" in with_name_arg
+    assert ".__class__" not in litscan._LITERAL_STR_METHODS and "__getattribute__" not in litscan._LITERAL_STR_METHODS
 
 
 # ---------------------------------------------------------------------------
@@ -520,7 +660,7 @@ def test_host_phase_writes_a_signed_record_and_container_phase_verifies_it(tmp_p
         def equivalence_check(self, base_url, lines): return True, "ok"
     monkeypatch.setattr(serving, "Tokenizer", lambda path: Tok())
     env.host_record_path = host_path; env.container_start_ts = _later(); env.props_probe = _props()
-    monkeypatch.setattr(G, "PKG_DIR", tmp_path / "emptypkg"); (tmp_path / "emptypkg").mkdir()
+    monkeypatch.setattr(G, "PKG_DIR", _fake_pkg(tmp_path / "fakepkg"))
     c_results, c_sha = G.run_container_phase(env, tmp_path / "gate-container.json")
     crec = json.loads((tmp_path / "gate-container.json").read_text())
     assert crec["gate_container_sha"] == c_sha == G.record_sha(crec, "gate_container_sha") and crec["gate_host_sha"] == host_sha
