@@ -18,8 +18,8 @@ import pytest
 REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT))
 
-from scripts.research.arms849 import text as T  # noqa: E402
-from scripts.research.load_849_corpus import DEFAULT_CORPUS, replay  # noqa: E402
+from scripts.research.arms849 import text as T
+from scripts.research.load_849_corpus import DEFAULT_CORPUS, replay
 
 pytestmark = pytest.mark.skipif(
     not (DEFAULT_CORPUS / "entities.json").exists(),

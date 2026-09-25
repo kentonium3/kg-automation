@@ -23,8 +23,8 @@ from __future__ import annotations
 import hashlib
 import json
 import pathlib
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
-from typing import Iterable, Mapping, Sequence
 
 from scripts.research.load_849_corpus import DEFAULT_CORPUS, Loaded
 

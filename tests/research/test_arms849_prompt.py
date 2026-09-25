@@ -11,8 +11,8 @@ import pytest
 REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT))
 
-from scripts.research.arms849 import prompt as P  # noqa: E402
-from scripts.research.arms849.text import Block  # noqa: E402
+from scripts.research.arms849 import prompt as P
+from scripts.research.arms849.text import Block
 
 RUBRIC = REPO_ROOT / "docs" / "design" / "research" / "849-rubric.md"
 
@@ -34,7 +34,7 @@ def test_a_one_character_change_is_refused():
 def test_shipped_text_equals_the_rubric_fenced_text():
     """Guards the transcription itself, not just the digest."""
     rub = RUBRIC.read_text(encoding="utf-8")
-    m = re.search(r"### 3\.2 .*?```text\n(.*?)```", rub, re.S)
+    m = re.search(r"### 3\.2 .*?```text\n(.*?)```", rub, re.DOTALL)
     assert m, "rubric §3.2 fenced block not found"
     assert P.normalise(m.group(1)) == P.normalise(P.REGISTERED_TEXT)
 

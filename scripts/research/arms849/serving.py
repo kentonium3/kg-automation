@@ -32,8 +32,9 @@ import pathlib
 import urllib.error
 import urllib.parse
 import urllib.request
+from collections.abc import Iterable
 from dataclasses import asdict, dataclass, field
-from typing import Any, Iterable, Literal
+from typing import Any, Literal
 
 __all__ = [
     "Completion",
@@ -123,7 +124,7 @@ class ServingConfiguration:
     TOKENIZER = "Qwen/Qwen3-Next-80B-A3B-Instruct"
 
     @classmethod
-    def primary(cls, identity: ServingIdentity) -> "ServingConfiguration":
+    def primary(cls, identity: ServingIdentity) -> ServingConfiguration:
         return cls(
             model=cls.MODEL, gguf_sha256=identity.gguf_sha256, image_digest=identity.image_digest,
             n_ctx=PRIMARY_N_CTX, rope_scaling=None, rope_scale=None, yarn_orig_ctx=None,
@@ -135,7 +136,7 @@ class ServingConfiguration:
         )
 
     @classmethod
-    def secondary_yarn(cls, identity: ServingIdentity) -> "ServingConfiguration":
+    def secondary_yarn(cls, identity: ServingIdentity) -> ServingConfiguration:
         base = cls.primary(identity)
         return ServingConfiguration(**{
             **asdict(base),
@@ -146,7 +147,7 @@ class ServingConfiguration:
     def as_header_dict(self) -> dict[str, Any]:
         return asdict(self)
 
-    def differs_from(self, other: "ServingConfiguration") -> set[str]:
+    def differs_from(self, other: ServingConfiguration) -> set[str]:
         """Field names whose values differ — ``kind`` is a label, not a difference."""
         a, b = asdict(self), asdict(other)
         return {k for k in a if k != "kind" and a[k] != b[k]}

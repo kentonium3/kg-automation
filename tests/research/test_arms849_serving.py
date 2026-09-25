@@ -12,7 +12,7 @@ import pytest
 REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT))
 
-from scripts.research.arms849 import serving as S  # noqa: E402
+from scripts.research.arms849 import serving as S
 
 IDENT = S.ServingIdentity("gguf-sha", "sha256:img", "emb-sha", "tok-sha")
 
