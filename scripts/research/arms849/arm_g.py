@@ -18,8 +18,9 @@ D-1, D-2, D-3, D-15; rubric §2 G row with the A3 query plan):
   assembly under the 60-item cap. ``group_ids=[…]`` is always explicit (RQ-6b).
   **No BFS**: no search method expands from a hit to its neighbours.
 - **Assembly** (D-15) decides WHICH items enter, in priority order (typed pulls
-  by label order, hybrid hits, expansions per anchor), each group sorted by
-  ``(score desc, uuid asc)``, de-duplicated by uuid, cut at 60. The bytes then
+  by label order, hybrid hits, expansions per anchor), pulls and hits sorted by
+  ``(score desc, stable key asc)``, expansions by event time DESC then ref ASC,
+  de-duplicated by uuid, cut at 60. The bytes then
   follow ``FrozenCorpusText.render_block``'s layout — selected events in view
   order, then selected records in view order — so G's prompt has the same shape
   as D's and R's (rubric §2 layout protocol) and every inserted line is a frozen
@@ -57,7 +58,6 @@ from graphiti_core.search.search_config import (
     SearchConfig,
     SearchResults,
 )
-from graphiti_core.search.search_filters import SearchFilters
 from graphiti_core.tracer import NoOpTracer
 
 from scripts.research.arms849.embed import (
@@ -148,6 +148,7 @@ class Item:
 @dataclass
 class PlanRecord:
     anchors_resolved: list[str]
+    foreign_items: int
     anchor_resolution_paths: dict[str, list[str]]
     ambiguous_mentions: list[str]
     path: str
@@ -317,6 +318,7 @@ class GraphArm:
         self._uuid_by_id: dict[str, dict[str, str]] = {}          # group → entity id → uuid
         self._key_by_uuid: dict[str, dict[str, tuple[str, str]]] = {}   # group → uuid → (kind, key)
         self._indices_built = False
+        self._foreign: list[str] = []                             # result uuids not in our map (must stay empty)
 
     @property
     def llm_calls(self) -> int:
@@ -342,7 +344,7 @@ class GraphArm:
             summary = str(entity.get("description") or entity.get("name") or entity.get("topic") or eid)
             node = EntityNode(uuid=stable_uuid(group, "node", eid), name=eid, group_id=group, labels=[kind],
                               summary=summary, attributes=attrs, created_at=ask)
-            node.name_embedding = self.embedder.embed_one(f"{eid}: {summary}")
+            node.name_embedding = self.embedder.embed_one(summary)     # the id token is noise in the vector
             await node.save(self.driver)
             uuid_by_id[eid] = node.uuid
             key_by_uuid[node.uuid] = ("node", eid)
@@ -420,18 +422,35 @@ class GraphArm:
             for i, obj in enumerate(coll):
                 kk = keys.get(obj.uuid)
                 if kk is None:
-                    continue                                          # not ours: never inserted
+                    # With explicit group_ids this never happens; if it does it is a cross-group
+                    # leak (RQ-6b) or a stale map — recorded and REFUSED, never silently dropped.
+                    self._foreign.append(obj.uuid)
+                    continue
                 score = float(scores[i]) if scores and i < len(scores) else 0.0
                 out.append(Item(kind=kk[0], key=kk[1], uuid=obj.uuid, score=score, origin=origin))
         return out
 
     async def typed_pulls(self, question_text: str, group: str) -> dict[str, list[Item]]:
-        """ONE search per label (RQ-6e), group_ids explicit (RQ-6b)."""
+        """The COMPLETE set of nodes carrying each label in the group — one MATCH per label,
+        no similarity, no threshold (design-lead ruling 2026-09-25: a Principle the question
+        never names must still be pulled; that is what the constraint pull is for). Score 1.0,
+        ordered by entity id. `question_text` is accepted for the interface and unused here."""
+        del question_text
+        keys = self._key_by_uuid.get(group, {})
         out: dict[str, list[Item]] = {}
         for label in TYPED_LABELS:
-            res = await self.graphiti.search_(question_text, config=TYPED_PULL, group_ids=[group],
-                                              search_filter=SearchFilters(node_labels=[label]))
-            out[label] = [it for it in self._items(group, res, f"pull:{label}") if it.kind == "node"]
+            rows, _, _ = await self.driver.execute_query(
+                "MATCH (n:Entity {group_id: $group_id}) WHERE $label IN labels(n) "
+                "RETURN n.uuid AS uuid, n.name AS name ORDER BY n.name",
+                group_id=group, label=label)
+            items = []
+            for row in rows:
+                kk = keys.get(str(row["uuid"]))
+                if kk is None:
+                    self._foreign.append(str(row["uuid"]))
+                    continue
+                items.append(Item(kind="node", key=kk[1], uuid=str(row["uuid"]), score=1.0, origin=f"pull:{label}"))
+            out[label] = sorted(items, key=lambda i: i.key)
         return out
 
     async def hybrid_search(self, question_text: str, group: str) -> list[Item]:
@@ -445,8 +464,16 @@ class GraphArm:
             return []
         episodes = await EpisodicNode.get_by_entity_node_uuid(self.driver, uuid)
         keys = self._key_by_uuid.get(group, {})
-        return [Item(kind="episode", key=keys[ep.uuid][1], uuid=ep.uuid, score=1.0, origin=f"expand:{anchor_id}")
-                for ep in episodes if ep.uuid in keys]
+        items = []
+        for ep in episodes:
+            kk = keys.get(ep.uuid)
+            if kk is None:
+                self._foreign.append(ep.uuid)
+                continue
+            items.append((ep.valid_at, Item(kind="episode", key=kk[1], uuid=ep.uuid, score=1.0, origin=f"expand:{anchor_id}")))
+        # Anchored HISTORY: most recent first, then ref — when the cap cuts, the latest survive.
+        items.sort(key=lambda t: (-(t[0].timestamp() if t[0] else 0.0), t[1].key))
+        return [it for _, it in items]
 
     # -- assembly (D-15) -------------------------------------------------------
 
@@ -455,6 +482,7 @@ class GraphArm:
         if group not in self._key_by_uuid:
             raise RuntimeError(f"graph {group} is not built; build_graph first")
         resolution = resolve_anchors(question.text, view)
+        self._foreign = []
         steps: list[dict[str, Any]] = []
         pulls = await self.typed_pulls(question.text, group)
         for label in TYPED_LABELS:
@@ -469,11 +497,15 @@ class GraphArm:
                 steps.append({"step": f"expand:{anchor}", "count": len(exp)})
         else:
             steps.append({"step": "expand", "count": 0, "note": "search_only: zero anchors"})
+        if self._foreign:
+            raise RuntimeError(f"{len(self._foreign)} retrieval result(s) outside the group map — cross-group leak or "
+                               f"stale map; the cell is an error (RQ-6b)")
         block, chosen = assemble(self.text, view, [pulls[label] for label in TYPED_LABELS], hits, expansions)
         by_kind: dict[str, int] = {}
         for it in chosen:
             by_kind[it.kind] = by_kind.get(it.kind, 0) + 1
-        plan = PlanRecord(anchors_resolved=list(resolution.anchors), anchor_resolution_paths=dict(resolution.paths),
+        plan = PlanRecord(anchors_resolved=list(resolution.anchors), foreign_items=len(self._foreign),
+                          anchor_resolution_paths=dict(resolution.paths),
                           ambiguous_mentions=list(resolution.ambiguous), path=resolution.path, plan_steps=steps,
                           items_assembled=len(chosen), items_by_kind=by_kind, llm_calls=self.llm_calls,
                           group_id=group, assembled_context_sha256=block.sha256)
@@ -513,14 +545,19 @@ def assemble(text: FrozenCorpusText, view: Loaded, pulls: Sequence[Sequence[Item
     """D-15: select in priority order under the cap, then lay out as frozen lines.
 
     Priority: typed pulls in label order, then hybrid hits, then expansions per anchor in
-    resolution order; within each group ``(score desc, uuid asc)``; de-duplicated by uuid; cut
-    at ``cap`` items across nodes + edges + episodes. Layout: selected events in view order,
+    resolution order; pulls and hits sorted ``(score desc, STABLE KEY asc)`` — never by uuid,
+    which would tie-break differently across rebuilds; each anchor's expansions keep the
+    order the arm gave them (event time DESC, ref ASC: the most recent history survives the
+    cap); de-duplicated by uuid; cut at ``cap`` items across nodes + edges + episodes. Layout: selected events in view order,
     then selected records in view order (entities, then edges) — render_block's shape.
     """
     chosen: list[Item] = []
     seen: set[str] = set()
-    for group in [*pulls, list(hits), *expansions]:
-        for it in sorted(group, key=lambda i: (-i.score, i.uuid)):
+    groups: list[list[Item]] = [sorted(g, key=lambda i: (-i.score, i.key)) for g in pulls]
+    groups.append(sorted(hits, key=lambda i: (-i.score, i.key)))
+    groups.extend(list(g) for g in expansions)                       # already time DESC, ref ASC
+    for group in groups:
+        for it in group:
             if it.uuid in seen:
                 continue
             seen.add(it.uuid)

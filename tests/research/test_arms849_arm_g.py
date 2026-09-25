@@ -132,6 +132,17 @@ def test_description_ambiguity_is_keyed_by_the_matched_phrase():
     assert set(r.anchors) == {"COM_X", "COM_Y"} and r.ambiguous == ("the design review",)
 
 
+def test_typed_pull_is_a_complete_label_match_not_a_similarity_search():
+    src = SOURCE[SOURCE.index("async def typed_pulls"):SOURCE.index("async def hybrid_search")]
+    assert "MATCH (n:Entity" in src and "labels(n)" in src and "search_" not in src and "SearchFilters" not in src
+
+
+def test_foreign_results_are_recorded_and_refused():
+    """A retrieval result outside the group map is a cross-group leak, never a silent drop."""
+    assert "foreign_items" in [f.name for f in __import__("dataclasses").fields(A.PlanRecord)]
+    assert "self._foreign.append" in SOURCE and "outside the group map" in SOURCE
+
+
 def test_typed_labels_and_cap_are_the_ruled_values():
     assert A.TYPED_LABELS == ("Capacity", "Commitment", "Principle", "Interest") and A.CAP == 60
 
@@ -202,14 +213,23 @@ def test_assembly_priority_cap_dedup_and_frozen_layout():
     view = replay(CORPUS, datetime.fromisoformat("2026-05-01T09:00:00-04:00"), verify=False)
     refs = [str(e["ref"]) for e in view.events][:100]
     ents = [e["id"] for e in view.entities][:10]
-    mk = lambda kind, key, score, origin, u=None: A.Item(kind, key, u or f"{kind}:{key}", score, origin)
+    mk = lambda kind, key, score, origin, u=None: A.Item(kind, key, u or f"zz-{kind}:{key}", score, origin)
     pulls = [[mk("node", ents[0], 0.9, "pull:Capacity")], [mk("node", ents[1], 0.5, "pull:Commitment"), mk("node", ents[2], 0.7, "pull:Commitment")], [], []]
     hits = [mk("episode", r, 1.0 - i / 200, "search") for i, r in enumerate(refs[:70])] + [mk("node", ents[0], 0.99, "search")]  # duplicate uuid
-    expansions = [[mk("episode", refs[80], 1.0, "expand:X")]]
+    expansions = [[mk("episode", refs[85], 1.0, "expand:X"), mk("episode", refs[80], 1.0, "expand:X")]]  # caller order kept
     block, chosen = A.assemble(text, view, pulls, hits, expansions, cap=60)
     assert len(chosen) == 60 and len({c.uuid for c in chosen}) == 60
     assert [c.key for c in chosen[:3]] == [ents[0], ents[2], ents[1]]           # label order, then score desc
     assert not any(c.origin.startswith("expand") for c in chosen)             # the cap was reached before expansions
+    # ties break by the STABLE KEY, never by uuid: re-label EVERY uuid (same mapping for all groups,
+    # so de-dup still sees the duplicate) and the choice is unchanged
+    rl = lambda it: A.Item(it.kind, it.key, "R" + it.uuid[::-1], it.score, it.origin)
+    _, chosen2 = A.assemble(text, view, [[rl(i) for i in g] for g in pulls], [rl(i) for i in hits],
+                            [[rl(i) for i in g] for g in expansions], cap=60)
+    assert [c.key for c in chosen2] == [c.key for c in chosen]
+    # expansions keep the caller's order when they do enter
+    _, chosen3 = A.assemble(text, view, [[], [], [], []], [], expansions, cap=60)
+    assert [c.key for c in chosen3] == [refs[85], refs[80]]
     # layout: events in view order then records; every line is a frozen line
     lines = block.data.split(b"\n")[:-1]
     n_events = sum(1 for c in chosen if c.kind == "episode")
@@ -255,6 +275,15 @@ def test_live_build_search_assemble_and_replay_rule(live_http):
         b3, _ = await arm.plan_and_assemble(qa, view)
         assert b3.sha256 == b1.sha256
         assert p1.plan_steps[0]["step"] == "typed_pull:Capacity" and any(s["step"] == "hybrid_search" for s in p1.plan_steps)
+        # the typed pull is COMPLETE: every node of that label in the view, whatever the question says
+        by_label = {e["kind"]: 0 for e in view.entities}
+        for e in view.entities:
+            by_label[e["kind"]] += 1
+        for step in p1.plan_steps:
+            if step["step"].startswith("typed_pull:"):
+                label = step["step"].split(":", 1)[1]
+                assert step["count"] == by_label.get(label, 0), (label, step, by_label)
+        assert p1.foreign_items == 0
         assert p1.items_assembled > 0 and all(k in ("node", "edge", "episode") for k in p1.items_by_kind)
         # the replay rule made visible: DEC_F_RESTART absent for F1, present for B2
         qf1 = next(q for q in Q.QUESTIONS if q.id == "F1"); qb2 = next(q for q in Q.QUESTIONS if q.id == "B2")
