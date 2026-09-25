@@ -84,6 +84,16 @@ def _utc_now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
+_SHA256 = re.compile(r"^[0-9a-f]{64}$")
+
+
+def _require_sha256(name: str, value: Any) -> None:
+    """A gate record sha is a lowercase 64-hex string — None, a placeholder or the wrong length is
+    a missing binding wearing a value (Codex WP03 c7)."""
+    if not isinstance(value, str) or not _SHA256.match(value):
+        raise ValueError(f"{name} must be a 64-hex sha256, got {value!r}")
+
+
 def _require_measurement(name: str, value: Any) -> None:
     if type(value) not in (int, float) or not math.isfinite(value) or value < 0:
         raise ValueError(f"{name} must be a finite non-negative number, got {value!r}")
@@ -169,6 +179,9 @@ class Binding:
         ok_q, detail_q = questions_mod.verify()
         if not (ok_p and ok_q):
             raise LedgerBoundToAnotherConfig(f"registered constants do not verify: {detail_p}; {detail_q}")
+        for name, value in (("preflight_sha", preflight_sha), ("gate_host_sha", gate_host_sha),
+                            ("gate_container_sha", gate_container_sha)):
+            _require_sha256(name, value)
         return cls(
             registration_commit=str(REGISTRATION["commit"]), corpus=corpus,
             prompt_hash=prompt_mod.REGISTERED_DIGEST, question_manifest_sha=questions_mod.MANIFEST_DIGEST,
@@ -569,6 +582,11 @@ def _open_locked(path: pathlib.Path, binding: Binding, blinding_seed: int, plan:
     missing_fields = [f for f in Binding.__dataclass_fields__ if f not in rows[0]]
     if missing_fields:
         raise LedgerCorrupt(f"{path}: header lacks binding field(s) {missing_fields} — every gate sha is required")
+    for name in ("preflight_sha", "gate_host_sha", "gate_container_sha"):
+        try:
+            _require_sha256(name, rows[0].get(name))
+        except ValueError as exc:
+            raise LedgerCorrupt(f"{path}: header {exc}") from None
     header = Header.from_dict(rows[0])
     differences = {k: (getattr(header.binding, k), getattr(binding, k))
                    for k in Binding.__dataclass_fields__ if getattr(header.binding, k) != getattr(binding, k)}

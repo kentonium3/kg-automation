@@ -45,7 +45,7 @@ def score_all_g_repeat1(led):
 def binding(**over) -> L.Binding:
     cfg = S.ServingConfiguration.primary(IDENT)
     b = L.Binding.from_environment(DEFAULT_CORPUS, cfg.as_header_dict(), "trained", "c0ffee",
-                                   "export-sha", "preflight-sha", "host-sha", "container-sha",
+                                   "export-sha", "a" * 64, "b" * 64, "c" * 64,
                                    repo_root=REPO_ROOT, model_context_tokens=S.TRAINED_CONTEXT)
     if over:
         d = b.as_dict(); d.update(over); b = L.Binding(**d)
@@ -223,7 +223,7 @@ def test_second_writer_is_refused_while_the_first_holds_the_lock(tmp_path):
             from scripts.research.arms849 import serving as S
             b = L.Binding.from_environment({str(DEFAULT_CORPUS)!r}, S.ServingConfiguration.primary(
                 S.ServingIdentity("gguf", "sha256:img", "emb", "tok", "c" * 64)).as_header_dict(), "trained",
-                "c0ffee", "export-sha", "preflight-sha", "host-sha", "container-sha", repo_root={str(REPO_ROOT)!r},
+                "c0ffee", "export-sha", "a" * 64, "b" * 64, "c" * 64, repo_root={str(REPO_ROOT)!r},
                 model_context_tokens=S.TRAINED_CONTEXT)
             try:
                 L.open_ledger({str(tmp_path / 'ledger.jsonl')!r}, b, 7, 72); print("OPENED")
@@ -603,4 +603,26 @@ def test_binding_carries_the_two_gate_shas_and_refuses_on_each(tmp_path):
         pass
     for field in ("gate_host_sha", "gate_container_sha"):
         with pytest.raises(L.LedgerBoundToAnotherConfig, match=field):
-            fresh(tmp_path, **{field: "other"})
+            fresh(tmp_path, **{field: "d" * 64})
+
+
+@pytest.mark.parametrize("field", ["preflight_sha", "gate_host_sha", "gate_container_sha"])
+@pytest.mark.parametrize("bad", [None, "", "g" * 64, "a" * 63, "A" * 64, 12], ids=["none", "empty", "nonhex", "short", "upper", "int"])
+def test_gate_shas_are_validated_on_creation_and_on_resume(tmp_path, field, bad):
+    """Codex c7: a required sha that is None, a placeholder or the wrong length is refused —
+    at creation (from_environment) and on resume (a header carrying it is corrupt)."""
+    cfg = S.ServingConfiguration.primary(IDENT)
+    kw = {"preflight_sha": "a" * 64, "gate_host_sha": "b" * 64, "gate_container_sha": "c" * 64}
+    kw[field] = bad
+    with pytest.raises(ValueError, match=field):
+        L.Binding.from_environment(DEFAULT_CORPUS, cfg.as_header_dict(), "trained", "c0ffee", "export-sha",
+                                   kw["preflight_sha"], kw["gate_host_sha"], kw["gate_container_sha"],
+                                   repo_root=REPO_ROOT, model_context_tokens=S.TRAINED_CONTEXT)
+    with fresh(tmp_path):
+        pass
+    p = tmp_path / "ledger.jsonl"
+    lines = p.read_text().splitlines()
+    head = json.loads(lines[0]); head[field] = bad
+    p.write_text("\n".join([json.dumps(head), *lines[1:]]) + "\n")
+    with pytest.raises(L.LedgerCorrupt, match=field):
+        fresh(tmp_path)
