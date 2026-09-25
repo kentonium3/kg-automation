@@ -14,7 +14,14 @@ sys.path.insert(0, str(REPO_ROOT))
 
 from scripts.research.arms849 import serving as S
 
-IDENT = S.ServingIdentity("gguf-sha", "sha256:img", "emb-sha", "tok-sha")
+IDENT = S.ServingIdentity("gguf-sha", "sha256:img", "emb-sha", "tok-sha", "a" * 64)
+
+
+class _FakeTok:
+    """A stand-in tokenizer with a fixed template sha, for the serialisation shape test."""
+    def __init__(self, sha="a" * 64): self.sha = sha
+    def chat_template_sha256(self): return self.sha
+    def apply_chat_template(self, user_turn): return f"<|im_start|>user\n{user_turn}<|im_end|>\n<|im_start|>assistant\n"
 
 
 def test_primary_and_secondary_differ_in_exactly_four_fields():
@@ -36,13 +43,15 @@ def test_sampling_seed_and_output_limit_are_the_ruled_values():
     p = S.ServingConfiguration.primary(IDENT)
     assert p.sampling == {"temperature": 0.7, "top_p": 0.8, "top_k": 20, "repeat_penalty": 1.05, "min_p": 0}
     assert p.max_tokens == 2048 and p.seed_for(1) == 1001 and p.seed_for(3) == 1003
-    assert p.chat_template_applied is False
+    assert p.chat_template_applied is True and p.chat_template_sha256 == "a" * 64
 
 
 def test_serialize_carries_the_exact_prompt_and_sampling():
     p = S.ServingConfiguration.primary(IDENT)
-    body = S.serialize(b"hello {x}", p, seed=1002)
-    assert body["prompt"] == "hello {x}" and body["seed"] == 1002 and body["n_predict"] == 2048
+    body = S.serialize(b"hello {x}", p, seed=1002, tokenizer=_FakeTok())
+    # The prompt is the templated single user turn carrying the registered text verbatim (939d9b29).
+    assert body["prompt"] == "<|im_start|>user\nhello {x}<|im_end|>\n<|im_start|>assistant\n"
+    assert body["seed"] == 1002 and body["n_predict"] == 2048
     assert body["cache_prompt"] is True and body["stream"] is False and body["top_k"] == 20
 
 
@@ -95,8 +104,9 @@ def test_b2_full_block_exceeds_the_trained_context():
     tok = S.Tokenizer()
     fct = FrozenCorpusText(DEFAULT_CORPUS)
     view = replay(DEFAULT_CORPUS, datetime.fromisoformat("2026-10-16T09:00:00-04:00"), verify=False)
+    ident = S.ServingIdentity("gguf-sha", "sha256:img", "emb-sha", "tok-sha", tok.chat_template_sha256())
     body = S.serialize(Prompt().render(fct.render_full_view(view), "Why did I miss sub-10?"),
-                       S.ServingConfiguration.primary(IDENT), 1001)
+                       S.ServingConfiguration.primary(ident), 1001, tokenizer=tok)
     assert S.count_tokens(body, tok) > 262_144
 
 
@@ -110,3 +120,26 @@ def test_warm_request_regression_from_codex_cycle_2():
     assert c.cache_read_tokens == 236 and c.cache_state == "warm"
     assert abs(c.cache_fraction - 236 / 237) < 1e-12
     assert c.uncached_tokens >= 0 and 0.0 <= c.cache_fraction <= 1.0
+
+
+def test_serialize_applies_the_template_and_binds_its_sha():
+    """939d9b29: the prompt is the templated user turn; a template mismatch is refused."""
+    p = S.ServingConfiguration.primary(IDENT)
+    body = S.serialize(b"REGISTERED", p, seed=1001, tokenizer=_FakeTok())
+    assert body["prompt"].startswith("<|im_start|>user\nREGISTERED") and body["prompt"].endswith("<|im_start|>assistant\n")
+    with pytest.raises(ValueError, match="chat template"):
+        S.serialize(b"REGISTERED", p, seed=1001, tokenizer=_FakeTok("b" * 64))
+    off = S.ServingConfiguration(**{**p.as_header_dict(), "chat_template_applied": False})
+    with pytest.raises(ValueError, match="939d9b29"):
+        S.serialize(b"REGISTERED", off, seed=1001, tokenizer=_FakeTok())
+
+
+@needs_tokenizer
+def test_real_tokenizer_template_is_qwen_chat_and_counted():
+    tok = S.Tokenizer()
+    ident = S.ServingIdentity("gguf-sha", "sha256:img", "emb-sha", "tok-sha", tok.chat_template_sha256())
+    p = S.ServingConfiguration.primary(ident)
+    body = S.serialize(b"hello world", p, seed=1001, tokenizer=tok)
+    assert body["prompt"].startswith("<|im_start|>user\nhello world<|im_end|>") and body["prompt"].endswith("<|im_start|>assistant\n")
+    assert S.count_tokens(body, tok) > tok.count("hello world")   # the template overhead is counted
+    assert len(tok.chat_template_sha256()) == 64

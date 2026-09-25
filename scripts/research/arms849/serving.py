@@ -18,13 +18,13 @@ On the chat template: the request goes to llama.cpp's native ``/completion`` wit
 the registered prompt as the raw ``prompt`` string — exactly what gate (b)
 measured. That endpoint applies no chat template, so the "exact serialised
 request" rubric §3.2 speaks of IS the ``prompt`` field, and that is what
-:func:`count_tokens` counts. The configuration records ``chat_template_applied:
-False`` so nobody later routes this through ``/v1/chat/completions`` and
+:func:`count_tokens` counts. The configuration records ``chat_template_applied: True`` + ``chat_template_sha256`` (rubric 939d9b29) so nobody later routes this through ``/v1/chat/completions`` and
 silently changes every token count.
 """
 
 from __future__ import annotations
 
+import hashlib
 import importlib
 import importlib.util
 import json
@@ -88,6 +88,7 @@ class ServingIdentity:
     image_digest: str
     embedder_model_sha256: str
     tokenizer_files_sha256: str
+    chat_template_sha256: str      # sha256 of the tokenizer's chat_template string (rubric 939d9b29)
 
 
 @dataclass(frozen=True)
@@ -116,7 +117,8 @@ class ServingConfiguration:
     reranker: str
     tokenizer: str
     tokenizer_files_sha256: str
-    chat_template_applied: bool = False
+    chat_template_applied: bool
+    chat_template_sha256: str
     kind: Literal["primary", "secondary"] = "primary"
 
     MODEL = "Qwen3-Next-80B-A3B-Instruct UD-Q4_K_XL"
@@ -133,7 +135,7 @@ class ServingConfiguration:
             max_tokens=MAX_TOKENS, embedder=cls.EMBEDDER,
             embedder_model_sha256=identity.embedder_model_sha256, reranker=cls.RERANKER,
             tokenizer=cls.TOKENIZER, tokenizer_files_sha256=identity.tokenizer_files_sha256,
-            chat_template_applied=False, kind="primary",
+            chat_template_applied=True, chat_template_sha256=identity.chat_template_sha256, kind="primary",
         )
 
     @classmethod
@@ -199,6 +201,25 @@ class Tokenizer:
             text = text.decode("utf-8")
         return len(self._tok(text, add_special_tokens=False)["input_ids"])
 
+    def chat_template(self) -> str:
+        """The template string the cached tokenizer carries (never fetched, never edited)."""
+        template = getattr(self._tok, "chat_template", None)
+        if not isinstance(template, str) or not template:
+            raise RuntimeError(f"tokenizer at {self.path} carries no chat_template string")
+        return template
+
+    def chat_template_sha256(self) -> str:
+        return hashlib.sha256(self.chat_template().encode("utf-8")).hexdigest()
+
+    def apply_chat_template(self, user_turn: str) -> str:
+        """Rubric §3.2 @939d9b29: the registered text is the SINGLE USER TURN; the template is
+        applied client-side and the result is the raw ``/completion`` prompt. No system turn."""
+        out = self._tok.apply_chat_template([{"role": "user", "content": user_turn}],
+                                            add_generation_prompt=True, tokenize=False)
+        if not isinstance(out, str):
+            raise RuntimeError("apply_chat_template did not return a string")
+        return out
+
     def encode(self, text: str) -> list[int]:
         return list(self._tok(text, add_special_tokens=False)["input_ids"])
 
@@ -231,10 +252,26 @@ def _assert_safe(base_url: str) -> None:
 
 
 
-def serialize(request_text: bytes, config: ServingConfiguration, seed: int) -> dict[str, Any]:
-    """The exact ``/completion`` body. The ``prompt`` field is what is counted."""
+def serialize(request_text: bytes, config: ServingConfiguration, seed: int,
+              tokenizer: Tokenizer) -> dict[str, Any]:
+    """The exact ``/completion`` body. The ``prompt`` field is what is counted.
+
+    Rubric §3.2 @939d9b29 supersedes WP01 T004 step 4 ("sent raw"): the rendered
+    registered text is wrapped as the single user turn by the cached tokenizer's
+    chat template (``add_generation_prompt=True``), and THAT string is the
+    ``prompt`` — still ``/completion``, still a raw string, never
+    ``/v1/chat/completions`` (the D-13 timings mapping is unchanged). The template
+    is a serving fact: its sha256 is bound in the configuration and must equal the
+    tokenizer's; ``prompt.verify`` stays over the registered text.
+    """
+    if not config.chat_template_applied:
+        raise ValueError("the registered protocol applies the chat template (939d9b29); "
+                         "a configuration without it is a different serving configuration")
+    actual = tokenizer.chat_template_sha256()
+    if actual != config.chat_template_sha256:
+        raise ValueError(f"tokenizer chat template {actual[:12]} != configuration {config.chat_template_sha256[:12]}")
     return {
-        "prompt": request_text.decode("utf-8"),
+        "prompt": tokenizer.apply_chat_template(request_text.decode("utf-8")),
         "n_predict": config.max_tokens,
         "seed": seed,
         "cache_prompt": config.cache_prompt,
