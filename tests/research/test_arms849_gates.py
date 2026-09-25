@@ -444,6 +444,14 @@ _ORDER_SENSITIVE = {
     "subset": 'X = {"or", "acle"} < {"or"}',
     "ifexp-test": 'X = "x" if {"or", "acle"} else "y"',
     "starred": 'X = sorted(*[{"or", "acle"}])',
+    "sorted-nested": 'X = "".join(sorted([{"or", "acle"}])[0])',      # Codex c11: sorted() hands the set back unsorted
+    "min-nested": 'X = min([{"or", "acle"}])',
+    "max-nested": 'X = max([{"or", "acle"}])',
+    "min-default": 'X = min([], default={"or", "acle"})',              # Codex c11: a tainted default=
+    "sorted-set-of-frozensets": 'X = sorted({frozenset({"or", "acle"})})[0]',
+    "sorted-tuple-in-list": 'X = sorted([({"or", "acle"},)])',
+    "max-nested-boolop": 'X = max([{"or", "acle"}] or "x")',
+    "sorted-frozenset-nested": 'X = sorted(frozenset([frozenset({"or", "acle"})]))',
 }
 
 
@@ -467,7 +475,9 @@ def test_order_insensitive_consumers_of_an_unordered_container_stay_pure_and_det
     monkeypatch.setenv("PYTHONHASHSEED", seed)
     # the closed list of order-insensitive consumers: pure, and the gate passes
     for c in ['X = len({"or", "acle"})', 'X = "or" in {"or", "acle"}', 'X = {"or", "acle"} == {"acle", "or"}',
-              'X = frozenset({"or", "acle"})', 'X = any({"or", "acle"})', 'X = sorted({"or", "acle"})[0] + "x"']:
+              'X = frozenset({"or", "acle"})', 'X = any({"or", "acle"})', 'X = sorted({"or", "acle"})[0] + "x"',
+              'X = max({"or", "acle"}, default="x")',              # Codex c11: an UNTAINTED default over a set of scalars
+              'X = len([{"or", "acle"}])', 'X = any([{"or", "acle"}])', 'X = [{"or", "acle"}] == [{"acle", "or"}]']:
         assert litscan.string_constants(c + "\n") == litscan.string_constants(c + "\n"), c
         pkg = _fake_pkg(tmp_path / f"pkg_{abs(hash(c))}"); (pkg / "ok.py").write_text(c + "\n")
         monkeypatch.setattr(G, "PKG_DIR", pkg)

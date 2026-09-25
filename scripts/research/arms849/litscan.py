@@ -25,7 +25,10 @@ iteration through map/zip/enumerate/reversed, subscripting, %-formatting, str()/
 any method of a set, sorted/min/max with a `key` — is REFUSED: a gate whose answer can
 differ between runs is not a gate. Order-INSENSITIVE consumers (closed list: sorted,
 len, min, max, any, all, set/frozenset re-wrapping, `in`/`not in`, `==`/`!=`) are
-allowed; set members are extracted in sorted order so every scan is reproducible.
+allowed; set members are extracted in sorted order so every scan is reproducible. Taint
+is two-level (Codex WP04 c11): sorted/min/max clear it only over a set of SCALARS; a set
+nested inside a list/tuple/dict or a set of containers, or a tainted key=/default=,
+REFUSES — `sorted([{"or", "acle"}])[0]` would hand the set back unsorted.
 
 Shadowing: a module that rebinds any allowlisted builtin name at any scope
 (assignment target, def/class name, import alias, global/nonlocal, comprehension,
@@ -147,52 +150,73 @@ def _refuse_order(node: ast.AST, what: str) -> None:
                       f"the result depends on the hash seed")
 
 
-def _unordered(node: ast.AST) -> bool:
-    """For a PURE subtree: True when its value is or contains an unordered container.
-    Raises ScanRefused when such a value is consumed by anything but a closed list of
-    order-insensitive consumers (Codex WP04 c10: `"".join({"or", "acle"})` flipped with
-    PYTHONHASHSEED)."""
+_TAINT_NONE, _TAINT_TOP, _TAINT_NESTED = 0, 1, 2
+_SORTING_CONSUMERS: frozenset[str] = frozenset({"sorted", "min", "max"})
+
+
+def _unordered(node: ast.AST) -> int:
+    """For a PURE subtree: a two-level taint (Codex WP04 c11). _TAINT_TOP — the node's value IS
+    a set/frozenset (a Set literal, set()/frozenset(), or a re-wrap); _TAINT_NESTED — an
+    unordered container sits somewhere INSIDE the value (in a list/tuple/dict/set, or reachable
+    through a materialised iterator). Raises ScanRefused when a tainted value is consumed by
+    anything but a closed list of order-insensitive consumers (Codex WP04 c10: `"".join({"or",
+    "acle"})` flipped with PYTHONHASHSEED). sorted/min/max clear taint ONLY over a top-tainted
+    positional with NO nested taint and untainted kwargs — a set of scalars sorts the same
+    under every seed; a set OF containers, or a list holding a set, does not."""
     kind = type(node)
     if kind is ast.Set:
-        for elt in node.elts:                                  # type: ignore[attr-defined]
-            _unordered(elt)
-        return True
+        inner = _TAINT_NESTED if any(_unordered(elt) for elt in node.elts) else _TAINT_NONE   # type: ignore[attr-defined]
+        return _TAINT_TOP | inner
     if kind is ast.Call:
         call: ast.Call = node                                  # type: ignore[assignment]
-        arg_taint = [_unordered(a) for a in call.args] + [_unordered(k.value) for k in call.keywords]
+        pos = [_unordered(a) for a in call.args]
+        kw = {k.arg: _unordered(k.value) for k in call.keywords}
+        any_taint = any(pos) or any(kw.values())
         if isinstance(call.func, ast.Name):
             name = call.func.id
-            if name in _UNORDERED_MAKERS:
-                return True
-            if name in _ORDER_INSENSITIVE_CONSUMERS:
-                if any(arg_taint) and any(k.arg == "key" for k in call.keywords):
+            if name in _UNORDERED_MAKERS:                      # a re-wrap stays top-tainted; nesting survives it
+                return _TAINT_TOP | (_TAINT_NESTED if any(t & _TAINT_NESTED or t for t in kw.values()) or
+                                     any(t & _TAINT_NESTED for t in pos) else _TAINT_NONE)
+            if name in _SORTING_CONSUMERS:
+                if any(kw.values()):
+                    _refuse_order(node, f"{name}() with a tainted keyword (key/default holding an unordered container)")
+                if any(t & _TAINT_NESTED for t in pos):
+                    _refuse_order(node, f"{name}() over a value with an unordered container NESTED inside it")
+                if any(pos) and "key" in kw:
                     _refuse_order(node, f"{name}() with a key: ties fall in hash order")
-                return False
-            if any(arg_taint):
+                return _TAINT_NONE                             # a sorted/min/max of scalars is deterministic
+            if name in _ORDER_INSENSITIVE_CONSUMERS:           # len / any / all: a non-container result
+                return _TAINT_NONE
+            if any_taint:
                 _refuse_order(node, f"{name}() over an unordered argument")
-            return False
-        if _unordered(call.func.value) or any(arg_taint):     # type: ignore[attr-defined]
+            return _TAINT_NONE
+        if _unordered(call.func.value) or any_taint:          # type: ignore[attr-defined]
             _refuse_order(node, "a method over an unordered receiver or argument")
-        return False
+        return _TAINT_NONE
     if kind is ast.Compare:
         cmp: ast.Compare = node                                # type: ignore[assignment]
         taints = [_unordered(cmp.left)] + [_unordered(c) for c in cmp.comparators]
         if any(taints) and not all(isinstance(op, _ORDER_INSENSITIVE_OPS) for op in cmp.ops):
             _refuse_order(node, "an ordering comparison")
-        return False
-    if kind in (ast.Tuple, ast.List, ast.Dict, ast.BoolOp):
-        return any(_unordered(child) for child in ast.iter_child_nodes(node) if isinstance(child, ast.expr))
+        return _TAINT_NONE
+    if kind in (ast.Tuple, ast.List, ast.Dict):                # the container HOLDS the set: nested
+        return _TAINT_NESTED if any(_unordered(c) for c in ast.iter_child_nodes(node) if isinstance(c, ast.expr)) else _TAINT_NONE
+    if kind is ast.BoolOp:                                     # the value is one of the operands
+        taint = _TAINT_NONE
+        for c in node.values:                                  # type: ignore[attr-defined]
+            taint |= _unordered(c)
+        return taint
     if kind is ast.IfExp:
         ifexp: ast.IfExp = node                                # type: ignore[assignment]
         if _unordered(ifexp.test):
             _refuse_order(node, "a conditional on an unordered container")
-        return _unordered(ifexp.body) or _unordered(ifexp.orelse)
+        return _unordered(ifexp.body) | _unordered(ifexp.orelse)
     if kind is ast.Attribute:
         return _unordered(node.value)                          # type: ignore[attr-defined]
     children = [c for c in ast.iter_child_nodes(node) if isinstance(c, ast.expr)]
     if any(_unordered(c) for c in children):                   # BinOp, UnaryOp, Subscript, Slice, Starred, f-strings
         _refuse_order(node, f"{kind.__name__} over an unordered container")
-    return False
+    return _TAINT_NONE
 
 
 def _strings_from(value: object, out: list[str]) -> None:
