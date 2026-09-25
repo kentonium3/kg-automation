@@ -21,7 +21,7 @@ corpus, one prompt, one serving configuration.
 | `run_env_commit` | str | harness | commit the run environment was exported from |
 | `run_env_manifest_sha` | sha256 | harness | sha over the **contents** of every exported file, in path order (D-16) |
 | `code_hashes` | {path: sha256} | harness | every file under `scripts/research/arms849/` + harness + loader; compared on resume (D-16) |
-| `question_manifest_sha` | sha256 | `arms849.questions` | must equal the A4 constant `4864c31c…7f97dfe` (D-14) |
+| `question_manifest_sha` | sha256 | `arms849.questions` | must equal the A4 constant `fe17beef…a820c462` (D-14) |
 | `preflight_sha` | sha256 | preflight | digest of `preflight.json` (gate results from the full checkout, IC-07) |
 | `blinding_seed` | int | harness | seed for per-cell blinded ids |
 | `recovery_log` | [str] | reader | e.g. `recovered_torn_tail@<ts>` (D-12) |

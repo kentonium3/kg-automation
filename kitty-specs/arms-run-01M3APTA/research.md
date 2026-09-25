@@ -211,7 +211,7 @@ checkpoint (D-7..D-9). No `[NEEDS CLARIFICATION]` markers remain.
   trailing newline) = `0aa7ee77560b1f5cbbb04a6c3dfa90749dfd79305b4207134c62d9fdd733af45`,
   registered in §3.2 by the design lead; the gate compares to that **constant**. Question texts
   live in `scripts/research/arms849/questions.py` (id, `ask_time`, text) and must digest to the
-  §3 constant `4864c31ccb1cc372229bcd808a4136a493d91b6c842c3ac018defa3537f97dfe`; neither digest
+  §3 constant `fe17beef263777261e5d623ed8362ebaaada60ffbb0fd20b10b1f4d7a820c462`; neither digest
   is ever computed-then-stored.
 
 ## D-15 — Deterministic G assembly (Codex C-5)
