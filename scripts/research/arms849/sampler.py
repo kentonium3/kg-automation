@@ -55,6 +55,7 @@ class _Sampler:
         self._thread: threading.Thread | None = None
         self.sample = Sample(peak=None, reason="not started")
         self._valid = True
+        self._closed = False
 
     def read_once(self) -> float:  # pragma: no cover - overridden
         raise NotImplementedError
@@ -63,11 +64,15 @@ class _Sampler:
         try:
             value = self.read_once()
         except Exception as exc:  # noqa: BLE001 — never into the arm; the window is invalid from here
+            if self._closed:
+                return                      # a late failure after exit: the window was already invalidated
             self.sample.failures += 1
             self._valid = False
             self.sample.reason = f"{type(exc).__name__}: {exc}"[:200]
             self.sample.peak = None
             return
+        if self._closed:
+            return                          # a late success after exit must not mutate the window
         self.sample.readings += 1
         self.sample.samples.append(value)
         if self._valid:
@@ -95,6 +100,7 @@ class _Sampler:
     def __enter__(self):
         self.sample = Sample(peak=None, reason="no reading yet")
         self._valid = True
+        self._closed = False
         self._stop.clear()
         self._take()                      # one synchronous reading first: a failing source is known immediately
         self._thread = threading.Thread(target=self._loop, name=type(self).__name__, daemon=True)
@@ -105,6 +111,13 @@ class _Sampler:
         self._stop.set()
         if self._thread is not None:
             self._thread.join(timeout=self.interval_s * 3)
+            if self._thread.is_alive():
+                # A read is still outstanding: the window cannot be called complete. Invalidate
+                # it now; the late result is discarded (self._closed) when it arrives.
+                self._valid = False
+                self.sample.peak = None
+                self.sample.reason = "a reading was still outstanding at exit; window incomplete"
+        self._closed = True
 
 
 class GttSampler(_Sampler):

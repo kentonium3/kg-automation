@@ -124,9 +124,17 @@ def preflight_present_and_matching(env: GateEnv) -> tuple[bool, str]:
     except PreflightRefused as exc:
         return False, str(exc)
     problems = []
-    for g in rec.get("gates", []):
-        if not g.get("passed"):
-            problems.append(f"preflight gate {g.get('name')} did not pass")
+    from scripts.research.arms849.preflight import checkers
+
+    expected = list(checkers())
+    seen = {str(g.get("name")): g for g in rec.get("gates", [])}
+    if sorted(seen) != sorted(expected) or len(rec.get("gates", [])) != len(expected):
+        problems.append(f"preflight gates are {sorted(seen)}; exactly {expected} required (an empty or partial "
+                        f"list is not evidence)")
+    for name in expected:
+        g = seen.get(name) or {}
+        if g.get("passed") is not True or g.get("exit_code") != 0:
+            problems.append(f"preflight gate {name} did not pass (passed={g.get('passed')!r}, exit={g.get('exit_code')!r})")
     registered: dict[str, str] = dict(REGISTRATION["files"])  # type: ignore[arg-type]
     for name, expected in registered.items():
         here = fingerprint(env.corpus_dir / name) if (env.corpus_dir / name).exists() else "absent"
@@ -168,10 +176,10 @@ def excluded_material_absent(env: GateEnv) -> tuple[bool, str]:
     if not env.forbidden_words:
         return False, "no forbidden words supplied — the scan would pass vacuously"
     try:
-        hits = litscan.find_words(sorted(PKG_DIR.glob("*.py")), env.forbidden_words)
+        hits = litscan.find_words(sorted(PKG_DIR.rglob("*.py")), env.forbidden_words)   # recursive: subpackages too
     except litscan.ScanBudgetExceeded as exc:
         return False, f"static scan failed closed: {exc}"
-    return (not hits), ("; ".join(hits) or f"{len(list(PKG_DIR.glob('*.py')))} modules scanned, no hit")
+    return (not hits), ("; ".join(hits) or f"{len(list(PKG_DIR.rglob('*.py')))} modules scanned, no hit")
 
 
 def boundary(env: GateEnv) -> tuple[bool, str]:

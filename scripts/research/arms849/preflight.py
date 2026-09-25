@@ -38,15 +38,19 @@ from scripts.research.arms849 import questions as questions_mod
 from scripts.research.arms849.text import FrozenCorpusText
 from scripts.research.load_849_corpus import REGISTRATION, fingerprint
 
-__all__ = ["CHECKERS", "EXCLUDES_FILE", "Preflight", "PreflightRefused", "preflight_sha", "reference_dir", "reference_prefix", "run_preflight"]
+__all__ = ["CHECKER_PREFIX", "EXCLUDES_FILE", "Preflight", "PreflightRefused", "checkers", "preflight_sha", "reference_dir", "reference_prefix", "run_preflight"]
 
 #: The four reference-dependent checkers, run in-process (an import failure is a loud failure).
-CHECKERS = (
-    "scripts.research.check_849_seed",
-    "scripts.research.check_849_reference",
-    "scripts.research.check_849_freeze",
-    "scripts.research.check_849_loader",
-)
+#: The fourth is named after the material it checks, so its module name — like the gate's name
+#: and the reference directory — comes from the exclusion data file, never from this module.
+CHECKER_PREFIX = "scripts.research.check_849_"
+
+
+def checkers() -> tuple[str, ...]:
+    ref = reference_prefix().rstrip("/").rsplit("/", 1)[-1]
+    return (CHECKER_PREFIX + "seed", CHECKER_PREFIX + ref, CHECKER_PREFIX + "freeze", CHECKER_PREFIX + "loader")
+
+
 #: The hidden reference directory is NAMED NOWHERE in this package: it is the excluded
 #: prefix (compose/export-excludes.txt, the same data the export and the self-test use)
 #: under which the eight per-question YAMLs live. Read at call time, never spelled.
@@ -154,7 +158,7 @@ def run_preflight(repo_root: pathlib.Path, corpus_dir: pathlib.Path, export_mani
     t0 = time.monotonic()
     repo_root = pathlib.Path(repo_root).resolve()
     assert_reference_present(repo_root)
-    gates = [_run_checker(name) for name in CHECKERS]
+    gates = [_run_checker(name) for name in checkers()]
     failed = [g for g in gates if not g.passed]
     if failed:
         detail = "\n".join(f"  {g.name}: exit {g.exit_code}\n    {g.tail}" for g in failed)

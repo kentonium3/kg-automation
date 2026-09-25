@@ -69,7 +69,7 @@ def test_preflight_writes_a_signed_record_binding_everything(tmp_path, monkeypat
     out = tmp_path / "preflight.json"
     rec = P.run_preflight(REPO_ROOT, CORPUS, manifest, out, chat_template_sha256="e" * 64)
     payload = P.load_preflight(out)                       # verifies its own sha
-    assert [g["name"] for g in payload["gates"]] == list(P.CHECKERS) and all(g["passed"] for g in payload["gates"])
+    assert [g["name"] for g in payload["gates"]] == list(P.checkers()) and all(g["passed"] for g in payload["gates"])
     assert set(payload["corpus"]) == set(REGISTRATION["files"])
     assert payload["prompt_hash"] == prompt_mod.REGISTERED_DIGEST
     assert payload["question_manifest_sha"] == questions_mod.MANIFEST_DIGEST
@@ -117,11 +117,31 @@ def test_tampered_preflight_record_is_refused(tmp_path):
         P.load_preflight(p)
 
 
-@needs_corpus
-def test_real_checkers_run_in_process_and_refuse_when_the_reference_dir_is_renamed(tmp_path):
-    """Reviewer guidance: run the preflight with the reference directory absent and confirm refusal."""
-    outcome = P._run_checker("scripts.research.check_849_seed")
-    assert outcome.name.endswith("check_849_seed") and outcome.exit_code in (0, 1)
+def test_all_four_real_checkers_import_and_expose_main():
+    """Codex c2 BLOCKER: the fourth checker's module name is derived from the data file; every
+    name must resolve to a real module with main()."""
+    import importlib
+    names = P.checkers()
+    assert len(names) == 4 and names[0].endswith("check_849_seed") and names[2].endswith("check_849_freeze")
+    for name in names:
+        mod = importlib.import_module(name)
+        assert callable(getattr(mod, "main", None)), name
+    assert FORBIDDEN[0] in names[1]                        # the data-derived one
+
+
+def test_preflight_record_with_an_empty_or_partial_gate_list_is_refused(tmp_path, monkeypatch):
+    """Codex c2 BLOCKER: a re-signed record with gates=[] must not pass."""
+    monkeypatch.setattr(P, "_run_checker", _fake_checker(True))
+    env = _env(tmp_path, run_root=_export_like(tmp_path / "export"))
+    env.export_manifest_path = env.run_root / ".export-manifest.json"
+    P.run_preflight(REPO_ROOT, CORPUS, env.export_manifest_path, env.preflight_path)
+    payload = json.loads(env.preflight_path.read_text())
+    for gates in ([], payload["gates"][:3], [{**payload["gates"][0], "exit_code": 1}] + payload["gates"][1:],
+                  [{**g, "passed": "yes"} for g in payload["gates"]]):
+        bad = {**payload, "gates": gates}; bad["preflight_sha"] = P.preflight_sha(bad)
+        env.preflight_path.write_text(json.dumps(bad))
+        ok, detail = G.preflight_present_and_matching(env)
+        assert not ok and ("required" in detail or "did not pass" in detail), detail
 
 
 # ---------------------------------------------------------------------------
@@ -198,6 +218,11 @@ def test_static_scan_gate_fails_on_a_package_file_naming_the_material(tmp_path, 
     (pkg / "bad.py").unlink()
     (pkg / "worse.py").write_text('X = f"{111:c}racle" * (1 ** 65)\n')
     assert not G.excluded_material_absent(env)[0]
+    (pkg / "worse.py").unlink()
+    nested = pkg / "sub" / "deep"; nested.mkdir(parents=True)
+    (nested / "hidden.py").write_text('X = "or" "acle"\n')          # Codex c2: subpackages are scanned too
+    ok, detail = G.excluded_material_absent(env)
+    assert not ok and "hidden.py" in detail
 
 
 def test_static_scan_gate_fails_closed_on_a_budget_violation(tmp_path, monkeypatch):
@@ -331,6 +356,21 @@ def test_sampler_period_is_the_interval_not_read_time_plus_interval(tmp_path, mo
         time.sleep(2.6)
     assert s.sample.readings >= 4, s.sample                  # ~5 in 2.6 s at 0.5 s; "0.4 + 0.5" would give ≤ 3
     assert s.sample.missed_intervals == 0
+
+
+def test_an_outstanding_read_at_exit_invalidates_the_window(tmp_path):
+    """Codex c2: exit must not persist a numeric peak while a read is still running."""
+    class Hanging(SM.GttSampler):
+        def read_once(self):
+            if self.sample.readings >= 1:
+                time.sleep(6)                                # longer than the exit join
+            return 5.0
+    s = Hanging(tmp_path / "unused"); s.interval_s = 0.2
+    with s:
+        time.sleep(0.5)
+    assert s.peak_gib is None and "outstanding" in (s.sample.reason or "")
+    time.sleep(6.5)                                          # the late read completes after exit…
+    assert s.peak_gib is None                                # …and does not revive the window
 
 
 def test_samplers_never_raise_into_the_arm(tmp_path, monkeypatch):
