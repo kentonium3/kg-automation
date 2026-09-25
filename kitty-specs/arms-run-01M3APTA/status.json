@@ -1,7 +1,7 @@
 {
-  "event_count": 168,
-  "last_event_id": "01M3BB9FGXQSFHD0W3GXCJN62Y",
-  "materialized_at": "2026-09-25T03:56:04.509431+00:00",
+  "event_count": 170,
+  "last_event_id": "01M3BB9RY540SA061EQ0S17G62",
+  "materialized_at": "2026-09-25T03:56:14.149280+00:00",
   "mission_number": "",
   "mission_slug": "arms-run-01M3APTA",
   "mission_type": "software-dev",
@@ -12,9 +12,9 @@
     "claimed": 0,
     "done": 0,
     "for_review": 2,
-    "in_progress": 0,
+    "in_progress": 1,
     "in_review": 0,
-    "planned": 5
+    "planned": 4
   },
   "work_packages": {
     "WP01": {
@@ -170,13 +170,13 @@
     },
     "WP05": {
       "actor": "claude",
-      "agent": "claude",
+      "agent": null,
       "agent_profile": "__resolved_profile_absent__",
       "agent_profile_version": "__resolved_profile_version_absent__",
       "force_count": 2,
-      "lane": "planned",
-      "last_event_id": "01M3BB9FGXQSFHD0W3GXCJN62Y",
-      "last_transition_at": "2026-09-25T03:56:04.509431+00:00",
+      "lane": "in_progress",
+      "last_event_id": "01M3BB9RY540SA061EQ0S17G62",
+      "last_transition_at": "2026-09-25T03:56:14.149280+00:00",
       "model": "__resolved_model_absent__",
       "notes": [
         "WP05 cycle 1: arm G; 19 static tests + live build/assemble/replay-rule green on office4; full suite green",
@@ -190,15 +190,15 @@
         "reviewer": "claude",
         "verdict": "changes_requested"
       },
-      "role": "reviewer",
-      "shell_pid": 1927380,
-      "shell_pid_created_at": "1790308550.36",
+      "role": "implementer",
+      "shell_pid": null,
+      "shell_pid_created_at": null,
       "subtasks": {
-        "T021": "done",
-        "T022": "done",
-        "T023": "done",
-        "T024": "done",
-        "T025": "done"
+        "T021": "planned",
+        "T022": "planned",
+        "T023": "planned",
+        "T024": "planned",
+        "T025": "planned"
       }
     },
     "WP06": {
