@@ -32,15 +32,18 @@ FORBIDDEN = ("or" + "acle", "se" + "ed/", "trace" + "ability")
 
 
 def _export_like(dest: pathlib.Path) -> pathlib.Path:
-    """An export-shaped run root: the bound code files in their layout, no excluded material."""
+    """An export-shaped run root: the bound code files in their layout, no excluded material,
+    with a manifest whose content_sha is the REAL hash of those bytes."""
     import shutil
 
     from scripts.research.arms849.ledger import BOUND_CODE_GLOBS
+    from scripts.research.arms849.substrate import content_manifest_sha
     for pattern in BOUND_CODE_GLOBS:
         for src in REPO_ROOT.glob(pattern):
             target = dest / src.relative_to(REPO_ROOT)
             target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(src, target)
+    (dest / ".export-manifest.json").write_text(json.dumps({"source_commit": "abc", "content_sha": content_manifest_sha(dest)}))
     return dest
 
 
@@ -84,14 +87,27 @@ def test_preflight_refuses_when_a_checker_fails_and_writes_nothing(tmp_path, mon
     assert not (tmp_path / "preflight.json").exists()
 
 
-def test_vacuous_pass_guard_refuses_without_the_hidden_reference_dir(tmp_path, monkeypatch):
-    """T016's whole point: the checkers pass for the wrong reason when the reference is absent."""
-    monkeypatch.setattr(P, "reference_dir", lambda root: None)
+@pytest.mark.parametrize("shape", ["absent", "empty", "incomplete"])
+def test_vacuous_pass_guard_refuses_absent_empty_or_incomplete_reference_dir(tmp_path, monkeypatch, shape):
+    """T016's whole point: the checkers pass for the wrong reason when the reference is absent —
+    exercised on a REAL directory shape under a temp root, with the data file re-pointed."""
+    root = tmp_path / "root"; ref = root / "docs" / "ref"
+    if shape != "absent":
+        ref.mkdir(parents=True)
+    if shape == "incomplete":
+        for f in P.REFERENCE_FILES[:-1]:
+            (ref / f).write_text("x: 1\n")
+    data = tmp_path / "export-excludes.txt"; data.write_text("docs/ref/\nkitty-specs/\n")
+    monkeypatch.setattr(P, "EXCLUDES_FILE", data)
     calls = []
     monkeypatch.setattr(P, "_run_checker", lambda name: calls.append(name) or _fake_checker(True)(name))
     with pytest.raises(P.PreflightRefused, match="vacuously"):
-        P.run_preflight(REPO_ROOT, CORPUS, tmp_path / "m.json", tmp_path / "preflight.json")
+        P.run_preflight(root, CORPUS, tmp_path / "m.json", tmp_path / "preflight.json")
     assert calls == []                                     # refused BEFORE running anything
+    # and the complete shape passes the guard (the checkers then run)
+    for f in P.REFERENCE_FILES:
+        ref.mkdir(parents=True, exist_ok=True); (ref / f).write_text("x: 1\n")
+    assert P.reference_dir(root) == ref
 
 
 def test_tampered_preflight_record_is_refused(tmp_path):
@@ -129,11 +145,19 @@ def _env(tmp_path, **over) -> G.GateEnv:
 @needs_corpus
 def test_preflight_gate_matches_this_environment_and_fails_on_one_flipped_fingerprint(tmp_path, monkeypatch):
     monkeypatch.setattr(P, "_run_checker", _fake_checker(True))
-    env = _env(tmp_path)
-    env.export_manifest_path.write_text(json.dumps({"source_commit": "abc", "content_sha": "d" * 64}))
+    env = _env(tmp_path, run_root=_export_like(tmp_path / "export"))
+    env.export_manifest_path = env.run_root / ".export-manifest.json"
     P.run_preflight(REPO_ROOT, CORPUS, env.export_manifest_path, env.preflight_path)
     ok, detail = G.preflight_present_and_matching(env)
     assert ok, detail
+    # a manifest whose claim is fictitious must NOT pass: the gate hashes the bytes itself
+    forged = json.loads(env.export_manifest_path.read_text()); forged["content_sha"] = "e" * 64
+    env.export_manifest_path.write_text(json.dumps(forged))
+    payload = json.loads(env.preflight_path.read_text()); payload["export_content_sha"] = "e" * 64
+    payload["preflight_sha"] = P.preflight_sha(payload); env.preflight_path.write_text(json.dumps(payload))
+    ok, detail = G.preflight_present_and_matching(env)
+    assert not ok and "content sha" in detail
+    env.export_manifest_path.write_text(json.dumps({**forged, "content_sha": json.loads(env.export_manifest_path.read_text())["content_sha"]}))
     payload = json.loads(env.preflight_path.read_text())
     payload["corpus"]["stream.jsonl"] = "f" * 64
     payload["preflight_sha"] = P.preflight_sha(payload)     # re-signed: the mismatch itself must be caught
@@ -227,6 +251,21 @@ def test_boundary_and_health_gates_use_the_injected_probes(tmp_path):
     assert not G.substrate_health(_env(tmp_path / "m", health=None))[0]
 
 
+def test_tokenizer_equivalence_gate_refuses_an_injected_mismatch(tmp_path, monkeypatch):
+    class Tok:
+        def __init__(self, ok): self.ok = ok
+        def equivalence_sample(self, lines): return [*lines, "<|im_start|>user\nprobe<|im_end|>\n<|im_start|>assistant\n"]
+        def equivalence_check(self, base_url, lines):
+            assert any("<|im_start|>" in l for l in lines)
+            return (self.ok, "client == server" if self.ok else "line 3 differs: client 12 ids vs server 11")
+    from scripts.research.arms849 import serving
+    monkeypatch.setattr(serving, "Tokenizer", lambda path: Tok(False))
+    ok, detail = G.tokenizer_equivalence(_env(tmp_path))
+    assert not ok and "differs" in detail
+    monkeypatch.setattr(serving, "Tokenizer", lambda path: Tok(True))
+    assert G.tokenizer_equivalence(_env(tmp_path / "b"))[0]
+
+
 def test_code_hashes_gate_compares_to_the_header_on_resume(tmp_path):
     env = _env(tmp_path, run_root=REPO_ROOT)
     ok, detail = G.code_hashes(env)
@@ -243,8 +282,7 @@ def test_code_hashes_gate_compares_to_the_header_on_resume(tmp_path):
 def test_run_all_records_wall_clock_and_refuses_with_every_failing_detail(tmp_path, monkeypatch):
     monkeypatch.setattr(P, "_run_checker", _fake_checker(True))
     env = _env(tmp_path, run_root=_export_like(tmp_path / "export"))   # the checkout itself would be refused: it holds the reference dir
-    env.export_manifest_path = tmp_path / "m.json"
-    env.export_manifest_path.write_text(json.dumps({"source_commit": "abc", "content_sha": "d" * 64}))
+    env.export_manifest_path = env.run_root / ".export-manifest.json"
     P.run_preflight(REPO_ROOT, CORPUS, env.export_manifest_path, env.preflight_path)
     skip = {"tokenizer_equivalence"}                       # needs the live server
     t0 = time.monotonic()
@@ -271,6 +309,30 @@ def test_gtt_sampler_reads_peak_and_flags_the_ceiling(tmp_path):
     assert s.peak_gib is not None and s.peak_gib >= 58 - 1e-9 and s.sample.readings >= 2
 
 
+def test_a_failed_reading_invalidates_the_window_and_keeps_its_reason(tmp_path):
+    counter = tmp_path / "gtt"; counter.write_text(str(int(10 * SM.GIB)))
+    s = SM.GttSampler(counter)
+    with s:
+        time.sleep(0.6)
+        counter.unlink()                                     # the source disappears mid-window
+        time.sleep(1.2)
+        counter.write_text(str(int(11 * SM.GIB)))            # and comes back — the window is still invalid
+        time.sleep(1.2)
+    assert s.peak_gib is None and s.sample.failures >= 1 and "FileNotFoundError" in (s.sample.reason or "")
+    assert s.sample.readings >= 2                            # later successes are recorded but do not revive the peak
+
+
+def test_sampler_period_is_the_interval_not_read_time_plus_interval(tmp_path, monkeypatch):
+    class Slow(SM.GttSampler):
+        def read_once(self):
+            time.sleep(0.4); return 1.0
+    s = Slow(tmp_path / "unused"); s.interval_s = 0.5
+    with s:
+        time.sleep(2.6)
+    assert s.sample.readings >= 4, s.sample                  # ~5 in 2.6 s at 0.5 s; "0.4 + 0.5" would give ≤ 3
+    assert s.sample.missed_intervals == 0
+
+
 def test_samplers_never_raise_into_the_arm(tmp_path, monkeypatch):
     s = SM.GttSampler(tmp_path / "absent")
     with s:
@@ -293,6 +355,22 @@ def test_rss_sampler_parses_docker_stats(monkeypatch):
     assert SM.RssSampler().read_once() == pytest.approx(512.3)
     with pytest.raises(ValueError):
         SM._to_mib("lots")
+
+
+@pytest.mark.parametrize("construction", [
+    'X = "or" "acle"', 'X = "or" + "acle"', 'X = f"or{\'acle\'!s}"', 'X = b"or" + b"acle"',
+    'X = f"{111:c}racle"', 'X = f"{110 + 1:c}racle"', 'X = f"or{None!s:.0}acle"', 'X = f"{+111:c}racle"',
+    'X = f"or{1 / 2!s:.0}acle"', 'X = "%s%s" % ("or", "acle")', 'X = "or" + "acle" * (1 ** 65)',
+    'X = "%s%s" % (*("or", "acle"),)',
+], ids=["adjacent", "plus", "conv", "bytes", "numc", "arith", "none", "uplus", "div", "percent", "pow65", "starred"])
+def test_production_scanner_catches_wp02s_adversarial_constructions(construction):
+    """Every construction WP02's review found must be caught by the PRODUCTION scanner too."""
+    assert FORBIDDEN[0] in "\n".join(litscan.string_constants(construction + "\n")).lower()
+
+
+def test_production_scanner_partitions_the_grammar():
+    every = set(__import__("ast").expr.__subclasses__())
+    assert litscan._PURE_EXPR | litscan._OPAQUE_EXPR == every and not (litscan._PURE_EXPR & litscan._OPAQUE_EXPR)
 
 
 def test_litscan_sees_literal_structure_and_treats_calls_as_opaque():

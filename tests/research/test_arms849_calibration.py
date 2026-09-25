@@ -51,11 +51,10 @@ def test_smallest_k_inside_the_two_sided_band_is_chosen():
     assert set(cal.ratio) == set(QUESTIONS) and all(v > 0 for v in cal.ratio.values())
 
 
-def test_same_inputs_twice_give_the_same_record_apart_from_ts():
+def test_same_inputs_twice_give_the_same_record():
     a = C.calibrate(FakeLedger(G), AVAIL, linear(2_000, 500), QUESTIONS).as_record()
     b = C.calibrate(FakeLedger(G), AVAIL, linear(2_000, 500), QUESTIONS).as_record()
-    a.pop("ts"); b.pop("ts")
-    assert a == b
+    assert a == b and "ts" not in a and "record" not in a       # the ledger authors both
 
 
 def test_records_block_alone_over_the_band_is_unattainable():

@@ -1,7 +1,8 @@
 """D-10 calibration (WP04 T019): arm R's k, chosen ONCE from G's repeat-1 medians.
 
-Deterministic, written once as a durable `calibration` ledger record (WP03), and
-never recomputed after: repeats 2–3 of G must not move R's configuration.
+Deterministic — identical inputs give an identical record (the ledger authors the
+timestamp when it writes the `calibration` row); written once and never recomputed:
+repeats 2–3 of G must not move R's configuration.
 
 Procedure (rubric A4 §2, research.md D-10):
 - require all eight G repeat-1 cells `ok`; otherwise `CalibrationPopulationIncomplete`
@@ -21,7 +22,6 @@ from __future__ import annotations
 import statistics
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import asdict, dataclass
-from datetime import datetime, timezone
 from typing import Any
 
 __all__ = ["BAND", "Calibration", "CalibrationPopulationIncomplete", "calibrate", "ratio_for"]
@@ -51,7 +51,6 @@ class Calibration:
     ratio: dict[str, float]           # per question r/g
     availability: dict[str, int]      # per question, events available at ask_time
     band: tuple[float, float]
-    ts: str
 
     def as_record(self) -> dict[str, Any]:
         d = asdict(self)
@@ -103,7 +102,7 @@ def calibrate(ledger: Any, availability: Mapping[str, int],
         return Calibration(
             k=k, parity=parity, g_medians=dict(g), g_median=float(g_median), r_tokens_at_k=r,
             r_median=float(r_median), ratio={q: (r[q] / g[q] if g[q] else float("inf")) for q in questions},
-            availability=caps, band=BAND, ts=datetime.now(timezone.utc).isoformat(timespec="seconds"))
+            availability=caps, band=BAND)
 
     r0 = r_at(0)
     if statistics.median(r0[q] for q in questions) > hi:

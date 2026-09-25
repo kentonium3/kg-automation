@@ -35,10 +35,14 @@ MIB = 1024 ** 2
 
 @dataclass
 class Sample:
-    """What a sampler hands back: the peak, or None with the reason it could not measure."""
+    """What a sampler hands back: the peak, or None with the reason it could not measure.
+    One failed reading INVALIDATES the window (peak None, reason kept) — a partial
+    measurement must never look complete (Codex WP04 c1)."""
     peak: float | None
     reason: str | None = None
     readings: int = 0
+    failures: int = 0
+    missed_intervals: int = 0
     breached: bool = False
     samples: list[float] = field(default_factory=list)
 
@@ -50,40 +54,49 @@ class _Sampler:
         self._stop = threading.Event()
         self._thread: threading.Thread | None = None
         self.sample = Sample(peak=None, reason="not started")
+        self._valid = True
 
     def read_once(self) -> float:  # pragma: no cover - overridden
         raise NotImplementedError
 
+    def _take(self) -> None:
+        try:
+            value = self.read_once()
+        except Exception as exc:  # noqa: BLE001 — never into the arm; the window is invalid from here
+            self.sample.failures += 1
+            self._valid = False
+            self.sample.reason = f"{type(exc).__name__}: {exc}"[:200]
+            self.sample.peak = None
+            return
+        self.sample.readings += 1
+        self.sample.samples.append(value)
+        if self._valid:
+            if self.sample.peak is None or value > self.sample.peak:
+                self.sample.peak = value
+            self.sample.reason = None
+        self._check(value)
+
     def _loop(self) -> None:
-        while not self._stop.is_set():
-            try:
-                value = self.read_once()
-            except Exception as exc:  # noqa: BLE001 — never into the arm; recorded as could-not-check
-                self.sample.reason = f"{type(exc).__name__}: {exc}"[:200]
-            else:
-                self.sample.readings += 1
-                self.sample.samples.append(value)
-                self.sample.reason = None
-                if self.sample.peak is None or value > self.sample.peak:
-                    self.sample.peak = value
-                self._check(value)
-            self._stop.wait(self.interval_s)
+        # Readings are scheduled against monotonic deadlines so the period is the interval,
+        # not "read duration + interval"; a deadline that slips a whole period is counted.
+        deadline = time.monotonic() + self.interval_s
+        while not self._stop.wait(max(0.0, deadline - time.monotonic())):
+            self._take()
+            deadline += self.interval_s
+            now = time.monotonic()
+            if now > deadline:
+                missed = int((now - deadline) // self.interval_s) + 1
+                self.sample.missed_intervals += missed
+                deadline += missed * self.interval_s
 
     def _check(self, value: float) -> None:
         return None
 
     def __enter__(self):
         self.sample = Sample(peak=None, reason="no reading yet")
+        self._valid = True
         self._stop.clear()
-        # One synchronous reading first, so a failing source is known immediately.
-        try:
-            first = self.read_once()
-        except Exception as exc:  # noqa: BLE001
-            self.sample.reason = f"{type(exc).__name__}: {exc}"[:200]
-        else:
-            self.sample.readings, self.sample.peak, self.sample.reason = 1, first, None
-            self.sample.samples.append(first)
-            self._check(first)
+        self._take()                      # one synchronous reading first: a failing source is known immediately
         self._thread = threading.Thread(target=self._loop, name=type(self).__name__, daemon=True)
         self._thread.start()
         return self

@@ -88,6 +88,20 @@ class GateEnv:
     extra: dict[str, Any] = field(default_factory=dict)
 
 
+def export_content_sha(root: pathlib.Path, manifest_name: str = ".export-manifest.json") -> str:
+    """substrate._sha256_tree's algorithm (relative path + sha256(contents), sorted), minus the
+    manifest file — the export hashed the tree before the manifest existed."""
+    import hashlib
+
+    h = hashlib.sha256()
+    for path in sorted(p for p in pathlib.Path(root).rglob("*") if p.is_file()):
+        rel = path.relative_to(root).as_posix()
+        if rel == manifest_name:
+            continue
+        h.update(rel.encode("utf-8") + b"\0" + hashlib.sha256(path.read_bytes()).hexdigest().encode("ascii") + b"\n")
+    return h.hexdigest()
+
+
 def _timed(name: str, fn: Callable[[], tuple[bool, str]]) -> GateResult:
     t0 = time.monotonic()
     try:
@@ -126,10 +140,12 @@ def preflight_present_and_matching(env: GateEnv) -> tuple[bool, str]:
     if not env.export_manifest_path.is_file():
         problems.append(f"export manifest {env.export_manifest_path} absent")
     else:
-        import json
-        manifest = json.loads(env.export_manifest_path.read_text(encoding="utf-8"))
-        if manifest.get("content_sha") != rec.get("export_content_sha"):
-            problems.append("export content_sha differs from the preflight's")
+        # The export's bytes are hashed HERE — the manifest's own claim is not evidence
+        # (Codex WP04 c1). The export computed its sha BEFORE writing the manifest, so the
+        # manifest file itself is excluded from the recomputation.
+        here_sha = export_content_sha(env.run_root)
+        if here_sha != rec.get("export_content_sha"):
+            problems.append(f"export content sha here {here_sha[:12]} != preflight {str(rec.get('export_content_sha'))[:12]}")
     if rec.get("prompt_hash") != prompt_mod.REGISTERED_DIGEST:
         problems.append("preflight prompt_hash is not the registered digest")
     if rec.get("question_manifest_sha") != questions_mod.MANIFEST_DIGEST:

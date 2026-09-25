@@ -27,17 +27,26 @@ SCAN_MEMORY_BYTES = 256 * 1024 * 1024
 SCAN_CPU_SECONDS = 5
 SCAN_WALL_SECONDS = 30
 _UNKNOWN = object()
-_PURE_NODES = (ast.Expression, ast.Constant, ast.BinOp, ast.UnaryOp, ast.BoolOp, ast.Compare, ast.IfExp,
-               ast.JoinedStr, ast.FormattedValue, ast.Tuple, ast.List, ast.Set, ast.Dict, ast.Subscript,
-               ast.Slice, ast.Load, ast.operator, ast.unaryop, ast.boolop, ast.cmpop)
-
-
+# Every expression node in the grammar is classified: OPAQUE nodes can reference state or
+# execute code; everything else is literal structure Python evaluates safely with empty
+# builtins (partition asserted by test — a forgotten node cannot become "opaque").
 class ScanBudgetExceeded(RuntimeError):
     """The evaluation blew its budget — the gate fails closed."""
 
 
+_OPAQUE_EXPR = frozenset({ast.Name, ast.Call, ast.Attribute, ast.Lambda, ast.ListComp, ast.SetComp,
+                          ast.DictComp, ast.GeneratorExp, ast.Await, ast.Yield, ast.YieldFrom, ast.NamedExpr})
+_PURE_EXPR = frozenset(cls for cls in ast.expr.__subclasses__() if cls not in _OPAQUE_EXPR)
+_PURE_HELPERS = (ast.Expression, ast.expr_context, ast.operator, ast.unaryop, ast.boolop, ast.cmpop)
+
+
 def _is_pure(node: ast.AST) -> bool:
-    return all(isinstance(sub, _PURE_NODES) for sub in ast.walk(node))
+    for sub in ast.walk(node):
+        if isinstance(sub, _PURE_HELPERS):
+            continue
+        if type(sub) in _OPAQUE_EXPR or type(sub) not in _PURE_EXPR:
+            return False
+    return True
 
 
 def _const_eval(node: ast.AST):
@@ -62,8 +71,8 @@ def _const_eval(node: ast.AST):
         return eval(compile(expr, "<litscan>", "eval"), {"__builtins__": {}}, {})
     except (MemoryError, RecursionError, OverflowError):
         raise
-    except (ValueError, TypeError, ArithmeticError, LookupError, AttributeError):
-        return _UNKNOWN
+    except (ValueError, TypeError, ArithmeticError, LookupError, AttributeError, SyntaxError):
+        return _UNKNOWN             # not a constant — or a node that cannot stand alone (bare Starred/Slice)
 
 
 def _string_constants_inprocess(source: str) -> list[str]:
