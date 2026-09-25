@@ -143,6 +143,9 @@ def test_export_refuses_a_dirty_tree(tmp_path):
 def test_live_up_health_down(live_http):
     state = SUB.up(yarn=False)
     assert state.falkordb_ok and state.llama_ok and state.n_ctx == 262_144
+    # Codex c2: the same healthy stack must FAIL a health check with the wrong expectation.
+    assert not SUB.health(expect_n_ctx=4096, expect_rope="none").llama_ok
+    assert not SUB.health(expect_n_ctx=262_144, expect_rope="yarn").llama_ok
     rep = SUB.down()
     assert rep["clean"], rep
 
@@ -155,10 +158,19 @@ def test_live_self_test_passes_and_a_widened_mount_fails(tmp_path, live_http):
         rep = SUB.self_test()
         assert rep["passed"], rep
         leak = tmp_path / "leak"; leak.mkdir(); (leak / "secret.txt").write_text("x")
-        widened = SUB.self_test(widen_with=["-v", f"{leak}:/leak:ro"])
-        assert not widened["passed"], widened
-        assert widened["checks"].get("no_extra_mounts") is False
-        assert "/leak" in widened["checks"].get("extra_mounts", [])
+        # Codex c2: a nested target, a look-alike prefix, a stray /etc or /dev entry must all be
+        # caught by the exact allowlist.
+        for target in ("/leak", "/runs/leak", "/dev-leak", "/etc/leak", "/dev/leak"):
+            widened = SUB.self_test(widen_with=["-v", f"{leak}:{target}:ro"])
+            assert not widened["passed"], (target, widened)
+            assert widened["checks"].get("no_extra_mounts") is False, target
+            assert target in widened["checks"].get("extra_mounts", []), target
+        # /sys and /proc are refused by the runtime itself (read-only rootfs / runc) before the
+        # script runs: still not passed, and the refusal is the recorded reason.
+        for target in ("/sys/leak", "/proc/leak"):
+            widened = SUB.self_test(widen_with=["-v", f"{leak}:{target}:ro"])
+            assert not widened["passed"] and widened["checks"] == {}, (target, widened)
+            assert "error mounting" in widened["stderr"] or "not allowed" in widened["stderr"], widened["stderr"]
     finally:
         SUB.down()
 

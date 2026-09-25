@@ -34,9 +34,17 @@ def _string_constants(source: str) -> list[str]:
             parts = [fold(v) for v in node.values]
             return "".join(p if p is not None else "\0" for p in parts)
         if isinstance(node, ast.FormattedValue):
-            # A constant interpolation with no conversion/spec is just its value.
-            inner = fold(node.value) if node.conversion == -1 and node.format_spec is None else None
-            return inner if inner is not None else "\0"
+            # A constant interpolation is evaluated: conversion (!s !r !a) and a
+            # constant format spec included. Anything non-constant is opaque.
+            if isinstance(node.value, ast.Constant):
+                val = node.value.value
+                conv = {-1: lambda v: v, 115: str, 114: repr, 97: ascii}[node.conversion](val)
+                spec = fold(node.format_spec) if node.format_spec is not None else ""
+                try:
+                    return format(conv, spec) if spec else str(conv)
+                except (ValueError, TypeError):
+                    return "\0"
+            return "\0"
         if isinstance(node, ast.BinOp) and isinstance(node.op, ast.Add):
             left, right = fold(node.left), fold(node.right)
             if left is not None and right is not None:
@@ -68,7 +76,10 @@ def test_no_module_names_the_excluded_material(module: pathlib.Path):
     'X = f"or{\'\'}acle"',                 # f-string literal parts around an empty expression
     'X = b"or" + b"acle"',                 # bytes literals
     'X = "trace" + "ability"',
-], ids=["adjacent", "plus", "fstring", "bytes", "plus2"])
+    'X = f"or{\'acle\'!s}"',                # conversion on a constant (Codex c2)
+    'X = f"or{\'acle\':>4}"',               # constant format spec
+    'X = f"{\'or\'}" + "acle"',             # f-string constant + concatenation
+], ids=["adjacent", "plus", "fstring", "bytes", "plus2", "conv", "spec", "fplus"])
 def test_the_scan_catches_constructed_forbidden_strings(tmp_path, construction):
     """Codex WP02 cycle 1: the first scan missed constructed strings."""
     bad = tmp_path / "bad.py"

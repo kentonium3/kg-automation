@@ -290,7 +290,7 @@ def _rope_mode(container: str = "arms849-llama-1") -> str:
     return "none"
 
 
-def health(expect_n_ctx: int | None = None, expect_rope: str | None = None) -> SubstrateState:
+def health(expect_n_ctx: int, expect_rope: str) -> SubstrateState:
     """FalkorDB answers GRAPH.LIST; llama /health ok and /props reports what we expect.
 
     /props on the pinned image: ``default_generation_settings.n_ctx`` and
@@ -325,10 +325,10 @@ def health(expect_n_ctx: int | None = None, expect_rope: str | None = None) -> S
         llama_ok = False
     if pathlib.PurePosixPath(model_file).name != GGUF_FILE:
         llama_ok = False
-    if expect_n_ctx is not None and n_ctx != expect_n_ctx:
+    if n_ctx != expect_n_ctx:
         llama_ok = False
     rope = _rope_mode()
-    if expect_rope is not None and rope != expect_rope:
+    if rope != expect_rope:          # 'unknown' (uninspectable) never satisfies
         llama_ok = False
     if probe_error:
         props = {"probe_error": probe_error}
@@ -479,17 +479,22 @@ for name, port in (("llama", 8080), ("falkordb", 6379)):
 checks["no_torch"] = importlib.util.find_spec("torch") is None
 # Every bind mount must be one of the four the runner is allowed; an extra mount
 # is a widened boundary and fails the test (it is not enough that it is unused).
-allowed = {"/work", "/corpus", "/cache", "/runs"}
-system_prefixes = ("/proc", "/sys", "/dev", "/etc/resolv.conf", "/etc/hostname", "/etc/hosts")
+# Every mount target must be EXACTLY one the runner is allowed — the four data
+# mounts, docker's own /etc files, /dev tmpfs and its three standard submounts,
+# the enumerated /sys entries — or a /proc/ masked path (runc refuses user
+# mounts inside /proc). A nested target (/runs/leak), a look-alike (/dev-leak)
+# or a stray /sys entry is a widened boundary and fails the test.
+allowed_exact = {"/", "/work", "/corpus", "/cache", "/runs",
+                 "/etc/hostname", "/etc/hosts", "/etc/resolv.conf",
+                 "/dev", "/dev/mqueue", "/dev/pts", "/dev/shm",
+                 "/proc", "/sys", "/sys/firmware", "/sys/fs/cgroup", "/sys/devices/virtual/powercap"}
 extra = []
 for line in open("/proc/self/mounts", encoding="utf-8"):
     parts = line.split()
     if len(parts) < 2:
         continue
     target = parts[1]
-    if target == "/" or target in allowed or target.startswith(system_prefixes):
-        continue
-    if target.startswith(tuple(a + "/" for a in allowed)):
+    if target in allowed_exact or target.startswith("/proc/"):
         continue
     extra.append(target)
 checks["no_extra_mounts"] = not extra
@@ -549,7 +554,8 @@ def main(argv: Sequence[str]) -> int:
     sub = ap.add_subparsers(dest="cmd", required=True)
     s = sub.add_parser("setup"); s.add_argument("--skip-gguf-verify", action="store_true")
     u = sub.add_parser("up"); u.add_argument("--yarn", action="store_true")
-    sub.add_parser("down"); sub.add_parser("health")
+    sub.add_parser("down")
+    sub.add_parser("health").add_argument("--yarn", action="store_true", help="expect the D-YaRN secondary configuration")
     e = sub.add_parser("export"); e.add_argument("--commit", default="HEAD")
     r = sub.add_parser("run"); r.add_argument("--self-test", action="store_true"); r.add_argument("args", nargs=argparse.REMAINDER)
     a = ap.parse_args(argv[1:])
@@ -558,7 +564,9 @@ def main(argv: Sequence[str]) -> int:
     if a.cmd == "up":
         print(json.dumps(asdict(up(yarn=a.yarn)), indent=2, default=str)); return 0
     if a.cmd == "health":
-        st = health(); print(json.dumps(asdict(st), indent=2, default=str)); return 0 if st.falkordb_ok and st.llama_ok else 1
+        env = compose_env(a.yarn, load_setup())
+        st = health(expect_n_ctx=int(env["N_CTX"]), expect_rope="yarn" if a.yarn else "none")
+        print(json.dumps(asdict(st), indent=2, default=str)); return 0 if st.falkordb_ok and st.llama_ok else 1
     if a.cmd == "down":
         rep = down(); print(json.dumps(rep, indent=2)); return 0 if rep["clean"] else 1
     if a.cmd == "export":
