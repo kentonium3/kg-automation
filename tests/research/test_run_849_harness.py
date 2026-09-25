@@ -30,6 +30,7 @@ from scripts.research.arms849.questions import QUESTIONS
 from tests.research.test_arms849_integration import (
     BLINDING_SEED,
     PRIMARY,
+    ArmRefusal,
     FakeContextExceeded,
     FakeG,
     fake_arms,
@@ -238,7 +239,7 @@ def test_context_exceeded_is_recorded_not_errored_and_not_scored(tmp_path):
         raise FakeContextExceeded(362_772, ctx.limit, ctx.limit_applied, {"layout": "events_entities_edges"})
 
     ledger_path = tmp_path / "ledger.jsonl"
-    arms = {**fake_arms(), "D": h.ArmRegistration(answer=d_arm)}
+    arms = {**fake_arms(), "D": h.ArmRegistration(refusal=ArmRefusal, answer=d_arm)}
     with open_fake(ledger_path) as ledger:
         report = h.run_session(ledger, make_runtime(arms), limit=26)   # 24 G cells, then two D
         header = ledger.header
@@ -273,7 +274,7 @@ def test_summarise_would_fail_if_exceeds_cells_leaked_into_the_mean(tmp_path):
 
     ledger_path = tmp_path / "ledger.jsonl"
     with open_fake(ledger_path) as ledger:
-        h.run_session(ledger, make_runtime({**fake_arms(), "D": h.ArmRegistration(answer=zero_d)}), limit=32)
+        h.run_session(ledger, make_runtime({**fake_arms(), "D": h.ArmRegistration(refusal=ArmRefusal, answer=zero_d)}), limit=32)
         s = ledger.summarise()
     assert s[("D", "B2")].mean_assembled_tokens == 0 and s[("D", "B2")].n_scored == 1
 

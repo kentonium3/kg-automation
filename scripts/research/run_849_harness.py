@@ -88,6 +88,7 @@ import threading
 import time
 import types
 import urllib.request
+import uuid
 from collections.abc import Callable, Mapping, Sequence
 from contextlib import ExitStack
 from dataclasses import dataclass, field
@@ -162,6 +163,10 @@ class HarnessStopped(RuntimeError):
 
 class PrimaryIncomplete(RuntimeError):
     """``--secondary`` was asked for before the primary ledger is complete."""
+
+
+class CalibrationRecordInvalid(RuntimeError):
+    """The ledger's calibration record lacks a field the Calibration needs (names the field and ledger)."""
 
 
 class AttemptCancelled(RuntimeError):
@@ -261,9 +266,16 @@ class ServingFacade:
 AnswerFn = Callable[[Question, Loaded, CellContext], Mapping[str, Any]]
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, kw_only=True)
 class ArmRegistration:
     """One arm as the harness drives it (contracts/arm-interface.md).
+
+    ``refusal`` is REQUIRED: the arm's own ``ArmRefusal`` class, passed by its factory. Terminal
+    refusal is detected by IDENTITY — ``isinstance(exc, reg.refusal)`` — never by class name, so a
+    renamed refusal class stays terminal and an unrelated class that happens to be called
+    ``ArmRefusal`` (a transport error, say) goes through the health-check retry ladder (design
+    lead W8-1). Post-merge cleanup: unify the three arms' ``ArmRefusal`` classes into one shared
+    class; this field then becomes redundant.
 
     G/D: ``answer(question, view, ctx)``; G also ``build_graph(question, view) -> GraphStats-like``
     and ``drop_graph(question)``. R: ``bind(index_cache) -> answer`` and
@@ -272,12 +284,21 @@ class ArmRegistration:
     SAME ``index_cache`` dict to both (N-3).
     """
 
+    refusal: type[BaseException]
     answer: AnswerFn | None = None
     bind: Callable[[dict[str, Any]], AnswerFn] | None = None
     calibration_inputs: Callable[[Mapping[str, Loaded], dict[str, Any]],
                                  tuple[Mapping[str, int], Callable[[str, int], int]]] | None = None
     build_graph: Callable[[Question, Loaded], Any] | None = None
     drop_graph: Callable[[Question], Any] | None = None
+
+    def __post_init__(self) -> None:
+        if not (isinstance(self.refusal, type) and issubclass(self.refusal, BaseException)):
+            raise TypeError(f"refusal must be the arm's ArmRefusal exception class, got {self.refusal!r}")
+        if self.refusal in (BaseException, Exception):
+            raise TypeError("refusal must be the arm's own refusal class, not a catch-all")
+        if (self.answer is None) == (self.bind is None):
+            raise TypeError("a registration carries exactly one of answer (G, D) or bind (R)")
 
 
 @dataclass(frozen=True)
@@ -316,6 +337,39 @@ def plan(kind: str = "primary") -> list[RunKey]:
 # --------------------------------------------------------------------------
 
 
+@dataclass(frozen=True)
+class SessionGates:
+    """The gates THIS session ran afresh (M1 ruling, design lead bus 20260925T221125657965Zb30b0038fa):
+    every session — the creating one and every resumed one — runs both gate phases and records the
+    outcome as an ``event: session_gates`` row before its first attempt. The header keeps the
+    creating session's evidence; this is the per-session revalidation beside it."""
+
+    passed: bool
+    gate_host_sha: str | None = None
+    gate_container_sha: str | None = None
+    preflight_sha: str | None = None
+    up_ts: str = ""
+    container_start_ts: str = ""
+    details: tuple[Mapping[str, Any], ...] = ()
+    skipped: bool = False
+    error: str | None = None
+
+    def as_detail(self) -> dict[str, Any]:
+        return {"passed": self.passed, "skipped": self.skipped, "gate_host_sha": self.gate_host_sha,
+                "gate_container_sha": self.gate_container_sha, "preflight_sha": self.preflight_sha,
+                "up_ts": self.up_ts, "container_start_ts": self.container_start_ts,
+                "details": [dict(d) for d in self.details], "error": self.error}
+
+
+def session_identity() -> dict[str, Any]:
+    """Tells sessions apart in the ledger: a uuid4 minted at session start, the pid, the open time."""
+    return {"session_id": str(uuid.uuid4()), "pid": os.getpid(), "opened_at": datetime.now(timezone.utc).isoformat()}
+
+
+def write_session_gates(ledger: Ledger, gates: SessionGates, identity: Mapping[str, Any]) -> None:
+    ledger.event("session_gates", {**identity, **gates.as_detail()})
+
+
 @dataclass
 class Runtime:
     """Everything a session needs besides the ledger — injectable, so the loop is testable with
@@ -325,6 +379,7 @@ class Runtime:
     arms: Mapping[str, ArmRegistration]
     facade: Callable[[float, threading.Event], Any]           # (deadline, cancelled) -> ctx.serving
     health: Callable[[], bool]
+    gates: SessionGates                                          # this session's fresh gate outcome
     corpus_dir: pathlib.Path = CORPUS_DIR
     prompt: Prompt = field(default_factory=Prompt)
     embedder: Any = None
@@ -340,11 +395,6 @@ class SessionReport:
     completed: int = 0
     failed: int = 0
     stopped: str | None = None
-
-
-def _is_refusal(exc: BaseException) -> bool:
-    """``ArmRefusal`` and its subclasses — each arm defines its own class of that name."""
-    return any(c.__name__ == "ArmRefusal" for c in type(exc).__mro__)
 
 
 def _peak(sampler: Any, attr: str) -> float | None:
@@ -363,6 +413,7 @@ class Session:
         self.graph_stats: dict[str, Any] = {}          # question → GraphStats built this session
         self._answers: dict[str, AnswerFn] = {}
         self.report = SessionReport()
+        self.identity = session_identity()
 
     # -- helpers ------------------------------------------------------------
 
@@ -407,6 +458,11 @@ class Session:
         rec = self.ledger.calibration()
         if rec is None:
             return None
+        missing = [k for k in calibration_mod.Calibration.__dataclass_fields__ if k not in rec]
+        if missing:
+            raise CalibrationRecordInvalid(f"{self.ledger.path}: the calibration record lacks field(s) {missing}; "
+                                           f"r_g_ratio cannot be derived (D-10) — the record is written once and "
+                                           f"never defaulted")
         fields = {k: rec[k] for k in calibration_mod.Calibration.__dataclass_fields__}
         fields["band"] = tuple(fields["band"])
         return calibration_mod.Calibration(**fields)
@@ -527,7 +583,7 @@ class Session:
                 self.stop("a timed-out worker did not stop within the grace period; the session stops so no "
                           "second request can overlap it")
         else:
-            outcome, retry = self._record_raised(key, value, base, peak_gtt)
+            outcome, retry = self._record_raised(key, reg, value, base, peak_gtt)
         if getattr(gtt, "breached", False):
             self.ledger.event("memory_ceiling", {**key.as_dict(), "gtt_gib": peak_gtt, "ceiling_gib": GTT_CEILING_GIB,
                                                  "during": "attempt"})
@@ -542,7 +598,7 @@ class Session:
                            self.rt.config.as_header_dict())
         return "error"
 
-    def _record_raised(self, key: RunKey, exc: Any, base: dict[str, Any],
+    def _record_raised(self, key: RunKey, reg: ArmRegistration, exc: Any, base: dict[str, Any],
                        peak_gtt: float | None) -> tuple[str | None, bool]:
         if isinstance(exc, serving.ContextExceeded):
             tokens = getattr(exc, "prompt_tokens", None)
@@ -559,11 +615,16 @@ class Session:
             msg = (f"{REFUSAL_PREFIX} {type(exc).__name__} from arm {key.arm}: {exc} — exceeds_model_context "
                    f"is a D outcome carrying prompt_tokens (data-model.md § Outcome)")
             return self._record_error(key, base, msg, peak_gtt), False
-        if _is_refusal(exc):
+        if isinstance(exc, reg.refusal):
             name = type(exc).__name__
-            msg = f"{REFUSAL_PREFIX} {exc}" if name == "ArmRefusal" else f"{REFUSAL_PREFIX} {name}: {exc}"
+            msg = f"{REFUSAL_PREFIX} {exc}" if type(exc) is reg.refusal else f"{REFUSAL_PREFIX} {name}: {exc}"
             return self._record_error(key, base, msg, peak_gtt), False
-        return self._record_error(key, base, f"{type(exc).__name__}: {exc}", peak_gtt), True
+        msg = f"{type(exc).__name__}: {exc}"
+        if msg.startswith(REFUSAL_PREFIX):
+            # The ledger reads an `ArmRefusal:` prefix as terminal; an unrelated class that merely
+            # shares the name must not inherit that by its text (W8-1). Qualify it.
+            msg = f"{type(exc).__module__}.{type(exc).__qualname__}: {exc}"
+        return self._record_error(key, base, msg, peak_gtt), True
 
     def _record_ok(self, key: RunKey, question: Question, view: Loaded, ctx: CellContext, answer: Any,
                    base: dict[str, Any], peak_gtt: float | None, rss: Any) -> tuple[str | None, bool]:
@@ -650,8 +711,14 @@ def status_line(ledger: Ledger, kind: str | None = None) -> str:
     return f"arms849 status: {ledger.path.name} [{kind}] {len(keys) - counts.get('pending', 0)}/{len(keys)} terminal — {parts}{tail}"
 
 
-def run_session(ledger: Ledger, runtime: Runtime, limit: int | None = None, kind: str = "primary") -> SessionReport:
-    """Run the pending cells of ``ledger`` (protocol order), at most ``limit`` of them."""
+def run_session(ledger: Ledger, runtime: Runtime, limit: int | None = None, kind: str = "primary",
+                before_cells: Callable[[Ledger], str | None] | None = None) -> SessionReport:
+    """Run the pending cells of ``ledger`` (protocol order), at most ``limit`` of them.
+
+    FIRST, before anything else is appended by this session, the ``session_gates`` event carrying
+    this session's fresh gate outcome and identity; a failing outcome stops the session with no
+    attempt. ``before_cells`` (e.g. the secondary's context-window gate) runs next and returns a
+    stop reason or None."""
     todo = ledger.pending_keys(plan(kind))
     total = len(plan(kind))
     if limit:
@@ -659,7 +726,14 @@ def run_session(ledger: Ledger, runtime: Runtime, limit: int | None = None, kind
     runtime.out(f"{total - len(ledger.pending_keys(plan(kind)))} of {total} cells terminal; {len(todo)} to go this session")
     session = Session(ledger, runtime)
     try:
-        report = session.run(todo)
+        write_session_gates(ledger, runtime.gates, session.identity)
+        if not runtime.gates.passed:
+            session.stop(f"this session's gates failed ({runtime.gates.error}); no cell attempted")
+        elif before_cells is not None:
+            reason = before_cells(ledger)
+            if reason:
+                session.stop(reason)
+        report = session.run(todo) if not session.report.stopped else session.report
     except LedgerWriteFailed as exc:
         session.stop(f"ledger write failed — {exc}; reopen with the same command (the file is the truth)")
         runtime.out(f"arms849 status: STOPPED — {session.report.stopped}")
@@ -712,6 +786,10 @@ def require_complete_primary(primary: Ledger) -> None:
     """ledger-schema.md item 8: the named primary must be complete — 72 cells, zero not_implemented."""
     if primary.header.plan != PRIMARY_PLAN or primary.header.binding.serving.get("kind") != "primary":
         raise PrimaryIncomplete(f"{primary.path} is not a primary ledger")
+    b = primary.header.binding
+    if grading.SKIP_GATES_SHA in (b.preflight_sha, b.gate_host_sha, b.gate_container_sha):
+        raise PrimaryIncomplete(f"{primary.path} was written with --skip-gates (development only); "
+                                f"it can never be a primary")
     ok, detail = grading.is_complete(primary)
     if not ok:
         raise PrimaryIncomplete(f"{primary.path} is not complete: {detail}")
@@ -803,6 +881,10 @@ def container_health(config: serving.ServingConfiguration, base_url: str = LLAMA
         return False
 
 
+def _expect_rope(config: serving.ServingConfiguration) -> str:
+    return "yarn" if config.rope_scaling == "yarn" else "none"
+
+
 def _gate_env(corpus: pathlib.Path, config: serving.ServingConfiguration, up_ts: str,
               header_code_hashes: dict[str, str] | None = None, run_root: pathlib.Path = REPO_ROOT) -> Any:
     from scripts.research.arms849 import gates
@@ -812,39 +894,64 @@ def _gate_env(corpus: pathlib.Path, config: serving.ServingConfiguration, up_ts:
         run_root=run_root, corpus_dir=corpus, cache_dir=pathlib.Path(os.environ.get("ARMS849_CACHE", str(CACHE_DIR))),
         preflight_path=RUNS_DIR / "preflight.json", export_manifest_path=run_root / ".export-manifest.json",
         llama_base_url=LLAMA_URL, expect_n_ctx=config.n_ctx,
-        expect_rope="yarn" if config.rope_scaling == "yarn" else "none",
+        expect_rope=_expect_rope(config),
         expected_chat_template_sha256=config.chat_template_sha256, up_ts=up_ts,
         host_record_path=RUNS_DIR / "gate-host.json", container_start_ts=PROCESS_START,
         header_code_hashes=header_code_hashes, forbidden_words=forbidden_words())
 
 
-def live_binding(ledger_path: pathlib.Path, corpus: pathlib.Path, config: serving.ServingConfiguration,
-                 up_ts: str, skip_gates: bool,
-                 container_phase: Callable[..., tuple[Any, str]] | None = None) -> Binding:
-    """Run the CONTAINER gate phase (before the header), then bind the three gate records."""
-    manifest_path = REPO_ROOT / ".export-manifest.json"
-    manifest = json.loads(manifest_path.read_text(encoding="utf-8")) if manifest_path.exists() else {}
+def live_gates(ledger_path: pathlib.Path, corpus: pathlib.Path, config: serving.ServingConfiguration,
+               up_ts: str, skip_gates: bool,
+               container_phase: Callable[..., tuple[Any, str]] | None = None) -> SessionGates:
+    """Run the CONTAINER gate phase afresh for THIS session and return its outcome (never raises for
+    a failing gate: the failure is data the session records). ``--skip-gates`` returns a skipped,
+    development-only outcome carrying :data:`grading.SKIP_GATES_SHA`."""
     if skip_gates:
         print("--skip-gates: DEVELOPMENT ONLY — no gate ran; this ledger binds the skip-gates sha and "
               "can never be graded or used as a primary")
-        preflight_sha = gate_host_sha = gate_container_sha = grading.SKIP_GATES_SHA
-    else:
-        from scripts.research.arms849 import gates
-        from scripts.research.arms849.preflight import load_preflight
+        return SessionGates(passed=True, skipped=True, gate_host_sha=grading.SKIP_GATES_SHA,
+                            gate_container_sha=grading.SKIP_GATES_SHA, preflight_sha=grading.SKIP_GATES_SHA,
+                            up_ts=up_ts, container_start_ts=PROCESS_START)
+    from scripts.research.arms849 import gates
+    from scripts.research.arms849.preflight import load_preflight
 
-        existing = peek_header(ledger_path)
-        env = _gate_env(corpus, config, up_ts, existing.get("code_hashes") if existing else None)
-        phase = container_phase or gates.run_container_phase
-        _, gate_container_sha = phase(env, RUNS_DIR / "gate-container.json")
+    existing = peek_header(ledger_path)
+    env = _gate_env(corpus, config, up_ts, existing.get("code_hashes") if existing else None)
+    phase = container_phase or gates.run_container_phase
+    try:
+        results, gate_container_sha = phase(env, RUNS_DIR / "gate-container.json")
         host = json.loads((RUNS_DIR / "gate-host.json").read_text(encoding="utf-8"))
-        gate_host_sha = str(host["gate_host_sha"])
         preflight_sha = str(load_preflight(RUNS_DIR / "preflight.json")["preflight_sha"])
+    except Exception as exc:  # noqa: BLE001 — a gate that refuses or raises has failed, with the reason
+        return SessionGates(passed=False, up_ts=up_ts, container_start_ts=PROCESS_START,
+                            error=f"{type(exc).__name__}: {exc}")
+    details = tuple({"name": r.name, "passed": r.passed, "detail": r.detail} for r in results)
+    return SessionGates(passed=True, gate_host_sha=str(host["gate_host_sha"]), gate_container_sha=gate_container_sha,
+                        preflight_sha=preflight_sha, up_ts=up_ts, container_start_ts=PROCESS_START, details=details)
+
+
+def binding_for(gates_outcome: SessionGates, corpus: pathlib.Path, config: serving.ServingConfiguration) -> Binding:
+    """The Binding from this session's FRESH gate shas (M1 ruling: never the header's copied back —
+    that would make the resume comparison unable to fail)."""
+    if not gates_outcome.passed:
+        from scripts.research.arms849.gates import GatesRefused
+
+        raise GatesRefused(gates_outcome.error or "gates failed")
+    manifest_path = REPO_ROOT / ".export-manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8")) if manifest_path.exists() else {}
     return Binding.from_environment(
         corpus, config.as_header_dict(), config.limit_applied()[0],
         run_env_commit=str(manifest.get("source_commit", "unexported")),
         run_env_manifest_sha=str(manifest.get("content_sha", "unexported")),
-        preflight_sha=preflight_sha, gate_host_sha=gate_host_sha, gate_container_sha=gate_container_sha,
-        repo_root=REPO_ROOT)
+        preflight_sha=str(gates_outcome.preflight_sha), gate_host_sha=str(gates_outcome.gate_host_sha),
+        gate_container_sha=str(gates_outcome.gate_container_sha), repo_root=REPO_ROOT)
+
+
+def live_binding(ledger_path: pathlib.Path, corpus: pathlib.Path, config: serving.ServingConfiguration,
+                 up_ts: str, skip_gates: bool,
+                 container_phase: Callable[..., tuple[Any, str]] | None = None) -> Binding:
+    """Gates then Binding in one call; a failing gate raises ``GatesRefused`` before any header."""
+    return binding_for(live_gates(ledger_path, corpus, config, up_ts, skip_gates, container_phase), corpus, config)
 
 
 def live_config(secondary: bool) -> serving.ServingConfiguration:
@@ -855,7 +962,7 @@ def live_config(secondary: bool) -> serving.ServingConfiguration:
     return serving.ServingConfiguration.secondary_yarn(identity) if secondary else serving.ServingConfiguration.primary(identity)
 
 
-def live_runtime(config: serving.ServingConfiguration, corpus: pathlib.Path) -> Runtime:
+def live_runtime(config: serving.ServingConfiguration, corpus: pathlib.Path, gates_outcome: SessionGates) -> Runtime:
     from scripts.research.arms849.substrate import CACHE_DIR
 
     tokenizer = serving.Tokenizer(pathlib.Path(os.environ.get("ARMS849_CACHE", str(CACHE_DIR))) / "qwen-tokenizer")
@@ -863,49 +970,68 @@ def live_runtime(config: serving.ServingConfiguration, corpus: pathlib.Path) -> 
     arms = build_arms(Resources(corpus_dir=corpus, config=config, tokenizer=tokenizer, embedder=embedder))
     return Runtime(config=config, arms=arms, corpus_dir=corpus,
                    facade=lambda deadline, cancelled: ServingFacade(config, tokenizer, LLAMA_URL, deadline, cancelled),
-                   health=lambda: container_health(config))
+                   health=lambda: container_health(config), gates=gates_outcome)
 
 
-def live_secondary_gate(runtime: Runtime) -> Callable[[], dict[str, Any]]:
+def _props_n_ctx() -> int:
+    with urllib.request.urlopen(f"{LLAMA_URL}/props", timeout=10) as r:
+        return int((json.loads(r.read().decode()).get("default_generation_settings") or {}).get("n_ctx") or 0)
+
+
+def live_secondary_gate(runtime: Runtime, props_n_ctx: Callable[[], int] = _props_n_ctx) -> Callable[[], dict[str, Any]]:
     """n_ctx 393216 (+ yarn, verified by the host phase) and one ~363k-token prompt — the full D view
-    at the last question's ask_time — through ``serving.complete``, with peak GTT and rates."""
+    at the last question's ask_time — through ``serving.complete``, with peak GTT and rates.
+
+    NFR-004 holds here as for every cell: when the GTT sampler cannot read, or already reads at or
+    over the 57.5 GiB ceiling, the probe REFUSES BEFORE SENDING (the gate fails); a window that
+    breaches the ceiling or becomes unreadable during the request FAILS the gate."""
     def probe() -> dict[str, Any]:
         from scripts.research.arms849.text import FrozenCorpusText
 
         config = runtime.config
-        with urllib.request.urlopen(f"{LLAMA_URL}/props", timeout=10) as r:
-            n_ctx = int((json.loads(r.read().decode()).get("default_generation_settings") or {}).get("n_ctx") or 0)
-        last = questions_mod.QUESTIONS[-1]
-        view = arm_view(RunKey("D", last.id, 1), replay(runtime.corpus_dir, questions_mod.ask_time_dt(last), verify=False))
-        block = FrozenCorpusText(runtime.corpus_dir).render_full_view(view)
-        facade = runtime.facade(time.monotonic() + ATTEMPT_TIMEOUT_S, threading.Event())
-        body = facade.serialize(runtime.prompt.render(block, "context-window gate: summarise the material."), config.seed_for(1))
-        tokens = facade.count_tokens(body)
         with runtime.gtt_sampler() as gtt:
+            first = _peak(gtt, "peak_gib")
+            if first is None or getattr(gtt, "breached", False) or first >= GTT_CEILING_GIB:
+                return {"passed": False, "sent": False, "peak_gtt_gib": first, "ceiling_gib": GTT_CEILING_GIB,
+                        "reason": ("GTT unreadable" if first is None else "GTT at or over the ceiling")
+                                  + " before the probe; nothing sent"}
+            n_ctx = props_n_ctx()
+            last = questions_mod.QUESTIONS[-1]
+            view = arm_view(RunKey("D", last.id, 1),
+                            replay(runtime.corpus_dir, questions_mod.ask_time_dt(last), verify=False))
+            block = FrozenCorpusText(runtime.corpus_dir).render_full_view(view)
+            facade = runtime.facade(time.monotonic() + ATTEMPT_TIMEOUT_S, threading.Event())
+            body = facade.serialize(runtime.prompt.render(block, "context-window gate: summarise the material."),
+                                    config.seed_for(1))
+            tokens = facade.count_tokens(body)
             completion = facade.complete(body)
-        return {"passed": n_ctx == config.n_ctx and tokens >= SECONDARY_GATE_TOKENS * 0.95,
-                "n_ctx": n_ctx, "rope": config.rope_scaling, "prompt_tokens": tokens,
-                "peak_gtt_gib": gtt.peak_gib, "prefill_s": completion.prefill_s,
+        peak = _peak(gtt, "peak_gib")
+        breached = bool(getattr(gtt, "breached", False)) or (peak is not None and peak > GTT_CEILING_GIB)
+        window_ok = peak is not None and not breached
+        return {"passed": window_ok and n_ctx == config.n_ctx and tokens >= SECONDARY_GATE_TOKENS * 0.95,
+                "sent": True, "n_ctx": n_ctx, "rope": config.rope_scaling, "prompt_tokens": tokens,
+                "peak_gtt_gib": peak, "gtt_breached": breached, "gtt_window_valid": peak is not None,
+                "ceiling_gib": GTT_CEILING_GIB, "prefill_s": completion.prefill_s,
                 "prefill_tok_s": (completion.prompt_tokens / completion.prefill_s) if completion.prefill_s else None,
                 "generation_tok_s": completion.generation_tok_s}
     return probe
 
 
-def host_phase(up_ts: str) -> str:
+def host_phase(up_ts: str, config: serving.ServingConfiguration) -> str:
     """The HOST gate phase (contracts/gates.md), right before the runner launches: boundary
-    self-test, docker-derived health, preflight matching → gate-host.json. Returns gate_host_sha."""
+    self-test, docker-derived health, preflight matching → gate-host.json. Returns gate_host_sha.
+    Every expectation is derived from the SELECTED configuration (n_ctx, rope, chat template) —
+    393,216 + YaRN for the secondary, 262,144 + none for the primary."""
     from scripts.research.arms849 import gates, substrate
 
     if _IN_CONTAINER:
         raise RuntimeError("the host phase runs on the host (it needs docker), never in the runner")
-    secondary = False
     env = gates.GateEnv(
         run_root=substrate.EXPORT_DIR, corpus_dir=substrate.CORPUS_DIR, cache_dir=substrate.CACHE_DIR,
         preflight_path=substrate.RUNS_DIR / "preflight.json",
         export_manifest_path=substrate.EXPORT_DIR / ".export-manifest.json", up_ts=up_ts,
-        expect_n_ctx=serving.SECONDARY_N_CTX if secondary else serving.PRIMARY_N_CTX,
-        expect_rope="yarn" if secondary else "none",
-        self_test=substrate.self_test, health=substrate.health, forbidden_words=forbidden_words())
+        expect_n_ctx=config.n_ctx, expect_rope=_expect_rope(config),
+        expected_chat_template_sha256=config.chat_template_sha256, self_test=substrate.self_test, health=substrate.health, forbidden_words=forbidden_words())
     _, sha = gates.run_host_phase(env, substrate.RUNS_DIR / "gate-host.json")
     return sha
 
@@ -940,6 +1066,18 @@ def _dry_run(kind: str) -> int:
     if missing:
         print(f"\narms not yet registered: {', '.join(missing)} — their cells would be not_implemented")
     return 0
+
+
+def _refuse_session(ledger_path: pathlib.Path, gates_outcome: SessionGates) -> int:
+    """A session whose fresh gates fail attempts nothing. On a resume the failure is recorded in the
+    ledger as its ``session_gates`` event (opened under its own header); a fresh ledger is never
+    created on a failed gate."""
+    if peek_header(ledger_path) is not None:
+        with open_existing(ledger_path) as ledger:
+            write_session_gates(ledger, gates_outcome, session_identity())
+            print(status_line(ledger))
+    print(f"arms849 status: STOPPED — this session's gates failed: {gates_outcome.error}")
+    return 1
 
 
 def main(argv: list[str]) -> int:
@@ -977,15 +1115,15 @@ def main(argv: list[str]) -> int:
                                 substrate.RUNS_DIR / "preflight.json", cache_dir=substrate.CACHE_DIR)
             print(f"preflight: {', '.join(f'{g.name}={g.passed}' for g in rec.gates)}")
             return 0
-        if args.host_gates:
-            print(f"gate-host.json written: gate_host_sha {host_phase(args.up_ts)}")
-            return 0
         if args.grading_view:
             with open_existing(args.ledger) as ledger:
                 paths = grading.export(ledger, ledger.header.blinding_seed, RUNS_DIR)
             print(f"grading view {paths.view}\nadmin report {paths.admin}\nseal {paths.seal}")
             return 0
         config = live_config(args.secondary)
+        if args.host_gates:
+            print(f"gate-host.json written: gate_host_sha {host_phase(args.up_ts, config)}")
+            return 0
         if args.gates:
             from scripts.research.arms849 import gates
 
@@ -995,8 +1133,11 @@ def main(argv: list[str]) -> int:
                 print(f"  {'PASS' if r.passed else 'FAIL'} {r.name}: {r.detail}")
             print(f"gate_container_sha {sha}")
             return 0
-        binding = live_binding(args.ledger, args.corpus, config, args.up_ts, args.skip_gates)
-        runtime = live_runtime(config, args.corpus)
+        gates_outcome = live_gates(args.ledger, args.corpus, config, args.up_ts, args.skip_gates)
+        if not gates_outcome.passed:
+            return _refuse_session(args.ledger, gates_outcome)
+        binding = binding_for(gates_outcome, args.corpus, config)
+        runtime = live_runtime(config, args.corpus, gates_outcome)
         if args.secondary:
             if args.primary is None:
                 print("harness: REFUSED — --secondary needs --primary <ledger>")
@@ -1005,10 +1146,12 @@ def main(argv: list[str]) -> int:
         else:
             ledger = open_run_ledger(args.ledger, binding)
         with ledger:
-            if args.secondary and not secondary_context_gate(ledger, live_secondary_gate(runtime)):
-                print("arms849 status: STOPPED — the secondary context-window gate failed (see its event row)")
-                return 1
-            report = run_session(ledger, runtime, args.limit, kind)
+            def secondary_gate(led: Ledger) -> str | None:
+                return None if secondary_context_gate(led, live_secondary_gate(runtime)) else \
+                    "the secondary context-window gate failed (see its event row)"
+
+            report = run_session(ledger, runtime, args.limit, kind,
+                                 before_cells=secondary_gate if args.secondary else None)
     except (LedgerBoundToAnotherConfig, LedgerCorrupt, LedgerLocked, UnfrozenCorpus, PrimaryIncomplete,
             grading.ExportRefused, HarnessStopped, RuntimeError) as exc:
         print(f"harness: REFUSED\n{type(exc).__name__}: {exc}")

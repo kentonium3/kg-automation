@@ -116,8 +116,8 @@ class FakeG:
         assert view.links, "G must receive the MENTIONS wiring"
         return scored(letters("G", question.id, ctx.repeat), G_TOKENS, {"path": "anchored", "llm_calls": 0})
 
-    def registration(self) -> h.ArmRegistration:
-        return h.ArmRegistration(answer=self.answer, build_graph=self.build_graph, drop_graph=self.drop_graph)
+    def registration(self, refusal: type[BaseException] = ArmRefusal) -> h.ArmRegistration:
+        return h.ArmRegistration(refusal=refusal, answer=self.answer, build_graph=self.build_graph, drop_graph=self.drop_graph)
 
 
 def fake_d(question: Any, view: Any, ctx: Any) -> dict[str, Any]:
@@ -164,7 +164,7 @@ class FakeR:
         return arm
 
     def registration(self) -> h.ArmRegistration:
-        return h.ArmRegistration(bind=self.bind, calibration_inputs=self.calibration_inputs)
+        return h.ArmRegistration(refusal=ArmRefusal, bind=self.bind, calibration_inputs=self.calibration_inputs)
 
 
 class FakeGtt(GttSampler):
@@ -182,8 +182,14 @@ class FakeRss(RssSampler):
 
 
 def fake_arms(g: FakeG | None = None, r: FakeR | None = None) -> dict[str, h.ArmRegistration]:
-    return {"G": (g or FakeG()).registration(), "D": h.ArmRegistration(answer=fake_d),
+    return {"G": (g or FakeG()).registration(), "D": h.ArmRegistration(refusal=ArmRefusal, answer=fake_d),
             "R": (r or FakeR()).registration()}
+
+
+PASSING_GATES = h.SessionGates(passed=True, gate_host_sha="2" * 64, gate_container_sha="3" * 64,
+                               preflight_sha="1" * 64, up_ts="2026-09-25T00:00:00+00:00",
+                               container_start_ts="2026-09-25T00:01:00+00:00",
+                               details=({"name": "prompt_digest", "passed": True, "detail": "ok"},))
 
 
 def make_runtime(arms: dict[str, h.ArmRegistration], config: serving.ServingConfiguration = PRIMARY,
@@ -192,6 +198,7 @@ def make_runtime(arms: dict[str, h.ArmRegistration], config: serving.ServingConf
         "config": config, "arms": arms, "corpus_dir": CORPUS,
         "facade": lambda deadline, cancelled: types.SimpleNamespace(config=config),
         "health": lambda: True, "gtt_sampler": FakeGtt, "rss_sampler": FakeRss, "out": lambda s: None,
+        "gates": PASSING_GATES,
     }
     base.update(kw)
     return h.Runtime(**base)
@@ -321,7 +328,7 @@ def test_the_identity_check_would_catch_two_caches(tmp_path):
     """Guards the guard: a harness handing bind a fresh dict fails the identity test above."""
     r = FakeR()
     reg = r.registration()
-    broken = h.ArmRegistration(bind=lambda cache: reg.bind({}), calibration_inputs=reg.calibration_inputs)
+    broken = h.ArmRegistration(refusal=ArmRefusal, bind=lambda cache: reg.bind({}), calibration_inputs=reg.calibration_inputs)
     with open_fake(tmp_path / "ledger.jsonl") as ledger:
         h.run_session(ledger, make_runtime({**fake_arms(), "R": broken}))
     assert r.calibration_cache is not r.bind_cache
@@ -534,7 +541,7 @@ def test_nfr004_a_forced_breached_flag_refuses_too(tmp_path):
     path = tmp_path / "ledger.jsonl"
     with open_fake(path) as ledger:
         h.run_session(ledger, make_runtime(fake_arms(), gtt_sampler=Forced), limit=1)
-    assert [x.get("kind") for x in rows_of(path)[1:]] == ["memory_ceiling"]
+    assert [x.get("kind") for x in rows_of(path)[1:]] == ["session_gates", "memory_ceiling"]
 
 
 def test_nfr004_the_ceiling_check_is_not_vacuous(tmp_path):
@@ -574,7 +581,7 @@ def test_nfr002_resuming_a_forty_cell_ledger_reaches_the_next_cell_in_under_30s(
 
     t0 = time.monotonic()
     with open_ledger(path, binding, BLINDING_SEED, h.PRIMARY_PLAN) as ledger:
-        h.run_session(ledger, make_runtime({**fake_arms(), "D": h.ArmRegistration(answer=first)}), limit=1)
+        h.run_session(ledger, make_runtime({**fake_arms(), "D": h.ArmRegistration(refusal=ArmRefusal, answer=first)}), limit=1)
     assert len(runs(path)) == 41 and reached
     assert reached[0] - t0 < 30.0, f"resume took {reached[0] - t0:.1f}s"
 
@@ -600,7 +607,7 @@ def test_secondary_refuses_an_incomplete_primary(tmp_path):
 def test_secondary_refuses_a_primary_with_not_implemented_cells(tmp_path):
     primary = tmp_path / "ledger.jsonl"
     with open_fake(primary) as ledger:
-        h.run_session(ledger, make_runtime({"G": FakeG().registration(), "D": h.ArmRegistration(answer=fake_d)}))
+        h.run_session(ledger, make_runtime({"G": FakeG().registration(), "D": h.ArmRegistration(refusal=ArmRefusal, answer=fake_d)}))
     with pytest.raises(h.PrimaryIncomplete, match="24 not_implemented"):
         _secondary(tmp_path, primary)
 
@@ -691,3 +698,206 @@ def test_live_workers_do_not_leak_threads(tmp_path):
     before = threading.active_count()
     full_run(tmp_path / "ledger.jsonl")
     assert threading.active_count() <= before + 1
+
+
+# --------------------------------------------------------------------------
+# Fix cycle 2 (review-feedback-1.md)
+# --------------------------------------------------------------------------
+
+
+def test_a_registration_without_its_refusal_class_is_refused():
+    """W8-1: the refusal class is required and must be a real, specific exception class."""
+    with pytest.raises(TypeError):
+        h.ArmRegistration(answer=fake_d)                               # type: ignore[call-arg]
+    for bad in (Exception, BaseException, "ArmRefusal", None):
+        with pytest.raises(TypeError):
+            h.ArmRegistration(refusal=bad, answer=fake_d)              # type: ignore[arg-type]
+    with pytest.raises(TypeError, match="exactly one"):
+        h.ArmRegistration(refusal=ArmRefusal)
+
+
+def test_a_renamed_refusal_class_is_still_terminal(tmp_path):
+    """W8-1: identity, not name — the registration carries the class, whatever it is called."""
+    class PermanentDefect(RuntimeError):
+        pass
+
+    g = FakeG(fail=lambda q, ctx: PermanentDefect("cache_prompt off") if q.id == "C1" else None)
+    checks: list[int] = []
+    path = tmp_path / "ledger.jsonl"
+    with open_fake(path) as ledger:
+        h.run_session(ledger, make_runtime({**fake_arms(), "G": g.registration(refusal=PermanentDefect)},
+                                           health=lambda: checks.append(1) or True), limit=1)
+        assert ledger.terminal(RunKey("G", "C1", 1)) == "error"
+    rs = runs(path)
+    assert len(rs) == 1 and rs[0]["error"] == "ArmRefusal: cache_prompt off" and checks == []
+
+
+def test_an_unrelated_class_named_armrefusal_goes_through_the_retry_ladder(tmp_path):
+    """W8-1: a transport error that happens to be called ArmRefusal is infrastructure, not a refusal."""
+    transport = type("ArmRefusal", (ConnectionError,), {})
+    g = FakeG(fail=lambda q, ctx: transport("connection reset") if ctx.attempt == 1 else None)
+    checks: list[int] = []
+    path = tmp_path / "ledger.jsonl"
+    with open_fake(path) as ledger:
+        h.run_session(ledger, make_runtime(fake_arms(g=g), health=lambda: checks.append(1) or True), limit=1)
+    rs = runs(path)
+    assert [x["outcome"] for x in rs] == ["error", "ok"] and checks == [1]
+    assert not rs[0]["error"].startswith("ArmRefusal:"), "the ledger would read the prefix as terminal"
+    assert rs[0]["error"].endswith(".ArmRefusal: connection reset"), rs[0]["error"]
+
+
+def test_a_calibration_record_missing_a_field_is_named(tmp_path):
+    """W8-2: an explicit error naming the field and the ledger — never a bare KeyError."""
+    path = tmp_path / "ledger.jsonl"
+    with open_fake(path) as ledger:
+        h.run_session(ledger, make_runtime(fake_arms()), limit=48)            # all G, all D
+        ledger.write_calibration({"k": 3, "parity": "ok"})
+        with pytest.raises(h.CalibrationRecordInvalid) as exc:
+            h.run_session(ledger, make_runtime(fake_arms()), limit=1)
+    assert "g_medians" in str(exc.value) and str(path) in str(exc.value)
+
+
+class ProbeFacade:
+    def __init__(self, hold_s: float = 0.0) -> None:
+        self.hold_s = hold_s
+        self.sent: list[dict[str, Any]] = []
+
+    def serialize(self, request: bytes, seed: int) -> dict[str, Any]:
+        return {"prompt": "templated", "seed": seed}
+
+    def count_tokens(self, body: dict[str, Any]) -> int:
+        return 363_000
+
+    def complete(self, body: dict[str, Any]) -> Any:
+        self.sent.append(body)
+        time.sleep(self.hold_s)
+        return types.SimpleNamespace(prefill_s=900.0, prompt_tokens=363_000, generation_tok_s=12.0)
+
+
+def _probe(gtt: Callable[[], GttSampler], facade: ProbeFacade) -> dict[str, Any]:
+    runtime = make_runtime(fake_arms(), config=SECONDARY, facade=lambda d, c: facade, gtt_sampler=gtt)
+    return h.live_secondary_gate(runtime, props_n_ctx=lambda: 393_216)()
+
+
+class UnreadableGtt(FakeGtt):
+    def read_once(self) -> float:
+        raise PermissionError("sysfs")
+
+
+class RisingGtt(FakeGtt):
+    """Under the ceiling at the start, over it once the request is in flight."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.n = 0
+
+    def read_once(self) -> float:
+        self.n += 1
+        return 30.0 if self.n == 1 else 60.0
+
+
+def test_secondary_probe_refuses_before_sending_over_the_ceiling(tmp_path):
+    """M2: FakeGtt(58.0) → no request, gate fails, the event is recorded."""
+    primary = tmp_path / "ledger.jsonl"
+    full_run(primary)
+    facade = ProbeFacade()
+    runtime = make_runtime(fake_arms(), config=SECONDARY, facade=lambda d, c: facade,
+                           gtt_sampler=lambda: FakeGtt(58.0))
+    with h.open_secondary(primary, tmp_path / "secondary.jsonl", make_binding(SECONDARY)) as ledger:
+        assert not h.secondary_context_gate(ledger, h.live_secondary_gate(runtime, props_n_ctx=lambda: 393_216))
+    assert facade.sent == []
+    gate = [x for x in rows_of(tmp_path / "secondary.jsonl") if x.get("kind") == "secondary_context_gate"]
+    assert gate[0]["detail"]["passed"] is False and gate[0]["detail"]["sent"] is False
+
+
+def test_secondary_probe_at_the_ceiling_or_unreadable_sends_nothing():
+    for gtt in (lambda: FakeGtt(57.5), UnreadableGtt):
+        facade = ProbeFacade()
+        result = _probe(gtt, facade)
+        assert result["passed"] is False and result["sent"] is False and facade.sent == []
+
+
+def test_secondary_probe_fails_when_the_window_breaches_during_the_request():
+    facade = ProbeFacade(hold_s=1.3)                  # the 1 Hz sampler reads again mid-request
+    result = _probe(RisingGtt, facade)
+    assert len(facade.sent) == 1 and result["gtt_breached"] is True and result["passed"] is False
+
+
+def test_secondary_probe_passes_under_the_ceiling():
+    facade = ProbeFacade()
+    result = _probe(lambda: FakeGtt(57.4), facade)
+    assert result["passed"] is True and len(facade.sent) == 1 and result["peak_gtt_gib"] == 57.4
+
+
+@pytest.mark.parametrize(("flag", "n_ctx", "rope"), [([], 262_144, "none"), (["--secondary"], 393_216, "yarn")])
+def test_host_gates_derive_expectations_from_the_selected_configuration(monkeypatch, flag, n_ctx, rope):
+    """M3, through the CLI: the host phase expects what the selected configuration serves."""
+    from scripts.research.arms849 import gates
+
+    seen: list[Any] = []
+    monkeypatch.setattr(h, "live_config", lambda secondary: SECONDARY if secondary else PRIMARY)
+    monkeypatch.setattr(h, "_IN_CONTAINER", False)
+    monkeypatch.setattr(gates, "run_host_phase", lambda env, out: (seen.append(env), ([], "f" * 64))[1])
+    assert h.main(["harness", "--host-gates", "--up-ts", "2026-09-25T00:00:00+00:00", *flag]) == 0
+    assert (seen[0].expect_n_ctx, seen[0].expect_rope) == (n_ctx, rope)
+    assert seen[0].expected_chat_template_sha256 == IDENTITY.chat_template_sha256
+
+
+def test_a_skip_gates_primary_can_never_open_a_secondary(tmp_path):
+    """:715 — a development ledger is never a primary, however complete."""
+    primary = tmp_path / "dev.jsonl"
+    binding = h.live_binding(primary, CORPUS, PRIMARY, "", skip_gates=True)
+    with open_ledger(primary, binding, BLINDING_SEED, h.PRIMARY_PLAN) as ledger:
+        h.run_session(ledger, make_runtime(fake_arms()))
+        assert grading.is_complete(ledger)[0]
+    with pytest.raises(h.PrimaryIncomplete, match="skip-gates"):
+        h.open_secondary(primary, tmp_path / "secondary.jsonl", make_binding(SECONDARY))
+    assert not (tmp_path / "secondary.jsonl").exists()
+
+
+def test_every_session_begins_with_its_own_session_gates_event(tmp_path):
+    """M1 (harness side): the creating and every resumed session record fresh gates, with a session
+    identifier, before their first attempt."""
+    path = tmp_path / "ledger.jsonl"
+    for _ in range(2):
+        with open_fake(path) as ledger:
+            h.run_session(ledger, make_runtime(fake_arms()), limit=3)
+    rows = rows_of(path)[1:]
+    gates_at = [i for i, x in enumerate(rows) if x.get("kind") == "session_gates"]
+    starts = [i for i, x in enumerate(rows) if x.get("record") == "attempt_start"]
+    assert len(gates_at) == 2 and gates_at[0] == 0
+    assert gates_at[0] < starts[0] and starts[2] < gates_at[1] < starts[3]
+    d0, d1 = rows[gates_at[0]]["detail"], rows[gates_at[1]]["detail"]
+    assert d0["session_id"] != d1["session_id"] and d0["pid"] and d0["opened_at"]
+    for d in (d0, d1):
+        assert d["passed"] is True and d["gate_host_sha"] == "2" * 64 and d["gate_container_sha"] == "3" * 64
+        assert d["up_ts"] and d["container_start_ts"] and d["details"][0]["name"] == "prompt_digest"
+
+
+def test_a_failing_session_gate_writes_the_event_and_attempts_nothing(tmp_path):
+    path = tmp_path / "ledger.jsonl"
+    failing = h.SessionGates(passed=False, up_ts="2026-09-25T00:00:00+00:00",
+                             error="GatesRefused: container phase refused: env_clean")
+    with open_fake(path) as ledger:
+        report = h.run_session(ledger, make_runtime(fake_arms(), gates=failing), limit=3)
+    rows = rows_of(path)[1:]
+    assert [x.get("kind") for x in rows] == ["session_gates"]
+    assert rows[0]["detail"]["passed"] is False and "env_clean" in rows[0]["detail"]["error"]
+    assert rows[0]["detail"]["session_id"]
+    assert report.stopped and "gates failed" in report.stopped
+
+
+def test_a_resumed_live_session_with_failing_gates_records_them_and_stops(tmp_path, monkeypatch):
+    """Through the CLI: a resume whose fresh gates fail writes session_gates (passed false) into the
+    existing ledger and attempts nothing; with no ledger yet, nothing is created."""
+    path = tmp_path / "ledger.jsonl"
+    with open_fake(path) as ledger:
+        h.run_session(ledger, make_runtime(fake_arms()), limit=2)
+    before = len(rows_of(path))
+    monkeypatch.setattr(h, "live_config", lambda secondary: PRIMARY)
+    monkeypatch.setattr(h, "live_gates", lambda *a, **k: h.SessionGates(passed=False, error="GatesRefused: boundary"))
+    assert h.main(["harness", "--ledger", str(path)]) == 1
+    rows = rows_of(path)
+    assert len(rows) == before + 1 and rows[-1]["kind"] == "session_gates" and rows[-1]["detail"]["passed"] is False
+    fresh = tmp_path / "fresh.jsonl"
+    assert h.main(["harness", "--ledger", str(fresh)]) == 1 and not fresh.exists()
