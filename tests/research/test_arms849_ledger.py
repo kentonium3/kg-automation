@@ -609,7 +609,8 @@ def test_binding_carries_the_two_gate_shas_and_refuses_on_each(tmp_path):
 
 
 @pytest.mark.parametrize("field", ["preflight_sha", "gate_host_sha", "gate_container_sha"])
-@pytest.mark.parametrize("bad", [None, "", "g" * 64, "a" * 63, "A" * 64, 12], ids=["none", "empty", "nonhex", "short", "upper", "int"])
+@pytest.mark.parametrize("bad", [None, "", "g" * 64, "a" * 63, "A" * 64, 12, "a" * 64 + "\n", "\n" + "a" * 64, "a" * 64 + " "],
+                         ids=["none", "empty", "nonhex", "short", "upper", "int", "trailing-newline", "leading-newline", "trailing-space"])
 def test_gate_shas_are_validated_on_creation_and_on_resume(tmp_path, field, bad):
     """Codex c7: a required sha that is None, a placeholder or the wrong length is refused —
     at creation (from_environment) and on resume (a header carrying it is corrupt)."""

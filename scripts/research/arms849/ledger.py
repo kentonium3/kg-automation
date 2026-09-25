@@ -84,13 +84,14 @@ def _utc_now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
-_SHA256 = re.compile(r"^[0-9a-f]{64}$")
+_SHA256 = re.compile(r"[0-9a-f]{64}")  # used with fullmatch: `$` would admit a trailing newline (Codex c9)
 
 
 def _require_sha256(name: str, value: Any) -> None:
     """A gate record sha is a lowercase 64-hex string — None, a placeholder or the wrong length is
-    a missing binding wearing a value (Codex WP03 c7)."""
-    if not isinstance(value, str) or not _SHA256.match(value):
+    a missing binding wearing a value (Codex WP03 c7). ``fullmatch``, not ``$``: a 65-byte
+    "<hex>\\n" is not a digest either (Codex WP03 c9)."""
+    if not isinstance(value, str) or not _SHA256.fullmatch(value):
         raise ValueError(f"{name} must be a 64-hex sha256, got {value!r}")
 
 
