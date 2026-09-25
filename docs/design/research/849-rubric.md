@@ -135,12 +135,17 @@ Eight, from the worksheet (`docs/design/research/849-lattice-scenario-arcs.md@f3
 | F2 | F | 2026-09-25T09:00:00-04:00 | When should this have been caught? |
 | B2 | B | 2026-10-16T09:00:00-04:00 | Why did I miss sub-10? |
 
-**Question manifest (A4).** The eight rows above, in this order, are the oracle-free registry the
-harness reads; the manifest digest is the sha256 of the eight JSON lines
-`{"ask_time": …, "question": …, "question_text": …}` (keys sorted, one line each, LF, UTF-8):
-`4864c31ccb1cc372229bcd808a4136a493d91b6c842c3ac018defa3537f97dfe`. The harness refuses if its
-manifest digest differs; the oracle files' `question_text`/`ask_time` must equal these rows
-(checked by `check_849_oracle`, in the full checkout, never in the run environment).
+**Question manifest (A4; serialisation made explicit and digest re-registered 2026-09-25
+00:22Z).** The eight rows above, in this order, are the oracle-free registry the harness reads.
+Serialisation rule: for each row, the object `{"question": <id>, "ask_time": <the "T"-form ISO
+string exactly as printed in the table>, "question_text": <verbatim>}`, rendered with
+`json.dumps(row, sort_keys=True, ensure_ascii=False)`; the eight lines joined with `\n` plus one
+trailing `\n`; sha256 of the UTF-8 bytes =
+`fe17beef263777261e5d623ed8362ebaaada60ffbb0fd20b10b1f4d7a820c462`. (The earlier value
+`4864c31c…` was computed on the oracle files' space-form timestamps and is withdrawn.) The
+harness refuses if its manifest digest differs; the oracle files' `question_text`/`ask_time`
+must equal these rows (checked by `check_849_oracle`, in the full checkout, never in the run
+environment).
 
 Each question's oracle block is the worksheet's `must_identify` list plus its explicit wrong
 answers, held in the hidden oracle artifact and **never loaded into any arm**.
@@ -366,4 +371,4 @@ harness code, `results/<run>.json`, grading sheet. Findings are written against 
 | A1 | 2026-09-24 18:15 | Entity allowlist (`arcs` stripped); `loader_links.jsonl` written, G-only; loader gate added; §2 replay rules, prompt layout, measured prefix tokens (B2 = 362,772) | loader-side structural pass found L12 and L13; prefix figure was a prose-ratio estimate | `c0b35cd1` |
 | A2 | 2026-09-24 18:20 | Arm D: native config, `exceeds_model_context` outcome on six questions, pre-registered expected result; D-YaRN secondary; §7 reading | ruled model's trained context is 262,144 tokens; six D prompts exceed it (Kent ruled the design lead's recommendation) | `c0b35cd1` (no corpus change) |
 | A3 | 2026-09-24 19:20 | §3.2 the fixed prompt (registered text); §2 G query plan (anchors from question text, 60-item cap) and R k procedure (once, from G repeat-1 medians); §5 reporting at context length, cache hit rate load-bearing | the arms cannot be built without these registered; gate (b) measured non-linear prefill | `c0b35cd1` (no corpus change) |
-| A4 | 2026-09-25 00:05 | §2 R = records always + top-k events, deterministic k, calibration record, halt rule; three context limits; §3 canonical question manifest + digest; §3.2 prompt digest + normalisation; §5 cache labelling by observed reuse, telemetry mapping, tokenizer equivalence, two memory windows | Codex post-plan checkpoint (7 blockers / 17 majors on arms-run-01M3APTA plan): three contested rubric readings and four contract gaps were on the rubric side | `c0b35cd1` (no corpus change) |
+| A4 | 2026-09-25 00:05 (manifest digest re-registered 00:22 on the T-form timestamps: `fe17beef…`) | §2 R = records always + top-k events, deterministic k, calibration record, halt rule; three context limits; §3 canonical question manifest + digest; §3.2 prompt digest + normalisation; §5 cache labelling by observed reuse, telemetry mapping, tokenizer equivalence, two memory windows | Codex post-plan checkpoint (7 blockers / 17 majors on arms-run-01M3APTA plan): three contested rubric readings and four contract gaps were on the rubric side | `c0b35cd1` (no corpus change) |
