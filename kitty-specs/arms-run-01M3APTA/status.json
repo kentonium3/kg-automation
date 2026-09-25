@@ -1,19 +1,19 @@
 {
-  "event_count": 77,
-  "last_event_id": "01M3B4VTJMV0FX14ARYCFD3T42",
-  "materialized_at": "2026-09-25T02:03:45.620601+00:00",
+  "event_count": 78,
+  "last_event_id": "01M3B4W5N975TSYC16PNV73VW3",
+  "materialized_at": "2026-09-25T02:03:56.970025+00:00",
   "mission_number": "",
   "mission_slug": "arms-run-01M3APTA",
   "mission_type": "software-dev",
   "summary": {
-    "approved": 0,
+    "approved": 1,
     "blocked": 0,
     "canceled": 0,
     "claimed": 0,
     "done": 0,
     "for_review": 1,
     "in_progress": 0,
-    "in_review": 1,
+    "in_review": 0,
     "planned": 7
   },
   "work_packages": {
@@ -23,9 +23,9 @@
       "agent_profile": "__resolved_profile_absent__",
       "agent_profile_version": "__resolved_profile_version_absent__",
       "force_count": 4,
-      "lane": "in_review",
-      "last_event_id": "01M3B4VTJMV0FX14ARYCFD3T42",
-      "last_transition_at": "2026-09-25T02:03:45.620601+00:00",
+      "lane": "approved",
+      "last_event_id": "01M3B4W5N975TSYC16PNV73VW3",
+      "last_transition_at": "2026-09-25T02:03:56.970025+00:00",
       "model": "__resolved_model_absent__",
       "notes": [
         "WP01 shared contracts: 27 tests green, ruff/mypy clean, static scan clean; six-of-eight reproduced on exact requests",
@@ -38,10 +38,9 @@
       "provider": "__resolved_provider_absent__",
       "review": null,
       "review_result": {
-        "feedback_path": "/home/kgale/repos/kg-automation/kitty-specs/arms-run-01M3APTA/tasks/WP01-shared-contracts/review-cycle-5.md",
-        "reference": "review-cycle://arms-run-01M3APTA/WP01-shared-contracts/review-cycle-5.md",
-        "reviewer": "claude",
-        "verdict": "changes_requested"
+        "reference": "auto-approval:WP01:20260925",
+        "reviewer": "Kent Gale",
+        "verdict": "approved"
       },
       "role": "reviewer",
       "shell_pid": 1458776,
