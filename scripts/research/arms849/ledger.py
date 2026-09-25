@@ -154,11 +154,14 @@ class Binding:
     run_env_manifest_sha: str
     code_hashes: dict[str, str]
     preflight_sha: str
+    gate_host_sha: str            # the HOST-phase gate record (design-lead ruling 2026-09-25)
+    gate_container_sha: str       # the CONTAINER-phase gate record
 
     @classmethod
     def from_environment(cls, corpus_dir: pathlib.Path, serving: dict[str, Any],
                          limit_applied: str, run_env_commit: str, run_env_manifest_sha: str,
-                         preflight_sha: str, repo_root: pathlib.Path | None = None,
+                         preflight_sha: str, gate_host_sha: str, gate_container_sha: str,
+                         repo_root: pathlib.Path | None = None,
                          model_context_tokens: int | None = None) -> Binding:
         corpus = {name: fingerprint(pathlib.Path(corpus_dir) / name)
                   for name in REGISTRATION["files"] if (pathlib.Path(corpus_dir) / name).exists()}
@@ -172,7 +175,8 @@ class Binding:
             serving=dict(serving), model_context_tokens=int(model_context_tokens or serving.get("n_ctx") or 0),
             limit_applied=limit_applied, run_env_commit=run_env_commit,
             run_env_manifest_sha=run_env_manifest_sha, code_hashes=code_hashes(repo_root),
-            preflight_sha=preflight_sha,
+            preflight_sha=preflight_sha, gate_host_sha=gate_host_sha,
+            gate_container_sha=gate_container_sha,
         )
 
     def as_dict(self) -> dict[str, Any]:
@@ -562,6 +566,9 @@ def _open_locked(path: pathlib.Path, binding: Binding, blinding_seed: int, plan:
     rows, torn_kind, offset = _scan(path)
     if not rows or rows[0].get("record") != "header":
         raise LedgerCorrupt(f"{path}: first line is not a header")
+    missing_fields = [f for f in Binding.__dataclass_fields__ if f not in rows[0]]
+    if missing_fields:
+        raise LedgerCorrupt(f"{path}: header lacks binding field(s) {missing_fields} — every gate sha is required")
     header = Header.from_dict(rows[0])
     differences = {k: (getattr(header.binding, k), getattr(binding, k))
                    for k in Binding.__dataclass_fields__ if getattr(header.binding, k) != getattr(binding, k)}

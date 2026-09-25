@@ -45,8 +45,8 @@ def score_all_g_repeat1(led):
 def binding(**over) -> L.Binding:
     cfg = S.ServingConfiguration.primary(IDENT)
     b = L.Binding.from_environment(DEFAULT_CORPUS, cfg.as_header_dict(), "trained", "c0ffee",
-                                   "export-sha", "preflight-sha", repo_root=REPO_ROOT,
-                                   model_context_tokens=S.TRAINED_CONTEXT)
+                                   "export-sha", "preflight-sha", "host-sha", "container-sha",
+                                   repo_root=REPO_ROOT, model_context_tokens=S.TRAINED_CONTEXT)
     if over:
         d = b.as_dict(); d.update(over); b = L.Binding(**d)
     return b
@@ -223,7 +223,7 @@ def test_second_writer_is_refused_while_the_first_holds_the_lock(tmp_path):
             from scripts.research.arms849 import serving as S
             b = L.Binding.from_environment({str(DEFAULT_CORPUS)!r}, S.ServingConfiguration.primary(
                 S.ServingIdentity("gguf", "sha256:img", "emb", "tok", "c" * 64)).as_header_dict(), "trained",
-                "c0ffee", "export-sha", "preflight-sha", repo_root={str(REPO_ROOT)!r},
+                "c0ffee", "export-sha", "preflight-sha", "host-sha", "container-sha", repo_root={str(REPO_ROOT)!r},
                 model_context_tokens=S.TRAINED_CONTEXT)
             try:
                 L.open_ledger({str(tmp_path / 'ledger.jsonl')!r}, b, 7, 72); print("OPENED")
@@ -582,3 +582,25 @@ def test_measurements_must_be_finite_non_negative_numbers(tmp_path, bad):
         if isinstance(bad, float):
             with pytest.raises(ValueError, match="r_g_ratio"):
                 rec(led, kr, "ok", {**ok_row(arm="R"), "r_g_ratio": bad})
+
+
+@pytest.mark.parametrize("dropped", ["preflight_sha", "gate_host_sha", "gate_container_sha"])
+def test_header_missing_a_gate_sha_is_refused(tmp_path, dropped):
+    """Design-lead ruling (2026-09-25): the header binds all three gate records; a header
+    without one is corrupt — never opened, never resumed (test c)."""
+    with fresh(tmp_path):
+        pass
+    p = tmp_path / "ledger.jsonl"
+    lines = p.read_text().splitlines()
+    head = json.loads(lines[0]); del head[dropped]
+    p.write_text("\n".join([json.dumps(head), *lines[1:]]) + "\n")
+    with pytest.raises(L.LedgerCorrupt, match=dropped):
+        fresh(tmp_path)
+
+
+def test_binding_carries_the_two_gate_shas_and_refuses_on_each(tmp_path):
+    with fresh(tmp_path):
+        pass
+    for field in ("gate_host_sha", "gate_container_sha"):
+        with pytest.raises(L.LedgerBoundToAnotherConfig, match=field):
+            fresh(tmp_path, **{field: "other"})
