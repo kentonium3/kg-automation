@@ -1,19 +1,19 @@
 {
-  "event_count": 214,
-  "last_event_id": "01M3BE1ZJ3TCBXCZRXF2ED4S9B",
-  "materialized_at": "2026-09-25T04:44:24.515557+00:00",
+  "event_count": 215,
+  "last_event_id": "01M3BE2B66HBNVWJEG1F1ZQXAE",
+  "materialized_at": "2026-09-25T04:44:36.422169+00:00",
   "mission_number": "",
   "mission_slug": "arms-run-01M3APTA",
   "mission_type": "software-dev",
   "summary": {
-    "approved": 3,
+    "approved": 4,
     "blocked": 0,
     "canceled": 0,
     "claimed": 0,
     "done": 0,
     "for_review": 1,
     "in_progress": 2,
-    "in_review": 1,
+    "in_review": 0,
     "planned": 2
   },
   "work_packages": {
@@ -213,9 +213,9 @@
       "agent_profile": "__resolved_profile_absent__",
       "agent_profile_version": "__resolved_profile_version_absent__",
       "force_count": 1,
-      "lane": "in_review",
-      "last_event_id": "01M3BE1ZJ3TCBXCZRXF2ED4S9B",
-      "last_transition_at": "2026-09-25T04:44:24.515557+00:00",
+      "lane": "approved",
+      "last_event_id": "01M3BE2B66HBNVWJEG1F1ZQXAE",
+      "last_transition_at": "2026-09-25T04:44:36.422169+00:00",
       "model": "__resolved_model_absent__",
       "notes": [
         "arm D: six/zero split measured; B2 = 363,004 tokens; Codex out of credits -> Opus fallback review",
@@ -224,10 +224,9 @@
       "provider": "__resolved_provider_absent__",
       "review": null,
       "review_result": {
-        "feedback_path": "/home/kgale/repos/kg-automation/kitty-specs/arms-run-01M3APTA/tasks/WP06-arm-d/review-cycle-1.md",
-        "reference": "review-cycle://arms-run-01M3APTA/WP06-arm-d/review-cycle-1.md",
-        "reviewer": "claude",
-        "verdict": "changes_requested"
+        "reference": "auto-approval:WP06:20260925",
+        "reviewer": "Kent Gale",
+        "verdict": "approved"
       },
       "role": "reviewer",
       "shell_pid": 2081166,
