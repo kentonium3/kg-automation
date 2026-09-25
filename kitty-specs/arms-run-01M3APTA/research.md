@@ -136,13 +136,27 @@ checkpoint (D-7..D-9). No `[NEEDS CLARIFICATION]` markers remain.
   (rejected — a tracked directory cannot be absent); chroot/user separation (viable but the
   container already exists for the services and is the simpler proof).
 
+**Dated note (2026-09-25, design-lead ruling on the WP02 review loop):** the static scan
+under FR-013 is *defense in depth* — its scope is **literal structure only**: every expression
+built from literals and operators is evaluated by Python itself, in a child process under
+memory/CPU/time limits that fail closed, with the pure/opaque split computed over
+`ast.expr.__subclasses__()` and asserted by test. A module that assembles a forbidden path at
+runtime through names, calls, attributes or comprehensions is outside the scan's scope **and
+still cannot read anything**: the **runtime boundary is load-bearing** — the export physically
+lacks the excluded material and the in-container self-test proves every excluded path absent
+under every data mount, every mount's type/source/content, and the host checkout unreachable.
+A review finding of a further evaluator construction is recorded as out of scope; a finding
+against the runtime boundary is folded (as c10's docker `/etc` bind identity was).
+
 ## D-9 — Sandbox envelope on office4 (implementer's call; FR-018 — recorded BEFORE any container runs)
 
 - **Compose project**: `arms849`. **Network**: `arms849-net` (bridge, internal). **Volumes**:
   `arms849-falkor` (FalkorDB data; dropped at teardown). **Ports** (all bound to `127.0.0.1`
   only — never a tailnet interface): FalkorDB `16379`, llama-server `18080`. **Images**: FalkorDB
-  `falkordb/falkordb@sha256:9042fdc4…` (the #974/#976 digest, full value verified at setup and
-  recorded in the run record); llama.cpp `ghcr.io/ggml-org/llama.cpp@sha256:063e88aef1c168cf4a0a4b3a7983604561f96870a3c4953bd1fad908b4e41716`.
+  `falkordb/falkordb@sha256:9042fdc4…` (the prefix #974 recorded; **dated correction 2026-09-25:**
+  `setup` pins the `v4.20.1` tag's resolved digest `sha256:1ec88626…` — the prefix does NOT match,
+  the mismatch is recorded in `setup.json` (`falkordb_digest_note`), and the resolved digest is
+  the one that runs; the original line is kept as history); llama.cpp `ghcr.io/ggml-org/llama.cpp@sha256:063e88aef1c168cf4a0a4b3a7983604561f96870a3c4953bd1fad908b4e41716`.
   **Model**: `~/models/gguf/unsloth/Qwen3-Next-80B-A3B-Instruct-GGUF/…UD-Q4_K_XL.gguf` mounted
   read-only. **Resource ceiling**: peak GTT ≤ 57.5 GiB (NFR-004; measured 51.33 at n_ctx
   262,144); `--parallel 1`; `/dev/dri` with render gid 992. **Duration**: the primary and
