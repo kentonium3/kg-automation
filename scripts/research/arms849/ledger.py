@@ -50,7 +50,7 @@ from scripts.research.load_849_corpus import (
 __all__ = [
     "ARMS", "MAX_ATTEMPTS", "OUTCOMES", "REPEATS", "SCORED_OUTCOME",
     "AttemptsExhausted", "Binding", "Header", "Ledger", "LedgerBoundToAnotherConfig",
-    "LedgerClosed", "LedgerCorrupt", "LedgerLocked", "RunKey", "SecondScoredRow", "open_ledger", "plan_keys",
+    "LedgerClosed", "LedgerCorrupt", "LedgerLocked", "LedgerWriteFailed", "RunKey", "SecondScoredRow", "open_ledger", "plan_keys",
 ]
 
 ARMS = ("G", "D", "R")
@@ -126,6 +126,12 @@ class LedgerCorrupt(RuntimeError):
 
 class LedgerClosed(RuntimeError):
     """An append after close(): the lock is no longer held, so the write is not ours to make."""
+
+
+class LedgerWriteFailed(RuntimeError):
+    """An append hit an I/O error. The line may or may not have reached disk, so the in-memory rows
+    can no longer be trusted: the ledger is poisoned, every further write is refused and the lock
+    is released. Reopen it — the file is the only truth (Codex WP03 c14)."""
 
 
 class AttemptsExhausted(RuntimeError):
@@ -286,6 +292,7 @@ class Ledger:
         self._header = Header.from_dict(copy.deepcopy(header.as_dict()))
         self._rows = rows
         self._lock_fd = lock_fd
+        self._failed: str | None = None          # set by the first append I/O failure; never cleared
 
     @property
     def header(self) -> Header:
@@ -314,16 +321,28 @@ class Ledger:
         """One JSON line, flushed and fsynced before returning (NFR-001); never after close().
         ``keep=False`` writes the header without making it a row: ``rows`` is the same on a
         fresh and a resumed ledger."""
+        if self._failed is not None:
+            raise LedgerWriteFailed(f"{self.path}: {self._failed}")
         if self._lock_fd < 0:
             raise LedgerClosed(f"{self.path}: ledger is closed; the lock is not held")
         try:
             line = json.dumps(record, sort_keys=True)          # no default=str: a set or datetime is refused
         except TypeError as exc:
             raise ValueError(f"payload is not JSON-serialisable: {exc}") from exc
-        with self.path.open("a", encoding="utf-8") as fh:
-            fh.write(line + "\n")
-            fh.flush()
-            os.fsync(fh.fileno())
+        try:
+            with self.path.open("a", encoding="utf-8") as fh:
+                fh.write(line + "\n")
+                fh.flush()
+                os.fsync(fh.fileno())
+        except OSError as exc:
+            # An fsync failure after a successful flush leaves the row on disk but absent from
+            # `_rows`; a retry then records a second `ok` row and both average after resume
+            # (Codex WP03 c14). Whether or not the line landed, memory and disk may now differ,
+            # so the ledger is poisoned: writes refused, lock released, reopen re-reads the file.
+            self._failed = (f"append failed ({exc.__class__.__name__}: {exc}); the row may or may not "
+                            f"be on disk — reopen the ledger, the file is the truth")
+            self.close()
+            raise LedgerWriteFailed(f"{self.path}: {self._failed}") from exc
         if keep:
             self._rows.append(json.loads(line))
 
@@ -342,6 +361,13 @@ class Ledger:
 
     def begin_attempt(self, key: RunKey) -> int:
         """Append the attempt_start row BEFORE anything happens (D-12); return the attempt number."""
+        n = self._check_attempt_start(key)
+        self._append({"record": "attempt_start", **key.as_dict(), "attempt": n, "ts": _utc_now()})
+        return n
+
+    def _check_attempt_start(self, key: RunKey) -> int:
+        """The invariants an attempt_start row must satisfy against the rows so far; returns the
+        attempt number. Shared by begin_attempt() and the resume replay (Codex WP03 c14)."""
         if self._terminal_row(key) is not None:
             raise SecondScoredRow(f"{key} is already terminal ({self._terminal_row(key)})")
         if self.terminal(key) == "error" and self.attempts_for(key) < MAX_ATTEMPTS:
@@ -351,7 +377,6 @@ class Ledger:
             # Three attempts begun and none terminal: exhausted (FR-007, D-12) — the harness
             # catches THIS type, so it must be the one raised (Opus WP03 c10).
             raise AttemptsExhausted(f"{key} already used {MAX_ATTEMPTS} attempts")
-        self._append({"record": "attempt_start", **key.as_dict(), "attempt": n, "ts": _utc_now()})
         return n
 
     def record(self, key: RunKey, outcome: Outcome, row: dict[str, Any],
@@ -359,6 +384,20 @@ class Ledger:
         """Append the ONE `run` row for the current attempt, enforcing I2–I4, serving equality
         and the scored-row telemetry contract. Authoritative fields are set last so a payload
         can never overwrite them; carrying one is refused outright."""
+        attempt = self._check_run(key, outcome, row, serving)
+        full = {**row, "record": "run", **key.as_dict(), "attempt": attempt, "outcome": outcome,
+                "serving": serving, "ts": _utc_now()}
+        if outcome == SCORED_OUTCOME:
+            full["truncated"] = row["finish_reason"] == "length"     # derived, never supplied
+        self._append(full)
+        return copy.deepcopy(self._rows[-1])                          # the round-tripped row, as persisted
+
+    def _check_run(self, key: RunKey, outcome: Outcome, row: dict[str, Any],
+                   serving: dict[str, Any]) -> int:
+        """Every invariant a run row must satisfy against the rows so far (I2–I4, serving
+        equality, the telemetry contract, D-10/D-11 ordering); returns the attempt number.
+        Shared by record() and the resume replay, so a persisted row the ledger would have
+        refused to write is refused on read (Codex WP03 c14)."""
         if outcome not in OUTCOMES:
             raise ValueError(f"unknown outcome {outcome!r}")
         reserved = RESERVED_RUN_FIELDS & set(row)
@@ -434,12 +473,7 @@ class Ledger:
                 if not ok_ratio:
                     raise ValueError(f"r_g_ratio must be a positive number or 'unavailable:<reason>', got {ratio!r} (D-10)")
         _require_measurement("elapsed_s", row["elapsed_s"])
-        full = {**row, "record": "run", **key.as_dict(), "attempt": attempt, "outcome": outcome,
-                "serving": serving, "ts": _utc_now()}
-        if outcome == SCORED_OUTCOME:
-            full["truncated"] = row["finish_reason"] == "length"     # derived, never supplied
-        self._append(full)
-        return copy.deepcopy(self._rows[-1])                          # the round-tripped row, as persisted
+        return attempt
 
     def _terminal_row(self, key: RunKey) -> Outcome | None:
         """A recorded outcome that ends the key (ok / exceeds / not_implemented), or None."""
@@ -475,6 +509,11 @@ class Ledger:
 
     def write_calibration(self, calibration: dict[str, Any]) -> None:
         """Once, and only after every G repeat-1 cell is scored (k comes from their medians, A3)."""
+        self._check_calibration(calibration)
+        self._append({**calibration, "record": "calibration", "ts": _utc_now()})
+
+    def _check_calibration(self, calibration: dict[str, Any]) -> None:
+        """Shared by write_calibration() and the resume replay (Codex WP03 c14)."""
         if self.calibration() is not None:
             raise ValueError("a calibration record already exists; it is written once")
         unscored = [q.id for q in questions_mod.QUESTIONS if self.terminal(RunKey("G", q.id, 1)) != SCORED_OUTCOME]
@@ -483,7 +522,6 @@ class Ledger:
         reserved = RESERVED_CALIBRATION_FIELDS & set(calibration)
         if reserved:
             raise ValueError(f"calibration payload carries ledger-authored fields {sorted(reserved)}")
-        self._append({**calibration, "record": "calibration", "ts": _utc_now()})
 
     def calibration(self) -> dict[str, Any] | None:
         found = next((r for r in self._rows if r.get("record") == "calibration"), None)
@@ -557,6 +595,58 @@ class Ledger:
 # --------------------------------------------------------------------------
 
 
+_UNPARSED = object()          # json.loads raised — distinct from a line that parsed to None
+_RECORD_KINDS = ("attempt_start", "run", "calibration", "event")
+
+
+def _replay_validate(path: pathlib.Path, header: Header, rows: list[dict[str, Any]]) -> None:
+    """Resume re-derives, row by row in file order, every invariant begin_attempt(), record() and
+    write_calibration() enforce on write, so a persisted row the ledger would have refused to
+    write — outcome "banana", an R `ok` row with no calibration record before it, a D row under
+    the other limit, a run with no attempt_start, a retried refusal — is refused on read instead
+    of reaching grading and averaging (Codex WP03 c14). Runs on the SCANNED rows before any
+    repair: an invalid ledger is never modified by the opener that refuses it."""
+    shadow = Ledger(path, header, [], -1)          # never writes: lock_fd -1, rows appended by hand
+    for i, row in enumerate(rows, start=2):         # line 1 is the header
+        kind = row.get("record")
+        try:
+            if not isinstance(row.get("ts"), str) or not row["ts"]:
+                raise ValueError("record carries no ts")
+            if kind == "attempt_start":
+                key = RunKey.of(row)
+                n = shadow._check_attempt_start(key)
+                if row.get("attempt") != n:
+                    raise ValueError(f"attempt_start carries attempt {row.get('attempt')!r}, expected {n}")
+            elif kind == "run":
+                key = RunKey.of(row)
+                outcome = row.get("outcome")
+                if outcome not in OUTCOMES:
+                    raise ValueError(f"unknown outcome {outcome!r}")
+                payload = {k: v for k, v in row.items() if k not in RESERVED_RUN_FIELDS}
+                serving = row.get("serving")
+                if not isinstance(serving, dict):
+                    raise ValueError("run row carries no serving configuration")
+                attempt = shadow._check_run(key, outcome, payload, serving)
+                if row.get("attempt") != attempt:
+                    raise ValueError(f"run row carries attempt {row.get('attempt')!r}, expected {attempt}")
+                if outcome == SCORED_OUTCOME:
+                    if row.get("truncated") is not (payload["finish_reason"] == "length"):
+                        raise ValueError("truncated disagrees with finish_reason (it is derived, never supplied)")
+                elif "truncated" in row:
+                    raise ValueError("truncated on a non-scored row")
+            elif kind == "calibration":
+                shadow._check_calibration({k: v for k, v in row.items() if k not in RESERVED_CALIBRATION_FIELDS})
+            elif kind == "event":
+                if not isinstance(row.get("kind"), str) or not row["kind"]:
+                    raise ValueError("event carries no kind")
+            else:
+                raise ValueError(f"unknown record kind {kind!r} (expected one of {_RECORD_KINDS})")
+        except (ValueError, KeyError, TypeError, SecondScoredRow, AttemptsExhausted,
+                LedgerBoundToAnotherConfig) as exc:
+            raise LedgerCorrupt(f"line {i} of {path} violates the ledger contract on resume: {exc}") from None
+        shadow._rows.append(row)
+
+
 def _scan(path: pathlib.Path) -> tuple[list[dict[str, Any]], str | None, int]:
     """Parse every line WITHOUT touching the file. Returns (rows, torn_kind, byte offset of
     the torn/unterminated final line). Exactly one torn FINAL line is tolerated; interior
@@ -571,19 +661,18 @@ def _scan(path: pathlib.Path) -> tuple[list[dict[str, Any]], str | None, int]:
     for i, line in enumerate(lines):
         last = i == len(lines) - 1
         try:
-            obj = json.loads(line)
+            obj: Any = json.loads(line)
         except json.JSONDecodeError:
-            obj = None
-        if obj is not None and not isinstance(obj, dict):
-            raise LedgerCorrupt(f"line {i + 1} of {len(lines)} in {path} is not a JSON object")
-        try:
-            if obj is None:
-                raise json.JSONDecodeError("not an object", "", 0)
-            parsed.append(obj)
-        except json.JSONDecodeError:
+            obj = _UNPARSED
+        if obj is _UNPARSED:
             if not last:
                 raise LedgerCorrupt(f"malformed line {i + 1} of {len(lines)} in {path}") from None
             return parsed, "truncated_torn_tail", offset
+        # A line that PARSES but is not an object — `null`, a number, a list, a string — is
+        # corruption, never a torn tail: a parsed `None` is not "could not parse" (Codex WP03 c14).
+        if not isinstance(obj, dict):
+            raise LedgerCorrupt(f"line {i + 1} of {len(lines)} in {path} is not a JSON object")
+        parsed.append(obj)
         if last and not terminated:
             return parsed, "terminated_final_line", offset
         offset += len(line) + 1
@@ -682,6 +771,7 @@ def _open_locked(path: pathlib.Path, binding: Binding, blinding_seed: int, plan:
         raise LedgerBoundToAnotherConfig(
             f"{path} was written against a different configuration; runs from two configurations "
             f"averaged together are indistinguishable from runs from one. Start a new ledger.\n{detail}")
+    _replay_validate(path, header, rows[1:])          # refuse an invalid ledger BEFORE touching it
     if torn_kind:
         _repair(path, torn_kind, offset)
     ledger = Ledger(path, header, rows[1:], fd)

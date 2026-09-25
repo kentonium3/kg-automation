@@ -880,3 +880,191 @@ def test_arm_refusal_error_row_is_terminal_on_the_first_attempt(tmp_path):
         other = L.RunKey("D", "A", 3)                         # an ordinary error IS retried
         led.begin_attempt(other); rec(led, other, "error", err_row("TimeoutError: llama", arm="D"))
         assert led.terminal(other) is None and led.begin_attempt(other) == 2
+
+
+# --------------------------------------------------------------------------
+# Codex cycle 14 — append I/O failure, resume re-validation, final null
+# --------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize("stage", ["write", "fsync"])
+def test_append_io_failure_poisons_the_ledger_and_reopen_reads_the_disk(tmp_path, monkeypatch, stage):
+    """Codex WP03 c14: an fsync failure after a successful flush left the row on disk but absent
+    from memory, so a retry recorded a second `ok` row and both averaged after resume. Any append
+    I/O failure now poisons the ledger (writes refused, lock released); reopening re-reads the file.
+    `write` fails before anything lands (the attempt is retried); `fsync` fails after the line
+    reached the kernel (the row IS the result and a retry is refused)."""
+    key = L.RunKey("G", "C1", 1)
+    led = fresh(tmp_path)
+    led.begin_attempt(key)
+    armed = {"on": True}
+    if stage == "write":
+        real_open = pathlib.Path.open
+
+        class Failing:
+            def __init__(self, real): self.real = real
+            def __enter__(self): return self
+            def __exit__(self, *a): self.real.close()
+            def write(self, s):
+                if armed["on"]:
+                    armed["on"] = False
+                    raise OSError(5, "Input/output error")
+                return self.real.write(s)
+            def flush(self): self.real.flush()
+            def fileno(self): return self.real.fileno()
+
+        def fake_open(self, mode="r", *a, **k):
+            fh = real_open(self, mode, *a, **k)
+            return Failing(fh) if (self == led.path and mode == "a" and armed["on"]) else fh
+        monkeypatch.setattr(pathlib.Path, "open", fake_open)
+    else:
+        real_fsync = os.fsync
+
+        def fsync_once_fails(fd):
+            if armed["on"]:
+                armed["on"] = False
+                raise OSError(28, "No space left on device")
+            return real_fsync(fd)
+        monkeypatch.setattr(L.os, "fsync", fsync_once_fails)
+    with pytest.raises(L.LedgerWriteFailed, match="reopen the ledger"):
+        rec(led, key, "ok", ok_row())
+    assert led._lock_fd < 0                                    # the lock was released with the poisoning
+    for attempt_write in (lambda: led.event("after_failure"),
+                          lambda: led.begin_attempt(L.RunKey("G", "A", 1)),
+                          lambda: rec(led, key, "ok", ok_row())):
+        with pytest.raises(L.LedgerWriteFailed):               # every further write is refused, forever
+            attempt_write()
+    with fresh(tmp_path) as led2:                              # a reopen is possible and reads the FILE
+        ok_rows = [r for r in led2.run_rows() if L.RunKey.of(r) == key and r["outcome"] == "ok"]
+        if stage == "fsync":
+            assert len(ok_rows) == 1 and led2.terminal(key) == "ok"
+            with pytest.raises(L.SecondScoredRow):             # the retry cannot double-record
+                led2.begin_attempt(key)
+        else:
+            assert ok_rows == [] and led2.terminal(key) is None and led2.attempts_for(key) == 1
+            assert led2.begin_attempt(key) == 2                # the attempt is legitimately retried
+            rec(led2, key, "ok", ok_row())
+        assert sum(1 for r in led2.run_rows() if r["outcome"] == "ok") == 1
+        assert led2.summarise()[("G", "C1")].n_scored == 1
+    assert all(json.loads(line) for line in (tmp_path / "ledger.jsonl").read_text().splitlines())
+
+
+def _rows_of(path: pathlib.Path) -> list[dict]:
+    return [json.loads(line) for line in path.read_text().splitlines()]
+
+
+def _write_rows(path: pathlib.Path, rows: list[dict]) -> None:
+    path.write_text("".join(json.dumps(r, sort_keys=True) + "\n" for r in rows))
+
+
+def _persisted(tmp_path) -> pathlib.Path:
+    """A legal ledger: G C1 1 ok; D A 1 exceeds; G A 1 error (retryable) — attempt_start rows included."""
+    with fresh(tmp_path) as led:
+        k = L.RunKey("G", "C1", 1); led.begin_attempt(k); rec(led, k, "ok", ok_row())
+        d = L.RunKey("D", "A", 1); led.begin_attempt(d); rec(led, d, "exceeds_model_context", exceeds_row())
+        e = L.RunKey("G", "A", 1); led.begin_attempt(e); rec(led, e, "error", err_row())
+    return tmp_path / "ledger.jsonl"
+
+
+def _find(rows, **match):
+    return next(r for r in rows if all(r.get(k) == v for k, v in match.items()))
+
+
+def _c_unknown_outcome(rows):
+    _find(rows, record="run", arm="G", question="C1")["outcome"] = "banana"; return rows
+
+def _c_r_ok_without_calibration(rows):
+    a = dict(_find(rows, record="attempt_start", arm="G", question="C1")); a.update(arm="R"); rows.append(a)
+    r = dict(_find(rows, record="run", arm="G", question="C1")); r.update(arm="R", r_g_ratio=1.0); rows.append(r); return rows
+
+def _c_d_row_under_the_other_limit(rows):
+    _find(rows, record="run", arm="D")["context_limit_applied"] = "permitted"; return rows
+
+def _c_run_without_attempt_start(rows):
+    r = dict(_find(rows, record="run", arm="G", question="C1")); r.update(question="F1"); rows.append(r); return rows
+
+def _c_attempt_out_of_sequence(rows):
+    _find(rows, record="attempt_start", arm="G", question="C1")["attempt"] = 2; return rows
+
+def _c_second_ok_for_a_key(rows):
+    a = dict(_find(rows, record="attempt_start", arm="G", question="C1")); a["attempt"] = 2; rows.append(a)
+    r = dict(_find(rows, record="run", arm="G", question="C1")); r["attempt"] = 2; rows.append(r); return rows
+
+def _c_unknown_record_kind(rows):
+    rows.append({"record": "banana", "ts": rows[-1]["ts"]}); return rows
+
+def _c_missing_telemetry(rows):
+    del _find(rows, record="run", arm="G", question="C1")["text"]; return rows
+
+def _c_truncated_disagrees(rows):
+    _find(rows, record="run", arm="G", question="C1")["truncated"] = True; return rows
+
+def _c_serving_differs(rows):
+    _find(rows, record="run", arm="G", question="C1")["serving"] = {**SERVING, "n_ctx": 1}; return rows
+
+def _c_retried_refusal(rows):
+    _find(rows, record="run", arm="G", question="A")["error"] = "ArmRefusal: handed links"
+    a = dict(_find(rows, record="attempt_start", arm="G", question="A")); a["attempt"] = 2; rows.append(a); return rows
+
+def _c_exceeds_under_the_model_context(rows):
+    _find(rows, record="run", arm="D")["prompt_tokens"] = 10; return rows
+
+def _c_exceeds_on_a_g_key(rows):
+    r = dict(_find(rows, record="run", arm="D")); r.update(arm="G", question="B2"); rows.append(r)
+    a = dict(_find(rows, record="attempt_start", arm="D")); a.update(arm="G", question="B2"); rows.insert(len(rows) - 1, a); return rows
+
+CORRUPTIONS = {f.__name__[3:]: f for f in (
+    _c_unknown_outcome, _c_r_ok_without_calibration, _c_d_row_under_the_other_limit, _c_run_without_attempt_start,
+    _c_attempt_out_of_sequence, _c_second_ok_for_a_key, _c_unknown_record_kind, _c_missing_telemetry,
+    _c_truncated_disagrees, _c_serving_differs, _c_retried_refusal, _c_exceeds_under_the_model_context,
+    _c_exceeds_on_a_g_key)}
+
+
+@pytest.mark.parametrize("corruption", sorted(CORRUPTIONS))
+def test_resume_refuses_persisted_rows_the_ledger_would_not_have_written(tmp_path, corruption):
+    """Codex WP03 c14: resume accepted parsed rows without their invariants — outcome "banana", an R
+    scored row without calibration, a D row under `permitted` beneath a `trained` header — and
+    exposed them to grading and averaging. Every row is now replayed through the same checks
+    record()/begin_attempt()/write_calibration() apply on write, in order, BEFORE any repair."""
+    path = _persisted(tmp_path)
+    rows = CORRUPTIONS[corruption](_rows_of(path))
+    _write_rows(path, rows)
+    before = path.read_bytes()
+    with pytest.raises(L.LedgerCorrupt, match="on resume"):
+        fresh(tmp_path)
+    assert path.read_bytes() == before                         # refused, never "repaired"
+    fd = os.open(path.with_suffix(".jsonl.lock"), os.O_RDWR | os.O_CREAT, 0o644)
+    try:
+        import fcntl
+        fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)             # the refused opener released the lock
+    finally:
+        os.close(fd)
+
+
+def test_resume_replays_a_legal_ledger_unchanged(tmp_path):
+    """The replay accepts everything the ledger itself writes, including a calibration record and an
+    R ok row after it, and a resume adds nothing to the file."""
+    with fresh(tmp_path) as led:
+        calibrated(led)
+        r = L.RunKey("R", "C1", 1); led.begin_attempt(r); rec(led, r, "ok", ok_row(arm="R"))
+        d = L.RunKey("D", "C1", 1); led.begin_attempt(d); rec(led, d, "ok", ok_row(arm="D"))
+        led.event("note", {"x": 1})
+    path = tmp_path / "ledger.jsonl"; before = path.read_bytes()
+    with fresh(tmp_path) as led:
+        assert led.terminal(r) == "ok" and led.calibration()["r_k"] == 12
+    assert path.read_bytes() == before
+
+
+def test_a_final_null_line_is_corruption_not_a_torn_tail(tmp_path):
+    """Codex WP03 c14: a complete `null\\n` parsed to None and was mistaken for a torn tail, then
+    silently truncated; a parsed non-object is corruption like any other."""
+    with fresh(tmp_path) as led:
+        led.event("x")
+    path = tmp_path / "ledger.jsonl"; before = path.read_bytes()
+    path.write_bytes(before + b"null\n")
+    with pytest.raises(L.LedgerCorrupt, match="not a JSON object"):
+        fresh(tmp_path)
+    assert path.read_bytes() == before + b"null\n"             # refused, not deleted
+    path.write_bytes(before + b'{"record": "event", "kind": "y", "ts": "2026-09-25T00:00:00Z"')   # a REAL torn tail
+    with fresh(tmp_path) as led:                                # is still recovered
+        assert [r for r in led.rows if r.get("record") == "event" and r["kind"] == "recovered_torn_tail"]
