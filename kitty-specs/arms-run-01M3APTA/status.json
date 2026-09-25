@@ -1,7 +1,7 @@
 {
-  "event_count": 210,
-  "last_event_id": "01M3BDVDTV5V3PESFVFDFSHTBV",
-  "materialized_at": "2026-09-25T04:40:49.755572+00:00",
+  "event_count": 212,
+  "last_event_id": "01M3BDVQ4Z4XY3M0NSVBB5430S",
+  "materialized_at": "2026-09-25T04:40:59.295521+00:00",
   "mission_number": "",
   "mission_slug": "arms-run-01M3APTA",
   "mission_type": "software-dev",
@@ -12,9 +12,9 @@
     "claimed": 0,
     "done": 0,
     "for_review": 1,
-    "in_progress": 2,
+    "in_progress": 3,
     "in_review": 0,
-    "planned": 3
+    "planned": 2
   },
   "work_packages": {
     "WP01": {
@@ -96,14 +96,14 @@
       }
     },
     "WP03": {
-      "actor": "user",
-      "agent": "claude",
+      "actor": "claude",
+      "agent": null,
       "agent_profile": "__resolved_profile_absent__",
       "agent_profile_version": "__resolved_profile_version_absent__",
       "force_count": 11,
-      "lane": "planned",
-      "last_event_id": "01M3BDVDTV5V3PESFVFDFSHTBV",
-      "last_transition_at": "2026-09-25T04:40:49.755572+00:00",
+      "lane": "in_progress",
+      "last_event_id": "01M3BDVQ4Z4XY3M0NSVBB5430S",
+      "last_transition_at": "2026-09-25T04:40:59.295521+00:00",
       "model": "__resolved_model_absent__",
       "notes": [
         "WP03 ledger: 24 tests incl. kill-mid-write recovery, second-writer refusal, per-field binding refusal; full suite green",
@@ -125,15 +125,15 @@
         "reviewer": "Kent Gale",
         "verdict": "approved"
       },
-      "role": "reviewer",
-      "shell_pid": 2067759,
-      "shell_pid_created_at": "1790311087.33",
+      "role": "implementer",
+      "shell_pid": null,
+      "shell_pid_created_at": null,
       "subtasks": {
-        "T011": "done",
-        "T012": "done",
-        "T013": "done",
-        "T014": "done",
-        "T015": "done"
+        "T011": "planned",
+        "T012": "planned",
+        "T013": "planned",
+        "T014": "planned",
+        "T015": "planned"
       }
     },
     "WP04": {
