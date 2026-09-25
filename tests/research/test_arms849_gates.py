@@ -360,7 +360,7 @@ def test_run_all_records_wall_clock_and_refuses_with_every_failing_detail(tmp_pa
     env = _env(tmp_path, run_root=_export_like(tmp_path / "export"))   # the checkout itself would be refused: it holds the reference dir
     env.export_manifest_path = env.run_root / ".export-manifest.json"
     P.run_preflight(REPO_ROOT, CORPUS, env.export_manifest_path, env.preflight_path, cache_dir=CACHE)
-    skip = {"tokenizer_equivalence"}                       # needs the live server
+    skip = {"tokenizer_equivalence", "substrate_health_inside"}   # need the live server / a host record
     t0 = time.monotonic()
     results = G.run_all(env, only=[n for n, _ in G.GATE_ORDER if n not in skip])
     assert results[-1].name == "_wall_seconds" and results[-1].passed and time.monotonic() - t0 < G.NFR003_BUDGET_S
@@ -484,3 +484,89 @@ def test_litscan_sees_literal_structure_and_treats_calls_as_opaque():
     assert FORBIDDEN[0] in "\n".join(litscan.string_constants('Y = "or" + "acle"\n')).lower()
     only_call = "\n".join(litscan.string_constants('X = "".join(["or", "acle"])\n')).lower()
     assert FORBIDDEN[0] not in only_call and "or" in only_call and "acle" in only_call
+
+
+# ---------------------------------------------------------------------------
+# two phases (design-lead ruling 2026-09-25)
+# ---------------------------------------------------------------------------
+
+
+def _later() -> str:
+    from datetime import datetime, timedelta, timezone
+    return (datetime.now(timezone.utc) + timedelta(minutes=5)).isoformat(timespec="seconds")
+
+
+def _props(n_ctx=262_144):
+    from scripts.research.arms849.substrate import GGUF_FILE
+    return lambda url: {"default_generation_settings": {"n_ctx": n_ctx}, "model_path": f"/models/{GGUF_FILE}"}
+
+
+@needs_corpus
+def test_host_phase_writes_a_signed_record_and_container_phase_verifies_it(tmp_path, monkeypatch):
+    monkeypatch.setattr(P, "_run_checker", _fake_checker(True))
+    env = _env(tmp_path, run_root=_export_like(tmp_path / "export"))
+    env.export_manifest_path = env.run_root / ".export-manifest.json"
+    P.run_preflight(REPO_ROOT, CORPUS, env.export_manifest_path, env.preflight_path, cache_dir=CACHE)
+    env.up_ts = "2026-09-25T03:00:00+00:00"
+    host_path = tmp_path / "gate-host.json"
+    results, host_sha = G.run_host_phase(env, host_path)
+    assert [r.name for r in results][:3] == ["boundary", "substrate_health", "preflight_present_and_matching"]
+    rec = json.loads(host_path.read_text())
+    assert rec["gate_host_sha"] == host_sha == G.record_sha(rec) and rec["up_ts"] == env.up_ts and rec["preflight_sha"]
+    # container phase with injected probes: tokenizer + props
+    from scripts.research.arms849 import serving
+    class Tok:
+        def equivalence_sample(self, lines): return [*lines, "<|im_start|>user\nprobe<|im_end|>\n<|im_start|>assistant\n"]
+        def equivalence_check(self, base_url, lines): return True, "ok"
+    monkeypatch.setattr(serving, "Tokenizer", lambda path: Tok())
+    env.host_record_path = host_path; env.container_start_ts = _later(); env.props_probe = _props()
+    monkeypatch.setattr(G, "PKG_DIR", tmp_path / "emptypkg"); (tmp_path / "emptypkg").mkdir()
+    c_results, c_sha = G.run_container_phase(env, tmp_path / "gate-container.json")
+    crec = json.loads((tmp_path / "gate-container.json").read_text())
+    assert crec["gate_container_sha"] == c_sha == G.record_sha(crec) and crec["gate_host_sha"] == host_sha
+    assert "boundary" not in [r.name for r in c_results] and "substrate_health_inside" in [r.name for r in c_results]
+
+
+@needs_corpus
+@pytest.mark.parametrize("tamper", ["stale", "other_export", "failed_result", "resigned_other_preflight"])
+def test_container_phase_refuses_a_bad_host_record(tmp_path, monkeypatch, tamper):
+    """(a) a host record older than up… (b) …or for another export is refused; so is one with a
+    failed gate or a preflight sha that is not this run's."""
+    monkeypatch.setattr(P, "_run_checker", _fake_checker(True))
+    env = _env(tmp_path, run_root=_export_like(tmp_path / "export"))
+    env.export_manifest_path = env.run_root / ".export-manifest.json"
+    P.run_preflight(REPO_ROOT, CORPUS, env.export_manifest_path, env.preflight_path, cache_dir=CACHE)
+    env.up_ts = "2026-09-25T03:00:00+00:00"
+    host_path = tmp_path / "gate-host.json"
+    G.run_host_phase(env, host_path)
+    rec = json.loads(host_path.read_text())
+    if tamper == "stale":
+        rec["ts"] = "2026-09-25T02:59:00+00:00"                 # before up_ts
+    elif tamper == "other_export":
+        rec["export_content_sha"] = "e" * 64
+    elif tamper == "failed_result":
+        rec["results"][0]["passed"] = False
+    else:
+        rec["preflight_sha"] = "f" * 64
+    rec["gate_host_sha"] = G.record_sha(rec)                       # re-signed: the content itself must be caught
+    host_path.write_text(json.dumps(rec))
+    env.host_record_path = host_path; env.container_start_ts = _later(); env.props_probe = _props()
+    ok, detail = G.substrate_health_inside(env)
+    assert not ok and "gate-host.json" in detail
+    # and a record whose sha does NOT recompute
+    rec["ts"] = "2026-09-25T03:10:00+00:00"; host_path.write_text(json.dumps(rec))
+    ok, detail = G.substrate_health_inside(env)
+    assert not ok and "does not recompute" in detail
+
+
+def test_container_phase_refuses_without_a_host_record_or_with_wrong_props(tmp_path):
+    env = _env(tmp_path, props_probe=_props(n_ctx=4096), container_start_ts=_later())
+    ok, detail = G.substrate_health_inside(env)
+    assert not ok and "n_ctx" in detail and "no host-phase record" in detail
+
+
+def test_phase_membership_matches_the_ruling():
+    host = [n for n, _ in G.HOST_GATES]; cont = [n for n, _ in G.CONTAINER_GATES]
+    assert host == ["boundary", "substrate_health", "preflight_present_and_matching"]
+    assert "env_clean" in cont and "boundary" not in cont and "substrate_health" not in cont and "substrate_health_inside" in cont
+    assert set(host) | set(cont) == {n for n, _ in G.GATE_ORDER}

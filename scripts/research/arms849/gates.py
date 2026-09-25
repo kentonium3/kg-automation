@@ -1,9 +1,23 @@
-"""In-container gates (WP04 T017): run before the ledger header is written.
+"""Pre-run gates (WP04 T017) in TWO PHASES (design-lead ruling 2026-09-25, contracts/gates.md
+dated correction): the D-8 runner has no docker socket, so the gates that need docker run on
+the HOST immediately before the runner is launched, and the rest run INSIDE the container
+before the ledger header is written. Each phase writes a signed record; the header binds
+``preflight_sha``, ``gate_host_sha`` and ``gate_container_sha``.
 
-Every gate compares to a REGISTERED CONSTANT or to a value recomputed in THIS
-environment — never to something "recorded on first run" (contracts/gates.md).
-Any failure refuses the run with every failing detail; :func:`run_all` records
-its own wall-clock so NFR-003 (under five minutes) is measured, not assumed.
+- HOST phase (:func:`run_host_phase`): ``boundary`` (the docker self-test),
+  ``substrate_health`` (docker-derived rope mode, n_ctx, model file, GRAPH.LIST),
+  ``preflight_present_and_matching`` → ``gate-host.json``.
+- CONTAINER phase (:func:`run_container_phase`): ``preflight_present_and_matching`` recomputed
+  inside, ``prompt_digest``, ``question_manifest_digest``, the excluded-material gate + scan,
+  ``env_clean`` (NO outbound — the only place it is meaningful), ``tokenizer_equivalence``
+  against the compose llama service, ``substrate_health_inside`` (a ``/props`` re-probe AND
+  verification of the host record: its sha recomputes, its export/preflight identities equal
+  what the container computed, every host result passed, ``up_ts ≤ ts ≤ container start``),
+  ``code_hashes`` → ``gate-container.json``.
+
+Every gate compares to a REGISTERED CONSTANT or to a value recomputed in THIS environment —
+never to something "recorded on first run". Any failure refuses the run with every failing
+detail; each phase records its wall-clock so NFR-003 is measured, not assumed.
 """
 
 from __future__ import annotations
@@ -37,7 +51,8 @@ from scripts.research.arms849.preflight import (
 from scripts.research.arms849.text import FrozenCorpusText
 from scripts.research.load_849_corpus import REGISTRATION, fingerprint
 
-__all__ = ["GATE_EXCLUDED_ABSENT", "GATE_ORDER", "GateEnv", "GateResult", "GatesRefused", "run_all"]
+__all__ = ["CONTAINER_GATES", "GATE_EXCLUDED_ABSENT", "GATE_ORDER", "HOST_GATES", "GateEnv", "GateResult",
+           "GatesRefused", "record_sha", "run_all", "run_container_phase", "run_host_phase"]
 
 PKG_DIR = pathlib.Path(__file__).resolve().parent
 
@@ -80,6 +95,10 @@ class GateEnv:
     expect_n_ctx: int = serving.PRIMARY_N_CTX
     expect_rope: str = "none"
     expected_chat_template_sha256: str = ""            # ServingConfiguration.chat_template_sha256
+    up_ts: str = ""                                     # host: when `up` reported healthy (ISO UTC)
+    host_record_path: pathlib.Path | None = None        # container: the host phase's signed record
+    container_start_ts: str = ""                        # container: when this process started (ISO UTC)
+    props_probe: Callable[[str], dict[str, Any]] | None = None   # container: GET /props (injectable)
     header_code_hashes: dict[str, str] | None = None   # on resume: the ledger header's
     excluded_prefixes: tuple[str, ...] = ()            # from the export's data file
     forbidden_words: tuple[str, ...] = ()              # built from parts by the caller
@@ -247,6 +266,71 @@ def substrate_health(env: GateEnv) -> tuple[bool, str]:
                 else f"unhealthy: {state}")
 
 
+def _props_get(base_url: str) -> dict[str, Any]:
+    import json
+    import urllib.request
+
+    with urllib.request.urlopen(f"{base_url.rstrip('/')}/props", timeout=10) as r:
+        return json.loads(r.read().decode())
+
+
+def record_sha(record: dict[str, Any]) -> str:
+    """sha256 over the canonical JSON without the record's own sha field(s)."""
+    import hashlib
+    import json
+
+    body = {k: v for k, v in record.items() if not k.endswith("_sha") or k in ("export_content_sha", "preflight_sha")}
+    return hashlib.sha256(json.dumps(body, sort_keys=True, ensure_ascii=False, separators=(",", ":")).encode()).hexdigest()
+
+
+def substrate_health_inside(env: GateEnv) -> tuple[bool, str]:
+    """Inside the runner: /props re-probe (n_ctx, model file) AND the host record verified."""
+    import json
+
+    from scripts.research.arms849.substrate import GGUF_FILE
+
+    problems = []
+    probe = env.props_probe or _props_get
+    try:
+        props = probe(env.llama_base_url)
+    except Exception as exc:  # noqa: BLE001 — a failed probe is a failed gate, with the reason
+        return False, f"/props probe failed: {type(exc).__name__}: {exc}"
+    gen = props.get("default_generation_settings") or {}
+    if int(gen.get("n_ctx") or 0) != env.expect_n_ctx:
+        problems.append(f"/props n_ctx {gen.get('n_ctx')} != expected {env.expect_n_ctx}")
+    if pathlib.PurePosixPath(str(props.get("model_path") or "")).name != GGUF_FILE:
+        problems.append(f"/props model_path {props.get('model_path')!r} is not {GGUF_FILE}")
+    if env.host_record_path is None or not pathlib.Path(env.host_record_path).is_file():
+        return False, "; ".join([*problems, "no host-phase record (gate-host.json) — the host phase must run first"])
+    rec = json.loads(pathlib.Path(env.host_record_path).read_text(encoding="utf-8"))
+    if rec.get("gate_host_sha") != record_sha(rec):
+        problems.append("gate-host.json: gate_host_sha does not recompute")
+    if rec.get("export_content_sha") != export_content_sha(env.run_root):
+        problems.append("gate-host.json: export_content_sha differs from this environment's export")
+    manifest_commit = None
+    if env.export_manifest_path.is_file():
+        manifest_commit = json.loads(env.export_manifest_path.read_text(encoding="utf-8")).get("source_commit")
+    if rec.get("export_source_commit") != manifest_commit:
+        problems.append("gate-host.json: export_source_commit differs from the export manifest")
+    try:
+        preflight = load_preflight(env.preflight_path)
+        if rec.get("preflight_sha") != preflight.get("preflight_sha"):
+            problems.append("gate-host.json: preflight_sha differs from preflight.json")
+    except (PreflightRefused, OSError) as exc:
+        problems.append(f"preflight.json unreadable: {exc}")
+    failed = [r.get("name") for r in rec.get("results", []) if r.get("passed") is not True]
+    expected_names = [n for n, _ in HOST_GATES]
+    if sorted(r.get("name") for r in rec.get("results", [])) != sorted(expected_names) or failed:
+        problems.append(f"gate-host.json: results {sorted(r.get('name') for r in rec.get('results', []))} "
+                        f"must be exactly {sorted(expected_names)} all passed; failed={failed}")
+    ts, up_ts, start = str(rec.get("ts") or ""), str(rec.get("up_ts") or ""), env.container_start_ts
+    if not (ts and up_ts and start) or not (up_ts <= ts <= start):
+        problems.append(f"gate-host.json: ts {ts!r} must satisfy up_ts {up_ts!r} ≤ ts ≤ container start {start!r} "
+                        f"(a stale record from a previous stack is refused)")
+    return (not problems), ("; ".join(problems) or f"/props n_ctx {gen.get('n_ctx')}, model ok; host record "
+                                                    f"{str(rec.get('gate_host_sha'))[:12]} verified")
+
+
 def code_hashes(env: GateEnv) -> tuple[bool, str]:
     from scripts.research.arms849.ledger import code_hashes as compute
 
@@ -266,20 +350,105 @@ GATE_ORDER: tuple[tuple[str, Callable[[GateEnv], tuple[bool, str]]], ...] = (
     ("env_clean", env_clean),
     ("tokenizer_equivalence", tokenizer_equivalence),
     ("substrate_health", substrate_health),
+    ("substrate_health_inside", substrate_health_inside),
     ("code_hashes", code_hashes),
 )
 
 
-def run_all(env: GateEnv, only: Iterable[str] | None = None) -> list[GateResult]:
-    """Run every gate (or `only` those named), in order; refuse with every failing detail."""
-    names = set(only) if only is not None else None
+HOST_GATES: tuple[tuple[str, Callable[[GateEnv], tuple[bool, str]]], ...] = (
+    ("boundary", boundary),
+    ("substrate_health", substrate_health),
+    ("preflight_present_and_matching", preflight_present_and_matching),
+)
+CONTAINER_GATES: tuple[tuple[str, Callable[[GateEnv], tuple[bool, str]]], ...] = (
+    ("preflight_present_and_matching", preflight_present_and_matching),
+    ("prompt_digest", prompt_digest),
+    ("question_manifest_digest", question_manifest_digest),
+    (GATE_EXCLUDED_ABSENT, excluded_material_absent),
+    ("env_clean", env_clean),
+    ("tokenizer_equivalence", tokenizer_equivalence),
+    ("substrate_health_inside", substrate_health_inside),
+    ("code_hashes", code_hashes),
+)
+
+
+def _run_gates(env: GateEnv, gates: Iterable[tuple[str, Callable[[GateEnv], tuple[bool, str]]]]) -> list[GateResult]:
     results: list[GateResult] = []
-    for name, fn in GATE_ORDER:
-        if names is None or name in names:
-            results.append(_timed(name, functools.partial(fn, env)))
+    for name, fn in gates:
+        results.append(_timed(name, functools.partial(fn, env)))
     wall = sum(r.seconds for r in results)
     results.append(GateResult("_wall_seconds", wall <= NFR003_BUDGET_S, f"{wall:.3f}s (NFR-003 budget {NFR003_BUDGET_S:.0f}s)", wall))
+    return results
+
+
+def _refuse_if_failed(results: list[GateResult], phase: str) -> None:
     failed = [r for r in results if not r.passed]
     if failed:
-        raise GatesRefused("run refused:\n" + "\n".join(f"  {r.name}: {r.detail}" for r in failed))
+        raise GatesRefused(f"{phase} phase refused:\n" + "\n".join(f"  {r.name}: {r.detail}" for r in failed))
+
+
+def _write_signed(path: pathlib.Path, record: dict[str, Any], sha_field: str) -> str:
+    import json
+
+    record[sha_field] = record_sha(record)
+    path = pathlib.Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_suffix(path.suffix + ".tmp")
+    tmp.write_text(json.dumps(record, indent=2, sort_keys=True, ensure_ascii=False) + "\n", encoding="utf-8")
+    tmp.replace(path)
+    return record[sha_field]
+
+
+def run_host_phase(env: GateEnv, out_path: pathlib.Path) -> tuple[list[GateResult], str]:
+    """HOST phase, right before the runner launches: refuses on any failure, else writes the
+    signed gate-host.json and returns (results, gate_host_sha)."""
+    import json
+    from datetime import datetime, timezone
+
+    if not env.up_ts:
+        raise GatesRefused("host phase refused: up_ts (when `up` reported healthy) is required")
+    results = _run_gates(env, HOST_GATES)
+    _refuse_if_failed(results, "host")
+    preflight = load_preflight(env.preflight_path)
+    manifest = json.loads(env.export_manifest_path.read_text(encoding="utf-8"))
+    record: dict[str, Any] = {
+        "phase": "host", "ts": datetime.now(timezone.utc).isoformat(timespec="seconds"), "up_ts": env.up_ts,
+        "export_content_sha": export_content_sha(env.run_root), "export_source_commit": manifest.get("source_commit"),
+        "preflight_sha": preflight["preflight_sha"],
+        "results": [{"name": r.name, "passed": r.passed, "seconds": r.seconds, "detail": r.detail}
+                    for r in results if r.name != "_wall_seconds"],
+        "wall_seconds": results[-1].seconds,
+    }
+    return results, _write_signed(out_path, record, "gate_host_sha")
+
+
+def run_container_phase(env: GateEnv, out_path: pathlib.Path) -> tuple[list[GateResult], str]:
+    """CONTAINER phase, before the header: refuses on any failure, else writes the signed
+    gate-container.json (which cites the host record's sha) and returns (results, sha)."""
+    import json
+    from datetime import datetime, timezone
+
+    if not env.container_start_ts:
+        raise GatesRefused("container phase refused: container_start_ts is required")
+    results = _run_gates(env, CONTAINER_GATES)
+    _refuse_if_failed(results, "container")
+    host = json.loads(pathlib.Path(env.host_record_path).read_text(encoding="utf-8"))  # type: ignore[arg-type]
+    preflight = load_preflight(env.preflight_path)
+    record: dict[str, Any] = {
+        "phase": "container", "ts": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "container_start_ts": env.container_start_ts, "gate_host_sha": host["gate_host_sha"],
+        "preflight_sha": preflight["preflight_sha"], "export_content_sha": export_content_sha(env.run_root),
+        "results": [{"name": r.name, "passed": r.passed, "seconds": r.seconds, "detail": r.detail}
+                    for r in results if r.name != "_wall_seconds"],
+        "wall_seconds": results[-1].seconds,
+    }
+    return results, _write_signed(out_path, record, "gate_container_sha")
+
+
+def run_all(env: GateEnv, only: Iterable[str] | None = None) -> list[GateResult]:
+    """Every gate of BOTH phases in one process (evidence runs / tests), or `only` those named;
+    refuses with every failing detail. The phases are the run's real shape."""
+    names = set(only) if only is not None else None
+    results = _run_gates(env, [(n, f) for n, f in GATE_ORDER if names is None or n in names])
+    _refuse_if_failed(results, "all")
     return results
