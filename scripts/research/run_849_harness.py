@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Resumable run harness for #849 — 3 arms × 8 questions × 3 repeats = 72 cells (WP08).
 
 The run does not fit in one session, so the interesting property is not running: it is
@@ -467,9 +466,16 @@ class Session:
         return last
 
     def _one_attempt(self, key: RunKey, question: Question, reg: ArmRegistration) -> tuple[str | None, bool]:
-        """One attempt. Returns (outcome recorded or None, whether an infrastructure retry applies)."""
+        """One attempt. Returns (outcome recorded or None, whether an infrastructure retry applies).
+
+        Everything that can fail for a reason other than the attempt itself — the replayed view,
+        the bound arm, the samplers' first readings — is settled BEFORE ``begin_attempt``, so a
+        harness-side refusal never spends one of the key's three attempts."""
+        view = self._view(key, question)
+        answer_fn = self._answer_fn(key.arm, reg)
         with ExitStack() as stack:
             gtt = stack.enter_context(self.rt.gtt_sampler())
+            rss = stack.enter_context(self.rt.rss_sampler()) if key.arm == "G" else None
             if getattr(gtt, "breached", False):
                 # NFR-004: refuse to START the cell — no attempt row, an event, and stop.
                 self.ledger.event("memory_ceiling", {**key.as_dict(), "gtt_gib": _peak(gtt, "peak_gib"),
@@ -477,21 +483,28 @@ class Session:
                 self.stop(f"memory ceiling: GTT above {GTT_CEILING_GIB} GiB before "
                           f"{key.arm} {key.question} r{key.repeat}; cell not started")
                 return None, False
+            unreadable = [name for name, s, attr in (("peak_gtt_gib", gtt, "peak_gib"),
+                                                     ("falkordb_rss_peak_mib", rss, "peak_mib"))
+                          if s is not None and _peak(s, attr) is None]
+            if unreadable:
+                # A column the row contract requires cannot be measured: running the arm would
+                # burn an attempt whose row the ledger must refuse. Could-not-check, never zero.
+                self.ledger.event("sampler_unreadable", {**key.as_dict(), "columns": unreadable})
+                self.stop(f"sampler cannot read {unreadable} before {key.arm} {key.question} r{key.repeat}; "
+                          f"cell not started")
+                return None, False
             try:
                 attempt = self.ledger.begin_attempt(key)
             except (AttemptsExhausted, SecondScoredRow):
                 return None, False                            # terminal already (never an infinite loop)
-            rss = stack.enter_context(self.rt.rss_sampler()) if key.arm == "G" else None
             started = time.monotonic()
             deadline = started + self.rt.attempt_timeout_s
             cancelled = threading.Event()
-            view = self._view(key, question)
             ctx = CellContext(repeat=key.repeat, attempt=attempt, config=self.rt.config,
                               serving=self.rt.facade(deadline, cancelled), prompt=self.rt.prompt,
                               embedder=self.rt.embedder,
                               calibration=self.ledger.calibration() if key.arm == "R" else None,
                               cancelled=cancelled)
-            answer_fn = self._answer_fn(key.arm, reg)
 
             def work() -> Mapping[str, Any]:
                 if key.arm == "G" and reg.build_graph is not None and key.question not in self.graph_stats:

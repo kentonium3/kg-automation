@@ -545,6 +545,22 @@ def test_nfr004_the_ceiling_check_is_not_vacuous(tmp_path):
     assert [x["outcome"] for x in runs(path)] == ["ok"]
 
 
+def test_an_unreadable_sampler_refuses_to_start_the_cell(tmp_path):
+    """A required column that cannot be measured is could-not-check: no attempt is spent."""
+    class Broken(FakeRss):
+        def read_once(self) -> float:
+            raise FileNotFoundError("docker")
+
+    path = tmp_path / "ledger.jsonl"
+    with open_fake(path) as ledger:
+        report = h.run_session(ledger, make_runtime(fake_arms(), rss_sampler=Broken), limit=2)
+    rows = rows_of(path)
+    assert not [x for x in rows if x.get("record") in ("attempt_start", "run")]
+    events = [x for x in rows if x.get("kind") == "sampler_unreadable"]
+    assert events and events[0]["detail"]["columns"] == ["falkordb_rss_peak_mib"]
+    assert report.stopped and "cannot read" in report.stopped
+
+
 def test_nfr002_resuming_a_forty_cell_ledger_reaches_the_next_cell_in_under_30s(tmp_path):
     path = tmp_path / "ledger.jsonl"
     with open_fake(path) as ledger:
