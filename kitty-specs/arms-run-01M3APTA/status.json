@@ -1,7 +1,7 @@
 {
-  "event_count": 207,
-  "last_event_id": "01M3BDQ6RP1TEQBS6MYVWSBGAG",
-  "materialized_at": "2026-09-25T04:38:31.445769+00:00",
+  "event_count": 209,
+  "last_event_id": "01M3BDS6W83HHDHSCXSP132FCT",
+  "materialized_at": "2026-09-25T04:39:37.096153+00:00",
   "mission_number": "",
   "mission_slug": "arms-run-01M3APTA",
   "mission_type": "software-dev",
@@ -12,9 +12,9 @@
     "claimed": 0,
     "done": 0,
     "for_review": 1,
-    "in_progress": 1,
+    "in_progress": 2,
     "in_review": 0,
-    "planned": 3
+    "planned": 2
   },
   "work_packages": {
     "WP01": {
@@ -237,11 +237,14 @@
       }
     },
     "WP07": {
-      "actor": "finalize-tasks",
+      "actor": "claude",
+      "agent": "claude",
       "force_count": 0,
-      "lane": "planned",
-      "last_event_id": "01M3AZDVQGQZ5QH8KGVPH6MXH7",
-      "last_transition_at": "2026-09-25T00:28:45.168509+00:00"
+      "lane": "in_progress",
+      "last_event_id": "01M3BDS6W83HHDHSCXSP132FCT",
+      "last_transition_at": "2026-09-25T04:39:37.096153+00:00",
+      "shell_pid": 2070785,
+      "shell_pid_created_at": "1790311166.13"
     },
     "WP08": {
       "actor": "finalize-tasks",
