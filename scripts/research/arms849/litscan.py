@@ -61,6 +61,23 @@ carrier type:
   - type expressions (GenericAlias / UnionType, i.e. annotations such as `dict[str, int]`
     or `str | None`): carried ONLY when every part is an allowlisted builtin, None or
     `...` (recursively) — they reference classes, not values; any other part refuses.
+    This is a STATED D-8 ACCOMMODATION (design lead's fallback, 2026-09-25): option (d) —
+    check only CONSUMED values and drop this special case — was implemented and refused
+    four real modules, because a nested annotation consumes an inner type expression as an
+    index or operand (gates.py:110 `dict[str, str] | None`, ledger.py:320
+    `tuple[int, int] | None`, serving.py:62 `dict[str, float | int]`, substrate.py:303
+    `list[str] | None`).
+
+Dunders: the evaluator's guarantee is "every evaluated call is a pure function of its
+arguments". Allowlisted builtins and the non-dunder methods of the allowlisted literal
+types are; set/frozenset methods return taint-governed or order-independent values;
+dunder methods are where process and platform state enters (`__hash__` is salted per
+process, `__sizeof__` is platform-dependent). So INVOKING any dunder on a pure receiver
+is refused in every form — `"a".__hash__()` and the descriptor route `str.__hash__("a")`
+alike: "process-dependent dunder invocation: <name> at L:C". Dunder attribute READS are
+unchanged (`().__class__` is `tuple`, a permitted value; `().__sizeof__` as a value is a
+carrier and refused). The gate backs this with a double-seed invariant: the real package
+is scanned in two children under PYTHONHASHSEED 0 and 3 and the results must agree.
   - generators, comprehensions, lambdas: opaque by grammar — never evaluated.
   - iter / next / memoryview / type / getattr: on the NEVER list — opaque by name.
 
@@ -80,6 +97,8 @@ construction built from literals + operators + the closed builtin allowlist + me
 of literals that the scan misclassifies (an implementation bug of this ruling). A
 finding that needs a name binding, an import, or attribute access on a module is
 runtime-boundary territory (D-8) and is out of scope.
+
+D-8 is CLOSED (design lead, 2026-09-25): a further finding is folded only if it exhibits a call that is neither a dunder nor tainted and is not a pure function of its arguments — and the double-seed gate would have to have missed it on the real modules. Anything else belongs to D-8's stated boundary: named code, imports and module attribute access are the runtime gate's.
 
 This is the same boundary the WP02 isolation test states; that test carries its own
 copy so it can run before this module exists. The forbidden words are never written
@@ -317,6 +336,10 @@ def _call(node: ast.Call) -> Any:
     """Evaluate func, receiver and arguments first; inspect the VALUES for Tainted members
     against the closed consumer list; then invoke. Any exception in the invocation refuses."""
     if isinstance(node.func, ast.Attribute):
+        attr = node.func.attr
+        if attr.startswith("__") and attr.endswith("__"):         # `"a".__hash__()`, `str.__hash__("a")`
+            where = f"line {getattr(node, 'lineno', '?')}:{getattr(node, 'col_offset', '?')}"
+            raise ScanRefused(f"process-dependent dunder invocation: {attr} at {where}")
         receiver = _value(node.func.value)
         if _holds_tainted(receiver):
             _refuse_order(node, "a method on an unordered receiver")
@@ -389,14 +412,14 @@ def _inert_type_expr(value: Any) -> bool:
         parts = value.__args__
     else:
         return False
-    return all(p is Ellipsis or p is type(None) or _is_builtin(p) or _inert_type_expr(p) for p in parts)
+    return all(p is Ellipsis or p is None or p is type(None) or _is_builtin(p) or _inert_type_expr(p) for p in parts)
 
 
 def _value(node: ast.expr) -> Any:
     """Python's own value of a PURE node, refused when it is a CARRIER: anything that is not a
-    scalar, a marked container or an allowlisted builtin callable (see the module docstring).
-    A Call's own func is obtained in `_call`, never through here, so a method invoked in
-    the same node is checked at invocation instead."""
+    scalar, a marked container, an allowlisted builtin callable or an inert type expression
+    (see the module docstring). A Call's own func is obtained in `_call`, never through
+    here, so a method invoked in the same node is checked at invocation instead."""
     value = _node_value(node)
     if isinstance(value, _PLAIN_VALUE_TYPES) or _is_builtin(value) or _inert_type_expr(value):
         return value
@@ -534,11 +557,17 @@ def _string_constants_inprocess(source: str) -> list[str]:
     return out
 
 
-def string_constants(source: str) -> list[str]:
-    """Evaluate in a child under RLIMIT_AS / RLIMIT_CPU and a wall timeout; fail closed."""
+def string_constants(source: str, hash_seed: int | None = None) -> list[str]:
+    """Evaluate in a child under RLIMIT_AS / RLIMIT_CPU and a wall timeout; fail closed.
+    `hash_seed` pins the child's PYTHONHASHSEED (the gate's double-seed invariant)."""
+    env = None
+    if hash_seed is not None:
+        import os
+
+        env = {**os.environ, "PYTHONHASHSEED": str(hash_seed)}
     try:
         proc = subprocess.run([sys.executable, "-m", "scripts.research.arms849.litscan", "--scan"],
-                              input=source, capture_output=True, text=True,
+                              input=source, capture_output=True, text=True, env=env,
                               timeout=SCAN_WALL_SECONDS, check=False, cwd=str(_repo_root()))
     except subprocess.TimeoutExpired as exc:
         raise ScanBudgetExceeded(f"scan child exceeded {SCAN_WALL_SECONDS}s") from exc
@@ -549,7 +578,7 @@ def string_constants(source: str) -> list[str]:
     return json.loads(proc.stdout)
 
 
-def find_words(paths: Iterable[pathlib.Path], words: Sequence[str]) -> list[str]:
+def find_words(paths: Iterable[pathlib.Path], words: Sequence[str], hash_seed: int | None = None) -> list[str]:
     """Every (file, word) hit in source text or in any statically producible string.
     Raises ScanBudgetExceeded / ScanRefused (naming the file) when a module cannot be read
     to the end — the caller fails closed."""
@@ -559,7 +588,7 @@ def find_words(paths: Iterable[pathlib.Path], words: Sequence[str]) -> list[str]
         source = pathlib.Path(path).read_text(encoding="utf-8")
         low = source.lower()
         try:
-            joined = "\n".join(string_constants(source)).lower()
+            joined = "\n".join(string_constants(source, hash_seed)).lower()
         except ScanRefused as exc:
             raise ScanRefused(f"{path}: {exc}") from exc
         for w in lowered:

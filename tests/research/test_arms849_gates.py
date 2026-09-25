@@ -366,7 +366,6 @@ _LITERAL_ONLY_CAUGHT = {
     "fstring-sorted-set": 'X = f"{sorted({\'or\', \'acle\'})[1]}acle"[:6]',
     "starred-list-literal": 'X = "".join([*["or", "acle"]])',        # Codex c13 guard: an ORDERED expansion is caught
     "starred-tuple-literal": 'X = "".join((*("or", "acle"),))',
-    "bound-iter-ordered": 'X = "".join(("or", "acle").__iter__())',          # Codex c14 guard: an ORDERED receiver
 }
 
 
@@ -507,6 +506,74 @@ def test_a_carrier_value_is_refused_by_shape_under_any_hash_seed(tmp_path, monke
     monkeypatch.setattr(G, "PKG_DIR", pkg)
     ok, detail = G.excluded_material_absent(_env(tmp_path))
     assert not ok and "failed closed" in detail and "carrier.py" in detail and "carrying" in detail, detail
+
+
+_DUNDER_INVOCATIONS = {
+    "hash-selects-order": 'X = "".join(("or", "acle")[::1 if "a".__hash__() > 4e18 else -1])',   # Codex c15
+    "hash-descriptor": 'X = str.__hash__("a")',
+    "sizeof": 'X = "a".__sizeof__()',
+    "sizeof-descriptor": 'X = int.__sizeof__(1)',
+    "iter-ordered": 'X = "".join(("or", "acle").__iter__())',   # was a c14 "caught" guard; any dunder now refuses (c15 ruling)
+}
+
+
+@pytest.mark.parametrize("construction", list(_DUNDER_INVOCATIONS.values()), ids=list(_DUNDER_INVOCATIONS))
+@pytest.mark.parametrize("seed", ["0", "3"])
+def test_dunder_invocation_is_refused_in_every_form(tmp_path, monkeypatch, seed, construction):
+    """Dunders are where process/platform state enters a "pure" call (`__hash__` is salted per
+    process): Codex c15's construction picked the join order from a hash."""
+    monkeypatch.setenv("PYTHONHASHSEED", seed)
+    with pytest.raises(litscan.ScanRefused, match="process-dependent dunder invocation"):
+        litscan.string_constants(construction + "\n")
+    pkg = _fake_pkg(tmp_path / "pkg"); (pkg / "dunder.py").write_text(construction + "\n")
+    monkeypatch.setattr(G, "PKG_DIR", pkg)
+    ok, detail = G.excluded_material_absent(_env(tmp_path))
+    assert not ok and "dunder.py" in detail and "dunder invocation" in detail, detail
+
+
+def test_dunder_attribute_reads_are_unchanged():
+    assert litscan.string_constants("X = ().__class__\n") == []           # tuple: a permitted value
+    with pytest.raises(litscan.ScanRefused, match="value carrying"):
+        litscan.string_constants("X = [().__sizeof__]\n")                  # a bound method as a value: a carrier
+
+
+def test_the_gate_scans_under_two_hash_seeds_and_reports_it(tmp_path, monkeypatch):
+    seen = []
+    real = litscan.find_words
+    monkeypatch.setattr(litscan, "find_words", lambda paths, words, hash_seed=None: seen.append(hash_seed) or real(paths, words, hash_seed=hash_seed))
+    monkeypatch.setattr(G, "PKG_DIR", _fake_pkg(tmp_path / "pkg"))
+    ok, detail = G.excluded_material_absent(_env(tmp_path))
+    assert ok and "reproducible under PYTHONHASHSEED 0 and 3" in detail, detail
+    assert seen == list(G.SCAN_HASH_SEEDS) == [0, 3]
+
+
+@pytest.mark.parametrize("disagreement", ["hits", "refusal", "order"])
+def test_the_gate_fails_when_the_two_seeded_scans_disagree(tmp_path, monkeypatch, disagreement):
+    """CAN-FAIL: a scanner whose answer depends on the seed must fail the gate with its own reason."""
+    def seeded(paths, words, hash_seed=None):
+        if disagreement == "hits":
+            return ["pkg/x.py: hit"] if hash_seed == 0 else []
+        if disagreement == "refusal":
+            if hash_seed == 3:
+                raise litscan.ScanRefused("pkg/x.py: refused")
+            return []
+        return ["a", "b"] if hash_seed == 0 else ["b", "a"]
+    monkeypatch.setattr(litscan, "find_words", seeded)
+    monkeypatch.setattr(G, "PKG_DIR", _fake_pkg(tmp_path / "pkg"))
+    ok, detail = G.excluded_material_absent(_env(tmp_path))
+    assert not ok and "literal scan is not reproducible under differing hash seeds" in detail, detail
+
+
+@pytest.mark.parametrize("seed", ["0", "3"])
+def test_annotations_scan_clean_and_hide_nothing(monkeypatch, seed):
+    monkeypatch.setenv("PYTHONHASHSEED", seed)
+    for c in ["x: dict[str, int]", "x: str | None", "X = list[None]", "x: dict[str, float | int]",
+              "x: dict[str, str] | None", "x: tuple[int, int] | None", "def f() -> list[str] | None: pass"]:
+        assert litscan.string_constants(c + "\n") == [], c                 # the four real-module shapes included
+    with pytest.raises(litscan.ScanRefused, match="value carrying"):
+        litscan.string_constants('x: tuple["or" + "acle"]\n')             # a value inside a type expression: refused
+    with pytest.raises(litscan.ScanRefused, match="value carrying"):
+        litscan.string_constants('x: tuple[("a", "b").__iter__]\n')
 
 
 def test_inert_type_expressions_are_carried_but_one_holding_a_value_is_not():

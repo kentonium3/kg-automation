@@ -233,11 +233,30 @@ def excluded_material_absent(env: GateEnv) -> tuple[bool, str]:
     if not inventory or missing:
         return False, (f"package inventory under {PKG_DIR} is incomplete ({len(inventory)} modules; "
                        f"missing {missing}) — a partial scan proves nothing")
+    # Double-seed invariant (design lead 2026-09-25): the literal scan runs in two children
+    # under different PYTHONHASHSEEDs and must agree exactly — hits, refusals and order.
+    outcomes = [_scan_outcome(inventory, env.forbidden_words, seed) for seed in SCAN_HASH_SEEDS]
+    if any(o != outcomes[0] for o in outcomes[1:]):
+        return False, (f"literal scan is not reproducible under differing hash seeds "
+                       f"{' and '.join(map(str, SCAN_HASH_SEEDS))}: {outcomes}")
+    kind, payload = outcomes[0]
+    if kind != "hits":
+        return False, f"static scan failed closed: {payload}"
+    hits = list(payload)
+    seeds = " and ".join(map(str, SCAN_HASH_SEEDS))
+    return (not hits), ("; ".join(hits) or f"{len(inventory)} modules scanned ({len(REQUIRED_MODULES)} registered "
+                                          f"present), no hit; reproducible under PYTHONHASHSEED {seeds}")
+
+
+SCAN_HASH_SEEDS: tuple[int, ...] = (0, 3)
+
+
+def _scan_outcome(inventory: list[pathlib.Path], words: tuple[str, ...], seed: int) -> tuple[str, Any]:
+    """One seed-pinned scan, reduced to a comparable outcome (never raises)."""
     try:
-        hits = litscan.find_words(inventory, env.forbidden_words)
+        return "hits", tuple(litscan.find_words(inventory, words, hash_seed=seed))
     except (litscan.ScanBudgetExceeded, litscan.ScanRefused) as exc:
-        return False, f"static scan failed closed: {exc}"
-    return (not hits), ("; ".join(hits) or f"{len(inventory)} modules scanned ({len(REQUIRED_MODULES)} registered present), no hit")
+        return type(exc).__name__, str(exc)
 
 
 def boundary(env: GateEnv) -> tuple[bool, str]:
