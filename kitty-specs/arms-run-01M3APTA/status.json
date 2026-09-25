@@ -1,7 +1,7 @@
 {
-  "event_count": 217,
-  "last_event_id": "01M3BE7JGGNYHTDS6W3VX0H45M",
-  "materialized_at": "2026-09-25T04:47:27.760672+00:00",
+  "event_count": 219,
+  "last_event_id": "01M3BE7VQ4HDZY5P0282QGZA5S",
+  "materialized_at": "2026-09-25T04:47:37.187796+00:00",
   "mission_number": "",
   "mission_slug": "arms-run-01M3APTA",
   "mission_type": "software-dev",
@@ -12,9 +12,9 @@
     "claimed": 0,
     "done": 0,
     "for_review": 2,
-    "in_progress": 1,
+    "in_progress": 2,
     "in_review": 0,
-    "planned": 3
+    "planned": 2
   },
   "work_packages": {
     "WP01": {
@@ -209,14 +209,14 @@
       }
     },
     "WP06": {
-      "actor": "user",
-      "agent": "claude",
+      "actor": "claude",
+      "agent": null,
       "agent_profile": "__resolved_profile_absent__",
       "agent_profile_version": "__resolved_profile_version_absent__",
       "force_count": 2,
-      "lane": "planned",
-      "last_event_id": "01M3BE7JGGNYHTDS6W3VX0H45M",
-      "last_transition_at": "2026-09-25T04:47:27.760672+00:00",
+      "lane": "in_progress",
+      "last_event_id": "01M3BE7VQ4HDZY5P0282QGZA5S",
+      "last_transition_at": "2026-09-25T04:47:37.187796+00:00",
       "model": "__resolved_model_absent__",
       "notes": [
         "arm D: six/zero split measured; B2 = 363,004 tokens; Codex out of credits -> Opus fallback review",
@@ -229,12 +229,12 @@
         "reviewer": "Kent Gale",
         "verdict": "approved"
       },
-      "role": "reviewer",
-      "shell_pid": 2081166,
-      "shell_pid_created_at": "1790311461.77",
+      "role": "implementer",
+      "shell_pid": null,
+      "shell_pid_created_at": null,
       "subtasks": {
-        "T026": "done",
-        "T027": "done"
+        "T026": "planned",
+        "T027": "planned"
       }
     },
     "WP07": {
