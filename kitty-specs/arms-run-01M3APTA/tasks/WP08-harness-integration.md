@@ -4,9 +4,6 @@ title: Harness integration, CLI, secondary binding, grading export
 dependencies:
 - WP03
 - WP04
-- WP05
-- WP06
-- WP07
 requirement_refs:
 - C-006
 - C-008
@@ -66,7 +63,7 @@ and boundaries for the whole work package.
 
 ## Objective
 
-Rebuild `run_849_harness.py` on the modules WP03–WP07 delivered so it becomes the runner the
+Rebuild `run_849_harness.py` on the modules WP03 and WP04 delivered (the real arms register into the harness through the WP01 interface later — they are consumers of this registry, not prerequisites; design-lead E2) so it becomes the runner the
 quickstart names, keeps every property it already has (four-gate precondition, ledger bound to
 one corpus, `exceeds_model_context` never averaged), and gains the rest of the spec: attempt
 rows, retry via health check, per-attempt timeout, samplers, calibration and the halt rule,

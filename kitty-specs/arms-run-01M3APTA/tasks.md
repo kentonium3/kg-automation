@@ -42,7 +42,7 @@ injected defect"), so every code WP carries its tests.
 | T026 | `arms849/arm_d.py`: full dump (events, entities, edges) via `render_block`, layout assertion, context gate with `limit_applied`, cache telemetry | WP06 | [P] |
 | T027 | D tests: prefix property across the eight questions, `ContextExceeded` on exactly six with the real tokenizer, entities+edges after events, secondary limits | WP06 | [P] |
 | T028 | `arms849/arm_r.py`: event index with the shared embedder, records block (entities + edges), top-k re-sorted to ask_time, rank order recorded | WP07 | [P] |
-| T029 | `arm_r.py`: `calibrate()` implementing D-10 over the eight replayed R views; `availability_capped`, `r_g_ratio` | WP07 | [P] |
+| T029 | `arm_r.py`: `r_tokens_for(question, k)` + `availability_cap(question)` — the only inputs WP04's single D-10 implementation calls | WP07 | [P] |
 | T030 | R tests: k determinism, band checks incl. `unattainable`, chronological assembly, ratio unavailable state | WP07 | [P] |
 | T031 | `run_849_harness.py` rewrite on the modules: execute loop (attempt_start → arm → row), `arm_view`, `ContextExceeded(limit_applied)`, retry via health check, sampler wiring | WP08 | |
 | T032 | CLI: `--preflight`, `--status`, `--grading-view`, `--secondary --primary <ledger>`; four-gate precondition retained; bus/status events | WP08 | |
@@ -97,7 +97,7 @@ injected defect"), so every code WP carries its tests.
 - **Deps**: WP01. **Est. prompt**: ~260 lines. **Prompt**: [tasks/WP06-arm-d.md](./tasks/WP06-arm-d.md)
 
 ### WP07 — Arm R: index, records, deterministic k (IC-05)
-- **Goal**: the realistic-deployment arm with its one free parameter derived by D-10 from a complete calibration population.
+- **Goal**: the realistic-deployment arm; its one free parameter is derived by WP04's single D-10 implementation from token counts R supplies.
 - **Priority**: P1. **Independent test**: same inputs → same k; band checks incl. `unattainable`; chronological assembly; ratio unavailable state.
 - Subtasks: T028 (WP07) · T029 (WP07) · T030 (WP07)
 - **Deps**: WP01, WP03, WP05 (imports `arms849.embed`). **Est. prompt**: ~330 lines. **Prompt**: [tasks/WP07-arm-r.md](./tasks/WP07-arm-r.md)
@@ -106,18 +106,18 @@ injected defect"), so every code WP carries its tests.
 - **Goal**: `run_849_harness.py` rebuilt on the modules; the CLI the quickstart names; the secondary's binding; the blinded export — all proven with fake arms end to end.
 - **Priority**: P1. **Independent test**: 72-cell fake run with interrupt/resume, torn tail, second writer; grading view forbidden-string scan; secondary refusal.
 - Subtasks: T031 (WP08) · T032 (WP08) · T033 (WP08) · T034 (WP08) · T035 (WP08)
-- **Deps**: WP03, WP04, WP05, WP06, WP07. **Est. prompt**: ~500 lines. **Prompt**: [tasks/WP08-harness-integration.md](./tasks/WP08-harness-integration.md)
+- **Deps**: WP03, WP04 (real arms are consumers of the registry, not prerequisites — E2). **Est. prompt**: ~500 lines. **Prompt**: [tasks/WP08-harness-integration.md](./tasks/WP08-harness-integration.md)
 
 ### WP09 — Documentation and execution (IC-09; planning artifact, no code)
 - **Goal**: a cold-start reader can find, run and understand the harness; then the live verification — ledgers, grading view + seal, the re-measured §2 table, the run record.
 - **Priority**: P1 (last). **Independent test**: `validate_docs.py` green; SC-001/002/003/005/006/008 observed on the real run.
 - Subtasks: T036 (WP09) · T037 (WP09) · T038 (WP09) · T039 (WP09) · T040 (WP09) · T041 (WP09) · T042 (WP09) · T043 (WP09)
-- **Deps**: WP02, WP08 (and the post-merge Codex review of the full diff before T038). **Est. prompt**: ~330 lines. **Prompt**: [tasks/WP09-docs-and-execution.md](./tasks/WP09-docs-and-execution.md)
+- **Deps**: WP02, WP05, WP06, WP07, WP08 (and the post-merge Codex review of the full diff before T038). **Est. prompt**: ~330 lines. **Prompt**: [tasks/WP09-docs-and-execution.md](./tasks/WP09-docs-and-execution.md)
 
 ## MVP / sequencing
 
-- **Lane A (foundation)**: WP01 → WP03 → WP04 → WP08.
-- **Lane B (substrate)**: WP02 → (joins WP05 and WP10).
+- **Lane A (foundation)**: WP01 → WP03 → WP04 → WP08 (reaches the fake-arm MVP without any substrate).
+- **Lane B (substrate)**: WP02 → (joins WP05 and WP09).
 - **Lane C (arms)**: WP05 (needs WP01+WP02), WP06 (needs WP01), WP07 (needs WP01+WP03+WP05) — parallel once their deps land.
 - **WP09** runs last: its docs subtasks land first, and T038 onward only after everything is merged and the post-merge Codex review of the full diff has passed (Kent's standing checkpoint) — it is the live verification, and it must run on reviewed code.
 - MVP = WP01 + WP03 + WP08 with fake arms: a complete, resumable, blinded-exportable 72-cell run of `not_implemented` cells proves the harness before any substrate exists.

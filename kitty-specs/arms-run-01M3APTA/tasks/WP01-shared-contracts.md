@@ -138,7 +138,7 @@ and must fail when one character changes); render inserts the block and question
 1. `@dataclass(frozen=True) class Question: id: str; arc: str; ask_time: str; text: str`.
 2. `QUESTIONS: tuple[Question, ...]` — the eight rows of the §3 table **verbatim**, in order
    (C1, A, F1, B1, E2, E1, F2, B2) with their ISO ask_times and texts.
-3. `MANIFEST_DIGEST = "4864c31ccb1cc372229bcd808a4136a493d91b6c842c3ac018defa3537f97dfe"`.
+3. `MANIFEST_DIGEST = "fe17beef263777261e5d623ed8362ebaaada60ffbb0fd20b10b1f4d7a820c462"`.
 4. `manifest_bytes()`: the eight JSON lines `{"ask_time": …, "question": <id>, "question_text": …}`
    with `sort_keys=True`, default `json.dumps` escaping, LF-joined, trailing LF, UTF-8 — exactly
    the A4 rule. `verify()` compares its sha256 to the constant.

@@ -168,10 +168,7 @@
       ],
       "depends_on_lanes": [
         "lane-c",
-        "lane-d",
-        "lane-e",
-        "lane-f",
-        "lane-g"
+        "lane-d"
       ],
       "parallel_group": 3
     },
@@ -191,15 +188,18 @@
       ],
       "depends_on_lanes": [
         "lane-b",
+        "lane-e",
+        "lane-f",
+        "lane-g",
         "lane-h"
       ],
       "parallel_group": 4
     }
   ],
-  "computed_at": "2026-09-25T00:32:37.465690+00:00",
+  "computed_at": "2026-09-25T00:34:20.592345+00:00",
   "computed_from": "dependency_graph+ownership",
   "planning_artifact_wps": [
     "WP09"
   ],
-  "planning_commit_sha": "63952fa4b4561ec5f9bf5e38841c14d6df986f3d"
+  "planning_commit_sha": "02b5bf531df989808055395cebab546e096b4b51"
 }

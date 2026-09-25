@@ -76,14 +76,15 @@ per-question assembly callable, the harness runs the calibration and writes the 
    and the embedder is deterministic, so either is byte-identical; cache for speed and assert
    equality in a test); renders, counts, completes.
 
-### T029 — `calibrate()` inputs for D-10
+### T029 — `r_tokens_for` and `availability_cap` (inputs to WP04's calibration — D-10 is implemented ONCE, in `arms849/calibration.py`)
 
-**Steps**: `r_tokens_for(view, k, tokenizer) -> int`: builds the assembly for a candidate k and
-returns the assembled-block token count (records + top-k events), the callable
-`arms849.calibration.calibrate` needs; `r_views_by_question(corpus_dir)` = the eight replayed
-views. Also `ratio(question, assembled_tokens, calibration)` delegating to
-`calibration.ratio_for`. R never calls `calibrate` itself — the harness does, once, when all eight
-G repeat-1 cells are `ok`.
+**Steps**: `r_tokens_for(question, k, tokenizer) -> int`: builds the assembly for a candidate k
+on the question's replayed view and returns the assembled-block token count (records + top-k
+events, exact assembled bytes tokenised); `availability_cap(question) -> int` = the number of
+events in that view. These two are the ONLY things `arms849.calibration.calibrate` (WP04) calls
+into R; the band, the ties, `parity`, the record and the halt rule live there and nowhere else
+(design-lead E1: one implementation of D-10). R never calls `calibrate`; the harness does, once,
+when all eight G repeat-1 cells are `ok`.
 
 ### T030 — Tests
 
@@ -92,8 +93,8 @@ same view + same k twice → identical `assembled_context_sha256`; retrieved ref
 chronologically while `retrieved_refs_by_rank` keeps rank order; records section equals D's for
 the same question (byte-identical entity+edge lines); `availability_capped` on C1 with k >
 772; `r_tokens_for` is monotone non-decreasing in k; running `arm_r` without a calibration
-record raises; with a synthetic G-median table, `calibration.calibrate` over `r_tokens_for`
-returns the same k twice and reports `unattainable` when the records block alone exceeds 1.2×.
+record raises; `availability_cap(C1) == 772`; `r_tokens_for` is exact (equals the tokeniser count of
+the bytes the assembly would insert). The band/ties/parity tests belong to WP04, not here.
 
 ## Definition of Done
 

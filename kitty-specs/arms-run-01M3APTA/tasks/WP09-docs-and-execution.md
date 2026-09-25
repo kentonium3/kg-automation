@@ -3,6 +3,9 @@ work_package_id: WP09
 title: Documentation and execution — README run section, run record, preflight, primary run, hand-off, secondary, teardown
 dependencies:
 - WP02
+- WP05
+- WP06
+- WP07
 - WP08
 requirement_refs:
 - C-001
