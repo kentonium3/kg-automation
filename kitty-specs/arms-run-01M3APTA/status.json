@@ -1,7 +1,7 @@
 {
-  "event_count": 86,
-  "last_event_id": "01M3B5C1G8YRTVXJP9Y46GWJD6",
-  "materialized_at": "2026-09-25T02:12:37.000529+00:00",
+  "event_count": 87,
+  "last_event_id": "01M3B5CAES8SN6AS6FTYFBS1RG",
+  "materialized_at": "2026-09-25T02:12:46.169681+00:00",
   "mission_number": "",
   "mission_slug": "arms-run-01M3APTA",
   "mission_type": "software-dev",
@@ -11,9 +11,9 @@
     "canceled": 0,
     "claimed": 0,
     "done": 0,
-    "for_review": 2,
+    "for_review": 1,
     "in_progress": 0,
-    "in_review": 0,
+    "in_review": 1,
     "planned": 6
   },
   "work_packages": {
@@ -69,7 +69,8 @@
         "WP02 cycle 3: three Codex c2 findings fixed; live boundary tests green with seven widening targets",
         "WP02 cycle 4: three Codex c3 findings + design-lead items fixed; static 31, live green with rebuilt image",
         "WP02 cycle 5: three Codex c4 findings fixed; static 34, live green incl. in-runner chat-template probe",
-        "WP02 cycle 6: three Codex c5 findings fixed; static 38, live green incl. /dev/shm identity negative"
+        "WP02 cycle 6: three Codex c5 findings fixed; static 38, live green incl. /dev/shm identity negative",
+        "WP02 cycle 7: two Codex c6 findings fixed; static 41, live green incl. checkout-at-/runs negative"
       ],
       "provider": "__resolved_provider_absent__",
       "review": null,
@@ -91,14 +92,14 @@
       }
     },
     "WP03": {
-      "actor": "user",
-      "agent": null,
+      "actor": "claude",
+      "agent": "claude",
       "agent_profile": "__resolved_profile_absent__",
       "agent_profile_version": "__resolved_profile_version_absent__",
       "force_count": 3,
-      "lane": "for_review",
-      "last_event_id": "01M3B53QB7NENCPJ25P60VPG40",
-      "last_transition_at": "2026-09-25T02:08:04.455506+00:00",
+      "lane": "in_review",
+      "last_event_id": "01M3B5CAES8SN6AS6FTYFBS1RG",
+      "last_transition_at": "2026-09-25T02:12:46.169681+00:00",
       "model": "__resolved_model_absent__",
       "notes": [
         "WP03 ledger: 24 tests incl. kill-mid-write recovery, second-writer refusal, per-field binding refusal; full suite green",
@@ -114,9 +115,9 @@
         "reviewer": "claude",
         "verdict": "changes_requested"
       },
-      "role": "implementer",
-      "shell_pid": null,
-      "shell_pid_created_at": null,
+      "role": "reviewer",
+      "shell_pid": 1492555,
+      "shell_pid_created_at": "1790302350.85",
       "subtasks": {
         "T011": "done",
         "T012": "done",
