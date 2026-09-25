@@ -184,9 +184,13 @@ ACCOMMODATION stands, stated: builtin-generic type expressions (GenericAlias / U
 origin and every argument are allowlisted builtins, None or Ellipsis, recursively; any other value inside one is a
 carrier and refuses — annotations are not produced values, but their constructed strings must still be scanned,
 which is why annotation positions are NOT opaque (option (b) rejected). Consequence: `x: tuple["or" + "acle"]` is
-REFUSED as a carrier rather than caught; the gate fails either way. (3) **Dunder refusal.** Invocation of any dunder method on a pure receiver,
-in every form incl. the descriptor route, is refused (this includes `("a","b").__iter__()` — previously caught,
-now refused; fail closed either way): the evaluator's guarantee is "every evaluated call is a pure
+REFUSED as a carrier rather than caught; the gate fails either way. **Declined alternative (design lead, 2026-09-25 21:36Z, bus
+20260925T213619530125Za8c12b5a9e):** a value-level form of this accommodation (permit GenericAlias/UnionType whose
+origin and arguments are recursively permitted values) is available and was declined at cycle 16 to close the arc;
+prefer it if the scanner is reopened for any other reason. (3) **Dunder refusal.** Invocation of any dunder method on a pure receiver,
+in every form incl. the descriptor route and on an UNtainted literal receiver, is refused. The 21:00Z carrier
+ruling's keep-case "`("or","acle").__iter__()` invoked in its own node is caught" is WITHDRAWN (design lead 21:36Z):
+the later dunder ruling stands, so that construction is refused — fail closed either way: the evaluator's guarantee is "every evaluated call is a pure
 function of its arguments", which holds for the allowlisted builtins and the non-dunder methods of the allowlisted
 literal types, and dunders are where process and platform state enters. (4) **Double-seed gate invariant.** The
 isolation gate runs the literal scan over the real package in two child processes under different fixed
