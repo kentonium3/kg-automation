@@ -165,6 +165,29 @@ allowlist + methods of literals that the scan misclassifies (an implementation b
 that needs a name binding, an import, or attribute access on a module is runtime-boundary territory, recorded
 against D-8 as out of scope, and not folded (as ruled 2026-09-25 02:39Z).
 
+**Dated update 2026-09-25 20:12Z–21:17Z (design-lead rulings, bus msgs 20260925T201253503279Z7b3150e8fa,
+20260925T203137872479Z9a0facc41d, 20260925T210021147602Z4cd755eb5c, 20260925T211410502747Z96d219122b,
+20260925T211710592294Zed6c0d627f; WP04 cycles 13–16):** (1) **Value-carried taint.** Unordered-ness is a property of
+runtime values: the evaluation child binds `set`/`frozenset` to `TaintedSet`/`TaintedFrozenset`, one `_mark` converts
+every evaluated result (recursively through list/tuple/dict keys and values; iterators and dict views materialised
+at production), and consumers are checked on VALUES — len/any/all and ==/!=/in/not in accept any taint; sorted/min/max
+only a direct set of ordered members with no tainted keyword; list/tuple/reversed/enumerate/zip/dict refuse a direct
+set and carry a nested one; map/filter and every other callable or operator refuse any taint. The syntactic taint
+pass is deleted. (2) **Carrier rule.** An intermediate value handed to a consumer must be a scalar, a marked
+container, or an allowlisted builtin callable; anything referencing another value through an attribute (bound
+methods first) is refused unless invoked in its own node. The check fires on CONSUMPTION, not on a subtree's
+terminal value, so builtin-generic annotations (`dict[str, int]`, `str | None`) are ordinary subtrees and their
+constructed strings are still scanned. (3) **Dunder refusal.** Invocation of any dunder method on a pure receiver,
+in every form incl. the descriptor route, is refused: the evaluator's guarantee is "every evaluated call is a pure
+function of its arguments", which holds for the allowlisted builtins and the non-dunder methods of the allowlisted
+literal types, and dunders are where process and platform state enters. (4) **Double-seed gate invariant.** The
+isolation gate runs the literal scan over the real package in two child processes under different fixed
+PYTHONHASHSEED values and FAILS ("literal scan is not reproducible under differing hash seeds") if the results
+differ in any way; both seeds and the agreement are recorded in the gate result. **D-8 is CLOSED:** a further finding
+is folded only if it exhibits a call that is neither a dunder nor tainted and is not a pure function of its
+arguments — and the double-seed gate would have to have missed it on the real modules. Anything else belongs to
+D-8's stated boundary: named code, imports and module attribute access are the runtime gate's.
+
 ## D-9 — Sandbox envelope on office4 (implementer's call; FR-018 — recorded BEFORE any container runs)
 
 - **Compose project**: `arms849`. **Network**: `arms849-net` (bridge, internal). **Volumes**:
