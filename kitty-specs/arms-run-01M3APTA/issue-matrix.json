@@ -35,6 +35,18 @@
       "title": "<fill at WP-implementation time>",
       "verdict": "verified-already-fixed",
       "wp": "WP01"
+    },
+    "#976": {
+      "evidence_ref": "local mitigations are in-mission (arms_<Q> group ids, one typed pull per label, loader-side pair validation \u2014 plan IC-03/research D-3); the three upstream getzep/graphiti reports in #976 remain unfiled pending Kent's copy sign-off",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": null,
+      "title": null,
+      "verdict": "deferred-with-followup",
+      "wp": "WP01"
     }
   },
   "schema_version": 1
