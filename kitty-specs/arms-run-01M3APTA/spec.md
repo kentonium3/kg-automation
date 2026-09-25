@@ -70,7 +70,8 @@ When the primary ledger is complete, the harness exports a grading view: per que
 - The model server accepts a context size beyond its trained limit (it will) → the harness never relies on server acceptance; the token count is measured client-side before any request.
 - The substrate health check never passes within the retry budget → the cell records `error` after the second retry and the run continues; a run that ends with error cells is complete but flagged in status.
 - A session limit ends the process during a cell → that cell has no row (or an `error` row) and is re-attempted on resume; an earlier `ok` row for the same key is never followed by another attempt.
-- G resolves zero anchors for a question → the cell records `ok` with an empty plan and whatever context the typed constraint pulls alone yield; zero anchors is a result, not an error.
+- G resolves zero anchors for a question → the **search-only path** runs (hybrid search on the question text plus the typed constraint pulls, no anchored expansion), the executed plan is recorded with `anchors_resolved: []`, and the cell is `ok`; zero anchors is a result, not an error (rubric §2, A3: "Zero anchors → search-only path, recorded").
+- Anchor resolution finds two candidates for one mention (two Persons sharing an alias, two Commitments with the same normalised description) → both are anchors; ambiguity never picks silently and never drops.
 - R's derived k would exceed the material available for an early question → k is capped by availability for that cell and the cap is recorded.
 - Two sessions attempt to resume the same ledger concurrently → the second refuses on a held lock; there is never a second writer.
 
