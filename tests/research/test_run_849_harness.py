@@ -1,13 +1,16 @@
-"""Tests for the #849 run harness.
+"""Tests for the #849 run harness — the phase-(a) properties, re-pointed to the arms849 modules (WP08).
 
-The harness's job is not running 72 cells — it is stopping safely and resuming
-without corrupting the result. So these test the stopping, not the running.
+The harness's job is not running 72 cells — it is stopping safely and resuming without
+corrupting the result. So these test the stopping, not the running. Each test below is a
+phase-(a) test kept by its property; the module each property now lives in is named.
+The end-to-end fake-arm run is in test_arms849_integration.py.
 """
 
 from __future__ import annotations
 
 import json
 import pathlib
+import shutil
 import sys
 from datetime import datetime
 
@@ -16,27 +19,32 @@ import pytest
 REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT))
 
-from scripts.research import run_849_harness as h  # noqa: E402
-from scripts.research.check_849_loader import ASK_TIMES  # noqa: E402
+from scripts.research import run_849_harness as h
+from scripts.research.arms849 import preflight
+from scripts.research.arms849.ledger import (
+    Binding,
+    LedgerBoundToAnotherConfig,
+    open_ledger,
+)
+from scripts.research.arms849.questions import QUESTIONS
+from tests.research.test_arms849_integration import (
+    BLINDING_SEED,
+    PRIMARY,
+    FakeContextExceeded,
+    FakeG,
+    fake_arms,
+    make_binding,
+    make_runtime,
+    open_fake,
+    rows_of,
+    runs,
+)
 
 CORPUS = h.DEFAULT_CORPUS
 
 pytestmark = pytest.mark.skipif(
     not (CORPUS / "entities.json").exists(),
     reason="rendered corpus absent; run render_849_corpus first")
-
-
-@pytest.fixture
-def arms(monkeypatch):
-    """Register three trivial arms so the matrix can actually execute."""
-    def make(label):
-        def arm(question, ask_time, loaded):
-            return h.Answer(text=f"{label}:{question}",
-                            assembled_context_tokens=len(loaded.events))
-        return arm
-    monkeypatch.setitem(h.ARM_IMPLEMENTATIONS, "G", make("G"))
-    monkeypatch.setitem(h.ARM_IMPLEMENTATIONS, "D", make("D"))
-    monkeypatch.setitem(h.ARM_IMPLEMENTATIONS, "R", make("R"))
 
 
 # --------------------------------------------------------------------------
@@ -47,107 +55,99 @@ def arms(monkeypatch):
 def test_the_plan_is_seventy_two_runs():
     assert len(h.plan()) == 72
     assert len(set(h.plan())) == 72, "a duplicated cell would be silently overwritten"
+    assert len(h.plan("secondary")) == 24 and {k.arm for k in h.plan("secondary")} == {"D"}
 
 
 def test_questions_run_in_ask_time_ascending_order_within_each_pass():
     """Protocol, not preference: D's cache hit rate is a property of this order,
     so a resume that reordered questions would change what cost measures."""
-    expected = [label for label, _ in ASK_TIMES]
-    stamps = [datetime.fromisoformat(s) for _, s in ASK_TIMES]
-    assert stamps == sorted(stamps), "ASK_TIMES itself is out of order"
+    expected = [q.id for q in QUESTIONS]
+    stamps = [datetime.fromisoformat(q.ask_time) for q in QUESTIONS]
+    assert stamps == sorted(stamps), "the manifest itself is out of order"
 
     for arm in h.ARMS:
-        for repeat in range(1, h.REPEATS + 1):
-            got = [k.question for k in h.plan()
-                   if k.arm == arm and k.repeat == repeat]
+        for repeat in range(1, 4):
+            got = [k.question for k in h.plan() if k.arm == arm and k.repeat == repeat]
             assert got == expected, (arm, repeat, got)
+    assert [k.arm for k in h.plan()[::24]] == ["G", "D", "R"], "arm-major G → D → R"
 
 
 # --------------------------------------------------------------------------
-# Resume
+# Resume (the ledger is the state)
 # --------------------------------------------------------------------------
 
 
-def test_resume_skips_completed_runs_and_finishes_the_matrix(tmp_path, arms):
-    ledger = tmp_path / "ledger.jsonl"
-
-    h.run(ledger, CORPUS, limit=5, gates=False)
-    _, rows = h.read_ledger(ledger)
-    assert len(rows) == 5
-
-    h.run(ledger, CORPUS, limit=5, gates=False)
-    _, rows = h.read_ledger(ledger)
-    assert len(rows) == 10, "resume re-ran work already in the ledger"
-    keys = [(r["arm"], r["question"], r["repeat"]) for r in rows]
-    assert len(set(keys)) == 10
-
+def test_resume_skips_completed_runs_and_finishes_the_matrix(tmp_path):
+    ledger_path = tmp_path / "ledger.jsonl"
+    for _ in range(2):
+        with open_fake(ledger_path) as ledger:
+            h.run_session(ledger, make_runtime(fake_arms()), limit=5)
+    keys = [(r["arm"], r["question"], r["repeat"]) for r in runs(ledger_path)]
+    assert len(keys) == 10 and len(set(keys)) == 10, "resume re-ran work already in the ledger"
     assert keys == [(k.arm, k.question, k.repeat) for k in h.plan()[:10]]
 
 
-def test_a_completed_matrix_has_nothing_left_to_do(tmp_path, arms):
-    ledger = tmp_path / "ledger.jsonl"
-    h.run(ledger, CORPUS, gates=False)
-    completed, failed = h.run(ledger, CORPUS, gates=False)
-    assert (completed, failed) == (0, 0)
-    _, rows = h.read_ledger(ledger)
-    assert len(rows) == 72
-    assert all(r["outcome"] == "ok" for r in rows)
+def test_a_completed_matrix_has_nothing_left_to_do(tmp_path):
+    ledger_path = tmp_path / "ledger.jsonl"
+    with open_fake(ledger_path) as ledger:
+        h.run_session(ledger, make_runtime(fake_arms()))
+    with open_fake(ledger_path) as ledger:
+        report = h.run_session(ledger, make_runtime(fake_arms()))
+        assert ledger.pending_keys(h.plan()) == []
+    assert (report.completed, report.failed) == (0, 0)
+    assert len(runs(ledger_path)) == 72
 
 
-def test_every_ledger_line_is_complete_json(tmp_path, arms):
+def test_every_ledger_line_is_complete_json(tmp_path):
     """An interrupted write would make the ledger unparseable, which loses the
     whole run rather than the cell in flight."""
-    ledger = tmp_path / "ledger.jsonl"
-    h.run(ledger, CORPUS, limit=4, gates=False)
-    for line in ledger.read_text(encoding="utf-8").splitlines():
-        assert json.loads(line)
+    ledger_path = tmp_path / "ledger.jsonl"
+    with open_fake(ledger_path) as ledger:
+        h.run_session(ledger, make_runtime(fake_arms()), limit=4)
+    for line in ledger_path.read_text(encoding="utf-8").splitlines():
+        assert isinstance(json.loads(line), dict)
 
 
 # --------------------------------------------------------------------------
-# A ledger belongs to one corpus
+# A ledger belongs to one corpus (now: one Binding — ledger.py, D-16)
 # --------------------------------------------------------------------------
 
 
-def test_a_ledger_refuses_to_resume_against_a_different_corpus(tmp_path, arms):
-    """The check that makes the pending freeze amendment safe.
+def _copy_corpus(dest: pathlib.Path) -> pathlib.Path:
+    dest.mkdir()
+    for p in CORPUS.iterdir():
+        shutil.copy(p, dest / p.name)
+    return dest
 
-    Runs from two corpora averaged together are indistinguishable from runs
-    from one, and #849 has an amendment pending that changes the fingerprints.
-    """
-    ledger = tmp_path / "ledger.jsonl"
-    h.run(ledger, CORPUS, limit=2, gates=False)
 
-    other = tmp_path / "corpus"
-    other.mkdir()
-    for name in ("stream.jsonl", "entities.json", "manifest.json"):
-        (other / name).write_bytes((CORPUS / name).read_bytes())
+def test_a_ledger_refuses_to_resume_against_a_different_corpus(tmp_path):
+    """The check that makes the pending freeze amendment safe: runs from two corpora
+    averaged together are indistinguishable from runs from one."""
+    ledger_path = tmp_path / "ledger.jsonl"
+    with open_fake(ledger_path) as ledger:
+        h.run_session(ledger, make_runtime(fake_arms()), limit=2)
+
+    other = _copy_corpus(tmp_path / "corpus")
     with (other / "stream.jsonl").open("a", encoding="utf-8") as fh:
         fh.write(json.dumps({"ref": "e99999", "at": "2026-01-01"}) + "\n")
+    with pytest.raises(LedgerBoundToAnotherConfig):
+        make_binding(corpus=other)
 
-    with pytest.raises(h.LedgerBoundToAnotherCorpus) as exc:
-        h.open_ledger(ledger, other)
-    assert "two corpora" in str(exc.value)
+    # A binding that differs in any field is refused on resume, and nothing is appended.
+    good = make_binding()
+    foreign = Binding(**{**good.as_dict(), "run_env_commit": "another-export"})
+    with pytest.raises(LedgerBoundToAnotherConfig, match="different configuration"):
+        open_ledger(ledger_path, foreign, BLINDING_SEED, h.PRIMARY_PLAN)
+    assert len(runs(ledger_path)) == 2, "the refused resume must not have appended"
 
-    _, rows = h.read_ledger(ledger)
-    assert len(rows) == 2, "the refused resume must not have appended"
 
-
-def test_adding_loader_links_changes_the_binding(tmp_path, arms):
-    """The amendment adds loader_links.jsonl — that alone must rebind."""
-    corpus_a = tmp_path / "a"
-    corpus_a.mkdir()
-    for name in ("stream.jsonl", "entities.json", "manifest.json"):
-        (corpus_a / name).write_bytes((CORPUS / name).read_bytes())
-    before = h.corpus_fingerprints(corpus_a)
-
-    (corpus_a / "loader_links.jsonl").write_text(
-        json.dumps({"ref": "e00009", "mentions": ["PER_MARCUS"]}) + "\n",
-        encoding="utf-8")
-    after = h.corpus_fingerprints(corpus_a)
-
-    assert "loader_links.jsonl" not in before
-    assert "loader_links.jsonl" in after
-    assert before != after
+def test_loader_links_are_part_of_the_binding(tmp_path):
+    """The amendment added loader_links.jsonl — a corpus without it cannot be bound."""
+    corpus = _copy_corpus(tmp_path / "corpus")
+    assert make_binding(corpus=corpus).corpus["loader_links.jsonl"]
+    (corpus / "loader_links.jsonl").unlink()
+    with pytest.raises(LedgerBoundToAnotherConfig):
+        make_binding(corpus=corpus)
 
 
 # --------------------------------------------------------------------------
@@ -157,26 +157,22 @@ def test_adding_loader_links_changes_the_binding(tmp_path, arms):
 
 def test_an_unregistered_arm_is_recorded_not_silently_skipped(tmp_path):
     """"Could not run" and "ran and scored zero" must never collapse."""
-    ledger = tmp_path / "ledger.jsonl"
-    h.ARM_IMPLEMENTATIONS.clear()
-    h.run(ledger, CORPUS, limit=3, gates=False)
-    _, rows = h.read_ledger(ledger)
-    assert len(rows) == 3
-    assert all(r["outcome"] == "not_implemented" for r in rows)
+    ledger_path = tmp_path / "ledger.jsonl"
+    with open_fake(ledger_path) as ledger:
+        h.run_session(ledger, make_runtime({}), limit=3)
+    assert [r["outcome"] for r in runs(ledger_path)] == ["not_implemented"] * 3
 
 
-def test_an_arm_that_raises_is_recorded_and_the_run_continues(tmp_path, monkeypatch):
-    ledger = tmp_path / "ledger.jsonl"
-
-    def exploding(question, ask_time, loaded):
-        raise ValueError("substrate unavailable")
-
-    monkeypatch.setitem(h.ARM_IMPLEMENTATIONS, "G", exploding)
-    completed, failed = h.run(ledger, CORPUS, limit=2, gates=False)
-    assert failed == 2
-    _, rows = h.read_ledger(ledger)
-    assert all(r["outcome"] == "error" for r in rows)
-    assert "substrate unavailable" in rows[0]["error"]
+def test_an_arm_that_raises_is_recorded_and_the_run_continues(tmp_path):
+    ledger_path = tmp_path / "ledger.jsonl"
+    exploding = FakeG(fail=lambda q, ctx: ValueError("substrate unavailable"))
+    with open_fake(ledger_path) as ledger:
+        report = h.run_session(ledger, make_runtime(fake_arms(g=exploding)), limit=2)
+    rs = runs(ledger_path)
+    assert report.failed == 2 and report.stopped is None
+    assert len(rs) == 6, "two keys × three attempts (FR-007)"
+    assert all(r["outcome"] == "error" for r in rs)
+    assert "substrate unavailable" in rs[0]["error"]
 
 
 # --------------------------------------------------------------------------
@@ -185,20 +181,14 @@ def test_an_arm_that_raises_is_recorded_and_the_run_continues(tmp_path, monkeypa
 
 
 def test_only_arm_g_sees_loader_links():
-    """The flat arms must not get the traversal the graph arm has to earn.
+    """The flat arms must not get the traversal the graph arm has to earn."""
+    from scripts.research.load_849_corpus import replay
+    ask = datetime.fromisoformat("2026-10-16T09:00:00-04:00")
 
-    D and R are handed a view with no links rather than trusted not to look —
-    an assertion that depends on an arm's good behaviour is not an assertion.
-    """
-    from datetime import datetime as _dt
-    from scripts.research.load_849_corpus import replay as _replay
-    ask = _dt.fromisoformat("2026-10-16T09:00:00-04:00")
-
-    g = h.arm_view(h.RunKey("G", "B2", 1), _replay(CORPUS, ask, verify=False))
+    g = h.arm_view(h.RunKey("G", "B2", 1), replay(CORPUS, ask, verify=False))
     assert g.links, "arm G must receive the MENTIONS wiring"
-
     for arm in ("D", "R"):
-        view = h.arm_view(h.RunKey(arm, "B2", 1), _replay(CORPUS, ask, verify=False))
+        view = h.arm_view(h.RunKey(arm, "B2", 1), replay(CORPUS, ask, verify=False))
         assert view.links == [], f"arm {arm} must never see loader_links"
 
 
@@ -210,23 +200,29 @@ def test_arm_inputs_declares_links_for_g_only():
 
 
 # --------------------------------------------------------------------------
-# Amendment A1 (d): the four gates precede any run
+# Amendment A1 (d): the four gates precede any run (now: preflight + container gate)
 # --------------------------------------------------------------------------
 
 
-def test_all_four_gates_pass_on_the_current_corpus():
-    assert h.verify_gates() == []
+def test_the_four_gates_are_the_preflight_checkers_and_pass_on_the_current_corpus():
+    names = preflight.checkers()
+    assert sorted(n.rsplit("_", 1)[-1] for n in names) == ["freeze", "loader", "oracle", "seed"]
+    outcomes = [preflight._run_checker(n) for n in names]
+    assert all(o.passed for o in outcomes), [(o.name, o.tail) for o in outcomes if not o.passed]
 
 
-def test_a_failing_gate_stops_the_run(tmp_path, monkeypatch, arms):
-    """A run against a corpus that fails a gate produces numbers that look
-    exactly like numbers from a corpus that passed."""
-    import scripts.research.check_849_loader as loader_check
-    monkeypatch.setattr(loader_check, "main", lambda argv: 1)
+def test_a_failing_gate_stops_the_run(tmp_path, monkeypatch):
+    """A run against a corpus that fails a gate produces numbers that look exactly like numbers
+    from a corpus that passed: the container phase refuses and no header is written."""
+    from scripts.research.arms849.gates import GatesRefused
 
-    with pytest.raises(h.GateFailed) as exc:
-        h.run(tmp_path / "ledger.jsonl", CORPUS, limit=1, gates=True)
-    assert "check_849_loader" in str(exc.value)
+    def refuse(env, out):
+        raise GatesRefused("container phase refused:\n  preflight_present_and_matching: "
+                           "preflight gate check_849_loader did not pass")
+
+    with pytest.raises(GatesRefused, match="check_849_loader"):
+        h.live_binding(tmp_path / "ledger.jsonl", CORPUS, PRIMARY, "2026-09-25T00:00:00+00:00",
+                       skip_gates=False, container_phase=refuse)
     assert not (tmp_path / "ledger.jsonl").exists(), "no ledger on a failed gate"
 
 
@@ -235,54 +231,57 @@ def test_a_failing_gate_stops_the_run(tmp_path, monkeypatch, arms):
 # --------------------------------------------------------------------------
 
 
-def test_context_exceeded_is_recorded_not_errored_and_not_scored(tmp_path, monkeypatch):
-    """Six D cells are expected to land here. They must be visible in the
-    ledger with the token count, distinct from an error, and absent from
-    every average."""
-    def d_arm(question, ask_time, loaded):
-        raise h.ContextExceeded(prompt_tokens=362_772)
+def test_context_exceeded_is_recorded_not_errored_and_not_scored(tmp_path):
+    """Six D cells are expected to land here: visible with the token count, distinct from an
+    error, and absent from every average."""
+    def d_arm(question, view, ctx):
+        raise FakeContextExceeded(362_772, ctx.limit, ctx.limit_applied, {"layout": "events_entities_edges"})
 
-    def ok_arm(question, ask_time, loaded):
-        return h.Answer(text="x", assembled_context_tokens=1000)
-
-    monkeypatch.setitem(h.ARM_IMPLEMENTATIONS, "D", d_arm)
-    monkeypatch.setitem(h.ARM_IMPLEMENTATIONS, "G", ok_arm)
-    ledger = tmp_path / "ledger.jsonl"
-    # 24 G cells (all ok), then the first D cells.
-    completed, failed = h.run(ledger, CORPUS, limit=26, gates=False)
-    assert failed == 0, "exceeds_model_context must not count as a failure"
-    header, rows = h.read_ledger(ledger)
-    d_rows = [r for r in rows if r["arm"] == "D"]
-    assert d_rows and all(r["outcome"] == "exceeds_model_context" for r in d_rows)
-    assert all(r["prompt_tokens"] == 362_772 for r in d_rows)
-    assert all(r["model_context_tokens"] == h.MODEL_CONTEXT_TOKENS for r in d_rows)
-    assert header["model_context_tokens"] == h.MODEL_CONTEXT_TOKENS
+    ledger_path = tmp_path / "ledger.jsonl"
+    arms = {**fake_arms(), "D": h.ArmRegistration(answer=d_arm)}
+    with open_fake(ledger_path) as ledger:
+        report = h.run_session(ledger, make_runtime(arms), limit=26)   # 24 G cells, then two D
+        header = ledger.header
+    assert report.failed == 0, "exceeds_model_context must not count as a failure"
+    d_rows = [r for r in runs(ledger_path) if r["arm"] == "D"]
+    assert len(d_rows) == 2 and all(r["outcome"] == "exceeds_model_context" for r in d_rows)
+    assert all(r["prompt_tokens"] == 362_772 and r["context_limit_applied"] == "trained" for r in d_rows)
+    assert header.binding.model_context_tokens == 262_144
 
 
-def test_exceeds_cells_are_never_averaged():
-    """The could-not-check / verified-false collapse A2 forbids: a cell with
-    no number must not read as zero."""
-    rows = [
-        {"arm": "D", "question": "C1", "repeat": 1, "outcome": "ok", "assembled_context_tokens": 50_000},
-        {"arm": "D", "question": "C1", "repeat": 2, "outcome": "ok", "assembled_context_tokens": 52_000},
-        {"arm": "D", "question": "B2", "repeat": 1, "outcome": "exceeds_model_context", "prompt_tokens": 362_772},
-        {"arm": "D", "question": "B2", "repeat": 2, "outcome": "exceeds_model_context", "prompt_tokens": 362_772},
-        {"arm": "D", "question": "B2", "repeat": 3, "outcome": "error", "error": "boom"},
-    ]
-    s = h.summarise(rows)
-    assert s[("D", "C1")]["mean_context_tokens"] == 51_000
-    assert s[("D", "C1")]["range_context_tokens"] == (50_000, 52_000)
+def test_exceeds_cells_are_never_averaged(tmp_path):
+    """The could-not-check / verified-false collapse A2 forbids: a cell with no number must not
+    read as zero (Ledger.summarise)."""
+    ledger_path = tmp_path / "ledger.jsonl"
+    with open_fake(ledger_path) as ledger:
+        h.run_session(ledger, make_runtime(fake_arms()))
+        s = ledger.summarise()
+    assert s[("D", "C1")].mean_assembled_tokens == 20_000
+    assert s[("D", "C1")].range_assembled_tokens == (20_000, 20_000)
     b2 = s[("D", "B2")]
-    assert b2["n_scored"] == 0
-    assert b2["mean_context_tokens"] is None, "an exceeds cell averaged in would read as 0"
-    assert b2["exceeds_model_context"] == 2
-    assert b2["error"] == 1
+    assert b2.n_scored == 0
+    assert b2.mean_assembled_tokens is None, "an exceeds cell averaged in would read as 0"
+    assert b2.counts["exceeds_model_context"] == 3
 
 
-def test_summarise_would_fail_if_exceeds_cells_leaked_into_the_mean():
-    """Guards the guard: prove the test above discriminates."""
-    rows = [
-        {"arm": "D", "question": "B2", "repeat": 1, "outcome": "ok", "assembled_context_tokens": 0},
-    ]
-    assert h.summarise(rows)[("D", "B2")]["mean_context_tokens"] == 0, \
-        "a zero-token ok cell is what a leaked exceeds cell would look like — it must be distinguishable by outcome, and it is"
+def test_summarise_would_fail_if_exceeds_cells_leaked_into_the_mean(tmp_path):
+    """Guards the guard: a zero-token ok cell is what a leaked exceeds cell would look like — it
+    is distinguishable by outcome, and it is."""
+    def zero_d(question, view, ctx):
+        from tests.research.test_arms849_integration import scored
+        return scored("answer zero", 0, context_limit_applied=ctx.limit_applied)
+
+    ledger_path = tmp_path / "ledger.jsonl"
+    with open_fake(ledger_path) as ledger:
+        h.run_session(ledger, make_runtime({**fake_arms(), "D": h.ArmRegistration(answer=zero_d)}), limit=32)
+        s = ledger.summarise()
+    assert s[("D", "B2")].mean_assembled_tokens == 0 and s[("D", "B2")].n_scored == 1
+
+
+def test_status_line_is_one_line_the_operator_relays(tmp_path):
+    ledger_path = tmp_path / "ledger.jsonl"
+    with open_fake(ledger_path) as ledger:
+        h.run_session(ledger, make_runtime(fake_arms()), limit=3)
+        line = h.status_line(ledger)
+    assert "\n" not in line and line.startswith("arms849 status: ledger.jsonl [primary] 3/72 terminal")
+    assert [r.get("record") for r in rows_of(ledger_path)].count("header") == 1
