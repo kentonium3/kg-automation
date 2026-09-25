@@ -20,47 +20,57 @@ PKG = REPO_ROOT / "scripts" / "research" / "arms849"
 FORBIDDEN = ("or" + "acle", "se" + "ed/", "trace" + "ability")
 
 
+def _const_eval(node: ast.AST):
+    """Evaluate a statically resolvable expression: constants of any type, arithmetic on
+    numbers, concatenation of str/bytes, f-strings with conversions and format specs.
+    Returns None when anything is not a constant (an opaque interpolation renders as
+    a NUL so a word cannot be smuggled around it)."""
+    if isinstance(node, ast.Constant):
+        return node.value
+    if isinstance(node, ast.BinOp):
+        left, right = _const_eval(node.left), _const_eval(node.right)
+        if left is None or right is None:
+            return None
+        ops = {ast.Add: lambda a, b: a + b, ast.Sub: lambda a, b: a - b, ast.Mult: lambda a, b: a * b,
+               ast.FloorDiv: lambda a, b: a // b, ast.Mod: lambda a, b: a % b, ast.Pow: lambda a, b: a ** b}
+        fn = ops.get(type(node.op))
+        if fn is None:
+            return None
+        try:
+            return fn(left, right)
+        except Exception:  # noqa: BLE001 — a type/zero error is simply "not constant"
+            return None
+    if isinstance(node, ast.UnaryOp) and isinstance(node.op, ast.USub):
+        v = _const_eval(node.operand)
+        return -v if isinstance(v, (int, float)) else None
+    if isinstance(node, ast.JoinedStr):
+        out = []
+        for v in node.values:
+            piece = _const_eval(v)
+            out.append("\0" if piece is None else str(piece))
+        return "".join(out)
+    if isinstance(node, ast.FormattedValue):
+        val = _const_eval(node.value)
+        if val is None:
+            return None
+        conv = {-1: lambda v: v, 115: str, 114: repr, 97: ascii}[node.conversion](val)
+        spec = _const_eval(node.format_spec) if node.format_spec is not None else ""
+        try:
+            return format(conv, spec) if spec else str(conv)
+        except (ValueError, TypeError):
+            return None
+    return None
+
+
 def _string_constants(source: str) -> list[str]:
-    """Every statically resolvable string: str and bytes constants, f-string literal
-    parts, and `+` concatenations of constants (folded)."""
+    """Every string a static reading of the module can produce (see _const_eval)."""
     out: list[str] = []
-
-    def fold(node: ast.AST) -> str | None:
-        if isinstance(node, ast.Constant) and isinstance(node.value, str):
-            return node.value
-        if isinstance(node, ast.Constant) and isinstance(node.value, bytes):
-            return node.value.decode("utf-8", "replace")
-        if isinstance(node, ast.JoinedStr):
-            parts = [fold(v) for v in node.values]
-            return "".join(p if p is not None else "\0" for p in parts)
-        if isinstance(node, ast.FormattedValue):
-            # A constant interpolation is evaluated: conversion (!s !r !a) and a
-            # constant format spec included. Anything non-constant is opaque.
-            # Any constant (str, bytes, int, float, bool, None — `{111:c}` is a letter) or
-            # any statically resolvable expression, recursively.
-            if isinstance(node.value, ast.Constant):
-                inner, val = "", node.value.value
-            else:
-                inner = fold(node.value)
-                val = inner
-            if inner is not None and "\0" not in (inner or ""):
-                conv = {-1: lambda v: v, 115: str, 114: repr, 97: ascii}[node.conversion](val)
-                spec = fold(node.format_spec) if node.format_spec is not None else ""
-                try:
-                    return format(conv, spec) if spec else str(conv)
-                except (ValueError, TypeError):
-                    return "\0"
-            return "\0"
-        if isinstance(node, ast.BinOp) and isinstance(node.op, ast.Add):
-            left, right = fold(node.left), fold(node.right)
-            if left is not None and right is not None:
-                return left + right
-        return None
-
     for node in ast.walk(ast.parse(source)):
-        folded = fold(node)
-        if folded is not None:
-            out.append(folded)
+        val = _const_eval(node)
+        if isinstance(val, bytes):
+            out.append(val.decode("utf-8", "replace"))
+        elif isinstance(val, str):
+            out.append(val)
     return out
 
 
@@ -89,7 +99,10 @@ def test_no_module_names_the_excluded_material(module: pathlib.Path):
     'X = f"or{f\'ac{\"le\"}\'}"',             # nested f-string
     'X = f"{111:c}racle"',                   # numeric constant + format spec (Codex c4)
     'X = f"{111:c}" + "racle"',
-], ids=["adjacent", "plus", "fstring", "bytes", "plus2", "conv", "spec", "fplus", "inner-plus", "nested", "numc", "numc-plus"])
+    'X = f"{110 + 1:c}racle"',               # arithmetic on numeric constants (Codex c5)
+    'X = f"{(37 * 3):c}" "racle"',
+    'X = "or" * 1 + "acle"',
+], ids=["adjacent", "plus", "fstring", "bytes", "plus2", "conv", "spec", "fplus", "inner-plus", "nested", "numc", "numc-plus", "arith", "arith2", "mult"])
 def test_the_scan_catches_constructed_forbidden_strings(tmp_path, construction):
     """Codex WP02 cycle 1: the first scan missed constructed strings."""
     bad = tmp_path / "bad.py"

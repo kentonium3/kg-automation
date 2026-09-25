@@ -74,8 +74,16 @@ NETWORK = f"{PROJECT}-net"
 VOLUME = f"{PROJECT}-falkor"
 
 
+RUNNER_IMAGE_INPUTS = ("runner.Dockerfile", "requirements-arms849.txt")
+
+
 def _runner_dockerfile_sha() -> str:
-    return hashlib.sha256((COMPOSE_DIR / "runner.Dockerfile").read_bytes()).hexdigest()[:12]
+    """Identity of everything the image build reads: the Dockerfile AND the pinned
+    requirements it copies in (Codex WP02 c5: a pin change must change the tag)."""
+    h = hashlib.sha256()
+    for name in RUNNER_IMAGE_INPUTS:
+        h.update(name.encode()); h.update(b"\0"); h.update((COMPOSE_DIR / name).read_bytes()); h.update(b"\0")
+    return h.hexdigest()[:12]
 
 
 #: Tagged by the Dockerfile's content: a changed Dockerfile can never reuse a stale
@@ -566,19 +574,41 @@ except Exception as exc:  # noqa: BLE001
 # the enumerated /sys entries — or a /proc/ masked path (runc refuses user
 # mounts inside /proc). A nested target (/runs/leak), a look-alike (/dev-leak)
 # or a stray /sys entry is a widened boundary and fails the test.
-allowed_exact = {"/", "/work", "/corpus", "/cache", "/runs",
-                 "/etc/hostname", "/etc/hosts", "/etc/resolv.conf",
-                 "/dev", "/dev/mqueue", "/dev/pts", "/dev/shm",
-                 "/proc", "/sys", "/sys/firmware", "/sys/fs/cgroup", "/sys/devices/virtual/powercap"}
+# Every mount target must be EXACTLY an allowed one AND of the filesystem type
+# that target legitimately has: a bind of the host checkout over /dev/shm sits
+# at an allowed path but is not tmpfs (Codex WP02 c5). The four data mounts are
+# host binds whose identity is checked by content below.
+expected_fstype = {
+    "/dev": ("tmpfs",), "/dev/mqueue": ("mqueue",), "/dev/pts": ("devpts",), "/dev/shm": ("tmpfs",),
+    "/proc": ("proc",), "/sys": ("sysfs",), "/sys/fs/cgroup": ("cgroup2", "cgroup"),
+    "/sys/firmware": ("tmpfs",), "/sys/devices/virtual/powercap": ("tmpfs",),
+}
+data_mounts = {"/work", "/corpus", "/cache", "/runs"}
+docker_etc = {"/etc/hostname", "/etc/hosts", "/etc/resolv.conf"}
 extra = []
+seen = {}
 for line in open("/proc/self/mounts", encoding="utf-8"):
     parts = line.split()
-    if len(parts) < 2:
+    if len(parts) < 3:
         continue
-    target = parts[1]
-    if target in allowed_exact or target.startswith("/proc/"):
+    target, fstype = parts[1], parts[2]
+    seen[target] = fstype
+    if target == "/" or target in data_mounts or target in docker_etc:
+        continue
+    if target in expected_fstype:
+        if fstype not in expected_fstype[target]:
+            extra.append(f"{target}:fstype={fstype}")
+        continue
+    if target.startswith("/proc/") and fstype in ("proc", "tmpfs"):
         continue
     extra.append(target)
+# The data mounts must be OUR data, not a checkout wearing the right path.
+if not os.path.isfile("/work/scripts/research/arms849/compose/export-excludes.txt") or os.path.exists("/work/.git"):
+    extra.append("/work:identity")
+if not os.path.isfile("/corpus/stream.jsonl") or not os.path.isfile("/corpus/entities.json"):
+    extra.append("/corpus:identity")
+if not os.path.isdir("/cache/qwen-tokenizer"):
+    extra.append("/cache:identity")
 checks["no_extra_mounts"] = not extra
 if extra:
     checks["extra_mounts"] = extra

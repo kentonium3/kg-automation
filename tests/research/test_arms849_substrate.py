@@ -170,6 +170,11 @@ def test_live_self_test_passes_and_a_widened_mount_fails(tmp_path, live_http):
             assert not widened["passed"], (target, widened)
             assert widened["checks"].get("no_extra_mounts") is False, target
             assert target in widened["checks"].get("extra_mounts", []), target
+        # Codex c5: an allowlisted DESTINATION with the wrong identity — the host checkout bound
+        # over /dev/shm (not tmpfs) — must be caught by the filesystem-type check.
+        widened = SUB.self_test(widen_with=["-v", f"{SUB.REPO_ROOT}:/dev/shm:ro"])
+        assert not widened["passed"], widened
+        assert any(e.startswith("/dev/shm:fstype=") for e in widened["checks"].get("extra_mounts", [])), widened
         # /sys and /proc are refused by the runtime itself (read-only rootfs / runc) before the
         # script runs: still not passed, and the refusal is the recorded reason.
         for target in ("/sys/leak", "/proc/leak"):
@@ -198,12 +203,16 @@ def test_runner_image_installs_every_light_dep_and_no_openai():
     assert "openai" not in [line.split("==")[0] for line in req.splitlines() if line and not line.startswith("#")]
 
 
-def test_runner_image_tag_follows_dockerfile_content(tmp_path, monkeypatch):
-    """A changed Dockerfile yields a different tag, so a stale image can never be reused."""
+@pytest.mark.parametrize("changed", ["runner.Dockerfile", "requirements-arms849.txt"])
+def test_runner_image_tag_follows_its_build_inputs(tmp_path, monkeypatch, changed):
+    """A changed Dockerfile OR requirements file yields a different tag (Codex c5)."""
     before = SUB._runner_dockerfile_sha()
     assert SUB.RUNNER_IMAGE.endswith(before) and len(before) == 12
-    df = tmp_path / "runner.Dockerfile"; df.write_bytes((SUB.COMPOSE_DIR / "runner.Dockerfile").read_bytes() + b"\n# changed\n")
+    for name in SUB.RUNNER_IMAGE_INPUTS:
+        (tmp_path / name).write_bytes((SUB.COMPOSE_DIR / name).read_bytes())
     monkeypatch.setattr(SUB, "COMPOSE_DIR", tmp_path)
+    assert SUB._runner_dockerfile_sha() == before
+    (tmp_path / changed).write_bytes((tmp_path / changed).read_bytes() + b"\n# changed\n")
     assert SUB._runner_dockerfile_sha() != before
 
 
