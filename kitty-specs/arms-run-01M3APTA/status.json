@@ -1,19 +1,19 @@
 {
-  "event_count": 157,
-  "last_event_id": "01M3BAEQR0ATZ9A9A9M92XXBC5",
-  "materialized_at": "2026-09-25T03:41:28.192858+00:00",
+  "event_count": 158,
+  "last_event_id": "01M3BAF32A8QJ8H8394FFDXEAJ",
+  "materialized_at": "2026-09-25T03:41:39.786201+00:00",
   "mission_number": "",
   "mission_slug": "arms-run-01M3APTA",
   "mission_type": "software-dev",
   "summary": {
-    "approved": 3,
+    "approved": 4,
     "blocked": 0,
     "canceled": 0,
     "claimed": 0,
     "done": 0,
     "for_review": 1,
     "in_progress": 0,
-    "in_review": 1,
+    "in_review": 0,
     "planned": 4
   },
   "work_packages": {
@@ -137,9 +137,9 @@
       "agent_profile": "__resolved_profile_absent__",
       "agent_profile_version": "__resolved_profile_version_absent__",
       "force_count": 4,
-      "lane": "in_review",
-      "last_event_id": "01M3BAEQR0ATZ9A9A9M92XXBC5",
-      "last_transition_at": "2026-09-25T03:41:28.192858+00:00",
+      "lane": "approved",
+      "last_event_id": "01M3BAF32A8QJ8H8394FFDXEAJ",
+      "last_transition_at": "2026-09-25T03:41:39.786201+00:00",
       "model": "__resolved_model_absent__",
       "notes": [
         "WP04 cycle 1: 37 tests, full suite 7,125 green; live run_all in a real export not yet executed (WP09 re-runs it)",
@@ -151,10 +151,9 @@
       "provider": "__resolved_provider_absent__",
       "review": null,
       "review_result": {
-        "feedback_path": "/home/kgale/repos/kg-automation/kitty-specs/arms-run-01M3APTA/tasks/WP04-gates-preflight-calibration/review-cycle-4.md",
-        "reference": "review-cycle://arms-run-01M3APTA/WP04-gates-preflight-calibration/review-cycle-4.md",
-        "reviewer": "claude",
-        "verdict": "changes_requested"
+        "reference": "auto-approval:WP04:20260925",
+        "reviewer": "Kent Gale",
+        "verdict": "approved"
       },
       "role": "reviewer",
       "shell_pid": 1856674,
