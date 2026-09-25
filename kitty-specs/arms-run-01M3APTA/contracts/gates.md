@@ -35,5 +35,10 @@ no docker socket):** the gates run in TWO PHASES, both bound into the header.
   preflight_sha equal what the container computed; every host result passed; host `ts` ≥ `up_ts` and ≤ container
   start — a stale record from a previous stack is refused), `code_hashes`. Writes `gate-container.json` with
   `gate_container_sha`.
+  **Amendment (2026-09-25, design-lead msg 20260925T040859392825Zf9b247aec7, from Codex WP04 c6's replay
+  finding):** the freshness rule does NOT trust the record's own `up_ts`: the container phase takes the CURRENT
+  stack's `up_ts` from the harness (`env.up_ts`), refuses a host record whose `up_ts` differs, then applies
+  `cur_up ≤ ts ≤ container_start` on parsed timezone-aware timestamps (a naive timestamp is refused) — so an
+  unchanged record from an earlier stack cannot be replayed against a newer one.
 - **The header binds `preflight_sha`, `gate_host_sha` and `gate_container_sha`**; WP03's binding validator refuses a
   header missing any. Rejected alternative: nine in-container with a host-written record verified by timestamp only.
