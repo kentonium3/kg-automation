@@ -400,8 +400,11 @@ except OSError:
 checks["excludes_file_present"] = bool(excl)
 for rel in excl:
     checks["absent:/work/" + rel] = not os.path.exists("/work/" + rel)
-for p in ("/home", os.environ.get("HOST_CHECKOUT", "/host-checkout")):
-    checks["absent:" + p] = not os.path.exists(p)
+# The base image has an empty /home; what must be unreachable is any host home
+# CONTENT and the host checkout itself.
+checks["home_empty_or_absent"] = (not os.path.exists("/home")) or (os.listdir("/home") == [])
+host = os.environ.get("HOST_CHECKOUT", "/host-checkout")
+checks["absent:" + host] = not os.path.exists(host)
 try:
     open("/work/.probe", "w").write("x"); checks["work_readonly"] = False
 except OSError:
