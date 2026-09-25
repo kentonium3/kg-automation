@@ -77,8 +77,9 @@ def _const_eval(node: ast.AST):
         return eval(compile(expr, "<isolation-scan>", "eval"), {"__builtins__": {}}, {})
     except (MemoryError, RecursionError, OverflowError):
         raise                       # a budget blow-up is NEVER "not a constant": the child exits, the gate fails closed
-    except (ValueError, TypeError, ArithmeticError, LookupError, AttributeError):
-        return _UNKNOWN             # a type/zero/format error is simply "not a constant"
+    except (ValueError, TypeError, ArithmeticError, LookupError, AttributeError, SyntaxError):
+        return _UNKNOWN             # a type/zero/format error — or a node that cannot stand alone
+                                    # (a bare Starred/Slice; its enclosing expression evaluates it)
 
 
 def _string_constants_inprocess(source: str) -> list[str]:
