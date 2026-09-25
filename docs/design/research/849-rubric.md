@@ -52,14 +52,14 @@ provider are recorded, not prescribed (per-function seam, §Tool Selection). **A
 what the cost axis counts.
 
 **Question order is protocol.** Questions are asked in `ask_time` ascending order (C1, A, F1, B1,
-E2, E1, F2, B2). Under the time-cut each D prompt is then a prefix of the next, so D's cache hit
+E2, E1, F2, B2). Under the time-cut each D prompt's **event section** is then a prefix of the next's (the records block that follows it is re-emitted per question — clarified 2026-09-25 18:52Z), so D's cache hit
 rate is a property of this protocol and is reported as such; a random order would collapse it and
 the number would be an artifact of an unstated choice.
 
 **Prompt layout is protocol (A1).** The event stream comes first and the entity block after it.
 Entities change at A, F1 and E1 as Decisions become visible under the replay rules, so
 entities-first collapses the cache prefix to ~0 % for those three questions; events-first keeps
-every step a token-level prefix extension (measured with the Qwen3-Next tokenizer: A 35.3 %,
+every step a token-level prefix extension of the event section (measured with the Qwen3-Next tokenizer: A 35.3 %,
 F1 50.5 %, B1 94.7 %, E2 87.3 %, E1 91.1 %, F2 99.9 %, B2 99.7 % of the prompt reused).
 
 **Replay rules (A1, measured on the frozen corpus):** a Decision is visible only from its
