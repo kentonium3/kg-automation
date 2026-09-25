@@ -70,8 +70,10 @@ class Block:
 
     def __post_init__(self) -> None:
         # A frozen dataclass does not check types at runtime; the contract does.
-        if not isinstance(self.data, (bytes, bytearray)):
-            raise TypeError("Block.data must be bytes — text enters the prompt only as frozen bytes")
+        # ``bytes`` exactly: a bytearray is mutable and its sha would change after
+        # construction, which is the frozen-bytes contract broken from inside.
+        if type(self.data) is not bytes:
+            raise TypeError("Block.data must be bytes (not bytearray) — text enters the prompt only as frozen bytes")
         if not isinstance(self.event_refs, tuple) or not isinstance(self.record_keys, tuple):
             raise TypeError("Block refs and keys must be tuples")
 
@@ -132,13 +134,14 @@ class FrozenCorpusText:
 
     @property
     def record_lines_digest(self) -> str:
-        """sha256 over every canonical record line, in key order, LF-joined + LF.
+        """sha256 over every canonical record line, in SORTED key order, LF-joined + LF.
 
-        Recorded by the preflight (WP04) so the loaded record form is bound
-        into the run: a later change to :func:`record_line_bytes` cannot go
-        unnoticed.
+        Sorted, not load order: the digest must be reproducible by anyone from
+        ``entities.json`` alone without knowing how this class iterates (Codex,
+        WP01 cycle 1). Recorded by the preflight (WP04) so the loaded record
+        form is bound into the run.
         """
-        joined = b"\n".join(self._record_lines[k] for k in self.record_keys) + b"\n"
+        joined = b"\n".join(self._record_lines[k] for k in sorted(self._record_lines)) + b"\n"
         return hashlib.sha256(joined).hexdigest()
 
     # -- assembly ----------------------------------------------------------

@@ -63,9 +63,11 @@ def test_render_block_is_pure_concatenation(fct):
     assert block.sha256 == hashlib.sha256(expected).hexdigest()
 
 
-def test_block_cannot_be_built_from_strings():
+def test_block_cannot_be_built_from_strings_or_bytearray():
     with pytest.raises(TypeError):
         T.Block(event_refs=(), record_keys=(), data="not bytes")  # type: ignore[arg-type]
+    with pytest.raises(TypeError, match="bytearray"):
+        T.Block(event_refs=(), record_keys=(), data=bytearray(b"mutable"))  # type: ignore[arg-type]
     with pytest.raises(TypeError):
         T.Block(event_refs=["e1"], record_keys=(), data=b"")  # type: ignore[arg-type]
 
@@ -75,6 +77,19 @@ def test_record_lines_digest_is_stable_and_covers_every_record(fct):
     assert fct.record_lines_digest == other.record_lines_digest
     assert len(fct.record_keys) == 66
     assert len(fct.entity_keys) == 50 and len(fct.edge_keys) == 16
+
+
+def test_record_lines_digest_is_reproducible_from_entities_json_alone(fct):
+    """Sorted key order, so a reader with only entities.json reaches the same digest."""
+    entities = json.loads((DEFAULT_CORPUS / "entities.json").read_text())
+    lines = {}
+    for rec in entities:
+        key = T.edge_key(rec) if rec.get("kind") == "Edge" else T.entity_key(rec)
+        lines[key] = T.record_line_bytes(rec)
+    independent = hashlib.sha256(b"\n".join(lines[k] for k in sorted(lines)) + b"\n").hexdigest()
+    assert fct.record_lines_digest == independent
+    load_order = hashlib.sha256(b"\n".join(lines[k] for k in fct.record_keys) + b"\n").hexdigest()
+    assert load_order != independent, "load order and sorted order coincide on this corpus — the test is vacuous"
 
 
 def test_record_line_is_the_one_serialisation(fct):

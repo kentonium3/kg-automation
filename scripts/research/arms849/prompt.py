@@ -95,15 +95,17 @@ class Prompt:
             raise PromptDriftError("registered text must contain each slot exactly once")
 
     def render(self, block: Block, question_text: str) -> bytes:
-        """Substitute the two slots exactly once each; nothing else changes.
+        """Fill both slots in ONE pass over the registered template.
 
-        The block's bytes are decoded as UTF-8 for substitution and the whole
-        request is re-encoded; the block's own bytes are therefore inserted
-        unchanged (UTF-8 round-trips).
+        A sequential replace would search the already-inserted material for the
+        second slot: a block that happens to contain the literal question slot
+        would be altered while the real slot stayed unfilled (Codex, WP01 cycle
+        1). Splitting the template on both markers first means the inserted
+        text is never searched.
         """
         if not isinstance(block, Block):
             raise TypeError("Prompt.render takes a Block, not a string — build it with render_block")
-        # ``str.replace`` rather than ``format``: the material may contain braces.
-        body = self.text.replace(SLOT_CONTEXT, block.data.decode("utf-8"), 1)
-        body = body.replace(SLOT_QUESTION, question_text, 1)
+        head, rest = self.text.split(SLOT_CONTEXT, 1)
+        mid, tail = rest.split(SLOT_QUESTION, 1)
+        body = head + block.data.decode("utf-8") + mid + question_text + tail
         return body.encode("utf-8")

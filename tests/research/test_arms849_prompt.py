@@ -57,3 +57,12 @@ def test_render_substitutes_each_slot_exactly_once():
 def test_render_refuses_a_string():
     with pytest.raises(TypeError):
         P.Prompt().render("raw text", "Why?")  # type: ignore[arg-type]
+
+
+def test_a_block_containing_the_question_slot_literal_is_inserted_untouched():
+    """Codex WP01 cycle 1: sequential replace altered material containing the literal slot."""
+    block = Block(event_refs=("e1",), record_keys=(), data=b'{"text": "see {question_text} and {assembled_context}"}\n')
+    out = P.Prompt().render(block, "Why?").decode("utf-8")
+    assert '{"text": "see {question_text} and {assembled_context}"}\n' in out
+    assert out.endswith("Question: Why?\n")
+    assert out.count("Question: ") == 1
