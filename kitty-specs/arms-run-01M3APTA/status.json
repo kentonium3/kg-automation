@@ -1,7 +1,7 @@
 {
-  "event_count": 20,
-  "last_event_id": "01M3B13KB2TDP02FH4DH3HXSGG",
-  "materialized_at": "2026-09-25T00:58:06.050040+00:00",
+  "event_count": 21,
+  "last_event_id": "01M3B13YR0T4KXDPBEEQKEYC01",
+  "materialized_at": "2026-09-25T00:58:17.728307+00:00",
   "mission_number": "",
   "mission_slug": "arms-run-01M3APTA",
   "mission_type": "software-dev",
@@ -13,8 +13,8 @@
     "done": 0,
     "for_review": 0,
     "in_progress": 1,
-    "in_review": 1,
-    "planned": 7
+    "in_review": 0,
+    "planned": 8
   },
   "work_packages": {
     "WP01": {
@@ -22,10 +22,10 @@
       "agent": "claude",
       "agent_profile": "__resolved_profile_absent__",
       "agent_profile_version": "__resolved_profile_version_absent__",
-      "force_count": 1,
-      "lane": "in_review",
-      "last_event_id": "01M3B13KB2TDP02FH4DH3HXSGG",
-      "last_transition_at": "2026-09-25T00:58:06.050040+00:00",
+      "force_count": 2,
+      "lane": "planned",
+      "last_event_id": "01M3B13YR0T4KXDPBEEQKEYC01",
+      "last_transition_at": "2026-09-25T00:58:17.728307+00:00",
       "model": "__resolved_model_absent__",
       "notes": [
         "WP01 shared contracts: 27 tests green, ruff/mypy clean, static scan clean; six-of-eight reproduced on exact requests",
@@ -34,8 +34,8 @@
       "provider": "__resolved_provider_absent__",
       "review": null,
       "review_result": {
-        "feedback_path": "/home/kgale/repos/kg-automation/kitty-specs/arms-run-01M3APTA/tasks/WP01-shared-contracts/review-cycle-1.md",
-        "reference": "review-cycle://arms-run-01M3APTA/WP01-shared-contracts/review-cycle-1.md",
+        "feedback_path": "/home/kgale/repos/kg-automation/kitty-specs/arms-run-01M3APTA/tasks/WP01-shared-contracts/review-cycle-2.md",
+        "reference": "review-cycle://arms-run-01M3APTA/WP01-shared-contracts/review-cycle-2.md",
         "reviewer": "claude",
         "verdict": "changes_requested"
       },
