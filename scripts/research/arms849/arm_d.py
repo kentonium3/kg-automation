@@ -50,6 +50,8 @@ __all__ = ["LAYOUT", "ArmRefusal", "ContextExceeded", "PlanRecord", "arm_d", "bi
 
 #: The only layout arm D produces; asserted on every dump and recorded on every D row.
 LAYOUT = "events_entities_edges"
+_MISSING = object()
+LIMIT_NAMES = ("trained", "permitted")
 
 
 class ArmRefusal(RuntimeError):
@@ -63,11 +65,15 @@ class ContextExceeded(serving.ContextExceeded):
     A subclass of the serving module's exception, and the ONLY shape the arm lets out:
     the arm's own gate raises it, and a refusal from ``complete``'s last-line guard
     (the serving module's bare exception, which carries only a message) is re-raised
-    as this type with the same plan — so every D ``exceeds_model_context`` row carries
-    ``prompt_tokens`` and ``context_limit_applied`` (D-11, data-model I4) whichever
-    line fired. On the primary the two lines differ by ``max_tokens`` (trained
-    262,144 vs permitted 260,096); no question on this corpus lands in that window,
-    but the row contract does not depend on that.
+    as this type with the same plan and ``limit_applied = "permitted"`` — the limit
+    that actually refused — so every D ``exceeds_model_context`` row carries
+    ``prompt_tokens`` and a truthful ``context_limit_applied`` whichever line fired
+    (D-11). Data-model I4's "> model_context_tokens" half holds only on the gate
+    path: on the primary the last line sits ``max_tokens`` below the trained limit
+    (260,096 vs 262,144), so a count in that window is refused by the permitted
+    limit while being ≤ the model context. No question on this corpus lands in the
+    window (nearest: A 139,517 and F1 273,024); the ledger's I4 check will refuse
+    such a row, which is the correct outcome for a request the protocol cannot send.
     """
 
     def __init__(self, prompt_tokens: int, limit: int, limit_applied: str, plan: PlanRecord) -> None:
@@ -101,8 +107,11 @@ class PlanRecord:
 def _refuse_links(view: Loaded) -> None:
     # contracts/arm-interface.md: D receives ``view.links == []`` — the harness narrows, and the
     # arm refuses rather than trusts (a traversal input the flat arm must not have).
-    # ``view.links`` directly: a view WITHOUT the attribute is not a narrowed view either.
-    if view.links:
+    # A view WITHOUT the attribute is not a narrowed view either — same defect, same class.
+    links = getattr(view, "links", _MISSING)
+    if links is _MISSING:
+        raise ArmRefusal("arm D was handed a view with no links attribute; not a narrowed ArmView")
+    if links:
         raise ArmRefusal(f"arm D was handed {len(view.links)} loader links; the flat arm reads none "
                          "(Amendment A1 (b)) — narrow the view with arm_view first")
 
@@ -116,11 +125,12 @@ def render_dump(text: FrozenCorpusText, view: Loaded) -> tuple[Block, tuple[int,
     nothing re-ordered, nothing added.
     """
     _refuse_links(view)
-    if not view.events or not (view.entities or view.edges):
-        # The whole replay-visible view is never empty at any registered ask_time; an empty
-        # dump would score a cell whose "full context" is nothing (Opus WP06 c1).
+    if not view.events or not view.entities or not view.edges:
+        # The whole replay-visible view is never empty at any registered ask_time, and every
+        # registered view carries edges (10 at C1); an edge-free dump is Codex blocker H-1
+        # reappearing, so zero edges is refused like zero events (Opus WP06 c1, c2).
         raise ArmRefusal(f"arm D refuses an empty view: {len(view.events)} events, {len(view.entities)} "
-                         f"entities, {len(view.edges)} edges — replay returned nothing to dump")
+                         f"entities, {len(view.edges)} edges — a section of the full dump is missing")
     block = text.render_full_view(view)
     want_refs = tuple(str(e["ref"]) for e in view.events)
     want_keys = tuple(entity_key(e) for e in view.entities) + tuple(edge_key(e) for e in view.edges)
@@ -164,6 +174,9 @@ def arm_d(question: Any, view: Loaded, ctx: Any, text: FrozenCorpusText) -> dict
     body = ctx.serving.serialize(request, ctx.seed)
     if body.get("cache_prompt") is not True:
         raise ArmRefusal("arm D's requests carry cache_prompt: true (D-7: the prefix is the measurement)")
+    if ctx.limit_applied not in LIMIT_NAMES or type(ctx.limit) is not int or ctx.limit <= 0:
+        raise ArmRefusal(f"incoherent context limit in ctx: {ctx.limit_applied!r} = {ctx.limit!r} "
+                         f"(D-11: one of {LIMIT_NAMES}, a positive int, from ServingConfiguration.limit_applied())")
     prompt_tokens = ctx.serving.count_tokens(body)                 # counts body["prompt"] — the string sent
     plan = PlanRecord(
         layout=LAYOUT, events_in_dump=n_events, entities_in_dump=n_entities, edges_in_dump=n_edges,
@@ -175,9 +188,11 @@ def arm_d(question: Any, view: Loaded, ctx: Any, text: FrozenCorpusText) -> dict
     try:
         completion = ctx.serving.complete(body)                      # the same object that was counted
     except ContextExceeded:
-        raise
-    except serving.ContextExceeded as exc:                           # the last-line guard: same row contract
-        raise ContextExceeded(prompt_tokens, ctx.limit, ctx.limit_applied, plan) from exc
+        raise                                                        # already carries the plan: propagate as is
+    except serving.ContextExceeded as exc:                           # the last-line guard (permitted limit)
+        permitted = getattr(ctx, "permitted", None)
+        raise ContextExceeded(prompt_tokens, permitted if type(permitted) is int else ctx.limit, "permitted",
+                              PlanRecord(**{**plan.as_dict(), "context_limit_applied": "permitted"})) from exc
     for name in ("cache_read_tokens", "uncached_tokens", "cache_write_tokens", "cache_state", "cache_fraction",
                  "prefill_s", "generation_s", "generation_tok_s", "prompt_tokens", "output_tokens", "finish_reason"):
         if getattr(completion, name, None) is None:

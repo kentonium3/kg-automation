@@ -151,7 +151,13 @@ def test_primary_refuses_exactly_six_and_secondary_refuses_none(run_all):
     exceeded = {q for q, o in primary.items() if isinstance(o, D.ContextExceeded)}
     counts = {q: (o.prompt_tokens if isinstance(o, D.ContextExceeded) else o["prompt_tokens"]) for q, o in primary.items()}
     assert exceeded == EXPECTED_EXCEEDING, f"exceeded {sorted(exceeded)}; measured {counts}"
-    # For WP10's re-measurement: every question's exact serialised request size, on a green run.
+    # For WP10's re-measurement: every question's exact serialised request size, written to a JSON
+    # artifact that survives pytest's capture (Opus c2) — and printed for a -s run.
+    artifact = REPO_ROOT / "build" / "849-runs" / "arm-d-measured-prompt-tokens.json"
+    artifact.parent.mkdir(parents=True, exist_ok=True)
+    artifact.write_text(json.dumps({"chat_templated_request_tokens": {q: counts[q] for q in ASK_ORDER},
+                                    "trained_limit": S.TRAINED_CONTEXT, "secondary_permitted": SECONDARY_PERMITTED,
+                                    "exceeding_trained": sorted(exceeded)}, indent=2) + "\n")
     print("MEASURED prompt_tokens (chat-templated request) " + json.dumps({q: counts[q] for q in ASK_ORDER}))
     assert len(exceeded) == 6
     assert len(facade.sent) == 2 and {json.loads(json.dumps(b))["seed"] for b in facade.sent} == {1001}
@@ -278,6 +284,9 @@ def test_an_empty_or_recordless_view_is_refused(text):
     eventless = Loaded(ask_time=full.ask_time, entities=full.entities, edges=full.edges)
     with pytest.raises(D.ArmRefusal, match="empty view"):
         D.render_dump(text, eventless)
+    edgeless = Loaded(ask_time=full.ask_time, events=full.events, entities=full.entities)   # Codex H-1's shape
+    with pytest.raises(D.ArmRefusal, match="empty view"):
+        D.render_dump(text, edgeless)
 
 
 @needs_corpus
@@ -290,8 +299,19 @@ def test_a_view_with_links_is_refused(text, views):
     class NoLinksAttribute:                                        # not a narrowed view either
         events, entities, edges = view.events, view.entities, view.edges
 
-    with pytest.raises(AttributeError):
+    with pytest.raises(D.ArmRefusal, match="no links attribute"):
         D.render_dump(text, NoLinksAttribute())
+
+
+@needs_corpus
+@needs_tokenizer
+def test_an_incoherent_ctx_limit_is_refused_before_counting(tok, identity, text, views):
+    facade = Facade(tok, S.ServingConfiguration.primary(identity))
+    for name, limit in (("configured", S.PRIMARY_N_CTX), ("trained", "262144"), ("trained", 0), ("banana", 1)):
+        ctx = SimpleNamespace(prompt=Prompt(), seed=1001, limit=limit, limit_applied=name, serving=facade)
+        with pytest.raises(D.ArmRefusal, match="incoherent context limit"):
+            D.arm_d(Q.by_id("C1"), views["C1"], ctx, text)
+    assert facade.counted == [] and facade.sent == []
 
 
 # ---------------------------------------------------------------------------
@@ -404,8 +424,23 @@ def test_last_line_refusal_from_complete_keeps_the_row_contract(tok, identity, t
         D.arm_d(Q.by_id("C1"), views["C1"], ctx_for(facade, "primary"), text)
     exc = info.value
     assert isinstance(exc.__cause__, S.ContextExceeded) and not isinstance(exc.__cause__, D.ContextExceeded)
-    assert exc.plan.layout == D.LAYOUT and exc.limit_applied == "trained" and exc.prompt_tokens == exc.plan.prompt_tokens
+    # The limit that actually refused is the permitted one, and the plan says so (Opus c2).
+    assert exc.plan.layout == D.LAYOUT and exc.limit_applied == "permitted" == exc.plan.context_limit_applied
+    assert exc.prompt_tokens == exc.plan.prompt_tokens and exc.limit == S.TRAINED_CONTEXT   # no ctx.permitted: falls back
     assert len(facade.sent) == 1
+
+    # The arm's OWN exception raised from inside complete propagates as the identical object.
+    facade2 = Facade(tok, S.ServingConfiguration.primary(identity))
+    block, _ = D.render_dump(text, views["C1"])
+    own = D.ContextExceeded(1, 2, "trained", D.PlanRecord(D.LAYOUT, 1, 1, 1, block.sha256, 1, "trained", 1))
+
+    def raise_own(body):
+        raise own
+
+    facade2.complete = raise_own
+    with pytest.raises(D.ContextExceeded) as info2:
+        D.arm_d(Q.by_id("C1"), views["C1"], ctx_for(facade2, "primary"), text)
+    assert info2.value is own and info2.value.__cause__ is None
 
 
 @needs_corpus
