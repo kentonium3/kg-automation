@@ -218,7 +218,8 @@
       "last_transition_at": "2026-09-25T04:34:35.425005+00:00",
       "model": "__resolved_model_absent__",
       "notes": [
-        "arm D: six/zero split measured; B2 = 363,004 tokens; Codex out of credits -> Opus fallback review"
+        "arm D: six/zero split measured; B2 = 363,004 tokens; Codex out of credits -> Opus fallback review",
+        "cycle 2: Opus c1 minors folded"
       ],
       "provider": "__resolved_provider_absent__",
       "review": null,
