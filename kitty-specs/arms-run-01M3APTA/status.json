@@ -1,7 +1,7 @@
 {
-  "event_count": 259,
-  "last_event_id": "01M3D0J24N0V464881PJ19A7E4",
-  "materialized_at": "2026-09-25T19:27:00.245849+00:00",
+  "event_count": 260,
+  "last_event_id": "01M3D0RG016YF2CJ6FCQFKFM6M",
+  "materialized_at": "2026-09-25T19:30:31.041207+00:00",
   "mission_number": "",
   "mission_slug": "arms-run-01M3APTA",
   "mission_type": "software-dev",
@@ -11,9 +11,9 @@
     "canceled": 0,
     "claimed": 0,
     "done": 0,
-    "for_review": 1,
+    "for_review": 0,
     "in_progress": 1,
-    "in_review": 0,
+    "in_review": 1,
     "planned": 2
   },
   "work_packages": {
@@ -244,9 +244,9 @@
       "agent_profile": "__resolved_profile_absent__",
       "agent_profile_version": "__resolved_profile_version_absent__",
       "force_count": 1,
-      "lane": "for_review",
-      "last_event_id": "01M3D0J24N0V464881PJ19A7E4",
-      "last_transition_at": "2026-09-25T19:27:00.245849+00:00",
+      "lane": "in_review",
+      "last_event_id": "01M3D0RG016YF2CJ6FCQFKFM6M",
+      "last_transition_at": "2026-09-25T19:30:31.041207+00:00",
       "model": "__resolved_model_absent__",
       "notes": [
         "arm R: view-order re-sort, k from calibration only, records byte-identical to D; Opus fallback review"
@@ -259,9 +259,9 @@
         "reviewer": "claude",
         "verdict": "changes_requested"
       },
-      "role": "implementer",
-      "shell_pid": null,
-      "shell_pid_created_at": null,
+      "role": "reviewer",
+      "shell_pid": 116067,
+      "shell_pid_created_at": "1790364629.09",
       "subtasks": {
         "T028": "done",
         "T029": "done",
