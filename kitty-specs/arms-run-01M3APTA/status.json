@@ -1,7 +1,7 @@
 {
-  "event_count": 120,
-  "last_event_id": "01M3B6V3146FJ4VZRKFHZ1SY73",
-  "materialized_at": "2026-09-25T02:38:18.660914+00:00",
+  "event_count": 122,
+  "last_event_id": "01M3B6VBZEGG24QAF44HZMKSWS",
+  "materialized_at": "2026-09-25T02:38:27.822039+00:00",
   "mission_number": "",
   "mission_slug": "arms-run-01M3APTA",
   "mission_type": "software-dev",
@@ -12,9 +12,9 @@
     "claimed": 0,
     "done": 0,
     "for_review": 0,
-    "in_progress": 0,
+    "in_progress": 1,
     "in_review": 0,
-    "planned": 7
+    "planned": 6
   },
   "work_packages": {
     "WP01": {
@@ -55,13 +55,13 @@
     },
     "WP02": {
       "actor": "claude",
-      "agent": "claude",
+      "agent": null,
       "agent_profile": "__resolved_profile_absent__",
       "agent_profile_version": "__resolved_profile_version_absent__",
       "force_count": 11,
-      "lane": "planned",
-      "last_event_id": "01M3B6V3146FJ4VZRKFHZ1SY73",
-      "last_transition_at": "2026-09-25T02:38:18.660914+00:00",
+      "lane": "in_progress",
+      "last_event_id": "01M3B6VBZEGG24QAF44HZMKSWS",
+      "last_transition_at": "2026-09-25T02:38:27.822039+00:00",
       "model": "__resolved_model_absent__",
       "notes": [
         "WP02 substrate + boundary: 13 static tests; live on office4 — setup (pins, digests, caches, GGUF sha verified), export outside the repo (content sha d479a954…), up healthy at n_ctx 262144, runner self-test PASSED (excluded paths absent, /work ro, no outbound, services reachable, no torch, no key, host checkout unreachable), down clean (GTT 1.5 GiB)",
@@ -84,15 +84,15 @@
         "reviewer": "claude",
         "verdict": "changes_requested"
       },
-      "role": "reviewer",
-      "shell_pid": 1580281,
-      "shell_pid_created_at": "1790303884.22",
+      "role": "implementer",
+      "shell_pid": null,
+      "shell_pid_created_at": null,
       "subtasks": {
-        "T006": "done",
-        "T007": "done",
-        "T008": "done",
-        "T009": "done",
-        "T010": "done"
+        "T006": "planned",
+        "T007": "planned",
+        "T008": "planned",
+        "T009": "planned",
+        "T010": "planned"
       }
     },
     "WP03": {
