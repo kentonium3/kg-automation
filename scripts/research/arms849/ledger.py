@@ -73,6 +73,8 @@ D_ROW_FIELDS = ("context_limit_applied",)          # every D row, any outcome
 CACHE_STATES = ("cold", "warm")
 FINISH_REASONS = ("stop", "length")
 CONTEXT_LIMITS = ("trained", "permitted")
+QUESTION_IDS = tuple(q.id for q in questions_mod.QUESTIONS)
+REFUSAL_PREFIX = "ArmRefusal:"                      # an error row so prefixed is terminal on attempt 1
 RESERVED_CALIBRATION_FIELDS = frozenset({"record", "ts"})
 SCORED_OUTCOME = "ok"
 OUTCOMES = ("ok", "exceeds_model_context", "error", "not_implemented")
@@ -89,6 +91,12 @@ def _utc_now() -> str:
 
 
 _SHA256 = re.compile(r"[0-9a-f]{64}")  # used with fullmatch: `$` would admit a trailing newline (Codex c9)
+
+
+def _positive_int(name: str, value: Any) -> int:
+    if type(value) is not int or value <= 0:
+        raise ValueError(f"{name} must be a positive int, got {value!r}")
+    return value
 
 
 def _require_sha256(name: str, value: Any) -> None:
@@ -133,6 +141,15 @@ class RunKey:
     arm: str
     question: str
     repeat: int
+
+    def __post_init__(self) -> None:
+        # data-model.md § Cell: a key outside the domain is a phantom cell (Opus WP03 c11).
+        if self.arm not in ARMS:
+            raise ValueError(f"arm must be one of {ARMS}, got {self.arm!r}")
+        if self.question not in QUESTION_IDS:
+            raise ValueError(f"question must be one of {QUESTION_IDS}, got {self.question!r}")
+        if type(self.repeat) is not int or not 1 <= self.repeat <= REPEATS:
+            raise ValueError(f"repeat must be an int in 1..{REPEATS}, got {self.repeat!r}")
 
     def as_dict(self) -> dict[str, Any]:
         return {"arm": self.arm, "question": self.question, "repeat": self.repeat}
@@ -196,7 +213,7 @@ class Binding:
         return cls(
             registration_commit=str(REGISTRATION["commit"]), corpus=corpus,
             prompt_hash=prompt_mod.REGISTERED_DIGEST, question_manifest_sha=questions_mod.MANIFEST_DIGEST,
-            serving=dict(serving), model_context_tokens=int(model_context_tokens or serving.get("n_ctx") or 0),
+            serving=dict(serving), model_context_tokens=_positive_int("model_context_tokens", model_context_tokens if model_context_tokens is not None else serving.get("n_ctx")),
             limit_applied=limit_applied, run_env_commit=run_env_commit,
             run_env_manifest_sha=run_env_manifest_sha, code_hashes=code_hashes(repo_root),
             preflight_sha=preflight_sha, gate_host_sha=gate_host_sha,
@@ -299,7 +316,10 @@ class Ledger:
         fresh and a resumed ledger."""
         if self._lock_fd < 0:
             raise LedgerClosed(f"{self.path}: ledger is closed; the lock is not held")
-        line = json.dumps(record, sort_keys=True, default=str)
+        try:
+            line = json.dumps(record, sort_keys=True)          # no default=str: a set or datetime is refused
+        except TypeError as exc:
+            raise ValueError(f"payload is not JSON-serialisable: {exc}") from exc
         with self.path.open("a", encoding="utf-8") as fh:
             fh.write(line + "\n")
             fh.flush()
@@ -324,6 +344,8 @@ class Ledger:
         """Append the attempt_start row BEFORE anything happens (D-12); return the attempt number."""
         if self._terminal_row(key) is not None:
             raise SecondScoredRow(f"{key} is already terminal ({self._terminal_row(key)})")
+        if self.terminal(key) == "error" and self.attempts_for(key) < MAX_ATTEMPTS:
+            raise SecondScoredRow(f"{key} is terminal: a configuration refusal is never retried")
         n = self.attempts_for(key) + 1
         if n > MAX_ATTEMPTS:
             # Three attempts begun and none terminal: exhausted (FR-007, D-12) — the harness
@@ -360,7 +382,11 @@ class Ledger:
         if outcome == "error":
             missing += [f for f in ERROR_ROW_FIELDS if f not in row]
         if outcome == "exceeds_model_context":
-            pt = int(row.get("prompt_tokens", -1))
+            if key.arm != "D":
+                raise ValueError("exceeds_model_context is a D outcome only (data-model.md § Outcome)")
+            pt = row.get("prompt_tokens")
+            if type(pt) is not int:
+                raise ValueError(f"exceeds_model_context row must carry an int prompt_tokens, got {pt!r}")
             if pt <= self._header.binding.model_context_tokens:
                 raise ValueError(f"exceeds_model_context row must carry prompt_tokens > model context ({pt})")
         if outcome == SCORED_OUTCOME:
@@ -413,7 +439,7 @@ class Ledger:
         if outcome == SCORED_OUTCOME:
             full["truncated"] = row["finish_reason"] == "length"     # derived, never supplied
         self._append(full)
-        return full
+        return copy.deepcopy(self._rows[-1])                          # the round-tripped row, as persisted
 
     def _terminal_row(self, key: RunKey) -> Outcome | None:
         """A recorded outcome that ends the key (ok / exceeds / not_implemented), or None."""
@@ -427,6 +453,11 @@ class Ledger:
         found = self._terminal_row(key)
         if found is not None:
             return found
+        # A configuration refusal is permanent: terminal error on the first attempt, no retries
+        # (contracts/arm-interface.md dated note 2026-09-25).
+        if any(r.get("record") == "run" and RunKey.of(r) == key and r.get("outcome") == "error"
+               and str(r.get("error", "")).startswith(REFUSAL_PREFIX) for r in self._rows):
+            return "error"
         # Three attempts begun and none reached a terminal outcome — whether they
         # recorded `error` or died before recording — is exhausted: terminal error.
         if self.attempts_for(key) >= MAX_ATTEMPTS:
@@ -540,7 +571,15 @@ def _scan(path: pathlib.Path) -> tuple[list[dict[str, Any]], str | None, int]:
     for i, line in enumerate(lines):
         last = i == len(lines) - 1
         try:
-            parsed.append(json.loads(line))
+            obj = json.loads(line)
+        except json.JSONDecodeError:
+            obj = None
+        if obj is not None and not isinstance(obj, dict):
+            raise LedgerCorrupt(f"line {i + 1} of {len(lines)} in {path} is not a JSON object")
+        try:
+            if obj is None:
+                raise json.JSONDecodeError("not an object", "", 0)
+            parsed.append(obj)
         except json.JSONDecodeError:
             if not last:
                 raise LedgerCorrupt(f"malformed line {i + 1} of {len(lines)} in {path}") from None
@@ -606,6 +645,7 @@ def _open_locked(path: pathlib.Path, binding: Binding, blinding_seed: int, plan:
         _require_sha256(name, getattr(binding, name))
     if binding.limit_applied not in CONTEXT_LIMITS:
         raise ValueError(f"limit_applied must be one of {CONTEXT_LIMITS}, got {binding.limit_applied!r}")
+    _positive_int("model_context_tokens", binding.model_context_tokens)
     if binding.corpus != REGISTRATION["files"]:
         raise LedgerBoundToAnotherConfig("binding.corpus is not the registered corpus fingerprints "
                                          "(data-model.md § Ledger: must equal REGISTRATION.files)")
@@ -620,7 +660,7 @@ def _open_locked(path: pathlib.Path, binding: Binding, blinding_seed: int, plan:
     rows, torn_kind, offset = _scan(path)
     if not rows or rows[0].get("record") != "header":
         raise LedgerCorrupt(f"{path}: first line is not a header")
-    missing_fields = [f for f in Binding.__dataclass_fields__ if f not in rows[0]]
+    missing_fields = [f for f in (*Binding.__dataclass_fields__, "blinding_seed", "plan", "started") if f not in rows[0]]
     if missing_fields:
         raise LedgerCorrupt(f"{path}: header lacks binding field(s) {missing_fields} — every gate sha is required")
     for name in ("preflight_sha", "gate_host_sha", "gate_container_sha"):

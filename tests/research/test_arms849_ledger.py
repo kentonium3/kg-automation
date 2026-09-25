@@ -776,3 +776,107 @@ def test_r_ok_row_requires_the_calibration_record(tmp_path):
         rec(led, key, "error", err_row("no k yet"))      # an error row needs no calibration
         calibrated(led)
         led.begin_attempt(key); rec(led, key, "ok", ok_row(arm="R"))
+
+
+# ---------------------------------------------------------------------------
+# Opus fallback cycle 11 minors + the ArmRefusal ruling (cycle 12)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize("dropped", ["blinding_seed", "plan", "started"])
+def test_header_missing_its_own_field_is_ledger_corrupt_not_key_error(tmp_path, dropped):
+    with fresh(tmp_path):
+        pass
+    path = tmp_path / "ledger.jsonl"
+    lines = path.read_text().splitlines()
+    header = json.loads(lines[0]); header.pop(dropped)
+    path.write_text("\n".join([json.dumps(header, sort_keys=True), *lines[1:]]) + "\n")
+    with pytest.raises(L.LedgerCorrupt, match=dropped):
+        fresh(tmp_path)
+
+
+def test_exceeds_row_needs_an_int_count_and_is_a_d_outcome_only(tmp_path):
+    with fresh(tmp_path) as led:
+        kd = L.RunKey("D", "B2", 1)
+        led.begin_attempt(kd)
+        for bad in ("400000", 400000.0, None, True):
+            with pytest.raises(ValueError, match="int prompt_tokens"):
+                rec(led, kd, "exceeds_model_context", {"ask_time": ASK, "elapsed_s": 1.0, "prompt_tokens": bad,
+                                                        "context_limit_applied": "trained"})
+        row = rec(led, kd, "exceeds_model_context", {"ask_time": ASK, "elapsed_s": 1.0, "prompt_tokens": 400_000,
+                                                     "context_limit_applied": "trained"})
+        assert type(row["prompt_tokens"]) is int
+        kg = L.RunKey("G", "B2", 1)
+        led.begin_attempt(kg)
+        with pytest.raises(ValueError, match="D outcome only"):
+            rec(led, kg, "exceeds_model_context", {"ask_time": ASK, "elapsed_s": 1.0, "prompt_tokens": 400_000})
+
+
+@pytest.mark.parametrize("bad", [("XX", "C1", 1), ("G", "NOPE", 1), ("G", "C1", 0), ("G", "C1", 4), ("G", "C1", "1")],
+                         ids=["arm", "question", "repeat0", "repeat4", "repeat-str"])
+def test_run_key_is_validated_against_the_cell_domain(bad):
+    with pytest.raises(ValueError):
+        L.RunKey(*bad)
+
+
+def test_non_json_payload_is_refused_and_record_returns_the_persisted_row(tmp_path):
+    key = L.RunKey("G", "C1", 1)
+    with fresh(tmp_path) as led:
+        led.begin_attempt(key)
+        with pytest.raises(ValueError, match="not JSON-serialisable"):
+            rec(led, key, "ok", {**ok_row(), "plan": {"ids": {1, 2}}})
+        with pytest.raises(ValueError, match="not JSON-serialisable"):
+            rec(led, key, "error", {**err_row(), "detail": object()})
+        assert led.run_rows() == []                          # nothing persisted by a refused append
+        row = rec(led, key, "ok", {**ok_row(), "plan": {"ids": (1, 2)}})
+        assert row["plan"]["ids"] == [1, 2]                  # the round-tripped row, as persisted
+        assert row == led.run_rows()[-1]
+
+
+def test_a_non_object_first_line_is_ledger_corrupt(tmp_path):
+    with fresh(tmp_path):
+        pass
+    path = tmp_path / "ledger.jsonl"
+    path.write_text('"hello"\n' + path.read_text())
+    with pytest.raises(L.LedgerCorrupt, match="not a JSON object"):
+        fresh(tmp_path)
+    with fresh(tmp_path / "other") if False else pytest.raises(L.LedgerCorrupt, match="not a JSON object"):
+        p2 = tmp_path / "l2.jsonl"
+        with L.open_ledger(p2, binding(), blinding_seed=7, plan=72):
+            pass
+        p2.write_text(p2.read_text() + "[1, 2]\n")
+        L.open_ledger(p2, binding(), blinding_seed=7, plan=72)
+
+
+def test_model_context_tokens_must_be_a_positive_int(tmp_path):
+    cfg = S.ServingConfiguration.primary(IDENT).as_header_dict()
+    for bad in (0, -1, "262144", 262144.0):                # None means "use n_ctx" (tested below)
+        with pytest.raises(ValueError, match="model_context_tokens"):
+            L.Binding.from_environment(DEFAULT_CORPUS, cfg, "trained", "c0ffee", "export-sha", "a" * 64, "b" * 64,
+                                       "c" * 64, repo_root=REPO_ROOT, model_context_tokens=bad)
+    with pytest.raises(ValueError, match="model_context_tokens"):
+        L.open_ledger(tmp_path / "l.jsonl", binding(model_context_tokens=0), blinding_seed=7, plan=72)
+    b = L.Binding.from_environment(DEFAULT_CORPUS, {**cfg, "n_ctx": 393_216}, "permitted", "c0ffee", "export-sha",
+                                   "a" * 64, "b" * 64, "c" * 64, repo_root=REPO_ROOT)
+    assert b.model_context_tokens == 393_216                 # falls back to n_ctx, never to 0
+
+
+def test_arm_refusal_error_row_is_terminal_on_the_first_attempt(tmp_path):
+    """Design-lead ruling 2026-09-25 (contracts/arm-interface.md): a configuration refusal is never retried."""
+    key = L.RunKey("D", "A", 2)
+    with fresh(tmp_path) as led:
+        led.begin_attempt(key)
+        rec(led, key, "error", {**err_row(arm="D"), "error": "ArmRefusal: arm D was handed 4 loader links"})
+        assert led.terminal(key) == "error" and led.attempts_for(key) == 1
+        assert key not in led.pending_keys(L.plan_keys())
+        with pytest.raises(L.SecondScoredRow, match="never retried"):
+            led.begin_attempt(key)
+        assert led.has_terminal_error("D", 2) == ["A"]
+        assert led.summarise()[("D", "A")].counts == {"error": 1}
+    with fresh(tmp_path) as led:                              # survives a resume
+        assert led.terminal(key) == "error"
+        with pytest.raises(L.SecondScoredRow):
+            led.begin_attempt(key)
+        other = L.RunKey("D", "A", 3)                         # an ordinary error IS retried
+        led.begin_attempt(other); rec(led, other, "error", err_row("TimeoutError: llama", arm="D"))
+        assert led.terminal(other) is None and led.begin_attempt(other) == 2
