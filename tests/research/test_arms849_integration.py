@@ -999,3 +999,94 @@ def test_failing_host_gates_record_them_and_exit_distinctly(tmp_path, monkeypatc
     assert code == h.EXIT_GATES_FAILED
     record = json.loads((tmp_path / "runs" / "gate-host.json").read_text(encoding="utf-8"))
     assert record["passed"] is False and record["failed"][0]["name"] == "boundary"
+
+
+# --------------------------------------------------------------------------
+# Fix cycle 4 (review-feedback-3.md, Codex c3 M-b): an unusable preflight is a recorded gate failure
+# --------------------------------------------------------------------------
+
+
+def _write_runs(runs_dir: pathlib.Path, preflight: str | None) -> None:
+    runs_dir.mkdir(parents=True, exist_ok=True)
+    (runs_dir / "setup.json").write_text(json.dumps({
+        "llama_image": "ghcr.io/ggml-org/llama.cpp@sha256:" + "b" * 64, "gguf_sha256": "a" * 64,
+        "cache_shas": {"fastembed/model.onnx": "1" * 64, "qwen-tokenizer/tokenizer.json": "2" * 64}}),
+        encoding="utf-8")
+    if preflight is not None:
+        (runs_dir / "preflight.json").write_text(preflight, encoding="utf-8")
+
+
+def _preflight(chat: str = "e" * 64, tamper: bool = False) -> str:
+    from scripts.research.arms849.preflight import preflight_sha
+
+    payload: dict[str, Any] = {"gates": [], "chat_template_sha256": chat, "ts": "2026-09-25T00:00:00+00:00"}
+    payload["preflight_sha"] = preflight_sha(payload)
+    if tamper:
+        payload["ts"] = "2026-09-26T00:00:00+00:00"            # content changed after hashing
+    return json.dumps(payload)
+
+
+PREFLIGHT_CASES = {
+    "missing": (None, "absent"),
+    "invalid-json": ("{not json", "unreadable"),
+    "hash-mismatch": (_preflight(tamper=True), "does not match its content"),
+    "chat-template-mismatch": (_preflight(chat="0" * 64), "!= cached tokenizer"),
+}
+
+
+@pytest.fixture
+def cli_runs(tmp_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch) -> pathlib.Path:
+    from scripts.research.arms849 import substrate
+
+    runs_dir = tmp_path / "runs"
+    monkeypatch.setattr(h, "RUNS_DIR", runs_dir)
+    monkeypatch.setattr(substrate, "RUNS_DIR", runs_dir)
+    monkeypatch.setattr(h, "_tokenizer_chat_sha", lambda: "e" * 64)
+    monkeypatch.setattr(h, "_IN_CONTAINER", False)
+    return runs_dir
+
+
+@pytest.mark.parametrize("case", list(PREFLIGHT_CASES))
+@pytest.mark.parametrize("path_kind", ["fresh", "resumed"])
+def test_an_unusable_preflight_is_a_recorded_gate_failure(tmp_path, cli_runs, case, path_kind):
+    """Through main: gate-container.json names preflight_present_and_matching with its detail; a fresh
+    path creates no ledger; a resumed ledger gets session_gates{passed:false}; exit 3; nothing uncaught."""
+    body, detail = PREFLIGHT_CASES[case]
+    _write_runs(cli_runs, body)
+    ledger_path = tmp_path / "ledger.jsonl"
+    if path_kind == "resumed":
+        with open_fake(ledger_path) as ledger:
+            h.run_session(ledger, make_runtime(fake_arms()), limit=1)
+        before = rows_of(ledger_path)
+    code = h.main(["harness", "--ledger", str(ledger_path), "--up-ts", "2026-09-25T00:00:00+00:00"])
+    assert code == h.EXIT_GATES_FAILED
+    record = json.loads((cli_runs / "gate-container.json").read_text(encoding="utf-8"))
+    assert record["passed"] is False and record["failed"][0]["name"] == "preflight_present_and_matching"
+    assert detail in record["failed"][0]["detail"]
+    if path_kind == "fresh":
+        assert not ledger_path.exists()
+    else:
+        rows = rows_of(ledger_path)
+        assert rows[:len(before)] == before and len(rows) == len(before) + 1
+        event = rows[-1]
+        assert event["kind"] == "session_gates" and event["detail"]["passed"] is False
+        assert event["detail"]["details"][0]["name"] == "preflight_present_and_matching"
+        assert not [r for r in rows[len(before):] if r.get("record") == "attempt_start"]
+
+
+def test_an_unusable_preflight_fails_the_host_phase_too(cli_runs):
+    _write_runs(cli_runs, None)
+    assert h.main(["harness", "--host-gates", "--up-ts", "2026-09-25T00:00:00+00:00"]) == h.EXIT_GATES_FAILED
+    record = json.loads((cli_runs / "gate-host.json").read_text(encoding="utf-8"))
+    assert record["phase"] == "host" and record["failed"][0]["name"] == "preflight_present_and_matching"
+
+
+def test_a_usable_preflight_builds_the_configuration(cli_runs):
+    """Guards the guard: a self-hashed preflight whose chat template matches the cache is accepted."""
+    _write_runs(cli_runs, _preflight())
+    assert h.live_config(True).chat_template_sha256 == "e" * 64 and h.live_config(True).n_ctx == 393_216
+
+
+def test_a_missing_setup_record_is_refused_not_raised(cli_runs, capsys):
+    assert h.main(["harness", "--up-ts", "2026-09-25T00:00:00+00:00"]) == h.EXIT_FAILED
+    assert "ConfigUnavailable" in capsys.readouterr().out

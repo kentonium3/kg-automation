@@ -998,11 +998,67 @@ def live_binding(ledger_path: pathlib.Path, corpus: pathlib.Path, config: servin
     return binding_for(live_gates(ledger_path, corpus, config, up_ts, skip_gates, container_phase), corpus, config)
 
 
-def live_config(secondary: bool) -> serving.ServingConfiguration:
-    from scripts.research.arms849.preflight import load_preflight
+class ConfigUnavailable(RuntimeError):
+    """setup.json (WP02's record) is absent or unreadable — nothing to bind; run `substrate setup`."""
 
-    setup_record = json.loads((RUNS_DIR / "setup.json").read_text(encoding="utf-8"))
-    identity = identity_from_setup(setup_record, str(load_preflight(RUNS_DIR / "preflight.json")["chat_template_sha256"]))
+
+class PreflightUnusable(RuntimeError):
+    """preflight.json cannot be used to build the configuration: absent, unreadable, not JSON, its
+    self-hash does not recompute, or its chat-template sha is not the cached tokenizer's. Worded as a
+    phase refusal (``<phase> phase refused:`` then ``  <gate>: <detail>``) so the SAME recorder rider 1
+    introduced names the failing gate (Codex c3 M-b)."""
+
+    GATE = "preflight_present_and_matching"
+
+    def __init__(self, detail: str) -> None:
+        self.detail = detail
+        super().__init__(f"preflight phase refused:\n  {self.GATE}: {detail}")
+
+
+def _tokenizer_chat_sha() -> str:
+    """The chat template sha of the CACHED tokenizer — what the serving configuration must bind."""
+    from scripts.research.arms849.substrate import CACHE_DIR
+
+    return serving.Tokenizer(pathlib.Path(os.environ.get("ARMS849_CACHE", str(CACHE_DIR))) / "qwen-tokenizer") \
+        .chat_template_sha256()
+
+
+def live_config(secondary: bool) -> serving.ServingConfiguration:
+    """The configuration of record, from setup.json + preflight.json. Every preflight problem raises
+    :class:`PreflightUnusable` (a gate failure, recorded and exit 3); a setup problem raises
+    :class:`ConfigUnavailable`. No other exception escapes."""
+    from scripts.research.arms849.preflight import PreflightRefused, load_preflight
+
+    setup_path, preflight_path = RUNS_DIR / "setup.json", RUNS_DIR / "preflight.json"
+    try:
+        setup_record = json.loads(setup_path.read_text(encoding="utf-8"))
+        if not isinstance(setup_record, dict):
+            raise ValueError("not a JSON object")  # noqa: TRY004 — caught just below as "unusable"
+    except (OSError, ValueError) as exc:
+        raise ConfigUnavailable(f"{setup_path} unusable — {type(exc).__name__}: {exc}; run substrate setup") from exc
+    if not preflight_path.is_file():
+        raise PreflightUnusable(f"{preflight_path} absent — run the preflight from the full checkout first")
+    try:
+        record = load_preflight(preflight_path)
+    except PreflightRefused as exc:
+        raise PreflightUnusable(str(exc)) from exc
+    except (OSError, ValueError) as exc:              # JSONDecodeError is a ValueError
+        raise PreflightUnusable(f"{preflight_path} unreadable — {type(exc).__name__}: {exc}") from exc
+    if not isinstance(record, dict):
+        raise PreflightUnusable(f"{preflight_path} is not a JSON object")
+    sha = record.get("chat_template_sha256")
+    if not isinstance(sha, str) or len(sha) != 64 or any(c not in "0123456789abcdef" for c in sha):
+        raise PreflightUnusable(f"{preflight_path} carries no chat_template_sha256 (939d9b29 requires it)")
+    try:
+        cached = _tokenizer_chat_sha()
+    except Exception as exc:
+        raise PreflightUnusable(f"cached tokenizer's chat template unavailable — {type(exc).__name__}: {exc}") from exc
+    if cached != sha:
+        raise PreflightUnusable(f"preflight chat_template_sha256 {sha[:12]} != cached tokenizer {cached[:12]}")
+    try:
+        identity = identity_from_setup(setup_record, sha)
+    except (KeyError, RuntimeError) as exc:
+        raise ConfigUnavailable(f"{setup_path} lacks an identity field — {type(exc).__name__}: {exc}") from exc
     return serving.ServingConfiguration.secondary_yarn(identity) if secondary else serving.ServingConfiguration.primary(identity)
 
 
@@ -1145,6 +1201,25 @@ def _dry_run(kind: str) -> int:
     return 0
 
 
+def _preflight_unusable(args: argparse.Namespace, exc: PreflightUnusable) -> int:
+    """Codex c3 M-b: a preflight that cannot be used is a failed ``preflight_present_and_matching`` —
+    through the same recorder as every other phase failure. ``--host-gates`` writes gate-host.json;
+    otherwise gate-container.json, and a run path also records ``session_gates{passed:false}`` into
+    an existing ledger (a fresh path creates none). Always EXIT_GATES_FAILED."""
+    if args.host_gates:
+        from scripts.research.arms849 import substrate
+
+        write_gate_failure(substrate.RUNS_DIR / "gate-host.json", "host", exc, args.up_ts)
+        print(f"arms849 status: host gates FAILED — gate-host.json records it\n{exc}")
+        return EXIT_GATES_FAILED
+    failed = write_gate_failure(RUNS_DIR / "gate-container.json", "container", exc, args.up_ts)
+    if args.gates:
+        print(f"arms849 status: container gates FAILED — gate-container.json records it\n{exc}")
+        return EXIT_GATES_FAILED
+    return _refuse_session(args.ledger, SessionGates(passed=False, up_ts=args.up_ts, container_start_ts=PROCESS_START,
+                                                     error=f"{type(exc).__name__}: {exc}", details=tuple(failed)))
+
+
 def _refuse_session(ledger_path: pathlib.Path, gates_outcome: SessionGates) -> int:
     """A session whose fresh gates fail attempts nothing. On a resume the failure is recorded in the
     ledger as its ``session_gates`` event (opened under its own header); a fresh ledger is never
@@ -1197,7 +1272,10 @@ def main(argv: list[str]) -> int:
                 paths = grading.export(ledger, ledger.header.blinding_seed, RUNS_DIR)
             print(f"grading view {paths.view}\nadmin report {paths.admin}\nseal {paths.seal}")
             return 0
-        config = live_config(args.secondary)
+        try:
+            config = live_config(args.secondary)
+        except PreflightUnusable as exc:
+            return _preflight_unusable(args, exc)
         if args.host_gates:
             from scripts.research.arms849.gates import GatesRefused
 
