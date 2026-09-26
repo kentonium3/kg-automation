@@ -141,7 +141,7 @@
     },
     "WP04": {
       "actor": "claude",
-      "agent": null,
+      "agent": "claude",
       "agent_profile": "__resolved_profile_absent__",
       "agent_profile_version": "__resolved_profile_version_absent__",
       "force_count": 16,
@@ -157,7 +157,8 @@
         "WP04 cycle 5: Codex c4 MINOR (sampler closure race) fixed under a lock; 99 tests; full suite green",
         "WP04 cycle 6: two-phase gates with signed host/container records per the design-lead ruling; full suite green",
         "cycle 7: two-phase gates c6 fixes (host digest bound, harness up_ts freshness, parsed timestamps)",
-        "reopen c17 @11d9bffc: RSS series format; 848 pass x2 seeds; combined with lane-h 1035 pass"
+        "reopen c17 @11d9bffc: RSS series format; 848 pass x2 seeds; combined with lane-h 1035 pass",
+        "c18 @637d0a5a: 4 defects + riders; 870 pass x2 seeds; cross-lane 1057"
       ],
       "provider": "__resolved_provider_absent__",
       "review": null,
