@@ -3,7 +3,7 @@ title: "#849 rubric — pre-registration"
 doc_type: research
 status: draft
 owner: claude-macbook (design lead); reviewed by claude-office4; registered 2026-09-24
-last_updated: 2026-09-24
+last_updated: 2026-09-25
 ---
 
 # #849 rubric — pre-registration (REGISTERED 2026-09-24)
@@ -43,7 +43,7 @@ whether free-prose extraction works (no extraction is used in this run; the seed
 |---|---|---|
 | **G** — tuned graph | Graphiti + FalkorDB over the typed ontology, seeded by structured writes (no LLM) | node + edge hybrid retrieval; typed constraint pull, one query per label (`Capacity`, `Commitment`, `Principle`, `Interest`); anchored history expansion (entity → its episodes via `MENTIONS`); **no BFS by default**; `group_id` in `[A-Za-z0-9_]`; retrieval budget recorded per question. **Query plan (A3):** anchors are derived **from the question text** by deterministic resolution against the loaded entities (names/aliases → Person; commitment and outcome descriptions by exact or normalised match; typed labels for the constraint pull) — never from a per-question list, which would be the oracle leaking through configuration. Per question: resolve anchors → hybrid search on the question text → typed constraint pull → anchored history expansion per anchor → assemble, under a fixed cap of **60 items** (nodes + edges + episodes), set once; the ledger records the anchors resolved, the plan, and the actual count. Zero anchors → search-only path, recorded |
 | **D** — full dump | the entire corpus (rendered seed + full stream) in the prompt, in the ruled **native** configuration | prompt caching **on**; hit rate logged. **(A2)** Where the prompt exceeds the model's trained context (262,144 tokens on Qwen3-Next-80B: F1, B1, E2, E1, F2, B2) the cell is recorded as `exceeds_model_context` with the measured token count — never a zero, never a truncated run |
-| **R** — vector-RAG + records | **(A4)** the replay-visible **records** (entities and edges, as of ask_time) are always present as R's structured half, placed after events like D; **top-k embedding retrieval over events only** | ONE global k; the per-question ratio R_context / G_context is a reported column (explicit `unavailable` when G's figure is missing) so a parity breach is visible, never silent; caching on for any stable prefix. **k procedure (A3, made deterministic in A4):** arm-major order G → D → R; after all eight G repeat-1 cells are `ok`, for each question build R's view and compute R_context(k) = tokens of the *exact assembled text* (records block + the k top-ranked events re-sorted chronologically), same tokenizer and bytes as the request; k = the **smallest** integer whose median over the eight questions lies within ±20 % of G's repeat-1 median; per-question availability caps recorded; if no k satisfies (the records block alone exceeds the band) the run records `parity: unattainable` with the closest k and continues; written once as a durable `calibration` record and recovered before any R cell; if any G repeat-1 cell ends `error` after three attempts the run halts for a registered disposition |
+| **R** — vector-RAG + records | **(A4)** the replay-visible **records** (entities and edges, as of ask_time) are always present as R's structured half, placed after events like D; **top-k embedding retrieval over events only** | ONE global k; the per-question ratio R_context / G_context is a reported column (explicit `unavailable` when G's figure is missing) so a parity breach is visible, never silent; caching on for any stable prefix. **k procedure (A3, made deterministic in A4):** arm-major order G → D → R; after all eight G repeat-1 cells are `ok`, for each question build R's view and compute R_context(k) = tokens of the *exact assembled text* (records block + the k top-ranked events re-sorted chronologically — *chronologically* meaning by each event's **position in the replayed view** (stream order), never a literal (at, ref) sort, so R's events are always a subsequence of D's dump [clarified 2026-09-25 18:50Z: the A4 ordering ruling in words; the WP07 prompt's "(at, then ref)" wording is the dated side]), same tokenizer and bytes as the request; k = the **smallest** integer whose median over the eight questions lies within ±20 % of G's repeat-1 median; per-question availability caps recorded; if no k satisfies (the records block alone exceeds the band) the run records `parity: unattainable` with the closest k and continues; written once as a durable `calibration` record and recovered before any R cell; if any G repeat-1 cell ends `error` after three attempts the run halts for a registered disposition |
 
 Common to all arms: the **same reasoning model**, the **same fixed prompt**, the **same question
 wording**; the arm assembles context, the model answers; nothing else differs. The model and its
@@ -52,14 +52,14 @@ provider are recorded, not prescribed (per-function seam, §Tool Selection). **A
 what the cost axis counts.
 
 **Question order is protocol.** Questions are asked in `ask_time` ascending order (C1, A, F1, B1,
-E2, E1, F2, B2). Under the time-cut each D prompt is then a prefix of the next, so D's cache hit
+E2, E1, F2, B2). Under the time-cut each D prompt's **event section** is then a prefix of the next's (the records block that follows it is re-emitted per question — clarified 2026-09-25 18:52Z), so D's cache hit
 rate is a property of this protocol and is reported as such; a random order would collapse it and
 the number would be an artifact of an unstated choice.
 
 **Prompt layout is protocol (A1).** The event stream comes first and the entity block after it.
 Entities change at A, F1 and E1 as Decisions become visible under the replay rules, so
 entities-first collapses the cache prefix to ~0 % for those three questions; events-first keeps
-every step a token-level prefix extension (measured with the Qwen3-Next tokenizer: A 35.3 %,
+every step a token-level prefix extension of the event section (measured with the Qwen3-Next tokenizer: A 35.3 %,
 F1 50.5 %, B1 94.7 %, E2 87.3 %, E1 91.1 %, F2 99.9 %, B2 99.7 % of the prompt reused).
 
 **Replay rules (A1, measured on the frozen corpus):** a Decision is visible only from its
@@ -197,8 +197,17 @@ asserts the text's digest per run. **Registered digest (A4):** normalise as UTF-
 endings, trailing whitespace stripped per line, exactly one trailing newline, the two slots left
 as the literal tokens `{assembled_context}` and `{question_text}`; sha256 =
 `0aa7ee77560b1f5cbbb04a6c3dfa90749dfd79305b4207134c62d9fdd733af45`. The digest covers the
-template; the exact serialised request (template with slots filled, plus the chat template and
-special tokens the pinned server applies) is what token counts are measured on.
+template; the exact serialised request is what token counts are measured on.
+
+**Chat template (A4 clarification, 2026-09-25 00:46Z).** The ruled model is an instruct model
+trained on its chat format, so the registered text is sent as the **single user turn** of the
+model's own chat template (no system turn), with the template applied **client-side** through the
+same Qwen tokenizer that counts tokens, and the resulting string sent as the raw `prompt` of the
+native completion endpoint. This keeps the counted bytes equal to the sent bytes and leaves the
+telemetry mapping untouched. The serving configuration records `chat_template_applied: true` and
+the template's sha256; primary and secondary share it. Gate (b)'s memory and throughput figures
+stand (the template adds a constant of a few dozen tokens); the §2 table is re-measured on the
+templated request at code freeze.
 
 ```text
 You are the assistant of the person whose records follow. You are reviewing their own
@@ -243,21 +252,29 @@ Per question, per run:
   Fred's message to the report thread) scores 0 for that run regardless of hits.
 - Grading is **blind to arm**: answers are re-labelled per question; the grader holds the oracle.
   First pass by an LLM grader with the oracle in context; Kent spot-checks every hard fail and a
-  random 25 % of the rest. Disagreements resolve to Kent.
+  random 25 % of the rest. **Grader independence (added 2026-09-25 23:06Z, design-lead coherence
+  pass):** the grader MUST NOT be the model that produced the answers — all three arms share one
+  reasoning model (§2), so that model may not also grade, and the grader's identity and version are
+  recorded in the run record beside the arms'. A grader indistinguishable from the answering model
+  is not a blind grade, whatever the labels say; Kent's spot-check is the backstop, not the control.
+  Disagreements resolve to Kent.
 
 ## 5. Axis 2 — cost
 
 Per question, per run, per arm — recorded, never estimated:
 
 - **input tokens per correct answer** = total input tokens ÷ points hit (the primitive), with
-  sub-columns **cache-write / cache-read / uncached**;
+  sub-columns **cache-write / cache-read / uncached**. *Clarification (2026-09-25, D-13 corrected):*
+  from llama.cpp `/completion` `timings`, `prompt_n` counts tokens **processed** this request and already
+  excludes cache hits, so total input = `prompt_n + cache_n`; cache-read = `cache_n`; uncached = cache-write
+  = `prompt_n`; hit rate = `cache_n / (prompt_n + cache_n)`. No quantity is derived by subtracting the cache;
 - output tokens; wall-clock latency from question to answer, **reported at the context length the question ran at** (A3: prefill throughput fell 630 → 154 tok/s cumulative and generation 43 → 20 tok/s between 16k and 256k on the ruled model, measured in `849-synthesis/gate-b-context-window.md`), never as one figure per arm;
 - **peak memory**, two labelled columns: *per question* for D and R inference (the KV cache
   scales with the prefix, ~7× across questions), sampled from the serving process during the
   question; *per run* for G's graph store, which is dominated by the loaded graph and near
   constant per question. A number, not a pass/fail;
-- D and R: prompt-cache **hit rate** under the time-cut arrival pattern — **load-bearing** for D (A3): with ask_time ordering and events-first layout, later questions reuse 87–99.9 % of their prefix; the hit rate is the difference between a ~30-minute cold question and a seconds-long warm one. `cache_prompt` ON is the only valid D configuration. **(A4)** *cold* and *warm* are classified from **observed reuse** (`cache_read_tokens` from the server's timings), never inferred from the repeat index; every server restart and cache reset is a ledger event. **Telemetry mapping (A4):** the cost columns come from the pinned server's `timings` object (prompt token count, tokens served from cache, predicted token count, prompt and generation milliseconds), validated once against the pinned image at setup; a scored row is **refused** when a required measurement is absent, never filled with a plausible value. Client-side token counts are validated against the pinned server's `/tokenize` at setup (tokenizer equivalence) and count the exact serialised request including the chat template; the configured output allowance is reserved inside the permitted limit.
-- **Memory (A4), two measures with defined windows:** *inference* — peak memory attributed to the serving process, sampled at 1 Hz from request start to response end, per cell (D and R); *graph store* — peak memory attributed to the graph-database process from the question's load through its last query, per question (G). Neither is a pass/fail; both are columns.
+- D and R: prompt-cache **hit rate** under the time-cut arrival pattern — **load-bearing** for D (A3): with ask_time ordering and events-first layout, later questions reuse 87–99.9 % of their prefix (the reusable prefix is the **event section**: the records block follows the events and is re-emitted per question as entities and edges appear, so the cacheable prefix ends where the events end — clarified 2026-09-25 18:50Z after Codex's WP06 c4 note; the modules and tests already said so, the rubric's whole-prompt wording was the inaccurate side); the hit rate is the difference between a ~30-minute cold question and a seconds-long warm one. `cache_prompt` ON is the only valid D configuration. **(A4)** *cold* and *warm* are classified from **observed reuse** (`cache_read_tokens` from the server's timings), never inferred from the repeat index; every server restart and cache reset is a ledger event. **Telemetry mapping (A4):** the cost columns come from the pinned server's `timings` object (prompt token count, tokens served from cache, predicted token count, prompt and generation milliseconds), validated once against the pinned image at setup; a scored row is **refused** when a required measurement is absent, never filled with a plausible value. Client-side token counts are validated against the pinned server's `/tokenize` at setup (tokenizer equivalence) and count the exact serialised request including the chat template; the configured output allowance is reserved inside the permitted limit.
+- **Memory (A4), two measures with defined windows:** *inference* — peak memory attributed to the serving process, sampled at 1 Hz from request start to response end, per cell (D and R); *graph store* — peak memory attributed to the graph-database process from the question's load through its last query, per question (G). Neither is a pass/fail; both are columns. **Clarified 2026-09-25 22:07Z (design lead):** where this section earlier frames the graph-store figure as *per run*, that line describes its expected VARIANCE (dominated by the loaded graph, near constant across questions), not a second measure — the per-question definition here governs, and a 1 Hz series sampled across the whole run satisfies both readings. Both columns are PROCESS-level measures: an allocator-reported figure (e.g. the graph database's own `INFO memory`) is not interchangeable with process RSS and may not be recorded under an RSS column name; substituting it requires renaming the column and a dated amendment here. **Ceiling guard and its residual (added 2026-09-25 22:41Z, design-lead ruling on the WP08 cycle-3 finding):** the 57.5 GiB ceiling (NFR-004: a 62.5 GiB budget with at least 5 GiB headroom, so exactly 57.5 is compliant and a breach is strictly above it) is checked immediately before a request is sent — after the request has been serialised and counted, at the last point the protocol controls — and again across the cell's sampling window. A residual window remains between that final check and the socket write; it is not zero, and no guard placed in the client can make it zero. Therefore the **recorded per-cell peak is the authoritative figure** for NFR-004 and for the memory column; a passing pre-send reading is a precondition for sending, never evidence that the cell stayed within budget. An unreadable sampler is could-not-check and refuses the cell; it is never recorded as a pass or as zero. **Window reconstruction (added 2026-09-26 02:25Z, design-lead ruling):** both sampled memory columns are reconstructed from a 1 Hz series by SAMPLE-AND-HOLD. The window is CLOSED at both ends, [start, end]: its readings are every reading in [start, end], plus — ONLY WHEN NO READING LIES AT EXACTLY THE START — a HOLD: the latest reading(s) strictly before the start, all of them when several share that timestamp, so a tie among held candidates cannot under-report either. The hold SUBSTITUTES for a missing observation at the start, so a reading taken at the start supersedes it: with readings at −1 s (999) and 0 s (10) over [0 s, 1 s], the window's peak is drawn from the observed in-window values and never from the 999, which belongs to a time before the window. The freshness bound applies to the hold only when the hold is USED (resolved 2026-09-26 02:47Z, after a review found the registered text and the design lead's ruling disagreeing; the estimator reading governs) (clarified 2026-09-26 02:28Z, refined 02:41Z after the implementation handled duplicate timestamps more safely than the first wording; the earlier phrasing "at or before" made a reading exactly at the start satisfy both clauses, which under-reported a tie). The alternative (in-window readings only, `None` when there are none) would refuse a cell for a sampling artifact rather than for anything about the run, since an unreadable required sampler stops the cell. Sample-and-hold can over-attribute memory observed just before a window to that window; that bias inflates the graph arm's reported cost and so runs AGAINST the hypothesis under test, which is the direction to choose when a choice must be made. The held reading must be fresh at BOTH ends — no more than the registered gap tolerance before the window start, and the series no staler than the registered tolerance at its end — otherwise it is a gap and the sampler fails closed. Each reported peak records its support: the number of in-window samples, the window bounds, and whether the peak came from a held pre-window reading or from a sample inside the window.
 
 Dollar conversions are derived afterwards from the token columns for any provider; they are not
 what is scored.
@@ -362,6 +379,36 @@ regime-bound the way #844's was, and the findings say so up front.
 `docs/design/research/849-synthesis/` — `00-context-chains.md`, `01-cast.md`, `seed/*.yaml`,
 `stream/` (deterministic RNG for Arc E's mass, hand-authored scored events), `oracle/` (hidden),
 harness code, `results/<run>.json`, grading sheet. Findings are written against this rubric.
+
+### Preconditions for the run (added 2026-09-25 23:08Z, design lead)
+
+Registered here rather than left in a working note, so the list outlives any one session. The
+run's **first live cell of any arm** may not start until all four hold, and each is verified by a
+test, not by assertion:
+
+- **C4 — the isolation gate's inventory is complete.** `REQUIRED_MODULES` names every module of
+  the run package, the three arms included, with a two-way test (every module in the package is
+  registered, and every registered module is present). Without it a truncated export certifies
+  isolation by scanning a smaller set than it should.
+- **C8 — a live-style resume succeeds end to end.** A ledger created with timestamp-bearing gate
+  records, closed mid-run, reopened by a fresh session that re-runs both gate phases, writes its
+  own `session_gates`, and completes with the earlier rows intact and no double-recording. With
+  the two negatives: a failing fresh gate stops and records; a session that skips the gate phase
+  cannot write a row. Timestamp-stable fakes do not satisfy this — they are what hid the defect.
+- **C9 — the graph-store memory series is wired end to end.** The host-side 1 Hz writer, the
+  runner-side reader and the harness reading a G cell's peak from real samples, with the
+  fail-closed conditions (absent, stale, gapped, wrong container) driven through the real path.
+  Until it lands the G arm cannot run: its required sampler is unreadable and the harness refuses
+  the cell, which is the correct failure and should not be mistaken for a bug at run time.
+- **C11 — the ceiling guard runs at the last point the protocol controls.** A `before_send`
+  callback invoked after the permitted-limit count and immediately before the request is sent,
+  for every live cell, its exception propagating unwrapped with nothing sent.
+
+One further item gates the **post-merge review** rather than the run: **C10** — every contract
+sentence prescribed by an in-mission ruling must have landed before the review runs, because that
+review works by checking merged code against those sentences. A review against a contract known
+to be stale is not a check.
+
 
 ## Amendment log
 
