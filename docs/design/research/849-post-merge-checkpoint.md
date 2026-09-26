@@ -131,6 +131,25 @@ branches.
 | C-5 | `probe_f` per-task normalisation (`74e0c148`) still green against the merged loader | The probe and the loader land together for the first time. |
 | C-6 | All **four gates** pass in-process on the merged tree: `check_849_seed`, `check_849_oracle`, `check_849_freeze`, `check_849_loader` | The loader-side pass is the one the freeze gate could not do, because it needs a loader. See the correction below — it exists; it is not owed. |
 | C-7 | T039 — the §2 token table re-measured on the **final assembled bytes** and registered with `preflight_sha` + the rubric HEAD cited | The numbers only become final once the tree is final. |
+| C-8 | If `kitty-specs/arms-run-01M3APTA/retrospective.yaml` is present in the merged tree, confirm it was generated **after** genuine completion — check `provenance.kind` and its timestamp against the merge — and is not residue from the 2026-09-26 aborted merge | See below. A terminal artifact written at a non-terminal moment is the most authoritative-looking wrong record in the tree. |
+
+### Why C-8 exists (2026-09-26)
+
+During the option-A recovery, `spec-kitty merge --abort` persisted a **363-line
+`retrospective.yaml`** on `feat` (commit `7899bd96`) carrying `provenance.kind:
+runtime_post_completion`, `findings_status: has_findings` and 39 evidence refs — for a mission that
+was **not complete**: WP09 was planned and nothing had merged. It is the second anomaly recorded on
+#1021, adjacent to the terminus-safety class of upstream #4764.
+
+The option-A reset discards that commit from `feat`, so the immediate risk is gone and the
+implementer preserved it on an evidence branch. C-8 exists because of what it *would* have done had
+it survived: the post-merge reviewer reads the merged tree, and a mission retrospective is exactly
+the kind of artifact a reviewer treats as authoritative rather than checking. It would have asserted
+completion, findings and provenance at a moment when all three were false, in a file nobody wrote by
+hand and nobody would think to doubt.
+
+This is the same class as §1's citation defects and C-6's stale tense, and it is the most dangerous
+member of it: machine-generated, well-formed, and confidently wrong about its own status.
 
 ### Correction to C-6 (2026-09-26, this document's own error)
 
