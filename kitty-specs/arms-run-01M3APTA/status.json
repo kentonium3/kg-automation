@@ -268,7 +268,7 @@
     },
     "WP08": {
       "actor": "claude",
-      "agent": null,
+      "agent": "claude",
       "agent_profile": "__resolved_profile_absent__",
       "agent_profile_version": "__resolved_profile_version_absent__",
       "force_count": 9,
@@ -279,7 +279,8 @@
       "notes": [
         "c7 @c8f58515: development-ledger permission keyed on the header binding; 954 pass x2 seeds",
         "c8 @4eccb601: unreadable ledger path conservatively not development; 956 pass x2 seeds",
-        "c9: lexists absent-test; 963 pass x2 seeds"
+        "c9: lexists absent-test; 963 pass x2 seeds",
+        "c10: lstat FileNotFoundError is the only fresh case; 967 pass x2 seeds"
       ],
       "provider": "__resolved_provider_absent__",
       "review": null,
