@@ -10,6 +10,9 @@ requirement_refs:
 planning_base_branch: feat/849-arms-run
 merge_target_branch: feat/849-arms-run
 branch_strategy: Planning artifacts for this mission were generated on feat/849-arms-run. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into feat/849-arms-run unless the human explicitly redirects the landing branch.
+base_branch: kitty/mission-arms-run-01M3APTA
+base_commit: 1b9271f9762845d1c0536cd9289cf5e48d59d225
+created_at: '2026-09-25T04:12:35.474766+00:00'
 subtasks:
 - T026
 - T027

@@ -1,0 +1,15 @@
+---
+affected_files: []
+cycle_number: 15
+mission_slug: arms-run-01M3APTA
+reproduction_command:
+reviewed_at: '2026-09-25T18:49:25Z'
+reviewer_agent: claude
+wp_id: WP03
+---
+
+[MAJOR] scripts/research/arms849/ledger.py:616 — Changing a persisted attempt/run pair's repeat to 1.9 passes replay because RunKey.of() coerces it to 1 — why: an invalid cell is scored and satisfies repeat-1 completion/calibration checks — fix: validate raw key fields without coercion before replaying either record type.
+[MINOR] scripts/research/arms849/ledger.py:724 — Injecting write or fsync failure during fresh-header creation raises OSError(EBADF), masking LedgerWriteFailed because _append already closed the descriptor — why: callers lose the promised failure type and recovery message — fix: establish one owner for descriptor cleanup and preserve the original exception.
+[MINOR] scripts/research/arms849/ledger.py:508 — event("") successfully persists a row, but reopening that ledger raises LedgerCorrupt — why: the public writer can make an otherwise valid run unresumable — fix: enforce replay's nonempty-string kind check before appending.
+
+Source: Codex read-only review (gpt-6-astra), WP03 cycle 15 on lane-c @0b56fdc6, 2026-09-25. 151 tests passed; all three c14 folds confirmed by probe (fault injection at write/fsync, the corruption set, final-null vs real torn tail); the three findings above are new. VERDICT: REJECT.

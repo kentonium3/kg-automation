@@ -48,7 +48,7 @@ Record kinds after the header: `attempt_start`, `run`, `calibration`, `event`.
 | `assembled_context_tokens` | int | `ok` | the slot's tokens only — the cost primitive |
 | `output_tokens` | int | `ok` | |
 | `finish_reason` | `"stop"` \| `"length"` | `ok` | `length` sets `truncated: true` — scored with a flag |
-| `cache_read_tokens` (= `cache_n`), `uncached_tokens` (= `prompt_n − cache_n`), `cache_write_tokens` (= uncached) | int | `ok` | explicit llama.cpp `timings` mapping (D-13); row refused if absent |
+| `cache_read_tokens` (= `cache_n`), `uncached_tokens` (= `prompt_n`, which already excludes cache hits), `cache_write_tokens` (= uncached); `prompt_tokens` (= `prompt_n + cache_n`) | int | `ok` | explicit llama.cpp `timings` mapping (D-13, corrected); row refused if absent |
 | `cache_state`, `cache_fraction` | `cold`\|`warm`, float | `ok` | classified from observation, never from repeat index (D-13) |
 | `prefill_s` (= `prompt_ms`/1000), `generation_s` (= `predicted_ms`/1000), `generation_tok_s` | float | `ok` | from `timings`; row refused if absent |
 | `peak_gtt_gib` | float | `ok`, `error` | serving-process peak, 1 Hz beside the request |
@@ -149,3 +149,7 @@ original checkout, oracle, seeds, narrative files unreachable), `env_clean` (no 
 FastEmbed and tokenizer caches present, no `torch`), `tokenizer_equivalence` (100 lines vs the
 server's `/tokenize`), `substrate_health` (FalkorDB `GRAPH.LIST`; llama-server `/health` + `/props`
 n_ctx, model file, rope settings). All must pass before the Header is written.
+
+**Dated correction (2026-09-25, design-lead ruling 20260925T033758187296Z4e2f3be79e):** gates run in two phases
+(see contracts/gates.md); the **LedgerHeader / Binding gains `gate_host_sha` and `gate_container_sha`** beside
+`preflight_sha`, all three required, all three compared on resume.

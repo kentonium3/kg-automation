@@ -114,7 +114,11 @@ checkpoint (D-7..D-9). No `[NEEDS CLARIFICATION]` markers remain.
 ## D-8 — Oracle-isolated execution boundary (implementer's call; FR-013)
 
 - **Decision**: the arms execute **inside a runner container** (the repo's Python image built
-  from the pinned base, with the venv) whose **only** bind mount is `build/849-run-env/` — a
+  from the pinned base, with the venv) whose **only** bind mount is the export directory —
+  `~/.cache/arms849/run-env/` by default (`ARMS849_RUN_ENV`), **outside the repo tree**, because
+  the export is a full repo copy and the pre-commit secret scan walks even gitignored `build/`
+  (learned live in WP02: an export under `build/` aborted every commit on the test fixtures'
+  fake secrets) — a
   `git archive` export of the mission branch at the run commit with
   `docs/design/research/849-synthesis/oracle/`, `seed/`, the two narrative files
   (`00-context-chains.md`, `01-cast.md`), `849-lattice-scenario-arcs.md`, `849-traceability.md`
@@ -132,13 +136,79 @@ checkpoint (D-7..D-9). No `[NEEDS CLARIFICATION]` markers remain.
   (rejected — a tracked directory cannot be absent); chroot/user separation (viable but the
   container already exists for the services and is the simpler proof).
 
+**Dated note (2026-09-25, design-lead ruling on the WP02 review loop):** the static scan
+under FR-013 is *defense in depth* — its scope is **literal structure only**: every expression
+built from literals and operators is evaluated by Python itself, in a child process under
+memory/CPU/time limits that fail closed, with the pure/opaque split computed over
+`ast.expr.__subclasses__()` and asserted by test. A module that assembles a forbidden path at
+runtime through names, calls, attributes or comprehensions is outside the scan's scope **and
+still cannot read anything**: the **runtime boundary is load-bearing** — the export physically
+lacks the excluded material and the in-container self-test proves every excluded path absent
+under every data mount, every mount's type/source/content, and the host checkout unreachable.
+A review finding of a further evaluator construction is recorded as out of scope; a finding
+against the runtime boundary is folded (as c10's docker `/etc` bind identity was).
+
+**Dated closure 2026-09-25 (design-lead ruling, bus msg 20260925T192614559952Z2743cd9757, landed with the WP04
+cycle-10 fold):** "literal structure" for the static scan = literals, operators, f-strings, containers,
+subscripts/slices over them, PLUS, by construction: (i) a call whose func is a Name in a CLOSED pure-builtin
+allowlist (str, bytes, bytearray, int, float, bool, complex, len, repr, chr, ord, tuple, list, dict, set,
+frozenset, sorted, reversed, min, max, sum, abs, round, divmod, pow, hex, oct, bin, format, slice, range,
+enumerate, zip, map, filter, any, all — never hash or id, which are process-salted) with every argument pure,
+evaluated in the resource-limited child; (ii) a call whose func is an attribute on a pure receiver (any method
+name, receiver purity recursive through evaluated calls) with pure arguments, evaluated in the child — a method
+that raises or is absent is `ScanRefused`. Everything else is OPAQUE: a literal-only call to any other name
+(`RuntimeError("…")`, `ArmRefusal("…")`, a decorator) is code and belongs to the runtime boundary; its pure
+arguments are still scanned. The scan REFUSES a module that rebinds any allowlisted builtin name at any scope
+(assignment, def/class, import alias, global/nonlocal, comprehension/with/except/for target). **Cycle-class
+closure:** a further finding is folded only if it is a construction built from literals + operators + this
+allowlist + methods of literals that the scan misclassifies (an implementation bug of this ruling). A finding
+that needs a name binding, an import, or attribute access on a module is runtime-boundary territory, recorded
+against D-8 as out of scope, and not folded (as ruled 2026-09-25 02:39Z).
+
+**Dated update 2026-09-25 20:12Z–21:17Z (design-lead rulings, bus msgs 20260925T201253503279Z7b3150e8fa,
+20260925T203137872479Z9a0facc41d, 20260925T210021147602Z4cd755eb5c, 20260925T211410502747Z96d219122b,
+20260925T211710592294Zed6c0d627f; WP04 cycles 13–16):** (1) **Value-carried taint.** Unordered-ness is a property of
+runtime values: the evaluation child binds `set`/`frozenset` to `TaintedSet`/`TaintedFrozenset`, one `_mark` converts
+every evaluated result (recursively through list/tuple/dict keys and values; iterators and dict views materialised
+at production), and consumers are checked on VALUES — len/any/all and ==/!=/in/not in accept any taint; sorted/min/max
+only a direct set of ordered members with no tainted keyword; list/tuple/reversed/enumerate/zip/dict refuse a direct
+set and carry a nested one; map/filter and every other callable or operator refuse any taint. The syntactic taint
+pass is deleted. (2) **Carrier rule.** An intermediate value handed to a consumer must be a scalar, a marked
+container, or an allowlisted builtin callable; anything referencing another value through an attribute (bound
+methods first) is refused unless invoked in its own node. **Type expressions — the ruled fallback (a) was TAKEN (correction
+2026-09-25 21:34Z to the paragraph first landed @742c7c82, which described option (d)):** firing the check on
+consumption only (d) was a one-line predicate but refused 4 of the 12 real modules, because a nested annotation
+consumes an inner type expression as an index or operand (gates.py:110 `dict[str, str] | None`, ledger.py:320
+`tuple[int, int] | None`, serving.py:62 `dict[str, float | int]`, substrate.py:303 `list[str] | None`). So the
+ACCOMMODATION stands, stated: builtin-generic type expressions (GenericAlias / UnionType) are carried when their
+origin and every argument are allowlisted builtins, None or Ellipsis, recursively; any other value inside one is a
+carrier and refuses — annotations are not produced values, but their constructed strings must still be scanned,
+which is why annotation positions are NOT opaque (option (b) rejected). Consequence: `x: tuple["or" + "acle"]` is
+REFUSED as a carrier rather than caught; the gate fails either way. **Declined alternative (design lead, 2026-09-25 21:36Z, bus
+20260925T213619530125Za8c12b5a9e):** a value-level form of this accommodation (permit GenericAlias/UnionType whose
+origin and arguments are recursively permitted values) is available and was declined at cycle 16 to close the arc;
+prefer it if the scanner is reopened for any other reason. (3) **Dunder refusal.** Invocation of any dunder method on a pure receiver,
+in every form incl. the descriptor route and on an UNtainted literal receiver, is refused. The 21:00Z carrier
+ruling's keep-case "`("or","acle").__iter__()` invoked in its own node is caught" is WITHDRAWN (design lead 21:36Z):
+the later dunder ruling stands, so that construction is refused — fail closed either way: the evaluator's guarantee is "every evaluated call is a pure
+function of its arguments", which holds for the allowlisted builtins and the non-dunder methods of the allowlisted
+literal types, and dunders are where process and platform state enters. (4) **Double-seed gate invariant.** The
+isolation gate runs the literal scan over the real package in two child processes under different fixed
+PYTHONHASHSEED values and FAILS ("literal scan is not reproducible under differing hash seeds") if the results
+differ in any way; both seeds and the agreement are recorded in the gate result. **D-8 is CLOSED:** a further finding
+is folded only if it exhibits a call that is neither a dunder nor tainted and is not a pure function of its
+arguments — and the double-seed gate would have to have missed it on the real modules. Anything else belongs to
+D-8's stated boundary: named code, imports and module attribute access are the runtime gate's.
+
 ## D-9 — Sandbox envelope on office4 (implementer's call; FR-018 — recorded BEFORE any container runs)
 
 - **Compose project**: `arms849`. **Network**: `arms849-net` (bridge, internal). **Volumes**:
   `arms849-falkor` (FalkorDB data; dropped at teardown). **Ports** (all bound to `127.0.0.1`
   only — never a tailnet interface): FalkorDB `16379`, llama-server `18080`. **Images**: FalkorDB
-  `falkordb/falkordb@sha256:9042fdc4…` (the #974/#976 digest, full value verified at setup and
-  recorded in the run record); llama.cpp `ghcr.io/ggml-org/llama.cpp@sha256:063e88aef1c168cf4a0a4b3a7983604561f96870a3c4953bd1fad908b4e41716`.
+  `falkordb/falkordb@sha256:9042fdc4…` (the prefix #974 recorded; **dated correction 2026-09-25:**
+  `setup` pins the `v4.20.1` tag's resolved digest `sha256:1ec88626…` — the prefix does NOT match,
+  the mismatch is recorded in `setup.json` (`falkordb_digest_note`), and the resolved digest is
+  the one that runs; the original line is kept as history); llama.cpp `ghcr.io/ggml-org/llama.cpp@sha256:063e88aef1c168cf4a0a4b3a7983604561f96870a3c4953bd1fad908b4e41716`.
   **Model**: `~/models/gguf/unsloth/Qwen3-Next-80B-A3B-Instruct-GGUF/…UD-Q4_K_XL.gguf` mounted
   read-only. **Resource ceiling**: peak GTT ≤ 57.5 GiB (NFR-004; measured 51.33 at n_ctx
   262,144); `--parallel 1`; `/dev/dri` with render gid 992. **Duration**: the primary and
@@ -192,10 +262,14 @@ checkpoint (D-7..D-9). No `[NEEDS CLARIFICATION]` markers remain.
 
 ## D-13 — Telemetry mapping, cache state, memory attribution (Codex I-1, C-3, B-2)
 
-- **Decision**: llama.cpp `/completion` response `timings` map: `prompt_n` → prompt tokens
-  processed this request, `cache_n` → tokens served from cache, `prompt_ms`/`predicted_ms`/`
-  predicted_n` → prefill_s / generation_s / output tokens; `uncached = prompt_n − cache_n`,
-  `cache_read = cache_n`, `cache_write = uncached` (all newly processed tokens enter the cache).
+- **Decision (corrected 2026-09-25 after Codex WP01 cycle 2)**: llama.cpp `/completion`
+  `timings` map: `prompt_n` = prompt tokens **processed** this request — it already **excludes**
+  cache hits; `cache_n` = tokens reused from the prompt cache; `prompt_ms`/`predicted_ms`/
+  `predicted_n` → prefill_s / generation_s / output tokens. So **total prompt = `prompt_n +
+  cache_n`**, `uncached = cache_write = prompt_n`, `cache_read = cache_n`, `cache_fraction =
+  cache_n / total`. (The first text said `uncached = prompt_n − cache_n`, which subtracts the
+  cache twice and goes negative on any warm request; the code carried the same error until
+  the review caught it with the fixture `prompt_n=1, cache_n=236`.)
   A scored row is **refused** if any of these is absent. `cache_state` per cell is classified
   from observation: `cold` if `cache_n == 0`, `warm` otherwise, with `cache_fraction` recorded;
   "repeat 1 = cold" is a prediction, never a label. Server restarts and `/slots` cache clears are

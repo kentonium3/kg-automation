@@ -1,7 +1,7 @@
 {
   "rows": {
     "#693": {
-      "evidence_ref": "<link or commit>",
+      "evidence_ref": "rubric section 7 decides #693 after the run; this mission delivers the ledgers, not the verdict",
       "fr": null,
       "nfr": null,
       "repo": null,
@@ -9,11 +9,11 @@
       "scope": null,
       "source_file": "spec.md",
       "title": "<fill at WP-implementation time>",
-      "verdict": "unknown",
-      "wp": null
+      "verdict": "deferred-with-followup",
+      "wp": "WP01"
     },
     "#849": {
-      "evidence_ref": "<link or commit>",
+      "evidence_ref": "4029e012",
       "fr": null,
       "nfr": null,
       "repo": null,
@@ -21,11 +21,11 @@
       "scope": null,
       "source_file": "spec.md",
       "title": "<fill at WP-implementation time>",
-      "verdict": "unknown",
-      "wp": null
+      "verdict": "in-mission",
+      "wp": "WP01"
     },
     "#974": {
-      "evidence_ref": "<link or commit>",
+      "evidence_ref": "kentonium3/kg-automation#974 final findings 2026-09-15 (closed spike; reference implementation for arm G)",
       "fr": null,
       "nfr": null,
       "repo": null,
@@ -33,8 +33,20 @@
       "scope": null,
       "source_file": "spec.md",
       "title": "<fill at WP-implementation time>",
-      "verdict": "unknown",
-      "wp": null
+      "verdict": "verified-already-fixed",
+      "wp": "WP01"
+    },
+    "#976": {
+      "evidence_ref": "local mitigations are in-mission (arms_<Q> group ids, one typed pull per label, loader-side pair validation \u2014 plan IC-03/research D-3); the three upstream getzep/graphiti reports in #976 remain unfiled pending Kent's copy sign-off",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": null,
+      "title": null,
+      "verdict": "deferred-with-followup",
+      "wp": "WP01"
     }
   },
   "schema_version": 1

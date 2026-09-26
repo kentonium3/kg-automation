@@ -1,0 +1,17 @@
+---
+affected_files: []
+cycle_number: 4
+mission_slug: arms-run-01M3APTA
+reproduction_command:
+reviewed_at: '2026-09-25T18:36:09Z'
+reviewer_agent: claude
+wp_id: WP06
+---
+
+[MAJOR] scripts/research/arms849/arm_d.py:177 — The claimed coherence check accepts `limit_applied="trained", limit=1` under the primary configuration; probing C1 produces `ContextExceeded(prompt_tokens=51425)` instead of `ArmRefusal` — why: configuration defects become experimental outcomes violating I4 and the registered six-cell split — fix: compare both fields against `ServingConfiguration.limit_applied()` before counting.
+[MAJOR] scripts/research/arms849/arm_d.py:194 — The fallback still invents the refusing limit: C1's view with question text `" x"*210000` counts 261,409 tokens; real `serving.complete` refuses at 260,096, but the wrapper reports `permitted limit 262144` — why: c3 fold (1) remains incomplete, and the resulting `exceeds_model_context` outcome violates I4 — fix: obtain the actual permitted limit from the configuration and classify refusals below the model-context threshold as terminal configuration errors.
+[MINOR] tests/research/test_arms849_arm_d.py:157 — The prescribed default test run fails writing the measurement artifact inside the read-only checkout: 1 failed, 16 passed; `--basetemp=/dev/shm/wp06c4` does not redirect this write — why: no fresh artifact is produced and the failure prevents the secondary assertions from running — fix: support an artifact-output override into `/dev/shm`, retaining the build-directory default.
+
+Notes (non-blocking, Codex): real-tokenizer probes reproduced C1 51,425 and B2 363,004; primary refuses exactly six, secondary none; counted body and sent body are the identical object; B2's gate made zero network calls; C1→A preserves the EVENT-section prefix, not the whole block or prompt — the module and tests say so accurately, the rubric's literal whole-prompt wording is what is inaccurate (carry to the design lead).
+
+Source: Codex read-only review (gpt-6-astra), WP06 cycle 4 on lane-f @4b9ab325, 2026-09-25 — the FIRST Codex pass on this WP (cycles 1–3 were the Opus fallback). VERDICT: REJECT.

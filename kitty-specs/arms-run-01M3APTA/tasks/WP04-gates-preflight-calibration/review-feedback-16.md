@@ -1,0 +1,9 @@
+VERDICT: APPROVE — Codex read-only review (gpt-6-astra), WP04 cycle 16 on lane-d @6b5201ab, 2026-09-25; design-lead APPROVE on the closing fold (bus 20260925T213619530125Za8c12b5a9e).
+
+Codex: "No findings meeting D-8's closure condition." Verified the two-seed probes, the dunder refusal in every invocation path, the carrier restrictions and the annotation accommodation; the real gate passes — 12 modules, no hits, reproducible under PYTHONHASHSEED 0 and 3; the production can-fail checks reject hit, refusal and order disagreements. Suite 120 passed / 204 sandbox PermissionError (socket/child-spawn — environment); focused gate checks passed with the socket fixture replaced in memory.
+
+D-8 is CLOSED (research.md @d0049e6f): value-carried taint; carrier rule with the stated type-expression accommodation (fallback (a) — option (d) refused four real modules; a value-level form was declined at c16 and is preferred if the scanner reopens); dunder invocation refused in every form (the earlier `("or","acle").__iter__()` keep-case withdrawn); double-seed gate invariant. Reopen only for a call that is neither a dunder nor tainted and is not a pure function of its arguments, which the double-seed gate would have to have missed on the real modules.
+
+Review-cycle record: the first c13 run was aborted by OpenAI's content classifier (no verdict) and re-run with neutral wording; litscan.py grew 379 → 625 lines across c13–c16 — the per-node evaluator the value model needs; do not "simplify" back to one-shot eval (design lead). Model note: the design lead's reads from ~20:55Z were by claude-opus-5; this orchestrator session ran claude-opus-5-5 from ~20:57Z; Codex was the independent reviewer throughout.
+
+WP04 cycle ledger: c1 9 → c2 4 → c3 (design) 6 → c4 1 → c5 APPROVE → c6 ruling → c7 3 → c8 5 → c9 1 → c10 2 → c11 1 → c12 1 → c13b 1 → c14 1 → c15 1 → c16 APPROVE.
