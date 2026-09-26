@@ -15,17 +15,50 @@ Both are context managers that NEVER raise into the arm: a sampler that cannot
 read records ``None`` with a reason (could-not-check, never a zero — Engineering
 Principle 14). NFR-004: ``GttSampler`` carries the 57.5 GiB ceiling and a
 ``breached`` flag the harness consults before every cell.
+
+The FalkorDB process-RSS SERIES (WP04 reopen; design-lead rulings 20260925T220551226384Z4831c24f84,
+20260925T220651378865Z5316e3fceb, 20260925T223514053706Zf68055805c). This module owns the
+series format and BOTH ends of it — substrate imports the definitions below, there is no
+second copy:
+
+- the record (:class:`RssRecord`, fields :data:`RSS_RECORD_FIELDS`) — one JSON line per
+  reading, ``{"ts": ISO-8601 UTC, "rss_mib": float MiB of process RSS, "container_id": str}``,
+  after one header line (:class:`RssSeriesHeader`) naming the format, start, container and
+  interval;
+- the declared interval :data:`SAMPLE_INTERVAL_S` and the tolerances as MULTIPLES of it,
+  :data:`STALE_INTERVALS` and :data:`GAP_INTERVALS`;
+- :class:`RssSeriesWriter` — host side: reads the container via the existing ``docker
+  stats`` path and appends a flushed line per reading;
+- :class:`RssSeriesSampler` — runner side: the same surface as :class:`RssSampler`
+  (zero-argument factory, context manager, ``peak_mib``, ``breached``, ``sample``), so the
+  harness swaps only the factory. It FAILS CLOSED — ``peak_mib`` None with ``sample.reason``,
+  which the harness surfaces as ``sampler_unreadable`` — on an absent or empty series, a last
+  reading older than ``STALE_INTERVALS`` intervals, a gap over ``GAP_INTERVALS`` intervals
+  inside the window, or a container id other than the expected one. Could-not-check, never
+  a pass and never a zero.
+
+W8-3: every sampler the harness binds MUST carry a ``breached`` attribute. An object without
+one is a ``TypeError`` at bind time (:func:`require_breached`; the harness-side call lands in
+C9). RSS has no ceiling, so :class:`RssSeriesSampler` carries ``breached = False``.
 """
 
 from __future__ import annotations
 
+import itertools
+import json
+import math
 import pathlib
 import subprocess
 import threading
 import time
+from collections.abc import Callable
 from dataclasses import dataclass, field
+from datetime import datetime, timedelta, timezone
+from typing import Any, Self
 
-__all__ = ["GTT_CEILING_GIB", "GttSampler", "RssSampler", "Sample"]
+__all__ = ["GAP_INTERVALS", "GTT_CEILING_GIB", "RSS_RECORD_FIELDS", "RSS_SERIES_FORMAT", "SAMPLE_INTERVAL_S",
+           "STALE_INTERVALS", "GttSampler", "RssRecord", "RssSampler", "RssSeriesHeader", "RssSeriesSampler",
+           "RssSeriesWriter", "Sample", "require_breached"]
 
 GTT_CEILING_GIB = 57.5
 DEFAULT_GTT_PATH = pathlib.Path("/sys/class/drm/card1/device/mem_info_gtt_used")
@@ -45,6 +78,12 @@ class Sample:
     missed_intervals: int = 0
     breached: bool = False
     samples: list[float] = field(default_factory=list)
+    # Series detail (RssSeriesSampler); additive — the 1 Hz samplers leave these None.
+    window_start: str | None = None
+    window_end: str | None = None
+    first_ts: str | None = None
+    last_ts: str | None = None
+    container_id: str | None = None
 
 
 class _Sampler:
@@ -198,3 +237,327 @@ def sample_once(sampler: _Sampler, hold_s: float = 0.0) -> Sample:
         if hold_s:
             time.sleep(hold_s)
     return sampler.sample
+
+
+# ---------------------------------------------------------------------------
+# FalkorDB process-RSS series: format, writer, reader (WP04 reopen)
+# ---------------------------------------------------------------------------
+
+#: The series' declared sample interval (seconds). Tolerances are multiples of it.
+SAMPLE_INTERVAL_S = 1.0
+#: The last reading may be at most this many intervals older than the window's end (inclusive).
+STALE_INTERVALS = 5
+#: Consecutive readings covering the window may be at most this many intervals apart (inclusive).
+GAP_INTERVALS = 5
+#: The header line's ``series`` value; a reader refuses any other.
+RSS_SERIES_FORMAT = "arms849-falkordb-rss/1"
+#: The record's fields, in line order.
+RSS_RECORD_FIELDS = ("ts", "rss_mib", "container_id")
+_HEADER_FIELDS = ("series", "started", "container", "container_id", "interval_s")
+
+
+def _utc_now() -> datetime:
+    return datetime.now(timezone.utc)
+
+
+def _is_number(value: Any) -> bool:
+    """A real int or float — a bool is not a measurement."""
+    return isinstance(value, (int, float)) and not isinstance(value, bool)
+
+
+def _parse_ts(value: Any) -> datetime:
+    try:
+        ts = datetime.fromisoformat(value)
+    except TypeError:
+        raise ValueError(f"timestamp must be an ISO-8601 string, got {value!r}") from None
+    if ts.tzinfo is None or ts.utcoffset() is None:
+        raise ValueError(f"timestamp {value!r} is not timezone-aware")
+    return ts.astimezone(timezone.utc)
+
+
+def _utc(ts: datetime) -> datetime:
+    if ts.tzinfo is None or ts.utcoffset() is None:
+        raise ValueError(f"clock returned a naive datetime {ts!r}; the series is UTC")
+    return ts.astimezone(timezone.utc)
+
+
+def _nonempty_str(value: Any, name: str) -> str:
+    if not isinstance(value, str) or not value:
+        raise ValueError(f"{name} must be a non-empty string, got {value!r}")
+    return value
+
+
+@dataclass(frozen=True)
+class RssRecord:
+    """One reading: the container's process RSS in MiB at ``ts`` (tz-aware, UTC)."""
+
+    ts: datetime
+    rss_mib: float
+    container_id: str
+
+    def to_line(self) -> str:
+        return json.dumps({"ts": _utc(self.ts).isoformat(), "rss_mib": float(self.rss_mib),
+                           "container_id": self.container_id}) + "\n"
+
+    @classmethod
+    def from_obj(cls, obj: Any) -> RssRecord:
+        if not isinstance(obj, dict) or tuple(sorted(obj)) != tuple(sorted(RSS_RECORD_FIELDS)):
+            raise ValueError(f"record fields must be exactly {RSS_RECORD_FIELDS}, got {obj!r}")
+        rss = obj["rss_mib"]
+        if not (_is_number(rss) and math.isfinite(rss) and rss >= 0):
+            raise ValueError(f"rss_mib must be a finite non-negative number, got {rss!r}")
+        return cls(ts=_parse_ts(obj["ts"]), rss_mib=float(rss),
+                   container_id=_nonempty_str(obj["container_id"], "container_id"))
+
+
+@dataclass(frozen=True)
+class RssSeriesHeader:
+    """The series' first line: what it measures, since when, and at what interval."""
+
+    started: datetime
+    container: str
+    container_id: str
+    interval_s: float = SAMPLE_INTERVAL_S
+
+    def to_line(self) -> str:
+        return json.dumps({"series": RSS_SERIES_FORMAT, "started": _utc(self.started).isoformat(),
+                           "container": self.container, "container_id": self.container_id,
+                           "interval_s": float(self.interval_s)}) + "\n"
+
+    @classmethod
+    def from_obj(cls, obj: Any) -> RssSeriesHeader:
+        if not isinstance(obj, dict) or tuple(sorted(obj)) != tuple(sorted(_HEADER_FIELDS)):
+            raise ValueError(f"header fields must be exactly {_HEADER_FIELDS}, got {obj!r}")
+        if obj["series"] != RSS_SERIES_FORMAT:
+            raise ValueError(f"series format {obj['series']!r} is not {RSS_SERIES_FORMAT!r}")
+        interval = obj["interval_s"]
+        if not _is_number(interval):
+            raise ValueError(f"interval_s must be a number, got {interval!r}")
+        return cls(started=_parse_ts(obj["started"]), container=_nonempty_str(obj["container"], "container"),
+                   container_id=_nonempty_str(obj["container_id"], "container_id"), interval_s=float(interval))
+
+
+def _docker_container_id(container: str) -> str:
+    return subprocess.run(["docker", "inspect", "--format", "{{.Id}}", container],
+                          capture_output=True, text=True, timeout=10, check=True).stdout.strip()
+
+
+class RssSeriesWriter:
+    """Host side: append one flushed :class:`RssRecord` line per reading of ``container``.
+
+    ``read`` defaults to :meth:`RssSampler.read_once` (``docker stats --no-stream``) and
+    ``resolve_id`` to ``docker inspect``; ``clock`` (tz-aware UTC datetimes) and ``sleep`` are
+    injectable so the series can be produced deterministically. A reading that raises is
+    SKIPPED — no line — so the hole is visible to the reader's gap rule; it is counted in
+    ``failures`` / ``last_error``. Opening (first ``run``/``start``) truncates ``path`` and writes
+    the header: one writer, one series."""
+
+    def __init__(self, path: pathlib.Path | str, container: str, interval_s: float = SAMPLE_INTERVAL_S, *,
+                 read: Callable[[], float] | None = None, resolve_id: Callable[[str], str] | None = None,
+                 clock: Callable[[], datetime] = _utc_now, sleep: Callable[[float], Any] | None = None) -> None:
+        self.path = pathlib.Path(path)
+        self.container = container
+        self.interval_s = float(interval_s)
+        self._read = read if read is not None else RssSampler(container).read_once
+        self._resolve_id = resolve_id if resolve_id is not None else _docker_container_id
+        self._clock = clock
+        self._stop = threading.Event()
+        self._sleep = sleep if sleep is not None else self._stop.wait
+        self._fh: Any = None
+        self._thread: threading.Thread | None = None
+        self._started: datetime | None = None
+        self._k = 0
+        self.container_id: str | None = None
+        self.readings = 0
+        self.failures = 0
+        self.last_error: str | None = None
+
+    def open(self) -> None:
+        if self._fh is not None:
+            return
+        self.container_id = _nonempty_str(self._resolve_id(self.container).strip(), "container_id")
+        self._started = _utc(self._clock())
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        self._fh = self.path.open("w", encoding="utf-8")
+        self._write(RssSeriesHeader(self._started, self.container, self.container_id, self.interval_s).to_line())
+
+    def _write(self, line: str) -> None:
+        self._fh.write(line)
+        self._fh.flush()
+
+    def step(self) -> None:
+        """Wait for the next due slot (start + k·interval), then take one reading."""
+        assert self._started is not None and self.container_id is not None
+        due = self._started + timedelta(seconds=self._k * self.interval_s)
+        now = _utc(self._clock())
+        if now > due + timedelta(seconds=self.interval_s):               # fell behind: skip whole slots
+            self._k += int((now - due) / timedelta(seconds=self.interval_s))
+            due = self._started + timedelta(seconds=self._k * self.interval_s)
+        wait = (due - now).total_seconds()
+        if wait > 0:
+            self._sleep(min(wait, self.interval_s))
+        self._k += 1
+        if self._stop.is_set():
+            return
+        try:
+            value = float(self._read())
+        except Exception as exc:  # noqa: BLE001 — a missed reading is a hole, never a zero
+            self.failures += 1
+            self.last_error = f"{type(exc).__name__}: {exc}"[:200]
+            return
+        self._write(RssRecord(ts=_utc(self._clock()), rss_mib=value, container_id=self.container_id).to_line())
+        self.readings += 1
+
+    def run(self, max_readings: int | None = None) -> None:
+        """Take readings until ``stop()`` (or ``max_readings`` slots, for tests and one-shot use)."""
+        self.open()
+        n = 0
+        while not self._stop.is_set() and (max_readings is None or n < max_readings):
+            self.step()
+            n += 1
+
+    def start(self) -> None:
+        self.open()
+        self._stop.clear()
+        self._thread = threading.Thread(target=self.run, name="RssSeriesWriter", daemon=True)
+        self._thread.start()
+
+    def stop(self) -> None:
+        self._stop.set()
+        if self._thread is not None:
+            self._thread.join(timeout=self.interval_s * 3 + 10)
+        self.close()
+
+    def close(self) -> None:
+        if self._fh is not None:
+            self._fh.close()
+            self._fh = None
+
+
+class _Unreadable(Exception):
+    pass
+
+
+class RssSeriesSampler:
+    """Runner side: the peak FalkorDB process RSS (MiB) over the window, from the host's series.
+
+    Same surface as :class:`RssSampler`: the harness binds a zero-argument factory
+    (``functools.partial(RssSeriesSampler, path, container_id)``), enters it as a context
+    manager, and reads ``peak_mib`` twice — just after ``__enter__`` (None ⇒ the cell is not
+    started) and after the window. The window is ``[enter, now]`` while open and ``[enter,
+    exit]`` once closed; the closed window is computed once at exit and never moves.
+
+    The series is sample-and-hold: the value at the window's start is the last reading at or
+    before it, so the window's readings are that one plus every reading in ``(start, end]``.
+    ``peak_mib`` is their max, or None with ``sample.reason`` when the series is absent or
+    empty, malformed or out of order, from another container or interval, has its last reading
+    more than ``STALE_INTERVALS`` intervals before the end, or has consecutive readings more
+    than ``GAP_INTERVALS`` intervals apart. Exactly the tolerance is allowed."""
+
+    def __init__(self, path: pathlib.Path | str, container_id_expected: str, *,
+                 clock: Callable[[], datetime] = _utc_now) -> None:
+        self.path = pathlib.Path(path)
+        self.container_id_expected = container_id_expected
+        self._clock = clock
+        self.breached = False                      # W8-3: required; RSS has no ceiling
+        self._start: datetime | None = None
+        self._closed: Sample | None = None
+        self.sample = Sample(peak=None, reason="not started")
+
+    def __enter__(self) -> Self:
+        self._closed = None
+        self._start = _utc(self._clock())
+        self.sample = self._evaluate(self._start)
+        return self
+
+    def __exit__(self, *exc: object) -> None:
+        if self._start is not None and self._closed is None:
+            self._closed = self._evaluate(_utc(self._clock()))
+            self.sample = self._closed
+
+    @property
+    def peak_mib(self) -> float | None:
+        if self._closed is None and self._start is not None:
+            self.sample = self._evaluate(_utc(self._clock()))
+        return self.sample.peak
+
+    def _evaluate(self, end: datetime) -> Sample:
+        assert self._start is not None
+        start = self._start
+        detail = Sample(peak=None, window_start=start.isoformat(), window_end=end.isoformat())
+        try:
+            header, records = self._load()
+            self._check(header, records, start, end, detail)
+        except _Unreadable as exc:
+            detail.peak = None
+            detail.reason = str(exc)
+        return detail
+
+    def _load(self) -> tuple[RssSeriesHeader, list[RssRecord]]:
+        try:
+            text = self.path.read_text(encoding="utf-8")
+        except FileNotFoundError:
+            raise _Unreadable(f"series absent: {self.path}") from None
+        except OSError as exc:
+            raise _Unreadable(f"series unreadable: {type(exc).__name__}: {exc}"[:200]) from None
+        lines = text.split("\n")
+        lines.pop()                                # the torn tail (a line still being written), or ""
+        if not lines:
+            raise _Unreadable("series empty: no header")
+        try:
+            header = RssSeriesHeader.from_obj(json.loads(lines[0]))
+        except ValueError as exc:
+            raise _Unreadable(f"series malformed header: {exc}"[:200]) from None
+        records: list[RssRecord] = []
+        for n, line in enumerate(lines[1:], start=2):
+            try:
+                rec = RssRecord.from_obj(json.loads(line))
+            except ValueError as exc:
+                raise _Unreadable(f"series malformed at line {n}: {exc}"[:200]) from None
+            if records and rec.ts < records[-1].ts:
+                raise _Unreadable(f"series out of order at line {n}")
+            records.append(rec)
+        return header, records
+
+    def _check(self, header: RssSeriesHeader, records: list[RssRecord], start: datetime, end: datetime,
+               detail: Sample) -> None:
+        detail.container_id = header.container_id
+        if header.interval_s != SAMPLE_INTERVAL_S:
+            raise _Unreadable(f"series interval {header.interval_s}s is not the declared {SAMPLE_INTERVAL_S}s")
+        if header.container_id != self.container_id_expected:
+            raise _Unreadable(f"container id {header.container_id!r} is not the expected "
+                              f"{self.container_id_expected!r}")
+        if not records:
+            raise _Unreadable("series empty: no readings")
+        stray = next((r for r in records if r.container_id != header.container_id), None)
+        if stray is not None:
+            raise _Unreadable(f"container id {stray.container_id!r} at {stray.ts.isoformat()} differs "
+                              f"from the series' {header.container_id!r}")
+        interval = timedelta(seconds=SAMPLE_INTERVAL_S)
+        held = [r for r in records if r.ts <= start]
+        used = held[-1:] + [r for r in records if start < r.ts <= end]
+        if not used:
+            raise _Unreadable(f"no reading at or before the window end {end.isoformat()}")
+        detail.first_ts, detail.last_ts = used[0].ts.isoformat(), used[-1].ts.isoformat()
+        age = end - used[-1].ts
+        if age > STALE_INTERVALS * interval:
+            raise _Unreadable(f"series stale: last reading {age.total_seconds():.3f}s before the window end "
+                              f"(> {STALE_INTERVALS} × {SAMPLE_INTERVAL_S}s)")
+        if used[0].ts > start and used[0].ts - start > GAP_INTERVALS * interval:
+            raise _Unreadable(f"series gap: first reading {(used[0].ts - start).total_seconds():.3f}s "
+                              f"after the window start")
+        for a, b in itertools.pairwise(used):
+            if b.ts - a.ts > GAP_INTERVALS * interval:
+                raise _Unreadable(f"series gap of {(b.ts - a.ts).total_seconds():.3f}s after {a.ts.isoformat()} "
+                                  f"(> {GAP_INTERVALS} × {SAMPLE_INTERVAL_S}s)")
+        detail.samples = [r.rss_mib for r in used]
+        detail.readings = len(used)
+        detail.peak = max(detail.samples)
+
+
+def require_breached(sampler: object) -> None:
+    """W8-3 bind-time check: a sampler the harness binds MUST carry ``breached``.
+
+    Raises TypeError otherwise — a missing flag must never read as "not breached"."""
+    if not hasattr(sampler, "breached"):
+        raise TypeError(f"{type(sampler).__name__} has no required `breached` attribute (W8-3)")
