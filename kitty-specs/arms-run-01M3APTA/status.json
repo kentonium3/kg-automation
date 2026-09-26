@@ -1,7 +1,7 @@
 {
-  "event_count": 337,
-  "last_event_id": "01M3DMV2SK284C5E9VSYX3S8AD",
-  "materialized_at": "2026-09-26T01:21:27.347299+00:00",
+  "event_count": 338,
+  "last_event_id": "01M3DN8F42XRSCDX98G11508ZB",
+  "materialized_at": "2026-09-26T01:28:45.954521+00:00",
   "mission_number": "",
   "mission_slug": "arms-run-01M3APTA",
   "mission_type": "software-dev",
@@ -11,8 +11,8 @@
     "canceled": 0,
     "claimed": 0,
     "done": 0,
-    "for_review": 0,
-    "in_progress": 1,
+    "for_review": 1,
+    "in_progress": 0,
     "in_review": 0,
     "planned": 1
   },
@@ -272,9 +272,9 @@
       "agent_profile": "__resolved_profile_absent__",
       "agent_profile_version": "__resolved_profile_version_absent__",
       "force_count": 8,
-      "lane": "in_progress",
-      "last_event_id": "01M3DMV2SK284C5E9VSYX3S8AD",
-      "last_transition_at": "2026-09-26T01:21:27.347299+00:00",
+      "lane": "for_review",
+      "last_event_id": "01M3DN8F42XRSCDX98G11508ZB",
+      "last_transition_at": "2026-09-26T01:28:45.954521+00:00",
       "model": "__resolved_model_absent__",
       "notes": [
         "c7 @c8f58515: development-ledger permission keyed on the header binding; 954 pass x2 seeds",
@@ -292,11 +292,11 @@
       "shell_pid": null,
       "shell_pid_created_at": null,
       "subtasks": {
-        "T031": "planned",
-        "T032": "planned",
-        "T033": "planned",
-        "T034": "planned",
-        "T035": "planned"
+        "T031": "done",
+        "T032": "done",
+        "T033": "done",
+        "T034": "done",
+        "T035": "done"
       }
     },
     "WP09": {
