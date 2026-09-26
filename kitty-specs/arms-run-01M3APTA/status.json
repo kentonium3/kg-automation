@@ -97,7 +97,7 @@
     },
     "WP03": {
       "actor": "claude",
-      "agent": null,
+      "agent": "claude",
       "agent_profile": "__resolved_profile_absent__",
       "agent_profile_version": "__resolved_profile_version_absent__",
       "force_count": 15,
@@ -117,7 +117,8 @@
         "WP03 cycle 9: open_ledger validates directly constructed bindings; 103 tests; full suite green",
         "cycle 10: fullmatch on gate digests; Codex out of credits -> Opus fallback review",
         "cycle 11: Opus c10 findings fixed (AttemptsExhausted, Header compare, verified corpus)",
-        "cycle 12: Opus c11 minors + ArmRefusal-terminal ruling"
+        "cycle 12: Opus c11 minors + ArmRefusal-terminal ruling",
+        "reopen c18 @1cfad35e: M1 ruling; 472 pass x2 seeds; combined with lane-h 1004 pass"
       ],
       "provider": "__resolved_provider_absent__",
       "review": null,
