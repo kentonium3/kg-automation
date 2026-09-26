@@ -786,8 +786,14 @@ def _scan(path: pathlib.Path) -> tuple[list[dict[str, Any]], str | None, int]:
         last = i == len(lines) - 1
         try:
             obj: Any = json.loads(line)
-        except json.JSONDecodeError:
+        except (json.JSONDecodeError, UnicodeDecodeError):
+            # "Torn" = the bytes do not parse as JSON (item 4) — including a write killed inside a
+            # multi-byte UTF-8 sequence, which does not even decode (post-merge checkpoint).
             obj = _UNPARSED
+        except RecursionError:
+            # Valid JSON too deep for the parser is NOT a torn tail: truncating it would delete a
+            # complete record. Fail closed, anywhere in the file, with the file untouched.
+            raise LedgerCorrupt(f"line {i + 1} of {len(lines)} in {path} is nested too deeply to parse") from None
         if obj is _UNPARSED:
             if not last:
                 raise LedgerCorrupt(f"malformed line {i + 1} of {len(lines)} in {path}") from None

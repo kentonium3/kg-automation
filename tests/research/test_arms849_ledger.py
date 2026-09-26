@@ -1394,3 +1394,47 @@ def test_well_formed_session_gates_rows_resume(tmp_path):
         gate(led, session_id="c", skipped=True)
     with fresh(tmp_path, gated=False) as led:
         assert [r["detail"]["session_id"] for r in led.rows] == ["a", "b", "c"]
+
+
+def test_a_torn_final_line_cut_inside_a_utf8_sequence_is_a_torn_tail(tmp_path):
+    """Post-merge checkpoint (Codex): torn = the bytes do not parse as JSON. A write killed inside a
+    multi-byte UTF-8 sequence leaves bytes that do not even DECODE; json.loads raised an uncaught
+    UnicodeDecodeError instead of recovering the one torn final line (ledger-schema item 4)."""
+    key = L.RunKey("G", "C1", 1)
+    with fresh(tmp_path) as led:
+        led.begin_attempt(key); rec(led, key, "ok", ok_row())
+    p = tmp_path / "ledger.jsonl"
+    before = p.read_bytes()
+    with p.open("ab") as fh:
+        fh.write(b'{"text":"\xe2')                                   # killed mid-character
+    with fresh(tmp_path) as led:
+        assert led.terminal(key) == "ok"
+        assert [r for r in led.rows if r.get("record") == "event" and r["kind"] == "recovered_torn_tail"]
+    assert p.read_bytes().startswith(before)                          # the durable prefix is untouched
+
+
+def test_an_interior_line_that_does_not_decode_is_corruption(tmp_path):
+    key = L.RunKey("G", "C1", 1)
+    with fresh(tmp_path) as led:
+        led.begin_attempt(key); rec(led, key, "ok", ok_row())
+    p = tmp_path / "ledger.jsonl"
+    lines = p.read_bytes().split(b"\n")
+    lines[1] = b'{"x":"\xe2"}'
+    p.write_bytes(b"\n".join(lines))
+    with pytest.raises(L.LedgerCorrupt, match="line 2"):
+        fresh(tmp_path)
+
+
+def test_a_final_line_too_deep_to_parse_is_corruption_never_truncated(tmp_path):
+    """Valid JSON the parser cannot hold (RecursionError) is NOT a torn tail: truncating it would
+    delete a complete record. It fails closed as LedgerCorrupt with the file untouched."""
+    key = L.RunKey("G", "C1", 1)
+    with fresh(tmp_path) as led:
+        led.begin_attempt(key); rec(led, key, "ok", ok_row())
+    p = tmp_path / "ledger.jsonl"
+    with p.open("ab") as fh:
+        fh.write(b"[" * 200_000 + b"]" * 200_000 + b"\n")
+    before = p.read_bytes()
+    with pytest.raises(L.LedgerCorrupt):
+        fresh(tmp_path)
+    assert p.read_bytes() == before
