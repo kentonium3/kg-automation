@@ -118,7 +118,8 @@
         "cycle 10: fullmatch on gate digests; Codex out of credits -> Opus fallback review",
         "cycle 11: Opus c10 findings fixed (AttemptsExhausted, Header compare, verified corpus)",
         "cycle 12: Opus c11 minors + ArmRefusal-terminal ruling",
-        "reopen c18 @1cfad35e: M1 ruling; 472 pass x2 seeds; combined with lane-h 1004 pass"
+        "reopen c18 @1cfad35e: M1 ruling; 472 pass x2 seeds; combined with lane-h 1004 pass",
+        "Codex APPROVE reopen c18 @1cfad35e"
       ],
       "provider": "__resolved_provider_absent__",
       "review": null,
