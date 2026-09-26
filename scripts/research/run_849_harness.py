@@ -809,10 +809,16 @@ def _is_development_ledger(path: pathlib.Path, skip_gates: bool) -> bool:
         return False
     path = pathlib.Path(path)
     try:
-        # "Absent" means NO directory entry at all — os.path.lexists does not follow symlinks, so a
-        # symlink loop or a dangling symlink is PRESENT (and then unreadable → False), never "fresh".
-        if not os.path.lexists(path):
-            return True
+        # "Absent" means lstat PROVES there is no directory entry (FileNotFoundError) — nothing else.
+        # lstat does not follow a final symlink, so a loop or dangling symlink is PRESENT; and unlike
+        # os.path.lexists it does not swallow errors, so EACCES / ELOOP / ENOTDIR / a NUL in the path
+        # are "could not inspect", never "absent" (Codex c9).
+        path.lstat()
+    except FileNotFoundError:
+        return True
+    except (OSError, ValueError):
+        return False
+    try:
         header = peek_header(path)
     except (OSError, ValueError):  # IsADirectoryError / PermissionError / ELOOP; UnicodeDecodeError is a ValueError
         return False

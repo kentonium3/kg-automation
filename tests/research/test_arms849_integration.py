@@ -13,6 +13,7 @@ from __future__ import annotations
 import dataclasses
 import hashlib
 import json
+import os
 import pathlib
 import subprocess
 import sys
@@ -1394,6 +1395,57 @@ def test_skipped_gguf_with_skip_gates_on_an_unreadable_ledger_path_is_refused_no
     assert "Traceback" not in captured.err
     assert not list(cli_runs.glob("gate-*.json"))
     assert h._is_development_ledger(ledger_path, skip_gates=True) is False
+
+
+def _under_mode_000_parent(tmp_path):
+    parent = tmp_path / "locked"
+    parent.mkdir()
+    (parent / "ledger.jsonl").write_text("{}\n", encoding="utf-8")   # an existing entry, unreachable
+    parent.chmod(0)
+    return parent / "ledger.jsonl", lambda: parent.chmod(0o700)
+
+
+def _through_looping_parent_symlink(tmp_path):
+    loop = tmp_path / "loop"
+    loop.symlink_to(loop)
+    return loop / "ledger.jsonl", lambda: None
+
+
+@pytest.mark.skipif(os.geteuid() == 0, reason="root ignores directory permissions")
+@pytest.mark.parametrize("make_path", [
+    pytest.param(_under_mode_000_parent, id="mode-000-parent"),
+    pytest.param(_through_looping_parent_symlink, id="looping-parent-symlink"),
+])
+def test_skipped_gguf_with_skip_gates_on_an_uninspectable_ledger_path_is_refused(make_path, tmp_path, run_cli,
+                                                                                cli_runs, capsys):
+    """REGRESSION (c9): os.path.lexists swallowed EACCES/ELOOP and returned False, so an existing but
+    uninspectable path read as ABSENT and was granted the fresh-ledger development permission. Only a
+    FileNotFoundError from lstat is the fresh case; every other error is conservatively NOT development."""
+    ledger_path, restore = make_path(tmp_path)
+    try:
+        _write_runs(cli_runs, _preflight(), setup=SKIPPED_SETUP)
+        capsys.readouterr()
+        assert h._is_development_ledger(ledger_path, skip_gates=True) is False
+        code = h.main(["harness", "--ledger", str(ledger_path), "--corpus", str(CORPUS), "--limit", "1",
+                       "--up-ts", "2026-09-25T00:00:00+00:00", "--skip-gates"])
+        captured = capsys.readouterr()
+        assert code == h.EXIT_FAILED
+        _assert_actionable(captured.out)
+        assert "Traceback" not in captured.err
+        assert not list(cli_runs.glob("gate-*.json"))
+    finally:
+        restore()
+
+
+def test_is_development_ledger_nul_path_is_not_development(tmp_path):
+    """REGRESSION (c9): a NUL in the path raised ValueError inside lexists, which returned False → 'absent'."""
+    assert h._is_development_ledger(pathlib.Path(str(tmp_path / "led") + "\x00ger.jsonl"), skip_gates=True) is False
+
+
+def test_is_development_ledger_fresh_is_only_a_missing_entry(tmp_path):
+    """The fresh case survives: no entry (including a missing parent directory) is development."""
+    assert h._is_development_ledger(tmp_path / "ledger.jsonl", skip_gates=True) is True
+    assert h._is_development_ledger(tmp_path / "no-such-dir" / "ledger.jsonl", skip_gates=True) is True
 
 
 def test_skipped_gguf_resuming_a_development_ledger_with_skip_gates_proceeds(run_cli):
