@@ -326,6 +326,9 @@ def arm_r(question: Any, view: Loaded, ctx: Any, text: FrozenCorpusText, index: 
     _check_limit(ctx, config)                                        # before anything is counted
     if index is None:
         index = EventIndex.build(view, ctx.embedder, text)
+    elif not index.serves(text, view):                               # WP07 N-2: validate a PASSED index before
+        raise ArmRefusal("index was built for a different view "    # retrieving from it (assemble re-checks)
+                         "(its frozen event bytes or embedder model differ)")
     retrieved = index.retrieve(question.text, k)
     block, plan = assemble(text, view, index, retrieved, k)
     request = ctx.prompt.render(block, question.text)

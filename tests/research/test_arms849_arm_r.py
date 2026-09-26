@@ -506,6 +506,26 @@ def test_arm_r_refuses_without_a_calibration_record_and_runs_with_one(c1, c1_ind
 
 @needs_corpus
 @needs_cache
+def test_a_passed_index_for_another_view_is_refused_before_it_is_retrieved_from(c1, text, tok, embedder):
+    """WP07 N-2 (carried to the post-merge checkpoint as C-3): arm_r used to call index.retrieve()
+    on a PASSED index before assemble() checked index.serves(); a foreign index was queried first
+    and refused only afterwards. The serves() check must come before any retrieval."""
+    foreign = stub_index(narrowed("A"), text)
+    calls: list[tuple[str, int]] = []
+    real_retrieve = foreign.retrieve
+
+    def spy(question_text: str, k: int):
+        calls.append((question_text, k))
+        return real_retrieve(question_text, k)
+
+    object.__setattr__(foreign, "retrieve", spy)
+    with pytest.raises(R.ArmRefusal, match="different view"):
+        R.arm_r(Q.by_id("C1"), c1, ctx_for(tok, embedder, SimpleNamespace(k=12)), text, foreign)
+    assert calls == []
+
+
+@needs_corpus
+@needs_cache
 def test_a_calibration_record_without_k_or_of_another_kind_is_refused(c1, c1_index, text, tok, embedder):
     """R-4 / Codex MINOR: a record with no k at all, or a dict that is not a calibration record, is a
     configuration defect (ArmRefusal, terminal) — never an AttributeError into the retry ladder."""
