@@ -10,7 +10,10 @@ like numbers from a run with it:
 
 * **Binding.** A resume compares every header field against the environment
   and refuses on any difference — runs from two configurations averaged
-  together are indistinguishable from runs from one.
+  together are indistinguishable from runs from one. The two gate records are
+  the exception: they bind the CREATING session, and every session (creating
+  or resumed) records its own fresh gates as a ``session_gates`` event, which
+  ``begin_attempt`` requires (M1 ruling).
 * **Durability.** An ``attempt_start`` row precedes every attempt (a death
   mid-cell still counts toward the three); every append is flushed and
   fsynced; the reader tolerates exactly one torn FINAL line under the lock
@@ -48,9 +51,11 @@ from scripts.research.load_849_corpus import (
 )
 
 __all__ = [
-    "ARMS", "MAX_ATTEMPTS", "OUTCOMES", "REPEATS", "SCORED_OUTCOME",
+    "ARMS", "MAX_ATTEMPTS", "OUTCOMES", "REPEATS", "RESUME_UNCOMPARED_BINDING_FIELDS", "SCORED_OUTCOME",
+    "SESSION_GATES", "SKIP_GATES_SHA",
     "AttemptsExhausted", "Binding", "Header", "Ledger", "LedgerBoundToAnotherConfig",
-    "LedgerClosed", "LedgerCorrupt", "LedgerLocked", "LedgerWriteFailed", "RunKey", "SecondScoredRow", "open_ledger", "plan_keys",
+    "LedgerClosed", "LedgerCorrupt", "LedgerLocked", "LedgerWriteFailed", "RunKey", "SecondScoredRow",
+    "SessionGatesMissing", "binds_skip_gates", "open_ledger", "plan_keys",
 ]
 
 ARMS = ("G", "D", "R")
@@ -79,6 +84,23 @@ RESERVED_CALIBRATION_FIELDS = frozenset({"record", "ts"})
 SCORED_OUTCOME = "ok"
 OUTCOMES = ("ok", "exceeds_model_context", "error", "not_implemented")
 Outcome = Literal["ok", "exceeds_model_context", "error", "not_implemented"]
+
+#: The sentinel a development ledger binds in place of a real gate record. The ledger OWNS it and
+#: :func:`binds_skip_gates` (one predicate, one constant — design lead, bus
+#: 20260926T005839019738Z48adbc3a83): grading imports the ledger, so the ledger cannot import grading.
+SKIP_GATES_SHA = hashlib.sha256(b"arms849: gates skipped (development only)").hexdigest()
+
+#: The event kind that records THIS session's fresh gate outcome (M1 ruling, design lead bus
+#: 20260925T221125657965Zb30b0038fa). Its detail carries at least these keys, by exact type.
+SESSION_GATES = "session_gates"
+SESSION_GATES_REQUIRED = {"session_id": str, "passed": bool, "skipped": bool}
+
+#: Binding fields a RESUME does not compare. The two gate records bind the CREATING session only:
+#: every session re-runs both gate phases and records them as a `session_gates` event, so a live
+#: resume necessarily carries different gate shas (M1 ruling, bus 20260925T221125657965Zb30b0038fa).
+#: Everything else — corpus, serving, preflight_sha, export manifest, code hashes, limits — stays
+#: compared, and a Binding field added later is compared by default because it is not listed here.
+RESUME_UNCOMPARED_BINDING_FIELDS = frozenset({"gate_host_sha", "gate_container_sha"})
 
 #: Code whose content is bound into the header (D-16). Relative to the repo root.
 BOUND_CODE_GLOBS = ("scripts/research/arms849/*.py", "scripts/research/run_849_harness.py",
@@ -170,6 +192,11 @@ class AttemptsExhausted(RuntimeError):
 
 class SecondScoredRow(RuntimeError):
     """An `ok` row already exists for this key (invariant I2)."""
+
+
+class SessionGatesMissing(RuntimeError):
+    """begin_attempt() without a passing `session_gates` event recorded by THIS open ledger — none,
+    a failing one, or a skipped one on a ledger that does not bind SKIP_GATES_SHA (M1 ruling)."""
 
 
 @dataclass(frozen=True)
@@ -268,6 +295,13 @@ class Binding:
         return {k: getattr(self, k) for k in self.__dataclass_fields__}
 
 
+def binds_skip_gates(binding: Binding) -> bool:
+    """A development ledger: its binding carries :data:`SKIP_GATES_SHA` in ANY of the three gate
+    fields. The one predicate — the ledger, the exporter and the harness all use it, so they can
+    never disagree on which ledgers are development (bus 20260926T005839019738Z48adbc3a83)."""
+    return SKIP_GATES_SHA in (binding.preflight_sha, binding.gate_host_sha, binding.gate_container_sha)
+
+
 def code_hashes(repo_root: pathlib.Path | None = None) -> dict[str, str]:
     """sha256 of every bound code file's CONTENT, keyed by repo-relative path."""
     root = pathlib.Path(repo_root) if repo_root else pathlib.Path(__file__).resolve().parents[3]
@@ -342,6 +376,9 @@ class Ledger:
         self._rows = rows
         self._lock_fd = lock_fd
         self._failed: str | None = None          # set by the first append I/O failure; never cleared
+        # (session_id, passed, skipped) of the session_gates event most recently appended by THIS
+        # instance — never read from the file: an earlier session's gates do not vouch for this one.
+        self._session_gates: tuple[str, bool, bool] | None = None
 
     @property
     def header(self) -> Header:
@@ -409,10 +446,25 @@ class Ledger:
         return sum(1 for r in self._rows if r.get("record") == "attempt_start" and RunKey.of(r) == key)
 
     def begin_attempt(self, key: RunKey) -> int:
-        """Append the attempt_start row BEFORE anything happens (D-12); return the attempt number."""
+        """Append the attempt_start row BEFORE anything happens (D-12); return the attempt number.
+        Refused unless THIS session has recorded passing gates (M1 ruling)."""
+        self._check_session_gates_passed()
         n = self._check_attempt_start(key)
         self._append({"record": "attempt_start", **key.as_dict(), "attempt": n, "ts": _utc_now()})
         return n
+
+    def _check_session_gates_passed(self) -> None:
+        """The most recent session_gates event THIS instance appended passed and was not skipped —
+        or was skipped on a ledger whose header binds SKIP_GATES_SHA (a development ledger)."""
+        if self._session_gates is None:
+            raise SessionGatesMissing(f"{self.path}: no {SESSION_GATES} event recorded by this session; "
+                                      "run both gate phases and record them before the first attempt")
+        session_id, passed, skipped = self._session_gates
+        if not passed:
+            raise SessionGatesMissing(f"{self.path}: session {session_id}'s gates did not pass (passed=false)")
+        if skipped and not binds_skip_gates(self._header.binding):
+            raise SessionGatesMissing(f"{self.path}: session {session_id} skipped its gates, but this ledger "
+                                      "does not bind SKIP_GATES_SHA — a real ledger needs verified gates")
 
     def _check_attempt_start(self, key: RunKey) -> int:
         """The invariants an attempt_start row must satisfy against the rows so far; returns the
@@ -555,8 +607,10 @@ class Ledger:
     # -- other record kinds ------------------------------------------------
 
     def event(self, kind: str, detail: Any = None) -> None:
-        _check_event_kind(kind)                 # the same check replay applies (Codex WP03 c15)
+        _check_event(kind, detail)              # the same check replay applies (Codex WP03 c15)
         self._append({"record": "event", "kind": kind, "detail": detail, "ts": _utc_now()})
+        if kind == SESSION_GATES:               # only once it is durably on disk
+            self._session_gates = (detail["session_id"], detail["passed"], detail["skipped"])
 
     def write_calibration(self, calibration: dict[str, Any]) -> None:
         """Once, and only after every G repeat-1 cell is scored (k comes from their medians, A3)."""
@@ -649,11 +703,24 @@ class Ledger:
 _UNPARSED = object()          # json.loads raised — distinct from a line that parsed to None
 
 
-def _check_event_kind(kind: Any) -> None:
-    """An event's kind is a non-empty string — enforced on write so the public writer can never
-    persist a row the resume replay refuses (Codex WP03 c15)."""
+def _check_event(kind: Any, detail: Any) -> None:
+    """An event's kind is a non-empty string, and a `session_gates` detail carries its required keys
+    by exact type — enforced on write so the public writer can never persist a row the resume
+    replay refuses (Codex WP03 c15; M1 ruling). Other detail keys pass through."""
     if not isinstance(kind, str) or not kind.strip():
         raise ValueError(f"event kind must be a non-empty string, got {kind!r}")
+    if kind != SESSION_GATES:
+        return
+    if not isinstance(detail, dict):
+        # ValueError, as for every other invalid event (ruff TRY004): the write contract is ValueError.
+        raise ValueError(f"{SESSION_GATES} detail must be a dict, got {detail!r}")  # noqa: TRY004
+    for name, typ in SESSION_GATES_REQUIRED.items():
+        if name not in detail:
+            raise ValueError(f"{SESSION_GATES} detail lacks {name!r}")
+        if type(detail[name]) is not typ:          # exact: True is not 1, 0 is not False
+            raise ValueError(f"{SESSION_GATES} detail {name!r} must be a {typ.__name__}, got {detail[name]!r}")
+    if not detail["session_id"].strip():
+        raise ValueError(f"{SESSION_GATES} detail session_id must be non-empty")
 _RECORD_KINDS = ("attempt_start", "run", "calibration", "event")
 
 
@@ -695,7 +762,7 @@ def _replay_validate(path: pathlib.Path, header: Header, rows: list[dict[str, An
             elif kind == "calibration":
                 shadow._check_calibration({k: v for k, v in row.items() if k not in RESERVED_CALIBRATION_FIELDS})
             elif kind == "event":
-                _check_event_kind(row.get("kind"))
+                _check_event(row.get("kind"), row.get("detail"))
             else:
                 raise ValueError(f"unknown record kind {kind!r} (expected one of {_RECORD_KINDS})")
         except (ValueError, KeyError, TypeError, SecondScoredRow, AttemptsExhausted,
@@ -758,7 +825,8 @@ def _read_with_recovery(path: pathlib.Path) -> tuple[list[dict[str, Any]], str |
 
 
 def open_ledger(path: pathlib.Path, binding: Binding, blinding_seed: int, plan: int) -> Ledger:
-    """Write the header on first use; on resume compare EVERY binding field; hold the lock."""
+    """Write the header on first use; on resume compare every binding field except
+    RESUME_UNCOMPARED_BINDING_FIELDS (the creating session's gate records); hold the lock."""
     path = pathlib.Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     lock_path = path.with_suffix(path.suffix + ".lock")
@@ -822,9 +890,13 @@ def _open_locked(path: pathlib.Path, binding: Binding, blinding_seed: int, plan:
         _validate_binding_types(header.binding)
     except ValueError as exc:
         raise LedgerCorrupt(f"{path}: header {exc}") from None
-    # Type-aware comparison: a persisted True must not match 1, nor 262144.0 match 262144.
+    # Type-aware comparison: a persisted True must not match 1, nor 262144.0 match 262144. The gate
+    # records are not compared (RESUME_UNCOMPARED_BINDING_FIELDS): the header keeps the creating
+    # session's; each session's own are its session_gates event.
     differences = {k: (getattr(header.binding, k), getattr(binding, k))
-                   for k in Binding.__dataclass_fields__ if not _same(getattr(header.binding, k), getattr(binding, k))}
+                   for k in Binding.__dataclass_fields__
+                   if k not in RESUME_UNCOMPARED_BINDING_FIELDS
+                   and not _same(getattr(header.binding, k), getattr(binding, k))}
     # Every Header field that is not the record marker or the start time is compared too:
     # `plan` says whether this is the 72-cell primary or the 24-cell secondary and
     # `blinding_seed` fixes the grading ids (Opus WP03 c10).

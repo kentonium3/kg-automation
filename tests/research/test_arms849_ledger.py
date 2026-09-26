@@ -1,7 +1,9 @@
 """The ledger: binding, attempts, durability, summaries (WP03 T015).
 
 Every check is paired with the defect it exists to catch; the binding test is
-parametrised over EVERY header field so a new field cannot go uncompared.
+parametrised over EVERY header field except the two NAMED resume exclusions
+(``L.RESUME_UNCOMPARED_BINDING_FIELDS`` — the gate records, M1 ruling), so a new
+field cannot go uncompared.
 """
 
 from __future__ import annotations
@@ -59,8 +61,14 @@ def binding(**over) -> L.Binding:
     return b
 
 
-def fresh(tmp_path, **over) -> L.Ledger:
-    return L.open_ledger(tmp_path / "ledger.jsonl", binding(**over), blinding_seed=7, plan=72)
+def fresh(tmp_path, *, gated=True, **over) -> L.Ledger:
+    """Open (or resume) the test ledger. ``gated`` (the default) records THIS session's passing
+    ``session_gates`` event first, as the harness does before its first attempt (M1 ruling): an open
+    that only reads, or a test of the gate rule itself, passes ``gated=False``."""
+    led = L.open_ledger(tmp_path / "ledger.jsonl", binding(**over), blinding_seed=7, plan=72)
+    if gated:
+        led.event("session_gates", {"session_id": f"test-session-{id(led)}", "passed": True, "skipped": False})
+    return led
 
 
 ASK = "2026-04-20T09:00:00-04:00"
@@ -107,20 +115,24 @@ def test_header_is_first_line_and_carries_every_binding_field(tmp_path):
     assert "scripts/research/arms849/text.py" in first["code_hashes"]
 
 
-HEADER_FIELDS = sorted(set(L.Header.__dataclass_fields__) - {"record", "started", "binding"}
-                       | set(L.Binding.__dataclass_fields__))
+HEADER_FIELDS = sorted((set(L.Header.__dataclass_fields__) - {"record", "started", "binding"}
+                        | set(L.Binding.__dataclass_fields__)) - L.RESUME_UNCOMPARED_BINDING_FIELDS)
 
 
 def test_every_header_field_is_covered_by_the_resume_test():
-    """Opus c10: the exhaustiveness test was over Binding, so Header's own fields went uncompared."""
-    assert set(HEADER_FIELDS) >= set(L.Binding.__dataclass_fields__)
-    assert {"blinding_seed", "plan"} <= set(HEADER_FIELDS)
+    """Opus c10: the exhaustiveness test was over Binding, so Header's own fields went uncompared.
+    M1 ruling: exactly two Binding fields are exempt — the gate records, which bind the creating
+    session only — and they are exempt by NAME, so any new field is still compared by default."""
+    assert L.RESUME_UNCOMPARED_BINDING_FIELDS == frozenset({"gate_host_sha", "gate_container_sha"})
+    assert set(HEADER_FIELDS) == set(L.Binding.__dataclass_fields__) - L.RESUME_UNCOMPARED_BINDING_FIELDS \
+        | {"blinding_seed", "plan"}
+    assert "preflight_sha" in HEADER_FIELDS                  # preflight stays compared
 
 
 @pytest.mark.parametrize("field", HEADER_FIELDS)
 def test_resume_refuses_on_every_binding_field(tmp_path, field):
-    """Parametrised over EVERY header field (Binding's and the Header's own) so a new field
-    cannot be added uncompared."""
+    """Parametrised over EVERY header field (Binding's and the Header's own) except the named
+    RESUME_UNCOMPARED_BINDING_FIELDS, so a new field cannot be added uncompared."""
     with fresh(tmp_path):
         pass
     if field in ("blinding_seed", "plan"):
@@ -174,7 +186,7 @@ def test_attempt_start_precedes_run_and_a_fourth_attempt_is_refused(tmp_path):
         with pytest.raises(L.AttemptsExhausted):
             led.begin_attempt(key)
     kinds = [json.loads(l)["record"] for l in (tmp_path / "ledger.jsonl").read_text().splitlines()]
-    assert kinds == ["header"] + ["attempt_start", "run"] * 3
+    assert kinds == ["header", "event"] + ["attempt_start", "run"] * 3     # event: this session's gates
 
 
 def test_an_interrupted_attempt_counts_toward_three(tmp_path):
@@ -472,7 +484,9 @@ def test_unterminated_valid_final_line_is_terminated_not_concatenated(tmp_path):
         rec(led, key, "error", err_row("x"))
     lines = p.read_text().splitlines()
     assert all(json.loads(l) for l in lines)
-    assert [r["kind"] for r in map(json.loads, lines) if r["record"] == "event"] == ["recovered_torn_tail"]
+    # Each open records its own session_gates; the repair is logged once, between them.
+    assert [r["kind"] for r in map(json.loads, lines) if r["record"] == "event"] == \
+        ["session_gates", "recovered_torn_tail", "session_gates"]
 
 
 def test_torn_tail_recovery_truncates_in_place_preserving_the_prefix_bytes(tmp_path):
@@ -554,6 +568,7 @@ def test_binding_is_snapshotted_at_open(tmp_path):
     led = L.open_ledger(tmp_path / "ledger.jsonl", b, blinding_seed=7, plan=72)
     try:
         b.serving["n_ctx"] = 1                       # caller mutates its own object
+        gate(led)                                    # this session's passing gates (M1 ruling)
         key = L.RunKey("G", "C1", 1); led.begin_attempt(key)
         rec(led, key, "error", err_row())            # the ORIGINAL serving still matches
         with pytest.raises(L.LedgerBoundToAnotherConfig):
@@ -641,12 +656,18 @@ def test_header_missing_a_gate_sha_is_refused(tmp_path, dropped):
         fresh(tmp_path)
 
 
-def test_binding_carries_the_two_gate_shas_and_refuses_on_each(tmp_path):
-    with fresh(tmp_path):
+def test_binding_carries_the_two_gate_shas_and_resume_does_not_compare_them(tmp_path):
+    """Was: resume refused on either gate sha. M1 ruling: they bind the CREATING session only — a
+    resumed session's fresh gates differ by construction and live in its session_gates event — so
+    a resume with either one different opens, and the header keeps the creator's. preflight_sha,
+    the third gate-adjacent field, is still compared."""
+    with fresh(tmp_path, gated=False):
         pass
     for field in ("gate_host_sha", "gate_container_sha"):
-        with pytest.raises(L.LedgerBoundToAnotherConfig, match=field):
-            fresh(tmp_path, **{field: "d" * 64})
+        with fresh(tmp_path, gated=False, **{field: "d" * 64}) as led:
+            assert getattr(led.header.binding, field) == {"gate_host_sha": "b", "gate_container_sha": "c"}[field] * 64
+    with pytest.raises(L.LedgerBoundToAnotherConfig, match="preflight_sha"):
+        fresh(tmp_path, gated=False, preflight_sha="d" * 64)
 
 
 @pytest.mark.parametrize("field", ["preflight_sha", "gate_host_sha", "gate_container_sha"])
@@ -739,9 +760,9 @@ def test_rows_are_the_same_on_a_fresh_and_a_resumed_ledger(tmp_path):
     with fresh(tmp_path) as led:
         led.begin_attempt(key); rec(led, key, "ok", ok_row())
         fresh_rows = led.rows
-    with fresh(tmp_path) as led:
+    with fresh(tmp_path, gated=False) as led:                # a read-only resume appends nothing
         assert led.rows == fresh_rows
-    assert [r["record"] for r in fresh_rows] == ["attempt_start", "run"]
+    assert [r["record"] for r in fresh_rows] == ["event", "attempt_start", "run"]   # event: session_gates
     assert fresh_rows[0]["record"] != "header"
 
 
@@ -1050,7 +1071,7 @@ def test_resume_replays_a_legal_ledger_unchanged(tmp_path):
         d = L.RunKey("D", "C1", 1); led.begin_attempt(d); rec(led, d, "ok", ok_row(arm="D"))
         led.event("note", {"x": 1})
     path = tmp_path / "ledger.jsonl"; before = path.read_bytes()
-    with fresh(tmp_path) as led:
+    with fresh(tmp_path, gated=False) as led:                # read-only resume: no session_gates of its own
         assert led.terminal(r) == "ok" and led.calibration()["r_k"] == 12
     assert path.read_bytes() == before
 
@@ -1142,7 +1163,7 @@ def test_header_write_failure_is_ledger_write_failed_and_releases_the_lock(tmp_p
         monkeypatch.setattr(pathlib.Path, "open", fake_open)
     with pytest.raises(L.LedgerWriteFailed, match="reopen the ledger"):
         L.open_ledger(tmp_path / "ledger.jsonl", binding(), blinding_seed=7, plan=72)
-    with fresh(tmp_path) as led:                               # the lock is free; the file is the truth
+    with fresh(tmp_path, gated=False) as led:                  # the lock is free; the file is the truth
         assert led.rows == [] and (tmp_path / "ledger.jsonl").read_text().count("\n") == 1   # header only, either way
 
 
@@ -1154,8 +1175,8 @@ def test_event_kind_must_be_a_non_empty_string_on_write(tmp_path, bad):
         with pytest.raises(ValueError, match="event kind"):
             led.event(bad)
         led.event("fine")
-    with fresh(tmp_path) as led:
-        assert [r["kind"] for r in led.rows if r.get("record") == "event"] == ["fine"]
+    with fresh(tmp_path, gated=False) as led:
+        assert [r["kind"] for r in led.rows if r.get("record") == "event"] == ["session_gates", "fine"]
 
 
 # --------------------------------------------------------------------------
@@ -1191,7 +1212,7 @@ def test_header_creation_refuses_non_int_seed_and_plan(tmp_path, field, bad):
 
 def test_persisted_binding_fields_are_type_checked_on_resume(tmp_path):
     """Codex WP03 c16: model_context_tokens=262144.0 passed the header comparison against 262144."""
-    with fresh(tmp_path):
+    with fresh(tmp_path, gated=False):
         pass
     path = tmp_path / "ledger.jsonl"
     for field, bad, exc in (("model_context_tokens", 262144.0, L.LedgerCorrupt), ("model_context_tokens", True, L.LedgerCorrupt),
@@ -1201,7 +1222,7 @@ def test_persisted_binding_fields_are_type_checked_on_resume(tmp_path):
         with pytest.raises(exc):
             fresh(tmp_path)
         rows[0][field] = good; _write_rows(path, rows)
-    with fresh(tmp_path) as led:                                # restored: resumes
+    with fresh(tmp_path, gated=False) as led:                   # restored: resumes
         assert led.rows == []
 
 
@@ -1227,3 +1248,149 @@ def test_same_is_type_aware_at_every_level():
     assert L._same({"a": [1, {"b": 2}]}, {"a": [1, {"b": 2}]})
     assert not L._same(1, True) and not L._same(1, 1.0) and not L._same([1], (1,)) and not L._same({"a": 1}, {"a": True})
     assert not L._same({"a": 1}, {"a": 1, "b": 2}) and not L._same([1, 2], [1]) and not L._same("1", 1)
+
+
+# --------------------------------------------------------------------------
+# WP03 reopen — M1 ruling: per-session gates (design lead, bus 20260925T221125657965Zb30b0038fa,
+# 20260925T222320935007Z871e1c44e6; ownership 20260926T005839019738Z48adbc3a83)
+# --------------------------------------------------------------------------
+
+
+def harness_gates_detail(session_id="3f1c7a52-0d5e-4b8a-9d51-1c2b7e0f4a10", passed=True, skipped=False, **over):
+    """EXACTLY the dict lane-h's run_849_harness.write_session_gates passes to Ledger.event
+    ({**session_identity(), **SessionGates.as_detail()})."""
+    detail = {"session_id": session_id, "pid": 4242, "opened_at": "2026-09-25T22:00:00+00:00",
+              "passed": passed, "skipped": skipped, "gate_host_sha": "b" * 64, "gate_container_sha": "c" * 64,
+              "preflight_sha": "a" * 64, "up_ts": "2026-09-25T21:59:00+00:00",
+              "container_start_ts": "2026-09-25T21:58:00+00:00", "details": [{"gate": "host", "ok": True}],
+              "error": None, "chat_template_cross_check": {"match": True}}
+    detail.update(over)
+    return detail
+
+
+def gate(led, **kw):
+    led.event("session_gates", harness_gates_detail(**kw))
+
+
+def test_skip_gates_sha_is_the_sha256_of_the_registered_bytes():
+    import hashlib
+    assert L.SKIP_GATES_SHA == hashlib.sha256(b"arms849: gates skipped (development only)").hexdigest()
+    assert {"SKIP_GATES_SHA", "binds_skip_gates", "SessionGatesMissing"} <= set(L.__all__)
+
+
+@pytest.mark.parametrize("field", ["preflight_sha", "gate_host_sha", "gate_container_sha", None])
+def test_binds_skip_gates_on_each_of_the_three_fields_singly(field):
+    b = binding() if field is None else binding(**{field: L.SKIP_GATES_SHA})
+    assert L.binds_skip_gates(b) is (field is not None)
+
+
+def test_resume_uncompared_fields_are_exactly_the_two_gate_shas():
+    """Ruling 1: the gate shas bind the CREATING session; every other field stays compared, so a new
+    Binding field is compared by default."""
+    assert L.RESUME_UNCOMPARED_BINDING_FIELDS == frozenset({"gate_host_sha", "gate_container_sha"})
+
+
+def test_resume_with_different_gate_shas_opens_and_keeps_the_creating_sessions(tmp_path):
+    """The live-resume case: a resumed session ran its gates afresh, so its gate records differ."""
+    with fresh(tmp_path, gated=False):
+        pass
+    with fresh(tmp_path, gated=False, gate_host_sha="d" * 64, gate_container_sha="e" * 64) as led:
+        assert led.header.binding.gate_host_sha == "b" * 64            # the creating session's evidence
+        assert led.header.binding.gate_container_sha == "c" * 64
+
+
+def test_begin_attempt_without_session_gates_is_refused(tmp_path):
+    with fresh(tmp_path, gated=False) as led:
+        with pytest.raises(L.SessionGatesMissing):
+            led.begin_attempt(L.RunKey("G", "C1", 1))
+        assert led.rows == []                                          # nothing written
+
+
+def test_failing_session_gates_refuses_begin_attempt(tmp_path):
+    with fresh(tmp_path, gated=False) as led:
+        gate(led, passed=False, error="gate-host: preflight differs")
+        with pytest.raises(L.SessionGatesMissing, match="passed"):
+            led.begin_attempt(L.RunKey("G", "C1", 1))
+
+
+def test_passing_session_gates_in_the_harness_call_shape_lets_begin_attempt_proceed(tmp_path):
+    with fresh(tmp_path, gated=False) as led:
+        led.event("session_gates", harness_gates_detail())               # the harness's exact call
+        assert led.begin_attempt(L.RunKey("G", "C1", 1)) == 1
+
+
+def test_the_most_recent_session_gates_of_this_instance_governs(tmp_path):
+    with fresh(tmp_path, gated=False) as led:
+        gate(led, session_id="s-1")
+        gate(led, session_id="s-2", passed=False)
+        with pytest.raises(L.SessionGatesMissing):
+            led.begin_attempt(L.RunKey("G", "C1", 1))
+
+
+def test_a_previous_sessions_passing_gates_do_not_satisfy_a_new_open(tmp_path):
+    with fresh(tmp_path, gated=False) as led:
+        gate(led, session_id="earlier")
+        led.begin_attempt(L.RunKey("G", "C1", 1))
+    with fresh(tmp_path, gated=False) as led:                              # resumed: its own gates not yet run
+        assert [r for r in led.rows if r.get("kind") == "session_gates"]  # the earlier row IS in the file
+        with pytest.raises(L.SessionGatesMissing):
+            led.begin_attempt(L.RunKey("G", "A", 1))
+        gate(led, session_id="now")
+        assert led.begin_attempt(L.RunKey("G", "A", 1)) == 1
+
+
+@pytest.mark.parametrize("skip_field", [None, "preflight_sha", "gate_host_sha", "gate_container_sha"])
+def test_skipped_gates_proceed_only_on_a_skip_gates_ledger(tmp_path, skip_field):
+    over = {} if skip_field is None else {skip_field: L.SKIP_GATES_SHA}
+    with fresh(tmp_path, gated=False, **over) as led:
+        gate(led, skipped=True)
+        if skip_field is None:
+            with pytest.raises(L.SessionGatesMissing, match="skip"):
+                led.begin_attempt(L.RunKey("G", "C1", 1))
+        else:
+            assert led.begin_attempt(L.RunKey("G", "C1", 1)) == 1
+
+
+MALFORMED_SESSION_GATES = {
+    "not-a-dict": "passed",
+    "no-session-id": {"passed": True, "skipped": False},
+    "empty-session-id": {"session_id": "", "passed": True, "skipped": False},
+    "blank-session-id": {"session_id": "   ", "passed": True, "skipped": False},
+    "int-session-id": {"session_id": 7, "passed": True, "skipped": False},
+    "no-passed": {"session_id": "s", "skipped": False},
+    "int-passed": {"session_id": "s", "passed": 1, "skipped": False},
+    "str-passed": {"session_id": "s", "passed": "true", "skipped": False},
+    "no-skipped": {"session_id": "s", "passed": True},
+    "int-skipped": {"session_id": "s", "passed": True, "skipped": 0},
+    "none-detail": None,
+}
+
+
+@pytest.mark.parametrize("name", sorted(MALFORMED_SESSION_GATES))
+def test_malformed_session_gates_is_refused_on_write(tmp_path, name):
+    with fresh(tmp_path, gated=False) as led:
+        with pytest.raises(ValueError, match="session_gates"):
+            led.event("session_gates", MALFORMED_SESSION_GATES[name])
+        assert led.rows == []                                              # refused BEFORE writing
+        with pytest.raises(L.SessionGatesMissing):                         # and it satisfies nothing
+            led.begin_attempt(L.RunKey("G", "C1", 1))
+
+
+@pytest.mark.parametrize("name", sorted(MALFORMED_SESSION_GATES))
+def test_malformed_session_gates_rows_are_ledger_corrupt_on_resume(tmp_path, name):
+    with fresh(tmp_path, gated=False) as led:
+        gate(led)
+    path = tmp_path / "ledger.jsonl"
+    rows = _rows_of(path); rows[1]["detail"] = MALFORMED_SESSION_GATES[name]; _write_rows(path, rows)
+    before = path.read_bytes()
+    with pytest.raises(L.LedgerCorrupt, match="session_gates"):
+        fresh(tmp_path, gated=False)
+    assert path.read_bytes() == before
+
+
+def test_well_formed_session_gates_rows_resume(tmp_path):
+    with fresh(tmp_path, gated=False) as led:
+        gate(led, session_id="a"); gate(led, session_id="b", passed=False, error="x")
+        gate(led, session_id="c", skipped=True)
+    with fresh(tmp_path, gated=False) as led:
+        assert [r["detail"]["session_id"] for r in led.rows] == ["a", "b", "c"]
