@@ -53,7 +53,7 @@ If memory is above the registered ceiling at the last moment before a request wo
 
 **Acceptance Scenarios**:
 
-1. **Given** the ceiling is breached at send time, **When** any arm sends, **Then** no request is sent, the breach reaches the harness unaltered, and the session stops with the breach recorded.
+1. **Given** the ceiling is breached at send time, **When** any arm sends, **Then** no request is sent, the breach reaches the harness unaltered, and the cell records its own ceiling-breach outcome with the measured peak and the ceiling. That outcome is never averaged, and it is distinct from "could not measure".
 2. **Given** the ceiling is not breached, **When** an arm sends, **Then** the request proceeds unchanged.
 
 ---
@@ -123,13 +123,13 @@ Anyone reading a test run can see which research tests ran and which were skippe
 | ID | Title | User Story | Priority | Status |
 |----|-------|------------|----------|--------|
 | FR-001 | Arms registered (C13) | As the run operator, I want G, D and R registered with their real dependencies and one shared embedder, so that a live run answers cells instead of recording "could not run". | High | Open |
-| FR-002 | G refusals and limit check (C13) | As the run operator, I want arm G to have its own refusal class and the same configuration check of the context limit as D and R, so that a configuration defect is terminal on the first attempt for every arm. | High | Open |
+| FR-002 | G refusals and limit check (C13) | As the run operator, I want arm G to have its own refusal class and the same configuration check of the context limit as D and R. A configuration defect (foreign items, graph not built) must be terminal for the cell on the first attempt. A broken premise (the no-LLM tripwire fires, or retrieval crosses the per-question graph boundary) must HALT THE RUN, because it makes already-recorded cells suspect (design lead, 20260926T220457953295Zd7af0f572f). | High | Open |
 | FR-003 | One refusal class, no fallbacks (C13) | As a maintainer, I want the arms' refusal classes unified and the transitional configuration fallbacks removed, so that terminality is decided in one place and the contract name is the only path. | Medium | Open |
 | FR-004 | No-arms run is never a primary (C13, Condition A) | As the run operator, I want a test proving that a run with no registered arms cannot produce a primary-complete ledger, red before the fix, so that the fail-safe is demonstrated rather than argued. | High | Open |
-| FR-005 | Memory series end to end (C9) | As the run operator, I want each G cell's memory peak read from the real measurement series as rubric §5 registers it, so that the graph-store column is measured rather than refused. | High | Open |
+| FR-005 | Memory series end to end (C9) | As the run operator, I want each G cell's graph-store memory peak read from the real measurement series, as rubric §5 registers it (after the C-009 amendment), so that the graph-store column is measured rather than refused. | High | Open |
 | FR-006 | Peak support recorded (C9) | As a reader of the results, I want each G row to carry its peak's support (window bounds, in-window count, held timestamp, peak source) and the ledger to validate it on write and replay, so that a weakly supported peak is distinguishable. | High | Open |
 | FR-007 | Unmeasurable fails closed (C9) | As the run operator, I want absent, stale, gapped or wrong-container series data to refuse the cell through the real path, so that an unmeasurable peak is never recorded as zero or as a pass. | High | Open |
-| FR-008 | Ceiling guard at send (C11) | As the run operator, I want the memory ceiling checked immediately before each request is sent, with nothing sent on a breach and the breach reaching the harness unaltered, so that the guard fires at the last point the protocol controls. | High | Open |
+| FR-008 | Ceiling guard at send (C11) | As the run operator, I want the memory ceiling checked immediately before each request is sent, with nothing sent on a breach and the breach reaching the harness unaltered. The cell must record a DISTINCT outcome carrying the measured peak and the ceiling: terminal for the attempt, never averaged, never a scored cell, and distinguishable from an unreadable sampler (design lead: a row, following the exceeds-model-context precedent). The guard then fires at the last point the protocol controls. | High | Open |
 | FR-009 | Live-style resume (C8) | As the run operator, I want a resume across real, timestamp-bearing gate phases to complete with earlier rows intact, and both negatives (a failing fresh gate stops and records; a session that skipped its gates cannot write a row) demonstrated, so that recovery is proven before the run depends on it. | High | Open |
 | FR-010 | Complete isolation inventory (C4) | As the run operator, I want the isolation check to name every module of the run package, with a two-way test, so that a truncated package cannot certify isolation. | Medium | Open |
 | FR-011 | Attempts name their session | As a reader of the ledger, I want each attempt to carry the id of the session that wrote it and replay to check that session's gates, so that one session's gates can never authorise another's attempts. | Medium | Open |
@@ -158,6 +158,8 @@ Anyone reading a test run can see which research tests ran and which were skippe
 | C-004 | office4 only | Runs on office4 (research sandbox, ADR-0008); no office2 deploy, no audited-surface change. | Technical | High | Open |
 | C-005 | One sequential lane | Work packages execute in one sequential lane, so each sees the previous packages' code (#1018). | Process | High | Open |
 | C-006 | Design rulings before plan | The measurement source for the memory column, the recording of a breach at send, and G's terminal errors are ruled by the design lead before planning (bus request 20260926T220152814799Zd8d8b2ef8c). | Process | High | Open |
+| C-008 | Arms served identically | G, D and R are served with the same model, prompt template and serving features (including prompt caching); they differ only in what they assemble (Kent's model-of-record ruling; design lead 22:03Z). | Research integrity | High | Open |
+| C-009 | Memory measure named for what it is | The graph-store memory figure is the container's cgroup charge, read directly at its true sampling interval. It is recorded under a column named for that figure, never under an RSS name, with a dated rubric §5 amendment by the design lead stating what it includes and why (design lead ruling (a), 22:03Z). | Research integrity | High | Open |
 | C-007 | Out of scope | The 72-cell run, blinded grading, and spec-kitty upstream issues are not part of this mission. | Business | High | Open |
 
 ### Key Entities
@@ -173,7 +175,7 @@ Anyone reading a test run can see which research tests ran and which were skippe
 
 - **SC-001**: A live session on office4 registers 3 of 3 arms. A run with 0 registered arms yields 0 ledgers accepted as primary.
 - **SC-002**: 100% of G cells in an end-to-end test carry a memory peak with complete support. 4 of 4 unmeasurable conditions (absent, stale, gapped, wrong container) refuse the cell.
-- **SC-003**: With the ceiling breached at send time, 0 requests are sent and the session stops.
+- **SC-003**: With the ceiling breached at send time, 0 requests are sent. The cell records a ceiling-breach outcome that is excluded from 100% of averages and never shares an outcome with an unreadable sampler.
 - **SC-004**: A resumed run completes with 100% of earlier rows byte-identical and 0 double-recorded cells. Both negative cases behave as specified.
 - **SC-005**: The isolation inventory matches the package in both directions (17 of 17 modules today).
 - **SC-006**: The token table reports 8 of 8 questions, and the context-exceedance split remains 6 of 8.
@@ -184,7 +186,7 @@ Anyone reading a test run can see which research tests ran and which were skippe
 - The research environment (graph-store client, embedder, rendered corpus, tokenizer cache) exists on office4 only.
 - G's graph construction already exists. What is missing is registration and lifecycle plumbing.
 - The sampler's series writer and reader already exist (the WP04 reopen). What is missing is running the writer during the run and binding the reader.
-- The design-lead rulings named in C-006 arrive before planning. If a ruling changes a requirement's WHAT, the spec is amended before plan.
+- The design-lead rulings named in C-006 ARRIVED at 22:03:53Z and 22:04:57Z (20260926T220353449460Z6a87ff79f3 and 20260926T220457953295Zd7af0f572f), and C13 is registered in rubric §10 @4bf375ef. Their WHAT-level consequences are folded into FR-002, FR-005, FR-008, SC-003, C-008 and C-009 (spec amendment 2026-09-26).
 
 ## Dependencies
 
