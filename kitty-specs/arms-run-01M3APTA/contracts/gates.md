@@ -42,3 +42,11 @@ no docker socket):** the gates run in TWO PHASES, both bound into the header.
   unchanged record from an earlier stack cannot be replayed against a newer one.
 - **The header binds `preflight_sha`, `gate_host_sha` and `gate_container_sha`**; WP03's binding validator refuses a
   header missing any. Rejected alternative: nine in-container with a host-written record verified by timestamp only.
+
+**Dated 2026-09-26 00:10Z (design-lead ruling, bus msg 20260926T001046518503Zf8dbf4b55a) — chat-template cross-check record.**
+The container phase compares the served model's chat template from `/props` with the cached tokenizer's
+chat-template sha (match → pass; mismatch → the gate fails naming both shas; field absent → `could_not_check`
+recorded with its reason, never silence and never a pass). The outcome's authoritative record is
+`session_gates.chat_template_cross_check`, written on every path including the passing one. A FAILING
+`gate-container.json` also carries it, because the harness writes that record; a PASSING `gate-container.json`
+does not, because the gate phase itself writes it. This asymmetry is a decision, not a missing field.
