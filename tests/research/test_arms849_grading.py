@@ -20,6 +20,7 @@ sys.path.insert(0, str(REPO_ROOT))
 
 from scripts.research import run_849_harness as h
 from scripts.research.arms849 import grading
+from scripts.research.arms849 import ledger as ledger_mod
 from scripts.research.arms849.questions import QUESTIONS
 from tests.research.test_arms849_integration import (
     BLINDING_SEED,
@@ -191,3 +192,27 @@ def test_blinded_id_format_and_determinism():
     assert ID_RE.fullmatch(a) and a == grading.blinded_id(11, "C1", "G", 1)
     ids = {grading.blinded_id(11, "C1", arm, r) for arm in ("G", "D", "R") for r in (1, 2, 3)}
     assert len(ids) == 9
+
+
+def _plain_binding(**gate_shas: str) -> ledger_mod.Binding:
+    fields = {"preflight_sha": "a" * 64, "gate_host_sha": "b" * 64, "gate_container_sha": "c" * 64, **gate_shas}
+    return ledger_mod.Binding(registration_commit="r", corpus={}, prompt_hash="p", question_manifest_sha="q",
+                              serving={}, model_context_tokens=1, limit_applied="none", run_env_commit="e",
+                              run_env_manifest_sha="m", code_hashes={}, **fields)
+
+
+@pytest.mark.parametrize("field", ["preflight_sha", "gate_host_sha", "gate_container_sha"])
+def test_binds_skip_gates_is_true_on_any_one_gate_field(field):
+    """The single predicate (exporter + harness) covers all three gate fields, each on its own."""
+    assert grading.binds_skip_gates(_plain_binding(**{field: grading.SKIP_GATES_SHA})) is True
+
+
+def test_binds_skip_gates_is_false_on_a_real_binding():
+    assert grading.binds_skip_gates(_plain_binding()) is False
+
+
+def test_harness_and_exporter_share_the_one_predicate():
+    """No second copy: the harness has no private skip-gates predicate of its own."""
+    assert not hasattr(h, "_binds_skip_gates")
+    src = pathlib.Path(h.__file__).read_text(encoding="utf-8") + pathlib.Path(grading.__file__).read_text(encoding="utf-8")
+    assert src.count("SKIP_GATES_SHA in (") == 1

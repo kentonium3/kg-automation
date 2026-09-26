@@ -1356,6 +1356,7 @@ def test_skipped_gguf_resuming_a_real_ledger_with_skip_gates_is_refused_and_noth
     run, ledger_path = run_cli
     assert run(json.dumps(GOOD_SETUP)) == h.EXIT_OK                  # a real ledger, one cell
     before = ledger_path.read_bytes()
+    before_mtime = ledger_path.stat().st_mtime_ns
     (cli_runs / "preflight.json").unlink()
     (cli_runs / "setup.json").write_text(SKIPPED_SETUP, encoding="utf-8")
     capsys.readouterr()
@@ -1366,6 +1367,7 @@ def test_skipped_gguf_resuming_a_real_ledger_with_skip_gates_is_refused_and_noth
     _assert_actionable(captured.out)
     assert "Traceback" not in captured.err
     assert ledger_path.read_bytes() == before
+    assert ledger_path.stat().st_mtime_ns == before_mtime   # not even rewritten identically
     assert not list(cli_runs.glob("gate-*.json"))
 
 

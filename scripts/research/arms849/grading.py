@@ -34,10 +34,25 @@ from dataclasses import dataclass
 from typing import Any
 
 from scripts.research.arms849 import questions as questions_mod
-from scripts.research.arms849.ledger import SCORED_OUTCOME, Ledger, RunKey, plan_keys
+from scripts.research.arms849.ledger import (
+    SCORED_OUTCOME,
+    Binding,
+    Ledger,
+    RunKey,
+    plan_keys,
+)
 
-__all__ = ["OUTPUT_DIRS", "SKIP_GATES_SHA", "ExportPaths", "ExportRefused", "blinded_id", "export",
-           "is_complete", "seal_map"]
+__all__ = [
+    "OUTPUT_DIRS",
+    "SKIP_GATES_SHA",
+    "ExportPaths",
+    "ExportRefused",
+    "binds_skip_gates",
+    "blinded_id",
+    "export",
+    "is_complete",
+    "seal_map",
+]
 
 #: The three output directories, one per output (contracts/grading-view.md: "the exporter never
 #: writes two into one").
@@ -47,6 +62,13 @@ OUTPUT_DIRS = {"view": "views", "admin": "admin", "seal": "seals"}
 #: a development ledger is recognisable forever: sha256 of the bytes
 #: ``b"arms849: gates skipped (development only)"``. The exporter refuses such a ledger.
 SKIP_GATES_SHA = hashlib.sha256(b"arms849: gates skipped (development only)").hexdigest()
+
+
+def binds_skip_gates(binding: Binding) -> bool:
+    """A development ledger: its binding carries :data:`SKIP_GATES_SHA` in ANY of the three gate
+    fields. The one predicate — the exporter and the harness both call it, so the two can never
+    disagree on which ledgers are development (design lead, bus 20260926T005839019738Z48adbc3a83)."""
+    return SKIP_GATES_SHA in (binding.preflight_sha, binding.gate_host_sha, binding.gate_container_sha)
 
 #: The only keys a view entry may carry (contracts/grading-view.md "Nothing else").
 VIEW_ENTRY_KEYS = ("text", "truncated")
@@ -170,7 +192,7 @@ def export(ledger: Ledger, seed: int, out_root: pathlib.Path) -> ExportPaths:
     if type(seed) is not int or seed != header.blinding_seed:
         raise ExportRefused("seed is not this ledger's blinding seed; ids would not reproduce from the seal")
     binding = header.binding
-    if SKIP_GATES_SHA in (binding.preflight_sha, binding.gate_host_sha, binding.gate_container_sha):
+    if binds_skip_gates(binding):
         raise ExportRefused("this ledger was written with --skip-gates (development only); it is never graded")
     ok, detail = is_complete(ledger)
     if not ok:

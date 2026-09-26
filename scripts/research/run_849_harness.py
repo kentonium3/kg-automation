@@ -797,11 +797,6 @@ def open_existing(path: pathlib.Path) -> Ledger:
     return open_ledger(path, h.binding, h.blinding_seed, h.plan)
 
 
-def _binds_skip_gates(binding: Binding) -> bool:
-    """A development ledger: its binding carries :data:`grading.SKIP_GATES_SHA` in any gate field."""
-    return grading.SKIP_GATES_SHA in (binding.preflight_sha, binding.gate_host_sha, binding.gate_container_sha)
-
-
 def _is_development_ledger(path: pathlib.Path, skip_gates: bool) -> bool:
     """Whether a ``--skip-gates`` run at ``path`` writes a development ledger — the one place a skipped
     GGUF verification may bind (:func:`require_verified_gguf`). Keyed on the LEDGER, not the flag: a
@@ -821,7 +816,7 @@ def _is_development_ledger(path: pathlib.Path, skip_gates: bool) -> bool:
     if header is None:
         return False
     try:
-        return _binds_skip_gates(Header.from_dict(header).binding)
+        return grading.binds_skip_gates(Header.from_dict(header).binding)
     except (KeyError, TypeError, ValueError):  # an unparseable header binds nothing; open_ledger reports it on its own terms
         return False
 
@@ -830,7 +825,7 @@ def require_complete_primary(primary: Ledger) -> None:
     """ledger-schema.md item 8: the named primary must be complete — 72 cells, zero not_implemented."""
     if primary.header.plan != PRIMARY_PLAN or primary.header.binding.serving.get("kind") != "primary":
         raise PrimaryIncomplete(f"{primary.path} is not a primary ledger")
-    if _binds_skip_gates(primary.header.binding):
+    if grading.binds_skip_gates(primary.header.binding):
         raise PrimaryIncomplete(f"{primary.path} was written with --skip-gates (development only); "
                                 f"it can never be a primary")
     ok, detail = grading.is_complete(primary)
