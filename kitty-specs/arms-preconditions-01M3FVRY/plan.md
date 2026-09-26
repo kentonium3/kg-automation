@@ -50,7 +50,7 @@ The run itself is not in scope (spec C-007).
 | Python unit tests before merge | Every FR has red-first tests; NFR-002 records the evidence per WP. |
 | Test fixtures mirror real inputs | The series tests use real writer output. C8 uses the real gate phases with injected probes (never timestamp-stable fakes). The ledger tests use real row shapes. |
 | **No dead code** | This is the defect class behind C13 (a registry with tests and no production callers). Every WP's DoD greps for live callers. In particular `ARM_FACTORIES`, the series writer, `require_breached` and `before_send` must each be reached from the production path (`live_runtime` / `substrate.run`). |
-| Integration verification (no-staging-aware) | Form (a), a pre-merge live exercise, IS feasible here: office4 runs the real stack. A live smoke on a throwaway ledger, NOT the run: `substrate up`, then one cell per arm with `--limit`, then the `ARMS849_LIVE=1` tests. It is defined in WP05 and recorded in the pre-merge record. |
+| Integration verification (no-staging-aware) | Form (a), a pre-merge live exercise, IS feasible here: office4 runs the real stack. It is a **live smoke that is NOT the run** (post-plan review corrected the first design). Cells run in protocol order (all 24 G, then 24 D, then 24 R), and R's calibration needs all eight G repeat-1 cells, so `--limit` cannot cover one cell per arm. The harness therefore gains a `--smoke` selector. It runs G repeat 1 for all 8 questions, then calibration, then D C1 r1, then R C1 r1, with real gates, on a separate smoke ledger bound to a `smoke` plan kind that `require_complete_primary` refuses by construction. After it, run the `ARMS849_LIVE=1` tests by their explicit node IDs (the `live` marks are `skipif` marks, not registered markers, so `-m live` selects nothing). It is defined in IC-05 and required in the pre-merge record. |
 | Self-review of diff; spec-kitty review rigor | Codex read-only review post-plan, per WP and post-merge. It is never the implementer. A fallback reviewer is a different model, and any same-model review is recorded as degraded. |
 | Change-risk tier / rebaseline | N/A: office4 research sandbox. No audited surface changes (no dependency manifest, Docker stack or systemd change; `compose.yaml` untouched). |
 
@@ -162,6 +162,10 @@ tests/research/
 
 ## Freeze-time and post-merge steps (not work packages)
 
-1. **T039 registration** (correction D): after the final WP's approval and before the post-merge checkpoint, run `--measure` on the final commit. Hand the §2 table to the design lead as a dated amendment citing the commit and `preflight_sha`.
+1. **T039 registration** (correction D) is a **freeze GATE**, not just a measurement. After the final WP's approval, `--measure` runs on the final commit. It must:
+   - compute all 8 exact serialised requests, with block tokens and token-level prefix sharing;
+   - VERIFY that the set of questions exceeding the native context equals the registered six. If they disagree, it fails with a named error instead of producing a table;
+   - bind its output to the commit SHA and `preflight_sha`.
+   **If the post-merge checkpoint produces fixes, the measurement is re-run on the new final commit.** The feat → main merge requires a T039 record whose commit equals the merged HEAD. The table then goes to the design lead as a dated amendment.
 2. **Post-merge Codex checkpoint** on the complete merged diff. Then the fresh-worktree CI simulation and the office4 suite, recorded, then feat → main.
 3. **Then the run, as an operation** (out of this mission).

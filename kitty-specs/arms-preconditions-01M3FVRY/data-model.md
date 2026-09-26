@@ -6,6 +6,7 @@ The baseline is arms-run-01M3APTA's `data-model.md` and contracts. This file lis
 
 | Field | Change | Rule |
 |---|---|---|
+| `outcome` | **adds** `sampler_unreadable_at_send` | The GTT read failed at `before_send`, after the attempt began. Could-not-check. Terminal for the attempt, never averaged, not scored. Refuses the cell and does NOT stop the session. Distinct from `exceeds_memory_ceiling` and from the pre-attempt `sampler_unreadable` event. |
 | `outcome` | **adds** `exceeds_memory_ceiling` | Terminal for the attempt. Never averaged. Not a scored outcome. Carries `memory_ceiling: {measured_gib: float, ceiling_gib: float, stage: "before_send"}`. Distinct from `error`, from `exceeds_model_context`, and from an unreadable sampler (which is `sampler_unreadable`, an event, and no attempt). |
 | `falkordb_cgroup_peak_mib` | **renames** `falkordb_rss_peak_mib` (retired; must not appear anywhere) | G ok rows only. A real int/float ≥ 0. The container's cgroup memory charge (rubric §5 @`ea3fbfc8`). |
 | `memory_support` | **new**, G ok rows | See below. Required when `falkordb_cgroup_peak_mib` is present. Validated on write and replay. |
@@ -17,9 +18,10 @@ The baseline is arms-run-01M3APTA's `data-model.md` and contracts. This file lis
 | `window_start` | str | canonical UTC isoformat |
 | `window_end` | str | canonical UTC isoformat, ≥ `window_start` |
 | `in_window_readings` | int | ≥ 0 (excluding the held reading) |
-| `held_ts` | str or null | canonical UTC isoformat when present |
-| `peak_source` | `"held"` \| `"in_window"` | `"held"` ⇒ `held_ts` present. `in_window_readings == 0` ⇒ `"held"`. A tie ⇒ `"in_window"`. |
-| `interval_s` | float | the series' **recorded** real interval, > 0 |
+| `held_ts` | str or null | canonical UTC. When present it is STRICTLY before `window_start` and at most `GAP_INTERVALS × interval_s` before it |
+| `peak_source` | `"held"` \| `"in_window"` | `"held"` ⇒ `held_ts` present. `"in_window"` ⇒ `in_window_readings ≥ 1`. `in_window_readings == 0` ⇒ `"held"`. A tie ⇒ `"in_window"`. |
+| `interval_s` | float | the series' **recorded** real interval: finite and > 0 |
+| `last_ts` | str | canonical UTC: the latest reading used; ≤ `window_end` and at most `STALE_INTERVALS × interval_s` before it |
 
 Exactly these keys. There is no other key and no coercion (a bool is not an int).
 
@@ -33,7 +35,7 @@ Exactly these keys. There is no other key and no coercion (a bool is not an int)
 
 | Kind | Change | Detail |
 |---|---|---|
-| `premise_violated` | **new** | `{arm: str, reason: "tripwire" \| "cross_group_leak", message: str, at_key: RunKey dict}`. Its presence makes the ledger **unusable as a primary and for export** (correction C). Rows stay untouched. |
+| `premise_violated` | **new** | `{arm: str, reason: "tripwire" \| "cross_group_leak", message: str, at_key: RunKey dict}`. Its presence makes the ledger **unusable as a primary, for export, and for `Ledger.summarise()`** (correction C). Rows stay untouched. |
 | `memory_ceiling` | unchanged | The pre-cell ceiling refusal stays as it is. |
 
 ## Arm registration (in-memory, not persisted)

@@ -31,6 +31,11 @@ Sources:
   - The FalkorDB async client is bound to the loop it first runs on (`arm_g.py` L32–34), while the harness runs every attempt on a fresh thread (`_call_with_timeout`, ~L680–710). A per-attempt `asyncio.run` would break loop affinity.
   - Cancelling a future does not guarantee the driver unwound mid-protocol, and a persistent driver would carry that damage into cell N+1 (design lead, correction B).
   - A fresh connection after a cancellation is the cheapest mechanism that makes "clean" a fact rather than a hope.
+- **Executable interface (post-plan review, 2026-09-26):**
+  - **Retrieval on the loop, serving off it.** `GraphArm.answer` today awaits `plan_and_assemble` and then makes the SYNCHRONOUS serving call (`arm_g.py` ~L534). If the whole of `answer` ran on the loop thread, that HTTP call would block the loop. So the G registration's synchronous `answer` wrapper submits **only** the retrieval coroutine (`plan_and_assemble`) to the loop. It then runs render / serialize / count / `ctx.serving.complete` on the attempt thread, exactly as D and R do. `GraphArm` gains a small `respond(block, plan, question, ctx)` for the synchronous half.
+  - **Every operation gets a deadline.** `build_graph`, `drop_graph` and retrieval each receive an explicit deadline and the attempt's `cancelled` flag. The Session passes the attempt deadline it already computes for `_call_with_timeout`, and `CellContext` gains a read-only `deadline`.
+  - **Bounded cancellation acknowledgement.** On timeout or cancel, the wrapper calls `future.cancel()` and then waits a bounded grace period (≤ 5 s) for the future to report done. If it does not, the bridge is declared POISONED: the thread is abandoned as a daemon, and a NEW loop, thread and driver are created before any further submission. The graph itself persists server-side in FalkorDB, keyed by the group. If the replacement cannot connect, the arm raises `ArmRefusal`, terminal for the cell, and every following G cell refuses until a healthy bridge exists.
+  - **Unconditional cleanup.** `run_session` wraps the whole session in `try/finally: runtime.close()`. That covers normal completion, `--limit`, `stop()`, a raised exception and `KeyboardInterrupt`. Closing the registration never waits unboundedly on a blocked loop: it applies the same bounded grace, then abandons.
 - **Alternatives**:
   - A new loop plus driver per attempt: rejected. It rebuilds indices per attempt, and G's graph lives across repeats.
   - A post-cancel health PING: rejected as insufficient. A PING succeeding does not prove the connection's protocol state for the next query.
@@ -104,7 +109,13 @@ Sources:
     - held ⇒ `held_ts` present;
     - zero in-window samples ⇒ held.
   - `attempt_start` carries `session_id`. Replay requires the attempt's `session_id` to match the most recent passing `session_gates` of **that** session.
-  - A premise-violation halt record (event kind `premise_violated`, naming the arm and the reason). **Any ledger containing it is refused as a primary and by the grading export** (correction C). Rows stay untouched but unusable.
+  - A premise-violation halt record (event kind `premise_violated`, naming the arm and the reason). **Any ledger containing it is refused as a primary, by the grading export, AND by `Ledger.summarise()` (`ledger.py` ~L648), which today averages every `ok` row without looking at events** (correction C; post-plan review). Rows stay untouched but unusable. Tests cover a violation arriving on repeat 2, after scored rows, both immediately and after replay.
+  - **`memory_support` validation is internally consistent** (post-plan review):
+    - `interval_s` is finite and > 0;
+    - `held` ⇒ `held_ts` is present, STRICTLY before `window_start`, and no more than `GAP_INTERVALS × interval_s` before it;
+    - `in_window` ⇒ `in_window_readings ≥ 1`;
+    - a new `last_ts` (the latest reading used) is ≤ `window_end` and no more than `STALE_INTERVALS × interval_s` before it.
+    A support object that describes a window §5 would have refused is itself refused, on write and on replay.
   - ledger-schema item 2 gets a dated sentence in this mission's `contracts/ledger-deltas.md`, noting that the per-session clause is now enforceable.
 - **Rationale**: the design-lead rulings; the post-merge residual (`attempt_start` had no session id); correction C (untouched must not mean usable).
 
@@ -115,6 +126,10 @@ Sources:
   - `ServingFacade` refuses to send without one.
   - The harness supplies a closure over the cell's GTT sampler that raises `CeilingBreached(peak, ceiling)`. This is a new class, subclassing neither `ContextExceeded` nor `ArmRefusal`, so no arm's handler catches it.
   - The Session maps it to the D-8 outcome. The secondary probe uses the same callback.
+  - **Rulings 2 and 3** (design lead, 20260926T223312278643Zbb9e71a68a). These honour the registered text, so they are not amendments.
+    - A **send-time breach STOPS THE SESSION** via its OWN stop signal. It never reuses the window `breached` flag: a send-time breach states the host's current state, while the window flag is an after-the-fact observation.
+    - **Whether a breached cell is TERMINAL (never retried by a later session) is PENDING KENT.** It is a validity question, and the design lead is drafting it as a dated §5 addition for his sign-off (20260926T223436721075Z2f274189c3). **Do not build either terminality until it is ruled.** Whichever way it goes, a ledger containing an un-retried breach cannot be primary-complete.
+    - A **GTT read that FAILS at send** (after `begin_attempt` has durably written `attempt_start`) keeps the attempt. It records a DISTINCT outcome, `sampler_unreadable_at_send` (could-not-check), sends nothing, and **refuses the cell**. It does **NOT** stop the session: §5 registers "refuses the cell", and every later cell is refused in turn, so nothing runs unguarded (design lead narrowed ruling 2, 22:34Z). It is never recorded as a breach, a pass or a zero.
 - **Rationale**: rubric §5's ceiling guard (the last point the protocol controls) and ruling (b).
 
 ## D-10 — Environment gating and the pre-merge record
@@ -127,6 +142,8 @@ Sources:
     2. the fresh-worktree CI simulation (a detached worktree of HEAD, no `build/`, a stub `graphiti_core` via PYTHONPATH);
     3. optionally the live smoke.
     It writes a record (commit, results, skip counts), and the merge to main cites it.
+  - **Mandatory, non-skipped coverage (post-plan review):** the checker holds a named list of REQUIRED test node IDs that must EXECUTE AND PASS on office4. These are the precondition tests of FR-001–FR-012 plus the post-merge C-list tests (C-1, C-2, C-5). The checker reads pytest's junit-xml. Any required node missing, deselected, skipped or failed makes the record FAIL, whatever the exit code. The fresh-worktree CI simulation must also show zero failures and zero collection errors.
+  - **The live smoke is REQUIRED, not optional** (plan.md Charter Check). The record binds every result to the exact commit SHA, and it is invalid for any other commit.
 - **Rationale**: CI does not exercise the arms (Kent). The simulation is what reproduced CI exactly on 2026-09-26 and distinguished a real second layer from an imagined third. The design lead: "keep it as a gate, not a habit."
 
 ## Adversarial evidence
