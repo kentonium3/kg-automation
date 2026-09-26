@@ -1,0 +1,11 @@
+# Paths excluded from the run environment export (research.md D-8, FR-013).
+# One path prefix per line, repo-root relative. Kept OUT of any .py module so the
+# arms package never contains the names of the material it must not see (WP04's
+# static scan refuses a module that does). Read by substrate.py export.
+docs/design/research/849-synthesis/oracle/
+docs/design/research/849-synthesis/seed/
+docs/design/research/849-synthesis/00-context-chains.md
+docs/design/research/849-synthesis/01-cast.md
+docs/design/research/849-lattice-scenario-arcs.md
+docs/design/research/849-traceability.md
+kitty-specs/

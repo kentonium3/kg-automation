@@ -1,0 +1,16 @@
+---
+affected_files: []
+cycle_number: 10
+mission_slug: arms-run-01M3APTA
+reproduction_command:
+reviewed_at: '2026-09-25T19:43:29Z'
+reviewer_agent: claude
+wp_id: WP04
+---
+
+[MAJOR] scripts/research/arms849/litscan.py:203 — `dict.fromkeys(map("".join,[("or","acle")]))` produces `{'oracle': None}` and `list(zip(map("".join,[("or","acle")])))` produces `[('oracle',)]`, but both pass the real gate with "no hit"; extraction ignores dictionaries and nested container contents — why: constructions classified pure under D-8 evade the required scan — fix: recursively extract strings from materialised containers, including dictionary keys and values, within the existing resource limits; add gate-level regressions.
+[MAJOR] scripts/research/arms849/litscan.py:212 — Repeated scans of `X = "".join({"or","acle"})` alternate between a hit and no hit; `PYTHONHASHSEED=0` rejects it while `PYTHONHASHSEED=3` passes — why: hash-dependent set iteration makes the gate nondeterministic and permits a construction capable of producing the forbidden word — fix: fail closed on order-sensitive consumption of unordered containers unless all possible results are covered; merely fixing the scanner's hash seed does not cover runtime outcomes.
+
+Notes (non-blocking, Codex): real package gate passed ("12 modules scanned (12 registered present), no hit"); requested deterministic literal constructions caught; missing methods and shadowing refused; parameter shadowing correctly under "at any scope"; unlisted calls, comprehensions and walrus opaque as ruled; suite 89 passed / 70 sandbox socket-fixture failures (not findings).
+
+Scope note (orchestrator): both findings are constructions built from literals + the allowlist + methods of literals that the scan misclassifies — inside the D-8 closure rule (research.md @2ec79c95), so they are folded. Source: Codex read-only review (gpt-6-astra), WP04 cycle 10 on lane-d @b55fad32, 2026-09-25; design-lead delta read APPROVE (20260925T193850804234Z2b330bce82) — design side unchanged. VERDICT: REJECT.
