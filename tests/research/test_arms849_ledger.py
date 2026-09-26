@@ -1438,3 +1438,75 @@ def test_a_final_line_too_deep_to_parse_is_corruption_never_truncated(tmp_path):
     with pytest.raises(L.LedgerCorrupt):
         fresh(tmp_path)
     assert p.read_bytes() == before
+
+
+# ---------------------------------------------------------------------------
+# post-merge checkpoint MAJOR 2 (design lead ruling 20260926T191350728094Zd096ae83aa):
+# replay enforces the session-gates precondition per session, in file order
+# ---------------------------------------------------------------------------
+
+
+def _drop_session_gates(p):
+    lines = [ln for ln in p.read_text().splitlines()
+             if not (json.loads(ln).get("record") == "event" and json.loads(ln).get("kind") == "session_gates")]
+    p.write_text("\n".join(lines) + "\n")
+
+
+def test_replay_refuses_attempts_whose_session_gates_were_deleted(tmp_path):
+    """Codex post-merge probe: strip every session_gates event from a ledger with attempts and it
+    still reopened — a file that reads the same whether the gates passed or never ran."""
+    key = L.RunKey("G", "C1", 1)
+    with fresh(tmp_path) as led:
+        led.begin_attempt(key); rec(led, key, "ok", ok_row())
+    p = tmp_path / "ledger.jsonl"
+    _drop_session_gates(p)
+    before = p.read_bytes()
+    with pytest.raises(L.LedgerCorrupt, match="session_gates"):
+        fresh(tmp_path, gated=False)
+    assert p.read_bytes() == before                                   # refused, never repaired
+
+
+def _write_session(p, detail_json, *, attempt_key):
+    """Append a session's gates event and one attempt_start for attempt_key (attempt 1) by hand."""
+    ts = "2026-09-26T00:00:00+00:00"
+    with p.open("a", encoding="utf-8") as fh:
+        fh.write(json.dumps({"record": "event", "kind": "session_gates", "detail": detail_json, "ts": ts}) + "\n")
+        fh.write(json.dumps({"record": "attempt_start", **attempt_key.as_dict(), "attempt": 1, "ts": ts}) + "\n")
+
+
+@pytest.mark.parametrize("detail, header_over, ok", [
+    ({"session_id": "s1", "passed": True, "skipped": False}, {}, True),
+    ({"session_id": "s1", "passed": False, "skipped": False}, {}, False),
+    ({"session_id": "s1", "passed": True, "skipped": True}, {}, False),                        # real ledger
+    ({"session_id": "s1", "passed": True, "skipped": True}, {"gate_host_sha": L.SKIP_GATES_SHA}, True),
+])
+def test_replay_applies_the_live_precondition_to_each_attempt(tmp_path, detail, header_over, ok):
+    with fresh(tmp_path, gated=False, **header_over):
+        pass
+    p = tmp_path / "ledger.jsonl"
+    _write_session(p, detail, attempt_key=L.RunKey("G", "C1", 1))
+    if ok:
+        with fresh(tmp_path, gated=False, **header_over) as led:
+            assert led.attempts_for(L.RunKey("G", "C1", 1)) == 1
+    else:
+        with pytest.raises(L.LedgerCorrupt, match="session"):
+            fresh(tmp_path, gated=False, **header_over)
+
+
+def test_replay_judges_each_attempt_by_its_own_session_not_a_later_one(tmp_path):
+    """Per-session ordering: an attempt written under passing gates stays valid when a LATER session
+    fails its gates (and attempts nothing); an attempt written after a failing session_gates is not."""
+    with fresh(tmp_path, gated=False):
+        pass
+    p = tmp_path / "ledger.jsonl"
+    _write_session(p, {"session_id": "s1", "passed": True, "skipped": False}, attempt_key=L.RunKey("G", "C1", 1))
+    with p.open("a", encoding="utf-8") as fh:                         # session 2: gates fail, no attempt
+        fh.write(json.dumps({"record": "event", "kind": "session_gates", "ts": "2026-09-26T01:00:00+00:00",
+                             "detail": {"session_id": "s2", "passed": False, "skipped": False}}) + "\n")
+    with fresh(tmp_path, gated=False) as led:
+        assert led.attempts_for(L.RunKey("G", "C1", 1)) == 1
+    with p.open("a", encoding="utf-8") as fh:                         # an attempt under s2's failing gates
+        fh.write(json.dumps({"record": "attempt_start", **L.RunKey("G", "A", 1).as_dict(), "attempt": 1,
+                             "ts": "2026-09-26T01:00:01+00:00"}) + "\n")
+    with pytest.raises(L.LedgerCorrupt, match="session s2"):
+        fresh(tmp_path, gated=False)

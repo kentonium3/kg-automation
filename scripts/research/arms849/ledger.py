@@ -739,6 +739,12 @@ def _replay_validate(path: pathlib.Path, header: Header, rows: list[dict[str, An
                 raise ValueError("record carries no ts")
             if kind == "attempt_start":
                 key = RunKey.of(row)
+                # The live precondition, per session in file order: every session records its
+                # session_gates before its first attempt, so the most recent one ABOVE this row is
+                # the gates of the session that wrote it (design lead, post-merge checkpoint ruling
+                # 20260926T191350728094Zd096ae83aa). A ledger whose gates were deleted, failed, or
+                # were skipped on a real header is refused — it cannot read as evidence of gates.
+                shadow._check_session_gates_passed()
                 n = shadow._check_attempt_start(key)
                 if type(row.get("attempt")) is not int or row["attempt"] != n:        # 1.0 == 1, so type first
                     raise ValueError(f"attempt_start carries attempt {row.get('attempt')!r}, expected {n}")
@@ -763,10 +769,13 @@ def _replay_validate(path: pathlib.Path, header: Header, rows: list[dict[str, An
                 shadow._check_calibration({k: v for k, v in row.items() if k not in RESERVED_CALIBRATION_FIELDS})
             elif kind == "event":
                 _check_event(row.get("kind"), row.get("detail"))
+                if row.get("kind") == SESSION_GATES:          # replay state lives on the shadow only;
+                    d = row["detail"]                         # the opening instance is never seeded
+                    shadow._session_gates = (d["session_id"], d["passed"], d["skipped"])
             else:
                 raise ValueError(f"unknown record kind {kind!r} (expected one of {_RECORD_KINDS})")
         except (ValueError, KeyError, TypeError, SecondScoredRow, AttemptsExhausted,
-                LedgerBoundToAnotherConfig) as exc:
+                LedgerBoundToAnotherConfig, SessionGatesMissing) as exc:
             raise LedgerCorrupt(f"line {i} of {path} violates the ledger contract on resume: {exc}") from None
         shadow._rows.append(row)
 
