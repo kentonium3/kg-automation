@@ -280,7 +280,8 @@
         "c7 @c8f58515: development-ledger permission keyed on the header binding; 954 pass x2 seeds",
         "c8 @4eccb601: unreadable ledger path conservatively not development; 956 pass x2 seeds",
         "c9: lexists absent-test; 963 pass x2 seeds",
-        "c10: lstat FileNotFoundError is the only fresh case; 967 pass x2 seeds"
+        "c10: lstat FileNotFoundError is the only fresh case; 967 pass x2 seeds",
+        "Codex c10 APPROVE @f8451d1a (1 MINOR → post-merge)"
       ],
       "provider": "__resolved_provider_absent__",
       "review": null,
