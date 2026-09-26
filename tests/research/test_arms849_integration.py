@@ -1369,6 +1369,29 @@ def test_skipped_gguf_resuming_a_real_ledger_with_skip_gates_is_refused_and_noth
     assert not list(cli_runs.glob("gate-*.json"))
 
 
+@pytest.mark.parametrize("make_unreadable", [
+    pytest.param(lambda p: p.write_bytes(b"\xff\n"), id="undecodable-bytes"),
+    pytest.param(lambda p: p.mkdir(), id="directory"),
+])
+def test_skipped_gguf_with_skip_gates_on_an_unreadable_ledger_path_is_refused_not_a_traceback(
+        make_unreadable, run_cli, cli_runs, capsys):
+    """REGRESSION (c7): an unreadable ledger path (undecodable header bytes, or a directory) raised an
+    uncaught UnicodeDecodeError / IsADirectoryError from the header inspection. It is conservatively
+    NOT a development ledger, so the skipped GGUF is refused with the actionable message."""
+    _run, ledger_path = run_cli
+    make_unreadable(ledger_path)
+    _write_runs(cli_runs, _preflight(), setup=SKIPPED_SETUP)
+    capsys.readouterr()
+    code = h.main(["harness", "--ledger", str(ledger_path), "--corpus", str(CORPUS), "--limit", "1",
+                   "--up-ts", "2026-09-25T00:00:00+00:00", "--skip-gates"])
+    captured = capsys.readouterr()
+    assert code == h.EXIT_FAILED
+    _assert_actionable(captured.out)
+    assert "Traceback" not in captured.err
+    assert not list(cli_runs.glob("gate-*.json"))
+    assert h._is_development_ledger(ledger_path, skip_gates=True) is False
+
+
 def test_skipped_gguf_resuming_a_development_ledger_with_skip_gates_proceeds(run_cli):
     """The header binds SKIP_GATES_SHA: the resume is a development ledger and is not refused."""
     run, ledger_path = run_cli

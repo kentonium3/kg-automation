@@ -806,14 +806,18 @@ def _is_development_ledger(path: pathlib.Path, skip_gates: bool) -> bool:
     """Whether a ``--skip-gates`` run at ``path`` writes a development ledger — the one place a skipped
     GGUF verification may bind (:func:`require_verified_gguf`). Keyed on the LEDGER, not the flag: a
     RESUMED ledger is development only when its header binds :data:`grading.SKIP_GATES_SHA`; the flag
-    decides only the fresh case (no file — the run will create a SKIP_GATES_SHA header). A present file
-    without a readable header (empty, headerless, malformed) is conservatively NOT development."""
+    decides only the fresh case (no file — the run will create a SKIP_GATES_SHA header). A present path
+    without a readable header (empty, headerless, malformed, undecodable bytes, a directory, unreadable)
+    is conservatively NOT development, so a skipped GGUF is refused rather than raising."""
     if not skip_gates:
         return False
     path = pathlib.Path(path)
     if not path.exists():
         return True
-    header = peek_header(path)
+    try:
+        header = peek_header(path)
+    except (OSError, ValueError):  # IsADirectoryError / PermissionError; UnicodeDecodeError is a ValueError
+        return False
     if header is None:
         return False
     try:
