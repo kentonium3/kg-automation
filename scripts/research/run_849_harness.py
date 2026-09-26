@@ -359,12 +359,15 @@ class SessionGates:
     details: tuple[Mapping[str, Any], ...] = ()
     skipped: bool = False
     error: str | None = None
+    chat_template_cross_check: Mapping[str, Any] | None = None
 
     def as_detail(self) -> dict[str, Any]:
         return {"passed": self.passed, "skipped": self.skipped, "gate_host_sha": self.gate_host_sha,
                 "gate_container_sha": self.gate_container_sha, "preflight_sha": self.preflight_sha,
                 "up_ts": self.up_ts, "container_start_ts": self.container_start_ts,
-                "details": [dict(d) for d in self.details], "error": self.error}
+                "details": [dict(d) for d in self.details], "error": self.error,
+                "chat_template_cross_check": dict(self.chat_template_cross_check)
+                if self.chat_template_cross_check is not None else None}
 
 
 def session_identity() -> dict[str, Any]:
@@ -897,12 +900,57 @@ def _expect_rope(config: serving.ServingConfiguration) -> str:
     return "yarn" if config.rope_scaling == "yarn" else "none"
 
 
+class ChatTemplateMismatch(RuntimeError):
+    """The served model's chat template (from /props) is not the cached tokenizer's."""
+
+
+class CrossCheckedProps:
+    """``GateEnv.props_probe`` for the container phase (design-lead rider, c5): the SAME ``/props``
+    fetch the gate already makes (``gates._props_get``), plus one comparison on its
+    ``chat_template`` field. Exposed and equal → ``match``; exposed and different → raises
+    :class:`ChatTemplateMismatch` naming both shas, so ``substrate_health_inside`` FAILS; not exposed →
+    ``could_not_check`` with the reason — recorded, never silence and never a pass, and the gate is
+    not failed on that account. The outcome is kept in :attr:`result` for the session record."""
+
+    def __init__(self, expected_sha256: str, base: Callable[[str], dict[str, Any]] | None = None) -> None:
+        self.expected = expected_sha256
+        self.base = base
+        self.result: dict[str, Any] = {"status": "not_probed", "reason": "the /props re-probe did not run"}
+
+    def __call__(self, base_url: str) -> dict[str, Any]:
+        if self.base is None:
+            from scripts.research.arms849 import gates
+
+            fetch: Callable[[str], dict[str, Any]] = gates._props_get
+        else:
+            fetch = self.base
+        props = fetch(base_url)
+        template = props.get("chat_template") if isinstance(props, dict) else None
+        if not isinstance(template, str) or not template:
+            self.result = {"status": "could_not_check",
+                           "reason": "/props exposes no chat_template string for the served model"}
+            return props
+        served = hashlib.sha256(template.encode("utf-8")).hexdigest()
+        if served != self.expected:
+            self.result = {"status": "mismatch", "served_sha256": served, "cached_sha256": self.expected}
+            raise ChatTemplateMismatch(f"served chat template sha256 {served} != cached tokenizer {self.expected}")
+        self.result = {"status": "match", "served_sha256": served, "cached_sha256": self.expected}
+        return props
+
+
+def _cross_check(env: Any) -> dict[str, Any] | None:
+    probe = getattr(env, "extra", {}).get("chat_template_cross_check")
+    return dict(probe.result) if isinstance(probe, CrossCheckedProps) else None
+
+
 def _gate_env(corpus: pathlib.Path, config: serving.ServingConfiguration, up_ts: str,
               header_code_hashes: dict[str, str] | None = None, run_root: pathlib.Path = REPO_ROOT) -> Any:
     from scripts.research.arms849 import gates
     from scripts.research.arms849.substrate import CACHE_DIR
 
+    probe = CrossCheckedProps(config.chat_template_sha256)
     return gates.GateEnv(
+        props_probe=probe, extra={"chat_template_cross_check": probe},
         run_root=run_root, corpus_dir=corpus, cache_dir=pathlib.Path(os.environ.get("ARMS849_CACHE", str(CACHE_DIR))),
         preflight_path=RUNS_DIR / "preflight.json", export_manifest_path=run_root / ".export-manifest.json",
         llama_base_url=LLAMA_URL, expect_n_ctx=config.n_ctx,
@@ -936,12 +984,14 @@ def live_gates(ledger_path: pathlib.Path, corpus: pathlib.Path, config: serving.
         preflight_sha = str(load_preflight(RUNS_DIR / "preflight.json")["preflight_sha"])
     except Exception as exc:  # noqa: BLE001 — a gate that refuses or raises has failed, with the reason
         error = f"{type(exc).__name__}: {exc}"
-        failed = write_gate_failure(RUNS_DIR / "gate-container.json", "container", exc, up_ts)
+        failed = write_gate_failure(RUNS_DIR / "gate-container.json", "container", exc, up_ts,
+                                    extra={"chat_template_cross_check": _cross_check(env)})
         return SessionGates(passed=False, up_ts=up_ts, container_start_ts=PROCESS_START, error=error,
-                            details=tuple(failed))
+                            details=tuple(failed), chat_template_cross_check=_cross_check(env))
     details = tuple({"name": r.name, "passed": r.passed, "detail": r.detail} for r in results)
     return SessionGates(passed=True, gate_host_sha=str(host["gate_host_sha"]), gate_container_sha=gate_container_sha,
-                        preflight_sha=preflight_sha, up_ts=up_ts, container_start_ts=PROCESS_START, details=details)
+                        preflight_sha=preflight_sha, up_ts=up_ts, container_start_ts=PROCESS_START, details=details,
+                        chat_template_cross_check=_cross_check(env))
 
 
 def failed_gates(exc: BaseException) -> list[dict[str, Any]]:
@@ -954,7 +1004,8 @@ def failed_gates(exc: BaseException) -> list[dict[str, Any]]:
     return out or [{"name": type(exc).__name__, "passed": False, "detail": str(exc)}]
 
 
-def write_gate_failure(path: pathlib.Path, phase: str, exc: BaseException, up_ts: str) -> list[dict[str, Any]]:
+def write_gate_failure(path: pathlib.Path, phase: str, exc: BaseException, up_ts: str,
+                       extra: Mapping[str, Any] | None = None) -> list[dict[str, Any]]:
     """Design-lead rider 1: a failing phase still leaves its record (``gate-<phase>.json``) naming the
     failing gate(s) and detail — ``passed: false`` and self-hashed like the passing records, so it
     can never be mistaken for, or verified as, a passing one. No ledger or header is touched."""
@@ -964,7 +1015,8 @@ def write_gate_failure(path: pathlib.Path, phase: str, exc: BaseException, up_ts
     sha_field = f"gate_{phase}_sha"
     record: dict[str, Any] = {"phase": phase, "passed": False, "ts": datetime.now(timezone.utc).isoformat(),
                               "up_ts": up_ts, "container_start_ts": PROCESS_START if phase == "container" else None,
-                              "error": f"{type(exc).__name__}: {exc}", "failed": failed, "results": failed}
+                              "error": f"{type(exc).__name__}: {exc}", "failed": failed, "results": failed,
+                              **(extra or {})}
     record[sha_field] = gates.record_sha(record, sha_field)
     path = pathlib.Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -1023,42 +1075,90 @@ def _tokenizer_chat_sha() -> str:
         .chat_template_sha256()
 
 
+def _is_sha256(value: Any) -> bool:
+    return isinstance(value, str) and len(value) == 64 and all(c in "0123456789abcdef" for c in value)
+
+
+def load_preflight_record(path: pathlib.Path) -> dict[str, Any]:
+    """The preflight LOAD BOUNDARY (Codex c4): read, self-hash-verify and structurally validate
+    preflight.json. ANY exception while doing so — OSError, JSON errors, and the AttributeError /
+    TypeError / KeyError a non-object top level or a wrongly typed field raises inside the loader — is
+    translated into :class:`PreflightUnusable` naming the original, chained. Only loading is wrapped."""
+    from scripts.research.arms849.preflight import PreflightRefused, load_preflight
+
+    path = pathlib.Path(path)
+    try:
+        if not path.is_file():
+            raise PreflightUnusable(f"{path} absent — run the preflight from the full checkout first")
+        raw = json.loads(path.read_text(encoding="utf-8"))
+        if not isinstance(raw, dict):              # checked BEFORE the loader touches it (.get on a list)
+            raise PreflightUnusable(f"{path} top level is {type(raw).__name__}, not a JSON object")
+        record = load_preflight(path)
+        if not isinstance(record, dict):
+            raise PreflightUnusable(f"{path} is not a JSON object")
+        if not _is_sha256(record.get("preflight_sha")):
+            raise PreflightUnusable(f"{path}: preflight_sha must be a 64-hex str, got {record.get('preflight_sha')!r}")
+        if not _is_sha256(record.get("chat_template_sha256")):
+            raise PreflightUnusable(f"{path}: chat_template_sha256 must be a 64-hex str (939d9b29 requires it), "
+                                    f"got {record.get('chat_template_sha256')!r}")
+        if not isinstance(record.get("gates", []), list):
+            raise PreflightUnusable(f"{path}: gates must be a list, got {type(record.get('gates')).__name__}")
+        return record
+    except PreflightUnusable:
+        raise
+    except PreflightRefused as exc:
+        raise PreflightUnusable(str(exc)) from exc
+    except Exception as exc:  # the whole preflight load boundary, and only it
+        raise PreflightUnusable(f"{path} unusable — {type(exc).__name__}: {exc}") from exc
+
+
+def load_setup_record(path: pathlib.Path) -> dict[str, Any]:
+    """The setup LOAD BOUNDARY (Codex c4): read setup.json, validate its STRUCTURE (a JSON object;
+    ``llama_image`` a str with an ``@sha256:`` digest; ``gguf_sha256`` a 64-hex str; ``cache_shas`` a
+    dict of str → str with files under ``fastembed/`` and ``qwen-tokenizer/``). ANY exception while
+    doing so becomes :class:`ConfigUnavailable`, chained and named. Read FIRST, before the preflight."""
+    path = pathlib.Path(path)
+    try:
+        record = json.loads(path.read_text(encoding="utf-8"))
+        if not isinstance(record, dict):
+            raise ConfigUnavailable(f"{path} top level is {type(record).__name__}, not a JSON object")
+        image = record.get("llama_image")
+        if not isinstance(image, str) or "@sha256:" not in image:
+            raise ConfigUnavailable(f"{path}: llama_image must be a str pinned by digest, got {image!r}")
+        if not _is_sha256(record.get("gguf_sha256")):
+            raise ConfigUnavailable(f"{path}: gguf_sha256 must be a verified 64-hex str, got {record.get('gguf_sha256')!r}")
+        cache = record.get("cache_shas")
+        if not isinstance(cache, dict) or not all(isinstance(k, str) and isinstance(v, str) for k, v in cache.items()):
+            raise ConfigUnavailable(f"{path}: cache_shas must be an object of path → sha strings, got {cache!r:.80}")
+        for prefix in ("fastembed/", "qwen-tokenizer/"):
+            if not any(k.startswith(prefix) for k in cache):
+                raise ConfigUnavailable(f"{path}: cache_shas records no files under {prefix}")
+        return record
+    except ConfigUnavailable:
+        raise
+    except Exception as exc:  # the whole setup load boundary, and only it
+        raise ConfigUnavailable(f"{path} unusable — {type(exc).__name__}: {exc}; run substrate setup") from exc
+
+
 def live_config(secondary: bool) -> serving.ServingConfiguration:
     """The configuration of record, from setup.json + preflight.json. Every preflight problem raises
     :class:`PreflightUnusable` (a gate failure, recorded and exit 3); a setup problem raises
-    :class:`ConfigUnavailable`. No other exception escapes."""
-    from scripts.research.arms849.preflight import PreflightRefused, load_preflight
-
+    :class:`ConfigUnavailable` (REFUSED, exit 1). No other exception escapes. The chat-template sha
+    authority is the CACHED tokenizer; the preflight's must equal it (design lead, c4)."""
     setup_path, preflight_path = RUNS_DIR / "setup.json", RUNS_DIR / "preflight.json"
-    try:
-        setup_record = json.loads(setup_path.read_text(encoding="utf-8"))
-        if not isinstance(setup_record, dict):
-            raise ValueError("not a JSON object")  # noqa: TRY004 — caught just below as "unusable"
-    except (OSError, ValueError) as exc:
-        raise ConfigUnavailable(f"{setup_path} unusable — {type(exc).__name__}: {exc}; run substrate setup") from exc
-    if not preflight_path.is_file():
-        raise PreflightUnusable(f"{preflight_path} absent — run the preflight from the full checkout first")
-    try:
-        record = load_preflight(preflight_path)
-    except PreflightRefused as exc:
-        raise PreflightUnusable(str(exc)) from exc
-    except (OSError, ValueError) as exc:              # JSONDecodeError is a ValueError
-        raise PreflightUnusable(f"{preflight_path} unreadable — {type(exc).__name__}: {exc}") from exc
-    if not isinstance(record, dict):
-        raise PreflightUnusable(f"{preflight_path} is not a JSON object")
-    sha = record.get("chat_template_sha256")
-    if not isinstance(sha, str) or len(sha) != 64 or any(c not in "0123456789abcdef" for c in sha):
-        raise PreflightUnusable(f"{preflight_path} carries no chat_template_sha256 (939d9b29 requires it)")
+    setup_record = load_setup_record(setup_path)
+    record = load_preflight_record(preflight_path)
+    sha = str(record["chat_template_sha256"])
     try:
         cached = _tokenizer_chat_sha()
-    except Exception as exc:
+    except Exception as exc:  # the comparison cannot be made: a failed gate, with the reason
         raise PreflightUnusable(f"cached tokenizer's chat template unavailable — {type(exc).__name__}: {exc}") from exc
     if cached != sha:
         raise PreflightUnusable(f"preflight chat_template_sha256 {sha[:12]} != cached tokenizer {cached[:12]}")
     try:
         identity = identity_from_setup(setup_record, sha)
-    except (KeyError, RuntimeError) as exc:
-        raise ConfigUnavailable(f"{setup_path} lacks an identity field — {type(exc).__name__}: {exc}") from exc
+    except Exception as exc:  # still the setup boundary: a validated record that cannot build
+        raise ConfigUnavailable(f"{setup_path}: identity cannot be built — {type(exc).__name__}: {exc}") from exc
     return serving.ServingConfiguration.secondary_yarn(identity) if secondary else serving.ServingConfiguration.primary(identity)
 
 
@@ -1289,15 +1389,17 @@ def main(argv: list[str]) -> int:
         if args.gates:
             from scripts.research.arms849 import gates
 
+            env = _gate_env(args.corpus, config, args.up_ts)
             try:
-                results, sha = gates.run_container_phase(_gate_env(args.corpus, config, args.up_ts),
-                                                         RUNS_DIR / "gate-container.json")
+                results, sha = gates.run_container_phase(env, RUNS_DIR / "gate-container.json")
             except gates.GatesRefused as exc:
-                write_gate_failure(RUNS_DIR / "gate-container.json", "container", exc, args.up_ts)
+                write_gate_failure(RUNS_DIR / "gate-container.json", "container", exc, args.up_ts,
+                                   extra={"chat_template_cross_check": _cross_check(env)})
                 print(f"arms849 status: container gates FAILED — gate-container.json records it\n{exc}")
                 return EXIT_GATES_FAILED
             for r in results:
                 print(f"  {'PASS' if r.passed else 'FAIL'} {r.name}: {r.detail}")
+            print(f"chat_template_cross_check {json.dumps(_cross_check(env))}")
             print(f"gate_container_sha {sha}")
             return 0
         gates_outcome = live_gates(args.ledger, args.corpus, config, args.up_ts, args.skip_gates)

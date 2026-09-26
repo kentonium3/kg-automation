@@ -1006,20 +1006,21 @@ def test_failing_host_gates_record_them_and_exit_distinctly(tmp_path, monkeypatc
 # --------------------------------------------------------------------------
 
 
-def _write_runs(runs_dir: pathlib.Path, preflight: str | None) -> None:
+GOOD_SETUP = {"llama_image": "ghcr.io/ggml-org/llama.cpp@sha256:" + "b" * 64, "gguf_sha256": "a" * 64,
+              "cache_shas": {"fastembed/model.onnx": "1" * 64, "qwen-tokenizer/tokenizer.json": "2" * 64}}
+
+
+def _write_runs(runs_dir: pathlib.Path, preflight: str | None, setup: str | None = None) -> None:
     runs_dir.mkdir(parents=True, exist_ok=True)
-    (runs_dir / "setup.json").write_text(json.dumps({
-        "llama_image": "ghcr.io/ggml-org/llama.cpp@sha256:" + "b" * 64, "gguf_sha256": "a" * 64,
-        "cache_shas": {"fastembed/model.onnx": "1" * 64, "qwen-tokenizer/tokenizer.json": "2" * 64}}),
-        encoding="utf-8")
+    (runs_dir / "setup.json").write_text(json.dumps(GOOD_SETUP) if setup is None else setup, encoding="utf-8")
     if preflight is not None:
         (runs_dir / "preflight.json").write_text(preflight, encoding="utf-8")
 
 
-def _preflight(chat: str = "e" * 64, tamper: bool = False) -> str:
+def _preflight(chat: Any = "e" * 64, tamper: bool = False, **fields: Any) -> str:
     from scripts.research.arms849.preflight import preflight_sha
 
-    payload: dict[str, Any] = {"gates": [], "chat_template_sha256": chat, "ts": "2026-09-25T00:00:00+00:00"}
+    payload: dict[str, Any] = {"gates": [], "chat_template_sha256": chat, "ts": "2026-09-25T00:00:00+00:00", **fields}
     payload["preflight_sha"] = preflight_sha(payload)
     if tamper:
         payload["ts"] = "2026-09-26T00:00:00+00:00"            # content changed after hashing
@@ -1028,7 +1029,7 @@ def _preflight(chat: str = "e" * 64, tamper: bool = False) -> str:
 
 PREFLIGHT_CASES = {
     "missing": (None, "absent"),
-    "invalid-json": ("{not json", "unreadable"),
+    "invalid-json": ("{not json", "JSONDecodeError"),
     "hash-mismatch": (_preflight(tamper=True), "does not match its content"),
     "chat-template-mismatch": (_preflight(chat="0" * 64), "!= cached tokenizer"),
 }
@@ -1090,3 +1091,176 @@ def test_a_usable_preflight_builds_the_configuration(cli_runs):
 def test_a_missing_setup_record_is_refused_not_raised(cli_runs, capsys):
     assert h.main(["harness", "--up-ts", "2026-09-25T00:00:00+00:00"]) == h.EXIT_FAILED
     assert "ConfigUnavailable" in capsys.readouterr().out
+
+
+# --------------------------------------------------------------------------
+# Fix cycle 5 (review-feedback-4.md): malformed STRUCTURE at the two load boundaries; the
+# chat-template cross-check on the /props re-probe
+# --------------------------------------------------------------------------
+
+CLI_PATHS = {
+    "host-gates": ["--host-gates"],
+    "gates": ["--gates"],
+    "run-fresh": [],
+    "run-resumed": [],
+}
+
+PREFLIGHT_FUZZ = {
+    "top-list": "[]", "top-null": "null", "top-int": "3", "top-str": '"x"', "empty-object": "{}",
+    "chat-sha-int": _preflight(chat=5), "chat-sha-list": _preflight(chat=["e"]),
+    "gates-str": _preflight(gates="x"), "preflight-sha-int": json.dumps({"preflight_sha": 5}),
+}
+
+SETUP_FUZZ = {
+    "top-list": "[]", "top-null": "null", "top-str": '"x"', "empty-object": "{}",
+    "cache-shas-list": json.dumps({**GOOD_SETUP, "cache_shas": []}),
+    "cache-shas-null": json.dumps({**GOOD_SETUP, "cache_shas": None}),
+    "cache-shas-str": json.dumps({**GOOD_SETUP, "cache_shas": "x"}),
+    "cache-shas-int-values": json.dumps({**GOOD_SETUP, "cache_shas": {"fastembed/a": 1, "qwen-tokenizer/b": 2}}),
+    "no-llama-image": json.dumps({k: v for k, v in GOOD_SETUP.items() if k != "llama_image"}),
+    "no-cache-shas": json.dumps({k: v for k, v in GOOD_SETUP.items() if k != "cache_shas"}),
+    "gguf-skipped": json.dumps({**GOOD_SETUP, "gguf_sha256": "skipped"}),
+}
+
+
+def _cli(tmp_path: pathlib.Path, path_kind: str) -> tuple[list[str], pathlib.Path, list[dict[str, Any]]]:
+    ledger_path = tmp_path / "ledger.jsonl"
+    before: list[dict[str, Any]] = []
+    if path_kind == "run-resumed":
+        with open_fake(ledger_path) as ledger:
+            h.run_session(ledger, make_runtime(fake_arms()), limit=1)
+        before = rows_of(ledger_path)
+    argv = ["harness", "--ledger", str(ledger_path), "--up-ts", "2026-09-25T00:00:00+00:00", *CLI_PATHS[path_kind]]
+    return argv, ledger_path, before
+
+
+@pytest.mark.parametrize("case", list(PREFLIGHT_FUZZ))
+@pytest.mark.parametrize("path_kind", list(CLI_PATHS))
+def test_a_structurally_malformed_preflight_is_a_recorded_gate_failure(tmp_path, cli_runs, capsys, case, path_kind):
+    _write_runs(cli_runs, PREFLIGHT_FUZZ[case])
+    argv, ledger_path, before = _cli(tmp_path, path_kind)
+    assert h.main(argv) == h.EXIT_GATES_FAILED
+    err = capsys.readouterr().err
+    assert "Traceback" not in err
+    record_name = "gate-host.json" if path_kind == "host-gates" else "gate-container.json"
+    record = json.loads((cli_runs / record_name).read_text(encoding="utf-8"))
+    assert record["passed"] is False and record["failed"][0]["name"] == "preflight_present_and_matching"
+    if path_kind == "run-resumed":
+        rows = rows_of(ledger_path)
+        assert rows[:len(before)] == before and rows[-1]["kind"] == "session_gates"
+        assert rows[-1]["detail"]["passed"] is False
+    elif path_kind == "run-fresh":
+        assert not ledger_path.exists()
+
+
+@pytest.mark.parametrize("case", list(SETUP_FUZZ))
+@pytest.mark.parametrize("path_kind", list(CLI_PATHS))
+def test_a_structurally_malformed_setup_record_is_refused(tmp_path, cli_runs, capsys, case, path_kind):
+    _write_runs(cli_runs, _preflight(), setup=SETUP_FUZZ[case])
+    argv, ledger_path, before = _cli(tmp_path, path_kind)
+    assert h.main(argv) == h.EXIT_FAILED
+    captured = capsys.readouterr()
+    assert "Traceback" not in captured.err
+    assert "harness: REFUSED" in captured.out and "ConfigUnavailable" in captured.out
+    assert not (cli_runs / "gate-host.json").exists() and not (cli_runs / "gate-container.json").exists()
+    if path_kind == "run-resumed":
+        assert rows_of(ledger_path) == before
+    elif path_kind == "run-fresh":
+        assert not ledger_path.exists()
+
+
+def test_the_load_boundaries_name_and_chain_the_original_exception(cli_runs):
+    _write_runs(cli_runs, "[]")
+    with pytest.raises(h.PreflightUnusable) as pre:
+        h.load_preflight_record(cli_runs / "preflight.json")
+    assert "top level is list" in str(pre.value)
+    (cli_runs / "setup.json").write_text(json.dumps({**GOOD_SETUP, "cache_shas": {"fastembed/a": "1"}}), encoding="utf-8")
+    with pytest.raises(h.ConfigUnavailable, match="no files under qwen-tokenizer/"):
+        h.load_setup_record(cli_runs / "setup.json")
+    (cli_runs / "setup.json").write_text("{bad", encoding="utf-8")
+    with pytest.raises(h.ConfigUnavailable, match="JSONDecodeError") as cfg:
+        h.load_setup_record(cli_runs / "setup.json")
+    assert isinstance(cfg.value.__cause__, json.JSONDecodeError)
+
+
+def test_gate_execution_errors_keep_their_handling(tmp_path, cli_runs, monkeypatch):
+    """Only LOADING is wrapped: an exception raised while a gate EXECUTES is still the container phase's
+    failure (gate-container.json names it), not a preflight or setup problem."""
+    from scripts.research.arms849 import gates
+
+    _write_runs(cli_runs, _preflight())
+
+    def boom(env: Any, out: Any) -> Any:
+        raise gates.GatesRefused("container phase refused:\n  tokenizer_equivalence: line 3 differs")
+
+    monkeypatch.setattr(gates, "run_container_phase", boom)
+    argv, _, _ = _cli(tmp_path, "run-fresh")
+    assert h.main(argv) == h.EXIT_GATES_FAILED
+    record = json.loads((cli_runs / "gate-container.json").read_text(encoding="utf-8"))
+    assert record["failed"][0]["name"] == "tokenizer_equivalence"
+
+
+TEMPLATE = "{% for m in messages %}<|im_start|>{{ m.content }}<|im_end|>{% endfor %}"
+TEMPLATE_SHA = hashlib.sha256(TEMPLATE.encode()).hexdigest()
+
+
+def _props(template: str | None) -> dict[str, Any]:
+    props: dict[str, Any] = {"default_generation_settings": {"n_ctx": 262_144},
+                             "model_path": "/models/Qwen3-Next-80B-A3B-Instruct-UD-Q4_K_XL.gguf"}
+    if template is not None:
+        props["chat_template"] = template
+    return props
+
+
+def test_cross_check_passes_on_a_matching_served_template():
+    probe = h.CrossCheckedProps(TEMPLATE_SHA, base=lambda url: _props(TEMPLATE))
+    assert probe("http://llama:8080")["chat_template"] == TEMPLATE
+    assert probe.result == {"status": "match", "served_sha256": TEMPLATE_SHA, "cached_sha256": TEMPLATE_SHA}
+
+
+def test_cross_check_fails_the_gate_on_a_different_served_template(tmp_path):
+    from scripts.research.arms849 import gates
+
+    probe = h.CrossCheckedProps(TEMPLATE_SHA, base=lambda url: _props(TEMPLATE + " "))
+    env = gates.GateEnv(run_root=tmp_path, corpus_dir=CORPUS, cache_dir=tmp_path, preflight_path=tmp_path / "p.json",
+                        export_manifest_path=tmp_path / "m.json", props_probe=probe)
+    ok, detail = gates.substrate_health_inside(env)
+    served = hashlib.sha256((TEMPLATE + " ").encode()).hexdigest()
+    assert ok is False and served in detail and TEMPLATE_SHA in detail
+    assert probe.result["status"] == "mismatch"
+
+
+def test_cross_check_records_could_not_check_without_failing_on_it():
+    probe = h.CrossCheckedProps(TEMPLATE_SHA, base=lambda url: _props(None))
+    assert probe("http://llama:8080")["default_generation_settings"]["n_ctx"] == 262_144   # no raise
+    assert probe.result["status"] == "could_not_check" and "no chat_template" in probe.result["reason"]
+
+
+@pytest.mark.parametrize(("template", "passed", "status"), [(TEMPLATE, True, "match"),
+                                                            (TEMPLATE + " ", False, "mismatch"),
+                                                            (None, True, "could_not_check")])
+def test_the_cross_check_outcome_reaches_the_session_record(tmp_path, cli_runs, monkeypatch, template, passed, status):
+    """live_gates wires the probe into the container phase and records its outcome in SessionGates
+    (hence the session_gates event); a mismatch fails the phase."""
+    from scripts.research.arms849 import gates
+
+    config = serving.ServingConfiguration.primary(dataclasses.replace(IDENTITY, chat_template_sha256=TEMPLATE_SHA))
+    _write_runs(cli_runs, _preflight(chat=TEMPLATE_SHA))
+    (cli_runs / "gate-host.json").write_text(json.dumps({"gate_host_sha": "2" * 64}), encoding="utf-8")
+
+    def phase(env: Any, out: Any) -> Any:
+        env.extra["chat_template_cross_check"].base = lambda url: _props(template)
+        try:
+            env.props_probe(env.llama_base_url)
+        except h.ChatTemplateMismatch as exc:
+            raise gates.GatesRefused(f"container phase refused:\n  substrate_health_inside: /props probe failed: "
+                                     f"ChatTemplateMismatch: {exc}") from exc
+        return [], "3" * 64
+
+    outcome = h.live_gates(tmp_path / "l.jsonl", CORPUS, config, "2026-09-25T00:00:00+00:00", False, phase)
+    assert outcome.passed is passed and outcome.chat_template_cross_check is not None
+    assert outcome.chat_template_cross_check["status"] == status
+    assert outcome.as_detail()["chat_template_cross_check"]["status"] == status
+    if not passed:
+        record = json.loads((cli_runs / "gate-container.json").read_text(encoding="utf-8"))
+        assert record["chat_template_cross_check"]["status"] == "mismatch"
