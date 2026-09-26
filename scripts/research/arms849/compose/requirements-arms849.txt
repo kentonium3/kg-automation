@@ -1,0 +1,7 @@
+# Pinned runtime dependencies for the #849 arms (research.md §Supply chain).
+# Installed into the repo venv by `substrate setup` and into the runner image.
+# `openai` was listed by the task prompt; the client is urllib to /completion
+# (WP01) and the design lead accepted dropping it (2026-09-25 00:45Z).
+graphiti-core==0.30.2
+falkordb==1.7.1
+fastembed==0.8.1
