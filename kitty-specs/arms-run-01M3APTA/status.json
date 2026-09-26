@@ -309,12 +309,21 @@
     },
     "WP09": {
       "actor": "claude",
+      "agent": "claude",
+      "agent_profile": "__resolved_profile_absent__",
+      "agent_profile_version": "__resolved_profile_version_absent__",
       "cancellation_reason": "Kent ruling option A (2026-09-26, confirmed in-session ~18:41Z; #1021): WP09 (the live 72-cell run + run record) needs the merged code plus post-merge items C4/C8/C9/C11/C12, so it cannot be done before this mission merges. Moved to a follow-on mission scoped as the C-items + the run + blinded grading.",
       "force_count": 0,
       "lane": "canceled",
       "last_event_id": "01M3FGJKX94XQ2YDH4MPW5BP9H",
       "last_transition_at": "2026-09-26T18:45:24.521990+00:00",
-      "reason_source": "operator"
+      "model": "__resolved_model_absent__",
+      "notes": [
+        "Kent ruling option A (2026-09-26, confirmed in-session ~18:41Z; #1021): WP09 (the live 72-cell run + run record) needs the merged code plus post-merge items C4/C8/C9/C11/C12, so it cannot be done before this mission merges. Moved to a follow-on mission scoped as the C-items + the run + blinded grading."
+      ],
+      "provider": "__resolved_provider_absent__",
+      "reason_source": "operator",
+      "role": "implementer"
     }
   }
 }
