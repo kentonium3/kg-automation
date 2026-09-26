@@ -894,7 +894,7 @@ def test_host_gates_derive_expectations_from_the_selected_configuration(monkeypa
     from scripts.research.arms849 import gates
 
     seen: list[Any] = []
-    monkeypatch.setattr(h, "live_config", lambda secondary: SECONDARY if secondary else PRIMARY)
+    monkeypatch.setattr(h, "live_config", lambda secondary, **_: SECONDARY if secondary else PRIMARY)
     monkeypatch.setattr(h, "_IN_CONTAINER", False)
     monkeypatch.setattr(gates, "run_host_phase", lambda env, out: (seen.append(env), ([], "f" * 64))[1])
     assert h.main(["harness", "--host-gates", "--up-ts", "2026-09-25T00:00:00+00:00", *flag]) == 0
@@ -953,7 +953,7 @@ def test_a_resumed_live_session_with_failing_gates_records_them_and_stops(tmp_pa
     with open_fake(path) as ledger:
         h.run_session(ledger, make_runtime(fake_arms()), limit=2)
     before = len(rows_of(path))
-    monkeypatch.setattr(h, "live_config", lambda secondary: PRIMARY)
+    monkeypatch.setattr(h, "live_config", lambda secondary, **_: PRIMARY)
     monkeypatch.setattr(h, "live_gates", lambda *a, **k: h.SessionGates(passed=False, error="GatesRefused: boundary"))
     assert h.main(["harness", "--ledger", str(path)]) == h.EXIT_GATES_FAILED
     rows = rows_of(path)
@@ -972,7 +972,7 @@ def test_a_fresh_run_with_failing_gates_records_them_and_exits_distinctly(tmp_pa
                                  "  tokenizer_equivalence: line 3 differs")
 
     monkeypatch.setattr(h, "RUNS_DIR", tmp_path / "runs")
-    monkeypatch.setattr(h, "live_config", lambda secondary: PRIMARY)
+    monkeypatch.setattr(h, "live_config", lambda secondary, **_: PRIMARY)
     monkeypatch.setattr(gates, "run_container_phase", refuse)
     fresh = tmp_path / "fresh.jsonl"
     code = h.main(["harness", "--ledger", str(fresh), "--up-ts", "2026-09-25T00:00:00+00:00"])
@@ -992,7 +992,7 @@ def test_failing_host_gates_record_them_and_exit_distinctly(tmp_path, monkeypatc
         raise gates.GatesRefused("host phase refused:\n  boundary: boundary self-test failed: ['host_checkout']")
 
     monkeypatch.setattr(substrate, "RUNS_DIR", tmp_path / "runs")
-    monkeypatch.setattr(h, "live_config", lambda secondary: SECONDARY if secondary else PRIMARY)
+    monkeypatch.setattr(h, "live_config", lambda secondary, **_: SECONDARY if secondary else PRIMARY)
     monkeypatch.setattr(h, "_IN_CONTAINER", False)
     monkeypatch.setattr(gates, "run_host_phase", refuse)
     code = h.main(["harness", "--host-gates", "--secondary", "--up-ts", "2026-09-25T00:00:00+00:00"])
@@ -1264,3 +1264,79 @@ def test_the_cross_check_outcome_reaches_the_session_record(tmp_path, cli_runs, 
     if not passed:
         record = json.loads((cli_runs / "gate-container.json").read_text(encoding="utf-8"))
         assert record["chat_template_cross_check"]["status"] == "mismatch"
+
+
+# --------------------------------------------------------------------------
+# Fix cycle 6 (design-lead rider): a skipped GGUF verification binds only a --skip-gates ledger
+# --------------------------------------------------------------------------
+
+SKIPPED_SETUP = json.dumps({**GOOD_SETUP, "gguf_sha256": "skipped"})
+
+
+@pytest.fixture
+def run_cli(tmp_path, cli_runs, monkeypatch):
+    """main's run path with fake gates (real ones only for --skip-gates) and a fake-arm runtime."""
+    real_live_gates = h.live_gates
+
+    def gates(ledger_path, corpus, config, up_ts, skip_gates, container_phase=None):
+        return real_live_gates(ledger_path, corpus, config, up_ts, True) if skip_gates else PASSING_GATES
+
+    monkeypatch.setattr(h, "live_gates", gates)
+    monkeypatch.setattr(h, "live_runtime", lambda config, corpus, g: make_runtime(fake_arms(), config=config, gates=g))
+    ledger_path = tmp_path / "ledger.jsonl"
+
+    def run(setup: str, *extra: str) -> int:
+        _write_runs(cli_runs, _preflight(), setup=setup)
+        return h.main(["harness", "--ledger", str(ledger_path), "--corpus", str(CORPUS), "--limit", "1",
+                       "--up-ts", "2026-09-25T00:00:00+00:00", *extra])
+    return run, ledger_path
+
+
+def _assert_actionable(out: str) -> None:
+    assert "harness: REFUSED" in out and "ConfigUnavailable" in out
+    assert "gguf_sha256" in out and "verification was skipped" in out and "substrate setup" in out
+
+
+def test_skipped_gguf_on_a_fresh_real_ledger_is_refused_actionably(run_cli, capsys):
+    run, ledger_path = run_cli
+    assert run(SKIPPED_SETUP) == h.EXIT_FAILED
+    captured = capsys.readouterr()
+    _assert_actionable(captured.out)
+    assert "Traceback" not in captured.err and not ledger_path.exists()
+
+
+def test_skipped_gguf_on_a_resumed_real_ledger_is_refused_and_the_ledger_is_unchanged(run_cli, capsys):
+    run, ledger_path = run_cli
+    assert run(json.dumps(GOOD_SETUP)) == h.EXIT_OK                  # a real ledger, one cell
+    before = ledger_path.read_bytes()
+    capsys.readouterr()
+    assert run(SKIPPED_SETUP) == h.EXIT_FAILED
+    captured = capsys.readouterr()
+    _assert_actionable(captured.out)
+    assert "Traceback" not in captured.err and ledger_path.read_bytes() == before
+
+
+def test_skipped_gguf_is_refused_by_the_real_gate_phases_even_with_skip_gates(run_cli, capsys):
+    """--host-gates / --gates are real gate phases: never a development ledger."""
+    run, _ = run_cli
+    for phase in ("--host-gates", "--gates"):
+        assert run(SKIPPED_SETUP, phase, "--skip-gates") == h.EXIT_FAILED
+        _assert_actionable(capsys.readouterr().out)
+
+
+def test_skipped_gguf_proceeds_on_a_skip_gates_ledger_fresh_and_resumed(run_cli):
+    run, ledger_path = run_cli
+    assert run(SKIPPED_SETUP, "--skip-gates") == h.EXIT_OK
+    assert run(SKIPPED_SETUP, "--skip-gates") == h.EXIT_OK            # resumed: same binding
+    header = json.loads(ledger_path.read_text(encoding="utf-8").splitlines()[0])
+    assert header["gate_container_sha"] == grading.SKIP_GATES_SHA and header["serving"]["gguf_sha256"] == "skipped"
+    assert len(runs(ledger_path)) == 2
+
+
+@pytest.mark.parametrize("skip", [False, True], ids=["real", "skip-gates"])
+def test_verified_gguf_proceeds_on_both_kinds_fresh_and_resumed(run_cli, skip):
+    run, ledger_path = run_cli
+    flags = ["--skip-gates"] if skip else []
+    assert run(json.dumps(GOOD_SETUP), *flags) == h.EXIT_OK
+    assert run(json.dumps(GOOD_SETUP), *flags) == h.EXIT_OK
+    assert len(runs(ledger_path)) == 2

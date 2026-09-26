@@ -1112,11 +1112,39 @@ def load_preflight_record(path: pathlib.Path) -> dict[str, Any]:
         raise PreflightUnusable(f"{path} unusable — {type(exc).__name__}: {exc}") from exc
 
 
-def load_setup_record(path: pathlib.Path) -> dict[str, Any]:
+#: The value WP02's ``substrate setup --skip-gguf-verify`` records in place of the GGUF sha256.
+GGUF_SKIPPED = "skipped"
+
+
+@dataclass(frozen=True)
+class SetupRecord:
+    """A structurally valid setup.json. ``gguf_verified`` is False only for WP02's literal
+    ``"skipped"`` — carried OUT of the load boundary as a typed value, so the decision is taken where
+    the ledger's binding kind is known (design-lead rider, cycle 6), never by loosening the boundary."""
+
+    record: dict[str, Any]
+    gguf_verified: bool
+
+
+def require_verified_gguf(setup: SetupRecord, path: pathlib.Path, development_ledger: bool) -> None:
+    """A skipped GGUF verification binds ONLY a ``--skip-gates`` development ledger (one that binds
+    ``SKIP_GATES_SHA`` — already refused as a primary and by export), the same principle as a skipped
+    ``session_gates``. Any real ledger, fresh or resumed, needs verified provenance."""
+    if setup.gguf_verified or development_ledger:
+        return
+    raise ConfigUnavailable(
+        f"{path}: gguf_sha256 is {GGUF_SKIPPED!r} — the GGUF verification was skipped at setup, and a real "
+        f"ledger binds only a verified model. Re-run `python3 -m scripts.research.arms849.substrate setup` "
+        f"WITH verification (without --skip-gguf-verify); a skipped verification is accepted only with "
+        f"--skip-gates (development ledgers).")
+
+
+def load_setup_record(path: pathlib.Path) -> SetupRecord:
     """The setup LOAD BOUNDARY (Codex c4): read setup.json, validate its STRUCTURE (a JSON object;
-    ``llama_image`` a str with an ``@sha256:`` digest; ``gguf_sha256`` a 64-hex str; ``cache_shas`` a
-    dict of str → str with files under ``fastembed/`` and ``qwen-tokenizer/``). ANY exception while
-    doing so becomes :class:`ConfigUnavailable`, chained and named. Read FIRST, before the preflight."""
+    ``llama_image`` a str with an ``@sha256:`` digest; ``gguf_sha256`` a 64-hex str, or exactly
+    :data:`GGUF_SKIPPED` carried as ``gguf_verified=False``; ``cache_shas`` a dict of str → str with
+    files under ``fastembed/`` and ``qwen-tokenizer/``). ANY exception while doing so becomes
+    :class:`ConfigUnavailable`, chained and named. Read FIRST, before the preflight."""
     path = pathlib.Path(path)
     try:
         record = json.loads(path.read_text(encoding="utf-8"))
@@ -1125,28 +1153,34 @@ def load_setup_record(path: pathlib.Path) -> dict[str, Any]:
         image = record.get("llama_image")
         if not isinstance(image, str) or "@sha256:" not in image:
             raise ConfigUnavailable(f"{path}: llama_image must be a str pinned by digest, got {image!r}")
-        if not _is_sha256(record.get("gguf_sha256")):
-            raise ConfigUnavailable(f"{path}: gguf_sha256 must be a verified 64-hex str, got {record.get('gguf_sha256')!r}")
+        gguf = record.get("gguf_sha256")
+        if not (_is_sha256(gguf) or gguf == GGUF_SKIPPED):
+            raise ConfigUnavailable(f"{path}: gguf_sha256 must be a verified 64-hex str (or {GGUF_SKIPPED!r} from a "
+                                    f"skipped verification), got {gguf!r}")
         cache = record.get("cache_shas")
         if not isinstance(cache, dict) or not all(isinstance(k, str) and isinstance(v, str) for k, v in cache.items()):
             raise ConfigUnavailable(f"{path}: cache_shas must be an object of path → sha strings, got {cache!r:.80}")
         for prefix in ("fastembed/", "qwen-tokenizer/"):
             if not any(k.startswith(prefix) for k in cache):
                 raise ConfigUnavailable(f"{path}: cache_shas records no files under {prefix}")
-        return record
+        return SetupRecord(record=record, gguf_verified=gguf != GGUF_SKIPPED)
     except ConfigUnavailable:
         raise
     except Exception as exc:  # the whole setup load boundary, and only it
         raise ConfigUnavailable(f"{path} unusable — {type(exc).__name__}: {exc}; run substrate setup") from exc
 
 
-def live_config(secondary: bool) -> serving.ServingConfiguration:
+def live_config(secondary: bool, development_ledger: bool = False) -> serving.ServingConfiguration:
     """The configuration of record, from setup.json + preflight.json. Every preflight problem raises
     :class:`PreflightUnusable` (a gate failure, recorded and exit 3); a setup problem raises
     :class:`ConfigUnavailable` (REFUSED, exit 1). No other exception escapes. The chat-template sha
-    authority is the CACHED tokenizer; the preflight's must equal it (design lead, c4)."""
+    authority is the CACHED tokenizer; the preflight's must equal it (design lead, c4).
+    ``development_ledger`` is True only for a ``--skip-gates`` run: the one place a skipped GGUF
+    verification may bind (:func:`require_verified_gguf`)."""
     setup_path, preflight_path = RUNS_DIR / "setup.json", RUNS_DIR / "preflight.json"
-    setup_record = load_setup_record(setup_path)
+    setup = load_setup_record(setup_path)
+    require_verified_gguf(setup, setup_path, development_ledger)
+    setup_record = setup.record
     record = load_preflight_record(preflight_path)
     sha = str(record["chat_template_sha256"])
     try:
@@ -1373,7 +1407,10 @@ def main(argv: list[str]) -> int:
             print(f"grading view {paths.view}\nadmin report {paths.admin}\nseal {paths.seal}")
             return 0
         try:
-            config = live_config(args.secondary)
+            # The binding kind is known here: only a --skip-gates RUN creates or resumes a development
+            # ledger; --host-gates / --gates are real gate phases and never are.
+            config = live_config(args.secondary,
+                                 development_ledger=args.skip_gates and not (args.host_gates or args.gates))
         except PreflightUnusable as exc:
             return _preflight_unusable(args, exc)
         if args.host_gates:
