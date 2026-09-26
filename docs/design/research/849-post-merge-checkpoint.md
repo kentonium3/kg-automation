@@ -127,11 +127,38 @@ branches.
 | C-1 | `tests/research/test_arms849_arm_r.py` — the `calibrate(ledger, *calibration_inputs(...))` end-to-end | `importorskip`ped in lane-g: `calibration.py` lives in lane-d, so **this test has never executed in one tree**. A skip means it still has not run. |
 | C-2 | The `CellContext` identity test: **one** `index_cache` object passed to both `calibration_inputs` and `bind`, asserted **by identity** (WP07 N-3) | Crosses WP07 and WP08. |
 | C-3 | WP07 N-2 — a passed index is validated before retrieval | Carried forward from WP07's approval. |
-| C-4 | `REQUIRED_MODULES` includes `arm_g`, `arm_d`, `arm_r`, with the two-way agreement test | Deliberately not done in lane-h: the arm modules are absent there by dependency topology. **Also a pre-run blocker.** |
+| C-4 | `REQUIRED_MODULES` names **every module of the run package** — not only the three arms — with the two-way agreement test (every module present is registered; every module registered is present), per rubric §10 | Deliberately not done in lane-h: the arm modules are absent there by dependency topology. **Also a pre-run blocker.** Measured outstanding on the merged tree — see below. |
 | C-5 | `probe_f` per-task normalisation (`74e0c148`) still green against the merged loader | The probe and the loader land together for the first time. |
 | C-6 | All **four gates** pass in-process on the merged tree: `check_849_seed`, `check_849_oracle`, `check_849_freeze`, `check_849_loader` | The loader-side pass is the one the freeze gate could not do, because it needs a loader. See the correction below — it exists; it is not owed. |
 | C-7 | T039 — the §2 token table re-measured on the **final assembled bytes** and registered with `preflight_sha` + the rubric HEAD cited | The numbers only become final once the tree is final. |
 | C-8 | If `kitty-specs/arms-run-01M3APTA/retrospective.yaml` is present in the merged tree, confirm it was generated **after** genuine completion — check `provenance.kind` and its timestamp against the merge — and is not residue from the 2026-09-26 aborted merge | See below. A terminal artifact written at a non-terminal moment is the most authoritative-looking wrong record in the tree. |
+
+### C-4 measured on the merged tree (2026-09-26), and a correction to this file
+
+Measured on `feat@916d5c7c`: `REQUIRED_MODULES` lists **twelve** modules; the package holds
+**seventeen** `.py` files. Unregistered: `arm_g.py`, `arm_d.py`, `arm_r.py`, **`embed.py`** and
+**`grading.py`**. C-4 is outstanding, and under Kent's scope ruling it moves to the follow-on
+mission — so the concrete list is recorded here for whoever implements it.
+
+**State the defect precisely, because the obvious phrasing is wrong.** The arms *are* scanned:
+`inventory = sorted(PKG_DIR.rglob("*.py"))` is discovered and recursive. `REQUIRED_MODULES` is not
+the scan list — it is the **floor**, the minimum-presence assertion that refuses when the package is
+truncated, empty or mispointed. So the defect is not "the arms go unscanned"; it is that **the gate
+certifies isolation identically whether a module is present and clean or absent altogether**. A
+truncated export that dropped `arm_d.py` would find no hit in it, because it is not there, and the
+gate would pass. That is [Engineering Principle 14](../engineering-principles.md) exactly: an
+assertion that cannot distinguish the state it exists to detect from the state it proves.
+
+Which is why rubric §10 specifies a **two-way** test rather than a longer list: the two-way form
+closes the gap by construction and needs no list maintenance, so the next module added cannot
+silently sit outside the floor.
+
+**Correction to this file.** Its first C-4 row read "`REQUIRED_MODULES` includes `arm_g`, `arm_d`,
+`arm_r`" — the 2026-09-25 21:08Z channel wording. **Rubric §10 is wider and governs:** "names every
+module of the run package, the three arms included, with a two-way test". The registered rule was
+right all along; this file had narrowed it, and a narrowed copy of a correct rule is how the other
+two modules would have been missed. Row corrected above. The rubric is the authority; where this
+file disagrees with it, the rubric wins.
 
 ### Why C-8 exists (2026-09-26)
 
