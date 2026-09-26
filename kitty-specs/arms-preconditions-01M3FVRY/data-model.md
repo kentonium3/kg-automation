@@ -2,6 +2,14 @@
 
 The baseline is arms-run-01M3APTA's `data-model.md` and contracts. This file lists only the deltas.
 
+## Smoke ledger identity
+
+- A smoke ledger's header carries the plan identity `SMOKE_PLAN`: a distinct integer constant, 10 cells, fixed at creation and immutable like every header field. Its serving binding is the PRIMARY configuration, so the limits are identical to the run's.
+- `require_complete_primary` refuses it: its plan is not the 72-cell primary plan.
+- `status` reports it as `smoke`, not as secondary. `open_existing` reopens it only as a smoke ledger.
+- The grading export refuses it.
+- Tests cover creation, reopen, status and every refusal.
+
 ## Run row (ledger `run` record)
 
 | Field | Change | Rule |
@@ -20,7 +28,7 @@ The baseline is arms-run-01M3APTA's `data-model.md` and contracts. This file lis
 | `held_ts` | str or null | canonical UTC. When present it is STRICTLY before `window_start` and at most `GAP_INTERVALS × interval_s` before it |
 | `peak_source` | `"held"` \| `"in_window"` | `"held"` ⇒ `held_ts` present. `"in_window"` ⇒ `in_window_readings ≥ 1`. `in_window_readings == 0` ⇒ `"held"`. A tie ⇒ `"in_window"`. |
 | `interval_s` | float | the series' **recorded** real interval: finite and > 0 |
-| `last_ts` | str | canonical UTC: the latest reading used; ≤ `window_end` and at most `STALE_INTERVALS × interval_s` before it |
+| `last_ts` | str | canonical UTC: the latest reading used. If `in_window_readings == 0` it equals `held_ts`. Otherwise it lies inside [`window_start`, `window_end`]. Either way `window_end − last_ts ≤ STALE_INTERVALS × interval_s`. |
 
 Exactly these keys. There is no other key and no coercion (a bool is not an int).
 
@@ -36,8 +44,17 @@ Exactly these keys. There is no other key and no coercion (a bool is not an int)
 |---|---|---|
 | `premise_violated` | **new** | `{arm: str, reason: "tripwire" \| "cross_group_leak", message: str, at_key: RunKey dict}`. Its presence makes the ledger **unusable as a primary, for export, and for `Ledger.summarise()`** (correction C). Rows stay untouched. |
 | `memory_ceiling` | unchanged | The pre-cell ceiling refusal stays as it is. |
-| `graph_store_memory` | **new**, one per question | `{question, falkordb_cgroup_peak_mib, memory_support}`. The container's cgroup high-water mark over [that question's build start .. its last graph query]. NOT attributable to the question (§5 @`a00abc03`). Validated on write and replay. |
-| `graph_store_footprint` | **new**, one per run | `{baseline_mib, all_resident_mib}`: the container before the first build, and the peak with every question's graph resident. The marginal per-graph figure is derivable from them. |
+| `graph_built` | **new**, one per build | `{question, started_ts, finished_ts, series_id}`. Canonical UTC. Validated on write and replay. |
+| `graph_query_done` | **new**, one per G cell | `{key, ts, series_id}`: the completion of that cell's last graph query (inference excluded). |
+| `session_stopped` | **new** | `{reason, grace_s?}`, with reason one of `g_cancellation_unacknowledged`, `ceiling_breach_at_send`, `premise_violated`, `operator`, … Every stop reason is distinguishable. |
+
+### Graph-store report (computed, NOT persisted)
+
+Computed at summary and export time from the boundary events plus the series files (D-7a):
+- per question, `{falkordb_cgroup_peak_mib, memory_support}`, or `could_not_check: interrupted`;
+- per run, `{baseline_mib, all_resident_mib}`.
+
+It is never a primary-completeness condition, and never a score.
 
 ## Arm registration (in-memory, not persisted)
 

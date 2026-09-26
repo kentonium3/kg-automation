@@ -20,26 +20,34 @@ Sources:
   - Arms self-register on import: rejected. It is the false comment the post-merge review caught, and it needs eager imports.
   - A separate `registry.py`: acceptable. If chosen, it goes in `REQUIRED_MODULES` in the same commit (correction A).
 
-## D-2 — G runs behind one persistent event loop; cancellation never leaves a dirty driver
+## D-2 — G runs behind one persistent event loop; an unacknowledged cancellation stops the session
 
-- **Decision**:
-  - G's registration owns one asyncio loop on a dedicated daemon thread and one FalkorDB driver bound to it (`FalkorDriver(host="falkordb", port=6379)`, the compose service name, since the harness runs inside the runner container).
-  - `build_graph`, `answer` and `drop_graph` are synchronous wrappers that submit through `asyncio.run_coroutine_threadsafe` and wait with the attempt's deadline, honouring `ctx.cancelled`.
-  - **On any cancellation or timeout (correction B)**, the wrapper cancels the future, then closes and replaces the driver before the next submission (fresh connection). If the replacement cannot be established, it raises the arm's terminal `ArmRefusal`.
-  - A `close()` on the registration shuts down the loop and the driver. The `Runtime` gains an optional close hook that the Session calls on stop.
-- **Rationale**:
-  - The FalkorDB async client is bound to the loop it first runs on (`arm_g.py` L32–34), while the harness runs every attempt on a fresh thread (`_call_with_timeout`, ~L680–710). A per-attempt `asyncio.run` would break loop affinity.
-  - Cancelling a future does not guarantee the driver unwound mid-protocol, and a persistent driver would carry that damage into cell N+1 (design lead, correction B).
-  - A fresh connection after a cancellation is the cheapest mechanism that makes "clean" a fact rather than a hope.
-- **Executable interface (post-plan review, 2026-09-26):**
-  - **Retrieval on the loop, serving off it.** `GraphArm.answer` today awaits `plan_and_assemble` and then makes the SYNCHRONOUS serving call (`arm_g.py` ~L534). If the whole of `answer` ran on the loop thread, that HTTP call would block the loop. So the G registration's synchronous `answer` wrapper submits **only** the retrieval coroutine (`plan_and_assemble`) to the loop. It then runs render / serialize / count / `ctx.serving.complete` on the attempt thread, exactly as D and R do. `GraphArm` gains a small `respond(block, plan, question, ctx)` for the synchronous half.
-  - **Every operation gets a deadline.** `build_graph`, `drop_graph` and retrieval each receive an explicit deadline and the attempt's `cancelled` flag. The Session passes the attempt deadline it already computes for `_call_with_timeout`, and `CellContext` gains a read-only `deadline`.
-  - **Bounded cancellation acknowledgement.** On timeout or cancel, the wrapper calls `future.cancel()` and then waits a bounded grace period (≤ 5 s) for the future to report done. If it does not, the bridge is declared POISONED: the thread is abandoned as a daemon, and a NEW loop, thread and driver are created before any further submission. The graph itself persists server-side in FalkorDB, keyed by the group. If the replacement cannot connect, the arm raises `ArmRefusal`, terminal for the cell, and every following G cell refuses until a healthy bridge exists.
-  - **Unconditional cleanup.** `run_session` wraps the whole session in `try/finally: runtime.close()`. That covers normal completion, `--limit`, `stop()`, a raised exception and `KeyboardInterrupt`. Closing the registration never waits unboundedly on a blocked loop: it applies the same bounded grace, then abandons.
-- **Alternatives**:
-  - A new loop plus driver per attempt: rejected. It rebuilds indices per attempt, and G's graph lives across repeats.
-  - A post-cancel health PING: rejected as insufficient. A PING succeeding does not prove the connection's protocol state for the next query.
-  - "Cancel and carry on": ruled out by the design lead.
+- **Decision** (design lead: correction B, then 20260926T231025320954Z444929a640, which approved dropping the driver-replacement design):
+  - **One loop, one driver.** G's registration owns one asyncio loop on a dedicated thread and one FalkorDB driver bound to it: `FalkorDriver(host="falkordb", port=6379)`, the compose service name, since the harness runs inside the runner container.
+  - **Retrieval on the loop, serving off it.** The synchronous `answer` wrapper submits ONLY the retrieval coroutine (`plan_and_assemble`) via `asyncio.run_coroutine_threadsafe`, then runs render / serialize / count / `ctx.serving.complete` on the attempt thread, exactly as D and R do. `GraphArm` gains a synchronous `respond(block, plan, question, ctx)`. Today `answer` makes the serving call synchronously INSIDE the coroutine (`arm_g.py` ~L534), which would block the loop.
+  - **Every operation gets a deadline.** `build_graph`, `drop_graph` and retrieval each receive the attempt's deadline and `cancelled` flag. `CellContext` gains a read-only `deadline`, which the Session already computes for `_call_with_timeout`.
+  - **Cancellation is acknowledged by the coroutine, or the session stops.**
+    - On timeout or cancel, the wrapper cancels the loop-side task.
+    - It then waits up to `G_CANCEL_GRACE_S` (a named constant, 10 s) for an acknowledgement from the coroutine's own `finally`/cleanup, a flag it sets. `future.done()` is not used for this: it can report done while the coroutine is still unwinding (post-plan review).
+    - If no acknowledgement arrives in time, the Session STOPS with the distinct reason `g_cancellation_unacknowledged`, recorded in the ledger as a `session_stopped` event carrying `{reason, grace_s}`, and the process exits.
+    - Resume runs in a FRESH process. All G state (graphs, UUID maps, `graph_stats`) is reconstructible from the frozen corpus, so nothing stale survives.
+  - **No driver replacement exists.** Replacing the driver would leave stale references in `Graphiti.clients`, in `GraphArm`'s UUID maps and in `Session.graph_stats`.
+  - **Unconditional cleanup.** `run_session` wraps the whole session in `try/finally: runtime.close()`: completion, `--limit`, `stop()`, exceptions and `KeyboardInterrupt`. `close()` applies the same bounded grace, then abandons the loop thread.
+- **Rationale**: a cleanup that cannot verify itself is worse than a refusal, because it looks like it worked (design lead). A session stop plus a fresh-process resume makes "clean" a fact.
+- **Alternatives**: a new loop and driver per attempt (breaks the graph's life across repeats and rebuilds indices); a post-cancel PING (proves nothing about protocol state); replacing the driver (stale references); "cancel and carry on" (ruled out).
+
+## D-2b — G retrieval database routing (DEFECT FIX, own FR)
+
+- **Decision** (design lead, 20260926T231025320954Z444929a640; a defect fix, not a design change, and no registered property moves):
+  - EVERY G operation — node, edge and episode writes, index build, typed pulls, anchored expansion, hybrid search and drop — runs through ONE per-question database: `self.driver.clone(database=group)`.
+- **The defect**:
+  - `build_graph` writes through the default driver, which targets database `default_db` (`arm_g.py` ~L348).
+  - `hybrid_search` calls `Graphiti.search_(..., group_ids=[group])` (`arm_g.py` L461). That method is decorated `@handle_multiple_group_ids` (graphiti `graphiti.py` L1661), which for FalkorDB with one group id clones the driver to `database=<group>` (`decorators.py` L59–68).
+  - So every hybrid search queried an EMPTY graph.
+  - The typed pulls and anchored expansion read `default_db` and worked.
+  - The approved live test asserted only that a hybrid step APPEARED in the plan, so it passed at zero hits.
+- **Test**: the live test asserts the hybrid step returns ≥ 1 hit for at least one question, with the expected item identified from the frozen corpus (not from the oracle). It fails on the pre-change code.
+- **Sweep**: every G assertion that checks a step RAN, rather than that it PRODUCED, is listed in the WP review artifact with its disposition. The count is reported, never fixed silently.
 
 ## D-3 — G's errors: halt versus per-cell refusal; G served identically
 
@@ -88,20 +96,33 @@ Sources:
 - **Rationale**: `up`/`down` are separate short-lived CLI processes, so a writer thread there would die with the process.
 - **Alternatives**: a sidecar container: rejected. It would need a compose change and a new moving part.
 
-## D-7a — The graph-store figure is a per-question CONTAINER TOTAL; per-cell rows carry no graph-store column
+## D-7a — The graph-store figure is reconstructed post hoc as a per-question CONTAINER TOTAL; per-cell rows carry no graph-store column
 
-- **Decision** (design lead ruling 1, 20260926T223312278643Zbb9e71a68a; rubric §5 amendment @`a00abc03`, Kent 2026-09-26 22:41Z):
-  - **Per question**: at the end of a question's last G repeat, the harness records ONE `graph_store_memory` event. It carries `falkordb_cgroup_peak_mib` over the window [start of that question's `build_graph` .. completion of its LAST GRAPH QUERY], with inference time excluded at the end, plus `memory_support` for that window. The series reader already reconstructs arbitrary windows from the file.
-  - **Per run**: a `graph_store_footprint` event records `baseline_mib` (before the first build) and `all_resident_mib` (the peak with every question's graph resident), so the marginal per-graph figure is derivable.
-  - **Per-cell G rows do NOT carry `falkordb_cgroup_peak_mib`**, not even as a diagnostic under that name. Nothing in grading or export reads these events as a score.
-  - The figure is a high-water mark and is NOT attributable to the question (§5 @`a00abc03`). That is recorded honestly, not engineered away.
-- **Rationale**: measured on a throwaway sandbox (#1023): a build takes 0.54–2.02 s, the cgroup charge never returns after `drop_graph`, and the whole footprint is ~150–230 MiB, about 0.4 % of the 57.5 GiB ceiling. Question-major order was ruled out (it would warm G's prompt cache asymmetrically on the cost axis §7 uses). Build-and-drop per cell was ruled out (the high-water mark defeats it). A fresh container per cell was ruled out (false precision in a quantity no decision uses). §7 is unchanged: it never weighted memory.
+- **Decision** (design lead ruling 1; rubric §5 @`a00abc03` (Kent 2026-09-26 22:41Z); durability approved 20260926T231025320954Z444929a640):
+  - **Durable boundaries, not live windows.** The harness writes ledger events:
+    - `graph_built{question, started_ts, finished_ts, series_id}` around each build;
+    - `graph_query_done{key, ts, series_id}` at the completion of each cell's LAST GRAPH QUERY (inference excluded).
+  - **Series files are never truncated.** There is one file per `substrate.run` generation, `falkordb-cgroup-<series_id>.jsonl`, whose header carries the container id and the recorded interval.
+  - **The figures are computed at summary and export time:**
+    - per question, the container high-water mark over [that question's `graph_built.started_ts` .. its last `graph_query_done.ts`], with `memory_support`;
+    - per run, `baseline_mib` (before the first build) and `all_resident_mib` (the peak once every question's graph is resident).
+    - A window that crosses a series generation (interruption, container change) yields `could_not_check: interrupted` for that question, never a number.
+  - **Per-cell G rows carry NO graph-store column.** The retired `falkordb_rss_peak_mib`, and the new name on a row, are both refused.
+  - **The two sampler roles fail differently** (design lead):
+    - The ceiling guard's live sampler: unreadable means could-not-check and **refuses the cell** (a safety property).
+    - The graph-store figure: unavailable means `could_not_check` in the report, and **the cell is unaffected** (a reported column, about 0.4 % of the ceiling).
+  - Graph-store memory is not, and never was, a primary-completeness condition. Primary-complete means 72 scored cells with zero `not_implemented`, §5 says neither memory measure is pass/fail, and §7 carries no memory term.
+- **Rationale**: measured on a throwaway sandbox (#1023): a build takes 0.54–2.02 s; the cgroup charge is a high-water mark that never drops after `drop_graph`; the whole footprint is about 150–230 MiB.
+  - Question-major order: ruled out (asymmetric prompt-cache warmth on G's cost axis).
+  - Build-and-drop per cell: ruled out (defeated by the high-water mark).
+  - A fresh container per cell: ruled out (false precision).
+  - A live per-question event: replaced (it cannot survive a crash between the last run row and the event, or a resume mid-question).
 
 ## D-7 — The harness binds the series reader
 
 - **Decision**:
   - `live_runtime` binds `rss_sampler=functools.partial(<series sampler>, path, expected_id)` from the environment (refusing if they are absent). It calls `sampler.require_breached()` on a constructed instance of each bound sampler.
-  - Per D-7a, the G sampler's readings feed the per-question `graph_store_memory` event, not the per-cell row.
+  - Per D-7a, the graph-store figures are reconstructed post hoc from the durable boundary events and the series files, never written to a row.
 - **Rationale**: the harness surface is unchanged (a zero-arg factory, a context manager, `peak_mib` read pre-arm and post-window), so this is the one-line swap the WP04 reopen designed for. Support is nested in the row, not in a sibling event (design lead ruling 4 at the post-merge checkpoint: nothing separable from the number it qualifies).
 
 ## D-8 — Ledger additions
@@ -123,7 +144,7 @@ Sources:
     - `interval_s` is finite and > 0;
     - `held` ⇒ `held_ts` is present, STRICTLY before `window_start`, and no more than `GAP_INTERVALS × interval_s` before it;
     - `in_window` ⇒ `in_window_readings ≥ 1`;
-    - a new `last_ts` (the latest reading used) is ≤ `window_end` and no more than `STALE_INTERVALS × interval_s` before it.
+    - a new `last_ts` (the latest reading used): when `in_window_readings == 0` it EQUALS `held_ts`, and the window end must then be within `STALE_INTERVALS × interval_s` of it; when `in_window_readings ≥ 1` it lies INSIDE [`window_start`, `window_end`] and is at most `STALE_INTERVALS × interval_s` before `window_end`.
     A support object that describes a window §5 would have refused is itself refused, on write and on replay.
   - ledger-schema item 2 gets a dated sentence in this mission's `contracts/ledger-deltas.md`, noting that the per-session clause is now enforceable.
 - **Rationale**: the design-lead rulings; the post-merge residual (`attempt_start` had no session id); correction C (untouched must not mean usable).
@@ -149,7 +170,7 @@ Sources:
   - `scripts/research/check_849_premerge.py` (name provisional) runs:
     1. the office4 suite under both seeds;
     2. the fresh-worktree CI simulation (a detached worktree of HEAD, no `build/`, a stub `graphiti_core` via PYTHONPATH);
-    3. optionally the live smoke.
+    3. the live smoke (REQUIRED).
     It writes a record (commit, results, skip counts), and the merge to main cites it.
   - **Mandatory, non-skipped coverage (post-plan review):** the checker holds a named list of REQUIRED test node IDs that must EXECUTE AND PASS on office4. These are the precondition tests of FR-001–FR-012 plus the post-merge C-list tests (C-1, C-2, C-5). The checker reads pytest's junit-xml. Any required node missing, deselected, skipped or failed makes the record FAIL, whatever the exit code. The fresh-worktree CI simulation must also show zero failures and zero collection errors.
   - **The live smoke is REQUIRED, not optional** (plan.md Charter Check). The record binds every result to the exact commit SHA, and it is invalid for any other commit.

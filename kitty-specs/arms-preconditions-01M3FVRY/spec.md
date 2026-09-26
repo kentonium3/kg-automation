@@ -136,6 +136,7 @@ Anyone reading a test run can see which research tests ran and which were skippe
 | FR-012 | Canonical UTC timestamps (C12) | As a reader of the memory series, I want only canonical UTC timestamps accepted, so that every accepted timestamp is exactly what the writer emits. | Low | Open |
 | FR-013 | Token table measurable at freeze (T039) | As the design lead, I want the §2 token table re-measurable at code freeze for all 8 questions, so that the registered numbers are confirmed on the final assembled requests. | Medium | Open |
 | FR-014 | Research-environment gating | As a maintainer, I want the research suite's environment requirement stated once, with named, counted skips where it is absent, so that CI results distinguish "skipped for environment" from "passed". | Medium | Open |
+| FR-016 | G retrieval reads what G wrote (DEFECT FIX) | As the run operator, I want every graph-arm operation to use the same per-question database, and a live test proving hybrid retrieval RETURNS an expected hit, because approved code wrote to one database and searched another, so hybrid retrieval always returned nothing (post-plan review; design lead 20260926T231025320954Z444929a640). | High | Open |
 | FR-015 | Office4 pre-merge record | As Kent, I want every merge to main from this work to carry a record of the office4 suite run and a fresh-worktree CI simulation, each with commit and result, so that the arms' only coverage is a gate rather than a habit. | Medium | Open |
 
 ### Non-Functional Requirements
@@ -143,7 +144,7 @@ Anyone reading a test run can see which research tests ran and which were skippe
 | ID | Title | Requirement | Category | Priority | Status |
 |----|-------|-------------|----------|----------|--------|
 | NFR-001 | Suite green in both environments | 100% of tests pass on office4 with the research environment, under both PYTHONHASHSEED 0 and 3, and in a fresh-worktree CI simulation without it, with 0 collection errors. | Reliability | High | Open |
-| NFR-002 | Can-fail evidence | Every functional requirement has at least one test that fails on the pre-change code; the evidence is recorded per work package. | Reliability | High | Open |
+| NFR-002 | Can-fail evidence | Every functional requirement except FR-004 has at least one test that fails on the pre-change code. FR-004 is a regression guard, because the existing code already refuses a no-arms ledger (measured); C13's red-first evidence is FR-001. The evidence is recorded per work package. | Reliability | High | Open |
 | NFR-003 | No orphaned attempts | Across 100 consecutive attempts with injected timeouts and cancellations against a fake graph store, 0 attempts remain running after their deadline. | Reliability | High | Open |
 | NFR-004 | Measurement freshness | The memory series tolerances stay as registered: a gap or staleness of more than 5 sample intervals refuses the cell, and exactly 5 is allowed. | Accuracy | High | Open |
 | NFR-005 | Fail closed | 0 paths record an unmeasurable, refused or unregistered cell as a score, a zero or a pass. | Integrity | High | Open |

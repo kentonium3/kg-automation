@@ -47,7 +47,7 @@ The run itself is not in scope (spec C-007).
 
 | Charter item | How this plan meets it |
 |---|---|
-| Python unit tests before merge | Every FR has red-first tests; NFR-002 records the evidence per WP. |
+| Python unit tests before merge | Every FR has red-first tests, except FR-004, which is a regression guard: the existing code already refuses a no-arms ledger, so C13's red-first evidence is FR-001's live-registration test. NFR-002 records the evidence per WP. |
 | Test fixtures mirror real inputs | The series tests use real writer output. C8 uses the real gate phases with injected probes (never timestamp-stable fakes). The ledger tests use real row shapes. |
 | **No dead code** | This is the defect class behind C13 (a registry with tests and no production callers). Every WP's DoD greps for live callers. In particular `ARM_FACTORIES`, the series writer, `require_breached` and `before_send` must each be reached from the production path (`live_runtime` / `substrate.run`). |
 | Integration verification (no-staging-aware) | Form (a), a pre-merge live exercise, IS feasible here: office4 runs the real stack. It is a **live smoke that is NOT the run** (post-plan review corrected the first design). Cells run in protocol order (all 24 G, then 24 D, then 24 R), and R's calibration needs all eight G repeat-1 cells, so `--limit` cannot cover one cell per arm. The harness therefore gains a `--smoke` selector. It runs G repeat 1 for all 8 questions, then calibration, then D C1 r1, then R C1 r1, with real gates, on a separate smoke ledger bound to a `smoke` plan kind that `require_complete_primary` refuses by construction. After it, run the `ARMS849_LIVE=1` tests by their explicit node IDs (the `live` marks are `skipif` marks, not registered markers, so `-m live` selects nothing). It is defined in IC-05 and required in the pre-merge record. |
@@ -132,7 +132,12 @@ tests/research/
 
 - **Purpose**: measure `falkordb_cgroup_peak_mib` end to end, with support.
 - **Relevant requirements**: FR-005–FR-007; NFR-004; C-009.
-- **Affected surfaces**: `substrate.py` (`run()` lifecycle, `env_extra`), `sampler.py` (the cgroup reader for the writer; rename), `run_849_harness.py` (bind the series sampler via `functools.partial`, `require_breached`, `memory_support` into the row), `ledger.py` (the field rename in `SCORED_ARM_FIELDS`).
+- **Affected surfaces**:
+  - `substrate.py`: `run()` lifecycle, `env_extra`, a per-run series generation.
+  - `sampler.py`: the cgroup reader for the writer; the rename.
+  - `run_849_harness.py`: bind the series sampler, `require_breached`, and durable window-boundary events. Per-question and footprint figures per D-7a. **No graph-store column on per-cell rows.**
+  - `ledger.py`: REMOVE `falkordb_rss_peak_mib` from G's `SCORED_ARM_FIELDS`; validate the `graph_built` / `graph_query_done` / `session_stopped` events.
+  - `grading.py` / `Ledger.summarise()`: compute the post-hoc graph-store report (D-7a).
 - **Sequencing/depends-on**: IC-01 (the `memory_support` shape), IC-02 (G is registered, so a G cell exists to measure).
 - **Risks**:
   - The first reading must exist before the first G cell.
