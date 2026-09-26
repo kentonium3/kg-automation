@@ -84,6 +84,14 @@ class Sample:
     first_ts: str | None = None
     last_ts: str | None = None
     container_id: str | None = None
+    # R2 (design lead, rubric §5 "Window reconstruction", 2026-09-26): the window's support.
+    # ``in_window_readings`` counts readings with start <= ts <= end (the held one excluded);
+    # ``peak_source`` is "held" only when the held pre-window reading is STRICTLY above every
+    # in-window reading (or there is none) — a tie is "in_window"; ``held_ts`` is the held
+    # reading's timestamp, None when no held reading was used.
+    in_window_readings: int | None = None
+    peak_source: str | None = None
+    held_ts: str | None = None
 
 
 class _Sampler:
@@ -272,7 +280,23 @@ def _parse_ts(value: Any) -> datetime:
         raise ValueError(f"timestamp must be an ISO-8601 string, got {value!r}") from None
     if ts.tzinfo is None or ts.utcoffset() is None:
         raise ValueError(f"timestamp {value!r} is not timezone-aware")
-    return ts.astimezone(timezone.utc)
+    try:
+        return ts.astimezone(timezone.utc)
+    except OverflowError:
+        raise ValueError(f"timestamp {value!r} is out of range in UTC") from None
+
+
+def _finite_float(value: Any, name: str) -> float:
+    """A real int or float that is finite as a float; ValueError otherwise (never OverflowError)."""
+    if not _is_number(value):
+        raise ValueError(f"{name} must be a number, got {value!r}")
+    try:
+        out = float(value)
+    except OverflowError:
+        raise ValueError(f"{name} is out of float range") from None
+    if not math.isfinite(out):
+        raise ValueError(f"{name} must be finite, got {value!r}")
+    return out
 
 
 def _utc(ts: datetime) -> datetime:
@@ -303,10 +327,10 @@ class RssRecord:
     def from_obj(cls, obj: Any) -> RssRecord:
         if not isinstance(obj, dict) or tuple(sorted(obj)) != tuple(sorted(RSS_RECORD_FIELDS)):
             raise ValueError(f"record fields must be exactly {RSS_RECORD_FIELDS}, got {obj!r}")
-        rss = obj["rss_mib"]
-        if not (_is_number(rss) and math.isfinite(rss) and rss >= 0):
-            raise ValueError(f"rss_mib must be a finite non-negative number, got {rss!r}")
-        return cls(ts=_parse_ts(obj["ts"]), rss_mib=float(rss),
+        rss = _finite_float(obj["rss_mib"], "rss_mib")
+        if rss < 0:
+            raise ValueError(f"rss_mib must be non-negative, got {rss!r}")
+        return cls(ts=_parse_ts(obj["ts"]), rss_mib=rss,
                    container_id=_nonempty_str(obj["container_id"], "container_id"))
 
 
@@ -330,11 +354,14 @@ class RssSeriesHeader:
             raise ValueError(f"header fields must be exactly {_HEADER_FIELDS}, got {obj!r}")
         if obj["series"] != RSS_SERIES_FORMAT:
             raise ValueError(f"series format {obj['series']!r} is not {RSS_SERIES_FORMAT!r}")
-        interval = obj["interval_s"]
-        if not _is_number(interval):
-            raise ValueError(f"interval_s must be a number, got {interval!r}")
+        interval = _finite_float(obj["interval_s"], "interval_s")
         return cls(started=_parse_ts(obj["started"]), container=_nonempty_str(obj["container"], "container"),
                    container_id=_nonempty_str(obj["container_id"], "container_id"), interval_s=float(interval))
+
+
+def _docker_rss_mib(container_id: str) -> float:
+    """The existing ``docker stats`` reading, addressed by the IMMUTABLE container id."""
+    return RssSampler(container_id).read_once()
 
 
 def _docker_container_id(container: str) -> str:
@@ -345,20 +372,23 @@ def _docker_container_id(container: str) -> str:
 class RssSeriesWriter:
     """Host side: append one flushed :class:`RssRecord` line per reading of ``container``.
 
-    ``read`` defaults to :meth:`RssSampler.read_once` (``docker stats --no-stream``) and
-    ``resolve_id`` to ``docker inspect``; ``clock`` (tz-aware UTC datetimes) and ``sleep`` are
+    ``resolve_id`` (default ``docker inspect``) turns the container NAME into its immutable id
+    once, at open; every reading is then ``read(container_id)`` — by id, never by name (cycle 18
+    #3), so a replacement container under the same name is a failed read (a hole), never its
+    memory recorded under the old id. ``read`` defaults to the existing ``docker stats
+    --no-stream`` path (:meth:`RssSampler.read_once`) on that id; ``clock`` (tz-aware UTC datetimes) and ``sleep`` are
     injectable so the series can be produced deterministically. A reading that raises is
     SKIPPED — no line — so the hole is visible to the reader's gap rule; it is counted in
     ``failures`` / ``last_error``. Opening (first ``run``/``start``) truncates ``path`` and writes
     the header: one writer, one series."""
 
     def __init__(self, path: pathlib.Path | str, container: str, interval_s: float = SAMPLE_INTERVAL_S, *,
-                 read: Callable[[], float] | None = None, resolve_id: Callable[[str], str] | None = None,
+                 read: Callable[[str], float] | None = None, resolve_id: Callable[[str], str] | None = None,
                  clock: Callable[[], datetime] = _utc_now, sleep: Callable[[float], Any] | None = None) -> None:
         self.path = pathlib.Path(path)
         self.container = container
         self.interval_s = float(interval_s)
-        self._read = read if read is not None else RssSampler(container).read_once
+        self._read = read if read is not None else _docker_rss_mib
         self._resolve_id = resolve_id if resolve_id is not None else _docker_container_id
         self._clock = clock
         self._stop = threading.Event()
@@ -400,7 +430,7 @@ class RssSeriesWriter:
         if self._stop.is_set():
             return
         try:
-            value = float(self._read())
+            value = float(self._read(self.container_id))
         except Exception as exc:  # noqa: BLE001 — a missed reading is a hole, never a zero
             self.failures += 1
             self.last_error = f"{type(exc).__name__}: {exc}"[:200]
@@ -447,12 +477,26 @@ class RssSeriesSampler:
     started) and after the window. The window is ``[enter, now]`` while open and ``[enter,
     exit]`` once closed; the closed window is computed once at exit and never moves.
 
-    The series is sample-and-hold: the value at the window's start is the last reading at or
-    before it, so the window's readings are that one plus every reading in ``(start, end]``.
-    ``peak_mib`` is their max, or None with ``sample.reason`` when the series is absent or
-    empty, malformed or out of order, from another container or interval, has its last reading
-    more than ``STALE_INTERVALS`` intervals before the end, or has consecutive readings more
-    than ``GAP_INTERVALS`` intervals apart. Exactly the tolerance is allowed."""
+    Window reconstruction is SAMPLE-AND-HOLD (design lead, rubric §5, main @5665aa94). Every
+    reading with ``start <= ts <= end`` is IN the window — a reading tying either bound is never
+    dropped (cycle 18 #2). When no reading ties the start, the value in effect at the start is the
+    HELD reading: the latest readings before the start (all of them, if several share that ts).
+    ``peak_mib`` is the max over held + in-window readings; ``sample`` records the support (R2):
+    ``in_window_readings``, the window bounds, ``held_ts``, and ``peak_source`` — "held" only when
+    the held value is strictly above every in-window reading, a tie being "in_window".
+
+    FAIL CLOSED — ``peak_mib`` None with ``sample.reason``, never an exception — when:
+    the series is absent or empty, undecodable, malformed or out of order (a torn final line is
+    ignored); its interval or container id is not the declared/expected one; the window is
+    inverted (end < start, e.g. a backward clock step — cycle 18 #5); the held reading is more
+    than ``GAP_INTERVALS`` intervals before the start (R1); the last reading is more than
+    ``STALE_INTERVALS`` intervals before the end; or consecutive readings are more than
+    ``GAP_INTERVALS`` intervals apart. Exactly the tolerance is allowed.
+
+    Every failure of the clock, the read, the decode and the parse is caught STRUCTURALLY
+    (``except Exception``) and becomes a reason (cycle 18 #4). Only BaseExceptions that are not
+    Exceptions — KeyboardInterrupt, SystemExit, GeneratorExit — escape, deliberately: they are
+    requests to stop the process, not measurements."""
 
     def __init__(self, path: pathlib.Path | str, container_id_expected: str, *,
                  clock: Callable[[], datetime] = _utc_now) -> None:
@@ -466,54 +510,80 @@ class RssSeriesSampler:
 
     def __enter__(self) -> Self:
         self._closed = None
-        self._start = _utc(self._clock())
+        self._start = None
+        try:
+            self._start = self._now()
+        except _Unreadable as exc:
+            self.sample = Sample(peak=None, reason=str(exc))
+            return self
         self.sample = self._evaluate(self._start)
         return self
 
     def __exit__(self, *exc: object) -> None:
-        if self._start is not None and self._closed is None:
-            self._closed = self._evaluate(_utc(self._clock()))
+        if self._closed is None:
+            self._closed = self._current()
             self.sample = self._closed
 
     @property
     def peak_mib(self) -> float | None:
-        if self._closed is None and self._start is not None:
-            self.sample = self._evaluate(_utc(self._clock()))
+        if self._closed is None:
+            self.sample = self._current()
         return self.sample.peak
 
-    def _evaluate(self, end: datetime) -> Sample:
-        assert self._start is not None
-        start = self._start
-        detail = Sample(peak=None, window_start=start.isoformat(), window_end=end.isoformat())
+    def _now(self) -> datetime:
         try:
+            return _utc(self._clock())
+        except Exception as exc:  # noqa: BLE001 — a clock that cannot answer is could-not-check
+            raise _Unreadable(f"clock failed: {type(exc).__name__}: {exc}"[:200]) from None
+
+    def _current(self) -> Sample:
+        if self._start is None:
+            return self.sample                     # enter failed (or never ran): keep its reason
+        try:
+            end = self._now()
+        except _Unreadable as exc:
+            return Sample(peak=None, reason=str(exc), window_start=self._start.isoformat())
+        return self._evaluate(end)
+
+    def _evaluate(self, end: datetime) -> Sample:
+        start = self._start
+        detail = Sample(peak=None)
+        try:
+            assert start is not None
+            detail.window_start, detail.window_end = start.isoformat(), end.isoformat()
+            if end < start:
+                raise _Unreadable(f"inverted window: end {end.isoformat()} is before start {start.isoformat()}")
             header, records = self._load()
             self._check(header, records, start, end, detail)
         except _Unreadable as exc:
             detail.peak = None
             detail.reason = str(exc)
+        except Exception as exc:  # noqa: BLE001 — structural guard: any conversion failure is unreadable
+            detail.peak = None
+            detail.reason = f"series unreadable: {type(exc).__name__}: {exc}"[:200]
         return detail
 
     def _load(self) -> tuple[RssSeriesHeader, list[RssRecord]]:
         try:
-            text = self.path.read_text(encoding="utf-8")
+            raw = self.path.read_bytes()
         except FileNotFoundError:
             raise _Unreadable(f"series absent: {self.path}") from None
         except OSError as exc:
             raise _Unreadable(f"series unreadable: {type(exc).__name__}: {exc}"[:200]) from None
-        lines = text.split("\n")
-        lines.pop()                                # the torn tail (a line still being written), or ""
+        lines = raw.split(b"\n")
+        lines.pop()                                # the torn tail (a line still being written), or b""
         if not lines:
             raise _Unreadable("series empty: no header")
         try:
-            header = RssSeriesHeader.from_obj(json.loads(lines[0]))
-        except ValueError as exc:
-            raise _Unreadable(f"series malformed header: {exc}"[:200]) from None
+            header = RssSeriesHeader.from_obj(json.loads(lines[0].decode("utf-8")))
+        except Exception as exc:  # noqa: BLE001 — decode, JSON, number and timestamp failures alike
+            raise _Unreadable(f"series malformed header: {type(exc).__name__}: {exc}"[:200]) from None
         records: list[RssRecord] = []
         for n, line in enumerate(lines[1:], start=2):
             try:
-                rec = RssRecord.from_obj(json.loads(line))
-            except ValueError as exc:
-                raise _Unreadable(f"series malformed at line {n}: {exc}"[:200]) from None
+                rec = RssRecord.from_obj(json.loads(line.decode("utf-8")))
+            except Exception as exc:  # noqa: BLE001 — decode, JSON, number and timestamp failures alike
+                raise _Unreadable(f"series malformed at line {n}: {type(exc).__name__}: {exc}"[:200]) from None
             if records and rec.ts < records[-1].ts:
                 raise _Unreadable(f"series out of order at line {n}")
             records.append(rec)
@@ -534,16 +604,25 @@ class RssSeriesSampler:
             raise _Unreadable(f"container id {stray.container_id!r} at {stray.ts.isoformat()} differs "
                               f"from the series' {header.container_id!r}")
         interval = timedelta(seconds=SAMPLE_INTERVAL_S)
-        held = [r for r in records if r.ts <= start]
-        used = held[-1:] + [r for r in records if start < r.ts <= end]
+        in_window = [r for r in records if start <= r.ts <= end]
+        before = [r for r in records if r.ts < start]
+        held: list[RssRecord] = []
+        if before and not (in_window and in_window[0].ts == start):
+            held = [r for r in before if r.ts == before[-1].ts]          # every reading tying the held ts
+        used = held + in_window
         if not used:
             raise _Unreadable(f"no reading at or before the window end {end.isoformat()}")
         detail.first_ts, detail.last_ts = used[0].ts.isoformat(), used[-1].ts.isoformat()
+        detail.in_window_readings = len(in_window)
+        detail.held_ts = held[0].ts.isoformat() if held else None
+        if held and start - held[0].ts > GAP_INTERVALS * interval:
+            raise _Unreadable(f"held reading {(start - held[0].ts).total_seconds():.3f}s before the window start "
+                              f"(> {GAP_INTERVALS} × {SAMPLE_INTERVAL_S}s)")
         age = end - used[-1].ts
         if age > STALE_INTERVALS * interval:
             raise _Unreadable(f"series stale: last reading {age.total_seconds():.3f}s before the window end "
                               f"(> {STALE_INTERVALS} × {SAMPLE_INTERVAL_S}s)")
-        if used[0].ts > start and used[0].ts - start > GAP_INTERVALS * interval:
+        if not held and used[0].ts - start > GAP_INTERVALS * interval:
             raise _Unreadable(f"series gap: first reading {(used[0].ts - start).total_seconds():.3f}s "
                               f"after the window start")
         for a, b in itertools.pairwise(used):
@@ -553,6 +632,10 @@ class RssSeriesSampler:
         detail.samples = [r.rss_mib for r in used]
         detail.readings = len(used)
         detail.peak = max(detail.samples)
+        held_peak = max((r.rss_mib for r in held), default=None)
+        in_peak = max((r.rss_mib for r in in_window), default=None)
+        detail.peak_source = ("held" if held_peak is not None and (in_peak is None or held_peak > in_peak)
+                              else "in_window")
 
 
 def require_breached(sampler: object) -> None:

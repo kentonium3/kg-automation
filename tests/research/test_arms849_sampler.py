@@ -53,7 +53,8 @@ def _peak(sampler: Any, attr: str) -> float | None:
 def _writer(path: pathlib.Path, clock: FakeClock, values: list[Any]) -> SM.RssSeriesWriter:
     it = iter(values)
 
-    def read() -> float:
+    def read(container_id: str) -> float:
+        assert container_id == CID                              # sampled by the resolved id (cycle 18 #3)
         v = next(it)
         if isinstance(v, BaseException):
             raise v
@@ -166,7 +167,8 @@ def test_writer_default_reading_is_the_existing_docker_stats_path(tmp_path, monk
     w = SM.RssSeriesWriter(tmp_path / "rss.jsonl", "arms849-falkordb-1", clock=clock, sleep=clock.sleep)
     w.run(max_readings=1)
     w.close()
-    assert ["docker", "stats", "--no-stream", "--format", "{{.MemUsage}}", "arms849-falkordb-1"] in calls
+    assert ["docker", "stats", "--no-stream", "--format", "{{.MemUsage}}", CID] in calls     # by id, not name
+    assert ["docker", "stats", "--no-stream", "--format", "{{.MemUsage}}", "arms849-falkordb-1"] not in calls
     assert ["docker", "inspect", "--format", "{{.Id}}", "arms849-falkordb-1"] in calls
     rec = json.loads((tmp_path / "rss.jsonl").read_text().splitlines()[1])
     assert rec["rss_mib"] == pytest.approx(1536.0) and rec["container_id"] == CID
@@ -186,7 +188,7 @@ def test_writer_start_stop_runs_in_the_background(tmp_path):
         gate.set()
         time.sleep(0.001)                                       # trivial real yield; the clock is fake
 
-    w = SM.RssSeriesWriter(tmp_path / "rss.jsonl", "c", read=lambda: 7.0, resolve_id=lambda n: CID,
+    w = SM.RssSeriesWriter(tmp_path / "rss.jsonl", "c", read=lambda cid: 7.0, resolve_id=lambda n: CID,
                            clock=clock, sleep=sleep)
     w.start()
     assert gate.wait(5)
@@ -212,6 +214,7 @@ def test_round_trip_peak_is_exactly_the_max_over_the_window(tmp_path):
     assert d.window_start == (T0 + 2 * STEP).isoformat() and d.window_end == (T0 + 6 * STEP).isoformat()
     assert d.first_ts == (T0 + 2 * STEP).isoformat() and d.last_ts == (T0 + 6 * STEP).isoformat()
     assert d.container_id == CID and s.breached is False
+    assert d.in_window_readings == 5 and d.peak_source == "in_window" and d.held_ts is None
 
 
 def test_the_value_held_at_window_start_is_the_last_sample_before_it(tmp_path):
@@ -222,6 +225,8 @@ def test_the_value_held_at_window_start_is_the_last_sample_before_it(tmp_path):
     s = _window(path, clock, T0 + STEP + STEP / 2, T0 + 3 * STEP)
     assert s.peak_mib == 99.0 and s.sample.samples == [99.0, 20.0, 30.0]
     assert s.sample.first_ts == (T0 + STEP).isoformat()
+    assert s.sample.in_window_readings == 2 and s.sample.peak_source == "held"          # R2
+    assert s.sample.held_ts == (T0 + STEP).isoformat()
 
 
 def test_series_absent_is_unreadable(tmp_path):
@@ -251,7 +256,8 @@ def test_stale_at_enter_is_unreadable_before_the_arm_runs(tmp_path):
     s = SM.RssSeriesSampler(path, CID, clock=clock)
     clock.set(T0 + SM.STALE_INTERVALS * STEP + EPS)
     with s:
-        assert _peak(s, "peak_mib") is None and "stale" in s.sample.reason
+        # at enter end == start, so R1 (held vs start) and staleness (last vs end) coincide; R1 reports
+        assert _peak(s, "peak_mib") is None and "held reading" in s.sample.reason
 
 
 def test_a_gap_over_five_intervals_inside_the_window_is_unreadable_and_exactly_five_is_allowed(tmp_path):
@@ -381,3 +387,182 @@ def test_the_window_is_frozen_at_exit(tmp_path):
     w.run(max_readings=1)
     assert (s.peak_mib, s.sample.samples, s.sample.window_end) == snap   # …the closed window does not move
 
+
+
+# ---------------------------------------------------------------------------
+# cycle 18 (review-feedback-18.md): riders R1/R2 and Codex findings 2–5
+# ---------------------------------------------------------------------------
+
+
+def _raw_series(tmp_path: pathlib.Path, records: list[tuple[timedelta, float]]) -> pathlib.Path:
+    path = tmp_path / "rss.jsonl"
+    path.write_text(SM.RssSeriesHeader(T0, "c", CID).to_line()
+                    + "".join(SM.RssRecord(T0 + dt, v, CID).to_line() for dt, v in records))
+    return path
+
+
+def test_r1_held_reading_at_exactly_five_intervals_before_start_is_allowed_and_five_plus_epsilon_refused(tmp_path):
+    path = _raw_series(tmp_path, [(timedelta(0), 42.0)])
+    start = T0 + SM.GAP_INTERVALS * STEP
+    ok = _window(path, FakeClock(), start, start)
+    assert ok.peak_mib == 42.0 and ok.sample.peak_source == "held" and ok.sample.in_window_readings == 0
+    bad = _window(path, FakeClock(), start + EPS, start + EPS)
+    assert bad.peak_mib is None and "held" in bad.sample.reason and "start" in bad.sample.reason
+
+
+def test_r2_a_tie_between_held_and_in_window_is_in_window(tmp_path):
+    path = _raw_series(tmp_path, [(timedelta(0), 50.0), (STEP, 50.0), (2 * STEP, 40.0)])
+    s = _window(path, FakeClock(), T0 + STEP / 2, T0 + 2 * STEP)
+    assert s.peak_mib == 50.0 and s.sample.peak_source == "in_window" and s.sample.in_window_readings == 2
+    higher = _window(_raw_series(tmp_path, [(timedelta(0), 51.0), (STEP, 50.0)]), FakeClock(),
+                     T0 + STEP / 2, T0 + STEP)
+    assert higher.sample.peak_source == "held"
+
+
+def test_2_every_record_tying_the_window_start_is_inside_the_window(tmp_path):
+    path = _raw_series(tmp_path, [(timedelta(0), 999.0), (timedelta(0), 10.0), (STEP, 20.0)])
+    s = _window(path, FakeClock(), T0, T0 + STEP)
+    assert s.peak_mib == 999.0 and s.sample.in_window_readings == 3
+    assert s.sample.peak_source == "in_window" and s.sample.held_ts is None
+
+
+def test_2_every_record_tying_the_window_end_is_inside_the_window(tmp_path):
+    path = _raw_series(tmp_path, [(timedelta(0), 5.0), (STEP, 20.0), (STEP, 999.0), (STEP, 1.0)])
+    s = _window(path, FakeClock(), T0, T0 + STEP)
+    assert s.peak_mib == 999.0 and s.sample.in_window_readings == 4
+
+
+def test_2_a_held_reading_is_not_used_when_a_reading_ties_the_start(tmp_path):
+    path = _raw_series(tmp_path, [(timedelta(0), 999.0), (STEP, 10.0), (2 * STEP, 20.0)])
+    s = _window(path, FakeClock(), T0 + STEP, T0 + 2 * STEP)
+    assert s.peak_mib == 20.0 and s.sample.held_ts is None
+
+
+def test_3_the_writer_samples_the_resolved_immutable_id_not_the_name(tmp_path):
+    seen: list[str] = []
+
+    def read(container_id: str) -> float:
+        seen.append(container_id)
+        return 1.0
+
+    clock = FakeClock()
+    w = SM.RssSeriesWriter(tmp_path / "rss.jsonl", "arms849-falkordb-1", read=read,
+                           resolve_id=lambda name: CID, clock=clock, sleep=clock.sleep)
+    w.run(max_readings=3)
+    w.close()
+    assert seen == [CID, CID, CID]
+
+
+def test_3_a_replacement_container_is_a_hole_not_a_reading_under_the_old_id(tmp_path, monkeypatch):
+    """docker stats by id: once A is gone the read fails (a hole), B's memory is never recorded as A's."""
+    import subprocess
+    state = {"replaced": False}
+
+    def fake_run(argv, **kw):
+        if argv[1] == "inspect":
+            return type("P", (), {"stdout": CID + "\n"})()
+        target = argv[-1]
+        if state["replaced"] and target == CID:
+            raise subprocess.CalledProcessError(1, argv)          # A no longer exists
+        return type("P", (), {"stdout": ("999MiB" if state["replaced"] else "10MiB") + " / 62GiB"})()
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    clock = FakeClock()
+    w = SM.RssSeriesWriter(tmp_path / "rss.jsonl", "arms849-falkordb-1", clock=clock, sleep=clock.sleep)
+    w.run(max_readings=2)
+    state["replaced"] = True                                     # the NAME now points at container B
+    w.run(max_readings=2)
+    w.close()
+    recs = [json.loads(x) for x in (tmp_path / "rss.jsonl").read_text().splitlines()[1:]]
+    assert [r["rss_mib"] for r in recs] == [10.0, 10.0] and w.failures == 2
+
+
+@pytest.mark.parametrize("tail", [
+    b"\xff\xfe not utf-8\n",                                                        # UnicodeDecodeError
+    b'{"ts": "2026-09-25T22:00:02+00:00", "rss_mib": 1' + b"0" * 400 + b', "container_id": "C"}\n',
+    b'{"ts": "2026-09-25T22:00:02+00:00", "rss_mib": 1e999, "container_id": "C"}\n',
+    b'{"ts": "9999-12-31T23:59:59-23:59", "rss_mib": 1.0, "container_id": "C"}\n',  # UTC conversion overflows
+    b'{"ts": ["2026"], "rss_mib": 1.0, "container_id": "C"}\n',
+    b"[1, 2]\n",
+    b'{"ts": "2026-09-25T22:00:02+00:00", "rss_mib": 1.0, "container_id": 7}\n',
+    b"[" * 200_000 + b"]" * 200_000 + b"\n",                                        # RecursionError, not a ValueError
+])
+def test_4_every_conversion_failure_is_fail_closed_never_raised(tmp_path, tail):
+    path = _raw_series(tmp_path, [(timedelta(0), 1.0), (STEP, 2.0)])
+    path.write_bytes(path.read_bytes() + tail.replace(b'"C"', json.dumps(CID).encode()))
+    s = SM.RssSeriesSampler(path, CID, clock=FakeClock(T0 + 2 * STEP))
+    with s:                                                      # nothing escapes the context manager
+        assert s.peak_mib is None and "line 4" in s.sample.reason   # the reason names the failing line
+    assert s.peak_mib is None and "line 4" in s.sample.reason
+
+
+def test_4_the_structural_guard_catches_what_no_parser_guard_names(tmp_path, monkeypatch):
+    """A failure outside every per-line guard (here the read itself raising a non-OSError) is
+    still could-not-check: the whole evaluation sits under one structural guard."""
+    path = _raw_series(tmp_path, [(timedelta(0), 1.0)])
+
+    def boom(self):
+        raise RuntimeError("filesystem driver bug")
+
+    monkeypatch.setattr(pathlib.Path, "read_bytes", boom)
+    s = SM.RssSeriesSampler(path, CID, clock=FakeClock())
+    with s:
+        assert s.peak_mib is None and "RuntimeError" in s.sample.reason
+    assert s.peak_mib is None and "RuntimeError" in s.sample.reason
+
+
+def test_4_a_header_that_is_not_utf8_or_overflows_is_fail_closed(tmp_path):
+    path = tmp_path / "rss.jsonl"
+    for content in (b"\x80\n", b'{"series": "arms849-falkordb-rss/1", "started": "2026-09-25T22:00:00+00:00", '
+                                 b'"container": "c", "container_id": "x", "interval_s": 1' + b"0" * 400 + b"}\n"):
+        path.write_bytes(content)
+        s = _window(path, FakeClock(), T0, T0)
+        assert s.peak_mib is None and s.sample.reason
+
+
+def _naive() -> datetime:
+    return T0.replace(tzinfo=None)                               # deliberately naive
+
+
+def _raising() -> datetime:
+    raise RuntimeError("clock source gone")
+
+
+@pytest.mark.parametrize("bad_clock", [_naive, _raising])
+def test_4_a_failing_clock_is_fail_closed_never_raised(tmp_path, bad_clock):
+    path = _raw_series(tmp_path, [(timedelta(0), 1.0)])
+    s = SM.RssSeriesSampler(path, CID, clock=bad_clock)
+    with s:
+        assert s.peak_mib is None and "clock" in s.sample.reason
+    assert s.peak_mib is None
+
+
+def test_4_a_clock_failing_mid_window_is_fail_closed(tmp_path):
+    path = _raw_series(tmp_path, [(timedelta(0), 1.0)])
+    calls = iter([T0])
+
+    def clock() -> datetime:
+        return next(calls)                                       # StopIteration after the first call
+
+    s = SM.RssSeriesSampler(path, CID, clock=clock)
+    with s:
+        assert s.sample.peak == 1.0                              # enter succeeded
+        assert s.peak_mib is None and "clock" in s.sample.reason
+    assert s.peak_mib is None and "clock" in s.sample.reason
+
+
+def test_5_an_inverted_window_is_unreadable(tmp_path):
+    path = _raw_series(tmp_path, [(timedelta(0), 1.0), (STEP, 2.0)])
+    s = _window(path, FakeClock(), T0 + STEP, T0)                # a backward clock step during the cell
+    assert s.peak_mib is None and "inverted" in s.sample.reason
+    clock = FakeClock(T0 + STEP)
+    live = SM.RssSeriesSampler(path, CID, clock=clock)
+    with live:
+        clock.set(T0)
+        assert live.peak_mib is None and "inverted" in live.sample.reason
+
+
+def test_2_every_record_tying_the_held_timestamp_is_held(tmp_path):
+    path = _raw_series(tmp_path, [(timedelta(0), 999.0), (timedelta(0), 10.0), (STEP, 20.0)])
+    s = _window(path, FakeClock(), T0 + STEP / 2, T0 + STEP)
+    assert s.peak_mib == 999.0 and s.sample.peak_source == "held" and s.sample.samples == [999.0, 10.0, 20.0]
