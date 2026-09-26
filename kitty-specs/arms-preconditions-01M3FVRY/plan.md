@@ -23,10 +23,10 @@ The run itself is not in scope (spec C-007).
 **Primary Dependencies**: existing only — graphiti-core 0.30.2 with its FalkorDB async driver; fastembed (via `embed.Embedder`); the Qwen tokenizer (`serving.Tokenizer`); stdlib `asyncio`, `threading`, `json`, `pathlib`. **No new dependency** is added (C-003/C-004), so the supply-chain section is not triggered.
 **Storage**:
 - the append-only JSONL run ledger (`scripts/research/arms849/ledger.py`);
-- the JSONL memory series at `RUNS_DIR/falkordb-cgroup.jsonl` (host-written, runner-read through the existing `/runs` mount);
+- the JSONL memory series, one file per `substrate.run` generation, at `RUNS_DIR/falkordb-cgroup-<series_id>.jsonl` (host-written, never truncated, runner-read through the existing `/runs` mount), bound to its container by a `series_generation` ledger event;
 - the gate records under `RUNS_DIR`.
 **Testing**: pytest.
-- Every FR is red-first (NFR-002).
+- Every FR is red-first except FR-004, a regression guard; C13's red-first evidence is FR-001 (NFR-002; rubric §10 @`a9dfdd2d`).
 - Office4 suite under `PYTHONHASHSEED` 0 and 3 (NFR-001).
 - **Fresh-worktree CI simulation** (no `build/`, `graphiti_core` hidden behind a stub raising `ModuleNotFoundError`) before any merge.
 - Live-stack tests gated on `ARMS849_LIVE=1`.
@@ -136,7 +136,7 @@ tests/research/
   - `substrate.py`: `run()` lifecycle, `env_extra`, a per-run series generation.
   - `sampler.py`: the cgroup reader for the writer; the rename.
   - `run_849_harness.py`: bind the series sampler, `require_breached`, and durable window-boundary events. Per-question and footprint figures per D-7a. **No graph-store column on per-cell rows.**
-  - `ledger.py`: REMOVE `falkordb_rss_peak_mib` from G's `SCORED_ARM_FIELDS`; validate the `graph_built` / `graph_query_done` / `session_stopped` events.
+  - `ledger.py`: REMOVE `falkordb_rss_peak_mib` from G's `SCORED_ARM_FIELDS`; validate the `series_generation` / `graph_build_started` / `graph_build_result` / `graph_query_done` / `graph_dropped` / `session_stopped` events.
   - `grading.py` / `Ledger.summarise()`: compute the post-hoc graph-store report (D-7a).
 - **Sequencing/depends-on**: IC-01 (the `memory_support` shape), IC-02 (G is registered, so a G cell exists to measure).
 - **Risks**:

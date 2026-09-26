@@ -44,8 +44,13 @@ Exactly these keys. There is no other key and no coercion (a bool is not an int)
 |---|---|---|
 | `premise_violated` | **new** | `{arm: str, reason: "tripwire" \| "cross_group_leak", message: str, at_key: RunKey dict}`. Its presence makes the ledger **unusable as a primary, for export, and for `Ledger.summarise()`** (correction C). Rows stay untouched. |
 | `memory_ceiling` | unchanged | The pre-cell ceiling refusal stays as it is. |
-| `graph_built` | **new**, one per build | `{question, started_ts, finished_ts, series_id}`. Canonical UTC. Validated on write and replay. |
-| `graph_query_done` | **new**, one per G cell | `{key, ts, series_id}`: the completion of that cell's last graph query (inference excluded). |
+| `series_generation` | **new**, one per `substrate.run` | `{series_id, path, container_id, interval_s, started_ts}`. Recorded before any graph activity. |
+| `graph_build_started` | **new** | `{question, attempt_key, ts, series_id}`. |
+| `graph_build_result` | **new** | `{question, attempt_key, ts, ok, series_id}`. |
+| `graph_query_done` | **new**, per G ATTEMPT that finished retrieval | `{key, attempt, ts, series_id}`: that attempt's last graph query (inference excluded). |
+| `graph_dropped` | **new** | `{question, ts, ok, series_id}`. |
+
+All boundary events are validated on write and replay (types, canonical UTC, known `series_id`). The graph-store REPORT computed from them is not persisted, and so is not replay-validated.
 | `session_stopped` | **new** | `{reason, grace_s?}`, with reason one of `g_cancellation_unacknowledged`, `ceiling_breach_at_send`, `premise_violated`, `operator`, … Every stop reason is distinguishable. |
 
 ### Graph-store report (computed, NOT persisted)
@@ -65,7 +70,7 @@ It is never a primary-completeness condition, and never a score.
 | `build_graph`, `drop_graph` | G only. Synchronous wrappers over the persistent loop. |
 | `close()` | **new, optional**. G shuts down its loop and driver. The Session calls it on stop. |
 
-## Memory series file (`RUNS_DIR/falkordb-cgroup.jsonl`)
+## Memory series files (`RUNS_DIR/falkordb-cgroup-<series_id>.jsonl`, one per generation, never truncated)
 
 - **Header**: `{series: "arms849-falkordb-cgroup/1", started, container, container_id, interval_s}`. The format id changes with the measure; `interval_s` is the real interval.
 - **Records**: `{ts, cgroup_mib, container_id}`. `ts` is canonical UTC only (C12).

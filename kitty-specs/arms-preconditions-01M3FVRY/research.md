@@ -29,7 +29,12 @@ Sources:
   - **Cancellation is acknowledged by the coroutine, or the session stops.**
     - On timeout or cancel, the wrapper cancels the loop-side task.
     - It then waits up to `G_CANCEL_GRACE_S` (a named constant, 10 s) for an acknowledgement from the coroutine's own `finally`/cleanup, a flag it sets. `future.done()` is not used for this: it can report done while the coroutine is still unwinding (post-plan review).
-    - If no acknowledgement arrives in time, the Session STOPS with the distinct reason `g_cancellation_unacknowledged`, recorded in the ledger as a `session_stopped` event carrying `{reason, grace_s}`, and the process exits.
+    - If no acknowledgement arrives in time, the G wrapper raises `GCancellationUnacknowledged`, a `BaseException` and NOT an `Exception`, so no ordinary handler can absorb it. **Propagation (post-plan review):**
+      - `_call_with_timeout` currently discards the worker's exception after its grace wait and returns a retryable `("timeout", None)` (`run_849_harness.py` ~L702–705). It must re-raise a non-`Exception` `BaseException` found after the grace wait too, exactly as it already does on the normal path.
+      - `_drop_graph` catches `Exception` only, so the stop passes through.
+      - The Session records `session_stopped{reason: "g_cancellation_unacknowledged", grace_s}`, issues NO further retrieval, drop or cleanup query, and the process exits.
+      - The existing "zombie" path (a worker that never exits) keeps stopping the session as it does today.
+    - **Quiescence includes G's own background tasks.** `FalkorDriver.__init__` schedules a detached `_init_task` (index build) on the running loop, and every `clone()` constructs a new driver (installed `falkordb_driver.py` ~L178–182, L331–342). The per-question clone is created ONCE and cached per question, and its `_init_task` is AWAITED before first use, so index readiness per database is owned. The cancellation acknowledgement is given only when every task the G bridge started for that question is done. `GraphArm`'s single global `_indices_built` flag becomes per-database.
     - Resume runs in a FRESH process. All G state (graphs, UUID maps, `graph_stats`) is reconstructible from the frozen corpus, so nothing stale survives.
   - **No driver replacement exists.** Replacing the driver would leave stale references in `Graphiti.clients`, in `GraphArm`'s UUID maps and in `Session.graph_stats`.
   - **Unconditional cleanup.** `run_session` wraps the whole session in `try/finally: runtime.close()`: completion, `--limit`, `stop()`, exceptions and `KeyboardInterrupt`. `close()` applies the same bounded grace, then abandons the loop thread.
@@ -89,7 +94,7 @@ Sources:
 
 - **Decision**:
   - `substrate.run()` (the host process that blocks on `docker run` of the runner, ~L672–689) starts the writer before the subprocess and waits for the first reading, bounded, failing closed with a named error.
-  - It passes the series path (`/runs/falkordb-cgroup.jsonl`) and the expected container id to the runner through `_runner_cmd(..., env_extra=…)` (~L494–521).
+  - It creates a generation-specific series file `falkordb-cgroup-<series_id>.jsonl` (exclusive create; never truncated; the writer's current `"w"` open at `sampler.py` ~L420 changes accordingly). It passes the generation descriptor `{series_id, path, container_id, interval_s}` to the runner through `_runner_cmd(..., env_extra=…)` (~L494–521), and the harness records it as a `series_generation` event before any graph activity.
   - It stops the writer in `finally`.
   - Only harness runs start it; the self-test and gate phases do not.
   - No compose change: the runner is a plain `docker run`, and `RUNS_DIR` is already mounted `rw` at `/runs` (~L500–502).
@@ -99,31 +104,40 @@ Sources:
 ## D-7a — The graph-store figure is reconstructed post hoc as a per-question CONTAINER TOTAL; per-cell rows carry no graph-store column
 
 - **Decision** (design lead ruling 1; rubric §5 @`a00abc03` (Kent 2026-09-26 22:41Z); durability approved 20260926T231025320954Z444929a640):
-  - **Durable boundaries, not live windows.** The harness writes ledger events:
-    - `graph_built{question, started_ts, finished_ts, series_id}` around each build;
-    - `graph_query_done{key, ts, series_id}` at the completion of each cell's LAST GRAPH QUERY (inference excluded).
+  - **Durable boundaries, not live windows.** The harness writes these ledger events, each carrying `series_id`:
+    - `graph_build_started{question, attempt_key, ts}` BEFORE the build begins;
+    - `graph_build_result{question, attempt_key, ts, ok}` after it (a failed or interrupted build leaves a start with no result, or `ok: false`);
+    - `graph_query_done{key, attempt, ts}` at the completion of that ATTEMPT's last graph query (inference excluded; no event if retrieval raised);
+    - `graph_dropped{question, ts, ok}` after each drop attempt.
+  - **Window rules, applied by the evaluator:**
+    - A question's window starts at its FIRST `graph_build_started` and ends at the `graph_query_done` of its TERMINAL repeat-3 attempt.
+    - On resume, the original start is preserved: the earliest start for the question in the ledger. A rebuild in a later generation makes the window cross generations, so it is `could_not_check: interrupted`.
+    - Any missing or incomplete boundary (a start without a result, no terminal repeat-3 query event, a halt) makes the figure `could_not_check` with the specific reason.
+  - **`all_resident_mib`**: the peak over the interval from the LAST successful `graph_build_result` of repeat 1 to the FIRST `graph_dropped`. This is only defined when that interval lies inside one generation and every question has a successful build with no drop before it; otherwise it is `could_not_check`.
+  - **`baseline_mib`**: the reading held at the first `graph_build_started` of the generation that contains it.
   - **Series files are never truncated.** There is one file per `substrate.run` generation, `falkordb-cgroup-<series_id>.jsonl`, whose header carries the container id and the recorded interval.
   - **The figures are computed at summary and export time:**
-    - per question, the container high-water mark over [that question's `graph_built.started_ts` .. its last `graph_query_done.ts`], with `memory_support`;
+    - per question, the container high-water mark over [that question's first `graph_build_started` .. the `graph_query_done` of its terminal repeat-3 attempt], with `memory_support`;
     - per run, `baseline_mib` (before the first build) and `all_resident_mib` (the peak once every question's graph is resident).
     - A window that crosses a series generation (interruption, container change) yields `could_not_check: interrupted` for that question, never a number.
   - **Per-cell G rows carry NO graph-store column.** The retired `falkordb_rss_peak_mib`, and the new name on a row, are both refused.
   - **The two sampler roles fail differently** (design lead):
     - The ceiling guard's live sampler: unreadable means could-not-check and **refuses the cell** (a safety property).
     - The graph-store figure: unavailable means `could_not_check` in the report, and **the cell is unaffected** (a reported column, about 0.4 % of the ceiling).
-  - Graph-store memory is not, and never was, a primary-completeness condition. Primary-complete means 72 scored cells with zero `not_implemented`, §5 says neither memory measure is pass/fail, and §7 carries no memory term.
+  - Graph-store memory is not, and never was, a primary-completeness condition. Primary-complete (`grading.is_complete`) means every one of the 72 cells is TERMINAL with zero `not_implemented`. That includes the 18 registered D `exceeds_model_context` cells, which are terminal and never scored. This mission adds explicit exclusions: a ledger holding an `exceeds_memory_ceiling` cell, a `sampler_unreadable_at_send` cell, or a `premise_violated` event is NOT primary-complete. §5 says neither memory measure is pass/fail, and §7 carries no memory term.
 - **Rationale**: measured on a throwaway sandbox (#1023): a build takes 0.54–2.02 s; the cgroup charge is a high-water mark that never drops after `drop_graph`; the whole footprint is about 150–230 MiB.
   - Question-major order: ruled out (asymmetric prompt-cache warmth on G's cost axis).
   - Build-and-drop per cell: ruled out (defeated by the high-water mark).
   - A fresh container per cell: ruled out (false precision).
   - A live per-question event: replaced (it cannot survive a crash between the last run row and the event, or a resume mid-question).
 
-## D-7 — The harness binds the series reader
+## D-7 — Remove the per-attempt graph-store sampler; add a historical-window evaluator
 
 - **Decision**:
-  - `live_runtime` binds `rss_sampler=functools.partial(<series sampler>, path, expected_id)` from the environment (refusing if they are absent). It calls `sampler.require_breached()` on a constructed instance of each bound sampler.
-  - Per D-7a, the graph-store figures are reconstructed post hoc from the durable boundary events and the series files, never written to a row.
-- **Rationale**: the harness surface is unchanged (a zero-arg factory, a context manager, `peak_mib` read pre-arm and post-window), so this is the one-line swap the WP04 reopen designed for. Support is nested in the row, not in a sibling event (design lead ruling 4 at the post-merge checkpoint: nothing separable from the number it qualifies).
+  - The harness's per-attempt graph-store sampler path is REMOVED: entered per attempt, refusing unreadable data, and attaching its peak to G rows (`run_849_harness.py` ~L543, L551, L655). The ceiling guard's GTT sampler stays live.
+  - A historical-window evaluator (a pure function over the series files, the generation descriptors and the ledger boundary events) is called by `Ledger.summarise()` and the export to produce the graph-store report (D-7a).
+  - `require_breached` still applies to every sampler the harness binds live.
+- **Rationale**: a post-hoc report cannot be a live context manager. The surfaces change, and saying so here keeps a superseded "one-line swap" from surviving as an executable instruction.
 
 ## D-8 — Ledger additions
 

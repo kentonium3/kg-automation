@@ -38,7 +38,7 @@ For every question, the operator gets the graph store's memory as the rubric reg
 **Acceptance Scenarios**:
 
 1. **Given** a healthy series, **When** a question's last G repeat completes, **Then** its graph-store record holds the container peak over that question's window and its support: window bounds, in-window sample count, held timestamp, and peak source. Per-cell rows carry no graph-store column.
-2. **Given** a series that is absent, stale, gapped or from the wrong container, **When** a G cell starts, **Then** the cell is refused as unmeasurable and is never recorded as zero or as a pass.
+2. **Given** a series that is absent, stale, gapped, from the wrong container, or interrupted, **When** the graph-store report is computed, **Then** that question's figure is `could_not_check` with the reason. The cells themselves are unaffected, and nothing is ever recorded as zero or as a pass.
 3. **Given** a graph-store record without valid support, or a per-cell row carrying a graph-store column, **When** it is written or replayed, **Then** the ledger refuses it.
 
 ---
@@ -128,7 +128,7 @@ Anyone reading a test run can see which research tests ran and which were skippe
 | FR-004 | No-arms run is never a primary (C13, Condition A) | As the run operator, I want a test proving that a run with no registered arms cannot produce a primary-complete ledger, so that the fail-safe is demonstrated rather than argued. The post-plan review measured that the existing code already refuses it, so this is a regression guard that stays green; C13's red-first evidence is FR-001's live-registration test. | High | Open |
 | FR-005 | Memory series end to end (C9) | As the run operator, I want each G cell's graph-store memory peak read from the real measurement series, as rubric §5 registers it (after the C-009 amendment), so that the graph-store column is measured rather than refused. | High | Open |
 | FR-006 | Peak support recorded (C9) | As a reader of the results, I want each question's graph-store memory record to carry its peak's support (window bounds, in-window count, held timestamp, peak source), the run to record the container baseline and the all-graphs-resident total, and the ledger to validate them on write and replay. The figure is a container total and not a per-question cost (rubric §5 amendment, Kent 2026-09-26). | High | Open |
-| FR-007 | Unmeasurable fails closed (C9) | As the run operator, I want absent, stale, gapped or wrong-container series data to refuse the cell through the real path, so that an unmeasurable peak is never recorded as zero or as a pass. | High | Open |
+| FR-007 | Unmeasurable graph-store figure is could-not-check (C9) | As the run operator, I want an absent, stale, gapped, wrong-container or interrupted graph-store series to make that question's graph-store figure `could_not_check` in the report, never a zero or a pass, and never refusing or affecting the cell. Only the ceiling guard's live sampler refuses cells (rubric §5 @`a00abc03`; design lead 20260926T231025320954Z444929a640). | High | Open |
 | FR-008 | Ceiling guard at send (C11) | As the run operator, I want the memory ceiling checked immediately before each request is sent, with nothing sent on a breach and the breach reaching the harness unaltered. The cell must record a DISTINCT outcome carrying the measured peak and the ceiling: terminal for the attempt, never averaged, never a scored cell, and distinguishable from an unreadable sampler (design lead: a row, following the exceeds-model-context precedent). The guard then fires at the last point the protocol controls. | High | Open |
 | FR-009 | Live-style resume (C8) | As the run operator, I want a resume across real, timestamp-bearing gate phases to complete with earlier rows intact, and both negatives (a failing fresh gate stops and records; a session that skipped its gates cannot write a row) demonstrated, so that recovery is proven before the run depends on it. | High | Open |
 | FR-010 | Complete isolation inventory (C4) | As the run operator, I want the isolation check to name every module of the run package, with a two-way test, so that a truncated package cannot certify isolation. | Medium | Open |
@@ -146,7 +146,7 @@ Anyone reading a test run can see which research tests ran and which were skippe
 | NFR-001 | Suite green in both environments | 100% of tests pass on office4 with the research environment, under both PYTHONHASHSEED 0 and 3, and in a fresh-worktree CI simulation without it, with 0 collection errors. | Reliability | High | Open |
 | NFR-002 | Can-fail evidence | Every functional requirement except FR-004 has at least one test that fails on the pre-change code. FR-004 is a regression guard, because the existing code already refuses a no-arms ledger (measured); C13's red-first evidence is FR-001. The evidence is recorded per work package. | Reliability | High | Open |
 | NFR-003 | No orphaned attempts | Across 100 consecutive attempts with injected timeouts and cancellations against a fake graph store, 0 attempts remain running after their deadline. | Reliability | High | Open |
-| NFR-004 | Measurement freshness | The memory series tolerances stay as registered: a gap or staleness of more than 5 sample intervals refuses the cell, and exactly 5 is allowed. | Accuracy | High | Open |
+| NFR-004 | Measurement freshness | The memory-series tolerances stay as registered: a gap or staleness of more than 5 recorded sample intervals makes the reconstructed figure `could_not_check`, and exactly 5 is allowed. The ceiling guard's live read is governed separately (FR-008). | Accuracy | High | Open |
 | NFR-005 | Fail closed | 0 paths record an unmeasurable, refused or unregistered cell as a score, a zero or a pass. | Integrity | High | Open |
 
 ### Constraints
@@ -175,7 +175,7 @@ Anyone reading a test run can see which research tests ran and which were skippe
 ### Measurable Outcomes
 
 - **SC-001**: A live session on office4 registers 3 of 3 arms. A run with 0 registered arms yields 0 ledgers accepted as primary.
-- **SC-002**: 8 of 8 questions in an end-to-end test yield a graph-store record with complete support, and the run records its baseline and all-resident total. 4 of 4 unmeasurable conditions (absent, stale, gapped, wrong container) refuse the cell.
+- **SC-002**: 8 of 8 questions in an end-to-end test yield a graph-store report entry with complete support, and the run reports its baseline and all-resident total. 5 of 5 unavailable conditions (absent, stale, gapped, wrong container, interrupted) yield `could_not_check` for the figure while the cells stay unaffected.
 - **SC-003**: With the ceiling breached at send time, 0 requests are sent. The cell records a ceiling-breach outcome that is excluded from 100% of averages and never shares an outcome with an unreadable sampler.
 - **SC-004**: A resumed run completes with 100% of earlier rows byte-identical and 0 double-recorded cells. Both negative cases behave as specified.
 - **SC-005**: The isolation inventory matches the package in both directions (17 of 17 modules today).
