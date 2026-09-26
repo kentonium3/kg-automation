@@ -383,8 +383,10 @@ harness code, `results/<run>.json`, grading sheet. Findings are written against 
 ### Preconditions for the run (added 2026-09-25 23:08Z, design lead)
 
 Registered here rather than left in a working note, so the list outlives any one session. The
-run's **first live cell of any arm** may not start until all four hold, and each is verified by a
-test, not by assertion:
+run's **first live cell of any arm** may not start until **all five** hold, and each is verified by
+a test, not by assertion. *(Four at registration; C13 added 2026-09-26. If a later reader finds a
+count here that disagrees with the list below, the list governs — a count is a copy, and copies go
+stale.)*
 
 - **C4 — the isolation gate's inventory is complete.** `REQUIRED_MODULES` names every module of
   the run package, the three arms included, with a two-way test (every module in the package is
@@ -403,6 +405,17 @@ test, not by assertion:
 - **C11 — the ceiling guard runs at the last point the protocol controls.** A `before_send`
   callback invoked after the permitted-limit count and immediately before the request is sent,
   for every live cell, its exception propagating unwrapped with nothing sent.
+- **C13 — every arm is actually registered, and the run cannot pretend otherwise.** Factories for
+  G, D and R; a real embedder constructed (G and R both need one); G carrying an `ArmRefusal`
+  class and the configuration cross-check its contract has required since `42056e57`; the
+  transitional `ctx.serving.config` fallbacks removed. *(Registered 2026-09-26 on Kent's ruling
+  "include C13"; found by the post-merge Codex checkpoint, which measured `ARM_FACTORIES == {}`
+  and `embedder = None` on the merged tree.)* The failure it prevents is fail-safe but expensive:
+  an unregistered arm records `not_implemented`, a primary ledger requires zero of those, so a run
+  started here produces 72 unusable cells and burns the ledger bound to that corpus. **Verified by
+  a test that a run with no registered arms cannot produce a primary-complete ledger, red before
+  the fix** — the protection must be a measurement, not an argument from how the summariser
+  behaves.
 
 One further item gates the **post-merge review** rather than the run: **C10** — every contract
 sentence prescribed by an in-mission ruling must have landed before the review runs, because that
