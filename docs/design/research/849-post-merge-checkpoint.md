@@ -129,8 +129,29 @@ branches.
 | C-3 | WP07 N-2 — a passed index is validated before retrieval | Carried forward from WP07's approval. |
 | C-4 | `REQUIRED_MODULES` includes `arm_g`, `arm_d`, `arm_r`, with the two-way agreement test | Deliberately not done in lane-h: the arm modules are absent there by dependency topology. **Also a pre-run blocker.** |
 | C-5 | `probe_f` per-task normalisation (`74e0c148`) still green against the merged loader | The probe and the loader land together for the first time. |
-| C-6 | The **loader-side structural pass** owed from synthesis | The one gap the freeze gate could not close, because it needs a loader — and there was none at freeze. |
+| C-6 | All **four gates** pass in-process on the merged tree: `check_849_seed`, `check_849_oracle`, `check_849_freeze`, `check_849_loader` | The loader-side pass is the one the freeze gate could not do, because it needs a loader. See the correction below — it exists; it is not owed. |
 | C-7 | T039 — the §2 token table re-measured on the **final assembled bytes** and registered with `preflight_sha` + the rubric HEAD cited | The numbers only become final once the tree is final. |
+
+### Correction to C-6 (2026-09-26, this document's own error)
+
+The 21:08Z list called the loader-side structural pass "owed from synthesis", and the first version
+of this file repeated it. **That was already stale when it was written.** It was true at the
+synthesis hand-back on 2026-09-24, and closed hours later the same day by Amendment A1: the pass
+exists as `scripts/research/check_849_loader.py`, it is registered in rubric §9, and it is what
+*found* L12 and L13 — the defects A1 exists to record.
+
+Rubric §9, verbatim: `check_849_loader` "verifies the three fingerprints, refuses any other corpus,
+replays to every `ask_time`, and checks the loaded graph for forbidden vocabulary, unregistered edge
+pairs and the arc-specific absences", and the **four gates** run in-process before any run — a
+failing gate raises and no ledger is created.
+
+So C-6 is not "build the owed pass"; it is "run all four gates on the merged tree and confirm they
+pass". The file is present on `origin/feat/849-arms-run` (blob `9b3b8066`). Verified 2026-09-26.
+
+Worth keeping visible rather than silently editing, because it is the same failure mode as the two
+citation defects in §1 and it caught me the same way: a statement that was accurate when made,
+carried forward by quotation after the thing it described had changed. The rubric was the authority
+that settled it, which is the argument for registering rules there rather than on the bus.
 
 ### Pre-run blockers, distinct from the checkpoint
 
