@@ -797,12 +797,36 @@ def open_existing(path: pathlib.Path) -> Ledger:
     return open_ledger(path, h.binding, h.blinding_seed, h.plan)
 
 
+def _binds_skip_gates(binding: Binding) -> bool:
+    """A development ledger: its binding carries :data:`grading.SKIP_GATES_SHA` in any gate field."""
+    return grading.SKIP_GATES_SHA in (binding.preflight_sha, binding.gate_host_sha, binding.gate_container_sha)
+
+
+def _is_development_ledger(path: pathlib.Path, skip_gates: bool) -> bool:
+    """Whether a ``--skip-gates`` run at ``path`` writes a development ledger — the one place a skipped
+    GGUF verification may bind (:func:`require_verified_gguf`). Keyed on the LEDGER, not the flag: a
+    RESUMED ledger is development only when its header binds :data:`grading.SKIP_GATES_SHA`; the flag
+    decides only the fresh case (no file — the run will create a SKIP_GATES_SHA header). A present file
+    without a readable header (empty, headerless, malformed) is conservatively NOT development."""
+    if not skip_gates:
+        return False
+    path = pathlib.Path(path)
+    if not path.exists():
+        return True
+    header = peek_header(path)
+    if header is None:
+        return False
+    try:
+        return _binds_skip_gates(Header.from_dict(header).binding)
+    except (KeyError, TypeError, ValueError):  # an unparseable header binds nothing; open_ledger reports it on its own terms
+        return False
+
+
 def require_complete_primary(primary: Ledger) -> None:
     """ledger-schema.md item 8: the named primary must be complete — 72 cells, zero not_implemented."""
     if primary.header.plan != PRIMARY_PLAN or primary.header.binding.serving.get("kind") != "primary":
         raise PrimaryIncomplete(f"{primary.path} is not a primary ledger")
-    b = primary.header.binding
-    if grading.SKIP_GATES_SHA in (b.preflight_sha, b.gate_host_sha, b.gate_container_sha):
+    if _binds_skip_gates(primary.header.binding):
         raise PrimaryIncomplete(f"{primary.path} was written with --skip-gates (development only); "
                                 f"it can never be a primary")
     ok, detail = grading.is_complete(primary)
@@ -1129,7 +1153,10 @@ class SetupRecord:
 def require_verified_gguf(setup: SetupRecord, path: pathlib.Path, development_ledger: bool) -> None:
     """A skipped GGUF verification binds ONLY a ``--skip-gates`` development ledger (one that binds
     ``SKIP_GATES_SHA`` — already refused as a primary and by export), the same principle as a skipped
-    ``session_gates``. Any real ledger, fresh or resumed, needs verified provenance."""
+    ``session_gates``. Any real ledger, fresh or resumed, needs verified provenance. The permission
+    (``development_ledger``) is keyed on the ledger HEADER's SKIP_GATES_SHA binding
+    (:func:`_is_development_ledger`); the ``--skip-gates`` flag decides only the fresh-ledger case — a
+    real ledger resumed with the flag is NOT development (Codex c6)."""
     if setup.gguf_verified or development_ledger:
         return
     raise ConfigUnavailable(
@@ -1175,7 +1202,8 @@ def live_config(secondary: bool, development_ledger: bool = False) -> serving.Se
     :class:`PreflightUnusable` (a gate failure, recorded and exit 3); a setup problem raises
     :class:`ConfigUnavailable` (REFUSED, exit 1). No other exception escapes. The chat-template sha
     authority is the CACHED tokenizer; the preflight's must equal it (design lead, c4).
-    ``development_ledger`` is True only for a ``--skip-gates`` run: the one place a skipped GGUF
+    ``development_ledger`` is True only for a ``--skip-gates`` run whose ledger is (or will be created
+    as) a development ledger (:func:`_is_development_ledger`): the one place a skipped GGUF
     verification may bind (:func:`require_verified_gguf`)."""
     setup_path, preflight_path = RUNS_DIR / "setup.json", RUNS_DIR / "preflight.json"
     setup = load_setup_record(setup_path)
@@ -1407,10 +1435,12 @@ def main(argv: list[str]) -> int:
             print(f"grading view {paths.view}\nadmin report {paths.admin}\nseal {paths.seal}")
             return 0
         try:
-            # The binding kind is known here: only a --skip-gates RUN creates or resumes a development
-            # ledger; --host-gates / --gates are real gate phases and never are.
-            config = live_config(args.secondary,
-                                 development_ledger=args.skip_gates and not (args.host_gates or args.gates))
+            # The binding kind is read from the LEDGER, not the flag (Codex c6): only a --skip-gates RUN
+            # creating a fresh ledger, or resuming one whose header binds SKIP_GATES_SHA, is development;
+            # --host-gates / --gates are real gate phases and never are.
+            development = not (args.host_gates or args.gates) and _is_development_ledger(args.ledger,
+                                                                                          args.skip_gates)
+            config = live_config(args.secondary, development_ledger=development)
         except PreflightUnusable as exc:
             return _preflight_unusable(args, exc)
         if args.host_gates:

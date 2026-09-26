@@ -1340,3 +1340,58 @@ def test_verified_gguf_proceeds_on_both_kinds_fresh_and_resumed(run_cli, skip):
     assert run(json.dumps(GOOD_SETUP), *flags) == h.EXIT_OK
     assert run(json.dumps(GOOD_SETUP), *flags) == h.EXIT_OK
     assert len(runs(ledger_path)) == 2
+
+
+# --------------------------------------------------------------------------
+# Fix cycle 7 (Codex c6): the development-ledger permission is keyed on the LEDGER HEADER's
+# SKIP_GATES_SHA binding, not the --skip-gates flag (the flag decides only the fresh-ledger case)
+# --------------------------------------------------------------------------
+
+
+def test_skipped_gguf_resuming_a_real_ledger_with_skip_gates_is_refused_and_nothing_is_written(run_cli, cli_runs,
+                                                                                            capsys):
+    """REGRESSION (c6): a REAL ledger resumed with --skip-gates, a skipped GGUF and no preflight used to
+    pass the GGUF check on the flag, then write gate-container.json and append session_gates to the
+    real ledger (exit 3). It must be refused before the preflight load, with nothing written."""
+    run, ledger_path = run_cli
+    assert run(json.dumps(GOOD_SETUP)) == h.EXIT_OK                  # a real ledger, one cell
+    before = ledger_path.read_bytes()
+    (cli_runs / "preflight.json").unlink()
+    (cli_runs / "setup.json").write_text(SKIPPED_SETUP, encoding="utf-8")
+    capsys.readouterr()
+    code = h.main(["harness", "--ledger", str(ledger_path), "--corpus", str(CORPUS), "--limit", "1",
+                   "--up-ts", "2026-09-25T00:00:00+00:00", "--skip-gates"])
+    captured = capsys.readouterr()
+    assert code == h.EXIT_FAILED
+    _assert_actionable(captured.out)
+    assert "Traceback" not in captured.err
+    assert ledger_path.read_bytes() == before
+    assert not list(cli_runs.glob("gate-*.json"))
+
+
+def test_skipped_gguf_resuming_a_development_ledger_with_skip_gates_proceeds(run_cli):
+    """The header binds SKIP_GATES_SHA: the resume is a development ledger and is not refused."""
+    run, ledger_path = run_cli
+    assert run(SKIPPED_SETUP, "--skip-gates") == h.EXIT_OK            # creates the development ledger
+    assert h._is_development_ledger(ledger_path, skip_gates=True)
+    assert run(SKIPPED_SETUP, "--skip-gates") == h.EXIT_OK            # resumed
+    assert len(runs(ledger_path)) == 2
+
+
+def test_is_development_ledger_reads_the_header_binding(tmp_path, run_cli):
+    run, ledger_path = run_cli
+    missing = tmp_path / "absent.jsonl"
+    assert h._is_development_ledger(missing, skip_gates=True) is True      # fresh --skip-gates run
+    assert h._is_development_ledger(missing, skip_gates=False) is False
+    headerless = tmp_path / "headerless.jsonl"
+    headerless.write_text('{"record": "attempt_start"}\n', encoding="utf-8")
+    assert h._is_development_ledger(headerless, skip_gates=True) is False  # present: conservative
+    empty = tmp_path / "empty.jsonl"
+    empty.write_bytes(b"")
+    assert h._is_development_ledger(empty, skip_gates=True) is False
+    assert run(json.dumps(GOOD_SETUP)) == h.EXIT_OK                        # a real ledger
+    assert h._is_development_ledger(ledger_path, skip_gates=True) is False
+    ledger_path.unlink()
+    assert run(json.dumps(GOOD_SETUP), "--skip-gates") == h.EXIT_OK        # a development ledger
+    assert h._is_development_ledger(ledger_path, skip_gates=True) is True
+    assert h._is_development_ledger(ledger_path, skip_gates=False) is False
