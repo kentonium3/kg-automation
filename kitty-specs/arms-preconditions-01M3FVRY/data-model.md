@@ -1,0 +1,70 @@
+# Data Model — 849 Arms Run Pre-Run Preconditions
+
+The baseline is arms-run-01M3APTA's `data-model.md` and contracts. This file lists only the deltas.
+
+## Run row (ledger `run` record)
+
+| Field | Change | Rule |
+|---|---|---|
+| `outcome` | **adds** `exceeds_memory_ceiling` | Terminal for the attempt. Never averaged. Not a scored outcome. Carries `memory_ceiling: {measured_gib: float, ceiling_gib: float, stage: "before_send"}`. Distinct from `error`, from `exceeds_model_context`, and from an unreadable sampler (which is `sampler_unreadable`, an event, and no attempt). |
+| `falkordb_cgroup_peak_mib` | **renames** `falkordb_rss_peak_mib` (retired; must not appear anywhere) | G ok rows only. A real int/float ≥ 0. The container's cgroup memory charge (rubric §5 @`ea3fbfc8`). |
+| `memory_support` | **new**, G ok rows | See below. Required when `falkordb_cgroup_peak_mib` is present. Validated on write and replay. |
+
+### memory_support
+
+| Key | Type | Rule |
+|---|---|---|
+| `window_start` | str | canonical UTC isoformat |
+| `window_end` | str | canonical UTC isoformat, ≥ `window_start` |
+| `in_window_readings` | int | ≥ 0 (excluding the held reading) |
+| `held_ts` | str or null | canonical UTC isoformat when present |
+| `peak_source` | `"held"` \| `"in_window"` | `"held"` ⇒ `held_ts` present. `in_window_readings == 0` ⇒ `"held"`. A tie ⇒ `"in_window"`. |
+| `interval_s` | float | the series' **recorded** real interval, > 0 |
+
+Exactly these keys. There is no other key and no coercion (a bool is not an int).
+
+## attempt_start record
+
+| Field | Change | Rule |
+|---|---|---|
+| `session_id` | **new**, required | Non-empty str. Replay requires that the most recent `session_gates` event above this row has the same `session_id`, `passed: true`, and `skipped: false`. Skipped is allowed only under a `SKIP_GATES_SHA` header. |
+
+## Event records
+
+| Kind | Change | Detail |
+|---|---|---|
+| `premise_violated` | **new** | `{arm: str, reason: "tripwire" \| "cross_group_leak", message: str, at_key: RunKey dict}`. Its presence makes the ledger **unusable as a primary and for export** (correction C). Rows stay untouched. |
+| `memory_ceiling` | unchanged | The pre-cell ceiling refusal stays as it is. |
+
+## Arm registration (in-memory, not persisted)
+
+| Field | Rule |
+|---|---|
+| `refusal` | The unified `ArmRefusal`, the same class for all three arms. Terminality by identity. |
+| `answer` \| `bind` | Exactly one, as today. R also exposes `calibration_inputs(views, cache)`. |
+| `build_graph`, `drop_graph` | G only. Synchronous wrappers over the persistent loop. |
+| `close()` | **new, optional**. G shuts down its loop and driver. The Session calls it on stop. |
+
+## Memory series file (`RUNS_DIR/falkordb-cgroup.jsonl`)
+
+- **Header**: `{series: "arms849-falkordb-cgroup/1", started, container, container_id, interval_s}`. The format id changes with the measure; `interval_s` is the real interval.
+- **Records**: `{ts, cgroup_mib, container_id}`. `ts` is canonical UTC only (C12).
+- **A failed read writes no line**, so the hole surfaces as a gap.
+
+## State transitions
+
+```mermaid
+stateDiagram-v2
+    [*] --> attempt_started: begin_attempt (session gates passed; attempt carries session_id)
+    attempt_started --> ok: arm answered, samplers readable
+    attempt_started --> exceeds_model_context: D over native limit
+    attempt_started --> exceeds_memory_ceiling: before_send breach (nothing sent)
+    attempt_started --> error: ArmRefusal (terminal) or other failure (retryable)
+    attempt_started --> halted: PremiseViolated (run stops; ledger unusable as primary)
+    ok --> [*]
+    exceeds_model_context --> [*]
+    exceeds_memory_ceiling --> [*]
+    error --> attempt_started: retryable and attempts remain
+    error --> [*]
+    halted --> [*]
+```
