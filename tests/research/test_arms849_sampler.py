@@ -583,7 +583,7 @@ def test_c19_a_sub_microsecond_record_timestamp_is_unreadable_not_truncated(tmp_
         fh.write(json.dumps({"ts": late, "rss_mib": 999.0, "container_id": CID}) + "\n")
     s = _window(path, clock, T0, T0 + STEP)
     assert s.peak_mib is None
-    assert "fractional" in (s.sample.reason or "")
+    assert "canonical" in (s.sample.reason or "")
 
 
 def test_c19_a_sub_microsecond_header_timestamp_is_unreadable(tmp_path):
@@ -593,17 +593,28 @@ def test_c19_a_sub_microsecond_header_timestamp_is_unreadable(tmp_path):
     header["started"] = T0.isoformat().replace("+00:00", ".1234567+00:00")
     path.write_text("\n".join([json.dumps(header), *lines[1:]]) + "\n", encoding="utf-8")
     s = _window(path, clock, T0, T0 + STEP)
-    assert s.peak_mib is None and "fractional" in (s.sample.reason or "")
+    assert s.peak_mib is None and "canonical" in (s.sample.reason or "")
 
 
-@pytest.mark.parametrize("frac", ["", ".5", ".123456"])
-def test_c19_up_to_six_fractional_digits_still_parse(frac):
+@pytest.mark.parametrize("frac", ["", ".500000", ".123456"])
+def test_c19_canonical_timestamps_still_parse(frac):
     ts = SM._parse_ts(T0.isoformat().replace("+00:00", f"{frac}+00:00"))
     assert ts.tzinfo is not None
 
 
-@pytest.mark.parametrize("value", ["2026-09-25T22:00:01.0000009+00:00", "2026-09-25T22:00:01,1234567+00:00",
-                                   "2026-09-25 22:00:01.1234567+00:00"])
-def test_c19_seven_or_more_fractional_digits_are_refused_whatever_the_separator(value):
-    with pytest.raises(ValueError, match="fractional"):
+@pytest.mark.parametrize("value", [
+    "2026-09-25T22:00:01.0000009+00:00",      # sub-microsecond: truncated by fromisoformat
+    "2026-09-25T22:00:01,1234567+00:00",
+    "2026-09-25 22:00:01.1234567+00:00",      # space separator
+    "20260925T220001.0000009+0000",           # compact (basic) form: no colons, still truncated
+    "20260925T220001,0000009Z",
+    "2026-W39-5T22:00:01+00:00",              # week date
+    "2026-09-25T22:00:01Z",                   # exact, but not the form the writer emits
+    "2026-09-25T22:00:01.000000+00:00",       # six zero digits: isoformat() drops them
+    "2026-09-25T2200.5+00:00",
+])
+def test_c19_only_the_canonical_isoformat_form_is_accepted(value):
+    """Codex c18/c19: fromisoformat accepts many ISO forms and silently truncates what it cannot
+    hold; only the exact isoformat() round trip the writer emits is accepted."""
+    with pytest.raises(ValueError, match="canonical"):
         SM._parse_ts(value)

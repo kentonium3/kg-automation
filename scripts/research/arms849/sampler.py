@@ -48,7 +48,6 @@ import itertools
 import json
 import math
 import pathlib
-import re
 import subprocess
 import threading
 import time
@@ -274,19 +273,20 @@ def _is_number(value: Any) -> bool:
     return isinstance(value, (int, float)) and not isinstance(value, bool)
 
 
-#: More than six fractional-second digits: precision ``datetime`` cannot hold. ``fromisoformat``
-#: would TRUNCATE it, which can move a reading taken just after a window end into the window
-#: (Codex WP04 c18). The writer never emits it, so such a timestamp is unreadable, never rounded.
-_SUB_MICROSECOND = re.compile(r"\d{2}:\d{2}:\d{2}[.,]\d{7,}")
-
-
 def _parse_ts(value: Any) -> datetime:
-    if isinstance(value, str) and _SUB_MICROSECOND.search(value):
-        raise ValueError(f"timestamp {value!r} has more than six fractional-second digits")
+    """A timestamp is accepted only in CANONICAL form: the string must be exactly what
+    ``datetime.isoformat()`` produces for the parsed value (which is what the writer emits).
+    ``fromisoformat`` also accepts other ISO forms — compact, week dates, 'Z', more than six
+    fractional digits — and silently TRUNCATES precision it cannot hold, which moved a reading
+    taken just after a window end into the window (Codex WP04 c18/c19). Requiring a round trip
+    excludes every lossy or non-canonical form by construction rather than by listing them."""
     try:
         ts = datetime.fromisoformat(value)
     except TypeError:
         raise ValueError(f"timestamp must be an ISO-8601 string, got {value!r}") from None
+    if ts.isoformat() != value:
+        raise ValueError(f"timestamp {value!r} is not in canonical isoformat form "
+                         f"(it would parse as {ts.isoformat()!r}); precision or form would be lost")
     if ts.tzinfo is None or ts.utcoffset() is None:
         raise ValueError(f"timestamp {value!r} is not timezone-aware")
     try:
