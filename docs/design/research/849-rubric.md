@@ -415,7 +415,14 @@ stale.)*
   started here produces 72 unusable cells and burns the ledger bound to that corpus. **Verified by
   a test that a run with no registered arms cannot produce a primary-complete ledger, red before
   the fix** — the protection must be a measurement, not an argument from how the summariser
-  behaves.
+  behaves. **Correction, 2026-09-26 23:09Z (design lead), on a measurement rather than a
+  re-decision:** the ledger already refuses a no-arms ledger today — Codex measured it — so the
+  red-before-the-fix evidence is unattainable *there* and that check stands as a **regression**
+  test. The red-first requirement attaches instead to the **live registration path** (FR-001):
+  arms must be demonstrably absent before the fix and demonstrably registered after it. The intent
+  is unchanged — the fail-safe is established by a test that could have failed, not by an argument
+  about how the summariser behaves — and only the place that test lives has moved, because the
+  original target turned out to be already safe.
 
 One further item gates the **post-merge review** rather than the run: **C10** — every contract
 sentence prescribed by an in-mission ruling must have landed before the review runs, because that
