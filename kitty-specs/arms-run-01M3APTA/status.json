@@ -159,7 +159,8 @@
         "cycle 7: two-phase gates c6 fixes (host digest bound, harness up_ts freshness, parsed timestamps)",
         "reopen c17 @11d9bffc: RSS series format; 848 pass x2 seeds; combined with lane-h 1035 pass",
         "c18 @637d0a5a: 4 defects + riders; 870 pass x2 seeds; cross-lane 1057",
-        "c19 @e22fb7ff: sub-µs timestamps unreadable; 878 pass x2 seeds; cross-lane 1065"
+        "c19 @e22fb7ff: sub-µs timestamps unreadable; 878 pass x2 seeds; cross-lane 1065",
+        "Codex c19 APPROVE @52f4d2e1"
       ],
       "provider": "__resolved_provider_absent__",
       "review": null,
