@@ -1374,6 +1374,8 @@ def test_skipped_gguf_resuming_a_real_ledger_with_skip_gates_is_refused_and_noth
 @pytest.mark.parametrize("make_unreadable", [
     pytest.param(lambda p: p.write_bytes(b"\xff\n"), id="undecodable-bytes"),
     pytest.param(lambda p: p.mkdir(), id="directory"),
+    pytest.param(lambda p: p.symlink_to(p), id="symlink-loop"),
+    pytest.param(lambda p: p.symlink_to(p.with_name("nowhere.jsonl")), id="dangling-symlink"),
 ])
 def test_skipped_gguf_with_skip_gates_on_an_unreadable_ledger_path_is_refused_not_a_traceback(
         make_unreadable, run_cli, cli_runs, capsys):

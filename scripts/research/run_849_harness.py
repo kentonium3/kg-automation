@@ -801,17 +801,20 @@ def _is_development_ledger(path: pathlib.Path, skip_gates: bool) -> bool:
     """Whether a ``--skip-gates`` run at ``path`` writes a development ledger — the one place a skipped
     GGUF verification may bind (:func:`require_verified_gguf`). Keyed on the LEDGER, not the flag: a
     RESUMED ledger is development only when its header binds :data:`grading.SKIP_GATES_SHA`; the flag
-    decides only the fresh case (no file — the run will create a SKIP_GATES_SHA header). A present path
-    without a readable header (empty, headerless, malformed, undecodable bytes, a directory, unreadable)
+    decides only the fresh case (no directory entry at the path — the run will create a SKIP_GATES_SHA
+    header). A present path without a readable header (empty, headerless, malformed, undecodable bytes,
+    a directory, a symlink loop or dangling symlink, unreadable)
     is conservatively NOT development, so a skipped GGUF is refused rather than raising."""
     if not skip_gates:
         return False
     path = pathlib.Path(path)
-    if not path.exists():
-        return True
     try:
+        # "Absent" means NO directory entry at all — os.path.lexists does not follow symlinks, so a
+        # symlink loop or a dangling symlink is PRESENT (and then unreadable → False), never "fresh".
+        if not os.path.lexists(path):
+            return True
         header = peek_header(path)
-    except (OSError, ValueError):  # IsADirectoryError / PermissionError; UnicodeDecodeError is a ValueError
+    except (OSError, ValueError):  # IsADirectoryError / PermissionError / ELOOP; UnicodeDecodeError is a ValueError
         return False
     if header is None:
         return False
