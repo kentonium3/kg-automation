@@ -13,6 +13,18 @@ Fields: data-model.md §Ledger. Enforced by `run_849_harness`:
    row per key, R `ok` requires the calibration record, D limit coherent with the header, mandatory
    telemetry, serving identity; key and attempt fields by TYPE, never coerced). Any violation is
    `LedgerCorrupt` with the file untouched; repair never runs on a file that fails validation.
+   **Dated addition 2026-09-26 (design-lead M1 ruling, bus msgs 20260925T221125657965Zb30b0038fa and
+   20260925T222320935007Z871e1c44e6, landing with the WP03 reopen, cycle 18):**
+   (a) `gate_host_sha` and `gate_container_sha` bind the CREATING session only, and are EXCLUDED
+   from the resume comparison. Every other Binding field is still compared, type-aware.
+   WHY: every session re-runs both gate phases, and the gate records carry that session's
+   timestamps (`up_ts`, container start). Comparing them would make every live resume refuse. Do not
+   "restore" them to the comparison.
+   (b) Instead, each session records an `event: session_gates` row (session_id, passed, skipped),
+   and `begin_attempt` refuses unless THIS open session has recorded a passing one
+   (`passed: true, skipped: false`). An earlier session's row never satisfies a new open.
+   `skipped: true` is accepted ONLY on a ledger whose header binds `SKIP_GATES_SHA` (the
+   `--skip-gates` development path). A real ledger requires gates that actually ran.
 3. Lock: `path + ".lock"`, `fcntl.flock` exclusive, held for the session; a second opener is
    refused with the holder's pid (NFR-007).
 4. Append: one JSON line, flush, `os.fsync`. Reader under the lock tolerates exactly one torn
