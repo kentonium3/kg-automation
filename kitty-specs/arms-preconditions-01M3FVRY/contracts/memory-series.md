@@ -5,4 +5,5 @@
 3. **Interval**: the real interval is written in the series header and carried to the run record. Every freshness tolerance is a multiple of that recorded interval (stale > 5 intervals, gap > 5 intervals, where exactly 5 is allowed).
 4. **Handoff**: the runner receives the series path and the expected container id through the environment. The harness refuses to bind the G sampler if either is absent.
 5. **Reader**: the existing sample-and-hold reader (rubric §5 window reconstruction), unchanged in semantics. `require_breached` holds for every bound sampler.
+7. **Per-question record (§5 @`a00abc03`)**: the figure is recorded once per question over [build start .. last graph query], as a container high-water mark that is NOT attributable to the question. The run also records the baseline and the all-resident total. Per-cell rows carry no graph-store column.
 6. **Fail closed**: an absent, stale, gapped or wrong-container series means the cell is not started (`sampler_unreadable`). It is never a zero, never a pass.

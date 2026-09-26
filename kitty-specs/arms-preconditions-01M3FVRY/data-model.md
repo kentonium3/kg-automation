@@ -8,8 +8,7 @@ The baseline is arms-run-01M3APTA's `data-model.md` and contracts. This file lis
 |---|---|---|
 | `outcome` | **adds** `sampler_unreadable_at_send` | The GTT read failed at `before_send`, after the attempt began. Could-not-check. Terminal for the attempt, never averaged, not scored. Refuses the cell and does NOT stop the session. Distinct from `exceeds_memory_ceiling` and from the pre-attempt `sampler_unreadable` event. |
 | `outcome` | **adds** `exceeds_memory_ceiling` | Terminal for the attempt. Never averaged. Not a scored outcome. Carries `memory_ceiling: {measured_gib: float, ceiling_gib: float, stage: "before_send"}`. Distinct from `error`, from `exceeds_model_context`, and from an unreadable sampler (which is `sampler_unreadable`, an event, and no attempt). |
-| `falkordb_cgroup_peak_mib` | **renames** `falkordb_rss_peak_mib` (retired; must not appear anywhere) | G ok rows only. A real int/float ≥ 0. The container's cgroup memory charge (rubric §5 @`ea3fbfc8`). |
-| `memory_support` | **new**, G ok rows | See below. Required when `falkordb_cgroup_peak_mib` is present. Validated on write and replay. |
+| `falkordb_rss_peak_mib` | **REMOVED** from G rows (retired; must not appear anywhere) | Per-cell G rows carry NO graph-store memory column (D-7a). |
 
 ### memory_support
 
@@ -37,6 +36,8 @@ Exactly these keys. There is no other key and no coercion (a bool is not an int)
 |---|---|---|
 | `premise_violated` | **new** | `{arm: str, reason: "tripwire" \| "cross_group_leak", message: str, at_key: RunKey dict}`. Its presence makes the ledger **unusable as a primary, for export, and for `Ledger.summarise()`** (correction C). Rows stay untouched. |
 | `memory_ceiling` | unchanged | The pre-cell ceiling refusal stays as it is. |
+| `graph_store_memory` | **new**, one per question | `{question, falkordb_cgroup_peak_mib, memory_support}`. The container's cgroup high-water mark over [that question's build start .. its last graph query]. NOT attributable to the question (§5 @`a00abc03`). Validated on write and replay. |
+| `graph_store_footprint` | **new**, one per run | `{baseline_mib, all_resident_mib}`: the container before the first build, and the peak with every question's graph resident. The marginal per-graph figure is derivable from them. |
 
 ## Arm registration (in-memory, not persisted)
 

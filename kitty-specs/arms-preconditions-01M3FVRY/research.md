@@ -88,11 +88,20 @@ Sources:
 - **Rationale**: `up`/`down` are separate short-lived CLI processes, so a writer thread there would die with the process.
 - **Alternatives**: a sidecar container: rejected. It would need a compose change and a new moving part.
 
-## D-7 — The harness binds the series reader; support is recorded in the row
+## D-7a — The graph-store figure is a per-question CONTAINER TOTAL; per-cell rows carry no graph-store column
+
+- **Decision** (design lead ruling 1, 20260926T223312278643Zbb9e71a68a; rubric §5 amendment @`a00abc03`, Kent 2026-09-26 22:41Z):
+  - **Per question**: at the end of a question's last G repeat, the harness records ONE `graph_store_memory` event. It carries `falkordb_cgroup_peak_mib` over the window [start of that question's `build_graph` .. completion of its LAST GRAPH QUERY], with inference time excluded at the end, plus `memory_support` for that window. The series reader already reconstructs arbitrary windows from the file.
+  - **Per run**: a `graph_store_footprint` event records `baseline_mib` (before the first build) and `all_resident_mib` (the peak with every question's graph resident), so the marginal per-graph figure is derivable.
+  - **Per-cell G rows do NOT carry `falkordb_cgroup_peak_mib`**, not even as a diagnostic under that name. Nothing in grading or export reads these events as a score.
+  - The figure is a high-water mark and is NOT attributable to the question (§5 @`a00abc03`). That is recorded honestly, not engineered away.
+- **Rationale**: measured on a throwaway sandbox (#1023): a build takes 0.54–2.02 s, the cgroup charge never returns after `drop_graph`, and the whole footprint is ~150–230 MiB, about 0.4 % of the 57.5 GiB ceiling. Question-major order was ruled out (it would warm G's prompt cache asymmetrically on the cost axis §7 uses). Build-and-drop per cell was ruled out (the high-water mark defeats it). A fresh container per cell was ruled out (false precision in a quantity no decision uses). §7 is unchanged: it never weighted memory.
+
+## D-7 — The harness binds the series reader
 
 - **Decision**:
   - `live_runtime` binds `rss_sampler=functools.partial(<series sampler>, path, expected_id)` from the environment (refusing if they are absent). It calls `sampler.require_breached()` on a constructed instance of each bound sampler.
-  - A G ok row carries `falkordb_cgroup_peak_mib` plus a nested `memory_support` object (D-8). `grading`/export never reads it as a score.
+  - Per D-7a, the G sampler's readings feed the per-question `graph_store_memory` event, not the per-cell row.
 - **Rationale**: the harness surface is unchanged (a zero-arg factory, a context manager, `peak_mib` read pre-arm and post-window), so this is the one-line swap the WP04 reopen designed for. Support is nested in the row, not in a sibling event (design lead ruling 4 at the post-merge checkpoint: nothing separable from the number it qualifies).
 
 ## D-8 — Ledger additions
@@ -128,7 +137,7 @@ Sources:
   - The Session maps it to the D-8 outcome. The secondary probe uses the same callback.
   - **Rulings 2 and 3** (design lead, 20260926T223312278643Zbb9e71a68a). These honour the registered text, so they are not amendments.
     - A **send-time breach STOPS THE SESSION** via its OWN stop signal. It never reuses the window `breached` flag: a send-time breach states the host's current state, while the window flag is an after-the-fact observation.
-    - **Whether a breached cell is TERMINAL (never retried by a later session) is PENDING KENT.** It is a validity question, and the design lead is drafting it as a dated §5 addition for his sign-off (20260926T223436721075Z2f274189c3). **Do not build either terminality until it is ruled.** Whichever way it goes, a ledger containing an un-retried breach cannot be primary-complete.
+    - **A breached cell is TERMINAL**: it is never retried, by this session or a later one (rubric §5 amendment @`a00abc03`, Kent's selection 2026-09-26 22:41Z). A ledger holding an unresolved breach cannot be primary-complete.
     - A **GTT read that FAILS at send** (after `begin_attempt` has durably written `attempt_start`) keeps the attempt. It records a DISTINCT outcome, `sampler_unreadable_at_send` (could-not-check), sends nothing, and **refuses the cell**. It does **NOT** stop the session: §5 registers "refuses the cell", and every later cell is refused in turn, so nothing runs unguarded (design lead narrowed ruling 2, 22:34Z). It is never recorded as a breach, a pass or a zero.
 - **Rationale**: rubric §5's ceiling guard (the last point the protocol controls) and ruling (b).
 
