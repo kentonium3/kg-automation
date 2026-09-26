@@ -174,6 +174,7 @@ def test_all_four_real_checkers_import_and_expose_main():
     assert FORBIDDEN[0] in names[1]                        # the data-derived one
 
 
+@needs_corpus
 def test_preflight_record_with_an_empty_or_partial_gate_list_is_refused(tmp_path, monkeypatch):
     """Codex c2 BLOCKER: a re-signed record with gates=[] must not pass."""
     monkeypatch.setattr(P, "_run_checker", _fake_checker(True))
@@ -733,6 +734,7 @@ def test_boundary_and_health_gates_use_the_injected_probes(tmp_path):
     assert not G.substrate_health(_env(tmp_path / "m", health=None))[0]
 
 
+@needs_corpus
 def test_tokenizer_equivalence_gate_refuses_an_injected_mismatch(tmp_path, monkeypatch):
     class Tok:
         def __init__(self, ok): self.ok = ok
@@ -987,6 +989,7 @@ def test_container_phase_refuses_a_bad_host_record(tmp_path, monkeypatch, tamper
     assert not ok and "does not recompute" in detail
 
 
+@needs_corpus
 def test_timestamps_compare_as_parsed_datetimes_with_fractions_and_z(tmp_path, monkeypatch):
     """Codex c6 MINOR: same-second completion and "Z" spellings must not refuse a healthy run."""
     monkeypatch.setattr(P, "_run_checker", _fake_checker(True))
