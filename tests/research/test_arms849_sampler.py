@@ -566,3 +566,44 @@ def test_2_every_record_tying_the_held_timestamp_is_held(tmp_path):
     path = _raw_series(tmp_path, [(timedelta(0), 999.0), (timedelta(0), 10.0), (STEP, 20.0)])
     s = _window(path, FakeClock(), T0 + STEP / 2, T0 + STEP)
     assert s.peak_mib == 999.0 and s.sample.peak_source == "held" and s.sample.samples == [999.0, 10.0, 20.0]
+
+
+# ---------------------------------------------------------------------------
+# cycle 19: sub-microsecond timestamps are unreadable, never truncated
+# ---------------------------------------------------------------------------
+
+
+def test_c19_a_sub_microsecond_record_timestamp_is_unreadable_not_truncated(tmp_path):
+    """Codex c18: fromisoformat truncated 00:00:01.0000009 to 00:00:01, pulling a reading taken
+    AFTER the window end into the window. The writer never emits >6 fractional digits, so such a
+    line is unreadable (fail-closed) rather than silently moved."""
+    path, clock = _series(tmp_path, [10.0, 10.0])
+    late = (T0 + STEP).isoformat().replace("+00:00", ".0000009+00:00")
+    with path.open("a", encoding="utf-8") as fh:
+        fh.write(json.dumps({"ts": late, "rss_mib": 999.0, "container_id": CID}) + "\n")
+    s = _window(path, clock, T0, T0 + STEP)
+    assert s.peak_mib is None
+    assert "fractional" in (s.sample.reason or "")
+
+
+def test_c19_a_sub_microsecond_header_timestamp_is_unreadable(tmp_path):
+    path, clock = _series(tmp_path, [10.0, 10.0])
+    lines = path.read_text(encoding="utf-8").splitlines()
+    header = json.loads(lines[0])
+    header["started"] = T0.isoformat().replace("+00:00", ".1234567+00:00")
+    path.write_text("\n".join([json.dumps(header), *lines[1:]]) + "\n", encoding="utf-8")
+    s = _window(path, clock, T0, T0 + STEP)
+    assert s.peak_mib is None and "fractional" in (s.sample.reason or "")
+
+
+@pytest.mark.parametrize("frac", ["", ".5", ".123456"])
+def test_c19_up_to_six_fractional_digits_still_parse(frac):
+    ts = SM._parse_ts(T0.isoformat().replace("+00:00", f"{frac}+00:00"))
+    assert ts.tzinfo is not None
+
+
+@pytest.mark.parametrize("value", ["2026-09-25T22:00:01.0000009+00:00", "2026-09-25T22:00:01,1234567+00:00",
+                                   "2026-09-25 22:00:01.1234567+00:00"])
+def test_c19_seven_or_more_fractional_digits_are_refused_whatever_the_separator(value):
+    with pytest.raises(ValueError, match="fractional"):
+        SM._parse_ts(value)

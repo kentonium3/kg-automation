@@ -48,6 +48,7 @@ import itertools
 import json
 import math
 import pathlib
+import re
 import subprocess
 import threading
 import time
@@ -273,7 +274,15 @@ def _is_number(value: Any) -> bool:
     return isinstance(value, (int, float)) and not isinstance(value, bool)
 
 
+#: More than six fractional-second digits: precision ``datetime`` cannot hold. ``fromisoformat``
+#: would TRUNCATE it, which can move a reading taken just after a window end into the window
+#: (Codex WP04 c18). The writer never emits it, so such a timestamp is unreadable, never rounded.
+_SUB_MICROSECOND = re.compile(r"\d{2}:\d{2}:\d{2}[.,]\d{7,}")
+
+
 def _parse_ts(value: Any) -> datetime:
+    if isinstance(value, str) and _SUB_MICROSECOND.search(value):
+        raise ValueError(f"timestamp {value!r} has more than six fractional-second digits")
     try:
         ts = datetime.fromisoformat(value)
     except TypeError:
