@@ -334,6 +334,7 @@ def test_live_build_search_assemble_and_replay_rule(live_http, falkor_endpoint):
 # ---------------------------------------------------------------------------
 
 import collections
+import contextlib
 import hashlib
 import json
 import threading
@@ -1325,6 +1326,14 @@ _NETWORK_PACKAGES = ("falkordb", "redis")
 _NOT_STATE_PACKAGES = ("asyncio", "threading", "concurrent", "_thread", "logging", "selectors", "socket", "weakref")
 
 
+def _cell_filled(cell) -> bool:
+    try:
+        _ = cell.cell_contents
+    except ValueError:
+        return False
+    return True
+
+
 def _transport_reachable(root):
     """Walk every object reachable from ``root`` (attributes, slots, containers, bound methods). Returns
     (objects behind a TransportGate, paths to network objects reached WITHOUT one). A network object is
@@ -1347,9 +1356,19 @@ def _transport_reachable(root):
         if top in _NETWORK_PACKAGES:
             raw.append(f"{path} ({type(obj).__module__}.{type(obj).__qualname__})")
             continue
-        if top in _NOT_STATE_PACKAGES or isinstance(obj, (type, _types.ModuleType, _types.FunctionType,
-                                                           _types.BuiltinFunctionType, str, bytes, int, float,
-                                                           bool, type(None), _types.CodeType)):
+        if isinstance(obj, _types.FunctionType):
+            # A function RETAINS what its closure cells, defaults and __wrapped__ hold (review c3 minor: a
+            # closure keeping a raw client passed the earlier walk). Its globals are the module, not state.
+            stack.extend((c.cell_contents, f"{path}.<closure {i}>") for i, c in enumerate(obj.__closure__ or ())
+                         if _cell_filled(c))
+            stack.extend((d, f"{path}.<default {i}>") for i, d in enumerate(obj.__defaults__ or ()))
+            stack.extend((d, f"{path}.<kwdefault {k}>") for k, d in (obj.__kwdefaults__ or {}).items())
+            if hasattr(obj, "__wrapped__"):
+                stack.append((obj.__wrapped__, f"{path}.__wrapped__"))
+            continue
+        if top in _NOT_STATE_PACKAGES or isinstance(obj, (type, _types.ModuleType, _types.BuiltinFunctionType,
+                                                           str, bytes, int, float, bool, type(None),
+                                                           _types.CodeType)):
             continue
         if isinstance(obj, _types.MethodType):
             stack.append((obj.__self__, f"{path}.__self__"))
@@ -1416,36 +1435,46 @@ def _returns_and_raises(fn):
 
 
 def test_every_exit_of_every_operation_passes_the_acknowledgement_check():
-    """Invariant B, DERIVED from the source (fails on ADDITION): (1) work reaches the loop only in
-    ``Bridge._run``; (2) after submitting, ``_run`` leaves ONLY through ``_conclude``; (3) ``_wait`` has no
-    exit but reporting a stop reason; (4) in ``_conclude`` every return and raise comes after the
-    ``if not acknowledged: self._poison(...)`` gate; (5) ``_poison`` shuts the transport gate first."""
+    """Invariant B, SECONDARY guard from the source (the proof is behavioural: the frame-level tests
+    below inject a KeyboardInterrupt and a raising helper). (1) Work reaches the loop only in
+    ``Bridge._run``; (2) after the submit, ``_run`` is ONE try whose ``finally`` poisons unless a verdict was
+    delivered, and every return/raise comes after that try; (3) ``_conclude`` raises nothing itself and
+    returns only after the ``if not acknowledged: self._poison(...)`` gate; (4) ``_poison`` marks first, and
+    marking shuts the gate first."""
     import inspect as _inspect
+
+    def body(fn):
+        return ast.parse(__import__("textwrap").dedent(_inspect.getsource(fn))).body[0]
 
     src = ast.parse(__import__("textwrap").dedent(_inspect.getsource(A.Bridge)))
     submitters = {f.name for f in ast.walk(src) if isinstance(f, ast.FunctionDef)
                   for c in ast.walk(f) if isinstance(c, ast.Call) and _call_name(c) == "run_coroutine_threadsafe"}
-    assert submitters <= {"_run", "close"}, submitters
-    close_src = next(f for f in ast.walk(src) if isinstance(f, ast.FunctionDef) and f.name == "close")
-    assert not [c for c in ast.walk(close_src) if isinstance(c, ast.Call) and _call_name(c) == "run_coroutine_threadsafe"]
-    exits, tree = _returns_and_raises(A.Bridge._run)
-    submit_line = next(c.lineno for c in ast.walk(tree) if isinstance(c, ast.Call)
+    assert submitters == {"_run"}, submitters
+    run = body(A.Bridge._run)
+    submit_line = next(c.lineno for c in ast.walk(run) if isinstance(c, ast.Call)
                        and _call_name(c) == "run_coroutine_threadsafe")
-    for node in exits:
-        if node.lineno > submit_line:
-            assert isinstance(node, ast.Return) and isinstance(node.value, ast.Call) \
-                and _call_name(node.value) == "_conclude", ast.unparse(node)
+    tries = [st for st in run.body if isinstance(st, ast.Try) and st.lineno > submit_line]
+    assert len(tries) == 1, [ast.unparse(t)[:60] for t in tries]
+    guard = tries[0]
+    assert "if not concluded" in ast.unparse(guard.finalbody[0]) and "_mark_poisoned" in ast.unparse(guard.finalbody[0])
+    assert ast.unparse(guard.body[-1]) == "concluded = True"
+    for node in ast.walk(run):
+        if isinstance(node, (ast.Return, ast.Raise)) and node.lineno > submit_line:
+            assert node.lineno > guard.end_lineno, ast.unparse(node)
     exits, _ = _returns_and_raises(A.Bridge._wait)
     assert not [n for n in exits if isinstance(n, ast.Raise)]
-    exits, tree = _returns_and_raises(A.Bridge._conclude)
-    body = tree.body[0].body
-    gate = next(st for st in body if isinstance(st, ast.If) and ast.unparse(st.test) == "not acknowledged")
+    conclude = body(A.Bridge._conclude)
+    gate = next(st for st in conclude.body if isinstance(st, ast.If) and ast.unparse(st.test) == "not acknowledged")
     assert any(isinstance(c, ast.Call) and _call_name(c) == "_poison" for c in ast.walk(gate))
-    for node in exits:
-        assert node.lineno > gate.end_lineno, ast.unparse(node)
-    first = ast.parse(__import__("textwrap").dedent(_inspect.getsource(A.Bridge._poison))).body[0].body
-    first = [st for st in first if not (isinstance(st, ast.Expr) and isinstance(st.value, ast.Constant))]
-    assert ast.unparse(first[0]) == "self._shut.set()"
+    assert not [n for n in ast.walk(conclude) if isinstance(n, ast.Raise)]
+    for node in ast.walk(conclude):
+        if isinstance(node, ast.Return):
+            assert node.lineno > gate.end_lineno, ast.unparse(node)
+
+    def statements(fn):
+        return [st for st in body(fn).body if not (isinstance(st, ast.Expr) and isinstance(st.value, ast.Constant))]
+    assert ast.unparse(statements(A.Bridge._poison)[0]) == "self._mark_poisoned(grace)"
+    assert ast.unparse(statements(A.Bridge._mark_poisoned)[0]) == "self._shut.set()"
 
 
 def _instance(cls):
@@ -1587,6 +1616,480 @@ def test_every_transport_entry_point_goes_through_the_one_gate(tiny, store, brid
             with pytest.raises(A.TransportPoisoned):
                 getattr(probe, name)()
         assert calls == [], calls
+
+
+# -- WP02 review cycle 3 → cycle 4 (design correction): the gate at the SOCKET, the exit by FRAME,
+#    ownership reserved BEFORE each write. The tests speak real RESP to an in-process server and count the
+#    bytes and connections it receives: that is the physical layer the invariant is about.
+# ---------------------------------------------------------------------------------------------------
+
+
+class FakeRedisServer:
+    """A RESP2 server on 127.0.0.1:<ephemeral> in its own thread and loop, counting what it RECEIVES:
+    ``accepted`` connections and ``received`` bytes (per connection). It answers FalkorDB enough for
+    graphiti: every GRAPH.QUERY/RO_QUERY gets a statistics-only reply; GRAPH.LIST lists the graphs
+    queried; INFO says standalone. Control sets (graph names): ``hold`` delays the reply until
+    ``release``; ``stale`` answers once with ``version mismatch`` (the client then refreshes its
+    schema with three procedure calls); ``drop`` holds, then closes the socket without a reply."""
+
+    def __init__(self) -> None:
+        self.lock = threading.Lock()
+        self.accepted = 0
+        self.received: dict[int, int] = {}
+        self.commands: list[tuple[int, list[str]]] = []
+        self.hold: set[str] = set()
+        self.stale: set[str] = set()
+        self.drop: set[str] = set()
+        self.graphs: set[str] = set()
+        self.release = threading.Event()
+        self._loop = asyncio.new_event_loop()
+        ready = threading.Event()
+
+        async def start():
+            self._server = await asyncio.start_server(self._handle, "127.0.0.1", 0)
+            self.port = self._server.sockets[0].getsockname()[1]
+            ready.set()
+        self._thread = threading.Thread(target=self._loop.run_forever, daemon=True, name="fake-redis")
+        self._thread.start()
+        asyncio.run_coroutine_threadsafe(start(), self._loop)
+        assert ready.wait(5)
+
+    def totals(self) -> tuple[int, int]:
+        with self.lock:
+            return self.accepted, sum(self.received.values())
+
+    def stop(self) -> None:
+        self.release.set()
+        self._loop.call_soon_threadsafe(self._server.close)
+        self._loop.call_soon_threadsafe(self._loop.stop)
+        self._thread.join(5)
+
+    async def _line(self, reader, cid):
+        line = await reader.readline()
+        with self.lock:
+            self.received[cid] += len(line)
+        return line
+
+    async def _handle(self, reader, writer):
+        with self.lock:
+            self.accepted += 1
+            cid = self.accepted
+            self.received[cid] = 0
+        try:
+            while True:
+                line = await self._line(reader, cid)
+                if not line:
+                    return
+                if not line.startswith(b"*"):
+                    args = line.decode().split()
+                else:
+                    args = []
+                    for _ in range(int(line[1:])):
+                        size = int((await self._line(reader, cid))[1:])
+                        data = await reader.readexactly(size + 2)
+                        with self.lock:
+                            self.received[cid] += len(data)
+                        args.append(data[:-2].decode("utf-8", "replace"))
+                with self.lock:
+                    self.commands.append((cid, args))
+                cmd, key = args[0].upper(), (args[1] if len(args) > 1 else "")
+                if key in self.hold or key in self.drop:
+                    while not self.release.is_set():
+                        await asyncio.sleep(0.01)
+                if key in self.drop:
+                    writer.close()
+                    return
+                writer.write(self._reply(cmd, key))
+                await writer.drain()
+        except (ConnectionError, asyncio.IncompleteReadError):
+            return
+
+    def _reply(self, cmd: str, key: str) -> bytes:
+        def bulk(s: str) -> bytes:
+            b = s.encode()
+            return b"$%d\r\n%s\r\n" % (len(b), b)
+        if cmd in ("GRAPH.QUERY", "GRAPH.RO_QUERY"):
+            self.graphs.add(key)
+            if key in self.stale:
+                self.stale.discard(key)
+                return b"*2\r\n-version mismatch\r\n:7\r\n"
+            return b"*1\r\n*1\r\n" + bulk("Query internal execution time: 0.100000 milliseconds")
+        if cmd == "GRAPH.LIST":
+            names = sorted(self.graphs)
+            return b"*%d\r\n" % len(names) + b"".join(bulk(n) for n in names)
+        if cmd == "INFO":
+            return bulk("# Server\r\nredis_version:7.2.4\r\nredis_mode:standalone\r\n")
+        if cmd == "PING":
+            return b"+PONG\r\n"
+        return b"+OK\r\n"
+
+
+@pytest.fixture
+def resp_server():
+    server = FakeRedisServer()
+    yield server
+    server.stop()
+
+
+def _gated_client(port):
+    """The production client stack at the socket: ONE SocketGate, one pool minting GatedConnections that
+    all hold it, and the FalkorDB client over that pool (what make_bridge builds)."""
+    import redis.asyncio as redis_async
+    from falkordb.asyncio import FalkorDB as RealFalkorDB
+
+    gate = A.SocketGate()
+    pool = redis_async.ConnectionPool(connection_class=A.GatedConnection, transport_gate=gate, host="127.0.0.1",
+                                      port=port, decode_responses=True, protocol=2)
+    return gate, pool, RealFalkorDB(connection_pool=pool)
+
+
+def test_poison_during_one_connection_stops_every_connection_of_the_pool(resp_server):
+    """Acceptance A.1/A.2: ≥ 2 REAL, DISTINCT connections of one pool. The poison is set THROUGH the first
+    connection's own gate reference while it waits on a held reply; the OTHER connection, a command on the
+    client, and a freshly minted connection then write ZERO bytes and open ZERO sockets — the poison is
+    pool-scoped, shared by every connection the pool mints, and connect is gated too."""
+    gate, pool, client = _gated_client(resp_server.port)
+    resp_server.hold = {"slow"}
+
+    async def scenario():
+        c1 = await pool.get_connection()
+        c2 = await pool.get_connection()
+        assert c1 is not c2 and c1._transport_gate is c2._transport_gate is gate
+        await c1.send_command("GRAPH.QUERY", "slow", "RETURN 1")          # in flight on the first connection
+        await asyncio.sleep(0.05)
+        c1._transport_gate.shut.set()                                       # poisoned via the first connection
+        mark = resp_server.totals()
+        for attempt in (lambda: c2.send_command("PING"), lambda: client.execute_command("PING"),
+                        lambda: client.select_graph("g").query("RETURN 1"), lambda: pool.get_connection(),
+                        lambda: c2.connect()):
+            with pytest.raises(A.TransportPoisoned):
+                await attempt()
+        resp_server.release.set()
+        await asyncio.sleep(0.1)
+        assert resp_server.totals() == mark, (mark, resp_server.totals())
+    asyncio.run(scenario())
+    assert len(resp_server.received) >= 2
+
+
+def test_a_schema_refresh_and_a_retry_after_poison_send_nothing(resp_server):
+    """Review c3 finding A, reproduced at the socket: a query sent BEFORE the poison whose reply arrives
+    AFTER it (``version mismatch``) makes the client refresh its schema with three procedure calls; a
+    command whose connection DROPS after the poison makes redis-py retry, reconnecting. Neither sends a
+    byte nor opens a socket. The control run shows the refresh does issue three calls when not poisoned."""
+    _, _, client = _gated_client(resp_server.port)
+
+    async def control():
+        resp_server.stale = {"s0"}
+        with contextlib.suppress(Exception):                               # the mismatch itself
+            await client.select_graph("s0").query("RETURN 1")
+    asyncio.run(control())
+    refresh = [a for _, a in resp_server.commands if a[:2] == ["GRAPH.RO_QUERY", "s0"]]
+    assert len(refresh) == 3, resp_server.commands[-6:]                    # DB.LABELS / RELATIONSHIPTYPES / PROPERTYKEYS
+
+    gate2, _, client2 = _gated_client(resp_server.port)
+    resp_server.stale, resp_server.hold, resp_server.drop = {"s1"}, {"s1"}, {"d1"}
+    resp_server.release.clear()
+
+    async def scenario():
+        refresh_q = asyncio.ensure_future(client2.select_graph("s1").query("RETURN 1"))
+        retry_q = asyncio.ensure_future(client2.execute_command("GRAPH.QUERY", "d1", "RETURN 1"))
+        await asyncio.sleep(0.1)
+        gate2.shut.set()
+        mark = resp_server.totals()
+        resp_server.release.set()
+        for q in (refresh_q, retry_q):
+            with pytest.raises(Exception):                                  # noqa: B017 — any failure; bytes are the proof
+                await q
+        await asyncio.sleep(0.1)
+        return mark
+    mark = asyncio.run(scenario())
+    assert resp_server.totals() == mark, (mark, resp_server.totals())
+
+
+def _poison_with_a_refusing_task(bridge, server, sent_after: list):
+    """Poison ``bridge`` for real, the way Codex's c3 probe did. The work warms THREE pooled connections,
+    then holds two of them on held replies (two distinct connections in flight), leaving one connected and
+    idle. A detached task then blocks the loop thread SYNCHRONOUSLY until the server releases, so neither
+    the cancellation nor the loop stop can land. When it resumes it holds the RAW client — everything
+    beneath any object-level wrapper — and tries a command (which the idle connection would carry at
+    once), a graph query and a listing."""
+    raw = object.__getattribute__(bridge.arm.driver.client, "_target") \
+        if isinstance(bridge.arm.driver.client, A.TransportGate) else bridge.arm.driver.client
+    server.hold = {"slow1", "slow2"}
+
+    def held_in_flight() -> int:
+        with server.lock:
+            return sum(1 for _, a in server.commands if len(a) > 1 and a[1] in ("slow1", "slow2"))
+
+    async def refuses():
+        while held_in_flight() < 2:
+            await asyncio.sleep(0.01)
+        server.release.wait(30)                                             # the loop thread is frozen here
+        for attempt in (lambda: raw.execute_command("PING"), lambda: raw.select_graph("x").query("RETURN 1"),
+                        lambda: raw.list_graphs()):
+            try:
+                await attempt()
+                sent_after.append("sent")
+            except BaseException as exc:                                    # noqa: BLE001 — recorded
+                sent_after.append(type(exc).__name__)
+
+    async def work():
+        await asyncio.gather(*(raw.execute_command("PING") for _ in range(3)))
+        asyncio.get_running_loop().create_task(refuses())
+        await asyncio.gather(raw.select_graph("slow1").query("RETURN 1"), raw.select_graph("slow2").query("RETURN 1"))
+    with pytest.raises(ERR.GCancellationUnacknowledged):
+        bridge._submit(work, time.monotonic() + 0.3, None, "poison probe")
+
+
+def test_a_poisoned_bridge_writes_no_byte_on_any_pooled_connection(tiny, resp_server, monkeypatch):
+    """Acceptance A.2 through the bridge (make_bridge's own pool, the real client): two connections in
+    flight, a poison, then abandoned work that holds the raw client tries three commands: ZERO bytes,
+    ZERO new sockets."""
+    monkeypatch.setattr(ERR, "G_CANCEL_GRACE_S", 0.2)
+    text, view = tiny
+    bridge = A.make_bridge(FakeEmbedder(), text, host="127.0.0.1", port=resp_server.port)
+    try:
+        bridge.build_graph(QC1, view)
+        before = len(resp_server.received)
+        sent_after: list[str] = []
+        _poison_with_a_refusing_task(bridge, resp_server, sent_after)
+        assert len(resp_server.received) >= before and len(resp_server.received) >= 3   # sync probe + ≥ 2 async
+        mark = resp_server.totals()
+        resp_server.release.set()
+        deadline = time.monotonic() + 5
+        while len(sent_after) < 3 and time.monotonic() < deadline:
+            time.sleep(0.05)
+        time.sleep(0.1)
+        assert resp_server.totals() == mark, (mark, resp_server.totals(), sent_after)
+        assert "sent" not in sent_after, sent_after
+    finally:
+        t0 = time.monotonic()
+        assert bridge.close() is False                                      # poisoned: never a clean close
+        assert time.monotonic() - t0 < 5                                    # bounded teardown after poison
+
+
+def test_poisoning_one_bridge_leaves_another_in_the_same_process_working(tiny, resp_server, monkeypatch):
+    """Acceptance A.3 (the permitted side, same process, same server). Bridge A is poisoned. Bridge B is then
+    built and starts working — minting its own connections — and ONLY THEN, with B open and busy, A's
+    abandoned work resumes: A sends ZERO bytes (a poison state shared through the class, last written by
+    B's open gate, would let A through here), while B builds, answers, lists, drops, sends bytes and closes
+    cleanly (a process-global poison would stop B)."""
+    monkeypatch.setattr(ERR, "G_CANCEL_GRACE_S", 0.2)
+    text, view = tiny
+    a = A.make_bridge(FakeEmbedder(), text, host="127.0.0.1", port=resp_server.port)
+    a.build_graph(QC1, view)
+    a_sent: list[str] = []
+    _poison_with_a_refusing_task(a, resp_server, a_sent)
+    resp_server.hold = set()
+    b = A.make_bridge(FakeEmbedder(), text, host="127.0.0.1", port=resp_server.port)
+    try:
+        before_b = resp_server.totals()
+        stats = b.build_graph(QC1, view)                                   # B mints its connections, gate open
+        assert stats.nodes == 3 and resp_server.totals()[1] > before_b[1]
+        mark = resp_server.totals()
+        resp_server.release.set()                                           # A's abandoned work resumes NOW
+        deadline = time.monotonic() + 5
+        while len(a_sent) < 3 and time.monotonic() < deadline:
+            time.sleep(0.05)
+        time.sleep(0.1)
+        assert resp_server.totals() == mark and "sent" not in a_sent, (mark, resp_server.totals(), a_sent)
+        assert b.answer(QC1, view, ctx_for(FakeFacade()))["text"] == "ans"
+        assert "arms_C1" in b.list_graphs()
+        b.drop_graph(QC1)
+        assert resp_server.totals()[1] > mark[1]                            # B still sends
+    finally:
+        resp_server.release.set()
+        assert b.close() is True                                            # normal teardown of a clean bridge
+        t0 = time.monotonic()
+        assert a.close() is False and time.monotonic() - t0 < 5
+
+
+#: The ungated footprint of FalkorDB's constructor, EXACTLY (design lead, bus 20260927T085156195841Zf6c8b07323):
+#: ONE synchronous connection carrying its redis-py handshake and the Is_Cluster INFO. Measured with the
+#: installed falkordb + redis-py 8.1.0. A library upgrade that changes it must fail here and be re-reviewed.
+EXPECTED_SYNC_CONNECTIONS_AT_CONSTRUCTION = 1
+EXPECTED_SYNC_COMMANDS_AT_CONSTRUCTION = (("CLIENT", "SETINFO", "LIB-NAME"), ("CLIENT", "SETINFO", "LIB-VER"),
+                                          ("INFO", "server"))
+
+
+def test_the_only_synchronous_redis_socket_is_the_constructors_probe(tiny, resp_server, monkeypatch):
+    """The accepted residual (design lead, option a; recorded in the mission's contracts/), pinned so it
+    cannot grow in EITHER direction. AT construction the synchronous footprint is EXACTLY the expected one
+    connection and its three commands (handshake + Is_Cluster INFO) — nothing asynchronous is sent yet. AFTER
+    construction, across build, answer, list, drop, a poison and close, NO synchronous redis connection is
+    opened and no synchronous command is sent."""
+    import redis.connection as sync_connection
+
+    monkeypatch.setattr(ERR, "G_CANCEL_GRACE_S", 0.2)
+    text, view = tiny
+    counted: list[tuple[str, ...]] = []
+    real_connect = sync_connection.AbstractConnection.connect
+    real_send = sync_connection.AbstractConnection.send_packed_command
+
+    def connect(self, *a, **k):
+        counted.append(("connect",))
+        return real_connect(self, *a, **k)
+
+    def send(self, command, *a, **k):
+        counted.append(("send",))
+        return real_send(self, command, *a, **k)
+    monkeypatch.setattr(sync_connection.AbstractConnection, "connect", connect)
+    monkeypatch.setattr(sync_connection.AbstractConnection, "send_packed_command", send)
+    seen_before = len(resp_server.commands)
+    bridge = A.make_bridge(FakeEmbedder(), text, host="127.0.0.1", port=resp_server.port)
+    at_construction = list(counted)
+    server_side = [tuple(a[:len(e)]) for (_, a), e in zip(resp_server.commands[seen_before:],
+                                                           EXPECTED_SYNC_COMMANDS_AT_CONSTRUCTION)]
+    assert at_construction.count(("connect",)) == EXPECTED_SYNC_CONNECTIONS_AT_CONSTRUCTION, at_construction
+    assert at_construction.count(("send",)) == len(EXPECTED_SYNC_COMMANDS_AT_CONSTRUCTION), at_construction
+    assert len(resp_server.commands) - seen_before == len(EXPECTED_SYNC_COMMANDS_AT_CONSTRUCTION)
+    assert tuple(server_side) == EXPECTED_SYNC_COMMANDS_AT_CONSTRUCTION, resp_server.commands[seen_before:]
+    counted.clear()
+    try:
+        bridge.build_graph(QC1, view)
+        bridge.answer(QC1, view, ctx_for(FakeFacade()))
+        bridge.list_graphs()
+        bridge.drop_graph(QC1)
+        _poison_with_a_refusing_task(bridge, resp_server, [])
+    finally:
+        resp_server.release.set()
+        bridge.close()
+    assert counted == [], counted
+
+
+# -- B by frame -------------------------------------------------------------------------------------
+
+
+def test_a_caller_interrupt_during_the_wait_poisons_before_it_propagates(tiny, store, bridges, monkeypatch):
+    """Review c3 finding B (Codex's probe): a KeyboardInterrupt raised on the caller's thread DURING the wait
+    propagates as itself — and the bridge is poisoned with the gate shut, so the abandoned operation's
+    later listing reaches nothing."""
+    text, _ = tiny
+    bridge = make_bridge(store, text, bridges)
+    started, release, done = threading.Event(), threading.Event(), threading.Event()
+    outcome: list[str] = []
+
+    async def work():
+        started.set()
+        while not release.is_set():
+            await asyncio.sleep(0.01)
+        try:
+            await bridge.arm.list_graphs()
+            outcome.append("sent")
+        except BaseException as exc:                                        # noqa: BLE001 — recorded
+            outcome.append(type(exc).__name__)
+        done.set()
+    real_wait = A.concurrent.futures.wait
+    interrupt = KeyboardInterrupt("caller interrupted during wait")
+
+    def interrupted(*a, **k):
+        assert started.wait(2)
+        raise interrupt
+    monkeypatch.setattr(A.concurrent.futures, "wait", interrupted)
+    with pytest.raises(KeyboardInterrupt) as info:
+        bridge._submit(work, None, None, "interrupt probe")
+    monkeypatch.setattr(A.concurrent.futures, "wait", real_wait)
+    assert info.value is interrupt
+    assert bridge._shut.is_set() and bridge._poisoned is not None
+    n = len(store.queries)
+    release.set()
+    done.wait(2)
+    assert len(store.queries) == n and "sent" not in outcome, (store.queries[n:], outcome)
+    with pytest.raises(ERR.GCancellationUnacknowledged):
+        bridge.list_graphs()
+
+
+def test_an_exception_from_any_helper_on_the_exit_path_poisons(tiny, store, bridges, monkeypatch):
+    """Review c3 minor (the AST test passed an added raising helper): whatever raises between submit and
+    the verdict — here ``_wait`` itself — poisons the bridge; the exception propagates as itself."""
+    text, view = tiny
+    bridge = make_bridge(store, text, bridges)
+    bridge.build_graph(QC1, view)
+    boom = RuntimeError("a helper on the exit path raised")
+
+    def raising(*a, **k):
+        raise boom
+    monkeypatch.setattr(bridge, "_wait", raising)
+    with pytest.raises(RuntimeError) as info:
+        bridge.answer(QC1, view, ctx_for(FakeFacade()))
+    assert info.value is boom and bridge._shut.is_set() and bridge._poisoned is not None
+
+
+def test_a_fatal_signal_raised_by_the_work_itself_propagates_and_poisons(tiny, store, bridges):
+    """Codex c3 probe B_FATAL_ON_CANCEL: work that raises a non-Exception BaseException while being
+    cancelled must not be turned into a retryable TimeoutError: the same object propagates, poisoned."""
+    text, _ = tiny
+    bridge = make_bridge(store, text, bridges)
+    fatal = ERR.GCancellationUnacknowledged(10)
+
+    async def fatal_work():
+        try:
+            await asyncio.sleep(60)
+        except asyncio.CancelledError:
+            raise fatal from None
+    with pytest.raises(ERR.GCancellationUnacknowledged) as info:
+        bridge._submit(fatal_work, time.monotonic() + 0.05, None, "fatal probe")
+    assert info.value is fatal and bridge._shut.is_set() and bridge._poisoned is not None
+
+
+# -- C reserved before each write ------------------------------------------------------------------
+
+
+class FailingEmbedder(FakeEmbedder):
+    """Fails the Nth embedding: a build that has already SAVED earlier nodes stops half-way."""
+
+    def __init__(self, fail_at: int) -> None:
+        self.calls, self.fail_at = 0, fail_at
+
+    def embed(self, texts):
+        self.calls += len(texts)
+        if self.calls >= self.fail_at:
+            raise RuntimeError("embedding failed mid-build")
+        return super().embed(texts)
+
+
+@pytest.mark.parametrize("report_group", ["arms_C1", "arms_A"], ids=["labelled-C1", "labelled-A"])
+def test_a_partial_build_never_changes_how_a_later_report_is_classified(tiny, report_group):
+    """Review c3 finding C, as a differential: A is built fully, or only PARTIALLY (the second embedding
+    fails after the first node was saved), or partially and then dropped, or its FIRST save is sent and
+    then lost (an uncertain outcome). C1's retrieval then reports A's
+    FIRST node (the one that was written) — the classification is the same in every lifecycle, and it is a
+    cross-group leak. Ownership is reserved before each write, including one whose outcome is uncertain."""
+    text, view = tiny
+    first = A.stable_uuid("arms_A", "node", TINY_ENTITIES[0]["id"])
+    got = {}
+    for lifecycle in ("full", "partial", "partial_and_drop", "save_uncertain"):
+        store = FakeFalkorDB()
+        arm = A.GraphArm(FalkorDriver(falkor_db=store), FakeEmbedder(), text)
+        store.respond = _typed_pull_row(first, report_group)
+
+        async def scenario(lifecycle=lifecycle, arm=arm, store=store):
+            if lifecycle == "full":
+                await arm.build_graph(QA, view)
+            elif lifecycle == "save_uncertain":
+                # the FIRST node's save reaches the server and then fails: its outcome is uncertain
+                def sent_then_lost(db, cypher, params):
+                    if db == "arms_A" and "MERGE" in cypher and "Entity" in cypher:
+                        store.observe = lambda *a: None
+                        raise ConnectionError("connection lost after the write was sent")
+                store.observe = sent_then_lost
+                with pytest.raises(ConnectionError):
+                    await arm.build_graph(QA, view)
+            else:
+                arm.embedder = FailingEmbedder(fail_at=2)
+                with pytest.raises(RuntimeError, match="mid-build"):
+                    await arm.build_graph(QA, view)
+                arm.embedder = FakeEmbedder()
+                if lifecycle == "partial_and_drop":
+                    await arm.drop_graph(QA)
+            await arm.build_graph(QC1, view)
+            await arm.plan_and_assemble(QC1, view)
+        try:
+            asyncio.run(scenario())
+            got[lifecycle] = (None, None)
+        except (ERR.PremiseViolated, ERR.ArmRefusal) as exc:
+            got[lifecycle] = (type(exc), getattr(exc, "reason", None))
+    assert len(set(got.values())) == 1 and got["full"] == (ERR.PremiseViolated, "cross_group_leak"), got
 
 
 # -- live FR-016 (sandbox FalkorDB; ARMS849_LIVE=1) ---------------------------------------------------
