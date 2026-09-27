@@ -101,8 +101,12 @@ Outcome = Literal["ok", "exceeds_model_context", "error", "not_implemented", "ex
                   "sampler_unreadable_at_send"]
 #: Outcomes that end the CELL, for every session. `exceeds_memory_ceiling` is one (rubric §5 amendment
 #: @a00abc03, Kent 2026-09-26 22:41Z: a breached cell is never retried, by this session or a later one).
-#: `sampler_unreadable_at_send` ends only its ATTEMPT (§5 "refuses the cell"; the session continues).
-CELL_TERMINAL_OUTCOMES = ("ok", "exceeds_model_context", "not_implemented", "exceeds_memory_ceiling")
+#: `sampler_unreadable_at_send` is one too — interim, design lead 20260927T034310853223Za953d8513e; a
+#: three-way liveness classification is pending Kent's §5 ruling: a failed read may correlate with the
+#: memory extreme, so a retry could bias the peak downward (erring terminal costs a re-run). It stays a
+#: DISTINCT outcome from the breach and never carries memory_ceiling. The session still continues.
+CELL_TERMINAL_OUTCOMES = ("ok", "exceeds_model_context", "not_implemented", "exceeds_memory_ceiling",
+                          "sampler_unreadable_at_send")
 #: Refused or could-not-check outcomes: a cell that carries one and is not scored makes the ledger
 #: not primary-complete (ledger-deltas item 1; design lead 20260926T223312278643Zbb9e71a68a, narrowed
 #: 20260926T223436721075Z2f274189c3). Neither is ever averaged, summed or scored.
@@ -685,7 +689,7 @@ class Ledger:
         if key.arm == "D" and row["context_limit_applied"] != self._header.binding.limit_applied:
             raise ValueError(f"D row applied the {row['context_limit_applied']} limit under a header bound to "
                              f"{self._header.binding.limit_applied} (D-11: one limit per ledger)")
-        if key.arm == "R" and outcome == SCORED_OUTCOME and self.calibration() is None:
+        if key.arm == "R" and outcome == SCORED_OUTCOME and self._calibration_record() is None:
             raise ValueError("an R ok row needs the calibration record first (D-10: k is never defaulted)")
         # A measurement is a FINITE non-negative number — None, NaN and inf are a missing
         # measurement wearing a value (Codex WP03 c5); error text is a non-empty string.
@@ -811,7 +815,7 @@ class Ledger:
     def _check_calibration(self, calibration: dict[str, Any]) -> None:
         """Shared by write_calibration() and the resume replay (Codex WP03 c14)."""
         self._refuse_after_premise_violation("a calibration record (k derives from scored rows)")
-        if self.calibration() is not None:
+        if self._calibration_record() is not None:
             raise ValueError("a calibration record already exists; it is written once")
         unscored = [q.id for q in questions_mod.QUESTIONS if self.terminal(RunKey("G", q.id, 1)) != SCORED_OUTCOME]
         if unscored:
@@ -821,6 +825,15 @@ class Ledger:
             raise ValueError(f"calibration payload carries ledger-authored fields {sorted(reserved)}")
 
     def calibration(self) -> dict[str, Any] | None:
+        """The persisted calibration record, for USE (k, the G medians behind r_g_ratio). k is a derived
+        score, so on a premise-violated ledger this raises :class:`LedgerUnusable` (Codex WP01 c2, P12):
+        the harness's ensure_calibration, _calibration_obj and R cell context all read it here. The raw
+        record stays inspectable in :attr:`rows`."""
+        self._refuse_unusable()
+        return self._calibration_record()
+
+    def _calibration_record(self) -> dict[str, Any] | None:
+        """The raw record, unguarded — for the ledger's own write/replay invariants only."""
         found = next((r for r in self._rows if r.get("record") == "calibration"), None)
         return copy.deepcopy(found) if found is not None else None
 

@@ -272,24 +272,18 @@ def test_a_breached_cell_bars_primary_completeness_and_export(tmp_path):
         assert not (tmp_path / "runs").exists()
 
 
-def test_an_unreadable_at_send_cell_bars_completeness_while_it_stays_unscored(tmp_path):
-    def unreadable_thrice(led, key):
-        for _ in range(3):
-            led.begin_attempt(key, SID); rec(led, key, "sampler_unreadable_at_send", unreadable_row(key.arm))
+def test_an_unreadable_at_send_cell_bars_primary_completeness_and_export(tmp_path):
+    """Cell-terminal (interim, design lead 20260927T034310853223Za953d8513e; a three-way liveness classification is pending Kent's §5 ruling) and never scored: the ledger is never primary-complete while it stands."""
+    def unreadable(led, key):
+        led.begin_attempt(key, SID); rec(led, key, "sampler_unreadable_at_send", unreadable_row(key.arm))
     with fresh(tmp_path) as led:
-        _complete_but(led, {D_CELL: unreadable_thrice})
-        assert led.terminal(D_CELL) == "error"                         # exhausted — terminal, never a pass
+        _complete_but(led, {D_CELL: unreadable})
+        assert led.pending_keys(ledger_mod.plan_keys()) == []
+        assert led.terminal(D_CELL) == "sampler_unreadable_at_send"
         ok, detail = grading.is_complete(led)
         assert not ok and "sampler_unreadable_at_send" in detail
-
-
-def test_an_unreadable_at_send_attempt_later_scored_does_not_bar_completeness(tmp_path):
-    def unreadable_then_ok(led, key):
-        led.begin_attempt(key, SID); rec(led, key, "sampler_unreadable_at_send", unreadable_row(key.arm))
-        _scored(led, key)
-    with fresh(tmp_path) as led:
-        _complete_but(led, {D_CELL: unreadable_then_ok})
-        assert grading.is_complete(led)[0] is True
+        with pytest.raises(grading.ExportRefused, match="sampler_unreadable_at_send"):
+            grading.export(led, 7, tmp_path / "runs")
 
 
 def test_a_premise_violation_bars_completeness_and_export_even_on_a_scored_ledger(tmp_path):
@@ -328,3 +322,22 @@ def test_seal_map_refuses_a_premise_violated_ledger(tmp_path):
             grading.seal_map(led, 7)
     with fresh(tmp_path, gated=False) as led, pytest.raises(ledger_mod.LedgerUnusable):
         grading.seal_map(led, 7)
+
+
+def test_the_harness_cannot_reuse_a_calibration_after_a_premise_violation(tmp_path):
+    """Codex WP01 c2 (P12): Session.ensure_calibration() and Session._calibration_obj() read the persisted
+    calibration; on a premise-violated ledger both refuse, immediately and after replay."""
+    with fresh(tmp_path) as led:
+        calibrated(led)
+        led.event("premise_violated", premise())
+        session = h.Session(led, make_runtime(fake_arms()))
+        with pytest.raises(ledger_mod.LedgerUnusable):
+            session.ensure_calibration()
+        with pytest.raises(ledger_mod.LedgerUnusable):
+            session._calibration_obj()
+    with fresh(tmp_path, gated=False) as led:
+        session = h.Session(led, make_runtime(fake_arms()))
+        with pytest.raises(ledger_mod.LedgerUnusable):
+            session.ensure_calibration()
+        with pytest.raises(ledger_mod.LedgerUnusable):
+            session._calibration_obj()

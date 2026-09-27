@@ -1703,20 +1703,17 @@ def test_memory_ceiling_is_carried_by_the_breach_outcome_only(tmp_path, outcome,
             rec(led, key, outcome, {**row, "memory_ceiling": dict(CEILING)})
 
 
-def test_unreadable_at_send_ends_the_attempt_but_not_the_cell(tmp_path):
-    """§5 "refuses the cell" for this attempt; the session continues. A later attempt may score it;
-    three unreadable attempts exhaust the key as a terminal error, never a pass."""
-    key, other = L.RunKey("G", "C1", 1), L.RunKey("G", "A", 1)
+def test_unreadable_at_send_is_cell_terminal_and_never_retried_in_the_same_session(tmp_path):
+    """`sampler_unreadable_at_send` ends the CELL (interim, design lead 20260927T034310853223Za953d8513e; a three-way liveness classification is pending Kent's §5 ruling): a failed read may correlate with the
+    memory extreme, so a retry could bias the peak downward. It stays distinct from the breach."""
+    key = L.RunKey("G", "C1", 1)
     with fresh(tmp_path) as led:
         led.begin_attempt(key, SID); rec(led, key, "sampler_unreadable_at_send", unreadable_row())
-        assert led.terminal(key) is None and key in led.pending_keys(L.plan_keys())
-        assert led.begin_attempt(key, SID) == 2; rec(led, key, "ok", ok_row())
-        assert led.terminal(key) == "ok"
-        for _ in range(3):
-            led.begin_attempt(other, SID); rec(led, other, "sampler_unreadable_at_send", unreadable_row())
-        assert led.terminal(other) == "error"
-    with fresh(tmp_path, gated=False) as led:
-        assert led.terminal(key) == "ok" and led.terminal(other) == "error"
+        assert led.terminal(key) == "sampler_unreadable_at_send"
+        assert key not in led.pending_keys(L.plan_keys())
+        with pytest.raises(L.SecondScoredRow):
+            led.begin_attempt(key, SID)
+        assert led.attempts_for(key) == 1
 
 
 def test_neither_new_outcome_is_ever_averaged_or_scored(tmp_path):
@@ -2163,19 +2160,52 @@ def test_scored_accessors_refuse_a_premise_violated_ledger_but_raw_rows_stay_ins
             assert led.terminal(k1) == "ok" and led.rows
 
 
-def test_unreadable_at_send_is_retried_by_a_resumed_session_too(tmp_path):
-    """Ledger-deltas item 1 (orchestrator's reading, WP01 c1): the refusal is attempt-level. A later
-    attempt — here in a RESUMED session — may run the cell because its own send-time read is checked
-    again; MAX_ATTEMPTS then makes an always-unreadable cell terminal `error`, never a pass. The
-    same-session case is test_unreadable_at_send_ends_the_attempt_but_not_the_cell."""
+def test_unreadable_at_send_is_never_retried_by_a_resumed_session(tmp_path):
+    """The resumed-session counterpart (interim, design lead 20260927T034310853223Za953d8513e; a three-way
+    liveness classification is pending Kent's §5 ruling): pending_keys never returns the cell, begin_attempt
+    refuses it, and a hand-written retry is refused on replay."""
     k = L.RunKey("G", "C1", 1)
     with fresh(tmp_path) as led:
         led.begin_attempt(k, SID); rec(led, k, "sampler_unreadable_at_send", unreadable_row())
     with fresh(tmp_path) as led:                                          # session 2
-        assert led.terminal(k) is None and k in led.pending_keys(L.plan_keys())
-        assert led.begin_attempt(k, SID) == 2; rec(led, k, "sampler_unreadable_at_send", unreadable_row())
-    with fresh(tmp_path) as led:                                          # session 3
-        assert led.begin_attempt(k, SID) == 3; rec(led, k, "sampler_unreadable_at_send", unreadable_row())
-        assert led.terminal(k) == "error" and k not in led.pending_keys(L.plan_keys())
-    with fresh(tmp_path) as led, pytest.raises(L.AttemptsExhausted):     # session 4: nothing left to retry
-        led.begin_attempt(k, SID)
+        assert led.terminal(k) == "sampler_unreadable_at_send" and k not in led.pending_keys(L.plan_keys())
+        with pytest.raises(L.SecondScoredRow):
+            led.begin_attempt(k, SID)
+    p = tmp_path / "ledger.jsonl"
+    rows = _rows_of(p)
+    a = dict(_find(rows, record="attempt_start", arm="G", question="C1")); a["attempt"] = 2
+    _write_rows(p, [*rows, a])
+    _refused_on_resume(tmp_path)
+
+
+# -- WP01 review cycle 2 (P12): calibration is a derived score; neither computed nor reused after a violation --
+
+
+def test_a_persisted_calibration_is_not_reusable_after_a_premise_violation(tmp_path):
+    """Codex WP01 c2: the harness REUSES an existing calibration (ensure_calibration, _calibration_obj,
+    the R cell context) through Ledger.calibration(); after a violation it must refuse, immediately and
+    after replay. The raw record stays inspectable in `rows`."""
+    with fresh(tmp_path) as led:
+        calibrated(led)
+        assert led.calibration()["r_k"] == 12                            # usable until the violation
+        led.event("premise_violated", premise())
+        with pytest.raises(L.LedgerUnusable, match="premise_violated"):
+            led.calibration()
+    with fresh(tmp_path, gated=False) as led:
+        with pytest.raises(L.LedgerUnusable, match="premise_violated"):
+            led.calibration()
+        assert [r["r_k"] for r in led.rows if r.get("record") == "calibration"] == [12]
+
+
+def test_calibration_cannot_be_computed_from_a_premise_violated_ledger(tmp_path):
+    """Codex WP01 c2 probe: calibrate() returned k=1, g_median=1000.0, parity="ok" after the violation,
+    because _g_repeat1 read raw run_rows()."""
+    from scripts.research.arms849 import calibration as C
+    with fresh(tmp_path) as led:
+        score_all_g_repeat1(led)
+        C.calibrate(led, {q: 5 for q in QUESTIONS}, lambda q, k: 1000 * k)   # usable before
+        led.event("premise_violated", premise())
+        with pytest.raises(L.LedgerUnusable, match="premise_violated"):
+            C.calibrate(led, {q: 5 for q in QUESTIONS}, lambda q, k: 1000 * k)
+    with fresh(tmp_path, gated=False) as led, pytest.raises(L.LedgerUnusable, match="premise_violated"):
+        C.calibrate(led, {q: 5 for q in QUESTIONS}, lambda q, k: 1000 * k)
