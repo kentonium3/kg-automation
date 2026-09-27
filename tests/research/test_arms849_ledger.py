@@ -1937,10 +1937,11 @@ def test_graph_store_boundary_events_round_trip(tmp_path):
         led.event("graph_store_all_resident", {"ts": T2, "series_id": "gen-1", "n_graphs": 8})
         led.event("series_generation", failed_generation())
         led.event("graph_store_first_build", {"ts": T1, "series_id": "gen-f", "graphs_present": True})
+        led.event("series_generation", generation("gen-2", writer_reason=None))   # the descriptor's null reason
     with fresh(tmp_path, gated=False) as led:
         kinds = [r["kind"] for r in led.rows if r.get("record") == "event"]
         assert kinds[1:] == ["series_generation", "graph_store_first_build", "graph_store_all_resident",
-                             "series_generation", "graph_store_first_build"]
+                             "series_generation", "graph_store_first_build", "series_generation"]
 
 
 # Each case: the events written before it (all valid), then the one refused.

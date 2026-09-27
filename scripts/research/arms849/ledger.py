@@ -959,7 +959,7 @@ def _check_session_stopped_detail(detail: dict[str, Any]) -> None:
 def _check_series_generation_detail(detail: dict[str, Any]) -> None:
     """``{series_id, path, container_id, interval_s, started_ts, writer_status, writer_reason?}``
     (data-model § Event records; post-plan review #6): a RUNNING writer names its file, container and
-    true interval and carries no reason; a FAILED one carries a non-empty reason, and path,
+    true interval and carries no reason (absent or null); a FAILED one carries a non-empty reason, and path,
     container_id and interval_s may be null when they could not be resolved."""
     _require_keys(detail, "series_id", "path", "container_id", "interval_s", "started_ts", "writer_status")
     _require_nonempty_str("series_id", detail["series_id"])
@@ -975,8 +975,9 @@ def _check_series_generation_detail(detail: dict[str, Any]) -> None:
         _require_positive_number("interval_s", detail["interval_s"])
     if status == "failed":
         _require_nonempty_str("writer_reason", detail.get("writer_reason"))
-    elif "writer_reason" in detail:
-        raise ValueError("a running writer carries no writer_reason")
+    elif detail.get("writer_reason") is not None:
+        # Absent or null: the WP03 descriptor carries the key for both statuses.
+        raise ValueError(f"a running writer carries no writer_reason, got {detail['writer_reason']!r}")
 
 
 def _check_first_build_detail(detail: dict[str, Any]) -> None:
