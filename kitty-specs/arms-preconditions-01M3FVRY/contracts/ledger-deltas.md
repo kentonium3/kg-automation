@@ -19,3 +19,8 @@ These are additive to arms-run-01M3APTA `contracts/ledger-schema.md`. Each is da
 4. **`attempt_start.session_id`** is required. **Dated addition to item 2 (2026-09-26):** the per-session clause, "an attempt is authorised only by its own session's passing gates", becomes enforceable. Replay requires the attempt's `session_id` to equal that of the most recent `session_gates` above it, which must be passing, and must not be skipped unless the header binds `SKIP_GATES_SHA`.
 5. **`premise_violated` event**: a ledger containing one is refused as a primary (`require_complete_primary`), refused by the grading export, and refused by `Ledger.summarise()`. Rows are untouched, but they are not usable (correction C).
 6. Sampler/series timestamps are accepted only in canonical UTC isoformat (C12).
+7. **Dated addition (2026-09-27; team-lead ruling bus 20260927T082853961708Z91beadc33c and design-lead refinement 20260927T082948674022Zc8ccbe6b30): primary completeness is judged against the plan's grid, never against runtime enumerations.**
+   - **Rule:** primary completeness is evaluated against the cell count carried by the plan identity in the ledger's immutable header. It is never evaluated against any runtime enumeration of arms, questions or repeats, and never against the rows present.
+   - **Why:** an arm that fails at REGISTRATION writes no rows at all, so it produces no `not_implemented` markers. A row-keyed or `len(ARM_FACTORIES)`-derived check therefore passes on exactly the partial-registration failure it exists to catch.
+   - **Refusal:** it names the missing cells, not only a count.
+   - **Session:** a registration failure terminates it loudly, as a second, independent barrier.
