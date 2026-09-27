@@ -1822,8 +1822,11 @@ def _poison_with_a_refusing_task(bridge, server, sent_after: list):
             return sum(1 for _, a in server.commands if len(a) > 1 and a[1] in ("slow1", "slow2"))
 
     async def refuses():
-        while held_in_flight() < 2:
-            await asyncio.sleep(0.01)
+        while held_in_flight() < 2:                                         # refuses cancellation from the start,
+            try:                                                            # so a slow machine cannot turn the
+                await asyncio.sleep(0.01)                                   # poison into an acknowledged timeout
+            except asyncio.CancelledError:
+                continue
         server.release.wait(30)                                             # the loop thread is frozen here
         for attempt in (lambda: raw.execute_command("PING"), lambda: raw.select_graph("x").query("RETURN 1"),
                         lambda: raw.list_graphs()):
