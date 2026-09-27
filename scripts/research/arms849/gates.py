@@ -59,9 +59,14 @@ PKG_DIR = pathlib.Path(__file__).resolve().parent
 #: The modules the static scan MUST find under PKG_DIR (registered, not discovered): a package
 #: directory that is missing, empty or mispointed cannot certify isolation by scanning nothing
 #: (Codex WP04 c8). A new module is scanned without being listed; a missing one fails the gate.
+#: It names EVERY module of the package, the three arms included (rubric §10 C4; FR-010): a truncated
+#: tuple certifies isolation by scanning a smaller set than it should. The two-way test
+#: (tests/research/test_arms849_isolation.py) fails when a module is added without registering it here,
+#: so a new module lands with its entry in the SAME commit (correction A).
 REQUIRED_MODULES: tuple[str, ...] = (
-    "__init__.py", "calibration.py", "gates.py", "ledger.py", "litscan.py", "preflight.py",
-    "prompt.py", "questions.py", "sampler.py", "serving.py", "substrate.py", "text.py",
+    "__init__.py", "arm_d.py", "arm_g.py", "arm_r.py", "calibration.py", "embed.py", "gates.py",
+    "grading.py", "ledger.py", "litscan.py", "preflight.py", "prompt.py", "questions.py", "sampler.py",
+    "serving.py", "substrate.py", "text.py",
 )
 
 
