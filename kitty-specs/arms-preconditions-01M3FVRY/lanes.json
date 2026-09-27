@@ -1,0 +1,96 @@
+{
+  "version": 1,
+  "mission_slug": "arms-preconditions-01M3FVRY",
+  "mission_id": "01M3FVRYMHCDM4BKRZ689V5P7J",
+  "mission_branch": "kitty/mission-arms-preconditions-01M3FVRY",
+  "target_branch": "feat/849-preconditions",
+  "lanes": [
+    {
+      "lane_id": "lane-a",
+      "wp_ids": [
+        "WP01",
+        "WP02",
+        "WP03",
+        "WP04",
+        "WP05"
+      ],
+      "write_scope": [
+        "scripts/research/arms849/arm_d.py",
+        "scripts/research/arms849/arm_g.py",
+        "scripts/research/arms849/arm_r.py",
+        "scripts/research/arms849/embed.py",
+        "scripts/research/arms849/errors.py",
+        "scripts/research/arms849/gates.py",
+        "scripts/research/arms849/grading.py",
+        "scripts/research/arms849/ledger.py",
+        "scripts/research/arms849/sampler.py",
+        "scripts/research/arms849/serving.py",
+        "scripts/research/arms849/substrate.py",
+        "scripts/research/check_849_premerge.py",
+        "scripts/research/run_849_harness.py",
+        "tests/research/conftest.py",
+        "tests/research/test_arms849_arm_d.py",
+        "tests/research/test_arms849_arm_g.py",
+        "tests/research/test_arms849_arm_r.py",
+        "tests/research/test_arms849_embed.py",
+        "tests/research/test_arms849_gates.py",
+        "tests/research/test_arms849_grading.py",
+        "tests/research/test_arms849_integration.py",
+        "tests/research/test_arms849_isolation.py",
+        "tests/research/test_arms849_ledger.py",
+        "tests/research/test_arms849_resume.py",
+        "tests/research/test_arms849_sampler.py",
+        "tests/research/test_arms849_serving.py",
+        "tests/research/test_arms849_substrate.py",
+        "tests/research/test_check_849_premerge.py",
+        "tests/research/test_run_849_harness.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "artifact-rendering",
+        "legacy-cleanup",
+        "tests",
+        "tracker-integration"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    }
+  ],
+  "computed_at": "2026-09-27T01:40:21.134918+00:00",
+  "computed_from": "dependency_graph+ownership",
+  "planning_artifact_wps": [],
+  "planning_commit_sha": "c869a3787b2c1451937f01b9646f67fc20ee011e",
+  "collapse_report": {
+    "events": [
+      {
+        "wp_a": "WP01",
+        "wp_b": "WP02",
+        "rule": "write_scope_overlap",
+        "evidence": "overlapping globs: 'scripts/research/arms849/gates.py' vs 'scripts/research/arms849/gates.py'; WP02 depends on WP01"
+      },
+      {
+        "wp_a": "WP01",
+        "wp_b": "WP03",
+        "rule": "write_scope_overlap",
+        "evidence": "overlapping globs: 'scripts/research/arms849/ledger.py' vs 'scripts/research/arms849/ledger.py', 'scripts/research/arms849/grading.py' vs 'scripts/research/arms849/grading.py'"
+      },
+      {
+        "wp_a": "WP01",
+        "wp_b": "WP04",
+        "rule": "write_scope_overlap",
+        "evidence": "overlapping globs: 'scripts/research/run_849_harness.py' vs 'scripts/research/run_849_harness.py'"
+      },
+      {
+        "wp_a": "WP04",
+        "wp_b": "WP05",
+        "rule": "write_scope_overlap",
+        "evidence": "overlapping globs: 'tests/research/test_arms849_integration.py' vs 'tests/research/test_arms849_integration.py'; WP05 depends on WP04"
+      }
+    ],
+    "total_merges": 4,
+    "independent_wps_collapsed": 0,
+    "by_rule": {
+      "write_scope_overlap": 4
+    }
+  }
+}
