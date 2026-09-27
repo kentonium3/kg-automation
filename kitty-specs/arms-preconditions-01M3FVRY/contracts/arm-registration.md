@@ -27,3 +27,7 @@ This contract amends arms-run-01M3APTA `contracts/arm-interface.md` @`42056e57`,
    - each one is pinned by a BEHAVIOURAL test that observes the effect (a `str` round-trip; the negotiated protocol), never by asserting the configuration dict;
    - adding a new dependency at the client level is a defect, even though nothing errors.
    The review question this adds for any future change to the pool: *what did this fix make inert?*
+   **Dated addition to item 11 (2026-09-27; WP02 cycle 4, measured).**
+   - The pool-carried arguments are also `socket_timeout=None`, `socket_connect_timeout=None` and `socket_keepalive=None`.
+   - This matches what `FalkorDB(host, port)` gives its own client. redis-py's pool defaults instead set a 5 s read/connect timeout with keepalive on, which would turn any FalkorDB reply slower than 5 s into a retryable error. It was the root cause of a seed-3 suite failure.
+   - These are pinned by a DIFFERENTIAL: every scalar setting of a live pool connection must equal FalkorDB's own connection, with the attribute list read from the connection object at test time. A reply held 6 s must arrive.
