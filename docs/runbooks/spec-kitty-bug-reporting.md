@@ -4,9 +4,9 @@ doc_type: runbook
 audience: agents_and_humans
 status: approved
 created: 2026-05-28
-last_validated: 2026-09-23
-last_updated: '2026-09-23'
-version: v1.7
+last_validated: 2026-09-27
+last_updated: '2026-09-27'
+version: v1.8
 owners: [kgale]
 ---
 
@@ -171,11 +171,10 @@ cloned), so a home-relative path in this runbook would be wrong somewhere.
                         --body-file <(extract the embedded draft from the
                         internal issue + fill the Submission approved date
                         with today).
-                        ── --type, NOT a type:bug label ──
+                        ── set --type Bug ──
                         That repo uses GitHub's native issue type
-                        (Bug|Feature|Task). The type:bug label still exists
-                        there, so applying it looks like it worked and a
-                        maintainer strips it. See Labels.
+                        (Bug|Feature|Task). `type:bug` is OBSOLETE upstream:
+                        do not apply it. See Labels.
 7. CROSS-LINK           Comment on the kg-automation issue with the
                         "Filed upstream: spec-kitty/spec-kitty#NNNN" line +
                         filing-date + label transitions. Apply the
@@ -186,6 +185,16 @@ cloned), so a home-relative path in this runbook would be wrong somewhere.
                         labels upstream-filed → upstream-pending-release →
                         upstream-released and close the kg-automation issue.
 ```
+
+### v1.8 change note (2026-09-27)
+
+Removed the runbook's speculation about the obsolete `type:bug` label. v1.7 correctly told the
+reader to pass `--type Bug`, but then explained that applying `type:bug` "succeeds and looks
+right" — which describes the wrong mechanism in enough detail to read as a live option, and
+invites an agent to weigh two choices where there is only one. Corrected on operator instruction
+(Kent, 2026-09-27): **the label is obsolete upstream and the runbook does not describe using it.**
+The 2026-09-22 maintainer-removal evidence is kept, reframed as *why the rule is settled* rather
+than as *what happens if you break it*.
 
 ### v1.7 change note (2026-09-23)
 
@@ -278,7 +287,7 @@ Before promoting an internal issue to upstream-ready:
 
 ## Labels
 
-### Upstream: `spec-kitty/spec-kitty` takes a native issue type, not `type:bug`
+### Upstream: `spec-kitty/spec-kitty` takes a native issue type (`type:bug` is obsolete)
 
 ⚠ **Applies to the upstream filing (lifecycle step 6) only** — the internal kg-automation labels
 below are unchanged.
@@ -295,11 +304,14 @@ gh issue create --repo spec-kitty/spec-kitty --title "<approved title>" \
 `gh issue edit <n> --type Bug` fixes an already-filed issue; `--remove-type` clears one. Both
 need gh 2.101.0 or newer.
 
-**The old instruction fails silently.** The `type:*` labels still exist in that repo, so applying
-`type:bug` succeeds and looks right. On 2026-09-22 a maintainer removed `type:bug` from all four
+**`type:bug` is obsolete upstream. Do not apply it.** The native type is the only correct
+mechanism; there is no case in which the label is the right choice, so this runbook does not
+describe using it.
+
+Settled by observation, not inference: on 2026-09-22 a maintainer removed `type:bug` from all four
 of our filings — spec-kitty#4923, #4925, #4927 and #4928 — within an hour and set the issue type
 instead. Every issue created in that repo on 2026-09-23 carries a native type and no `type:*`
-label, so this is settled rather than in flux.
+label.
 
 Labels that are still labels upstream: `from:qa`, `domain:*`, `priority:*`. Priority stays the
 maintainers' call — #4923 was filed at `priority:P1` and raised to `priority:P0` on triage.
