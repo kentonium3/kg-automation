@@ -1055,3 +1055,35 @@ def test_live_hybrid_search_returns_an_item_the_question_names(live_http, falkor
             await driver.close()
 
     asyncio.run(scenario())
+
+
+@live
+@needs_corpus
+def test_live_bridge_builds_retrieves_lists_drops_and_closes(live_http, falkor_endpoint):
+    """The production path on a real FalkorDB: the bridge's loop thread, the real async client, and
+    quiescence after every operation (no task the bridge started survives an operation), then a
+    clean close. Serving is faked; the retrieval half and the graph listing are real."""
+    from scripts.research.arms849.embed import Embedder
+
+    host, port = falkor_endpoint
+    qa = Q.by_id("A")
+    view = replay(CORPUS, Q.ask_time_dt(qa), verify=False)
+    bridge = A.make_bridge(Embedder(cache_dir=CACHE / "fastembed"), FrozenCorpusText(CORPUS), host=host, port=port)
+    try:
+        stats = bridge.build_graph(qa, view, deadline=time.monotonic() + 600)
+        assert stats.group_id == "arms_A" and stats.nodes == len(view.entities) and pending(bridge) == []
+        assert "arms_A" in bridge.list_graphs()
+        facade = FakeFacade()
+        row = bridge.answer(qa, view, ctx_for(facade, deadline=time.monotonic() + 600))
+        hybrid = next(s["count"] for s in row["plan"]["plan_steps"] if s["step"] == "hybrid_search")
+        assert hybrid >= 1 and row["plan"]["foreign_items"] == 0 and pending(bridge) == []
+        assert facade.threads == [threading.current_thread().name]
+        # a deadline that has already passed: acknowledged, and the bridge stays usable
+        with pytest.raises(TimeoutError, match="acknowledged"):
+            bridge.answer(qa, view, ctx_for(FakeFacade(), deadline=time.monotonic()))
+        assert pending(bridge) == []
+        again = bridge.answer(qa, view, ctx_for(FakeFacade(), deadline=time.monotonic() + 600))
+        assert again["assembled_context_sha256"] == row["assembled_context_sha256"]
+        bridge.drop_graph(qa, deadline=time.monotonic() + 600)
+    finally:
+        assert bridge.close() is True
