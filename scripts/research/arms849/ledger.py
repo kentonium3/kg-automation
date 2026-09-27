@@ -297,7 +297,8 @@ class SecondScoredRow(RuntimeError):
 
 class LedgerUnusable(RuntimeError):
     """The ledger holds a ``premise_violated`` event: its rows are untouched but not usable — never
-    summarised, never a primary, never exported (arms-preconditions correction C)."""
+    summarised, never a primary, never exported (arms-preconditions correction C) — and nothing more is
+    scored in it (see :meth:`Ledger._refuse_after_premise_violation`)."""
 
 
 class SessionGatesMissing(RuntimeError):
@@ -598,6 +599,7 @@ class Ledger:
     def _check_attempt_start(self, key: RunKey) -> int:
         """The invariants an attempt_start row must satisfy against the rows so far; returns the
         attempt number. Shared by begin_attempt() and the resume replay (Codex WP03 c14)."""
+        self._refuse_after_premise_violation(f"a new attempt for {key}")
         if self._terminal_row(key) is not None:
             raise SecondScoredRow(f"{key} is already terminal ({self._terminal_row(key)})")
         if self.terminal(key) == "error" and self.attempts_for(key) < MAX_ATTEMPTS:
@@ -630,6 +632,8 @@ class Ledger:
         refused to write is refused on read (Codex WP03 c14)."""
         if outcome not in OUTCOMES:
             raise ValueError(f"unknown outcome {outcome!r}")
+        if outcome == SCORED_OUTCOME:
+            self._refuse_after_premise_violation(f"a scored row for {key}")
         reserved = RESERVED_RUN_FIELDS & set(row)
         if reserved:
             raise ValueError(f"payload carries ledger-authored fields {sorted(reserved)}")
@@ -781,6 +785,17 @@ class Ledger:
         if kind == GRAPH_STORE_ALL_RESIDENT and GRAPH_STORE_FIRST_BUILD not in kinds:
             raise ValueError(f"{kind}: series {series_id!r} has no {GRAPH_STORE_FIRST_BUILD} before it")
 
+    def _refuse_after_premise_violation(self, what: str) -> None:
+        """The rule after a ``premise_violated`` event (the run halts, FR-002; Codex WP01 c1): NOTHING is
+        scored — no new ``attempt_start`` (in this or any later session), no ``ok`` row (not even for an
+        attempt begun before the violation), no calibration record. Non-scored records stay legal: events
+        (the harness records ``session_stopped`` right after the violation) and a non-scored run row for an
+        attempt already in flight. Shared by the live writers and the replay, so both refuse alike."""
+        violation = self.premise_violation()
+        if violation is not None:
+            raise LedgerUnusable(f"{self.path}: {what} after {PREMISE_VIOLATED} ({violation['reason']} on arm "
+                                 f"{violation['arm']}) — the run halted; nothing is scored after it")
+
     def premise_violation(self) -> dict[str, Any] | None:
         """The detail of the first ``premise_violated`` event, or None. Its presence makes the ledger
         unusable — as a primary, for export and for :meth:`summarise` (correction C)."""
@@ -795,6 +810,7 @@ class Ledger:
 
     def _check_calibration(self, calibration: dict[str, Any]) -> None:
         """Shared by write_calibration() and the resume replay (Codex WP03 c14)."""
+        self._refuse_after_premise_violation("a calibration record (k derives from scored rows)")
         if self.calibration() is not None:
             raise ValueError("a calibration record already exists; it is written once")
         unscored = [q.id for q in questions_mod.QUESTIONS if self.terminal(RunKey("G", q.id, 1)) != SCORED_OUTCOME]
@@ -819,7 +835,17 @@ class Ledger:
     # -- reading -----------------------------------------------------------
 
     def grading_rows(self) -> list[dict[str, Any]]:
+        """The scored rows. Raises :class:`LedgerUnusable` on a premise-violated ledger: a scored accessor
+        never hands out tainted rows (correction C; Codex WP01 c1). Raw rows stay inspectable through
+        :attr:`rows` and :meth:`run_rows`."""
+        self._refuse_unusable()
         return [r for r in self.run_rows() if r.get("outcome") == SCORED_OUTCOME]
+
+    def _refuse_unusable(self) -> None:
+        violation = self.premise_violation()
+        if violation is not None:
+            raise LedgerUnusable(f"{self.path}: {PREMISE_VIOLATED} ({violation['reason']} on arm {violation['arm']} "
+                                 f"at {violation['at_key']}) — the rows are untouched but unusable as scores")
 
     def summarise(self) -> dict[tuple[str, str], Summary]:
         """Per (arm, question): sums over `ok` rows only; every other key is COUNTED by its
@@ -828,11 +854,7 @@ class Ledger:
 
         Raises :class:`LedgerUnusable` on a ledger holding a ``premise_violated`` event: it REFUSES,
         never skips — untouched rows are not usable rows (correction C)."""
-        violation = self.premise_violation()
-        if violation is not None:
-            raise LedgerUnusable(f"{self.path}: {PREMISE_VIOLATED} ({violation['reason']} on arm {violation['arm']} "
-                                 f"at {violation['at_key']}) — the rows are untouched but unusable; this "
-                                 f"ledger is never summarised")
+        self._refuse_unusable()
         keys: set[RunKey] = set()
         attempts: dict[tuple[str, str], int] = {}
         for r in self._rows:
@@ -1066,7 +1088,7 @@ def _replay_validate(path: pathlib.Path, header: Header, rows: list[dict[str, An
             else:
                 raise ValueError(f"unknown record kind {kind!r} (expected one of {_RECORD_KINDS})")
         except (ValueError, KeyError, TypeError, SecondScoredRow, AttemptsExhausted,
-                LedgerBoundToAnotherConfig, SessionGatesMissing) as exc:
+                LedgerBoundToAnotherConfig, SessionGatesMissing, LedgerUnusable) as exc:
             raise LedgerCorrupt(f"line {i} of {path} violates the ledger contract on resume: {exc}") from None
         shadow._rows.append(row)
 

@@ -2066,3 +2066,116 @@ def test_a_smoke_ledger_binds_the_primary_serving_configuration(tmp_path):
     with pytest.raises(ValueError, match="smoke"):
         L.open_ledger(tmp_path / "ledger.jsonl", binding(serving=secondary), blinding_seed=7, plan=L.SMOKE_PLAN)
     assert not (tmp_path / "ledger.jsonl").exists() or (tmp_path / "ledger.jsonl").stat().st_size == 0
+
+
+# -- WP01 review cycle 1: nothing is scored after a premise violation, and scored accessors refuse ----
+
+
+def _violated_after_r1(tmp_path):
+    """G/C1/r1 scored, then the premise breaks (the run halts, FR-002)."""
+    k1 = L.RunKey("G", "C1", 1)
+    with fresh(tmp_path) as led:
+        led.begin_attempt(k1, SID); rec(led, k1, "ok", ok_row())
+        led.event("premise_violated", premise())
+    return k1
+
+
+def test_no_attempt_begins_after_a_premise_violation_in_this_or_a_later_session(tmp_path):
+    """Codex WP01 c1 probe: score G/C1/r1, record the violation, then begin and score G/C1/r2 — both
+    were accepted and survived replay."""
+    _violated_after_r1(tmp_path)
+    k2 = L.RunKey("G", "C1", 2)
+    with fresh(tmp_path) as led:                       # a resumed session with passing gates of its own
+        with pytest.raises(L.LedgerUnusable, match="premise_violated"):
+            led.begin_attempt(k2, SID)
+        assert [r for r in led.rows if r.get("record") == "attempt_start" and r["repeat"] == 2] == []
+
+
+def test_the_stop_record_after_a_violation_stays_legal(tmp_path):
+    """The harness records session_stopped right after premise_violated: non-scored events remain legal."""
+    with fresh(tmp_path) as led:
+        led.event("premise_violated", premise())
+        led.event("session_stopped", {"reason": "premise_violated"})
+        led.event("note", {"x": 1})
+    with fresh(tmp_path, gated=False) as led:
+        assert [r["kind"] for r in led.rows][-3:] == ["premise_violated", "session_stopped", "note"]
+
+
+def test_an_in_flight_attempt_may_record_its_non_scored_result_but_never_an_ok(tmp_path):
+    """An attempt begun BEFORE the violation may still record what happened to it (error), never a score."""
+    k = L.RunKey("G", "C1", 1)
+    with fresh(tmp_path) as led:
+        led.begin_attempt(k, SID)
+        led.event("premise_violated", premise(at_key=k.as_dict()))
+        with pytest.raises(L.LedgerUnusable, match="premise_violated"):
+            rec(led, k, "ok", ok_row())
+        rec(led, k, "error", err_row("PremiseViolated: the no-LLM tripwire fired"))
+    with fresh(tmp_path, gated=False) as led:
+        assert led.terminal(k) is None and led.attempts_for(k) == 1
+
+
+def _c_attempt_and_ok_after_violation(rows):
+    rows.append({"record": "event", "kind": "premise_violated", "detail": premise(), "ts": rows[-1]["ts"]})
+    a = dict(_find(rows, record="attempt_start", arm="G", question="C1")); a["repeat"] = 2; rows.append(a)
+    r = dict(_find(rows, record="run", arm="G", question="C1")); r["repeat"] = 2; rows.append(r); return rows
+
+def _c_ok_after_violation(rows):
+    a = dict(_find(rows, record="attempt_start", arm="G", question="C1")); a["repeat"] = 2; rows.append(a)
+    rows.append({"record": "event", "kind": "premise_violated", "detail": premise(), "ts": rows[-1]["ts"]})
+    r = dict(_find(rows, record="run", arm="G", question="C1")); r["repeat"] = 2; rows.append(r); return rows
+
+def _c_calibration_after_violation(rows):
+    rows.append({"record": "event", "kind": "premise_violated", "detail": premise(), "ts": rows[-1]["ts"]})
+    rows.append({"record": "calibration", "r_k": 12, "parity": "ok", "ts": rows[-1]["ts"]}); return rows
+
+
+@pytest.mark.parametrize("corruption", [_c_attempt_and_ok_after_violation, _c_ok_after_violation],
+                         ids=["attempt-and-ok", "ok-of-in-flight-attempt"])
+def test_replay_refuses_a_score_written_after_a_premise_violation(tmp_path, corruption):
+    path = _persisted(tmp_path)
+    _write_rows(path, corruption(_rows_of(path)))
+    _refused_on_resume(tmp_path, match="premise_violated")
+
+
+def test_calibration_is_refused_after_a_premise_violation_on_write_and_replay(tmp_path):
+    """k is derived from scored G repeat-1 rows, which a violation makes unusable."""
+    with fresh(tmp_path) as led:
+        score_all_g_repeat1(led)
+        led.event("premise_violated", premise())
+        with pytest.raises(L.LedgerUnusable, match="premise_violated"):
+            led.write_calibration({"r_k": 12, "parity": "ok"})
+    p = tmp_path / "ledger.jsonl"
+    _append_raw(p, {"record": "calibration", "r_k": 12, "parity": "ok", "ts": "2026-09-26T00:00:00+00:00"})
+    _refused_on_resume(tmp_path, match="premise_violated")
+
+
+def test_scored_accessors_refuse_a_premise_violated_ledger_but_raw_rows_stay_inspectable(tmp_path):
+    """Codex WP01 c1: grading_rows() returned premise-tainted rows and grading.seal_map() consumed them.
+    Swept: grading_rows() and summarise() refuse; rows / run_rows() / terminal() stay raw."""
+    k1 = _violated_after_r1(tmp_path)
+    for gated in (True, False):                       # the recording session's view and after replay
+        with fresh(tmp_path, gated=gated) as led:
+            with pytest.raises(L.LedgerUnusable, match="premise_violated"):
+                led.grading_rows()
+            with pytest.raises(L.LedgerUnusable):
+                led.summarise()
+            assert [r["outcome"] for r in led.run_rows()] == ["ok"]      # raw, inspectable
+            assert led.terminal(k1) == "ok" and led.rows
+
+
+def test_unreadable_at_send_is_retried_by_a_resumed_session_too(tmp_path):
+    """Ledger-deltas item 1 (orchestrator's reading, WP01 c1): the refusal is attempt-level. A later
+    attempt — here in a RESUMED session — may run the cell because its own send-time read is checked
+    again; MAX_ATTEMPTS then makes an always-unreadable cell terminal `error`, never a pass. The
+    same-session case is test_unreadable_at_send_ends_the_attempt_but_not_the_cell."""
+    k = L.RunKey("G", "C1", 1)
+    with fresh(tmp_path) as led:
+        led.begin_attempt(k, SID); rec(led, k, "sampler_unreadable_at_send", unreadable_row())
+    with fresh(tmp_path) as led:                                          # session 2
+        assert led.terminal(k) is None and k in led.pending_keys(L.plan_keys())
+        assert led.begin_attempt(k, SID) == 2; rec(led, k, "sampler_unreadable_at_send", unreadable_row())
+    with fresh(tmp_path) as led:                                          # session 3
+        assert led.begin_attempt(k, SID) == 3; rec(led, k, "sampler_unreadable_at_send", unreadable_row())
+        assert led.terminal(k) == "error" and k not in led.pending_keys(L.plan_keys())
+    with fresh(tmp_path) as led, pytest.raises(L.AttemptsExhausted):     # session 4: nothing left to retry
+        led.begin_attempt(k, SID)

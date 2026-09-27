@@ -317,3 +317,14 @@ def test_a_smoke_ledger_is_never_complete_primary_or_exportable(tmp_path):
         with pytest.raises(h.PrimaryIncomplete):
             h.require_complete_primary(led)
     assert not (tmp_path / "runs").exists()
+
+
+def test_seal_map_refuses_a_premise_violated_ledger(tmp_path):
+    """Codex WP01 c1: seal_map consumed premise-tainted rows through grading_rows()."""
+    with fresh(tmp_path) as led:
+        _scored(led, ledger_mod.RunKey("G", "C1", 1))
+        led.event("premise_violated", premise())
+        with pytest.raises(ledger_mod.LedgerUnusable):
+            grading.seal_map(led, 7)
+    with fresh(tmp_path, gated=False) as led, pytest.raises(ledger_mod.LedgerUnusable):
+        grading.seal_map(led, 7)
