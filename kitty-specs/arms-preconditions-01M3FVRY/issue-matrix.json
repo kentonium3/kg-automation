@@ -25,7 +25,7 @@
       "wp": null
     },
     "#849": {
-      "evidence_ref": "<link or commit>",
+      "evidence_ref": "This mission delivers the rubric \u00a710 pre-run preconditions (C4, C8, C9, C11, C12, C13, T039 tool). The 72-cell decisive run and grading are out of scope (C-007) and follow as an operation under #849.",
       "fr": null,
       "nfr": null,
       "repo": null,
@@ -33,7 +33,7 @@
       "scope": null,
       "source_file": "spec.md",
       "title": "<fill at WP-implementation time>",
-      "verdict": "unknown",
+      "verdict": "deferred-with-followup",
       "wp": null
     }
   },
