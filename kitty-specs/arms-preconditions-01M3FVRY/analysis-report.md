@@ -4,7 +4,7 @@ artifact_type: spec-kitty.analysis-report
 command: /spec-kitty.analyze
 mission_slug: arms-preconditions-01M3FVRY
 mission_id: 01M3FVRYMHCDM4BKRZ689V5P7J
-generated_at: '2026-09-27T01:42:25.785165+00:00'
+generated_at: '2026-09-27T01:42:45.023059+00:00'
 analyzer_agent: unknown
 input_artifacts:
   spec.md:
@@ -21,9 +21,9 @@ input_artifacts:
     sha256: 4891223a0c3fc0dc96917475523586e8f3147a3ccaa113ecb7ff19da646e82e2
 verdict: ready
 issue_counts:
-  medium: 0
   high: 0
   critical: 0
+  medium: 0
   low: 2
   info: 0
 findings:
@@ -70,7 +70,7 @@ findings:
 | NFR-004 freshness | Yes | T016 | |
 | NFR-005 fail-closed | Yes | T001, T002, T021 | |
 
-**Charter Alignment Issues:** none. Re-analysis after remediation @88a47c8: C1 is resolved (every WP DoD carries the live-caller check;  is wired at the GTT bind in WP04 T021). T1 is resolved (dated D-7a pointers on plan.md:13 and research D-5).
+**Charter Alignment Issues:** none. Re-analysis after remediation @88a47c8: C1 is resolved (every WP DoD carries the live-caller check; `require_breached` is wired at the GTT bind in WP04 T021). T1 is resolved (dated D-7a pointers on plan.md:13 and research D-5).
 
 **Unmapped Tasks:** none.
 
@@ -82,4 +82,4 @@ findings:
 - Duplication count: 0
 - Critical issues: 0 (high: 0)
 
-**Next Actions:** resolve C1 in the WP files and T1 by dated planning clarifications before `/spec-kitty.implement`, then re-run the analysis.
+**Next Actions:** proceed to `/spec-kitty.implement` WP01. P1 is reported to Kent.
