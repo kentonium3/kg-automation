@@ -1269,22 +1269,38 @@ def test_a_task_that_refuses_to_finish_on_the_success_path_is_never_a_success(ti
     assert len(store.queries) == n
 
 
-def test_a_dropped_questions_uuid_under_another_group_is_still_a_leak(tiny, store):
-    """Invariant C (review c2 finding 3): uuid ownership is append-only for the arm's life. Build A and C1,
-    DROP A, then retrieval for C1 returns A's uuid labelled C1: a leak (PremiseViolated), never a
-    per-cell ArmRefusal because A's map was discarded."""
-    text, view = tiny
+def _classify(text, view, report_uuid: str, report_group: str, lifecycle: str):
+    """Build A and C1, apply ``lifecycle`` to A, then have retrieval for C1 report ``report_uuid`` under
+    ``report_group``: the resulting classification as (exception class, reason)."""
+    store = FakeFalkorDB()
     arm = A.GraphArm(FalkorDriver(falkor_db=store), FakeEmbedder(), text)
-    store.respond = _typed_pull_row(A.stable_uuid("arms_A", "node", "COM_REVIEW"), "arms_C1")
+    store.respond = _typed_pull_row(report_uuid, report_group)
 
     async def scenario():
         await arm.build_graph(QA, view)
         await arm.build_graph(QC1, view)
-        await arm.drop_graph(QA)
+        if lifecycle in ("drop", "drop_and_rebuild"):
+            await arm.drop_graph(QA)
+        if lifecycle == "drop_and_rebuild":
+            await arm.build_graph(QA, view)
         await arm.plan_and_assemble(QC1, view)
-    with pytest.raises(ERR.PremiseViolated) as info:
+    try:
         asyncio.run(scenario())
-    assert info.value.reason == "cross_group_leak"
+    except (ERR.PremiseViolated, ERR.ArmRefusal) as exc:
+        return type(exc), getattr(exc, "reason", None)
+    return None, None
+
+
+@pytest.mark.parametrize("report_group", ["arms_C1", "arms_A"], ids=["labelled-C1", "labelled-A"])
+def test_dropping_a_graph_never_changes_how_a_later_report_is_classified(tiny, report_group):
+    """Invariant C as a DIFFERENTIAL (review c2 finding 3): the same report — A's uuid, labelled C1 or A,
+    returned by C1's retrieval — is classified identically whether or not A was dropped (or dropped and
+    rebuilt) in between, and that classification is a cross-group leak."""
+    text, view = tiny
+    a_uuid = A.stable_uuid("arms_A", "node", "COM_REVIEW")
+    got = {lc: _classify(text, view, a_uuid, report_group, lc) for lc in ("none", "drop", "drop_and_rebuild")}
+    assert len(set(got.values())) == 1, got
+    assert got["none"] == (ERR.PremiseViolated, "cross_group_leak"), got
 
 
 def test_the_gate_checks_when_a_query_starts_not_when_it_was_created(tiny, store, bridges):
@@ -1303,6 +1319,219 @@ def test_the_gate_checks_when_a_query_starts_not_when_it_was_created(tiny, store
     with pytest.raises(A.TransportPoisoned):
         asyncio.run(go())
     assert len(store.queries) == n
+
+
+_NETWORK_PACKAGES = ("falkordb", "redis")
+_NOT_STATE_PACKAGES = ("asyncio", "threading", "concurrent", "_thread", "logging", "selectors", "socket", "weakref")
+
+
+def _transport_reachable(root):
+    """Walk every object reachable from ``root`` (attributes, slots, containers, bound methods). Returns
+    (objects behind a TransportGate, paths to network objects reached WITHOUT one). A network object is
+    anything from the client packages (falkordb, redis) — derived from what is there, not from a list of
+    today's entry points."""
+    import types as _types
+
+    seen: set[int] = set()
+    stack = [(root, "bridge")]
+    gated, raw = [], []
+    while stack:
+        obj, path = stack.pop()
+        if id(obj) in seen:
+            continue
+        seen.add(id(obj))
+        if isinstance(obj, getattr(A, "TransportGate", ())):
+            gated.append(object.__getattribute__(obj, "_target"))
+            continue
+        top = (type(obj).__module__ or "").split(".")[0]
+        if top in _NETWORK_PACKAGES:
+            raw.append(f"{path} ({type(obj).__module__}.{type(obj).__qualname__})")
+            continue
+        if top in _NOT_STATE_PACKAGES or isinstance(obj, (type, _types.ModuleType, _types.FunctionType,
+                                                           _types.BuiltinFunctionType, str, bytes, int, float,
+                                                           bool, type(None), _types.CodeType)):
+            continue
+        if isinstance(obj, _types.MethodType):
+            stack.append((obj.__self__, f"{path}.__self__"))
+            continue
+        if isinstance(obj, dict):
+            stack.extend((v, f"{path}[{k!r}]") for k, v in obj.items())
+            stack.extend((k, f"{path}<key>") for k in obj)
+            continue
+        if isinstance(obj, (list, tuple, set, frozenset)):
+            stack.extend((v, f"{path}[{i}]") for i, v in enumerate(obj))
+            continue
+        attrs = dict(getattr(obj, "__dict__", {}) or {})
+        for klass in type(obj).__mro__:
+            for slot in getattr(klass, "__slots__", ()) or ():
+                if isinstance(slot, str) and hasattr(obj, slot):
+                    attrs.setdefault(slot, getattr(obj, slot))
+        stack.extend((v, f"{path}.{k}") for k, v in attrs.items())
+    return gated, raw
+
+
+def test_no_network_object_is_reachable_from_the_bridge_except_through_the_gate(tiny, monkeypatch):
+    """Invariant A, DERIVED at test time (fails on ADDITION): with the REAL falkordb client (its query
+    methods replaced at the class, so nothing leaves the process), the bridge builds two questions and
+    answers. Then every object reachable from the bridge is walked, and any falkordb/redis object reached
+    NOT through a TransportGate fails the test. A new driver attribute, a clone that opens its own
+    connection, a Graphiti that keeps a raw client — anything that can reach the network ungated — shows
+    up here without this test naming it."""
+    from falkordb.asyncio import FalkorDB as RealFalkorDB
+    from falkordb.asyncio.graph import AsyncGraph
+
+    sent: list[str] = []
+
+    async def fake_query(self, q, params=None, timeout=None):
+        sent.append(self.name)
+        return FakeResult()
+    monkeypatch.setattr(AsyncGraph, "query", fake_query)
+    monkeypatch.setattr(AsyncGraph, "ro_query", fake_query)
+
+    async def fake_list(self):
+        return []
+    monkeypatch.setattr(RealFalkorDB, "list_graphs", fake_list)
+    # The client's constructor probes the server synchronously (INFO, for cluster mode) — at construction,
+    # before any gate can exist; it is the one connection a bridge makes outside the gate (WP02 notes).
+    import falkordb.asyncio.falkordb as _falkor_module
+    monkeypatch.setattr(_falkor_module, "Is_Cluster", lambda conn: False)
+    text, view = tiny
+    bridge = A.make_bridge(FakeEmbedder(), text, host="127.0.0.1", port=1)
+    try:
+        bridge.build_graph(QC1, view)
+        bridge.build_graph(QA, view)
+        bridge.answer(QC1, view, ctx_for(FakeFacade()))
+        bridge.list_graphs()
+        gated, raw = _transport_reachable(bridge)
+        assert raw == [], raw
+        assert any(isinstance(t, RealFalkorDB) for t in gated), gated
+        assert set(sent) == {"arms_C1", "arms_A"}                              # the walk saw a live transport
+    finally:
+        bridge.close()
+
+
+def _returns_and_raises(fn):
+    tree = ast.parse(__import__("textwrap").dedent(__import__("inspect").getsource(fn)))
+    return [n for n in ast.walk(tree) if isinstance(n, (ast.Return, ast.Raise))], tree
+
+
+def test_every_exit_of_every_operation_passes_the_acknowledgement_check():
+    """Invariant B, DERIVED from the source (fails on ADDITION): (1) work reaches the loop only in
+    ``Bridge._run``; (2) after submitting, ``_run`` leaves ONLY through ``_conclude``; (3) ``_wait`` has no
+    exit but reporting a stop reason; (4) in ``_conclude`` every return and raise comes after the
+    ``if not acknowledged: self._poison(...)`` gate; (5) ``_poison`` shuts the transport gate first."""
+    import inspect as _inspect
+
+    src = ast.parse(__import__("textwrap").dedent(_inspect.getsource(A.Bridge)))
+    submitters = {f.name for f in ast.walk(src) if isinstance(f, ast.FunctionDef)
+                  for c in ast.walk(f) if isinstance(c, ast.Call) and _call_name(c) == "run_coroutine_threadsafe"}
+    assert submitters <= {"_run", "close"}, submitters
+    close_src = next(f for f in ast.walk(src) if isinstance(f, ast.FunctionDef) and f.name == "close")
+    assert not [c for c in ast.walk(close_src) if isinstance(c, ast.Call) and _call_name(c) == "run_coroutine_threadsafe"]
+    exits, tree = _returns_and_raises(A.Bridge._run)
+    submit_line = next(c.lineno for c in ast.walk(tree) if isinstance(c, ast.Call)
+                       and _call_name(c) == "run_coroutine_threadsafe")
+    for node in exits:
+        if node.lineno > submit_line:
+            assert isinstance(node, ast.Return) and isinstance(node.value, ast.Call) \
+                and _call_name(node.value) == "_conclude", ast.unparse(node)
+    exits, _ = _returns_and_raises(A.Bridge._wait)
+    assert not [n for n in exits if isinstance(n, ast.Raise)]
+    exits, tree = _returns_and_raises(A.Bridge._conclude)
+    body = tree.body[0].body
+    gate = next(st for st in body if isinstance(st, ast.If) and ast.unparse(st.test) == "not acknowledged")
+    assert any(isinstance(c, ast.Call) and _call_name(c) == "_poison" for c in ast.walk(gate))
+    for node in exits:
+        assert node.lineno > gate.end_lineno, ast.unparse(node)
+    first = ast.parse(__import__("textwrap").dedent(_inspect.getsource(A.Bridge._poison))).body[0].body
+    first = [st for st in first if not (isinstance(st, ast.Expr) and isinstance(st.value, ast.Constant))]
+    assert ast.unparse(first[0]) == "self._shut.set()"
+
+
+def _instance(cls):
+    for args in (("probe",), ("cross_group_leak", "probe"), (58.0, 57.5)):
+        try:
+            return cls(*args)
+        except (TypeError, ValueError):
+            continue
+    raise AssertionError(f"cannot construct {cls}")
+
+
+#: Outcomes DERIVED from the code at collection time: a new TERMINAL_EXCEPTIONS member is covered with no edit here.
+_OUTCOMES = ["ok", RuntimeError, *A.TERMINAL_EXCEPTIONS]
+
+
+@pytest.mark.parametrize("ending", ["finishes", "past_deadline"])
+@pytest.mark.parametrize("outcome", _OUTCOMES, ids=lambda o: o if isinstance(o, str) else o.__name__)
+def test_no_outcome_is_accepted_while_a_bridge_task_remains(tiny, monkeypatch, outcome, ending):
+    """Invariant B, behavioural, over outcomes DERIVED from the code (``TERMINAL_EXCEPTIONS``, plus a
+    return and an ordinary exception), each ending normally AND past its deadline: the work leaves behind
+    a task that refuses to finish, with a deadline far longer than the drain grace in the normal case.
+    Every one fails the path — poison, then GCancellationUnacknowledged — and nothing further reaches the
+    transport."""
+    monkeypatch.setattr(ERR, "G_CANCEL_GRACE_S", 0.2)
+    text, _ = tiny
+    store = FakeFalkorDB()
+    bridge = A.make_bridge(FakeEmbedder(), text, driver=FalkorDriver(falkor_db=store))
+
+    async def refuses():
+        while not store.release.is_set():
+            try:
+                await asyncio.sleep(0.01)
+            except asyncio.CancelledError:
+                continue
+
+    async def work():
+        asyncio.get_running_loop().create_task(refuses())
+        await asyncio.sleep(0)                                           # let it start (and so refuse)
+        await bridge.arm.list_graphs()                                   # one real transport call
+        if ending == "past_deadline":
+            await asyncio.sleep(0.3)
+        if outcome != "ok":
+            raise _instance(outcome)
+        return "result"
+    try:
+        deadline = time.monotonic() + (0.1 if ending == "past_deadline" else 30)
+        with pytest.raises(ERR.GCancellationUnacknowledged):
+            bridge._submit(work, deadline, None, f"probe {outcome} {ending}")
+        n = len(store.queries)
+        store.release.set()
+        time.sleep(0.05)
+        with pytest.raises(ERR.GCancellationUnacknowledged):
+            bridge.list_graphs()
+        assert len(store.queries) == n
+    finally:
+        store.release.set()
+        bridge.close()
+
+
+def test_the_gate_blocks_only_the_poisoned_bridge(tiny, monkeypatch):
+    """The permitted side of invariant A: a never-poisoned bridge — here a FRESH one in the same process
+    after another was poisoned — sends its queries normally, and its close() performs the normal
+    teardown (the connection is closed through the gate) and is clean."""
+    monkeypatch.setattr(ERR, "G_CANCEL_GRACE_S", 0.2)
+    text, view = tiny
+    s1 = FakeFalkorDB()
+    b1 = A.make_bridge(FakeEmbedder(), text, driver=FalkorDriver(falkor_db=s1))
+    b1.build_graph(QC1, view)
+    s1.hang = lambda db, cypher, params: "stubborn" if "labels(n)" in cypher else None
+    with pytest.raises(ERR.GCancellationUnacknowledged):
+        b1.answer(QC1, view, ctx_for(FakeFacade(), deadline=time.monotonic() + 0.05))
+    s2 = FakeFalkorDB()
+    b2 = A.make_bridge(FakeEmbedder(), text, driver=FalkorDriver(falkor_db=s2))
+    try:
+        stats = b2.build_graph(QC1, view)
+        assert stats.nodes == 3
+        row = b2.answer(QC1, view, ctx_for(FakeFacade()))
+        assert row["text"] == "ans" and "arms_C1" in b2.list_graphs()
+        assert len(s2.queries) > 20 and s2.dbs() == {"arms_C1"}
+        b2.drop_graph(QC1)
+        assert any("DETACH DELETE" in c for _, c in s2.queries)
+    finally:
+        assert b2.close() is True
+        assert s2.closed                                                       # the normal teardown ran
+        s1.release.set()
+        b1.close()
 
 
 def test_every_transport_entry_point_goes_through_the_one_gate(tiny, store, bridges):

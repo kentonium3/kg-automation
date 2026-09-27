@@ -913,39 +913,53 @@ class Bridge:
 
     def _run(self, make: Callable[[], Awaitable[T]], deadline: float | None, cancelled: threading.Event | None,
              what: str, *, closing_cancels: bool = True) -> T:
-        """One operation, the lock held. Waits on the caller's thread; on a stop reason cancels the task ONCE
-        and waits for the coroutine's own acknowledgement. Then: a terminal domain exception the work raised
-        (even while being cancelled) propagates as itself; otherwise ``TimeoutError`` (retryable, chained to
-        an ordinary exception the work raised). No acknowledgement: the loop is STOPPED first, so the
-        abandoned work can issue nothing further (review c1 finding 2), then GCancellationUnacknowledged."""
+        """One operation, the lock held: submit, wait (:meth:`_wait`), then settle through the ONE exit
+        (:meth:`_conclude`). Nothing returns or raises from here after the work is submitted except through
+        ``_conclude`` — a test derives this from the source."""
         if self._poisoned is not None:
             raise GCancellationUnacknowledged(self._poisoned)
         ack = threading.Event()
         outcome: dict[str, BaseException] = {}
         future = asyncio.run_coroutine_threadsafe(self._guarded(make, ack, outcome), self._loop)
+        why = self._wait(future, deadline, cancelled, closing_cancels)
+        return self._conclude(future, ack, outcome, why, what)
+
+    def _wait(self, future: concurrent.futures.Future[Any], deadline: float | None,
+              cancelled: threading.Event | None, closing_cancels: bool) -> str | None:
+        """Wait on the caller's thread until the work finishes (None) or a stop reason arises (its text)."""
         while True:
             if cancelled is not None and cancelled.is_set():
-                why = "the attempt was cancelled"
-                break
+                return "the attempt was cancelled"
             if closing_cancels and self._closing.is_set():
-                why = "the bridge is closing"
-                break
+                return "the bridge is closing"
             remaining = None if deadline is None else deadline - time.monotonic()
             if remaining is not None and remaining <= 0:
-                why = "the attempt deadline passed"
-                break
+                return "the attempt deadline passed"
             concurrent.futures.wait([future], timeout=POLL_S if remaining is None else min(POLL_S, remaining))
             if future.done():
-                if not ack.is_set():                                # finished, but the drain overran:
-                    self._poison(errors.G_CANCEL_GRACE_S)          # exactly an unacknowledged termination
-                kind, value = future.result()
-                if kind == "raised":
-                    raise value                                     # the coroutine's own exception, unaltered
-                return value                                        # type: ignore[no-any-return]
-        future.cancel()                                             # cancels the loop-side task, once
+                return None
+
+    def _conclude(self, future: concurrent.futures.Future[Any], ack: threading.Event,
+                  outcome: dict[str, BaseException], why: str | None, what: str) -> Any:
+        """THE exit of every operation (review c2 invariant B). A stop reason cancels the task ONCE and waits
+        up to the grace for the coroutine's acknowledgement; a finished task must already carry it. NO
+        acknowledgement — on any path: success, error, cancel, timeout, close — is an unacknowledged
+        termination: poison (gate shut first), then GCancellationUnacknowledged. Only after the
+        acknowledgement: the result, the work's own exception, a terminal domain exception raised while
+        unwinding (as itself), or else a retryable ``TimeoutError`` chained to an ordinary exception."""
         grace = errors.G_CANCEL_GRACE_S
-        if not ack.wait(grace):
+        if why is not None:
+            future.cancel()                                         # cancels the loop-side task, once
+            acknowledged = ack.wait(grace)
+        else:
+            acknowledged = ack.is_set()                             # a finished task drained, or it did not
+        if not acknowledged:
             self._poison(grace)
+        if why is None:
+            kind, value = future.result()
+            if kind == "raised":
+                raise value                                         # the coroutine's own exception, unaltered
+            return value                                            # type: ignore[no-any-return]
         exc = outcome.get("exc")
         if isinstance(exc, TERMINAL_EXCEPTIONS):
             raise exc                                               # never downgraded to a retryable timeout
