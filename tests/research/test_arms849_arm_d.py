@@ -108,10 +108,12 @@ class Facade:
 
 
 def ctx_for(facade: Facade, kind: str) -> SimpleNamespace:
+    """The harness's CellContext shape: the configuration on ``ctx.config`` (the contract name, and the ONLY
+    place an arm reads it — WP02 T007 removed the ``ctx.serving.config`` fallback)."""
     name, limit = facade.config.limit_applied()
     assert (kind == "primary") == (name == "trained")
     return SimpleNamespace(prompt=Prompt(), seed=facade.config.seed_for(1), limit=limit, limit_applied=name,
-                           serving=facade)
+                           serving=facade, config=facade.config)
 
 
 @pytest.fixture(scope="module")
@@ -343,7 +345,8 @@ def test_a_view_with_links_is_refused(text, views):
 def test_an_incoherent_ctx_limit_is_refused_before_counting(tok, identity, text, views):
     facade = Facade(tok, S.ServingConfiguration.primary(identity))
     for name, limit in (("configured", S.PRIMARY_N_CTX), ("trained", "262144"), ("trained", 0), ("banana", 1)):
-        ctx = SimpleNamespace(prompt=Prompt(), seed=1001, limit=limit, limit_applied=name, serving=facade)
+        ctx = SimpleNamespace(prompt=Prompt(), seed=1001, limit=limit, limit_applied=name, serving=facade,
+                              config=facade.config)
         with pytest.raises(D.ArmRefusal, match="incoherent context limit"):
             D.arm_d(Q.by_id("C1"), views["C1"], ctx, text)
     assert facade.counted == [] and facade.sent == []
@@ -365,7 +368,7 @@ def test_a_ctx_limit_that_disagrees_with_the_configuration_is_refused_before_cou
               (secondary, "permitted", permitted_secondary + 1)]
     for config, name, limit in probes:
         facade = Facade(tok, config)
-        ctx = SimpleNamespace(prompt=Prompt(), seed=1001, limit=limit, limit_applied=name, serving=facade)
+        ctx = SimpleNamespace(prompt=Prompt(), seed=1001, limit=limit, limit_applied=name, serving=facade, config=config)
         with pytest.raises(D.ArmRefusal, match="configuration") as info:
             D.arm_d(Q.by_id("C1"), views["C1"], ctx, text)
         assert not isinstance(info.value, S.ContextExceeded)
@@ -593,3 +596,87 @@ def test_module_names_no_excluded_material():
     src = (PKG / "arm_d.py").read_text(encoding="utf-8").lower()
     for word in ("or" + "acle", "se" + "ed/", "trace" + "ability"):
         assert word not in src
+
+
+# ---------------------------------------------------------------------------
+# WP02 (arms-preconditions-01M3FVRY) T007/T011: one refusal class, no fallback, the ceiling guard
+# ---------------------------------------------------------------------------
+
+from scripts.research.arms849 import errors as ERR
+
+
+def test_the_arms_share_one_refusal_class():
+    """FR-003: D's ``ArmRefusal`` IS the shared class (an alias), so terminality is decided by identity."""
+    assert D.ArmRefusal is ERR.ArmRefusal and issubclass(ERR.ArmRefusal, RuntimeError)
+
+
+def test_the_error_classes_keep_halts_refusals_and_the_ceiling_apart():
+    """contracts/arm-registration items 3 and 5, before-send item 3: a premise violation is not a refusal;
+    the ceiling exceptions are neither a refusal nor a context overflow; the unacknowledged cancellation is
+    no Exception at all."""
+    for cls in (ERR.PremiseViolated, ERR.CeilingBreached, ERR.CeilingUnreadable):
+        assert issubclass(cls, Exception)
+        assert not issubclass(cls, ERR.ArmRefusal) and not issubclass(cls, S.ContextExceeded)
+    assert not issubclass(ERR.GCancellationUnacknowledged, Exception)
+    for reason in ("tripwire", "cross_group_leak"):
+        assert ERR.PremiseViolated(reason, "m").reason == reason
+    with pytest.raises(ValueError, match="reason"):
+        ERR.PremiseViolated("oops", "m")
+    breach = ERR.CeilingBreached(58.25, 57.5)
+    assert (breach.measured_gib, breach.ceiling_gib) == (58.25, 57.5)
+    for measured, ceiling in ((57.5, 57.5), (float("nan"), 57.5), (True, 57.5), (-1.0, -2.0)):
+        with pytest.raises(ValueError):
+            ERR.CeilingBreached(measured, ceiling)
+    assert ERR.GCancellationUnacknowledged(10.0).grace_s == 10.0
+    with pytest.raises(ValueError):
+        ERR.GCancellationUnacknowledged(0)
+
+
+def test_the_errors_module_never_imports_the_graph_stack():
+    """The harness classifies these classes, and importing the harness must never import graphiti_core."""
+    import subprocess
+
+    code = ("import sys; import scripts.research.arms849.errors as e; "
+            "bad = [m for m in sys.modules if m.split('.')[0] in ('graphiti_core', 'fastembed', 'falkordb')]; "
+            "assert not bad, bad")
+    subprocess.run([sys.executable, "-c", code], cwd=REPO_ROOT, check=True)
+
+
+@needs_corpus
+@needs_tokenizer
+def test_a_configuration_carried_only_by_the_facade_is_refused(tok, identity, text, views):
+    """FR-003: the ``ctx.serving.config`` fallback is gone — ``ctx.config`` is the only path."""
+    facade = Facade(tok, S.ServingConfiguration.primary(identity))
+    ctx = ctx_for(facade, "primary")
+    del ctx.config
+    with pytest.raises(D.ArmRefusal, match="ctx.config"):
+        D.arm_d(Q.by_id("C1"), views["C1"], ctx, text)
+    assert facade.counted == [] and facade.sent == []
+
+
+@needs_corpus
+@needs_tokenizer
+@pytest.mark.parametrize("make", [lambda: ERR.CeilingBreached(58.0, 57.5), lambda: ERR.CeilingUnreadable("GTT unreadable")],
+                         ids=["breach", "unreadable"])
+def test_the_ceiling_guard_reaches_the_caller_unaltered_through_d(tok, identity, text, views, monkeypatch, make):
+    """FR-008 (serving side): ``before_send`` raising inside the REAL ``serving.complete`` passes through
+    arm D as the SAME object, and nothing is sent."""
+    import urllib.request
+
+    def never(*a, **k):
+        raise AssertionError("a byte was sent past the ceiling guard")
+    monkeypatch.setattr(urllib.request, "urlopen", never)
+    exc = make()
+
+    def guard():
+        raise exc
+
+    class GuardedFacade(Facade):
+        def complete(self, body):
+            return S.complete(body, SimpleNamespace(count=self._count), self.config.limits().permitted,
+                              "http://127.0.0.1:1", before_send=guard)
+
+    facade = GuardedFacade(tok, S.ServingConfiguration.primary(identity))
+    with pytest.raises(type(exc)) as info:
+        D.arm_d(Q.by_id("C1"), views["C1"], ctx_for(facade, "primary"), text)
+    assert info.value is exc

@@ -22,9 +22,10 @@ assembly re-validates the index against the view it is asked to serve: an index 
 bytes (another ask_time, another corpus copy, another model) is refused, never reused.
 
 ``ctx`` is the harness's CellContext, the facade arms G and D use, plus ``ctx.calibration``. The
-active :class:`ServingConfiguration` is ``ctx.config`` (contracts/arm-interface.md); the
-``ctx.serving.config`` fallback is tolerated until WP08 lands CellContext. As in arm D, the ctx's
-applied limit pair is checked against the configuration BEFORE anything is counted.
+active :class:`ServingConfiguration` is ``ctx.config`` ONLY (contracts/arm-interface.md; the
+``ctx.serving.config`` fallback was removed, C13 item 6). As in arms D and G, the ctx's applied
+limit pair is checked against the configuration BEFORE anything is counted, by the shared
+:func:`errors.check_limit`, and every configuration defect is the ONE shared :class:`ArmRefusal`.
 """
 
 from __future__ import annotations
@@ -34,7 +35,7 @@ from collections.abc import Callable, Mapping
 from dataclasses import asdict, dataclass
 from typing import Any
 
-from scripts.research.arms849 import questions, serving
+from scripts.research.arms849 import errors, questions, serving
 from scripts.research.arms849.embed import Embedder, cosine
 from scripts.research.arms849.text import Block, FrozenCorpusText, edge_key, entity_key
 from scripts.research.load_849_corpus import Loaded
@@ -44,13 +45,9 @@ __all__ = ["ASSEMBLED_ORDER", "ArmRefusal", "ContextExceeded", "EventIndex", "Pl
 
 ASSEMBLED_ORDER = "ask_time"
 _MISSING = object()
-LIMIT_NAMES = ("trained", "permitted")
 
-
-class ArmRefusal(RuntimeError):
-    """A configuration defect (contracts/arm-interface.md, dated note 2026-09-25): terminal, never retried —
-    links handed to the flat arm, an empty view, no usable calibration record, cache_prompt off, a ctx
-    limit that is not the configuration's, an index built for another view."""
+#: The ONE shared refusal class (C13 item 3; research D-4): an alias, so ``R.ArmRefusal`` stays valid.
+ArmRefusal = errors.ArmRefusal
 
 
 class ContextExceeded(serving.ContextExceeded):
@@ -290,40 +287,12 @@ def _calibrated_k(ctx: Any) -> int:
     return k
 
 
-def _configuration(ctx: Any) -> serving.ServingConfiguration:
-    """The active :class:`ServingConfiguration`: ``ctx.config`` (the contract name) or, until WP08 lands
-    CellContext, the one the serving facade serialises with (``ctx.serving.config``). Without it the limit
-    cannot be checked, and an unchecked limit is a configuration defect in itself (arm D's shape)."""
-    config = getattr(ctx, "config", None)
-    if config is None:
-        config = getattr(getattr(ctx, "serving", None), "config", None)
-    if not isinstance(config, serving.ServingConfiguration):
-        raise ArmRefusal("ctx carries no ServingConfiguration (neither ctx.config nor ctx.serving.config); "
-                         "the context limit cannot be checked against the configuration (D-11)")
-    return config
-
-
-def _check_limit(ctx: Any, config: serving.ServingConfiguration) -> None:
-    """``ctx.limit_applied`` and ``ctx.limit`` must BOTH be what ``config.limit_applied()`` says — a
-    well-formed pair that is not the configuration's would turn a configuration defect into a measured
-    ``exceeds_model_context`` outcome (arm D, Codex c4); R refuses identically."""
-    if ctx.limit_applied not in LIMIT_NAMES or type(ctx.limit) is not int or ctx.limit <= 0:
-        raise ArmRefusal(f"incoherent context limit in ctx: {ctx.limit_applied!r} = {ctx.limit!r} "
-                         f"(D-11: one of {LIMIT_NAMES}, a positive int, from ServingConfiguration.limit_applied())")
-    name, limit = config.limit_applied()
-    if (ctx.limit_applied, ctx.limit) != (name, limit):
-        raise ArmRefusal(f"ctx applies the {ctx.limit_applied} limit {ctx.limit}, but the {config.kind} configuration "
-                         f"applies the {name} limit {limit} (ServingConfiguration.limit_applied(), D-11) — "
-                         f"a configuration defect, not an experimental outcome")
-
-
 def arm_r(question: Any, view: Loaded, ctx: Any, text: FrozenCorpusText, index: EventIndex | None = None) -> dict[str, Any]:
     """contracts/arm-interface.md for R. k comes from ctx.calibration — never a default."""
     k = _calibrated_k(ctx)
     _refuse_links(view)
     _refuse_empty(view)
-    config = _configuration(ctx)
-    _check_limit(ctx, config)                                        # before anything is counted
+    config = errors.check_limit(ctx)                                 # ctx.config only; before anything is counted
     if index is None:
         index = EventIndex.build(view, ctx.embedder, text)
     elif not index.serves(text, view):                               # WP07 N-2: validate a PASSED index before

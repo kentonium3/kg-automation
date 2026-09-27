@@ -64,7 +64,7 @@ PKG_DIR = pathlib.Path(__file__).resolve().parent
 #: (tests/research/test_arms849_isolation.py) fails when a module is added without registering it here,
 #: so a new module lands with its entry in the SAME commit (correction A).
 REQUIRED_MODULES: tuple[str, ...] = (
-    "__init__.py", "arm_d.py", "arm_g.py", "arm_r.py", "calibration.py", "embed.py", "gates.py",
+    "__init__.py", "arm_d.py", "arm_g.py", "arm_r.py", "calibration.py", "embed.py", "errors.py", "gates.py",
     "grading.py", "ledger.py", "litscan.py", "preflight.py", "prompt.py", "questions.py", "sampler.py",
     "serving.py", "substrate.py", "text.py",
 )
