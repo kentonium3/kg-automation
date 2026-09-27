@@ -1,0 +1,28 @@
+{
+  "event_count": 1,
+  "last_event_id": "01M3G897E5MGZ68A885QTCKMA6",
+  "materialized_at": "2026-09-27T01:39:42.661941+00:00",
+  "mission_number": "",
+  "mission_slug": "arms-preconditions-01M3FVRY",
+  "mission_type": "software-dev",
+  "summary": {
+    "approved": 0,
+    "blocked": 0,
+    "canceled": 0,
+    "claimed": 0,
+    "done": 0,
+    "for_review": 0,
+    "in_progress": 0,
+    "in_review": 0,
+    "planned": 1
+  },
+  "work_packages": {
+    "WP01": {
+      "actor": "finalize-tasks",
+      "force_count": 0,
+      "lane": "planned",
+      "last_event_id": "01M3G897E5MGZ68A885QTCKMA6",
+      "last_transition_at": "2026-09-27T01:39:42.661941+00:00"
+    }
+  }
+}
