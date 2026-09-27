@@ -267,9 +267,10 @@ def test_live_build_search_assemble_and_replay_rule(live_http, falkor_endpoint):
     from scripts.research.arms849.embed import Embedder
 
     host, port = falkor_endpoint
+    driver = FalkorDriver(host=host, port=port)          # outside any loop: no index build on the root database
+    selected = _record_databases(driver)
 
     async def scenario() -> None:
-        driver = FalkorDriver(host=host, port=port)
         arm = A.GraphArm(driver, Embedder(cache_dir=CACHE / "fastembed"), FrozenCorpusText(CORPUS))
         qa = next(q for q in Q.QUESTIONS if q.id == "A")
         view = replay(CORPUS, datetime.fromisoformat(qa.ask_time), verify=False)
@@ -313,16 +314,14 @@ def test_live_build_search_assemble_and_replay_rule(live_http, falkor_endpoint):
             rows, _, _ = await db_q.execute_query("MATCH (n:Entity {name: $n, group_id: $g}) RETURN count(n) AS c", n="DEC_F_RESTART", g=A.group_id_for(q.id))
             assert (rows[0]["c"] > 0) is present, (q.id, rows)
             await arm.drop_graph(q)
-        # nothing of these questions was ever written to the root driver's database
-        rows, _, _ = await driver.execute_query("MATCH (n) WHERE n.group_id IN $gs RETURN count(n) AS c",
-                                                gs=["arms_A", "arms_F1", "arms_B2"])
-        assert rows[0]["c"] == 0, rows
         await arm.drop_graph(qa)
         rows, _, _ = await db_a.execute_query("MATCH (n {group_id: $g}) RETURN count(n) AS c", g="arms_A")
         assert rows[0]["c"] == 0
         await driver.close()
 
     asyncio.run(scenario())
+    # no query of the scenario (the test's own read-backs included) touched the root database
+    assert set(selected) == {"arms_A", "arms_F1", "arms_B2"}, collections.Counter(selected)
 
 
 # ---------------------------------------------------------------------------
@@ -530,7 +529,8 @@ def test_every_g_operation_reads_and_writes_one_per_question_database(tiny, stor
         writes = [c for c in qs if "MERGE" in c]
         searches = [c for c in qs if "db.idx.fulltext.query" in c]
         assert writes and searches, (db, len(writes), len(searches))     # hybrid search read where the writes went
-        assert any("labels(n)" in c for c in qs) and any("MENTIONS" in c for c in qs)
+        assert any("labels(n)" in c for c in qs)
+        assert any("MENTIONS" in c and "MERGE" not in c for c in qs)             # the expansion READ, not the write
         assert any("CREATE INDEX" in c for c in qs)                       # the index build too
     assert any("DETACH DELETE" in c for c in by_db["arms_C1"])
     assert collections.Counter(clones) == {"arms_C1": 1, "arms_A": 1}
@@ -951,7 +951,7 @@ def test_a_coroutine_closed_while_suspended_quiesces_nothing_and_acknowledges_no
     async def make():
         await Suspend()
     ack = threading.Event()
-    coro = bridge._guarded(make, ack)
+    coro = bridge._guarded(make, ack, {})
     coro.send(None)                                                         # suspended inside make()
     coro.close()
     assert touched == [] and not ack.is_set()
@@ -1004,6 +1004,167 @@ def test_no_attempt_starts_before_the_previous_termination_is_acknowledged(tiny,
     assert store.max_in_flight == 1 and pending(bridge) == []
 
 
+# -- WP02 review cycle 1 (Codex): lifecycle and boundary regressions ------------------------------
+
+
+@pytest.mark.parametrize("row_group,expected,reason", [
+    ("arms_A", ERR.PremiseViolated, "cross_group_leak"),
+    ("arms_C1", ERR.ArmRefusal, None),
+], ids=["leak", "foreign"])
+def test_a_terminal_exception_raised_during_the_grace_wait_reaches_the_caller(tiny, store, bridges, monkeypatch,
+                                                                               row_group, expected, reason):
+    """Review c1 finding 1: the deadline passes while the transport is stalled; the stall clears INSIDE the
+    grace wait and the retrieval then detects a terminal condition. The caller gets THAT exception — the
+    same class the uncancelled path raises — never a retryable TimeoutError."""
+    monkeypatch.setattr(ERR, "G_CANCEL_GRACE_S", 2.0)
+    text, view = tiny
+    bridge = make_bridge(store, text, bridges)
+    bridge.build_graph(QC1, view)
+    store.hang = lambda db, cypher, params: "stubborn" if "labels(n)" in cypher else None
+    store.respond = _typed_pull_row("00000000-0000-5000-8000-0000000000aa", row_group)
+    threading.Timer(0.15, store.release.set).start()
+    with pytest.raises(expected) as info:
+        bridge.answer(QC1, view, ctx_for(FakeFacade(), deadline=time.monotonic() + 0.05))
+    if reason:
+        assert info.value.reason == reason
+    assert pending(bridge) == []
+
+
+def test_an_ordinary_failure_during_the_grace_wait_stays_a_retryable_timeout(tiny, store, bridges, monkeypatch):
+    monkeypatch.setattr(ERR, "G_CANCEL_GRACE_S", 2.0)
+    text, view = tiny
+    bridge = make_bridge(store, text, bridges)
+    bridge.build_graph(QC1, view)
+    store.hang = lambda db, cypher, params: "stubborn" if "labels(n)" in cypher else None
+
+    def boom(db, cypher, params):
+        if store.release.is_set() and "labels(n)" in cypher:
+            raise ConnectionError("socket reset while unwinding")
+    real_query = FakeGraph.query
+
+    async def failing(self, cypher, params=None):
+        out = await real_query(self, cypher, params)
+        boom(self.name, cypher, params or {})
+        return out
+    monkeypatch.setattr(FakeGraph, "query", failing)
+    threading.Timer(0.15, store.release.set).start()
+    with pytest.raises(TimeoutError, match="acknowledged") as info:
+        bridge.answer(QC1, view, ctx_for(FakeFacade(), deadline=time.monotonic() + 0.05))
+    assert isinstance(info.value.__cause__, ConnectionError)
+
+
+def test_after_an_unacknowledged_cancellation_nothing_more_reaches_the_transport(tiny, store, bridges, monkeypatch):
+    """Review c1 finding 2: once GCancellationUnacknowledged is raised, clearing the stall must not let the
+    abandoned work issue a single further query: the loop is stopped BEFORE the signal is raised."""
+    monkeypatch.setattr(ERR, "G_CANCEL_GRACE_S", 0.2)
+    text, view = tiny
+    bridge = make_bridge(store, text, bridges)
+    bridge.build_graph(QC1, view)
+    store.hang = lambda db, cypher, params: "stubborn" if "labels(n)" in cypher else None
+    with pytest.raises(ERR.GCancellationUnacknowledged):
+        bridge.answer(QC1, view, ctx_for(FakeFacade(), deadline=time.monotonic() + 0.05))
+    assert not bridge._thread.is_alive()                                       # stopped before the signal
+    n = len(store.queries)
+    store.release.set()                                                        # the stall clears
+    time.sleep(0.3)
+    assert len(store.queries) == n, store.queries[n:]
+
+
+def test_quiescence_drains_tasks_spawned_during_cleanup(tiny, store, bridges):
+    """Review c1 finding 3: a task that, while being cancelled, spawns ANOTHER task — the acknowledgement
+    waits for the descendant too, after a normal return and after a cancellation."""
+    text, view = tiny
+    bridge = make_bridge(store, text, bridges)
+    bridge.build_graph(QC1, view)
+    spawned: list = []
+
+    async def child():
+        await asyncio.sleep(3600)
+
+    async def parent():
+        try:
+            await asyncio.sleep(3600)
+        except asyncio.CancelledError:
+            spawned.append(asyncio.get_running_loop().create_task(child()))
+            raise
+
+    def spawn(db, cypher, params):
+        if params.get("label") == A.TYPED_LABELS[0]:
+            spawned.append(asyncio.get_running_loop().create_task(parent()))
+    store.observe = spawn
+    assert bridge.answer(QC1, view, ctx_for(FakeFacade()))["text"] == "ans"
+    assert len(spawned) == 2 and all(t.done() for t in spawned), spawned
+    assert pending(bridge) == []
+    store.hang = lambda db, cypher, params: "cancellable" if "labels(n)" in cypher else None
+    with pytest.raises(TimeoutError, match="acknowledged"):
+        bridge.answer(QC1, view, ctx_for(FakeFacade(), deadline=time.monotonic() + 0.1))
+    assert len(spawned) == 4 and all(t.done() for t in spawned), spawned
+    assert pending(bridge) == []
+
+
+def test_close_during_an_active_operation_has_one_cancellation_owner(tiny, store):
+    """Review c1 finding 4: close() while an operation is in flight stops new submissions, cancels the active
+    one through ITS OWN acknowledgement path, and only then shuts down — no competing quiescence passes
+    (which cancelled each other recursively), nothing left pending."""
+    text, view = tiny
+    bridge = A.make_bridge(FakeEmbedder(), text, driver=FalkorDriver(falkor_db=store))
+    bridge.build_graph(QC1, view)
+    store.hang = lambda db, cypher, params: "cancellable" if "labels(n)" in cypher else None
+    outcome: dict = {}
+
+    def run():
+        try:
+            bridge.answer(QC1, view, ctx_for(FakeFacade()))                  # no deadline, no cancel flag
+        except BaseException as exc:                                          # noqa: BLE001 — recorded
+            outcome["exc"] = exc
+    loop_errors: list = []
+    bridge._loop.set_exception_handler(lambda loop, context: loop_errors.append(context))
+    worker = threading.Thread(target=run)
+    worker.start()
+    time.sleep(0.2)
+    assert store.in_flight == 1
+    t0 = time.monotonic()
+    assert bridge.close() is True
+    worker.join(5)
+    assert not worker.is_alive() and time.monotonic() - t0 < 5
+    assert isinstance(outcome.get("exc"), TimeoutError) and "closing" in str(outcome["exc"]), outcome
+    assert store.closed and not bridge._thread.is_alive() and loop_errors == []
+    assert not [t for t in asyncio.all_tasks(bridge._loop) if not t.done()]
+    with pytest.raises(RuntimeError, match="closed"):
+        bridge.list_graphs()
+
+
+def test_a_uuid_g_wrote_for_another_question_is_a_leak_even_under_this_group(tiny, store):
+    """The other half of the boundary: a result reported under THIS group whose uuid G wrote for ANOTHER
+    question's graph is a leak (PremiseViolated), not a foreign item (ArmRefusal)."""
+    text, view = tiny
+    arm = A.GraphArm(FalkorDriver(falkor_db=store), FakeEmbedder(), text)
+    store.respond = _typed_pull_row(A.stable_uuid("arms_A", "node", "COM_REVIEW"), "arms_C1")
+
+    async def scenario():
+        await arm.build_graph(QA, view)
+        await arm.build_graph(QC1, view)
+        await arm.plan_and_assemble(QC1, view)
+    with pytest.raises(ERR.PremiseViolated) as info:
+        asyncio.run(scenario())
+    assert info.value.reason == "cross_group_leak"
+
+
+def test_a_known_uuid_reported_under_another_questions_group_is_a_leak(tiny, store):
+    """Review c1 finding 5: the result's reported group is checked BEFORE the uuid map — a uuid G wrote for
+    THIS question, returned carrying another question's group, has crossed the boundary."""
+    text, view = tiny
+    arm = A.GraphArm(FalkorDriver(falkor_db=store), FakeEmbedder(), text)
+    store.respond = _typed_pull_row(A.stable_uuid("arms_C1", "node", "COM_REVIEW"), "arms_A")
+
+    async def scenario():
+        await arm.build_graph(QC1, view)
+        await arm.plan_and_assemble(QC1, view)
+    with pytest.raises(ERR.PremiseViolated) as info:
+        asyncio.run(scenario())
+    assert info.value.reason == "cross_group_leak"
+
+
 # -- live FR-016 (sandbox FalkorDB; ARMS849_LIVE=1) ---------------------------------------------------
 
 
@@ -1034,9 +1195,10 @@ def test_live_hybrid_search_returns_an_item_the_question_names(live_http, falkor
     from scripts.research.arms849.embed import Embedder
 
     host, port = falkor_endpoint
+    driver = FalkorDriver(host=host, port=port)          # outside any loop: no index build on the root database
+    selected = _record_databases(driver)
 
     async def scenario() -> None:
-        driver = FalkorDriver(host=host, port=port)
         arm = A.GraphArm(driver, Embedder(cache_dir=CACHE / "fastembed"), FrozenCorpusText(CORPUS))
         qa = Q.by_id("A")
         view = replay(CORPUS, Q.ask_time_dt(qa), verify=False)
@@ -1055,6 +1217,21 @@ def test_live_hybrid_search_returns_an_item_the_question_names(live_http, falkor
             await driver.close()
 
     asyncio.run(scenario())
+    # every query of the scenario, at the transport: only the question's database, never the root's
+    assert selected and set(selected) == {"arms_A"}, collections.Counter(selected)
+
+
+def _record_databases(driver) -> list[str]:
+    """Record the database of EVERY query a FalkorDriver and all its clones send: they share one client, and
+    each query selects its graph through ``client.select_graph`` (installed falkordb_driver ``_get_graph``)."""
+    seen: list[str] = []
+    real = driver.client.select_graph
+
+    def select(name):
+        seen.append(name)
+        return real(name)
+    driver.client.select_graph = select
+    return seen
 
 
 @live

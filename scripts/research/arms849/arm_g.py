@@ -87,7 +87,13 @@ from scripts.research.arms849.embed import (
     GraphitiEmbedder,
     TripwireLLMClient,
 )
-from scripts.research.arms849.errors import ArmRefusal, GCancellationUnacknowledged, PremiseViolated
+from scripts.research.arms849.errors import (
+    ArmRefusal,
+    CeilingBreached,
+    CeilingUnreadable,
+    GCancellationUnacknowledged,
+    PremiseViolated,
+)
 from scripts.research.arms849.text import Block, FrozenCorpusText, edge_key, entity_key
 from scripts.research.load_849_corpus import Loaded, edge_effective_time
 
@@ -103,6 +109,11 @@ FALKOR_HOST, FALKOR_PORT = "falkordb", 6379
 LOOP_THREAD_NAME = "arms849-g-loop"
 #: How often the attempt thread re-checks its deadline and ``cancelled`` flag while graph work runs.
 POLL_S = 0.05
+#: How long a stop waits for the loop thread to return before the fatal signal is raised anyway.
+HALT_JOIN_S = 1.0
+#: Raised by the work itself, these decide the cell or the run: after a cancellation they propagate as
+#: themselves, never as a retryable TimeoutError (research D-2's rule for _call_with_timeout, at the bridge).
+TERMINAL_EXCEPTIONS: tuple[type[BaseException], ...] = (PremiseViolated, ArmRefusal, CeilingBreached, CeilingUnreadable)
 
 GROUP_RE = re.compile(r"^arms_[A-Z0-9]+$")
 TYPED_LABELS = ("Capacity", "Commitment", "Principle", "Interest")
@@ -503,12 +514,16 @@ class GraphArm:
         A result carrying ANOTHER group — by its own ``group_id``, or a uuid G wrote for another
         question — crossed the per-question graph boundary: ``_leaked`` (PremiseViolated, the run
         halts). A result in THIS group's graph that G did not write from this view: ``_foreign``
-        (ArmRefusal, the cell is refused). Neither is ever silently dropped (RQ-6b)."""
+        (ArmRefusal, the cell is refused). Neither is ever silently dropped (RQ-6b). The result's REPORTED
+        group is checked first: a uuid G wrote for this question, returned under another question's group,
+        has crossed the boundary too (review c1 finding 5)."""
+        if result_group is not None and str(result_group) != group:
+            self._leaked.append(uuid)
+            return None
         kk = self._key_by_uuid.get(group, {}).get(uuid)
         if kk is not None:
             return kk
-        other = (result_group is not None and str(result_group) != group) or any(
-            uuid in keys for g, keys in self._key_by_uuid.items() if g != group)
+        other = any(uuid in keys for g, keys in self._key_by_uuid.items() if g != group)
         (self._leaked if other else self._foreign).append(uuid)
         return None
 
@@ -663,17 +678,20 @@ class Bridge:
     **Cancellation is acknowledged by the coroutine, or the bridge raises.** On a deadline or the
     ``cancelled`` flag the loop-side task is cancelled, and the caller waits up to
     ``errors.G_CANCEL_GRACE_S`` for the acknowledgement flag the coroutine sets in its own
-    ``finally`` — AFTER every other task on the bridge loop (a clone's ``_init_task`` included) is
-    done. ``future.done()`` is NOT an acknowledgement: the concurrent future reports cancelled at
-    once, while the coroutine may still be unwinding. An acknowledged cancellation raises
-    ``TimeoutError`` (an ordinary, retryable infrastructure failure); no acknowledgement raises
-    :class:`~arms849.errors.GCancellationUnacknowledged`, after which every call raises it again and
-    the bridge issues no further query — not even the cleanup in :meth:`close`. There is no driver
+    cleanup — AFTER every other task on the bridge loop (a clone's ``_init_task`` included, and any
+    task spawned while cancelling) is done. ``future.done()`` is NOT an acknowledgement: the concurrent
+    future reports cancelled at once, while the coroutine may still be unwinding. After an
+    acknowledgement, a terminal domain exception the work raised while unwinding (:data:`TERMINAL_EXCEPTIONS`)
+    propagates as itself; otherwise the caller gets ``TimeoutError`` (an ordinary, retryable
+    infrastructure failure). No acknowledgement STOPS the loop and then raises
+    :class:`~arms849.errors.GCancellationUnacknowledged`; every later call raises it again and the
+    bridge issues no further query — not even the cleanup in :meth:`close`. There is no driver
     replacement: resume happens in a fresh process, whose ``build_graph`` rebuilds idempotently.
+    :meth:`close` is the one other cancellation source, and it goes through the same path.
 
-    The quiescence wait is bounded ONLY by the caller's ``deadline`` / ``cancelled``: a live cell
-    must always pass them (WP04: ``CellContext.deadline`` and the harness's ``cancelled`` flag), or
-    work whose own cleanup never finishes is waited for without end.
+    A live cell must always pass ``deadline`` / ``cancelled`` (WP04: ``CellContext.deadline`` and the
+    harness's ``cancelled`` flag): without them an operation that never returns is waited for until
+    :meth:`close` (or the process) ends it.
     """
 
     def __init__(self, arm: GraphArm) -> None:
@@ -681,7 +699,8 @@ class Bridge:
         self._loop = asyncio.new_event_loop()
         self._thread = threading.Thread(target=self._loop.run_forever, name=LOOP_THREAD_NAME, daemon=True)
         self._thread.start()
-        self._lock = threading.Lock()
+        self._lock = threading.Lock()                               # one operation (or the shutdown) at a time
+        self._closing = threading.Event()
         self._poisoned: float | None = None                          # grace_s of an unacknowledged cancellation
         self._closed: bool | None = None                             # None: open; else close()'s result
 
@@ -709,82 +728,141 @@ class Bridge:
         return self.arm.respond(block, plan, question, ctx)
 
     def close(self) -> bool:
-        """Quiesce and close the connection under the same bounded grace, then stop the loop and abandon
-        its thread. Returns True only when all of that was acknowledged in time. After an unacknowledged
-        cancellation it issues nothing — no cleanup query — and only stops the loop. Idempotent."""
+        """Shut down with ONE cancellation owner (review c1 finding 4): stop new submissions, let the active
+        operation (if any) cancel itself through its OWN acknowledgement path, and only then quiesce and close
+        the connection through the same mechanism, under the same bounded grace. Finally stop the loop and
+        abandon its thread. Returns True only when all of that was acknowledged in time. After an
+        unacknowledged cancellation it issues nothing — no cleanup query. Idempotent."""
         if self._closed is not None:
             return self._closed
-        clean = False
-        if self._poisoned is None:
-            ack = threading.Event()
-            future = asyncio.run_coroutine_threadsafe(self._guarded(self.arm.close, ack), self._loop)
-            clean = ack.wait(errors.G_CANCEL_GRACE_S)
-            if not clean:
-                future.cancel()
-        self._loop.call_soon_threadsafe(self._loop.stop)
-        self._thread.join(errors.G_CANCEL_GRACE_S if clean else 0.0)
-        clean = clean and not self._thread.is_alive()
-        if clean:
-            self._loop.close()
-        self._closed = clean
-        return clean
+        self._closing.set()                                         # refuses new work; cancels the active one
+        owned = self._lock.acquire(timeout=errors.G_CANCEL_GRACE_S + HALT_JOIN_S + 1.0)
+        try:
+            if self._closed is not None:
+                return self._closed
+            clean = False
+            if owned and self._poisoned is None:
+                try:
+                    self._run(self.arm.close, time.monotonic() + errors.G_CANCEL_GRACE_S, None, "close",
+                              closing_cancels=False)
+                    clean = True
+                except (Exception, GCancellationUnacknowledged):  # noqa: BLE001 — close reports, never raises
+                    clean = False
+            stopped = self._halt_loop(errors.G_CANCEL_GRACE_S if clean else HALT_JOIN_S)
+            clean = clean and stopped
+            if clean:
+                self._loop.close()
+            self._closed = clean
+            return clean
+        finally:
+            if owned:
+                self._lock.release()
 
     # -- the mechanism ---------------------------------------------------------------
 
-    async def _quiesce(self) -> None:
-        """Every OTHER task on the bridge loop — each one the bridge started: a clone's ``_init_task``,
-        graphiti's gathered sub-queries — cancelled and awaited. A task that ignores its cancellation
-        keeps this from returning, and so keeps the acknowledgement from being given."""
-        me = asyncio.current_task(self._loop)
-        others = [t for t in asyncio.all_tasks(self._loop) if t is not me and not t.done()]
-        for task in others:
-            task.cancel()
-        if others:
-            await asyncio.gather(*others, return_exceptions=True)
+    def _halt_loop(self, join_s: float) -> bool:
+        """Stop the loop and wait up to ``join_s`` for its thread: once it has returned, no coroutine of this
+        bridge can take another step, so no further query can reach the transport."""
+        if self._thread.is_alive():
+            try:
+                self._loop.call_soon_threadsafe(self._loop.stop)
+            except RuntimeError:                                    # the loop is already closed
+                pass
+            self._thread.join(join_s)
+        return not self._thread.is_alive()
 
-    async def _guarded(self, make: Callable[[], Awaitable[T]], ack: threading.Event) -> T:
-        """Run ``make()`` and, however it ends, quiesce the loop and THEN set ``ack`` — the coroutine's
-        own acknowledgement. A coroutine being FINALISED (``GeneratorExit``: garbage-collected after its
-        loop was abandoned, possibly while another loop runs on this thread) acknowledges nothing and
-        touches no loop: quiescing there would cancel another bridge's tasks."""
+    async def _quiesce(self) -> bool:
+        """Drain the bridge loop: every OTHER task — each one the bridge's work started (a clone's
+        ``_init_task``, graphiti's gathered sub-queries) AND every task those spawn while being cancelled —
+        cancelled once and awaited, until none is left (review c1 finding 3). Bounded by
+        ``errors.G_CANCEL_GRACE_S``: returns False when work outlives it (a task that ignores its
+        cancellation), and then no acknowledgement is given."""
+        me = asyncio.current_task(self._loop)
+        end = self._loop.time() + errors.G_CANCEL_GRACE_S
+        asked: set[asyncio.Task[Any]] = set()
+        while True:
+            others = {t for t in asyncio.all_tasks(self._loop) if t is not me and not t.done()}
+            if not others:
+                return True
+            remaining = end - self._loop.time()
+            if remaining <= 0:
+                return False
+            for task in others - asked:                             # once each: never re-interrupt an unwind
+                task.cancel()
+            asked |= others
+            await asyncio.wait(others, timeout=remaining, return_when=asyncio.FIRST_COMPLETED)
+
+    async def _guarded(self, make: Callable[[], Awaitable[T]], ack: threading.Event,
+                       outcome: dict[str, BaseException]) -> tuple[str, Any]:
+        """Run ``make()`` and, however it ends, drain the loop and THEN set ``ack`` — the coroutine's own
+        acknowledgement. The outcome is RETURNED, never raised, and also kept in ``outcome``, so an
+        exception the work raises while being cancelled survives the cancellation (review c1 finding 1).
+        A coroutine being FINALISED (``GeneratorExit``: garbage-collected after its loop was abandoned,
+        possibly while another loop runs on this thread) acknowledges nothing and touches no loop."""
         try:
             result = await make()
         except GeneratorExit:
             raise
-        except BaseException:
-            await self._quiesce()
-            ack.set()                                               # THE acknowledgement: set by the coroutine
-            raise
-        await self._quiesce()
-        ack.set()
-        return result
+        except BaseException as exc:                                # noqa: BLE001 — carried to the caller
+            outcome["exc"] = exc
+            if await self._quiesce():
+                ack.set()                                           # THE acknowledgement: set by the coroutine
+            return "raised", exc
+        if await self._quiesce():
+            ack.set()
+        return "ok", result
 
     def _submit(self, make: Callable[[], Awaitable[T]], deadline: float | None,
                 cancelled: threading.Event | None, what: str) -> T:
+        if self._closing.is_set() or self._closed is not None:
+            raise RuntimeError(f"G bridge is closed; {what} refused")
         with self._lock:
             if self._poisoned is not None:
                 raise GCancellationUnacknowledged(self._poisoned)
-            if self._closed is not None:
+            if self._closing.is_set() or self._closed is not None:
                 raise RuntimeError(f"G bridge is closed; {what} refused")
-            ack = threading.Event()
-            future = asyncio.run_coroutine_threadsafe(self._guarded(make, ack), self._loop)
-            while True:
-                if cancelled is not None and cancelled.is_set():
-                    why = "the attempt was cancelled"
-                    break
-                remaining = None if deadline is None else deadline - time.monotonic()
-                if remaining is not None and remaining <= 0:
-                    why = "the attempt deadline passed"
-                    break
-                concurrent.futures.wait([future], timeout=POLL_S if remaining is None else min(POLL_S, remaining))
-                if future.done():
-                    return future.result()                          # the coroutine's own exception, unaltered
-            future.cancel()
-            grace = errors.G_CANCEL_GRACE_S
-            if not ack.wait(grace):
-                self._poisoned = grace
-                raise GCancellationUnacknowledged(grace)
-            raise TimeoutError(f"G {what}: {why}; the cancelled work acknowledged its termination within {grace} s")
+            return self._run(make, deadline, cancelled, what)
+
+    def _run(self, make: Callable[[], Awaitable[T]], deadline: float | None, cancelled: threading.Event | None,
+             what: str, *, closing_cancels: bool = True) -> T:
+        """One operation, the lock held. Waits on the caller's thread; on a stop reason cancels the task ONCE
+        and waits for the coroutine's own acknowledgement. Then: a terminal domain exception the work raised
+        (even while being cancelled) propagates as itself; otherwise ``TimeoutError`` (retryable, chained to
+        an ordinary exception the work raised). No acknowledgement: the loop is STOPPED first, so the
+        abandoned work can issue nothing further (review c1 finding 2), then GCancellationUnacknowledged."""
+        if self._poisoned is not None:
+            raise GCancellationUnacknowledged(self._poisoned)
+        ack = threading.Event()
+        outcome: dict[str, BaseException] = {}
+        future = asyncio.run_coroutine_threadsafe(self._guarded(make, ack, outcome), self._loop)
+        while True:
+            if cancelled is not None and cancelled.is_set():
+                why = "the attempt was cancelled"
+                break
+            if closing_cancels and self._closing.is_set():
+                why = "the bridge is closing"
+                break
+            remaining = None if deadline is None else deadline - time.monotonic()
+            if remaining is not None and remaining <= 0:
+                why = "the attempt deadline passed"
+                break
+            concurrent.futures.wait([future], timeout=POLL_S if remaining is None else min(POLL_S, remaining))
+            if future.done():
+                kind, value = future.result()
+                if kind == "raised":
+                    raise value                                     # the coroutine's own exception, unaltered
+                return value                                        # type: ignore[no-any-return]
+        future.cancel()                                             # cancels the loop-side task, once
+        grace = errors.G_CANCEL_GRACE_S
+        if not ack.wait(grace):
+            self._poisoned = grace
+            self._halt_loop(min(HALT_JOIN_S, grace))
+            raise GCancellationUnacknowledged(grace)
+        exc = outcome.get("exc")
+        if isinstance(exc, TERMINAL_EXCEPTIONS):
+            raise exc                                               # never downgraded to a retryable timeout
+        raise TimeoutError(f"G {what}: {why}; the cancelled work acknowledged its termination within {grace} s") \
+            from (exc if isinstance(exc, Exception) else None)
 
 
 def make_bridge(embedder: Embedder, text: FrozenCorpusText, *, host: str = FALKOR_HOST, port: int = FALKOR_PORT,
