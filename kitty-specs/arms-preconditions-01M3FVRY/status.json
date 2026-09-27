@@ -55,7 +55,7 @@
     },
     "WP02": {
       "actor": "claude",
-      "agent": "claude",
+      "agent": null,
       "agent_profile": "__resolved_profile_absent__",
       "agent_profile_version": "__resolved_profile_version_absent__",
       "force_count": 6,
@@ -69,7 +69,8 @@
         "Cycle 3: c75085c5 and 31366e1b. Invariants A (one transport gate), B (acknowledgement on every exit), C (append-only ownership); tests derived from the code; 26/26 mutants killed; 6 self-attack probes; live re-run clean. Full suite 8068/0 on both seeds; CI simulation 0/0.",
         "Cycle 4 design correction: 99c92bfe..c429a9f4. Socket-level pool-scoped gate, frame-level single exit, reserve-before-write; pool args pinned behaviourally; 38/38 mutants killed. Full suite 8082/0 on both seeds; CI simulation 0/0.",
         "Cycle 5: 08f92821 and 45edc774. Atomic gate check + enqueue under a per-pool threading.Lock; opens across the poison are aborted before any handshake; submission inside the guard; deterministic seams occupy every window Codex probed; 45/45 mutants killed. Full suite 8091/0 on both seeds; CI simulation 0/0.",
-        "Cycle 6: 39516405 and c6f4d2eb. The gate owns its sockets (shut down from the poisoning thread); unremovable writer property; registry lifecycle; derived write-site premise; retrieval bound to its view with per-item validation; 54/54 mutants killed. Full suite 8102/0 on both seeds; CI simulation 0/0."
+        "Cycle 6: 39516405 and c6f4d2eb. The gate owns its sockets (shut down from the poisoning thread); unremovable writer property; registry lifecycle; derived write-site premise; retrieval bound to its view with per-item validation; 54/54 mutants killed. Full suite 8102/0 on both seeds; CI simulation 0/0.",
+        "Codex Astra cycle-6 review reproduced two blockers at c6f4d2eb; see attached feedback."
       ],
       "provider": "__resolved_provider_absent__",
       "review": null,
@@ -80,15 +81,15 @@
         "verdict": "changes_requested"
       },
       "role": "reviewer",
-      "shell_pid": 4114156,
-      "shell_pid_created_at": "1790523564.13",
+      "shell_pid": null,
+      "shell_pid_created_at": null,
       "subtasks": {
-        "T007": "done",
-        "T008": "done",
-        "T009": "done",
-        "T010": "done",
-        "T011": "done",
-        "T012": "done"
+        "T007": "planned",
+        "T008": "planned",
+        "T009": "planned",
+        "T010": "planned",
+        "T011": "planned",
+        "T012": "planned"
       }
     },
     "WP03": {
