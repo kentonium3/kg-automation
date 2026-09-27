@@ -31,8 +31,8 @@ The baseline is arms-run-01M3APTA's `data-model.md` and contracts. This file lis
 | `premise_violated` | **new** | `{arm: str, reason: "tripwire" \| "cross_group_leak", message: str, at_key: RunKey dict}`. Its presence makes the ledger **unusable as a primary, for export, and for `Ledger.summarise()`** (correction C). Rows stay untouched. |
 | `memory_ceiling` | unchanged | The pre-cell ceiling refusal stays as it is. |
 | `series_generation` | **new**, one per `substrate.run` | `{series_id, path, container_id, interval_s, started_ts}`. Recorded before any graph activity. |
-| `graph_store_first_build` | **new**, once per generation | `{ts, series_id}` at the first `build_graph` start. |
-| `graph_store_all_resident` | **new**, once per generation | `{ts, series_id, n_graphs}` when the last question's repeat-1 build succeeds with no harness retirement yet. |
+| `graph_store_first_build` | **new**, once per generation | `{ts, series_id, graphs_present}`, recorded just before the generation's first `build_graph`, after a read-only listing of FalkorDB graphs. `graphs_present: true` makes the baseline `could_not_check`. |
+| `graph_store_all_resident` | **new**, at most once per generation | `{ts, series_id, n_graphs: 8}`, emitted ONLY when this process itself built all eight graphs successfully in this generation, before any harness retirement. `ts` is taken after the eighth build succeeded. |
 | `session_stopped` | **new** | `{reason, grace_s?}`, with reason one of `g_cancellation_unacknowledged`, `ceiling_breach_at_send`, `premise_violated`, `operator`, … Every stop reason is distinguishable. |
 
 These events are validated on write and replay (types, canonical UTC, known `series_id`).
@@ -54,7 +54,8 @@ Computed at summary and export time from the series files plus the events above 
 
 ## Memory series files (`RUNS_DIR/falkordb-cgroup-<series_id>.jsonl`, one per generation, never truncated)
 
-- **Header**: `{series: "arms849-falkordb-cgroup/1", started, container, container_id, interval_s}`. The format id changes with the measure; `interval_s` is the real interval.
+- **Header**: `{series: "arms849-falkordb-cgroup/1", series_id, started, container, container_id, interval_s}`. It must agree with its `series_generation` ledger descriptor; if they disagree, every figure from that file is `could_not_check`.
+- **Trailer** (the final line, written when the writer stops cleanly): `{closed: <ts>, readings, failures}`. A file with no trailer was not closed cleanly, and its coverage cannot be established.
 - **Records**: `{ts, cgroup_mib, container_id}`. `ts` is canonical UTC only (C12).
 - **A failed read writes no line**, so the hole surfaces as a gap.
 

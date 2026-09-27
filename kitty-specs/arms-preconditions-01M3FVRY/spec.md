@@ -114,7 +114,7 @@ Anyone reading a test run can see which research tests ran and which were skippe
 - The container is replaced mid-run under the same name.
 - A timeout or cancellation arrives while a ceiling check or a graph build is in progress.
 - Session 2 of a resume has a different process start time and different gate timestamps from session 1.
-- Duplicate or boundary-tied timestamps in the memory series, already covered by rubric §5's window rule.
+- Duplicate or tied timestamps in the ceiling guard's live readings (governed by rubric §5's window rule for the INFERENCE/GTT sampling), and a graph-store writer that dies mid-run or restarts with the substrate (contracts/memory-series.md items 4–5).
 
 ## Requirements *(mandatory)*
 
@@ -145,7 +145,7 @@ Anyone reading a test run can see which research tests ran and which were skippe
 |----|-------|-------------|----------|----------|--------|
 | NFR-001 | Suite green in both environments | 100% of tests pass on office4 with the research environment, under both PYTHONHASHSEED 0 and 3, and in a fresh-worktree CI simulation without it, with 0 collection errors. | Reliability | High | Open |
 | NFR-002 | Can-fail evidence | Every functional requirement except FR-004 has at least one test that fails on the pre-change code. FR-004 is a regression guard, because the existing code already refuses a no-arms ledger (measured); C13's red-first evidence is FR-001. The evidence is recorded per work package. | Reliability | High | Open |
-| NFR-003 | No orphaned attempts | Across 100 consecutive attempts with injected timeouts and cancellations against a fake graph store, 0 attempts remain running after their deadline. | Reliability | High | Open |
+| NFR-003 | No orphaned attempts | Across 100 consecutive attempts with injected timeouts and cancellations against a fake graph store, no NEW attempt starts before the previous one's termination is acknowledged. Any cancelled work is acknowledged within `G_CANCEL_GRACE_S` (10 s); otherwise the session stops and the process exits (research D-2). | Reliability | High | Open |
 | NFR-004 | Measurement freshness | The series tolerances stay as registered: a gap or staleness of more than 5 recorded sample intervals makes the affected figure `could_not_check`, and exactly 5 is allowed. The ceiling guard's live read is governed separately (FR-008). | Accuracy | High | Open |
 | NFR-005 | Fail closed | 0 paths record an unmeasurable, refused or unregistered cell as a score, a zero or a pass. | Integrity | High | Open |
 
@@ -166,7 +166,7 @@ Anyone reading a test run can see which research tests ran and which were skippe
 ### Key Entities
 
 - **Arm registration**: an arm's answering function (or binding), its refusal class, and anything it needs (embedder, graph store connection).
-- **Memory support**: the evidence behind one reported peak — window start and end, number of in-window samples, the held reading's timestamp if used, and the peak's source.
+- **Graph-store run report**: the run-level container memory figures — baseline, peak, all-graphs-resident total — each a number or `could_not_check` with a reason, plus the series generations it was computed from (rubric §5 @`91e679e6`).
 - **Session gates record**: a session's gate outcome (session id, passed, skipped), which authorises that session's attempts.
 - **Pre-merge record**: commit, office4 suite result, and fresh-worktree CI simulation result.
 
