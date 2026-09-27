@@ -70,7 +70,8 @@
         "Cycle 4 design correction: 99c92bfe..c429a9f4. Socket-level pool-scoped gate, frame-level single exit, reserve-before-write; pool args pinned behaviourally; 38/38 mutants killed. Full suite 8082/0 on both seeds; CI simulation 0/0.",
         "Cycle 5: 08f92821 and 45edc774. Atomic gate check + enqueue under a per-pool threading.Lock; opens across the poison are aborted before any handshake; submission inside the guard; deterministic seams occupy every window Codex probed; 45/45 mutants killed. Full suite 8091/0 on both seeds; CI simulation 0/0.",
         "Cycle 6: 39516405 and c6f4d2eb. The gate owns its sockets (shut down from the poisoning thread); unremovable writer property; registry lifecycle; derived write-site premise; retrieval bound to its view with per-item validation; 54/54 mutants killed. Full suite 8102/0 on both seeds; CI simulation 0/0.",
-        "Codex Astra cycle-6 review reproduced two blockers at c6f4d2eb; see attached feedback."
+        "Codex Astra cycle-6 review reproduced two blockers at c6f4d2eb; see attached feedback.",
+        "Cycle 7: 6cc741ee fixes foreign-gated writer poisoning bypass and binds retrieval to full ordered graph-view content. New regressions pass; Arm G 109/3; cross-arm 136/0; full suite 8104/0 on PYTHONHASHSEED 0 and 1."
       ],
       "provider": "__resolved_provider_absent__",
       "review": null,
