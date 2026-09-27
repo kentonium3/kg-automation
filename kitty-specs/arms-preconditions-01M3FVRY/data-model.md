@@ -30,8 +30,8 @@ The baseline is arms-run-01M3APTA's `data-model.md` and contracts. This file lis
 |---|---|---|
 | `premise_violated` | **new** | `{arm: str, reason: "tripwire" \| "cross_group_leak", message: str, at_key: RunKey dict}`. Its presence makes the ledger **unusable as a primary, for export, and for `Ledger.summarise()`** (correction C). Rows stay untouched. |
 | `memory_ceiling` | unchanged | The pre-cell ceiling refusal stays as it is. |
-| `series_generation` | **new**, one per `substrate.run` | `{series_id, path, container_id, interval_s, started_ts}`. Recorded before any graph activity. |
-| `graph_store_first_build` | **new**, once per generation | `{ts, series_id, graphs_present}`, recorded just before the generation's first `build_graph`, after a read-only listing of FalkorDB graphs. `graphs_present: true` makes the baseline `could_not_check`. |
+| `series_generation` | **new**, one per `substrate.run` | `{series_id, path, container_id, interval_s, started_ts, writer_status, writer_reason?}`. `writer_status` is `"running"` or `"failed"`; on `"failed"`, `writer_reason` is a non-empty str, and `container_id`, `path` and `interval_s` may be `null` when unresolved (for example, `docker inspect` failed). A `failed` generation makes every figure depending on it `could_not_check: writer_failed` (clarified 2026-09-27, post-plan review #6). Recorded before any graph activity. |
+| `graph_store_first_build` | **new**, once per generation | `{ts, series_id, graphs_present}`, recorded just before the generation's first `build_graph`, after a read-only listing of FalkorDB graphs, for BOTH listing outcomes. `graphs_present: true` makes the baseline `could_not_check`. |
 | `graph_store_all_resident` | **new**, at most once per generation | `{ts, series_id, n_graphs: 8}`, emitted ONLY when this process itself built all eight graphs successfully in this generation, before any harness retirement. `ts` is taken after the eighth build succeeded. |
 | `session_stopped` | **new** | `{reason, grace_s?}`, with reason one of `g_cancellation_unacknowledged`, `ceiling_breach_at_send`, `premise_violated`, `operator`, … Every stop reason is distinguishable. |
 
