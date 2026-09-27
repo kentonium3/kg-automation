@@ -2094,14 +2094,22 @@ def test_a_connection_opened_across_the_poison_sends_no_byte(tiny, resp_server, 
     bridge = A.make_bridge(FakeEmbedder(), text, host="127.0.0.1", port=resp_server.port)
     armed, reached, resume = threading.Event(), threading.Event(), threading.Event()
     pause = _block_once(armed, reached, resume)
+    handshakes_after: list[int] = []
     if where == "after_open":
         real_open = rconn.asyncio.open_connection
+        real_hs = rconn.AbstractConnection.on_connect_check_health
 
         async def paused_open(*a, **k):
             pair = await real_open(*a, **k)
             pause()
             return pair
+
+        async def counted_handshake(self, *a, **k):
+            if resume.is_set():
+                handshakes_after.append(1)
+            return await real_hs(self, *a, **k)
         monkeypatch.setattr(rconn.asyncio, "open_connection", paused_open)
+        monkeypatch.setattr(rconn.AbstractConnection, "on_connect_check_health", counted_handshake)
     else:
         real_hs = rconn.AbstractConnection.on_connect_check_health
 
@@ -2123,6 +2131,8 @@ def test_a_connection_opened_across_the_poison_sends_no_byte(tiny, resp_server, 
     assert resp_server.received[new_cid] == 0
     if where == "after_open":
         assert resp_server.ended[new_cid] == "reset", resp_server.ended    # aborted before its first byte
+        assert handshakes_after == []                                       # the post-open re-check: no handshake
+                                                                            # is even STARTED on it
     # no socket SURVIVES: the connection opened across the poison holds no transport, so the pool can never
     # hand it out as usable — and a LATER acquire on the same poisoned pool is refused, sending nothing
     bridge._thread.join(5)
