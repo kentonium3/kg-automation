@@ -111,7 +111,7 @@ from scripts.research.arms849.errors import (
     GCancellationUnacknowledged,
     PremiseViolated,
 )
-from scripts.research.arms849.text import Block, FrozenCorpusText, edge_key, entity_key
+from scripts.research.arms849.text import Block, FrozenCorpusText, edge_key, entity_key, record_line_bytes
 from scripts.research.load_849_corpus import Loaded, edge_effective_time
 
 __all__ = [
@@ -386,15 +386,15 @@ _assert_no_bfs(TYPED_PULL)
 
 
 def view_fingerprint(view: Loaded) -> str:
-    """sha256 over the identity of a replayed view: its ask_time, every event ref, entity key, edge key and
-    loader link, in order. Two views with the same fingerprint present the same items to retrieval."""
+    """sha256 over every ordered input used to build the graph for a replayed view."""
     h = hashlib.sha256()
+    h.update(b"ask_time\0")
     h.update(view.ask_time.isoformat().encode())
-    for tag, keys in (("event", (str(e["ref"]) for e in view.events)), ("entity", (entity_key(e) for e in view.entities)),
-                      ("edge", (edge_key(e) for e in view.edges)),
-                      ("link", (f"{link.get('ref')}->{','.join(link_targets(link))}" for link in view.links))):
-        for key in keys:
-            h.update(f"\0{tag}\0{key}".encode())
+    for tag, records in (("event", view.events), ("entity", view.entities),
+                         ("edge", view.edges), ("link", view.links)):
+        for record in records:
+            h.update(f"\0{tag}\0".encode())
+            h.update(record_line_bytes(record))
     return h.hexdigest()
 
 
@@ -921,7 +921,14 @@ class GatedConnection(_redis_async.Connection):
 
     @_writer.setter
     def _writer(self, writer: Any) -> None:
-        self.__w = (writer if writer is None or isinstance(writer, _GatedWriter)  # type: ignore[misc]  # mangled slot
+        # Accept a gated writer only if it is bound to THIS connection's gate; one gated by another gate is
+        # unwrapped and re-wrapped here, so no writer can carry a foreign (possibly open) gate in.
+        if isinstance(writer, _GatedWriter):
+            if writer._gate is self._transport_gate:
+                self.__w = writer  # type: ignore[misc]  # mangled slot
+                return
+            writer = writer._writer
+        self.__w = (None if writer is None  # type: ignore[misc]  # mangled slot
                     else _GatedWriter(writer, self._transport_gate))
 
     def _refuse_if_shut(self) -> None:

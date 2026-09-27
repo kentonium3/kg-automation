@@ -2448,6 +2448,26 @@ def test_a_view_differing_only_in_what_retrieval_did_not_touch_is_still_refused(
         asyncio.run(scenario())
 
 
+def test_retrieval_refuses_same_ids_with_changed_graph_content(tiny, store):
+    """The build-view fingerprint covers graph-relevant record content, not just stable identifiers."""
+    text, view = tiny
+    arm = A.GraphArm(FalkorDriver(falkor_db=store), FakeEmbedder(), text)
+    store.respond = _typed_pull_row(A.stable_uuid("arms_C1", "node", "COM_REVIEW"), "arms_C1")
+    changed_entities = [dict(entity) for entity in view.entities]
+    changed = next(entity for entity in changed_entities if entity["id"] == "COM_REVIEW")
+    changed["kind"] = "Person"
+    changed["description"] = "same id, different graph content"
+    changed_view = Loaded(ask_time=view.ask_time, events=[dict(event) for event in view.events],
+                          entities=changed_entities, edges=[dict(edge) for edge in view.edges],
+                          links=[dict(link) for link in view.links])
+
+    async def scenario():
+        await arm.build_graph(QC1, view)
+        await arm.plan_and_assemble(QC1, changed_view)
+    with pytest.raises(ERR.ArmRefusal, match="view"):
+        asyncio.run(scenario())
+
+
 def test_every_retrieved_item_must_be_in_the_current_view(tiny, store):
     """Belt and braces: even with a matching view, an item that retrieval maps to a key NOT in the view (a
     stale or corrupted map entry) is a foreign item — ArmRefusal — never silently dropped by assembly."""
@@ -2498,6 +2518,26 @@ def test_the_gated_writer_cannot_be_removed_by_rebinding(resp_server):
         assert resp_server.totals()[1] == mark[1]
     asyncio.run(scenario())
     assert "_GatedConnection__w" in A.GatedConnection.__slots__
+
+
+def test_a_writer_gated_by_another_gate_is_regated_by_the_connection(resp_server):
+    """A ``_GatedWriter`` bound to ANOTHER gate (X) assigned to a connection whose gate is Y is re-wrapped with
+    Y: once Y is shut, the connection sends ZERO bytes, even though X stays open (review cycle 6 P1)."""
+    gate_y, pool, _ = _gated_client(resp_server.port)
+    gate_x = A.SocketGate()
+
+    async def scenario():
+        conn = await pool.get_connection()
+        raw = conn._writer._writer
+        conn._writer = A._GatedWriter(raw, gate_x)                        # carries the foreign, open gate X
+        assert conn._writer._gate is gate_y and conn._writer._writer is raw
+        gate_y.shut_now()
+        mark = resp_server.totals()
+        with pytest.raises(A.TransportPoisoned):
+            conn._writer.writelines([b"*1\r\n$4\r\nPING\r\n"])
+        await asyncio.sleep(0.1)
+        assert resp_server.totals()[1] == mark[1] and not gate_x.shut.is_set()
+    asyncio.run(scenario())
 
 
 def test_the_socket_registry_does_not_grow_across_a_long_run(resp_server):
