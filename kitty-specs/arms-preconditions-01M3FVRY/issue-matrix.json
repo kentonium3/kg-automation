@@ -24,6 +24,18 @@
       "verdict": "deferred-with-followup",
       "wp": null
     },
+    "#1023": {
+      "evidence_ref": "This mission's own input issue (the preconditions scope). It is implemented across WP01\u2013WP05, and closes when the mission merges and feat\u2192main lands with the pre-merge record.",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": null,
+      "title": null,
+      "verdict": "in-mission",
+      "wp": null
+    },
     "#849": {
       "evidence_ref": "This mission delivers the rubric \u00a710 pre-run preconditions (C4, C8, C9, C11, C12, C13, T039 tool). The 72-cell decisive run and grading are out of scope (C-007) and follow as an operation under #849.",
       "fr": null,
