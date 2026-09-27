@@ -2044,7 +2044,7 @@ def _poison_while_blocked(bridge, call, reached):
     worker = threading.Thread(target=run)
     worker.start()
     assert reached.wait(5)
-    worker.join(10)
+    worker.join(ERR.G_CANCEL_GRACE_S + 10)                                  # grace + halt join, with room
     assert not worker.is_alive()
     return out.get("exc")
 
@@ -2130,7 +2130,8 @@ def test_a_connection_opened_across_the_poison_sends_no_byte(tiny, resp_server, 
     new_cid = max(resp_server.received)
     assert resp_server.received[new_cid] == 0
     if where == "after_open":
-        assert resp_server.ended[new_cid] == "reset", resp_server.ended    # aborted before its first byte
+        # shut down at the poison by the gate (EOF), or aborted at the post-open re-check (reset): it ended
+        assert _wait_ended(resp_server, [new_cid])[new_cid] in ("eof", "reset"), resp_server.ended
         assert handshakes_after == []                                       # the post-open re-check: no handshake
                                                                             # is even STARTED on it
     # no socket SURVIVES: the connection opened across the poison holds no transport, so the pool can never
@@ -2289,6 +2290,166 @@ def test_an_interrupt_at_the_submission_poisons(tiny, store, bridges, monkeypatc
     assert store.queries == [], store.queries
     with pytest.raises(ERR.GCancellationUnacknowledged):
         bridge.list_graphs()
+
+
+# -- WP02 review cycle 5 → cycle 6: the gate OWNS its sockets; retrieval is bound to its view -------------
+
+
+def _async_cids(server, after: int) -> list[int]:
+    return [cid for cid in sorted(server.received) if cid > after]
+
+
+def _wait_ended(server, cids, timeout=2.0) -> dict:
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline and any(server.ended.get(c) == "open" for c in cids):
+        time.sleep(0.02)
+    return {c: server.ended.get(c) for c in cids}
+
+
+def test_a_connection_paused_before_open_does_not_survive_the_poison(tiny, resp_server, monkeypatch):
+    """Codex c5 BLOCKER, exact shape, with the PRODUCTION grace (10 s): the first connection is paused
+    (the loop thread blocked) before ``open_connection``; GCancellationUnacknowledged propagates with the
+    loop stopped; the connect then completes. ZERO application bytes, and NO socket survives: every socket
+    the bridge's pool opened is shut down (the server sees it end) — without the loop running."""
+    import redis.asyncio.connection as rconn
+
+    text, _ = tiny
+    bridge = A.make_bridge(FakeEmbedder(), text, host="127.0.0.1", port=resp_server.port)
+    after_construction = resp_server.accepted
+    armed, reached, resume = threading.Event(), threading.Event(), threading.Event()
+    pause = _block_once(armed, reached, resume)
+    real_open = rconn.asyncio.open_connection
+
+    async def paused_open(*a, **k):
+        pause()
+        return await real_open(*a, **k)
+    monkeypatch.setattr(rconn.asyncio, "open_connection", paused_open)
+    armed.set()
+    exc = _poison_while_blocked(bridge, lambda: bridge.list_graphs(deadline=time.monotonic() + 0.1), reached)
+    assert isinstance(exc, ERR.GCancellationUnacknowledged) and exc.grace_s == 10.0, exc
+    mark = resp_server.totals()
+    resume.set()                                                            # the connect completes now
+    time.sleep(0.5)
+    assert resp_server.totals()[1] == mark[1], (mark, resp_server.totals())  # 0 application bytes
+    ends = _wait_ended(resp_server, _async_cids(resp_server, after_construction))
+    assert ends and all(e in ("eof", "reset") for e in ends.values()), ends  # nothing survives
+    bridge.close()
+
+
+def test_a_connection_paused_mid_connect_does_not_survive_the_poison(tiny, resp_server, monkeypatch):
+    """The window between initiating the TCP connect and its completion: the socket is REGISTERED with the
+    gate before the connect is initiated, so the poison — from the poisoning thread, with the loop blocked —
+    shuts it down; it never survives, whatever happens to the loop afterwards."""
+    monkeypatch.setattr(ERR, "G_CANCEL_GRACE_S", 0.2)
+    text, _ = tiny
+    bridge = A.make_bridge(FakeEmbedder(), text, host="127.0.0.1", port=resp_server.port)
+    after_construction = resp_server.accepted
+    armed, reached, resume = threading.Event(), threading.Event(), threading.Event()
+    pause = _block_once(armed, reached, resume)
+    real_wait = A.GatedConnection._await_connected
+
+    async def paused_wait(self, loop, sock):
+        pause()
+        return await real_wait(self, loop, sock)
+    monkeypatch.setattr(A.GatedConnection, "_await_connected", paused_wait)
+    armed.set()
+    exc = _poison_while_blocked(bridge, lambda: bridge.list_graphs(deadline=time.monotonic() + 0.1), reached)
+    assert isinstance(exc, ERR.GCancellationUnacknowledged), exc
+    ends = _wait_ended(resp_server, _async_cids(resp_server, after_construction))
+    assert ends and all(e in ("eof", "reset") for e in ends.values()), ends  # shut while the loop is blocked
+    mark = resp_server.totals()
+    resume.set()
+    time.sleep(0.3)
+    assert resp_server.totals()[1] == mark[1]
+    bridge.close()
+
+
+def test_idle_pooled_connections_are_shut_down_at_the_poison_and_another_bridge_is_untouched(tiny, resp_server,
+                                                                                          monkeypatch):
+    """After the poison, EVERY socket the poisoned bridge ever opened is shut down — idle pooled connections
+    included (the server sees EOF) — while a second bridge in the same process, open and idle on the same
+    server, keeps its connections and keeps working (the registry is per pool)."""
+    monkeypatch.setattr(ERR, "G_CANCEL_GRACE_S", 0.2)
+    text, view = tiny
+    b = A.make_bridge(FakeEmbedder(), text, host="127.0.0.1", port=resp_server.port)
+    b_start = resp_server.accepted
+    b.build_graph(QC1, view)
+    b_cids = _async_cids(resp_server, b_start)
+    a = A.make_bridge(FakeEmbedder(), text, host="127.0.0.1", port=resp_server.port)
+    a_start = resp_server.accepted
+    a.build_graph(QC1, view)
+    a_idle = _async_cids(resp_server, a_start)
+    assert a_idle and b_cids
+    a_sent: list[str] = []
+    _poison_with_a_refusing_task(a, resp_server, a_sent)                    # a's loop is blocked meanwhile
+    a_all = _async_cids(resp_server, a_start)
+    mark = resp_server.totals()
+    resp_server.release.set()                                               # the server reads again (held
+    ends = _wait_ended(resp_server, a_all)                                  # connections read nothing before)
+    time.sleep(0.2)
+    assert resp_server.totals()[1] == mark[1] and "sent" not in a_sent, (mark, resp_server.totals(), a_sent)
+    assert all(e in ("eof", "reset") for e in ends.values()), ends          # idle ones included
+    assert all(resp_server.ended[c] == "open" for c in b_cids), {c: resp_server.ended[c] for c in b_cids}
+    resp_server.hold = set()
+    assert b.answer(QC1, view, ctx_for(FakeFacade(), deadline=time.monotonic() + 30))["text"] == "ans"
+    assert b.close() is True
+    a.close()
+
+
+# -- FR-002: retrieval is bound to the view the graph was built from ---------------------------------------
+
+
+def test_retrieval_with_a_view_other_than_the_one_built_is_refused(tiny, store):
+    """Codex c5 MAJOR, exact probe: C1 was built WITH COM_REVIEW; retrieval is then asked with a view that
+    EXCLUDES it, and the graph returns COM_REVIEW. Before, assembly silently discarded it (foreign_items=0,
+    items_assembled=1, empty record keys). Now: ArmRefusal — the graph is bound to the view it was built
+    from."""
+    text, view = tiny
+    arm = A.GraphArm(FalkorDriver(falkor_db=store), FakeEmbedder(), text)
+    store.respond = _typed_pull_row(A.stable_uuid("arms_C1", "node", "COM_REVIEW"), "arms_C1")
+    narrower = Loaded(ask_time=view.ask_time, events=list(view.events),
+                      entities=[e for e in view.entities if e["id"] != "COM_REVIEW"], edges=[], links=list(view.links))
+
+    async def scenario():
+        await arm.build_graph(QC1, view)
+        await arm.plan_and_assemble(QC1, narrower)
+    with pytest.raises(ERR.ArmRefusal, match="view"):
+        asyncio.run(scenario())
+
+
+def test_a_view_differing_only_in_what_retrieval_did_not_touch_is_still_refused(tiny, store):
+    """The binding itself (not only the per-item check): the retrieval view differs from the build view by
+    one EVENT that nothing retrieved refers to — every retrieved item is in both views — and it is still
+    refused: a graph answers only for the view it was built from."""
+    text, view = tiny
+    arm = A.GraphArm(FalkorDriver(falkor_db=store), FakeEmbedder(), text)
+    store.respond = _typed_pull_row(A.stable_uuid("arms_C1", "node", "COM_REVIEW"), "arms_C1")
+    fewer_events = Loaded(ask_time=view.ask_time, events=[e for e in view.events if e["ref"] != "ev2"],
+                          entities=list(view.entities), edges=list(view.edges),
+                          links=[l for l in view.links if l["ref"] != "ev2"])
+
+    async def scenario():
+        await arm.build_graph(QC1, view)
+        await arm.plan_and_assemble(QC1, fewer_events)
+    with pytest.raises(ERR.ArmRefusal, match="view"):
+        asyncio.run(scenario())
+
+
+def test_every_retrieved_item_must_be_in_the_current_view(tiny, store):
+    """Belt and braces: even with a matching view, an item that retrieval maps to a key NOT in the view (a
+    stale or corrupted map entry) is a foreign item — ArmRefusal — never silently dropped by assembly."""
+    text, view = tiny
+    arm = A.GraphArm(FalkorDriver(falkor_db=store), FakeEmbedder(), text)
+    ghost = "00000000-0000-5000-8000-00000000beef"
+    store.respond = _typed_pull_row(ghost, "arms_C1")
+
+    async def scenario():
+        await arm.build_graph(QC1, view)
+        arm._key_by_uuid["arms_C1"][ghost] = ("node", "GHOST_NOT_IN_VIEW")
+        arm._owner[ghost] = "arms_C1"
+        await arm.plan_and_assemble(QC1, view)
+    with pytest.raises(ERR.ArmRefusal, match="not in the current view"):
+        asyncio.run(scenario())
 
 
 #: The ungated footprint of FalkorDB's constructor, EXACTLY (design lead, bus 20260927T085156195841Zf6c8b07323):

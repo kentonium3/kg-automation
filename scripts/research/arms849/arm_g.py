@@ -64,6 +64,9 @@ from __future__ import annotations
 import asyncio
 import concurrent.futures
 import contextlib
+import errno
+import hashlib
+import os
 import re
 import socket
 import struct
@@ -382,6 +385,27 @@ _assert_no_bfs(TYPED_PULL)
 # ---------------------------------------------------------------------------
 
 
+def view_fingerprint(view: Loaded) -> str:
+    """sha256 over the identity of a replayed view: its ask_time, every event ref, entity key, edge key and
+    loader link, in order. Two views with the same fingerprint present the same items to retrieval."""
+    h = hashlib.sha256()
+    h.update(view.ask_time.isoformat().encode())
+    for tag, keys in (("event", (str(e["ref"]) for e in view.events)), ("entity", (entity_key(e) for e in view.entities)),
+                      ("edge", (edge_key(e) for e in view.edges)),
+                      ("link", (f"{link.get('ref')}->{','.join(link_targets(link))}" for link in view.links))):
+        for key in keys:
+            h.update(f"\0{tag}\0{key}".encode())
+    return h.hexdigest()
+
+
+def _items_outside_view(view: Loaded, items: Iterable[Item]) -> set[str]:
+    """Keys of retrieved items that the CURRENT view does not contain (nodes by entity id, edges by edge key,
+    episodes by event ref)."""
+    present = {"node": {entity_key(e) for e in view.entities}, "edge": {edge_key(e) for e in view.edges},
+               "episode": {str(e["ref"]) for e in view.events}}
+    return {f"{it.kind}:{it.key}" for it in items if it.key not in present.get(it.kind, set())}
+
+
 class GraphArm:
     """One root driver, one embedder, one tripwire; per question ONE database, ONE Graphiti, one map.
 
@@ -414,6 +438,9 @@ class GraphArm:
         #: (review c2 finding 3). RESERVED BEFORE each write — a save that fails, or whose server outcome is
         #: uncertain, still owns its uuid (review c3 finding C). Separate from the per-view maps above.
         self._owner: dict[str, str] = {}
+        #: group → fingerprint of the VIEW the graph was built from (review c5 finding 2). Retrieval answers
+        #: only for that view: a different one is refused before any query.
+        self._built_view: dict[str, str] = {}
 
     @property
     def llm_calls(self) -> int:
@@ -529,6 +556,7 @@ class GraphArm:
                 links += 1
 
         self._check_tripwire(self.llm_calls)
+        self._built_view[group] = view_fingerprint(view)
         self._uuid_by_id[group] = uuid_by_id
         self._key_by_uuid[group] = key_by_uuid
         return GraphStats(group_id=group, nodes=nodes, edges=edges, episodes=episodes, links=links,
@@ -540,6 +568,7 @@ class GraphArm:
         await db.execute_query("MATCH (n {group_id: $group_id}) DETACH DELETE n", group_id=group)
         self._uuid_by_id.pop(group, None)
         self._key_by_uuid.pop(group, None)
+        self._built_view.pop(group, None)
 
     async def list_graphs(self) -> list[str]:
         """The server's graph listing, read-only (``GRAPH.LIST``): WP04 T020 records
@@ -636,6 +665,9 @@ class GraphArm:
         group = group_id_for(question.id)
         if group not in self._key_by_uuid:
             raise ArmRefusal(f"graph {group} is not built; build_graph first (a configuration defect, terminal)")
+        if self._built_view.get(group) != view_fingerprint(view):
+            raise ArmRefusal(f"graph {group} was built from a different view than the one retrieval was asked "
+                             f"for; a graph answers only for the view it was built from (FR-002)")
         resolution = resolve_anchors(question.text, view)
         self._foreign, self._leaked = [], []
         steps: list[dict[str, Any]] = []
@@ -659,6 +691,12 @@ class GraphArm:
             raise ArmRefusal(f"{len(self._foreign)} foreign item(s) in {group}'s graph that G did not write from this "
                              f"view (a stale map or a graph not built from it); the cell is refused (RQ-6b)")
         self._check_tripwire(self.llm_calls)
+        outside = _items_outside_view(view, [*(it for label in TYPED_LABELS for it in pulls[label]), *hits,
+                                             *(it for exp in expansions for it in exp)])
+        if outside:
+            raise ArmRefusal(f"{len(outside)} retrieved item(s) not in the current view "
+                             f"({', '.join(sorted(outside)[:5])}); a foreign item is refused, never silently "
+                             f"dropped by assembly (FR-002)")
         block, chosen = assemble(self.text, view, [pulls[label] for label in TYPED_LABELS], hits, expansions)
         by_kind: dict[str, int] = {}
         for it in chosen:
@@ -711,6 +749,23 @@ class GraphArm:
 # ---------------------------------------------------------------------------
 
 
+#: How long the poisoning thread keeps retrying ``shutdown`` on a socket whose TCP connect was initiated but
+#: had not completed in the kernel at the poison instant (ENOTCONN).
+CONNECT_SHUTDOWN_RETRY_S = 1.0
+
+
+def _shutdown(sock: socket.socket) -> bool:
+    """Shut ``sock`` down both ways. True when it is done with (shut down now, or already closed); False while
+    its connect is still pending in the kernel (ENOTCONN) — the caller retries."""
+    if sock.fileno() == -1:
+        return True
+    try:
+        sock.shutdown(socket.SHUT_RDWR)
+    except OSError as exc:
+        return exc.errno != errno.ENOTCONN
+    return True
+
+
 class SocketGate:
     """THE poison state of ONE bridge, shared by every connection its pool mints (review c3 design
     correction; acceptance A.1). Pool-scoped: not a class attribute (one poisoned cell would poison every
@@ -720,12 +775,18 @@ class SocketGate:
 
     ATOMIC with the wire (review c4 blocker): ``lock`` is held both to shut the gate (:meth:`shut_now`) and
     to check-and-enqueue a write (:meth:`enqueue`), with no await inside either. So every enqueue of bytes
-    is strictly before or strictly after the poison, and any enqueue after it is refused."""
+    is strictly before or strictly after the poison, and any enqueue after it is refused.
 
-    __slots__ = ("lock", "shut")
+    OWNS ITS SOCKETS (review c5 blocker): every socket the pool's connections open is REGISTERED here, under
+    the lock, BEFORE its TCP connect is initiated (:meth:`register_and_connect`). :meth:`shut_now` shuts down
+    every registered socket from the POISONING THREAD — pending, just opened or idle — so no socket survives
+    the poison whether or not the event loop ever runs again."""
+
+    __slots__ = ("_sockets", "lock", "shut")
 
     def __init__(self) -> None:
         self.shut = threading.Event()
+        self._sockets: set[socket.socket] = set()
         # threading.Lock, not asyncio.Lock: within one event loop tasks interleave only at await, so a
         # no-await section needs no intra-loop lock; this lock exists solely because poison is set from
         # ANOTHER THREAD. The critical section must contain no await, no I/O wait, and nothing unbounded
@@ -737,9 +798,40 @@ class SocketGate:
             raise TransportPoisoned("the G bridge's socket gate is shut; not one byte may reach FalkorDB")
 
     def shut_now(self) -> None:
-        """Shut the gate, ordered against every enqueue (the same lock)."""
+        """Shut the gate, ordered against every enqueue and every registration (the same lock), then shut down
+        every socket this gate ever registered that is still open.
+
+        ``shutdown(SHUT_RDWR)``, not ``close``: it is safe from another thread while a (possibly stopped)
+        loop's selector still holds the fd, and both ends see EOF. A socket whose TCP connect was initiated
+        but has not completed in the kernel raises ENOTCONN; it is retried for up to
+        :data:`CONNECT_SHUTDOWN_RETRY_S` outside the lock (the kernel completes a reachable handshake in
+        milliseconds without the loop), and a connect that completes on a running loop later finds the gate
+        shut at its post-open re-check and is aborted there."""
+        pending: list[socket.socket] = []
         with self.lock:
             self.shut.set()
+            for sock in list(self._sockets):
+                if not _shutdown(sock):
+                    pending.append(sock)
+        deadline = time.monotonic() + CONNECT_SHUTDOWN_RETRY_S
+        while pending and time.monotonic() < deadline:
+            time.sleep(0.01)
+            pending = [sock for sock in pending if not _shutdown(sock)]
+
+    def register_and_connect(self, sock: socket.socket, address: Any) -> int:
+        """Register ``sock`` and initiate its non-blocking connect in ONE critical section: after the poison it
+        is refused (closed, never connected); before it, the socket is in the registry before any SYN, so the
+        poison can always find it. Returns the ``connect_ex`` errno (0 or EINPROGRESS on success)."""
+        with self.lock:
+            if self.shut.is_set():
+                sock.close()
+                raise TransportPoisoned("the G bridge's socket gate is shut; no socket may be opened")
+            self._sockets.add(sock)
+            return sock.connect_ex(address)
+
+    def forget(self, sock: socket.socket) -> None:
+        with self.lock:
+            self._sockets.discard(sock)
 
     def enqueue(self, writer: Any, data: Iterable[bytes]) -> None:
         """Check and hand the bytes to the transport as ONE critical section — no await between them. The
@@ -787,11 +879,19 @@ class GatedConnection(_redis_async.Connection):
       wording, design lead 2026-09-27): after the fatal signal no application byte is written and no socket
       SURVIVES; a kernel TCP handshake already in flight at the poison instant may complete, but its
       transport is aborted before any application byte.
+    - **The gate owns the sockets** (review c5). ``_connect`` creates the socket itself and registers it with
+      the gate, under the lock, BEFORE initiating the connect; redis-py's ``_connect`` then opens its streams
+      on that connected socket (``open_connection(sock=…)``) with its usual options. At the poison the gate
+      shuts down every registered socket from the poisoning thread — pending, just opened or idle — so
+      survival no longer depends on the event loop running. This RETIRES the earlier "idle connections stay
+      open until process exit" residual.
     - Entry checks (``send_packed_command``, ``connect``, ``connect_check_health``, ``_connect``) refuse early
-      and ABORT the connection's socket if it has one, so a connection touched after the poison never
-      survives; they are not what the no-byte invariant rests on (the locked enqueue is). Idle connections
-      opened before the poison and never touched again stay open but unusable (every byte is gated) until
-      the process exits, as D-2 requires after GCancellationUnacknowledged."""
+      and ABORT the connection's socket if it has one; they are not what the no-byte invariant rests on (the
+      locked enqueue is), nor what no-survival rests on (the gate's socket registry is).
+    - Residual: a socket whose kernel TCP handshake has not completed within
+      :data:`CONNECT_SHUTDOWN_RETRY_S` of the poison (an unreachable or stalled server) cannot be shut down
+      from the poisoning thread; it carries no application byte, and if the loop ever runs again its
+      connect finds the gate shut and is aborted."""
 
     def __init__(self, *, transport_gate: SocketGate, **kwargs: Any) -> None:
         if not isinstance(transport_gate, SocketGate):
@@ -815,8 +915,45 @@ class GatedConnection(_redis_async.Connection):
         await super().connect_check_health(check_health=check_health, retry_socket_connect=retry_socket_connect)
 
     async def _connect(self) -> None:
+        """Open the TCP socket OURSELVES so the gate owns it (review c5 blocker): resolve, create a
+        non-blocking socket, register it with the gate and initiate the connect in one critical section,
+        await the connect, then hand the CONNECTED socket to redis-py's own ``_connect`` (via
+        :meth:`_connection_arguments`), which applies its usual options (TCP_NODELAY, keepalive) — parity
+        with the stock connection is pinned by a differential test."""
         self._refuse_if_shut()
-        await super()._connect()
+        loop = asyncio.get_running_loop()
+        infos = await loop.getaddrinfo(self.host, self.port, type=socket.SOCK_STREAM)
+        failure: OSError | None = None
+        for family, kind, proto, _, address in infos:
+            sock = socket.socket(family, kind, proto)
+            sock.setblocking(False)
+            try:
+                started = self._transport_gate.register_and_connect(sock, address)
+                if started not in (0, errno.EINPROGRESS, errno.EWOULDBLOCK):
+                    raise OSError(started, os.strerror(started))
+                await self._await_connected(loop, sock)
+            except OSError as exc:
+                self._transport_gate.forget(sock)
+                sock.close()
+                failure = exc
+                continue
+            except BaseException:
+                self._transport_gate.forget(sock)
+                sock.close()
+                raise
+            break
+        else:
+            raise failure if failure is not None else OSError(f"no address for {self.host}:{self.port}")
+        self._owned_socket: socket.socket | None = sock
+        self._pending_socket: socket.socket | None = sock
+        try:
+            await super()._connect()                                # open_connection(sock=<our socket>)
+        except BaseException:
+            self._transport_gate.forget(sock)
+            sock.close()
+            raise
+        finally:
+            self._pending_socket = None
         gate = self._transport_gate
         with gate.lock:
             opened_across_the_poison = gate.shut.is_set()
@@ -826,6 +963,41 @@ class GatedConnection(_redis_async.Connection):
         if opened_across_the_poison:
             self._abort_socket()
             raise TransportPoisoned("a socket opened across the poison was aborted before its first byte")
+
+    async def _await_connected(self, loop: asyncio.AbstractEventLoop, sock: socket.socket) -> None:
+        """Wait until the non-blocking connect completes, then surface its error, if any (what
+        ``loop.sock_connect`` does, without re-issuing the connect the gate already initiated)."""
+        done = loop.create_future()
+        fd = sock.fileno()
+
+        def writable() -> None:
+            if not done.done():
+                done.set_result(None)
+        loop.add_writer(fd, writable)
+        try:
+            await done
+        finally:
+            loop.remove_writer(fd)
+        failed = sock.getsockopt(socket.SOL_SOCKET, socket.SO_ERROR)
+        if failed:
+            raise OSError(failed, os.strerror(failed))
+
+    def _connection_arguments(self) -> Any:
+        """redis-py opens with ``asyncio.open_connection(**self._connection_arguments())``: hand it the socket
+        the gate owns and has already connected."""
+        pending = getattr(self, "_pending_socket", None)
+        if pending is not None:
+            return {"sock": pending}
+        return super()._connection_arguments()
+
+    async def disconnect(self, *args: Any, **kwargs: Any) -> None:
+        owned = getattr(self, "_owned_socket", None)
+        try:
+            await super().disconnect(*args, **kwargs)
+        finally:
+            if owned is not None and owned.fileno() == -1:
+                self._transport_gate.forget(owned)                 # unregister on normal close
+                self._owned_socket = None
 
     def _abort_socket(self) -> None:
         writer: Any = getattr(self, "_writer")  # noqa: B009 — see _connect
