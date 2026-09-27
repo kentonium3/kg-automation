@@ -1,7 +1,7 @@
 {
   "rows": {
     "#1018": {
-      "evidence_ref": "<link or commit>",
+      "evidence_ref": "Cited only as the reason for C-005 (one sequential lane). This mission neither fixes nor changes the spec-kitty lane-propagation behaviour; kentonium3/kg-automation#1018 remains the open tracker.",
       "fr": null,
       "nfr": null,
       "repo": null,
@@ -9,7 +9,7 @@
       "scope": null,
       "source_file": "spec.md",
       "title": "<fill at WP-implementation time>",
-      "verdict": "unknown",
+      "verdict": "deferred-with-followup",
       "wp": null
     },
     "#1021": {
