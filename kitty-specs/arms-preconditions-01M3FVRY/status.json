@@ -1,7 +1,7 @@
 {
-  "event_count": 13,
-  "last_event_id": "01M3GF60GFXJMYM5EHQ8BKD1H7",
-  "materialized_at": "2026-09-27T03:40:17.295089+00:00",
+  "event_count": 14,
+  "last_event_id": "01M3GF6RYMT57PY4KMED5SJKHH",
+  "materialized_at": "2026-09-27T03:40:42.324443+00:00",
   "mission_number": "",
   "mission_slug": "arms-preconditions-01M3FVRY",
   "mission_type": "software-dev",
@@ -11,9 +11,9 @@
     "canceled": 0,
     "claimed": 0,
     "done": 0,
-    "for_review": 1,
+    "for_review": 0,
     "in_progress": 0,
-    "in_review": 0,
+    "in_review": 1,
     "planned": 4
   },
   "work_packages": {
@@ -23,9 +23,9 @@
       "agent_profile": "__resolved_profile_absent__",
       "agent_profile_version": "__resolved_profile_version_absent__",
       "force_count": 2,
-      "lane": "for_review",
-      "last_event_id": "01M3GF60GFXJMYM5EHQ8BKD1H7",
-      "last_transition_at": "2026-09-27T03:40:17.295089+00:00",
+      "lane": "in_review",
+      "last_event_id": "01M3GF6RYMT57PY4KMED5SJKHH",
+      "last_transition_at": "2026-09-27T03:40:42.324443+00:00",
       "model": "__resolved_model_absent__",
       "notes": [
         "Implemented by python-pedro (Claude Opus 5.5). Commits 409ccf0f..c25bcd82. Red-first evidence and mutation kills recorded in the implementer notes. Coupled edits: harness begin_attempt session_id, harness G-row rss detach, and one integration-test assertion negated (a6062f60; the file belongs to WP04/05). Suite: research 1282 passed, full 7984 passed + 3 environmental failures (stray /tmp/dis.py), both seeds; CI simulation 0 collection errors.",
@@ -34,9 +34,9 @@
       ],
       "provider": "__resolved_provider_absent__",
       "review": null,
-      "role": "implementer",
-      "shell_pid": null,
-      "shell_pid_created_at": null,
+      "role": "reviewer",
+      "shell_pid": 2366214,
+      "shell_pid_created_at": "1790480440.46",
       "subtasks": {
         "T001": "done",
         "T002": "done",
