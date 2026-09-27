@@ -19,7 +19,7 @@
   "work_packages": {
     "WP01": {
       "actor": "claude",
-      "agent": null,
+      "agent": "claude",
       "agent_profile": "__resolved_profile_absent__",
       "agent_profile_version": "__resolved_profile_version_absent__",
       "force_count": 2,
@@ -29,7 +29,8 @@
       "model": "__resolved_model_absent__",
       "notes": [
         "Implemented by python-pedro (Claude Opus 5.5). Commits 409ccf0f..c25bcd82. Red-first evidence and mutation kills recorded in the implementer notes. Coupled edits: harness begin_attempt session_id, harness G-row rss detach, and one integration-test assertion negated (a6062f60; the file belongs to WP04/05). Suite: research 1282 passed, full 7984 passed + 3 environmental failures (stray /tmp/dis.py), both seeds; CI simulation 0 collection errors.",
-        "Review cycle 1 REVISE (Codex read-only): 2 MAJOR (post-premise scored writes accepted; grading_rows exposes tainted rows) + 1 MINOR (retry semantics). Returned to the implementer."
+        "Review cycle 1 REVISE (Codex read-only): 2 MAJOR (post-premise scored writes accepted; grading_rows exposes tainted rows) + 1 MINOR (retry semantics). Returned to the implementer.",
+        "Cycle 2: abf3d8fe fixes both c1 MAJORs red-first (7 red on c25bcd82). Full suite 7996 passed / 0 failed on both seeds; CI simulation 0 failed / 0 collection errors."
       ],
       "provider": "__resolved_provider_absent__",
       "review": null,
