@@ -10,14 +10,18 @@ protocols are linked, not inlined.
   upstream discussion — show Kent the EXACT copy and get explicit sign-off on the wording
   BEFORE posting. Approving the ACTION ("open the PR") is not approving the COPY. Draft → show → post.
 - Same for edits to already-posted public copy: show the change first.
-- **Exception — `kentonium3/kg-automation` internal tracking:** posts and edits that stay
-  *within* the kg-automation repo (issues, issue comments, PR titles/bodies, PR comments) do
-  NOT require pre-review. It is Kent's own tracking repo — nobody else reads it, so the gate
-  adds friction without protecting anyone. The exception is **repo-scoped, not
-  content-scoped**: any copy destined to leave kg-automation still needs sign-off before it
+- **Exception — Kent's own personal tracking repos:** `kentonium3/kg-automation` **and
+  `kentonium3/local-agent-bus`** (extended to the latter by Kent, 2026-09-26). Posts and edits
+  that stay *within* those repos (issues, issue comments, PR titles/bodies, PR comments) do
+  NOT require pre-review. They are Kent's own tracking repos and he is the only audience — the
+  gate adds friction without protecting anyone. The exception is **repo-scoped, not
+  content-scoped**: any copy destined to leave them still needs sign-off before it
   goes out — most importantly the embedded upstream drafts filed to `Priivacy-ai/spec-kitty`
   or other external trackers, which remain gated by the pre-filing approval step (see the
   spec-kitty bug-reporting runbook). The no-`@mentions`-of-outsiders rule below still applies.
+  ⚠ Do NOT generalise this to "any repo Kent owns": it is an enumerated list, and a repo joins it
+  only when Kent says so. Agents working in either repo may file and comment without showing copy
+  first; everything outside the list still needs the exact copy signed off BEFORE posting.
 
 ## Local tracking tickets
 - No `@mentions` in local/internal tracking records (kg-automation issues, memories, notes).
