@@ -55,7 +55,7 @@
     },
     "WP02": {
       "actor": "claude",
-      "agent": "claude",
+      "agent": null,
       "agent_profile": "__resolved_profile_absent__",
       "agent_profile_version": "__resolved_profile_version_absent__",
       "force_count": 1,
@@ -67,6 +67,7 @@
         "Implemented by python-pedro (Claude Opus 5.5), 2d585b81..b20243c2. FR-016 red on a real FalkorDB (sandbox, torn down); 12/12 mutants killed. Full suite 8038/0 on both seeds; CI simulation 0/0."
       ],
       "provider": "__resolved_provider_absent__",
+      "review": null,
       "review_result": {
         "feedback_path": "/home/kgale/repos/kg-automation/kitty-specs/arms-preconditions-01M3FVRY/tasks/WP02-arms-routing-bridge/review-cycle-1.md",
         "reference": "review-cycle://arms-preconditions-01M3FVRY/WP02-arms-routing-bridge/review-cycle-1.md",
@@ -74,15 +75,15 @@
         "verdict": "changes_requested"
       },
       "role": "reviewer",
-      "shell_pid": 2884337,
-      "shell_pid_created_at": "1790489275.43",
+      "shell_pid": null,
+      "shell_pid_created_at": null,
       "subtasks": {
-        "T007": "done",
-        "T008": "done",
-        "T009": "done",
-        "T010": "done",
-        "T011": "done",
-        "T012": "done"
+        "T007": "planned",
+        "T008": "planned",
+        "T009": "planned",
+        "T010": "planned",
+        "T011": "planned",
+        "T012": "planned"
       }
     },
     "WP03": {
