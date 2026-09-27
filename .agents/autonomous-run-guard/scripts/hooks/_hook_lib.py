@@ -220,10 +220,16 @@ OURS: frozenset[str] = frozenset({"spec-kitty/spec-kitty-qa"})
 #: commands naming a repository that does not exist: `gh` fails on every one, no
 #: marker can ever be earned, and mission start is refused PERMANENTLY behind a
 #: remedy that cannot satisfy it. That is a livelock, not a refusal.
+#: ⚠ Updated 2026-09-27 after the §0 sweep silently swept an ARCHIVED repository.
+#: `spec-kitty/EXPERIMENTAL-spec-kitty` is archived and does NOT redirect, so every
+#: query against it returned nothing — indistinguishable from "nothing to report".
+#: The -saas and -planning names DID redirect, which is why only one entry was broken
+#: and why nobody noticed: two thirds of the sweep kept working. Redirects are not a
+#: contract; these are now the resolved canonical names, verified with `gh repo view`.
 UPSTREAM_TARGETS: tuple[str, ...] = (
-    "spec-kitty/EXPERIMENTAL-spec-kitty",  # the CLI under test
-    "spec-kitty/EXPERIMENTAL-spec-kitty-saas",  # the product under test
-    "spec-kitty/EXPERIMENTAL-spec-kitty-planning",  # receives our docs and questions
+    "spec-kitty/spec-kitty",  # the CLI under test (was EXPERIMENTAL-spec-kitty, archived)
+    "spec-kitty/spec-kitty-saas",  # the product under test
+    "spec-kitty/spec-kitty-planning",  # receives our docs and questions
 )
 
 #: Compared case-folded, so `Spec-Kitty/Spec-Kitty-QA` is still ours. Matches the

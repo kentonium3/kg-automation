@@ -50,8 +50,10 @@ instead of re-diagnosed**, and the register and memory stop drifting from realit
 
 ### The three queries
 
-> ⚠ **Which repositories.** We file into `spec-kitty/EXPERIMENTAL-spec-kitty`,
-> `spec-kitty/EXPERIMENTAL-spec-kitty-saas` and `spec-kitty/EXPERIMENTAL-spec-kitty-planning`.
+> ⚠ **Which repositories.** We file into `spec-kitty/spec-kitty`,
+> `spec-kitty/spec-kitty-saas` and `spec-kitty/spec-kitty-planning`. (Updated 2026-09-27: the
+> former `EXPERIMENTAL-*` names are retired; `EXPERIMENTAL-spec-kitty` is ARCHIVED and does not
+> redirect, so sweeping it returned silence rather than an error.)
 > **These names are expected to change again at the rename**, and this file is not the authority
 > for them — `UPSTREAM_TARGETS` in `scripts/hooks/_hook_lib.py` is. If the two disagree, the code
 > is right and this section is stale; fix it here rather than working around it.
@@ -63,15 +65,15 @@ instead of re-diagnosed**, and the register and memory stop drifting from realit
 
 ```bash
 # 1. What WE reported, and where it now stands (filings are authored by the operator account)
-gh issue list --repo spec-kitty/EXPERIMENTAL-spec-kitty --author @me --state all \
+gh issue list --repo spec-kitty/spec-kitty --author @me --state all \
   --json number,title,state
-gh issue list --repo spec-kitty/EXPERIMENTAL-spec-kitty-saas --author @me --state all \
+gh issue list --repo spec-kitty/spec-kitty-saas --author @me --state all \
   --json number,title,state
-gh issue list --repo spec-kitty/EXPERIMENTAL-spec-kitty-planning --author @me --state all \
+gh issue list --repo spec-kitty/spec-kitty-planning --author @me --state all \
   --json number,title,state
 
 # 2. What closed upstream recently — the fixes we may now be entitled to
-gh issue list --repo spec-kitty/EXPERIMENTAL-spec-kitty --state closed --limit 100 \
+gh issue list --repo spec-kitty/spec-kitty --state closed --limit 100 \
   --search "closed:>=<date-of-last-sweep>" --json number,title,closedAt
 
 # 3. Cross-check every upstream ref the register cites, each against its OWN repository
@@ -220,9 +222,13 @@ buys rigour **and** CLI coverage from the same spend.
 scope justifies it; kitty-light only when the change is genuinely small *and* the investigation was
 short *and* both review point-cuts will actually run.
 
-### D-3 — capture-and-continue replaces stop-on-fault (**PENDING one precondition**)
+### D-3 — capture-and-continue replaces stop-on-fault (**IN FORCE**)
 
-**Agreed in principle 2026-08-24. NOT yet in force** — see the precondition.
+**Agreed in principle 2026-08-24. IN FORCE from 2026-09-27**, by Kent's direction to the team-lead:
+*"All your working agents should follow the autonomous run runbook and especially that D-3 protocol."*
+Relayed to every working agent on the felix-graph-692 channel at 2026-09-27T01:59:38Z
+(`20260927T015938729917Z61ae361ba8`). The precondition text below is retained as the record of what
+was originally required; it is no longer gating.
 
 **The new stance.** On a spec-kitty workflow fault: capture all the evidence, drill into root
 cause, find a workaround, and **record all of that in a tracking issue — then continue the
