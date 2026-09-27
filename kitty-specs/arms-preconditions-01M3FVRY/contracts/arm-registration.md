@@ -36,3 +36,13 @@ This contract amends arms-run-01M3APTA `contracts/arm-interface.md` @`42056e57`,
    - **Atomicity.** The gate check and the enqueue of bytes (`writelines`) form ONE critical section, under a per-pool `threading.Lock` that the poison also takes.
    - **Why `threading.Lock`.** Poison is set from another thread; within one event loop, tasks interleave only at `await`. The critical section contains no `await`, no I/O wait, and nothing unbounded.
    - **Pins.** Tests occupy the critical windows deterministically: between check and write, and between open and the post-open re-check.
+   **Dated addition to item 11 (2026-09-27; Codex WP02 review cycle 5, orchestrator decision bus 20260927T140027925483Z18853110d2, design-lead no-objection 20260927T140137576549Z2e70519d75, reproduction-verified refinements 140358/140452/140536): the gate OWNS its sockets and cannot be removed.**
+   - **Ownership.** The bridge creates each socket itself, and registers it and starts the connect in one critical section under the gate lock.
+   - **Shutdown.** The poison, from the poisoning thread and under the same lock, calls `shutdown(SHUT_RDWR)` on every registered socket (pending, just-opened or idle), tolerating per-socket `OSError`.
+   - **Consequence.** Survival no longer depends on the event loop running.
+   - **RETIRED:** the "idle connections opened before the poison stay open until process exit" residual. It was closed by this design, not dropped.
+   - **Remaining residual:** a socket whose kernel handshake has not completed within `CONNECT_SHUTDOWN_RETRY_S` (1 s) of the poison. It carries no application byte.
+   - **Unremovable writer.** `GatedConnection._writer` is a property whose setter always wraps. It is backed by a name-mangled slot, so any reassignment, including redis-py's own connect or reconnect, re-wraps.
+   - **Premise, verified 2026-09-27.** Async redis-py 8.1.0 writes application bytes only via `self._writer.writelines(command)` (redis/asyncio/connection.py, two sites).
+     - **Verifying command:** `grep -rnE "\.writelines\(|\.write\(|transport\.write|sendall|sock_sendall|sock_send" <venv>/site-packages/redis/asyncio/`.
+     - **Why no pin:** redis is NOT pinned (C-003). Instead a derived test scans the INSTALLED library at every run and fails if the write-site set changes.
