@@ -22,3 +22,8 @@ This contract amends arms-run-01M3APTA `contracts/arm-interface.md` @`42056e57`,
      - Forwarding a gate through `redis_connect_func` would still leave the TCP handshake ungated.
      - Reimplementing `FalkorDB.__init__` would be fragile across library upgrades.
    - **What remains open.** An unreachable FalkorDB at registration is NOT addressed by the gate. That stays with WP04: registration failure terminates loudly, and completeness is judged against the header plan grid (ledger-deltas item 7).
+   **Dated addition to item 11 (2026-09-27; design lead bus 20260927T100641041260Zed34d20185, team lead 20260927T101357771700Z302b0a7421):** the socket gate put the client on a caller-supplied pool, and that change had a side effect: redis-py makes client-level kwargs INERT once `connection_pool=` is supplied, and nothing errors. The rule that follows is prescriptive:
+   - every client argument the bridge depends on (today `protocol=2` and `decode_responses=True`) MUST be set on the pool;
+   - each one is pinned by a BEHAVIOURAL test that observes the effect (a `str` round-trip; the negotiated protocol), never by asserting the configuration dict;
+   - adding a new dependency at the client level is a defect, even though nothing errors.
+   The review question this adds for any future change to the pool: *what did this fix make inert?*
