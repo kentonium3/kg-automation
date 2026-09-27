@@ -1,7 +1,7 @@
 {
-  "event_count": 52,
-  "last_event_id": "01M3JEBA083JXDYT925CTGERX9",
-  "materialized_at": "2026-09-27T22:04:11.144331+00:00",
+  "event_count": 53,
+  "last_event_id": "01M3JFK4NW7CRD0RQHAAHZN26A",
+  "materialized_at": "2026-09-27T22:25:56.412980+00:00",
   "mission_number": "",
   "mission_slug": "arms-preconditions-01M3FVRY",
   "mission_type": "software-dev",
@@ -11,8 +11,8 @@
     "canceled": 0,
     "claimed": 0,
     "done": 0,
-    "for_review": 0,
-    "in_progress": 1,
+    "for_review": 1,
+    "in_progress": 0,
     "in_review": 0,
     "planned": 3
   },
@@ -54,14 +54,14 @@
       }
     },
     "WP02": {
-      "actor": "codex-office4-2a6a05fa",
+      "actor": "user",
       "agent": null,
       "agent_profile": "implementer-ivan",
       "agent_profile_version": "1.0",
       "force_count": 6,
-      "lane": "in_progress",
-      "last_event_id": "01M3JEBA083JXDYT925CTGERX9",
-      "last_transition_at": "2026-09-27T22:04:11.144331+00:00",
+      "lane": "for_review",
+      "last_event_id": "01M3JFK4NW7CRD0RQHAAHZN26A",
+      "last_transition_at": "2026-09-27T22:25:56.412980+00:00",
       "model": "__resolved_model_absent__",
       "notes": [
         "Implemented by python-pedro (Claude Opus 5.5), 2d585b81..b20243c2. FR-016 red on a real FalkorDB (sandbox, torn down); 12/12 mutants killed. Full suite 8038/0 on both seeds; CI simulation 0/0.",
