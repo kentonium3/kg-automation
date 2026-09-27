@@ -18,8 +18,10 @@ Blinded id per scored cell (contracts/grading-view.md, verbatim): "`q<Q>-<6 hex>
 ordered by id within a question." Six hex digits are the first 24 random bits of that generator.
 Two cells of one question drawing the same id is refused, never resolved silently.
 
-Refusals (:class:`ExportRefused`, nothing written): an incomplete ledger (a planned key not yet
-terminal, or any ``not_implemented``), a seed that is not the header's blinding seed, a ledger
+Refusals (:class:`ExportRefused`, nothing written): an unusable ledger — a smoke ledger
+(:func:`ledger.is_smoke`) or one holding a ``premise_violated`` event (correction C) — an incomplete
+ledger (a planned key not yet terminal, any ``not_implemented``, or an un-scored cell carrying
+``exceeds_memory_ceiling`` / ``sampler_unreadable_at_send``), a seed that is not the header's blinding seed, a ledger
 whose gates were skipped (development only — :data:`SKIP_GATES_SHA`), two outputs resolving into
 one directory, or an existing output with different content.
 """
@@ -35,10 +37,13 @@ from typing import Any
 
 from scripts.research.arms849 import questions as questions_mod
 from scripts.research.arms849.ledger import (
+    PREMISE_VIOLATED,
     SCORED_OUTCOME,
+    UNRESOLVED_CELL_OUTCOMES,
     Binding,
     Ledger,
     RunKey,
+    is_smoke,
     plan_keys,
 )
 
@@ -102,14 +107,38 @@ def _planned_keys(ledger: Ledger) -> list[RunKey]:
     raise ExportRefused(f"header plan {plan} is neither the primary (72) nor the secondary (24) plan")
 
 
+def _unusable(ledger: Ledger) -> str | None:
+    """Why a ledger can be neither a primary nor exported whatever its rows say, or None: a smoke
+    ledger (data-model § Smoke ledger identity) or a premise violation (correction C)."""
+    if is_smoke(ledger.header):
+        return "this is a smoke ledger — never a primary, never graded"
+    violation = ledger.premise_violation()
+    if violation is not None:
+        return (f"{PREMISE_VIOLATED} ({violation['reason']} on arm {violation['arm']}): the rows are untouched "
+                f"but unusable")
+    return None
+
+
 def is_complete(ledger: Ledger) -> tuple[bool, str]:
-    """Every planned key terminal and none ``not_implemented`` (contracts/grading-view.md; SC-001)."""
+    """Every planned key terminal, none ``not_implemented``, and no un-scored cell carrying a refused or
+    could-not-check outcome (``exceeds_memory_ceiling``/``sampler_unreadable_at_send`` — ledger-deltas
+    item 1); never for a smoke ledger or one holding ``premise_violated`` (contracts/grading-view.md;
+    SC-001). The harness's ``require_complete_primary`` and :func:`export` both decide by this."""
+    unusable = _unusable(ledger)
+    if unusable is not None:
+        return False, unusable
     keys = _planned_keys(ledger)
     pending = [k for k in keys if ledger.terminal(k) is None]
     unbuilt = [k for k in keys if ledger.terminal(k) == "not_implemented"]
-    if pending or unbuilt:
+    marked = {(r["arm"], r["question"], r["repeat"]): r["outcome"] for r in ledger.run_rows()
+              if r["outcome"] in UNRESOLVED_CELL_OUTCOMES}
+    unresolved = [k for k in keys
+                  if (k.arm, k.question, k.repeat) in marked and ledger.terminal(k) != SCORED_OUTCOME]
+    if pending or unbuilt or unresolved:
+        kinds = sorted({marked[(k.arm, k.question, k.repeat)] for k in unresolved})
         return False, (f"{len(pending)} of {len(keys)} planned cells not terminal, "
-                       f"{len(unbuilt)} not_implemented")
+                       f"{len(unbuilt)} not_implemented, {len(unresolved)} un-scored cell(s) carrying "
+                       f"{', '.join(kinds) or 'no refused or could-not-check outcome'}")
     return True, f"{len(keys)} cells terminal, zero not_implemented"
 
 
@@ -194,6 +223,9 @@ def export(ledger: Ledger, seed: int, out_root: pathlib.Path) -> ExportPaths:
     binding = header.binding
     if binds_skip_gates(binding):
         raise ExportRefused("this ledger was written with --skip-gates (development only); it is never graded")
+    unusable = _unusable(ledger)
+    if unusable is not None:
+        raise ExportRefused(f"ledger unusable: {unusable}")
     ok, detail = is_complete(ledger)
     if not ok:
         raise ExportRefused(f"ledger incomplete: {detail}")

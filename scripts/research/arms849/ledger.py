@@ -19,8 +19,10 @@ like numbers from a run with it:
   fsynced; the reader tolerates exactly one torn FINAL line under the lock
   and rejects any interior corruption (D-12).
 * **Never averaging a non-scored cell.** ``summarise`` sums ``ok`` rows only;
-  ``exceeds_model_context``, ``error`` and ``not_implemented`` are counted,
-  never summed (Engineering Principle 14).
+  ``exceeds_model_context``, ``exceeds_memory_ceiling``, ``sampler_unreadable_at_send``,
+  ``error`` and ``not_implemented`` are counted, never summed (Engineering Principle 14) —
+  and a ledger holding a ``premise_violated`` event is not summarised at all
+  (arms-preconditions correction C).
 
 The per-attempt timeout is a VALUE this module stores on a row; enforcing it
 is the harness's job (WP08).
@@ -39,7 +41,7 @@ import re
 import statistics
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any, Literal
 
 from scripts.research.arms849 import prompt as prompt_mod
@@ -51,11 +53,14 @@ from scripts.research.load_849_corpus import (
 )
 
 __all__ = [
-    "ARMS", "MAX_ATTEMPTS", "OUTCOMES", "REPEATS", "RESUME_UNCOMPARED_BINDING_FIELDS", "SCORED_OUTCOME",
-    "SESSION_GATES", "SKIP_GATES_SHA",
+    "ARMS", "CELL_TERMINAL_OUTCOMES", "GRAPH_STORE_ALL_RESIDENT", "GRAPH_STORE_FIRST_BUILD", "MAX_ATTEMPTS",
+    "MEMORY_CEILING_STAGE", "OUTCOMES", "PREMISE_REASONS", "PREMISE_VIOLATED", "REFUSED_GRAPH_STORE_COLUMNS",
+    "REFUSED_GRAPH_STORE_PREFIXES", "REPEATS", "RESUME_UNCOMPARED_BINDING_FIELDS", "SCORED_OUTCOME",
+    "SERIES_GENERATION", "SESSION_GATES", "SESSION_STOPPED", "SESSION_STOP_REASONS", "SKIP_GATES_SHA",
+    "SMOKE_PLAN", "UNRESOLVED_CELL_OUTCOMES", "WRITER_STATUSES",
     "AttemptsExhausted", "Binding", "Header", "Ledger", "LedgerBoundToAnotherConfig",
-    "LedgerClosed", "LedgerCorrupt", "LedgerLocked", "LedgerWriteFailed", "RunKey", "SecondScoredRow",
-    "SessionGatesMissing", "binds_skip_gates", "open_ledger", "plan_keys",
+    "LedgerClosed", "LedgerCorrupt", "LedgerLocked", "LedgerUnusable", "LedgerWriteFailed", "RunKey",
+    "SecondScoredRow", "SessionGatesMissing", "binds_skip_gates", "is_smoke", "open_ledger", "plan_keys",
 ]
 
 ARMS = ("G", "D", "R")
@@ -73,7 +78,15 @@ SCORED_INT_FIELDS = ("prompt_tokens", "client_prompt_tokens", "assembled_context
 SCORED_FLOAT_FIELDS = ("cache_fraction", "prefill_s", "generation_s", "generation_tok_s", "peak_gtt_gib")
 SCORED_OTHER_FIELDS = ("finish_reason", "cache_state", "assembled_context_sha256", "text", "plan")
 SCORED_ROW_FIELDS = SCORED_INT_FIELDS + SCORED_FLOAT_FIELDS + SCORED_OTHER_FIELDS
-SCORED_ARM_FIELDS = {"G": ("falkordb_rss_peak_mib",), "R": ("r_g_ratio",), "D": ()}
+#: G carries NO graph-store column: `falkordb_rss_peak_mib` is retired and the graph-store figure is
+#: RUN-LEVEL (rubric §5 third correction @91e679e6; arms-preconditions ledger-deltas item 3).
+SCORED_ARM_FIELDS: dict[str, tuple[str, ...]] = {"G": (), "R": ("r_g_ratio",), "D": ()}
+#: The per-cell graph-store columns a run row may never carry, on write or on replay (ledger-deltas
+#: item 3): the two names that have existed, and — by prefix — any other name in the graph-store
+#: family, so a third spelling cannot slip a per-cell figure back in. `graph_stats` (G's build
+#: statistics) is not in the family: the refusal is of memory figures, not of every `graph_*` key.
+REFUSED_GRAPH_STORE_COLUMNS = frozenset({"falkordb_rss_peak_mib", "falkordb_cgroup_peak_mib"})
+REFUSED_GRAPH_STORE_PREFIXES = ("falkordb_", "graph_store_")
 D_ROW_FIELDS = ("context_limit_applied",)          # every D row, any outcome
 CACHE_STATES = ("cold", "warm")
 FINISH_REASONS = ("stop", "length")
@@ -82,8 +95,46 @@ QUESTION_IDS = tuple(q.id for q in questions_mod.QUESTIONS)
 REFUSAL_PREFIX = "ArmRefusal:"                      # an error row so prefixed is terminal on attempt 1
 RESERVED_CALIBRATION_FIELDS = frozenset({"record", "ts"})
 SCORED_OUTCOME = "ok"
-OUTCOMES = ("ok", "exceeds_model_context", "error", "not_implemented")
-Outcome = Literal["ok", "exceeds_model_context", "error", "not_implemented"]
+OUTCOMES = ("ok", "exceeds_model_context", "error", "not_implemented", "exceeds_memory_ceiling",
+            "sampler_unreadable_at_send")
+Outcome = Literal["ok", "exceeds_model_context", "error", "not_implemented", "exceeds_memory_ceiling",
+                  "sampler_unreadable_at_send"]
+#: Outcomes that end the CELL, for every session. `exceeds_memory_ceiling` is one (rubric §5 amendment
+#: @a00abc03, Kent 2026-09-26 22:41Z: a breached cell is never retried, by this session or a later one).
+#: `sampler_unreadable_at_send` ends only its ATTEMPT (§5 "refuses the cell"; the session continues).
+CELL_TERMINAL_OUTCOMES = ("ok", "exceeds_model_context", "not_implemented", "exceeds_memory_ceiling")
+#: Refused or could-not-check outcomes: a cell that carries one and is not scored makes the ledger
+#: not primary-complete (ledger-deltas item 1; design lead 20260926T223312278643Zbb9e71a68a, narrowed
+#: 20260926T223436721075Z2f274189c3). Neither is ever averaged, summed or scored.
+UNRESOLVED_CELL_OUTCOMES = ("exceeds_memory_ceiling", "sampler_unreadable_at_send")
+#: The one stage a send-time breach is detected at (before-send.md; D-9).
+MEMORY_CEILING_STAGE = "before_send"
+MEMORY_CEILING_KEYS = frozenset({"measured_gib", "ceiling_gib", "stage"})
+
+#: The smoke ledger's header plan identity (data-model § Smoke ledger identity): 10 cells — G repeat 1
+#: for all eight questions, then D C1 r1, then R C1 r1 — under the PRIMARY serving binding. Distinct
+#: from the primary (72) and secondary (24) plans, immutable like every header field, never primary
+#: and never exported. :func:`is_smoke` is the one predicate.
+SMOKE_PLAN = 10
+
+#: Halt and stop events (ledger-deltas item 5; data-model § Event records).
+PREMISE_VIOLATED = "premise_violated"
+PREMISE_REASONS = ("tripwire", "cross_group_leak")
+SESSION_STOPPED = "session_stopped"
+#: Every reason a session_stopped event may carry, each distinguishable: the four this mission adds
+#: first, then the stop conditions the harness already has (their own events stay as they are).
+SESSION_STOP_REASONS = ("g_cancellation_unacknowledged", "ceiling_breach_at_send", "premise_violated", "operator",
+                        "calibration_population_incomplete", "memory_ceiling", "sampler_unreadable",
+                        "zombie_worker", "substrate_unhealthy", "gates_failed")
+#: The stop reason whose event must say how long the cancellation was waited for.
+STOP_REASONS_REQUIRING_GRACE = frozenset({"g_cancellation_unacknowledged"})
+
+#: Graph-store boundary events (ledger-deltas item 2; contracts/memory-series.md items 3 and 4).
+SERIES_GENERATION = "series_generation"
+GRAPH_STORE_FIRST_BUILD = "graph_store_first_build"
+GRAPH_STORE_ALL_RESIDENT = "graph_store_all_resident"
+WRITER_STATUSES = ("running", "failed")
+ALL_RESIDENT_N_GRAPHS = 8
 
 #: The sentinel a development ledger binds in place of a real gate record. The ledger OWNS it and
 #: :func:`binds_skip_gates` (one predicate, one constant — design lead, bus
@@ -159,6 +210,56 @@ def _validate_binding_types(binding: Binding) -> None:
         raise ValueError(f"limit_applied must be one of {CONTEXT_LIMITS}, got {binding.limit_applied!r}")
 
 
+def _require_canonical_utc(name: str, value: Any) -> None:
+    """A sampler/series timestamp is accepted only as canonical UTC isoformat (ledger-deltas item 6, C12):
+    the exact string ``datetime.isoformat()`` produces for an aware UTC datetime — so 'Z', naive, a
+    non-zero offset, compact forms and more than six fractional digits are all refused."""
+    try:
+        ts = datetime.fromisoformat(value)
+    except (TypeError, ValueError):
+        raise ValueError(f"{name} must be a canonical UTC isoformat string, got {value!r}") from None
+    if ts.isoformat() != value or ts.utcoffset() != timedelta(0):
+        raise ValueError(f"{name} must be canonical UTC isoformat (e.g. {_utc_now()!r}), got {value!r}")
+
+
+def _require_nonempty_str(name: str, value: Any) -> None:
+    if not isinstance(value, str) or not value.strip():
+        raise ValueError(f"{name} must be a non-empty str, got {value!r}")
+
+
+def _require_positive_number(name: str, value: Any) -> None:
+    if type(value) not in (int, float) or not math.isfinite(value) or value <= 0:
+        raise ValueError(f"{name} must be a finite positive number, got {value!r}")
+
+
+def _graph_store_columns(row: dict[str, Any]) -> list[str]:
+    """The keys of a per-cell row that belong to the refused graph-store family (ledger-deltas item 3)."""
+    return sorted(k for k in row if k in REFUSED_GRAPH_STORE_COLUMNS or k.startswith(REFUSED_GRAPH_STORE_PREFIXES))
+
+
+def _check_memory_ceiling(value: Any) -> None:
+    """``{measured_gib, ceiling_gib, stage: "before_send"}``, exactly those keys, and a breach is STRICTLY
+    above the ceiling (rubric §5: exactly 57.5 is compliant) — ledger-deltas item 1."""
+    if not isinstance(value, dict):
+        # ValueError, as for every invalid row (ruff TRY004): the write contract is ValueError.
+        raise ValueError(f"memory_ceiling must be a dict, got {value!r}")  # noqa: TRY004
+    if set(value) != MEMORY_CEILING_KEYS:
+        raise ValueError(f"memory_ceiling must carry exactly {sorted(MEMORY_CEILING_KEYS)}, got {sorted(value)}")
+    for f in ("measured_gib", "ceiling_gib"):
+        _require_measurement(f"memory_ceiling.{f}", value[f])
+    if value["stage"] != MEMORY_CEILING_STAGE:
+        raise ValueError(f"memory_ceiling.stage must be {MEMORY_CEILING_STAGE!r}, got {value['stage']!r}")
+    if not value["measured_gib"] > value["ceiling_gib"]:
+        raise ValueError(f"memory_ceiling.measured_gib {value['measured_gib']} is not above the ceiling "
+                         f"{value['ceiling_gib']}: that is not a breach")
+
+
+def _require_session_id(value: Any) -> None:
+    """An attempt's session id is a non-empty str — the same shape a session_gates detail requires."""
+    if not isinstance(value, str) or not value.strip():
+        raise ValueError(f"session_id must be a non-empty str, got {value!r}")
+
+
 def _require_measurement(name: str, value: Any) -> None:
     if type(value) not in (int, float) or not math.isfinite(value) or value < 0:
         raise ValueError(f"{name} must be a finite non-negative number, got {value!r}")
@@ -192,6 +293,11 @@ class AttemptsExhausted(RuntimeError):
 
 class SecondScoredRow(RuntimeError):
     """An `ok` row already exists for this key (invariant I2)."""
+
+
+class LedgerUnusable(RuntimeError):
+    """The ledger holds a ``premise_violated`` event: its rows are untouched but not usable — never
+    summarised, never a primary, never exported (arms-preconditions correction C)."""
 
 
 class SessionGatesMissing(RuntimeError):
@@ -293,6 +399,19 @@ class Binding:
 
     def as_dict(self) -> dict[str, Any]:
         return {k: getattr(self, k) for k in self.__dataclass_fields__}
+
+
+def is_smoke(header: Header) -> bool:
+    """A smoke ledger: its header binds :data:`SMOKE_PLAN`. The one predicate — completeness, the
+    export and the harness's ``status``/``open_existing`` all use it (data-model § Smoke ledger identity)."""
+    return header.plan == SMOKE_PLAN
+
+
+def _check_plan_binding(plan: int, binding: Binding) -> None:
+    """A smoke ledger binds the PRIMARY serving configuration, so its limits are the run's."""
+    if plan == SMOKE_PLAN and binding.serving.get("kind") != "primary":
+        raise ValueError(f"a smoke ledger (plan {SMOKE_PLAN}) binds the primary serving configuration, "
+                         f"got serving kind {binding.serving.get('kind')!r}")
 
 
 def binds_skip_gates(binding: Binding) -> bool:
@@ -445,17 +564,23 @@ class Ledger:
     def attempts_for(self, key: RunKey) -> int:
         return sum(1 for r in self._rows if r.get("record") == "attempt_start" and RunKey.of(r) == key)
 
-    def begin_attempt(self, key: RunKey) -> int:
+    def begin_attempt(self, key: RunKey, session_id: str) -> int:
         """Append the attempt_start row BEFORE anything happens (D-12); return the attempt number.
-        Refused unless THIS session has recorded passing gates (M1 ruling)."""
-        self._check_session_gates_passed()
+        Refused unless THIS session has recorded passing gates (M1 ruling) AND ``session_id`` is the
+        id those gates were recorded under: the row carries it, so replay can require that every
+        attempt was authorised by its OWN session's gates (arms-preconditions ledger-deltas item 4)."""
+        _require_session_id(session_id)
+        self._check_session_gates_passed(session_id)
         n = self._check_attempt_start(key)
-        self._append({"record": "attempt_start", **key.as_dict(), "attempt": n, "ts": _utc_now()})
+        self._append({"record": "attempt_start", **key.as_dict(), "attempt": n, "session_id": session_id,
+                      "ts": _utc_now()})
         return n
 
-    def _check_session_gates_passed(self) -> None:
+    def _check_session_gates_passed(self, attempt_session_id: str) -> None:
         """The most recent session_gates event THIS instance appended passed and was not skipped —
-        or was skipped on a ledger whose header binds SKIP_GATES_SHA (a development ledger)."""
+        or was skipped on a ledger whose header binds SKIP_GATES_SHA (a development ledger) — and it
+        belongs to ``attempt_session_id``, the session the attempt names (ledger-deltas item 4: one
+        session's gates never authorise another's attempts)."""
         if self._session_gates is None:
             raise SessionGatesMissing(f"{self.path}: no {SESSION_GATES} event recorded by this session; "
                                       "run both gate phases and record them before the first attempt")
@@ -465,6 +590,10 @@ class Ledger:
         if skipped and not binds_skip_gates(self._header.binding):
             raise SessionGatesMissing(f"{self.path}: session {session_id} skipped its gates, but this ledger "
                                       "does not bind SKIP_GATES_SHA — a real ledger needs verified gates")
+        if attempt_session_id != session_id:
+            raise SessionGatesMissing(f"{self.path}: the attempt names session {attempt_session_id!r}, but the "
+                                      f"gates in force are another session's ({session_id!r}); an attempt is "
+                                      "authorised only by its own session's passing gates")
 
     def _check_attempt_start(self, key: RunKey) -> int:
         """The invariants an attempt_start row must satisfy against the rows so far; returns the
@@ -504,6 +633,19 @@ class Ledger:
         reserved = RESERVED_RUN_FIELDS & set(row)
         if reserved:
             raise ValueError(f"payload carries ledger-authored fields {sorted(reserved)}")
+        graph_store = _graph_store_columns(row)
+        if graph_store:
+            raise ValueError(f"{key} row carries per-cell graph-store column(s) {graph_store}: the graph-store "
+                             f"figure is run-level and no cell carries one (ledger-deltas item 3)")
+        if outcome == "exceeds_memory_ceiling":
+            if "memory_ceiling" not in row:
+                raise ValueError(f"{key} exceeds_memory_ceiling row must carry memory_ceiling "
+                                 f"{{measured_gib, ceiling_gib, stage}} — a breach says what it measured")
+            _check_memory_ceiling(row["memory_ceiling"])
+        elif "memory_ceiling" in row:
+            # Could-not-measure is never a breach, and no other outcome measured one (ledger-deltas item 1).
+            raise ValueError(f"{key} {outcome} row carries memory_ceiling: only exceeds_memory_ceiling does — "
+                             f"an unreadable sampler is never recorded as a breach")
         if not _same(serving, self._header.binding.serving):
             raise LedgerBoundToAnotherConfig("serving configuration differs from the header on append "
                                              "(type-aware: True is not 1, 262144.0 is not 262144)")
@@ -578,10 +720,10 @@ class Ledger:
         return attempt
 
     def _terminal_row(self, key: RunKey) -> Outcome | None:
-        """A recorded outcome that ends the key (ok / exceeds / not_implemented), or None."""
+        """A recorded outcome that ends the key (:data:`CELL_TERMINAL_OUTCOMES`), or None. A breach is
+        one: pending_keys never returns a breached key, in this session or a reopened one."""
         for r in self._rows:
-            if r.get("record") == "run" and RunKey.of(r) == key and \
-                    r["outcome"] in ("ok", "exceeds_model_context", "not_implemented"):
+            if r.get("record") == "run" and RunKey.of(r) == key and r["outcome"] in CELL_TERMINAL_OUTCOMES:
                 return r["outcome"]
         return None
 
@@ -608,9 +750,43 @@ class Ledger:
 
     def event(self, kind: str, detail: Any = None) -> None:
         _check_event(kind, detail)              # the same check replay applies (Codex WP03 c15)
+        self._check_event_sequence(kind, detail)
         self._append({"record": "event", "kind": kind, "detail": detail, "ts": _utc_now()})
         if kind == SESSION_GATES:               # only once it is durably on disk
             self._session_gates = (detail["session_id"], detail["passed"], detail["skipped"])
+
+    def _check_event_sequence(self, kind: str, detail: Any) -> None:
+        """The graph-store boundary events against the events so far (ledger-deltas item 2): a series_id
+        is declared once by its ``series_generation``; ``graph_store_first_build`` and
+        ``graph_store_all_resident`` name a declared series, each at most once per series, and all-resident
+        follows that series' first build (memory-series.md item 4). Shared by event() and the replay."""
+        if kind not in (SERIES_GENERATION, GRAPH_STORE_FIRST_BUILD, GRAPH_STORE_ALL_RESIDENT):
+            return
+        seen: dict[str, set[str]] = {}
+        for r in self._rows:
+            if r.get("record") == "event" and r.get("kind") in (SERIES_GENERATION, GRAPH_STORE_FIRST_BUILD,
+                                                                 GRAPH_STORE_ALL_RESIDENT):
+                seen.setdefault(r["detail"]["series_id"], set()).add(r["kind"])
+        series_id = detail["series_id"]
+        if kind == SERIES_GENERATION:
+            if series_id in seen:
+                raise ValueError(f"{kind}: series_id {series_id!r} is already declared — a generation's series "
+                                 f"is never reused")
+            return
+        kinds = seen.get(series_id, set())
+        if SERIES_GENERATION not in kinds:
+            raise ValueError(f"{kind}: series_id {series_id!r} was never declared by a {SERIES_GENERATION} event")
+        if kind in kinds:
+            raise ValueError(f"{kind}: already recorded for series {series_id!r} (at most once per generation)")
+        if kind == GRAPH_STORE_ALL_RESIDENT and GRAPH_STORE_FIRST_BUILD not in kinds:
+            raise ValueError(f"{kind}: series {series_id!r} has no {GRAPH_STORE_FIRST_BUILD} before it")
+
+    def premise_violation(self) -> dict[str, Any] | None:
+        """The detail of the first ``premise_violated`` event, or None. Its presence makes the ledger
+        unusable — as a primary, for export and for :meth:`summarise` (correction C)."""
+        found = next((r for r in self._rows if r.get("record") == "event" and r.get("kind") == PREMISE_VIOLATED),
+                     None)
+        return copy.deepcopy(found["detail"]) if found is not None else None
 
     def write_calibration(self, calibration: dict[str, Any]) -> None:
         """Once, and only after every G repeat-1 cell is scored (k comes from their medians, A3)."""
@@ -648,7 +824,15 @@ class Ledger:
     def summarise(self) -> dict[tuple[str, str], Summary]:
         """Per (arm, question): sums over `ok` rows only; every other key is COUNTED by its
         terminal outcome (`pending` when none yet), including keys that only ever began
-        attempts and died — an exhausted cell with no run row is still a terminal error."""
+        attempts and died — an exhausted cell with no run row is still a terminal error.
+
+        Raises :class:`LedgerUnusable` on a ledger holding a ``premise_violated`` event: it REFUSES,
+        never skips — untouched rows are not usable rows (correction C)."""
+        violation = self.premise_violation()
+        if violation is not None:
+            raise LedgerUnusable(f"{self.path}: {PREMISE_VIOLATED} ({violation['reason']} on arm {violation['arm']} "
+                                 f"at {violation['at_key']}) — the rows are untouched but unusable; this "
+                                 f"ledger is never summarised")
         keys: set[RunKey] = set()
         attempts: dict[tuple[str, str], int] = {}
         for r in self._rows:
@@ -704,23 +888,124 @@ _UNPARSED = object()          # json.loads raised — distinct from a line that 
 
 
 def _check_event(kind: Any, detail: Any) -> None:
-    """An event's kind is a non-empty string, and a `session_gates` detail carries its required keys
-    by exact type — enforced on write so the public writer can never persist a row the resume
-    replay refuses (Codex WP03 c15; M1 ruling). Other detail keys pass through."""
+    """An event's kind is a non-empty string, and the detail of every event kind the ledger gives
+    meaning to carries its required keys by exact type — enforced on write so the public writer can
+    never persist a row the resume replay refuses (Codex WP03 c15; M1 ruling; arms-preconditions
+    ledger-deltas items 2, 5, 6). Other detail keys pass through; other kinds are free-form. The
+    checks that need the events before this one live in :meth:`Ledger._check_event_sequence`."""
     if not isinstance(kind, str) or not kind.strip():
         raise ValueError(f"event kind must be a non-empty string, got {kind!r}")
-    if kind != SESSION_GATES:
+    checker = _EVENT_DETAIL_CHECKS.get(kind)
+    if checker is None:
         return
     if not isinstance(detail, dict):
         # ValueError, as for every other invalid event (ruff TRY004): the write contract is ValueError.
-        raise ValueError(f"{SESSION_GATES} detail must be a dict, got {detail!r}")  # noqa: TRY004
+        raise ValueError(f"{kind} detail must be a dict, got {detail!r}")  # noqa: TRY004
+    try:
+        checker(detail)
+    except ValueError as exc:
+        raise ValueError(f"{kind} detail: {exc}") from None
+
+
+def _check_session_gates_detail(detail: dict[str, Any]) -> None:
+    """The M1 ruling's required keys, by exact type (bus 20260925T221125657965Zb30b0038fa)."""
     for name, typ in SESSION_GATES_REQUIRED.items():
         if name not in detail:
-            raise ValueError(f"{SESSION_GATES} detail lacks {name!r}")
+            raise ValueError(f"lacks {name!r}")
         if type(detail[name]) is not typ:          # exact: True is not 1, 0 is not False
-            raise ValueError(f"{SESSION_GATES} detail {name!r} must be a {typ.__name__}, got {detail[name]!r}")
+            raise ValueError(f"{name!r} must be a {typ.__name__}, got {detail[name]!r}")
     if not detail["session_id"].strip():
-        raise ValueError(f"{SESSION_GATES} detail session_id must be non-empty")
+        raise ValueError("session_id must be non-empty")
+
+
+def _require_keys(detail: dict[str, Any], *names: str) -> None:
+    missing = [n for n in names if n not in detail]
+    if missing:
+        raise ValueError(f"lacks {missing}")
+
+
+def _check_premise_violated_detail(detail: dict[str, Any]) -> None:
+    """``{arm, reason: tripwire|cross_group_leak, message, at_key}`` — at_key is exactly a cell key of
+    that arm, never coerced (data-model § Event records)."""
+    _require_keys(detail, "arm", "reason", "message", "at_key")
+    if detail["arm"] not in ARMS:
+        raise ValueError(f"arm must be one of {ARMS}, got {detail['arm']!r}")
+    if detail["reason"] not in PREMISE_REASONS:
+        raise ValueError(f"reason must be one of {PREMISE_REASONS}, got {detail['reason']!r}")
+    _require_nonempty_str("message", detail["message"])
+    at_key = detail["at_key"]
+    if not isinstance(at_key, dict) or set(at_key) != {"arm", "question", "repeat"}:
+        raise ValueError(f"at_key must be exactly {{arm, question, repeat}}, got {at_key!r}")
+    try:
+        key = RunKey.of(at_key)
+    except TypeError as exc:
+        raise ValueError(f"at_key is not a cell key: {exc}") from None
+    if key.arm != detail["arm"]:
+        raise ValueError(f"at_key names arm {key.arm!r} but the violation is arm {detail['arm']!r}")
+
+
+def _check_session_stopped_detail(detail: dict[str, Any]) -> None:
+    """``{reason, grace_s?}``: a known, distinguishable reason; ``grace_s`` (finite, positive) is
+    required for an unacknowledged G cancellation and validated wherever present."""
+    _require_keys(detail, "reason")
+    if detail["reason"] not in SESSION_STOP_REASONS:
+        raise ValueError(f"reason must be one of {SESSION_STOP_REASONS}, got {detail['reason']!r}")
+    if detail["reason"] in STOP_REASONS_REQUIRING_GRACE and "grace_s" not in detail:
+        raise ValueError(f"reason {detail['reason']!r} requires grace_s")
+    if "grace_s" in detail:
+        _require_positive_number("grace_s", detail["grace_s"])
+
+
+def _check_series_generation_detail(detail: dict[str, Any]) -> None:
+    """``{series_id, path, container_id, interval_s, started_ts, writer_status, writer_reason?}``
+    (data-model § Event records; post-plan review #6): a RUNNING writer names its file, container and
+    true interval and carries no reason; a FAILED one carries a non-empty reason, and path,
+    container_id and interval_s may be null when they could not be resolved."""
+    _require_keys(detail, "series_id", "path", "container_id", "interval_s", "started_ts", "writer_status")
+    _require_nonempty_str("series_id", detail["series_id"])
+    _require_canonical_utc("started_ts", detail["started_ts"])
+    status = detail["writer_status"]
+    if status not in WRITER_STATUSES:
+        raise ValueError(f"writer_status must be one of {WRITER_STATUSES}, got {status!r}")
+    nullable = status == "failed"
+    for name in ("path", "container_id"):
+        if not (nullable and detail[name] is None):
+            _require_nonempty_str(name, detail[name])
+    if not (nullable and detail["interval_s"] is None):
+        _require_positive_number("interval_s", detail["interval_s"])
+    if status == "failed":
+        _require_nonempty_str("writer_reason", detail.get("writer_reason"))
+    elif "writer_reason" in detail:
+        raise ValueError("a running writer carries no writer_reason")
+
+
+def _check_first_build_detail(detail: dict[str, Any]) -> None:
+    """``{ts, series_id, graphs_present: bool}`` — recorded for BOTH listing outcomes."""
+    _require_keys(detail, "ts", "series_id", "graphs_present")
+    _require_canonical_utc("ts", detail["ts"])
+    _require_nonempty_str("series_id", detail["series_id"])
+    if type(detail["graphs_present"]) is not bool:
+        raise ValueError(f"graphs_present must be a bool, got {detail['graphs_present']!r}")
+
+
+def _check_all_resident_detail(detail: dict[str, Any]) -> None:
+    """``{ts, series_id, n_graphs: 8}`` — only when this process built all eight graphs itself."""
+    _require_keys(detail, "ts", "series_id", "n_graphs")
+    _require_canonical_utc("ts", detail["ts"])
+    _require_nonempty_str("series_id", detail["series_id"])
+    if type(detail["n_graphs"]) is not int or detail["n_graphs"] != ALL_RESIDENT_N_GRAPHS:
+        raise ValueError(f"n_graphs must be the int {ALL_RESIDENT_N_GRAPHS}, got {detail['n_graphs']!r}")
+
+
+#: The event kinds whose detail the ledger validates, on write and on replay.
+_EVENT_DETAIL_CHECKS = {
+    SESSION_GATES: _check_session_gates_detail,
+    PREMISE_VIOLATED: _check_premise_violated_detail,
+    SESSION_STOPPED: _check_session_stopped_detail,
+    SERIES_GENERATION: _check_series_generation_detail,
+    GRAPH_STORE_FIRST_BUILD: _check_first_build_detail,
+    GRAPH_STORE_ALL_RESIDENT: _check_all_resident_detail,
+}
 _RECORD_KINDS = ("attempt_start", "run", "calibration", "event")
 
 
@@ -739,12 +1024,16 @@ def _replay_validate(path: pathlib.Path, header: Header, rows: list[dict[str, An
                 raise ValueError("record carries no ts")
             if kind == "attempt_start":
                 key = RunKey.of(row)
+                if _graph_store_columns(row):
+                    raise ValueError(f"attempt_start carries graph-store column(s) {_graph_store_columns(row)}")
                 # The live precondition, per session in file order: every session records its
                 # session_gates before its first attempt, so the most recent one ABOVE this row is
                 # the gates of the session that wrote it (design lead, post-merge checkpoint ruling
                 # 20260926T191350728094Zd096ae83aa). A ledger whose gates were deleted, failed, or
                 # were skipped on a real header is refused — it cannot read as evidence of gates.
-                shadow._check_session_gates_passed()
+                # ...and the attempt names THAT session (ledger-deltas item 4, dated 2026-09-26).
+                _require_session_id(row.get("session_id"))
+                shadow._check_session_gates_passed(row["session_id"])
                 n = shadow._check_attempt_start(key)
                 if type(row.get("attempt")) is not int or row["attempt"] != n:        # 1.0 == 1, so type first
                     raise ValueError(f"attempt_start carries attempt {row.get('attempt')!r}, expected {n}")
@@ -769,6 +1058,7 @@ def _replay_validate(path: pathlib.Path, header: Header, rows: list[dict[str, An
                 shadow._check_calibration({k: v for k, v in row.items() if k not in RESERVED_CALIBRATION_FIELDS})
             elif kind == "event":
                 _check_event(row.get("kind"), row.get("detail"))
+                shadow._check_event_sequence(row["kind"], row.get("detail"))
                 if row.get("kind") == SESSION_GATES:          # replay state lives on the shadow only;
                     d = row["detail"]                         # the opening instance is never seeded
                     shadow._session_gates = (d["session_id"], d["passed"], d["skipped"])
@@ -878,6 +1168,7 @@ def _open_locked(path: pathlib.Path, binding: Binding, blinding_seed: int, plan:
     if type(blinding_seed) is not int:
         raise ValueError(f"blinding_seed must be an int, got {blinding_seed!r}")
     _positive_int("plan", plan)
+    _check_plan_binding(plan, binding)
     if not _same(binding.corpus, REGISTRATION["files"]):
         raise LedgerBoundToAnotherConfig("binding.corpus is not the registered corpus fingerprints "
                                          "(data-model.md § Ledger: must equal REGISTRATION.files)")
@@ -903,6 +1194,7 @@ def _open_locked(path: pathlib.Path, binding: Binding, blinding_seed: int, plan:
     try:
         header = Header.from_dict(rows[0])          # exact int types; never coerced (Codex c16)
         _validate_binding_types(header.binding)
+        _check_plan_binding(header.plan, header.binding)
     except ValueError as exc:
         raise LedgerCorrupt(f"{path}: header {exc}") from None
     # Type-aware comparison: a persisted True must not match 1, nor 262144.0 match 262144. The gate

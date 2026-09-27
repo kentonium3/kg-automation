@@ -29,6 +29,17 @@ from tests.research.test_arms849_integration import (
     make_runtime,
     open_fake,
 )
+from tests.research.test_arms849_ledger import (
+    SID,
+    binding,
+    breach_row,
+    calibrated,
+    fresh,
+    ok_row,
+    premise,
+    rec,
+    unreadable_row,
+)
 
 CORPUS = h.DEFAULT_CORPUS
 pytestmark = pytest.mark.skipif(not (CORPUS / "entities.json").exists(),
@@ -216,3 +227,93 @@ def test_harness_and_exporter_share_the_one_predicate():
     assert not hasattr(h, "_binds_skip_gates")
     src = pathlib.Path(h.__file__).read_text(encoding="utf-8") + pathlib.Path(grading.__file__).read_text(encoding="utf-8")
     assert src.count("SKIP_GATES_SHA in (") == 1
+
+
+# ==========================================================================
+# arms-preconditions-01M3FVRY WP01 — completeness and export refusals (ledger-deltas items 1, 5;
+# data-model § Smoke ledger identity). NFR-005: no path records a refused, breached, unmeasurable
+# or premise-tainted cell as complete.
+# ==========================================================================
+
+
+def _scored(led, key):
+    led.begin_attempt(key, SID); rec(led, key, "ok", ok_row(arm=key.arm))
+
+
+def _complete_but(led, special=None):
+    """Score every planned primary cell except ``special`` (key → callable(led, key))."""
+    special = special or {}
+    calibrated(led)
+    for key in ledger_mod.plan_keys():
+        if led.terminal(key) is not None:
+            continue
+        special.get(key, _scored)(led, key)
+
+
+D_CELL = ledger_mod.RunKey("D", "E1", 3)
+
+
+def test_a_fully_scored_ledger_is_complete(tmp_path):
+    with fresh(tmp_path) as led:
+        _complete_but(led)
+        assert grading.is_complete(led)[0] is True
+
+
+def test_a_breached_cell_bars_primary_completeness_and_export(tmp_path):
+    def breach(led, key):
+        led.begin_attempt(key, SID); rec(led, key, "exceeds_memory_ceiling", breach_row(key.arm))
+    with fresh(tmp_path) as led:
+        _complete_but(led, {D_CELL: breach})
+        assert led.pending_keys(ledger_mod.plan_keys()) == []          # every cell terminal ...
+        ok, detail = grading.is_complete(led)
+        assert not ok and "exceeds_memory_ceiling" in detail           # ... and still not complete
+        with pytest.raises(grading.ExportRefused, match="exceeds_memory_ceiling"):
+            grading.export(led, 7, tmp_path / "runs")
+        assert not (tmp_path / "runs").exists()
+
+
+def test_an_unreadable_at_send_cell_bars_completeness_while_it_stays_unscored(tmp_path):
+    def unreadable_thrice(led, key):
+        for _ in range(3):
+            led.begin_attempt(key, SID); rec(led, key, "sampler_unreadable_at_send", unreadable_row(key.arm))
+    with fresh(tmp_path) as led:
+        _complete_but(led, {D_CELL: unreadable_thrice})
+        assert led.terminal(D_CELL) == "error"                         # exhausted — terminal, never a pass
+        ok, detail = grading.is_complete(led)
+        assert not ok and "sampler_unreadable_at_send" in detail
+
+
+def test_an_unreadable_at_send_attempt_later_scored_does_not_bar_completeness(tmp_path):
+    def unreadable_then_ok(led, key):
+        led.begin_attempt(key, SID); rec(led, key, "sampler_unreadable_at_send", unreadable_row(key.arm))
+        _scored(led, key)
+    with fresh(tmp_path) as led:
+        _complete_but(led, {D_CELL: unreadable_then_ok})
+        assert grading.is_complete(led)[0] is True
+
+
+def test_a_premise_violation_bars_completeness_and_export_even_on_a_scored_ledger(tmp_path):
+    """Correction C: the rows are untouched and every cell is scored, but the ledger is unusable."""
+    with fresh(tmp_path) as led:
+        _complete_but(led)
+        led.event("premise_violated", premise())
+    with fresh(tmp_path, gated=False) as led:                           # after replay too
+        ok, detail = grading.is_complete(led)
+        assert not ok and "premise_violated" in detail
+        with pytest.raises(grading.ExportRefused, match="premise_violated"):
+            grading.export(led, 7, tmp_path / "runs")
+        with pytest.raises(h.PrimaryIncomplete, match="premise_violated"):
+            h.require_complete_primary(led)
+
+
+def test_a_smoke_ledger_is_never_complete_primary_or_exportable(tmp_path):
+    """Injected defect: a smoke ledger passed to export."""
+    with ledger_mod.open_ledger(tmp_path / "smoke.jsonl", binding(), blinding_seed=7,
+                                plan=ledger_mod.SMOKE_PLAN) as led:
+        ok, detail = grading.is_complete(led)
+        assert not ok and "smoke" in detail
+        with pytest.raises(grading.ExportRefused, match="smoke"):
+            grading.export(led, 7, tmp_path / "runs")
+        with pytest.raises(h.PrimaryIncomplete):
+            h.require_complete_primary(led)
+    assert not (tmp_path / "runs").exists()

@@ -511,7 +511,7 @@ class Session:
         question = questions_mod.by_id(key.question)
         reg = self.rt.arms.get(key.arm)
         if reg is None:
-            self.ledger.begin_attempt(key)
+            self.ledger.begin_attempt(key, self.identity["session_id"])
             row: dict[str, Any] = {"ask_time": question.ask_time, "elapsed_s": 0.0,
                                    "note": f"arm {key.arm} is not registered"}
             if key.arm == "D":
@@ -559,7 +559,7 @@ class Session:
                           f"cell not started")
                 return None, False
             try:
-                attempt = self.ledger.begin_attempt(key)
+                attempt = self.ledger.begin_attempt(key, self.identity["session_id"])
             except (AttemptsExhausted, SecondScoredRow):
                 return None, False                            # terminal already (never an infinite loop)
             started = time.monotonic()
@@ -651,10 +651,6 @@ class Session:
         if peak_gtt is None:
             missing.append("peak_gtt_gib")
         if key.arm == "G":
-            rss_peak = _peak(rss, "peak_mib")
-            row["falkordb_rss_peak_mib"] = rss_peak
-            if rss_peak is None:
-                missing.append("falkordb_rss_peak_mib")
             stats = self.graph_stats.get(key.question)
             if stats is not None:
                 row["graph_stats"] = (dataclasses.asdict(stats) if dataclasses.is_dataclass(stats) and not isinstance(stats, type)
