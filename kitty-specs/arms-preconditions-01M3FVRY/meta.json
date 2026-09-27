@@ -13,5 +13,7 @@
   "retain_worktrees": true,
   "slug": "arms-preconditions-01M3FVRY",
   "target_branch": "feat/849-preconditions",
-  "topology": "single_branch"
+  "topology": "single_branch",
+  "vcs": "git",
+  "vcs_locked_at": "2026-09-27T01:43:12.080000+00:00"
 }
