@@ -1889,7 +1889,7 @@ def test_poisoning_one_bridge_leaves_another_in_the_same_process_working(tiny, r
     b = A.make_bridge(FakeEmbedder(), text, host="127.0.0.1", port=resp_server.port)
     try:
         before_b = resp_server.totals()
-        stats = b.build_graph(QC1, view)                                   # B mints its connections, gate open
+        stats = b.build_graph(QC1, view, deadline=time.monotonic() + 60)   # B mints its connections, gate open
         assert stats.nodes == 3 and resp_server.totals()[1] > before_b[1]
         mark = resp_server.totals()
         resp_server.release.set()                                           # A's abandoned work resumes NOW
@@ -1953,6 +1953,57 @@ def test_make_bridge_client_speaks_resp2_as_negotiated(tiny, resp_server):
         hellos = [a for _, a in resp_server.commands[seen:] if a and a[0].upper() == "HELLO"]
         assert hellos == [] and "RESP2" in parser, (hellos, parser)
     finally:
+        bridge.close()
+
+
+def test_make_bridge_connections_behave_like_falkordbs_own_client(tiny, resp_server, monkeypatch):
+    """The pool-arguments landmine, closed as a DIFFERENTIAL: every scalar setting of a live connection from
+    make_bridge's pool equals that of the connection FalkorDB(host, port)'s OWN client mints — the attribute
+    list is derived from the connection object at test time, not written here. (Found this way: redis-py's
+    pool defaults are a 5 s read and connect timeout and keepalive on; FalkorDB's client has none.)"""
+    import falkordb.asyncio.falkordb as falkor_module
+
+    text, _ = tiny
+    bridge = A.make_bridge(FakeEmbedder(), text, host="127.0.0.1", port=resp_server.port)
+    try:
+        raw = object.__getattribute__(bridge.arm.driver.client, "_target")
+        ours = raw.connection.connection_pool.make_connection()
+        monkeypatch.setattr(falkor_module, "Is_Cluster", lambda conn: False)
+        stock = falkor_module.FalkorDB(host="127.0.0.1", port=resp_server.port).connection.connection_pool.make_connection()
+        names = set(getattr(stock, "__dict__", {})) | {n for k in type(stock).__mro__
+                                                       for n in getattr(k, "__slots__", ()) if isinstance(n, str)}
+        compared, differ = [], []
+        for name in sorted(names):
+            try:
+                theirs, mine = getattr(stock, name), getattr(ours, name)
+            except AttributeError:
+                continue
+            if isinstance(theirs, (int, float, str, bool, type(None))):
+                compared.append(name)
+                if theirs != mine:
+                    differ.append((name, theirs, mine))
+        assert differ == [] and {"socket_timeout", "socket_connect_timeout", "protocol"} <= set(compared), differ
+        assert ours.encoder.decode_responses is stock.encoder.decode_responses is True
+        assert type(ours.retry._backoff) is type(stock.retry._backoff) and ours.retry._retries == stock.retry._retries
+    finally:
+        bridge.close()
+
+
+def test_a_reply_slower_than_redis_default_timeout_still_arrives(tiny, resp_server):
+    """The timeout IN EFFECT, by behaviour: a reply held 6 s — longer than redis-py's 5 s pool default —
+    still arrives through make_bridge's client (as through FalkorDB's own client, which sets no timeout).
+    The bridge's deadline, not a socket timeout, bounds G's work."""
+    text, _ = tiny
+    bridge = A.make_bridge(FakeEmbedder(), text, host="127.0.0.1", port=resp_server.port)
+    try:
+        raw = object.__getattribute__(bridge.arm.driver.client, "_target")
+        resp_server.hold = {"slow6"}
+        threading.Timer(6.0, resp_server.release.set).start()
+        t0 = time.monotonic()
+        result = asyncio.run_coroutine_threadsafe(raw.select_graph("slow6").query("RETURN 1"), bridge._loop).result(20)
+        assert result is not None and time.monotonic() - t0 >= 5.9
+    finally:
+        resp_server.release.set()
         bridge.close()
 
 

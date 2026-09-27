@@ -1089,10 +1089,14 @@ def make_bridge(embedder: Embedder, text: FrozenCorpusText, *, host: str = FALKO
         raise RuntimeError("make_bridge must not run inside an event loop: the driver's client would bind to it")
     gate = SocketGate()
     if driver is None:
-        # decode_responses and protocol=2 are what FalkorDB(host, port) gives its own client; a supplied pool
-        # must carry them itself (redis-py ignores the client's arguments when a pool is passed).
+        # A supplied pool makes the client's own arguments INERT (redis-py ignores them, silently), so the pool
+        # carries what FalkorDB(host, port) gives its own client: decoded str responses, RESP2, and NO socket
+        # timeouts or keepalive (redis-py's pool defaults are a 5 s read/connect timeout and keepalive on —
+        # a behaviour change FalkorDB's client does not have). Pinned by behaviour and by a differential
+        # against the connection FalkorDB's own client mints.
         pool = _redis_async.ConnectionPool(connection_class=GatedConnection, transport_gate=gate, host=host,
-                                           port=port, decode_responses=True, protocol=2)
+                                           port=port, decode_responses=True, protocol=2, socket_timeout=None,
+                                           socket_connect_timeout=None, socket_keepalive=None)
         # The client over the gated pool. Its constructor probes the server ONCE with a synchronous client
         # (falkordb Is_Cluster: INFO) — the one socket outside the gate, before any poison can exist (see
         # the module docstring; pinned by a test).
