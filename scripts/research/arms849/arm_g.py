@@ -61,7 +61,7 @@ import uuid as _uuid
 from collections.abc import Awaitable, Callable, Iterable, Mapping, Sequence
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
-from typing import Any, TypeVar
+from typing import Any, NoReturn, TypeVar
 
 from graphiti_core import Graphiti
 from graphiti_core.driver.driver import GraphDriver
@@ -98,8 +98,8 @@ from scripts.research.arms849.text import Block, FrozenCorpusText, edge_key, ent
 from scripts.research.load_849_corpus import Loaded, edge_effective_time
 
 __all__ = ["CAP", "FALKOR_HOST", "FALKOR_PORT", "GROUP_RE", "LOOP_THREAD_NAME", "TYPED_LABELS", "Bridge", "GraphArm",
-           "GraphStats", "Item", "PlanRecord", "Resolution", "assemble", "group_id_for", "link_targets", "make_bridge",
-           "normalise", "resolve_anchors"]
+           "GraphStats", "Item", "PlanRecord", "Resolution", "TransportGate", "TransportPoisoned", "assemble",
+           "group_id_for", "link_targets", "make_bridge", "normalise", "resolve_anchors"]
 
 T = TypeVar("T")
 
@@ -374,6 +374,10 @@ class GraphArm:
         self._key_by_uuid: dict[str, dict[str, tuple[str, str]]] = {}   # group → uuid → (kind, key)
         self._foreign: list[str] = []      # results in THIS group's graph that G did not write (ArmRefusal)
         self._leaked: list[str] = []       # results from ANOTHER group's graph (PremiseViolated)
+        #: uuid → the group G wrote it for. APPEND-ONLY for the arm's life: never deleted by drop_graph or a
+        #: rebuild, so a dropped question's uuid reported under another group is still recognised as a leak
+        #: (review c2 finding 3). Separate from the per-view maps above, which are graph-built state.
+        self._owner: dict[str, str] = {}
 
     @property
     def llm_calls(self) -> int:
@@ -487,6 +491,8 @@ class GraphArm:
         self._check_tripwire(self.llm_calls)
         self._uuid_by_id[group] = uuid_by_id
         self._key_by_uuid[group] = key_by_uuid
+        for written in key_by_uuid:
+            self._owner.setdefault(written, group)
         return GraphStats(group_id=group, nodes=nodes, edges=edges, episodes=episodes, links=links,
                           build_seconds=round(time.monotonic() - t0, 3), llm_calls=self.llm_calls)
 
@@ -511,8 +517,8 @@ class GraphArm:
     def _key_for(self, group: str, uuid: str, result_group: Any) -> tuple[str, str] | None:
         """The (kind, key) G wrote for ``uuid`` in ``group``; else record WHY it is not ours.
 
-        A result carrying ANOTHER group — by its own ``group_id``, or a uuid G wrote for another
-        question — crossed the per-question graph boundary: ``_leaked`` (PremiseViolated, the run
+        A result carrying ANOTHER group — by its own ``group_id``, or a uuid G EVER wrote for another
+        question (the append-only ``_owner``, which survives drop_graph) — crossed the per-question graph boundary: ``_leaked`` (PremiseViolated, the run
         halts). A result in THIS group's graph that G did not write from this view: ``_foreign``
         (ArmRefusal, the cell is refused). Neither is ever silently dropped (RQ-6b). The result's REPORTED
         group is checked first: a uuid G wrote for this question, returned under another question's group,
@@ -520,11 +526,14 @@ class GraphArm:
         if result_group is not None and str(result_group) != group:
             self._leaked.append(uuid)
             return None
+        owner = self._owner.get(uuid)
+        if owner is not None and owner != group:
+            self._leaked.append(uuid)                               # written for another question, ever
+            return None
         kk = self._key_by_uuid.get(group, {}).get(uuid)
         if kk is not None:
             return kk
-        other = any(uuid in keys for g, keys in self._key_by_uuid.items() if g != group)
-        (self._leaked if other else self._foreign).append(uuid)
+        self._foreign.append(uuid)
         return None
 
     def _items(self, group: str, results: SearchResults, origin: str) -> list[Item]:
@@ -664,6 +673,67 @@ class GraphArm:
 # ---------------------------------------------------------------------------
 
 
+class TransportPoisoned(RuntimeError):
+    """The bridge's transport gate is shut (an unacknowledged termination, or the bridge closed): no query,
+    no connection operation, nothing reaches FalkorDB any more."""
+
+
+_PLAIN_TYPES = (str, bytes, bytearray, int, float, bool, type(None), list, tuple, dict, set, frozenset)
+
+
+class TransportGate:
+    """THE one boundary every byte the bridge could send to FalkorDB passes (review c2 invariant A).
+
+    It wraps the FalkorDB client object. The installed ``FalkorDriver`` reaches the server ONLY through
+    ``self.client`` — ``_get_graph`` → ``client.select_graph(name)`` → ``graph.query`` (also inside
+    ``FalkorDriverSession.run``), ``close`` → ``client.aclose`` / ``client.connection`` — and every
+    ``clone`` shares its parent's client (``falkor_db=self.client``). So installing the gate as the ROOT
+    driver's client, before any clone exists, puts every clone, every per-question Graphiti and our own
+    ``list_graphs`` behind it.
+
+    The check runs on EVERY attribute access and call, and for an awaitable at the moment it starts
+    running, not when it was created. Objects handed out (a graph handle, the connection) are wrapped the
+    same way; the awaited results of queries are returned raw. Once ``shut`` is set nothing passes,
+    whatever state the event loop is in — a coroutine resuming from blocked synchronous work included."""
+
+    __slots__ = ("_shut", "_target")
+
+    def __init__(self, target: Any, shut: threading.Event) -> None:
+        object.__setattr__(self, "_target", target)
+        object.__setattr__(self, "_shut", shut)
+
+    def _check(self) -> None:
+        if self._shut.is_set():
+            raise TransportPoisoned("the G bridge's transport gate is shut; nothing may reach FalkorDB")
+
+    def __getattr__(self, name: str) -> Any:
+        self._check()
+        return _gated(getattr(self._target, name), self._shut)
+
+    def __setattr__(self, name: str, value: Any) -> None:
+        raise AttributeError("the transport gate is read-only")
+
+    def __call__(self, *args: Any, **kwargs: Any) -> Any:
+        self._check()
+        result = self._target(*args, **kwargs)
+        if hasattr(result, "__await__"):
+            return _gated_await(result, self._shut)
+        return _gated(result, self._shut)
+
+
+def _gated(value: Any, shut: threading.Event) -> Any:
+    return value if isinstance(value, _PLAIN_TYPES) else TransportGate(value, shut)
+
+
+async def _gated_await(awaitable: Awaitable[Any], shut: threading.Event) -> Any:
+    if shut.is_set():
+        close = getattr(awaitable, "close", None)
+        if close is not None:
+            close()                                                 # never started: nothing was sent
+        raise TransportPoisoned("the G bridge's transport gate is shut; nothing may reach FalkorDB")
+    return await awaitable
+
+
 class Bridge:
     """G's registration-facing object: ONE asyncio loop on a dedicated thread, ONE :class:`GraphArm`
     (and so one root driver) bound to it. WP04's ``ARM_FACTORIES`` builds it with :func:`make_bridge`.
@@ -695,7 +765,15 @@ class Bridge:
     """
 
     def __init__(self, arm: GraphArm) -> None:
+        if arm._databases:
+            raise RuntimeError("the transport gate must be installed before any per-question clone exists")
         self.arm = arm
+        #: Shut FIRST on every fatal path and at close: the transport gate then refuses everything.
+        self._shut = threading.Event()
+        client = getattr(arm.driver, "client", None)
+        if client is None:
+            raise TypeError("the G bridge needs a FalkorDriver-shaped root driver (a .client to gate)")
+        arm.driver.client = TransportGate(client, self._shut)
         self._loop = asyncio.new_event_loop()
         self._thread = threading.Thread(target=self._loop.run_forever, name=LOOP_THREAD_NAME, daemon=True)
         self._thread.start()
@@ -748,6 +826,7 @@ class Bridge:
                     clean = True
                 except (Exception, GCancellationUnacknowledged):  # noqa: BLE001 — close reports, never raises
                     clean = False
+            self._shut.set()                                        # after close, nothing reaches FalkorDB
             stopped = self._halt_loop(errors.G_CANCEL_GRACE_S if clean else HALT_JOIN_S)
             clean = clean and stopped
             if clean:
@@ -759,6 +838,15 @@ class Bridge:
                 self._lock.release()
 
     # -- the mechanism ---------------------------------------------------------------
+
+    def _poison(self, grace: float) -> NoReturn:
+        """The ONE fatal path (review c2 invariants A and B): shut the transport gate FIRST — from then on no
+        query can pass whatever the loop is doing — then mark the bridge, try to stop the loop (best effort:
+        blocked synchronous work may keep it alive; the gate already makes that harmless), and raise."""
+        self._shut.set()
+        self._poisoned = grace
+        self._halt_loop(min(HALT_JOIN_S, grace))
+        raise GCancellationUnacknowledged(grace)
 
     def _halt_loop(self, join_s: float) -> bool:
         """Stop the loop and wait up to ``join_s`` for its thread: once it has returned, no coroutine of this
@@ -809,7 +897,7 @@ class Bridge:
                 ack.set()                                           # THE acknowledgement: set by the coroutine
             return "raised", exc
         if await self._quiesce():
-            ack.set()
+            ack.set()                                               # success counts ONLY once drained
         return "ok", result
 
     def _submit(self, make: Callable[[], Awaitable[T]], deadline: float | None,
@@ -848,6 +936,8 @@ class Bridge:
                 break
             concurrent.futures.wait([future], timeout=POLL_S if remaining is None else min(POLL_S, remaining))
             if future.done():
+                if not ack.is_set():                                # finished, but the drain overran:
+                    self._poison(errors.G_CANCEL_GRACE_S)          # exactly an unacknowledged termination
                 kind, value = future.result()
                 if kind == "raised":
                     raise value                                     # the coroutine's own exception, unaltered
@@ -855,9 +945,7 @@ class Bridge:
         future.cancel()                                             # cancels the loop-side task, once
         grace = errors.G_CANCEL_GRACE_S
         if not ack.wait(grace):
-            self._poisoned = grace
-            self._halt_loop(min(HALT_JOIN_S, grace))
-            raise GCancellationUnacknowledged(grace)
+            self._poison(grace)
         exc = outcome.get("exc")
         if isinstance(exc, TERMINAL_EXCEPTIONS):
             raise exc                                               # never downgraded to a retryable timeout

@@ -486,8 +486,8 @@ def bridges():
         b.close()
 
 
-def make_bridge(store, text, bridges):
-    b = A.make_bridge(FakeEmbedder(), text, driver=FalkorDriver(falkor_db=store))
+def make_bridge(store, text, bridges, embedder=None):
+    b = A.make_bridge(embedder or FakeEmbedder(), text, driver=FalkorDriver(falkor_db=store))
     bridges.append(b)
     return b
 
@@ -1163,6 +1163,201 @@ def test_a_known_uuid_reported_under_another_questions_group_is_a_leak(tiny, sto
     with pytest.raises(ERR.PremiseViolated) as info:
         asyncio.run(scenario())
     assert info.value.reason == "cross_group_leak"
+
+
+# -- WP02 review cycle 2 (Codex): structural invariants A (transport gate), B (acknowledgement on every
+#    completion path), C (append-only uuid ownership) -------------------------------------------------
+
+
+class BlockingEmbedder(FakeEmbedder):
+    """Blocks SYNCHRONOUSLY — on the loop thread, where graphiti calls it — once ``armed`` is set, until
+    ``unblock`` is set: work no cancellation can interrupt."""
+
+    def __init__(self) -> None:
+        self.armed = threading.Event()
+        self.unblock = threading.Event()
+        self.blocked = threading.Event()
+
+    def embed(self, texts):
+        if self.armed.is_set() and not self.unblock.is_set():
+            self.blocked.set()
+            self.unblock.wait(30)
+        return super().embed(texts)
+
+
+def test_a_poisoned_bridge_sends_nothing_even_when_blocked_synchronous_work_resumes(tiny, store, bridges, monkeypatch):
+    """Invariant A (review c2 finding 2): the embedder blocks synchronously on the loop thread, so neither
+    cancellation nor a loop stop can take effect. The fatal signal is raised anyway; when the block clears,
+    the resumed build reaches the transport — and the gate refuses every query."""
+    monkeypatch.setattr(ERR, "G_CANCEL_GRACE_S", 0.3)
+    text, view = tiny
+    emb = BlockingEmbedder()
+    bridge = make_bridge(store, text, bridges, emb)
+    emb.armed.set()
+    with pytest.raises(ERR.GCancellationUnacknowledged):
+        bridge.build_graph(QC1, view, deadline=time.monotonic() + 0.1)
+    assert emb.blocked.is_set() and bridge._thread.is_alive()                  # the loop is stuck in sync code
+    n = len(store.queries)
+    emb.unblock.set()                                                           # the block clears
+    bridge._thread.join(5)
+    time.sleep(0.2)
+    assert len(store.queries) == n, store.queries[n:]
+    for call in (lambda: bridge.list_graphs(), lambda: bridge.drop_graph(QC1)):
+        with pytest.raises(ERR.GCancellationUnacknowledged):
+            call()
+    assert len(store.queries) == n
+
+
+def test_close_during_a_blocked_synchronous_call_sends_nothing_afterwards(tiny, store, monkeypatch):
+    monkeypatch.setattr(ERR, "G_CANCEL_GRACE_S", 0.3)
+    text, view = tiny
+    emb = BlockingEmbedder()
+    bridge = A.make_bridge(emb, text, driver=FalkorDriver(falkor_db=store))
+    emb.armed.set()
+    outcome: dict = {}
+
+    def run():
+        try:
+            bridge.build_graph(QC1, view)                                     # no deadline, no cancel flag
+        except BaseException as exc:                                           # noqa: BLE001 — recorded
+            outcome["exc"] = exc
+    worker = threading.Thread(target=run)
+    worker.start()
+    assert emb.blocked.wait(5)
+    t0 = time.monotonic()
+    assert bridge.close() is False                                              # not acknowledged: not clean
+    assert time.monotonic() - t0 < 5
+    worker.join(5)
+    assert isinstance(outcome.get("exc"), ERR.GCancellationUnacknowledged), outcome
+    n = len(store.queries)
+    emb.unblock.set()
+    bridge._thread.join(5)
+    time.sleep(0.2)
+    assert len(store.queries) == n and store.closed is False, store.queries[n:]
+
+
+def test_a_task_that_refuses_to_finish_on_the_success_path_is_never_a_success(tiny, store, bridges, monkeypatch):
+    """Invariant B (review c2 finding 1): the work RETURNS, but a task it started refuses to finish. With a
+    deadline far LONGER than the drain grace, the drain overruns: that is an unacknowledged termination —
+    the bridge poisons and raises, it never returns the answer, and nothing further is sent."""
+    monkeypatch.setattr(ERR, "G_CANCEL_GRACE_S", 0.3)
+    text, view = tiny
+    bridge = make_bridge(store, text, bridges)
+    bridge.build_graph(QC1, view)
+
+    async def refuses():
+        while not store.release.is_set():
+            try:
+                await asyncio.sleep(0.01)
+            except asyncio.CancelledError:
+                continue
+
+    def spawn(db, cypher, params):
+        if params.get("label") == A.TYPED_LABELS[0]:
+            asyncio.get_running_loop().create_task(refuses())
+    store.observe = spawn
+    facade = FakeFacade()
+    t0 = time.monotonic()
+    with pytest.raises(ERR.GCancellationUnacknowledged):
+        bridge.answer(QC1, view, ctx_for(facade, deadline=time.monotonic() + 30))
+    assert time.monotonic() - t0 < 5 and facade.sent == []
+    n = len(store.queries)
+    with pytest.raises(ERR.GCancellationUnacknowledged):
+        bridge.list_graphs()
+    store.release.set()
+    time.sleep(0.2)
+    assert len(store.queries) == n
+
+
+def test_a_dropped_questions_uuid_under_another_group_is_still_a_leak(tiny, store):
+    """Invariant C (review c2 finding 3): uuid ownership is append-only for the arm's life. Build A and C1,
+    DROP A, then retrieval for C1 returns A's uuid labelled C1: a leak (PremiseViolated), never a
+    per-cell ArmRefusal because A's map was discarded."""
+    text, view = tiny
+    arm = A.GraphArm(FalkorDriver(falkor_db=store), FakeEmbedder(), text)
+    store.respond = _typed_pull_row(A.stable_uuid("arms_A", "node", "COM_REVIEW"), "arms_C1")
+
+    async def scenario():
+        await arm.build_graph(QA, view)
+        await arm.build_graph(QC1, view)
+        await arm.drop_graph(QA)
+        await arm.plan_and_assemble(QC1, view)
+    with pytest.raises(ERR.PremiseViolated) as info:
+        asyncio.run(scenario())
+    assert info.value.reason == "cross_group_leak"
+
+
+def test_the_gate_checks_when_a_query_starts_not_when_it_was_created(tiny, store, bridges):
+    """Invariant A, timing: a query coroutine created BEFORE the gate shut and awaited after it is refused
+    when it starts — a suspended step of abandoned work cannot carry a query past the fatal signal."""
+    text, view = tiny
+    bridge = make_bridge(store, text, bridges)
+    bridge.build_graph(QC1, view)
+    graph = bridge.arm._databases["arms_C1"].client.select_graph("arms_C1")
+    pending_query = graph.query("RETURN 1")
+    bridge._shut.set()
+    n = len(store.queries)
+
+    async def go():
+        await pending_query
+    with pytest.raises(A.TransportPoisoned):
+        asyncio.run(go())
+    assert len(store.queries) == n
+
+
+def test_every_transport_entry_point_goes_through_the_one_gate(tiny, store, bridges):
+    """Invariant A, coverage. The installed FalkorDriver reaches FalkorDB ONLY through ``self.client``
+    (``_get_graph`` → ``select_graph`` → ``graph.query``; ``close`` → ``aclose``/``connection``), and every
+    clone shares its parent's client. So: (1) the root and every clone the bridge made — and the driver
+    each per-question Graphiti holds — carry the gate as ``client``; (2) the installed ``clone`` still
+    passes ``falkor_db=self.client`` and nothing else constructs a client (fails if an upgrade opens a
+    new connection); (3) once poisoned, the gate refuses EVERY public method of the real ``FalkorDB`` and
+    ``AsyncGraph`` classes, enumerated from the installed package, before the target sees it."""
+    import inspect as _inspect
+
+    from falkordb.asyncio import FalkorDB as RealFalkorDB
+    from falkordb.asyncio.graph import AsyncGraph
+    from graphiti_core.driver import falkordb_driver as FD
+
+    text, view = tiny
+    bridge = make_bridge(store, text, bridges)
+    bridge.build_graph(QC1, view)
+    bridge.build_graph(QA, view)
+    bridge.answer(QC1, view, ctx_for(FakeFacade()))
+    gate = bridge.arm.driver.client
+    assert isinstance(gate, A.TransportGate)
+    drivers = [bridge.arm.driver, *bridge.arm._databases.values(),
+               *(g.clients.driver for g in bridge.arm._graphiti.values())]
+    assert len(drivers) == 5 and all(d.client is gate for d in drivers)
+    # (2) the installed driver's own entry points
+    tree = ast.parse(_inspect.getsource(FD))
+    client_builds = [n for n in ast.walk(tree) if isinstance(n, ast.Call) and _call_name(n) == "FalkorDB"]
+    assert len(client_builds) == 1                                              # __init__, only when none is passed
+    clone = next(n for n in ast.walk(tree) if isinstance(n, ast.FunctionDef) and n.name == "clone")
+    for call in (n for n in ast.walk(clone) if isinstance(n, ast.Call) and _call_name(n) == "FalkorDriver"):
+        kw = {k.arg: ast.unparse(k.value) for k in call.keywords}
+        assert kw.get("falkor_db") == "self.client", ast.unparse(call)
+    # (3) every public method of the real client and graph classes, refused once poisoned
+    calls: list[str] = []
+
+    class Target:
+        def __getattr__(self, name):
+            def record(*a, **k):
+                calls.append(name)
+            return record
+    for cls in (RealFalkorDB, AsyncGraph):
+        names = [n for n, _ in _inspect.getmembers(cls, callable) if not n.startswith("_")]
+        assert len(names) >= 5, (cls, names)
+        shut = threading.Event()
+        probe = A.TransportGate(Target(), shut)
+        getattr(probe, names[0])()                                              # open: passes
+        assert calls == [names[0]]
+        calls.clear()
+        shut.set()
+        for name in names:
+            with pytest.raises(A.TransportPoisoned):
+                getattr(probe, name)()
+        assert calls == [], calls
 
 
 # -- live FR-016 (sandbox FalkorDB; ARMS849_LIVE=1) ---------------------------------------------------
