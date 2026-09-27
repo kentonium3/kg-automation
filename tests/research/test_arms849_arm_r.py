@@ -354,12 +354,13 @@ def test_empty_view_sections_are_refused_like_arm_d(c1, text):
 
 
 class FakeLedger:
-    """Only what calibrate() reads: run_rows() and terminal() — as tests/research/test_arms849_calibration.py."""
+    """Only what calibrate() reads: grading_rows() (the guarded scored accessor) and terminal() — as
+    tests/research/test_arms849_calibration.py."""
 
     def __init__(self, g_tokens: dict[str, int]) -> None:
         self._g = g_tokens
 
-    def run_rows(self):
+    def grading_rows(self):
         return [{"arm": "G", "question": q, "repeat": 1, "outcome": "ok", "assembled_context_tokens": t}
                 for q, t in self._g.items()]
 
