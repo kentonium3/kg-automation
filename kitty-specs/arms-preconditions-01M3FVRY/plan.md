@@ -65,7 +65,7 @@ kitty-specs/arms-preconditions-01M3FVRY/
 ├── spec.md
 ├── plan.md              # this file
 ├── research.md          # decisions D-1..D-10 with rationale and alternatives
-├── data-model.md        # outcomes, memory_support, attempt session_id, arm registration, halt record
+├── data-model.md        # outcomes, graph-store run-level events/report, attempt session_id, arm registration, halt record
 ├── quickstart.md        # how to verify each precondition, incl. the live smoke and the CI simulation
 └── contracts/
     ├── arm-registration.md
@@ -80,7 +80,7 @@ kitty-specs/arms-preconditions-01M3FVRY/
 scripts/research/
 ├── run_849_harness.py          # ARM_FACTORIES, live_runtime, Runtime lifecycle, Session: halt, ceiling outcome, before_send wiring, --measure
 └── arms849/
-    ├── ledger.py               # new outcome, memory_support validation, attempt_start session_id, premise-violation refusal
+    ├── ledger.py               # new outcomes, graph-store event validation + no-column refusal, attempt_start session_id, premise-violation refusal
     ├── sampler.py              # C12 UTC-only; cgroup reader for the series writer; column rename
     ├── substrate.py            # run(): host-side writer lifecycle, env_extra (container id, series path)
     ├── serving.py              # complete(..., before_send)
@@ -106,12 +106,12 @@ tests/research/
 ### IC-01 — Ledger vocabulary and schema
 
 - **Purpose**: give the ledger the words the later concerns need:
-  - a ceiling-breach outcome;
-  - `memory_support`;
+  - the ceiling-breach outcome `exceeds_memory_ceiling` and the could-not-check-at-send outcome `sampler_unreadable_at_send`;
+  - the graph-store run-level events (`series_generation`, `graph_store_first_build`, `graph_store_all_resident`) and the refusal of any per-cell graph-store column;
   - the attempt's `session_id`;
   - a premise-violation halt record that makes the ledger unusable as a primary.
 - **Relevant requirements**: FR-006, FR-008 (outcome half), FR-011, FR-012, FR-010; correction C.
-- **Affected surfaces**: `ledger.py`, `grading.py` (the summariser/completeness refusal), `sampler.py` (C12), `gates.py` (C4); the ledger, grading, sampler and gates tests.
+- **Affected surfaces**: `ledger.py` (including the `Ledger.summarise()` refusal, ~L648), `grading.py` (the completeness and export refusals), `sampler.py` (C12), `gates.py` (C4); the ledger, grading, sampler and gates tests.
 - **Sequencing/depends-on**: none. It goes first.
 - **Risks**:
   - **Correction A:** C4's two-way test makes every later module addition a same-commit `REQUIRED_MODULES` update. State this in every later WP's DoD.
@@ -120,7 +120,7 @@ tests/research/
 ### IC-02 — Arm registration (C13)
 
 - **Purpose**: register G, D and R with their real dependencies, so a live runtime answers cells.
-- **Relevant requirements**: FR-001–FR-004; correction B.
+- **Relevant requirements**: FR-001–FR-004, FR-016 (the G retrieval database-routing DEFECT FIX, called out separately in review); correction B.
 - **Affected surfaces**: `run_849_harness.py` (`ARM_FACTORIES`, `Resources`, `live_runtime`, `Runtime` close hook, halt handling), `arm_g.py`, `arm_d.py`, `arm_r.py`, `embed.py` usage.
 - **Sequencing/depends-on**: IC-01 (the halt record; the refusal outcome vocabulary).
 - **Risks**:
@@ -128,21 +128,20 @@ tests/research/
   - Lazy imports, so CI collection survives without `graphiti_core`.
   - Removing the fallbacks touches about 10 test ctx sites.
 
-### IC-03 — Graph-store memory series (C9)
+### IC-03 — Graph-store memory series, run-level (C9)
 
-- **Purpose**: measure `falkordb_cgroup_peak_mib` end to end, with support.
+- **Purpose**: wire the observational host-side cgroup series across the whole run, and report the baseline, the peak and the all-graphs-resident total (rubric §5 third correction @`91e679e6`; §10 C9).
 - **Relevant requirements**: FR-005–FR-007; NFR-004; C-009.
 - **Affected surfaces**:
-  - `substrate.py`: `run()` lifecycle, `env_extra`, a per-run series generation.
-  - `sampler.py`: the cgroup reader for the writer; the rename.
-  - `run_849_harness.py`: bind the series sampler, `require_breached`, and durable window-boundary events. Per-question and footprint figures per D-7a. **No graph-store column on per-cell rows.**
-  - `ledger.py`: REMOVE `falkordb_rss_peak_mib` from G's `SCORED_ARM_FIELDS`; validate the `series_generation` / `graph_build_started` / `graph_build_result` / `graph_query_done` / `graph_dropped` / `session_stopped` events.
-  - `grading.py` / `Ledger.summarise()`: compute the post-hoc graph-store report (D-7a).
-- **Sequencing/depends-on**: IC-01 (the `memory_support` shape), IC-02 (G is registered, so a G cell exists to measure).
+  - `substrate.py`: `run()` starts and stops the writer; a generation-specific series file; `env_extra` descriptor.
+  - `sampler.py`: the cgroup-file reader for the writer; exclusive-create series files; the rename.
+  - `run_849_harness.py`: REMOVE the per-attempt graph-store sampler path (~L543, L551, L655); emit `series_generation`, `graph_store_first_build` and `graph_store_all_resident`.
+  - `ledger.py`: REMOVE `falkordb_rss_peak_mib` from G's `SCORED_ARM_FIELDS`; refuse any graph-store column on a row; validate the three events.
+  - `Ledger.summarise()` / export: compute the run-level report.
+- **Sequencing/depends-on**: IC-01, IC-02.
 - **Risks**:
-  - The first reading must exist before the first G cell.
-  - Resolving the cgroup path from the container id (cgroup v2 scope path).
-  - The recorded interval must be the real one.
+  - The writer must be observational: its failure is `could_not_check` and never blocks a cell.
+  - The all-resident boundary must distinguish harness retirement from `build_graph`'s own pre-build clear.
 
 ### IC-04 — Ceiling guard at send (C11)
 

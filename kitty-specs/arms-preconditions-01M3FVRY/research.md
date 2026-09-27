@@ -30,10 +30,11 @@ Sources:
     - On timeout or cancel, the wrapper cancels the loop-side task.
     - It then waits up to `G_CANCEL_GRACE_S` (a named constant, 10 s) for an acknowledgement from the coroutine's own `finally`/cleanup, a flag it sets. `future.done()` is not used for this: it can report done while the coroutine is still unwinding (post-plan review).
     - If no acknowledgement arrives in time, the G wrapper raises `GCancellationUnacknowledged`, a `BaseException` and NOT an `Exception`, so no ordinary handler can absorb it. **Propagation (post-plan review):**
-      - `_call_with_timeout` currently discards the worker's exception after its grace wait and returns a retryable `("timeout", None)` (`run_849_harness.py` ~L702–705). It must re-raise a non-`Exception` `BaseException` found after the grace wait too, exactly as it already does on the normal path.
+      - `_call_with_timeout` currently discards the worker's exception after its grace wait and returns a retryable `("timeout", None)` (`run_849_harness.py` ~L702–705). After the grace wait it must (a) re-raise a non-`Exception` `BaseException`, exactly as on the normal path, AND (b) return any exception the worker raised as `("raised", exc)` instead of `("timeout", None)`. Then the terminal DOMAIN exceptions (`PremiseViolated`, `CeilingBreached`, `CeilingUnreadable`, `ArmRefusal`) are classified exactly as on the normal path, never turned into a retryable timeout (post-plan review #4: a probe returned a retryable timeout for late premise-violation and ceiling-breach exceptions). Race tests cover a breach, an unreadable-at-send and a premise violation, each raised during the grace wait.
       - `_drop_graph` catches `Exception` only, so the stop passes through.
       - The Session records `session_stopped{reason: "g_cancellation_unacknowledged", grace_s}`, issues NO further retrieval, drop or cleanup query, and the process exits.
       - The existing "zombie" path (a worker that never exits) keeps stopping the session as it does today.
+    - **Hybrid search must use the per-question driver** (post-plan review #4). `Graphiti.clients` is bound to the ORIGINAL driver (`arm_g.py` ~L315), and the `@handle_multiple_group_ids` decorator re-clones whenever that driver's database differs from the group, even overriding an explicitly passed driver (installed `decorators.py` ~L60–68). So G builds ONE `Graphiti` instance PER QUESTION, bound to that question's cached per-question driver. The decorator's `gid == driver._database` branch then applies and no further clone is created. Tests assert the clone count and task quiescence.
     - **Quiescence includes G's own background tasks.** `FalkorDriver.__init__` schedules a detached `_init_task` (index build) on the running loop, and every `clone()` constructs a new driver (installed `falkordb_driver.py` ~L178–182, L331–342). The per-question clone is created ONCE and cached per question, and its `_init_task` is AWAITED before first use, so index readiness per database is owned. The cancellation acknowledgement is given only when every task the G bridge started for that question is done. `GraphArm`'s single global `_indices_built` flag becomes per-database.
     - Resume runs in a FRESH process. All G state (graphs, UUID maps, `graph_stats`) is reconstructible from the frozen corpus, so nothing stale survives.
   - **No driver replacement exists.** Replacing the driver would leave stale references in `Graphiti.clients`, in `GraphArm`'s UUID maps and in `Session.graph_stats`.
@@ -93,7 +94,7 @@ Sources:
 ## D-6 — The writer lives in `substrate.run()`
 
 - **Decision**:
-  - `substrate.run()` (the host process that blocks on `docker run` of the runner, ~L672–689) starts the writer before the subprocess and waits for the first reading, bounded, failing closed with a named error.
+  - `substrate.run()` (the host process that blocks on `docker run` of the runner, ~L672–689) starts the writer before the subprocess. **The writer is observational**: if it cannot start or produces no reading, that is recorded (`series_generation` carries its status), and the run proceeds with the graph-store figure `could_not_check`. It never blocks the runner or refuses a cell.
   - It creates a generation-specific series file `falkordb-cgroup-<series_id>.jsonl` (exclusive create; never truncated; the writer's current `"w"` open at `sampler.py` ~L420 changes accordingly). It passes the generation descriptor `{series_id, path, container_id, interval_s}` to the runner through `_runner_cmd(..., env_extra=…)` (~L494–521), and the harness records it as a `series_generation` event before any graph activity.
   - It stops the writer in `finally`.
   - Only harness runs start it; the self-test and gate phases do not.
@@ -101,65 +102,30 @@ Sources:
 - **Rationale**: `up`/`down` are separate short-lived CLI processes, so a writer thread there would die with the process.
 - **Alternatives**: a sidecar container: rejected. It would need a compose change and a new moving part.
 
-## D-7a — The graph-store figure is reconstructed post hoc as a per-question CONTAINER TOTAL; per-cell rows carry no graph-store column
+## D-7a — The graph-store figure is RUN-LEVEL (rubric §5 third correction @`91e679e6`); per-cell rows carry no graph-store column
 
-- **Decision** (design lead ruling 1; rubric §5 @`a00abc03` (Kent 2026-09-26 22:41Z); durability approved 20260926T231025320954Z444929a640):
-  - **Durable boundaries, not live windows.** The harness writes these ledger events, each carrying `series_id`:
-    - `graph_build_started{question, attempt_key, ts}` BEFORE the build begins;
-    - `graph_build_result{question, attempt_key, ts, ok}` after it (a failed or interrupted build leaves a start with no result, or `ok: false`);
-    - `graph_query_done{key, attempt, ts}` at the completion of that ATTEMPT's last graph query (inference excluded; no event if retrieval raised);
-    - `graph_dropped{question, ts, ok}` after each drop attempt.
-  - **Window rules, applied by the evaluator:**
-    - A question's window starts at its FIRST `graph_build_started` and ends at the `graph_query_done` of its TERMINAL repeat-3 attempt.
-    - On resume, the original start is preserved: the earliest start for the question in the ledger. A rebuild in a later generation makes the window cross generations, so it is `could_not_check: interrupted`.
-    - Any missing or incomplete boundary (a start without a result, no terminal repeat-3 query event, a halt) makes the figure `could_not_check` with the specific reason.
-  - **`all_resident_mib`**: the peak over the interval from the LAST successful `graph_build_result` of repeat 1 to the FIRST `graph_dropped`. This is only defined when that interval lies inside one generation and every question has a successful build with no drop before it; otherwise it is `could_not_check`.
-  - **`baseline_mib`**: the reading held at the first `graph_build_started` of the generation that contains it.
-  - **Series files are never truncated.** There is one file per `substrate.run` generation, `falkordb-cgroup-<series_id>.jsonl`, whose header carries the container id and the recorded interval.
-  - **The figures are computed at summary and export time:**
-    - per question, the container high-water mark over [that question's first `graph_build_started` .. the `graph_query_done` of its terminal repeat-3 attempt], with `memory_support`;
-    - per run, `baseline_mib` (before the first build) and `all_resident_mib` (the peak once every question's graph is resident).
-    - A window that crosses a series generation (interruption, container change) yields `could_not_check: interrupted` for that question, never a number.
-  - **Per-cell G rows carry NO graph-store column.** The retired `falkordb_rss_peak_mib`, and the new name on a row, are both refused.
-  - **The two sampler roles fail differently** (design lead):
-    - The ceiling guard's live sampler: unreadable means could-not-check and **refuses the cell** (a safety property).
-    - The graph-store figure: unavailable means `could_not_check` in the report, and **the cell is unaffected** (a reported column, about 0.4 % of the ceiling).
-  - Graph-store memory is not, and never was, a primary-completeness condition. Primary-complete (`grading.is_complete`) means every one of the 72 cells is TERMINAL with zero `not_implemented`. That includes the 18 registered D `exceeds_model_context` cells, which are terminal and never scored. This mission adds explicit exclusions: a ledger holding an `exceeds_memory_ceiling` cell, a `sampler_unreadable_at_send` cell, or a `premise_violated` event is NOT primary-complete. §5 says neither memory measure is pass/fail, and §7 carries no memory term.
-- **Rationale**: measured on a throwaway sandbox (#1023): a build takes 0.54–2.02 s; the cgroup charge is a high-water mark that never drops after `drop_graph`; the whole footprint is about 150–230 MiB.
-  - Question-major order: ruled out (asymmetric prompt-cache warmth on G's cost axis).
-  - Build-and-drop per cell: ruled out (defeated by the high-water mark).
-  - A fresh container per cell: ruled out (false precision).
-  - A live per-question event: replaced (it cannot survive a crash between the last run row and the event, or a resume mid-question).
-
-## D-7 — Remove the per-attempt graph-store sampler; add a historical-window evaluator
-
-- **Decision**:
-  - The harness's per-attempt graph-store sampler path is REMOVED: entered per attempt, refusing unreadable data, and attaching its peak to G rows (`run_849_harness.py` ~L543, L551, L655). The ceiling guard's GTT sampler stays live.
-  - A historical-window evaluator (a pure function over the series files, the generation descriptors and the ledger boundary events) is called by `Ledger.summarise()` and the export to produce the graph-store report (D-7a).
-  - `require_breached` still applies to every sampler the harness binds live.
-- **Rationale**: a post-hoc report cannot be a live context manager. The surfaces change, and saying so here keeps a superseded "one-line swap" from surviving as an executable instruction.
+- **Decision** (Kent's selection ~23:2xZ of the design lead's recommendation `20260926T232216689769Z288a70b37a`; team-lead boundary ruling `20260926T232439481956Z612434ad98`; registered @`91e679e6`):
+  - The container's cgroup memory is sampled across the whole run by the host-side writer (D-5, D-6), with one never-truncated series per substrate generation, bound by a `series_generation` event.
+  - The run reports `baseline_mib`, `peak_mib` and `all_resident_mib`, using two harness events: `graph_store_first_build` and `graph_store_all_resident`. The marginal per-graph figure is derivable (contracts/memory-series.md item 4).
+  - Any unavailable figure is `could_not_check` with a reason. **No cell is ever affected** (two sampler roles).
+  - Per-cell rows carry NO graph-store column. The per-attempt graph-store sampler path in the harness is REMOVED.
+- **Rationale**: measured on a throwaway sandbox (#1023): builds take 0.54–2.02 s; the cgroup charge is a high-water mark that never drops after `drop_graph`; the whole footprint is about 150–230 MiB, roughly 0.4 % of the ceiling. A per-question figure is not attributable under any ordering.
+- **Deliberately avoided machinery** (team-lead instruction: record it, so the plan got smaller deliberately and not by omission):
+  - per-question windows;
+  - attempt-level boundary events (`graph_build_started` / `graph_build_result` / `graph_query_done` / `graph_dropped`);
+  - a historical-window evaluator;
+  - `could_not_check: interrupted` on a generation crossing;
+  - `memory_support` as a windowed structure (held reading, in-window counts, `last_ts`).
+  Earlier designs were rejected too: question-major order (prompt-cache bias on G's cost axis), build-and-drop per cell (defeated by the high-water mark), and a fresh container per cell (false precision).
+- Graph-store memory is not, and never was, a primary-completeness condition.
 
 ## D-8 — Ledger additions
 
 - **Decision**:
   - A new outcome `exceeds_memory_ceiling`: terminal for the attempt, never averaged, not scored, carrying the measured peak and the ceiling. Distinct from both `error` and an unreadable sampler (ruling (b); precedent `exceeds_model_context`).
-  - `memory_support` is validated on write and on replay:
-    - exact keys;
-    - canonical UTC timestamps;
-    - window end ≥ start;
-    - a non-negative int count;
-    - `held_ts` a string or None;
-    - `peak_source` ∈ {held, in_window};
-    - held ⇒ `held_ts` present;
-    - zero in-window samples ⇒ held.
+  - The graph-store boundary events (`series_generation`, `graph_store_first_build`, `graph_store_all_resident`) are validated on write and replay. The run-level report is computed and validated when produced (D-7a); there is no persisted `memory_support`.
   - `attempt_start` carries `session_id`. Replay requires the attempt's `session_id` to match the most recent passing `session_gates` of **that** session.
   - A premise-violation halt record (event kind `premise_violated`, naming the arm and the reason). **Any ledger containing it is refused as a primary, by the grading export, AND by `Ledger.summarise()` (`ledger.py` ~L648), which today averages every `ok` row without looking at events** (correction C; post-plan review). Rows stay untouched but unusable. Tests cover a violation arriving on repeat 2, after scored rows, both immediately and after replay.
-  - **`memory_support` validation is internally consistent** (post-plan review):
-    - `interval_s` is finite and > 0;
-    - `held` ⇒ `held_ts` is present, STRICTLY before `window_start`, and no more than `GAP_INTERVALS × interval_s` before it;
-    - `in_window` ⇒ `in_window_readings ≥ 1`;
-    - a new `last_ts` (the latest reading used): when `in_window_readings == 0` it EQUALS `held_ts`, and the window end must then be within `STALE_INTERVALS × interval_s` of it; when `in_window_readings ≥ 1` it lies INSIDE [`window_start`, `window_end`] and is at most `STALE_INTERVALS × interval_s` before `window_end`.
-    A support object that describes a window §5 would have refused is itself refused, on write and on replay.
   - ledger-schema item 2 gets a dated sentence in this mission's `contracts/ledger-deltas.md`, noting that the per-session clause is now enforceable.
 - **Rationale**: the design-lead rulings; the post-merge residual (`attempt_start` had no session id); correction C (untouched must not mean usable).
 
@@ -186,7 +152,7 @@ Sources:
     2. the fresh-worktree CI simulation (a detached worktree of HEAD, no `build/`, a stub `graphiti_core` via PYTHONPATH);
     3. the live smoke (REQUIRED).
     It writes a record (commit, results, skip counts), and the merge to main cites it.
-  - **Mandatory, non-skipped coverage (post-plan review):** the checker holds a named list of REQUIRED test node IDs that must EXECUTE AND PASS on office4. These are the precondition tests of FR-001–FR-012 plus the post-merge C-list tests (C-1, C-2, C-5). The checker reads pytest's junit-xml. Any required node missing, deselected, skipped or failed makes the record FAIL, whatever the exit code. The fresh-worktree CI simulation must also show zero failures and zero collection errors.
+  - **Mandatory, non-skipped coverage (post-plan review):** the checker holds a named list of REQUIRED test node IDs that must EXECUTE AND PASS on office4. These are the precondition tests of FR-001–FR-016 (including FR-016's expected-hybrid-hit live test) plus the post-merge C-list tests (C-1, C-2, C-5). The checker reads pytest's junit-xml. Any required node missing, deselected, skipped or failed makes the record FAIL, whatever the exit code. The fresh-worktree CI simulation must also show zero failures and zero collection errors.
   - **The live smoke is REQUIRED, not optional** (plan.md Charter Check). The record binds every result to the exact commit SHA, and it is invalid for any other commit.
 - **Rationale**: CI does not exercise the arms (Kent). The simulation is what reproduced CI exactly on 2026-09-26 and distinguished a real second layer from an imagined third. The design lead: "keep it as a gate, not a habit."
 

@@ -16,21 +16,7 @@ The baseline is arms-run-01M3APTA's `data-model.md` and contracts. This file lis
 |---|---|---|
 | `outcome` | **adds** `sampler_unreadable_at_send` | The GTT read failed at `before_send`, after the attempt began. Could-not-check. Terminal for the attempt, never averaged, not scored. Refuses the cell and does NOT stop the session. Distinct from `exceeds_memory_ceiling` and from the pre-attempt `sampler_unreadable` event. |
 | `outcome` | **adds** `exceeds_memory_ceiling` | Terminal for the attempt. Never averaged. Not a scored outcome. Carries `memory_ceiling: {measured_gib: float, ceiling_gib: float, stage: "before_send"}`. Distinct from `error`, from `exceeds_model_context`, and from an unreadable sampler (which is `sampler_unreadable`, an event, and no attempt). |
-| `falkordb_rss_peak_mib` | **REMOVED** from G rows (retired; must not appear anywhere) | Per-cell G rows carry NO graph-store memory column (D-7a). |
-
-### memory_support
-
-| Key | Type | Rule |
-|---|---|---|
-| `window_start` | str | canonical UTC isoformat |
-| `window_end` | str | canonical UTC isoformat, ≥ `window_start` |
-| `in_window_readings` | int | ≥ 0 (excluding the held reading) |
-| `held_ts` | str or null | canonical UTC. When present it is STRICTLY before `window_start` and at most `GAP_INTERVALS × interval_s` before it |
-| `peak_source` | `"held"` \| `"in_window"` | `"held"` ⇒ `held_ts` present. `"in_window"` ⇒ `in_window_readings ≥ 1`. `in_window_readings == 0` ⇒ `"held"`. A tie ⇒ `"in_window"`. |
-| `interval_s` | float | the series' **recorded** real interval: finite and > 0 |
-| `last_ts` | str | canonical UTC: the latest reading used. If `in_window_readings == 0` it equals `held_ts`. Otherwise it lies inside [`window_start`, `window_end`]. Either way `window_end − last_ts ≤ STALE_INTERVALS × interval_s`. |
-
-Exactly these keys. There is no other key and no coercion (a bool is not an int).
+| `falkordb_rss_peak_mib` / any graph-store column | **REMOVED** from G rows (retired; must not appear anywhere) | Per-cell rows carry NO graph-store memory column; a row carrying one is refused (rubric §5 third correction @`91e679e6`). |
 
 ## attempt_start record
 
@@ -45,21 +31,17 @@ Exactly these keys. There is no other key and no coercion (a bool is not an int)
 | `premise_violated` | **new** | `{arm: str, reason: "tripwire" \| "cross_group_leak", message: str, at_key: RunKey dict}`. Its presence makes the ledger **unusable as a primary, for export, and for `Ledger.summarise()`** (correction C). Rows stay untouched. |
 | `memory_ceiling` | unchanged | The pre-cell ceiling refusal stays as it is. |
 | `series_generation` | **new**, one per `substrate.run` | `{series_id, path, container_id, interval_s, started_ts}`. Recorded before any graph activity. |
-| `graph_build_started` | **new** | `{question, attempt_key, ts, series_id}`. |
-| `graph_build_result` | **new** | `{question, attempt_key, ts, ok, series_id}`. |
-| `graph_query_done` | **new**, per G ATTEMPT that finished retrieval | `{key, attempt, ts, series_id}`: that attempt's last graph query (inference excluded). |
-| `graph_dropped` | **new** | `{question, ts, ok, series_id}`. |
-
-All boundary events are validated on write and replay (types, canonical UTC, known `series_id`). The graph-store REPORT computed from them is not persisted, and so is not replay-validated.
+| `graph_store_first_build` | **new**, once per generation | `{ts, series_id}` at the first `build_graph` start. |
+| `graph_store_all_resident` | **new**, once per generation | `{ts, series_id, n_graphs}` when the last question's repeat-1 build succeeds with no harness retirement yet. |
 | `session_stopped` | **new** | `{reason, grace_s?}`, with reason one of `g_cancellation_unacknowledged`, `ceiling_breach_at_send`, `premise_violated`, `operator`, … Every stop reason is distinguishable. |
+
+These events are validated on write and replay (types, canonical UTC, known `series_id`).
 
 ### Graph-store report (computed, NOT persisted)
 
-Computed at summary and export time from the boundary events plus the series files (D-7a):
-- per question, `{falkordb_cgroup_peak_mib, memory_support}`, or `could_not_check: interrupted`;
-- per run, `{baseline_mib, all_resident_mib}`.
-
-It is never a primary-completeness condition, and never a score.
+Computed at summary and export time from the series files plus the events above (contracts/memory-series.md item 4):
+- `{baseline_mib, peak_mib, all_resident_mib, interval_s, series_ids}`, each figure a number or `could_not_check: <reason>`.
+- It is validated when produced (it is not persisted, so there is no replay). It is never a primary-completeness condition and never a score.
 
 ## Arm registration (in-memory, not persisted)
 
