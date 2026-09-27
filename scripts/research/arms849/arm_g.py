@@ -63,7 +63,10 @@ from __future__ import annotations
 
 import asyncio
 import concurrent.futures
+import contextlib
 import re
+import socket
+import struct
 import threading
 import time
 import uuid as _uuid
@@ -713,26 +716,82 @@ class SocketGate:
     correction; acceptance A.1). Pool-scoped: not a class attribute (one poisoned cell would poison every
     later bridge in the process) and not per connection (siblings in the pool would keep writing). Each
     :class:`GatedConnection` receives this same object through the pool's ``connection_kwargs``; a
-    different pool gets a different gate."""
+    different pool gets a different gate.
 
-    __slots__ = ("shut",)
+    ATOMIC with the wire (review c4 blocker): ``lock`` is held both to shut the gate (:meth:`shut_now`) and
+    to check-and-enqueue a write (:meth:`enqueue`), with no await inside either. So every enqueue of bytes
+    is strictly before or strictly after the poison, and any enqueue after it is refused."""
+
+    __slots__ = ("lock", "shut")
 
     def __init__(self) -> None:
         self.shut = threading.Event()
+        # threading.Lock, not asyncio.Lock: within one event loop tasks interleave only at await, so a
+        # no-await section needs no intra-loop lock; this lock exists solely because poison is set from
+        # ANOTHER THREAD. The critical section must contain no await, no I/O wait, and nothing unbounded
+        # (check shut + writelines only); an await inside it would block the loop thread.
+        self.lock = threading.Lock()
 
     def check(self) -> None:
         if self.shut.is_set():
             raise TransportPoisoned("the G bridge's socket gate is shut; not one byte may reach FalkorDB")
 
+    def shut_now(self) -> None:
+        """Shut the gate, ordered against every enqueue (the same lock)."""
+        with self.lock:
+            self.shut.set()
+
+    def enqueue(self, writer: Any, data: Iterable[bytes]) -> None:
+        """Check and hand the bytes to the transport as ONE critical section — no await between them. The
+        transport's ``writelines`` is synchronous; the caller awaits ``drain`` only after the lock is
+        released (redis-py's own send path does exactly that)."""
+        with self.lock:
+            self.check()
+            writer.writelines(data)
+
+
+class _GatedWriter:
+    """Wraps a connection's ``asyncio.StreamWriter`` so its ONLY byte-producing calls (``writelines`` — the
+    single write site in redis-py 8.1.0's async connection — and ``write``) go through
+    :meth:`SocketGate.enqueue`. Everything else (``drain``, ``close``, ``wait_closed``, ``transport``,
+    ``get_extra_info``) is the writer's own, so redis-py's error handling is unchanged."""
+
+    __slots__ = ("_gate", "_writer")
+
+    def __init__(self, writer: Any, gate: SocketGate) -> None:
+        self._writer = writer
+        self._gate = gate
+
+    def writelines(self, data: Iterable[bytes]) -> None:
+        self._gate.enqueue(self._writer, data)
+
+    def write(self, data: bytes) -> None:
+        self._gate.enqueue(self._writer, [data])
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(self._writer, name)
+
 
 class GatedConnection(_redis_async.Connection):
     """The redis connection every byte of a bridge's pool goes through — the PHYSICAL boundary.
 
-    In the installed redis-py (8.1.0) every command write goes through ``send_packed_command`` (``send_command``,
-    pipelines, the connect handshake, falkordb's ``execute_command`` and its schema refresh, retries), and every
-    new socket through ``connect`` / ``connect_check_health``. All three check the pool's :class:`SocketGate`
-    first, so after the poison no byte is written and no socket is opened, whatever layer above holds a
-    reference to the client (review c3 finding A: raw ``execute_command``, schema refresh, retries)."""
+    - **Writes.** In the installed redis-py (8.1.0) every command byte leaves through
+      ``self._writer.writelines`` (``send_packed_command`` / ``_send_packed_command``: commands, pipelines,
+      the connect handshake, health-check PINGs, falkordb's ``execute_command`` and its schema refresh,
+      retries). The writer is a :class:`_GatedWriter`, so the gate check and the enqueue are one critical
+      section: no check-then-act across an await (review c4 blocker).
+    - **Opens.** ``connect`` / ``connect_check_health`` / ``_connect`` refuse at entry; and when the socket
+      opens, the gate is re-checked UNDER THE LOCK in the same step that installs the gated writer. A socket
+      opened across the poison is ABORTED (reset, no linger) before its first application byte, and its
+      reader/writer are dropped, so the pool can never hand it out as usable. Invariant A (contract
+      wording, design lead 2026-09-27): after the fatal signal no application byte is written and no socket
+      SURVIVES; a kernel TCP handshake already in flight at the poison instant may complete, but its
+      transport is aborted before any application byte.
+    - Entry checks (``send_packed_command``, ``connect``, ``connect_check_health``, ``_connect``) refuse early
+      and ABORT the connection's socket if it has one, so a connection touched after the poison never
+      survives; they are not what the no-byte invariant rests on (the locked enqueue is). Idle connections
+      opened before the poison and never touched again stay open but unusable (every byte is gated) until
+      the process exits, as D-2 requires after GCancellationUnacknowledged."""
 
     def __init__(self, *, transport_gate: SocketGate, **kwargs: Any) -> None:
         if not isinstance(transport_gate, SocketGate):
@@ -740,16 +799,48 @@ class GatedConnection(_redis_async.Connection):
         self._transport_gate = transport_gate
         super().__init__(**kwargs)
 
+    def _refuse_if_shut(self) -> None:
+        """An entry check that also leaves no socket behind: once the gate is shut, a connection touched
+        for any reason has its transport aborted before the refusal (no byte, no surviving socket)."""
+        if self._transport_gate.shut.is_set():
+            self._abort_socket()
+            raise TransportPoisoned("the G bridge's socket gate is shut; not one byte may reach FalkorDB")
+
     async def connect(self) -> None:
-        self._transport_gate.check()
+        self._refuse_if_shut()
         await super().connect()
 
     async def connect_check_health(self, check_health: bool = True, retry_socket_connect: bool = True) -> None:
-        self._transport_gate.check()
+        self._refuse_if_shut()
         await super().connect_check_health(check_health=check_health, retry_socket_connect=retry_socket_connect)
 
+    async def _connect(self) -> None:
+        self._refuse_if_shut()
+        await super()._connect()
+        gate = self._transport_gate
+        with gate.lock:
+            opened_across_the_poison = gate.shut.is_set()
+            if not opened_across_the_poison:
+                # get/setattr: redis types _writer as a StreamWriter; the gated wrapper is duck-typed to it
+                setattr(self, "_writer", _GatedWriter(getattr(self, "_writer"), gate))  # noqa: B009, B010
+        if opened_across_the_poison:
+            self._abort_socket()
+            raise TransportPoisoned("a socket opened across the poison was aborted before its first byte")
+
+    def _abort_socket(self) -> None:
+        writer: Any = getattr(self, "_writer")  # noqa: B009 — see _connect
+        self._reader = None
+        setattr(self, "_writer", None)  # noqa: B010
+        if writer is None:
+            return
+        sock = writer.transport.get_extra_info("socket")
+        if sock is not None:
+            with contextlib.suppress(OSError):
+                sock.setsockopt(socket.SOL_SOCKET, socket.SO_LINGER, struct.pack("ii", 1, 0))   # reset, no FIN
+        writer.transport.abort()
+
     async def send_packed_command(self, command: Any, check_health: bool = True) -> None:
-        self._transport_gate.check()
+        self._refuse_if_shut()
         await super().send_packed_command(command, check_health)
 
 
@@ -908,7 +999,7 @@ class Bridge:
                     clean = True
                 except (Exception, GCancellationUnacknowledged):  # noqa: BLE001 — close reports, never raises
                     clean = False
-            self._shut.set()                                        # after close, nothing reaches FalkorDB
+            self._gate.shut_now()                                   # after close, nothing reaches FalkorDB
             stopped = self._halt_loop(errors.G_CANCEL_GRACE_S if clean else HALT_JOIN_S)
             clean = clean and stopped
             if clean:
@@ -925,7 +1016,7 @@ class Bridge:
         """Shut the gate FIRST — from then on not one byte reaches FalkorDB, whatever the loop is doing — then
         mark the bridge and try to stop the loop (best effort: blocked synchronous work may keep it alive; the
         socket gate already makes that harmless). Idempotent; never raises."""
-        self._shut.set()
+        self._gate.shut_now()
         if self._poisoned is None:
             self._poisoned = grace
         self._halt_loop(min(HALT_JOIN_S, grace))
@@ -1002,18 +1093,19 @@ class Bridge:
              what: str, *, closing_cancels: bool = True) -> T:
         """One operation, the lock held: submit, wait (:meth:`_wait`), decide (:meth:`_conclude`), then act.
 
-        THE single exit is enforced by the FRAME, not by the source's shape (review c3 finding B): after the
-        submit, unless ``_conclude`` delivered a verdict, the ``finally`` poisons the bridge — whatever raised
-        (a caller's KeyboardInterrupt during the wait, any helper, ``_conclude`` itself) and before it
-        propagates. The verdict — the result, or the exception to raise, decided only after the
+        THE single exit is enforced by the FRAME, not by the source's shape (review c3 finding B): from the
+        submission itself on (review c4: the submit is INSIDE the frame), unless ``_conclude`` delivered a
+        verdict, the ``finally`` poisons the bridge — whatever raised (an interrupt right after scheduling or
+        inside the submit call, a caller's KeyboardInterrupt during the wait, any helper, ``_conclude``
+        itself) and before it propagates. The verdict — the result, or the exception to raise, decided only after the
         acknowledgement — is acted on OUTSIDE the guarded region, so ordinary outcomes never poison."""
         if self._poisoned is not None:
             raise GCancellationUnacknowledged(self._poisoned)
         ack = threading.Event()
         outcome: dict[str, BaseException] = {}
-        future = asyncio.run_coroutine_threadsafe(self._guarded(make, ack, outcome), self._loop)
         concluded = False
         try:
+            future = asyncio.run_coroutine_threadsafe(self._guarded(make, ack, outcome), self._loop)
             why = self._wait(future, deadline, cancelled, closing_cancels)
             verdict = self._conclude(future, ack, outcome, why, what)
             concluded = True

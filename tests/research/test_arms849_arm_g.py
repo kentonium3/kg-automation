@@ -1453,9 +1453,10 @@ def test_every_exit_of_every_operation_passes_the_acknowledgement_check():
     run = body(A.Bridge._run)
     submit_line = next(c.lineno for c in ast.walk(run) if isinstance(c, ast.Call)
                        and _call_name(c) == "run_coroutine_threadsafe")
-    tries = [st for st in run.body if isinstance(st, ast.Try) and st.lineno > submit_line]
+    tries = [st for st in run.body if isinstance(st, ast.Try)]
     assert len(tries) == 1, [ast.unparse(t)[:60] for t in tries]
     guard = tries[0]
+    assert guard.lineno < submit_line <= guard.body[-1].end_lineno       # the submission is INSIDE the frame
     assert "if not concluded" in ast.unparse(guard.finalbody[0]) and "_mark_poisoned" in ast.unparse(guard.finalbody[0])
     assert ast.unparse(guard.body[-1]) == "concluded = True"
     for node in ast.walk(run):
@@ -1474,7 +1475,7 @@ def test_every_exit_of_every_operation_passes_the_acknowledgement_check():
     def statements(fn):
         return [st for st in body(fn).body if not (isinstance(st, ast.Expr) and isinstance(st.value, ast.Constant))]
     assert ast.unparse(statements(A.Bridge._poison)[0]) == "self._mark_poisoned(grace)"
-    assert ast.unparse(statements(A.Bridge._mark_poisoned)[0]) == "self._shut.set()"
+    assert ast.unparse(statements(A.Bridge._mark_poisoned)[0]) == "self._gate.shut_now()"
 
 
 def _instance(cls):
@@ -1636,6 +1637,7 @@ class FakeRedisServer:
         self.lock = threading.Lock()
         self.accepted = 0
         self.received: dict[int, int] = {}
+        self.ended: dict[int, str] = {}                                    # "open" | "eof" | "reset"
         self.commands: list[tuple[int, list[str]]] = []
         self.hold: set[str] = set()
         self.stale: set[str] = set()
@@ -1675,10 +1677,12 @@ class FakeRedisServer:
             self.accepted += 1
             cid = self.accepted
             self.received[cid] = 0
+            self.ended[cid] = "open"
         try:
             while True:
                 line = await self._line(reader, cid)
                 if not line:
+                    self.ended[cid] = "eof"
                     return
                 if not line.startswith(b"*"):
                     args = line.decode().split()
@@ -1701,7 +1705,11 @@ class FakeRedisServer:
                     return
                 writer.write(self._reply(cmd, key))
                 await writer.drain()
+        except ConnectionResetError:
+            self.ended[cid] = "reset"
+            return
         except (ConnectionError, asyncio.IncompleteReadError):
+            self.ended[cid] = "eof"
             return
 
     def _reply(self, cmd: str, key: str) -> bytes:
@@ -2005,6 +2013,272 @@ def test_a_reply_slower_than_redis_default_timeout_still_arrives(tiny, resp_serv
     finally:
         resp_server.release.set()
         bridge.close()
+
+
+# -- WP02 review cycle 4 → cycle 5: the gate check is ATOMIC with the write; opens across the poison are
+#    aborted before their first byte; the submission itself is inside the guarded frame.
+# ---------------------------------------------------------------------------------------------------
+
+
+def _block_once(armed: threading.Event, reached: threading.Event, resume: threading.Event):
+    """A pause that blocks the LOOP THREAD synchronously (so neither a cancellation nor the loop stop can
+    land), once, when armed — the shape of Codex's c4 probes."""
+    def pause():
+        if armed.is_set():
+            armed.clear()
+            reached.set()
+            resume.wait(30)
+    return pause
+
+
+def _poison_while_blocked(bridge, call, reached):
+    """Run ``call`` on a thread; once the loop is blocked at the pause, the call's deadline passes and the
+    bridge raises GCancellationUnacknowledged (the loop cannot acknowledge). Returns the call's outcome."""
+    out: dict = {}
+
+    def run():
+        try:
+            call()
+        except BaseException as exc:                                        # noqa: BLE001 — recorded
+            out["exc"] = exc
+    worker = threading.Thread(target=run)
+    worker.start()
+    assert reached.wait(5)
+    worker.join(10)
+    assert not worker.is_alive()
+    return out.get("exc")
+
+
+def test_a_write_paused_after_its_gate_check_sends_nothing_after_the_poison(tiny, resp_server, monkeypatch):
+    """Codex c4 BLOCKER, shape 1: the write path is paused AFTER the entry gate check and immediately before
+    redis writes the command (inside ``check_health``, a superclass await between the two), the real
+    GCancellationUnacknowledged propagates, and the write then resumes: ZERO bytes reach the server. The
+    check and the enqueue are one critical section; there is no check-then-act across an await."""
+    import redis.asyncio.connection as rconn
+
+    monkeypatch.setattr(ERR, "G_CANCEL_GRACE_S", 0.2)
+    text, view = tiny
+    bridge = A.make_bridge(FakeEmbedder(), text, host="127.0.0.1", port=resp_server.port)
+    bridge.build_graph(QC1, view)
+    armed, reached, resume = threading.Event(), threading.Event(), threading.Event()
+    pause = _block_once(armed, reached, resume)
+    real = rconn.AbstractConnection.check_health
+
+    async def paused_check_health(self, *a, **k):
+        pause()
+        return await real(self, *a, **k)
+    monkeypatch.setattr(rconn.AbstractConnection, "check_health", paused_check_health)
+    armed.set()
+    exc = _poison_while_blocked(bridge, lambda: bridge.list_graphs(deadline=time.monotonic() + 0.1), reached)
+    assert isinstance(exc, ERR.GCancellationUnacknowledged), exc
+    mark = resp_server.totals()
+    resume.set()                                                            # the paused write resumes now
+    time.sleep(0.3)
+    assert resp_server.totals() == mark, (mark, resp_server.totals())
+    resp_server.release.set()
+    bridge.close()
+
+
+@pytest.mark.parametrize("where", ["handshake", "after_open"])
+def test_a_connection_opened_across_the_poison_sends_no_byte(tiny, resp_server, monkeypatch, where):
+    """Codex c4 BLOCKER, shapes 2 and 3: a NEW connection is being opened when the poison lands — paused
+    after the socket is open but before the handshake (``after_open``), or inside the handshake itself
+    (``handshake``: on_connect, CLIENT SETINFO). Resumed after the fatal signal, NO application byte is
+    written on it; opened across the poison and caught by the post-open re-check, it is ABORTED (reset),
+    never left open; no socket SURVIVES, and the poisoned pool never hands the connection out again. The
+    ``after_open`` pause OCCUPIES the window between the open returning and the post-open re-check."""
+    import redis.asyncio.connection as rconn
+
+    monkeypatch.setattr(ERR, "G_CANCEL_GRACE_S", 0.2)
+    text, _ = tiny
+    bridge = A.make_bridge(FakeEmbedder(), text, host="127.0.0.1", port=resp_server.port)
+    armed, reached, resume = threading.Event(), threading.Event(), threading.Event()
+    pause = _block_once(armed, reached, resume)
+    if where == "after_open":
+        real_open = rconn.asyncio.open_connection
+
+        async def paused_open(*a, **k):
+            pair = await real_open(*a, **k)
+            pause()
+            return pair
+        monkeypatch.setattr(rconn.asyncio, "open_connection", paused_open)
+    else:
+        real_hs = rconn.AbstractConnection.on_connect_check_health
+
+        async def paused_handshake(self, *a, **k):
+            pause()
+            return await real_hs(self, *a, **k)
+        monkeypatch.setattr(rconn.AbstractConnection, "on_connect_check_health", paused_handshake)
+    armed.set()
+    before = resp_server.totals()
+    exc = _poison_while_blocked(bridge, lambda: bridge.list_graphs(deadline=time.monotonic() + 0.1), reached)
+    assert isinstance(exc, ERR.GCancellationUnacknowledged), exc
+    opened = resp_server.totals()[0] - before[0]
+    assert opened == 1                                                      # the TCP handshake completed
+    mark = resp_server.totals()
+    resume.set()
+    time.sleep(0.3)
+    assert resp_server.totals() == mark, (mark, resp_server.totals())      # ZERO command bytes after the signal
+    new_cid = max(resp_server.received)
+    assert resp_server.received[new_cid] == 0
+    if where == "after_open":
+        assert resp_server.ended[new_cid] == "reset", resp_server.ended    # aborted before its first byte
+    # no socket SURVIVES: the connection opened across the poison holds no transport, so the pool can never
+    # hand it out as usable — and a LATER acquire on the same poisoned pool is refused, sending nothing
+    bridge._thread.join(5)
+    raw = object.__getattribute__(bridge.arm.driver.client, "_target")
+    pool = raw.connection.connection_pool
+    everyone = list(pool._available_connections) + list(pool._in_use_connections)
+    assert len(everyone) == 1 and not everyone[0].is_connected, everyone
+    assert everyone[0]._reader is None and everyone[0]._writer is None
+    with pytest.raises(A.TransportPoisoned):
+        asyncio.run(pool.get_connection())
+    assert resp_server.totals() == mark
+    bridge.close()
+
+
+def test_a_health_check_racing_the_poison_sends_no_byte(tiny, resp_server, monkeypatch):
+    """Codex c4 BLOCKER, shape 4: a periodic health check (PING) is due; the poison lands while it is paused
+    just before its own write. Resumed, the PING is refused at the enqueue: ZERO bytes."""
+    import redis.asyncio.connection as rconn
+
+    monkeypatch.setattr(ERR, "G_CANCEL_GRACE_S", 0.2)
+    text, view = tiny
+    bridge = A.make_bridge(FakeEmbedder(), text, host="127.0.0.1", port=resp_server.port)
+    bridge.build_graph(QC1, view)
+    raw = object.__getattribute__(bridge.arm.driver.client, "_target")
+    for conn in list(raw.connection.connection_pool._available_connections):
+        conn.health_check_interval = 0.001
+        conn.next_health_check = 0                                          # a health check is due now
+    armed, reached, resume = threading.Event(), threading.Event(), threading.Event()
+    pause = _block_once(armed, reached, resume)
+    real_ping = rconn.AbstractConnection._send_ping
+
+    async def paused_ping(self, *a, **k):
+        pause()
+        return await real_ping(self, *a, **k)
+    monkeypatch.setattr(rconn.AbstractConnection, "_send_ping", paused_ping)
+    armed.set()
+    exc = _poison_while_blocked(bridge, lambda: bridge.list_graphs(deadline=time.monotonic() + 0.1), reached)
+    assert isinstance(exc, ERR.GCancellationUnacknowledged), exc
+    mark = resp_server.totals()
+    resume.set()
+    time.sleep(0.3)
+    assert resp_server.totals() == mark, (mark, resp_server.totals())
+    bridge.close()
+
+
+def test_the_critical_section_admits_no_suspension():
+    """The window between the gate check and the write CANNOT be occupied by another task: both the gate's
+    ``enqueue`` and the writer's ``writelines``/``write`` are plain functions with no await, yield or
+    async-with — so within the loop nothing interleaves there — and the lock is a ``threading.Lock`` (the
+    poisoner is another thread). A mutant that puts ``await asyncio.sleep(0)`` inside the section must turn
+    one of them into a coroutine, and fails here."""
+    import inspect as _inspect
+    import textwrap as _textwrap
+
+    for fn in (A.SocketGate.enqueue, A.SocketGate.shut_now, A._GatedWriter.writelines, A._GatedWriter.write):
+        assert not _inspect.iscoroutinefunction(fn) and not _inspect.isgeneratorfunction(fn), fn
+        tree = ast.parse(_textwrap.dedent(_inspect.getsource(fn)))
+        assert not [n for n in ast.walk(tree) if isinstance(n, (ast.Await, ast.Yield, ast.YieldFrom,
+                                                                 ast.AsyncWith, ast.AsyncFor))], fn
+    gate = A.SocketGate()
+    assert type(gate.lock) is type(threading.Lock())
+    body = ast.parse(_textwrap.dedent(_inspect.getsource(A.SocketGate.enqueue))).body[0].body
+    locked = next(st for st in body if isinstance(st, ast.With))
+    assert [ast.unparse(st) for st in locked.body] == ["self.check()", "writer.writelines(data)"]
+
+
+def test_a_write_suspended_just_before_the_locked_section_is_refused_after_the_poison(tiny, resp_server,
+                                                                                      monkeypatch):
+    """The seam at the edge of the critical section: the write is suspended (the loop thread blocked) just
+    BEFORE entering ``enqueue``; the poison lands meanwhile; resumed, the write enters the section, sees the
+    gate shut and is refused — ZERO bytes."""
+    monkeypatch.setattr(ERR, "G_CANCEL_GRACE_S", 0.2)
+    text, view = tiny
+    bridge = A.make_bridge(FakeEmbedder(), text, host="127.0.0.1", port=resp_server.port)
+    bridge.build_graph(QC1, view)
+    armed, reached, resume = threading.Event(), threading.Event(), threading.Event()
+    pause = _block_once(armed, reached, resume)
+    real_enqueue = A.SocketGate.enqueue
+
+    def paused_enqueue(self, writer, data):
+        pause()
+        return real_enqueue(self, writer, data)
+    monkeypatch.setattr(A.SocketGate, "enqueue", paused_enqueue)
+    armed.set()
+    exc = _poison_while_blocked(bridge, lambda: bridge.list_graphs(deadline=time.monotonic() + 0.1), reached)
+    assert isinstance(exc, ERR.GCancellationUnacknowledged), exc
+    mark = resp_server.totals()
+    resume.set()
+    time.sleep(0.3)
+    assert resp_server.totals() == mark, (mark, resp_server.totals())
+    bridge.close()
+
+
+def test_every_enqueue_is_strictly_before_or_strictly_after_the_poison(resp_server):
+    """The ordering the lock gives (acceptance for the atomic enqueue). (1) A poison issued while an enqueue
+    holds the gate's lock WAITS for it: setting ``shut`` takes the same lock. (2) A write that reaches the
+    enqueue while the poisoner holds the lock is refused once the lock is released with ``shut`` set: the
+    check happens INSIDE the lock, not before it."""
+    gate, _, client = _gated_client(resp_server.port)
+    loop = asyncio.new_event_loop()
+    thread = threading.Thread(target=loop.run_forever, daemon=True)
+    thread.start()
+    try:
+        asyncio.run_coroutine_threadsafe(client.execute_command("PING"), loop).result(5)   # a warm connection
+        # (1) the poison waits for an enqueue in progress
+        poisoner = threading.Thread(target=gate.shut_now)
+        with gate.lock:
+            poisoner.start()
+            time.sleep(0.2)
+            assert not gate.shut.is_set()                                   # blocked behind the enqueue
+        poisoner.join(5)
+        assert gate.shut.is_set()
+        # (2) a fresh gate for the second half: a write racing a poisoner that holds the lock
+        gate.shut.clear()
+        mark = resp_server.totals()
+        with gate.lock:
+            pending = asyncio.run_coroutine_threadsafe(client.execute_command("PING"), loop)
+            time.sleep(0.2)                                                 # the write is at the enqueue, waiting
+            gate.shut.set()                                                 # the poisoner's act, inside the lock
+        with pytest.raises(Exception):                                      # noqa: B017 — refused; bytes are the proof
+            pending.result(5)
+        time.sleep(0.1)
+        assert resp_server.totals() == mark, (mark, resp_server.totals())
+    finally:
+        loop.call_soon_threadsafe(loop.stop)
+        thread.join(5)
+
+
+# -- B: the submission itself is inside the guarded frame ---------------------------------------------
+
+
+@pytest.mark.parametrize("when", ["after_scheduling", "inside_submit"])
+def test_an_interrupt_at_the_submission_poisons(tiny, store, bridges, monkeypatch, when):
+    """Codex c4 MAJOR: a KeyboardInterrupt immediately after the work is scheduled (or raised by the submit
+    call itself) left the bridge unpoisoned and the gate open, and the scheduled work then issued
+    GRAPH.LIST. Now the submission is inside the guarded frame: poisoned, gate shut, nothing sent."""
+    text, _ = tiny
+    bridge = make_bridge(store, text, bridges)
+    real_submit = A.asyncio.run_coroutine_threadsafe
+    interrupt = KeyboardInterrupt(f"interrupted {when}")
+
+    def interrupted_submit(coro, loop):
+        if when == "inside_submit":
+            coro.close()
+            raise interrupt
+        real_submit(coro, loop)
+        raise interrupt
+    monkeypatch.setattr(A.asyncio, "run_coroutine_threadsafe", interrupted_submit)
+    with pytest.raises(KeyboardInterrupt) as info:
+        bridge.list_graphs()
+    monkeypatch.setattr(A.asyncio, "run_coroutine_threadsafe", real_submit)
+    assert info.value is interrupt and bridge._shut.is_set() and bridge._poisoned is not None
+    time.sleep(0.3)
+    assert store.queries == [], store.queries
+    with pytest.raises(ERR.GCancellationUnacknowledged):
+        bridge.list_graphs()
 
 
 #: The ungated footprint of FalkorDB's constructor, EXACTLY (design lead, bus 20260927T085156195841Zf6c8b07323):
