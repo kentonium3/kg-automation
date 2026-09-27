@@ -13,7 +13,7 @@
       "wp": null
     },
     "#1021": {
-      "evidence_ref": "<link or commit>",
+      "evidence_ref": "The merge --abort retrospective anomaly is cited as prior-mission context. It is not fixed here; kentonium3/kg-automation#1021 remains open, and an upstream check against a post-#4789 build is still owed.",
       "fr": null,
       "nfr": null,
       "repo": null,
@@ -21,7 +21,7 @@
       "scope": null,
       "source_file": "spec.md",
       "title": "<fill at WP-implementation time>",
-      "verdict": "unknown",
+      "verdict": "deferred-with-followup",
       "wp": null
     },
     "#849": {
