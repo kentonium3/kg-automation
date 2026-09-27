@@ -5,23 +5,30 @@ global `~/.claude/CLAUDE.md` via `@` so it loads in every session. Keep this sho
 imperative — the always-on behavioral layer, not a template library. Longer templates and
 protocols are linked, not inlined.
 
-## Public-post copy approval (HIGH-STAKES)
-- Before ANY outward post — GitHub issue, PR title/body, PR/issue comment, release notes,
-  upstream discussion — show Kent the EXACT copy and get explicit sign-off on the wording
-  BEFORE posting. Approving the ACTION ("open the PR") is not approving the COPY. Draft → show → post.
-- Same for edits to already-posted public copy: show the change first.
-- **Exception — Kent's own personal tracking repos:** `kentonium3/kg-automation` **and
-  `kentonium3/local-agent-bus`** (extended to the latter by Kent, 2026-09-26). Posts and edits
-  that stay *within* those repos (issues, issue comments, PR titles/bodies, PR comments) do
-  NOT require pre-review. They are Kent's own tracking repos and he is the only audience — the
-  gate adds friction without protecting anyone. The exception is **repo-scoped, not
-  content-scoped**: any copy destined to leave them still needs sign-off before it
-  goes out — most importantly the embedded upstream drafts filed to `Priivacy-ai/spec-kitty`
-  or other external trackers, which remain gated by the pre-filing approval step (see the
-  spec-kitty bug-reporting runbook). The no-`@mentions`-of-outsiders rule below still applies.
-  ⚠ Do NOT generalise this to "any repo Kent owns": it is an enumerated list, and a repo joins it
-  only when Kent says so. Agents working in either repo may file and comment without showing copy
-  first; everything outside the list still needs the exact copy signed off BEFORE posting.
+## Copy approval — the gate is the AUDIENCE, not the repo (HIGH-STAKES)
+
+**Restated by Kent 2026-09-27, replacing the repo-enumerated version.** The question is never
+"is this repo public or private?" — it is **"who is this copy addressed to?"**
+
+- **Copy aimed at anyone other than Kent → show him the EXACT copy and get explicit sign-off
+  BEFORE it goes out.** That includes anything targeted at a maintainer, a team he works with,
+  or any outside reader: upstream issues and comments, PR titles/bodies aimed at reviewers,
+  release notes, upstream discussion. Approving the ACTION ("open the PR") is **not** approving
+  the COPY. Draft → show → post. Same for edits to already-posted copy: show the change first.
+- **Copy aimed at Kent alone → no review required.** His own tracking records — issues, issue
+  comments, PR bodies and comments that exist so he can find them later — are for him, and the
+  gate would add friction without protecting anyone. `kentonium3/kg-automation` and
+  `kentonium3/local-agent-bus` are the usual homes for this, but **the repo is not what makes it
+  exempt; the audience is.**
+- **The test is INTENT, not possible readership.** A record does not need review because a
+  teammate could theoretically read it one day. It needs review when it is *written to be read*
+  by someone other than Kent. Conversely a post in one of his own repos **does** need sign-off
+  if it is addressed to a maintainer or teammate — for example an upstream draft embedded in a
+  local issue, which stays gated by the pre-filing approval step (see the spec-kitty
+  bug-reporting runbook).
+- When the audience is genuinely unclear, ask — one question is cheaper than a retraction.
+- The no-`@mentions`-of-outsiders rule below still applies to local tracking records regardless.
+
 
 ## Local tracking tickets
 - No `@mentions` in local/internal tracking records (kg-automation issues, memories, notes).
