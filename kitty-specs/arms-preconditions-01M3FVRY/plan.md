@@ -10,7 +10,7 @@ The planning questions were answered before this document was written. The Engin
 Make the merged #849 harness runnable and trustworthy on office4 by delivering the five registered pre-run preconditions (C4, C8, C9, C11, C13) and three ledger-schema items. The pieces already exist: the arms (including G's graph build), the series writer/reader and the gates. The work is integration, with failure semantics that fail closed:
 
 - **Arms become registered.** G runs behind a persistent event-loop bridge.
-- **The graph-store memory column becomes a real cgroup-charge series** (`falkordb_cgroup_peak_mib`) with recorded support.
+- **The graph-store memory column becomes a real cgroup-charge series** (`falkordb_cgroup_peak_mib`) with recorded support. *(Clarified 2026-09-27, analysis finding T1: superseded by research D-7a and contracts/memory-series.md item 7 under rubric §5 third correction @`91e679e6`. There is NO per-cell graph-store column; the measure is the run-level report.)*
 - **A ceiling breach at send becomes its own ledger outcome.**
 - **Resume is proven across real gate phases.**
 - **The research suite's environment dependence becomes one stated, gated thing.**

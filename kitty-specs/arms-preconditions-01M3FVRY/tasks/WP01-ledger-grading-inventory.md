@@ -134,6 +134,7 @@ For each FR above, at least one test is shown FAILING on the pre-change code; re
 - CI collection survives without `graphiti_core`.
 - Both coupled harness edits are listed with their rationale.
 - Correction A: if you add a module, `REQUIRED_MODULES` is updated in the same commit.
+- **No dead code (charter, mandatory before `for_review`):** grep for the live callers of every new or changed public symbol, and list each symbol's production caller in the review artifact. Symbols whose caller lands in a later WP name that WP. This WP: `is_smoke` (wired by WP04 T022), the new outcome/event validators (reached through `Ledger` write and replay), the refused graph-store column set.
 
 ## Risks / reviewer guidance
 

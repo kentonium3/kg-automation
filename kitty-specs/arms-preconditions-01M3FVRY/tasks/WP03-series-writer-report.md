@@ -120,6 +120,7 @@ Measure the graph store's memory as rubric §5 now registers it (third correctio
 - The full suite passes on office4 under both seeds, and CI collection survives.
 - The env variable names for WP04 are documented in the review artifact and in the `substrate.run` docstring.
 - The coupled wiring edits are listed.
+- **No dead code (charter, mandatory before `for_review`):** grep for the live callers of every new or changed public symbol, and list each symbol's production caller in the review artifact. Symbols whose caller lands in a later WP name that WP. This WP: the cgroup writer (reached from `substrate.run`), `graph_store_report` (reached from summary/export).
 
 ## Risks / reviewer guidance
 

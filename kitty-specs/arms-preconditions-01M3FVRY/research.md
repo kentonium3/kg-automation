@@ -80,7 +80,7 @@ Sources:
 - **Decision**:
   - The host-side series writer reads `/sys/fs/cgroup/system.slice/docker-<full-container-id>.scope/memory.current` (bytes → MiB) at a 1.0 s interval. It records the real interval in the series header, which the run record then carries.
   - The container id is resolved once by `docker inspect` on the host. The reader keeps its container-id check.
-  - The column is renamed `falkordb_cgroup_peak_mib`, and `falkordb_rss_peak_mib` is retired everywhere (rubric §5 amendment @`ea3fbfc8`).
+  - The column is renamed `falkordb_cgroup_peak_mib`, and `falkordb_rss_peak_mib` is retired everywhere (rubric §5 amendment @`ea3fbfc8`). *(Clarified 2026-09-27, analysis finding T1: superseded by research D-7a and contracts/memory-series.md item 7 under rubric §5 third correction @`91e679e6`. There is NO per-cell graph-store column; the measure is the run-level report.)*
 - **Rationale**: design-lead ruling (a), measured on office4 2026-09-26 (read-only):
   - cgroup filesystem `cgroup2fs`;
   - Docker cgroup driver `systemd`, CgroupVersion 2;

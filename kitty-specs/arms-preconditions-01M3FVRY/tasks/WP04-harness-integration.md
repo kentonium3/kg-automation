@@ -105,6 +105,7 @@ Wire WP01–WP03 into the harness so a live session:
 - The Session supplies `before_send` as a closure over the cell's GTT sampler:
   - a reading strictly above the ceiling raises `CeilingBreached(measured, ceiling)`;
   - a failed read raises `CeilingUnreadable`.
+- The GTT sampler the Session binds passes `sampler.require_breached` at bind time (plan Charter Check: it must be reached from the production path).
 - `ServingFacade.complete` REFUSES to send without a `before_send`.
 - Outcome mapping:
   - **breach:** record `exceeds_memory_ceiling` with `memory_ceiling{measured_gib, ceiling_gib, stage: "before_send"}`, then `session_stopped{reason: "ceiling_breach_at_send"}`, then STOP via its OWN signal (never the window `breached` flag). The cell is terminal and never retried.
@@ -144,6 +145,7 @@ Wire WP01–WP03 into the harness so a live session:
 - The fresh-worktree CI simulation passes: `git worktree add --detach`, no `build/`, a stub `graphiti_core` raising `ModuleNotFoundError` on PYTHONPATH, then `pytest -q --ignore=docs/archive`.
 - The coupled sampler cleanup is listed.
 - The stable node IDs of the live and required tests are listed for WP05.
+- **No dead code (charter, mandatory before `for_review`):** grep for the live callers of every new or changed public symbol, and list each symbol's production caller in the review artifact. Symbols whose caller lands in a later WP name that WP. This WP: `ARM_FACTORIES` from `live_runtime`; `before_send` from every live cell and the secondary probe; `require_breached` called at bind time on the GTT sampler the Session binds (the RSS path it once served is removed); every symbol WP01–WP03 listed as 'wired by WP04'.
 
 ## Risks / reviewer guidance
 

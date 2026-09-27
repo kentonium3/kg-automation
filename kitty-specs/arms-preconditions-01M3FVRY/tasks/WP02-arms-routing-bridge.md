@@ -149,6 +149,7 @@ Make the three arms ready for registration (WP04 wires them):
 - The full suite passes on office4 under both seeds, and CI collection survives without `graphiti_core`. `arm_g` still imports graphiti at module top, so the harness must never import it eagerly; WP04 relies on this.
 - `REQUIRED_MODULES` includes `errors`.
 - The sweep list is in the review artifact.
+- **No dead code (charter, mandatory before `for_review`):** grep for the live callers of every new or changed public symbol, and list each symbol's production caller in the review artifact. Symbols whose caller lands in a later WP name that WP. This WP: `errors.*` (raised on production paths), the G bridge factory (wired by WP04 T017's `ARM_FACTORIES`), `respond`, the graph listing (WP04 T020), the `before_send` parameter (WP04 T021).
 
 ## Risks / reviewer guidance
 

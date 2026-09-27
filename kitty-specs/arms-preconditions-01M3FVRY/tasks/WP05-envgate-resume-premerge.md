@@ -131,6 +131,7 @@ Make the arms' only coverage a GATE rather than a habit:
 - The checker's own CI simulation passes.
 - The required node list is in the checker, and the review artifact lists where each node comes from.
 - Running the full checker (including the live smoke) is a freeze-time step after the mission merge, not this WP's acceptance. But its non-live steps must run cleanly here.
+- **No dead code (charter, mandatory before `for_review`):** grep for the live callers of every new or changed public symbol, and list each symbol's production caller in the review artifact. Symbols whose caller lands in a later WP name that WP. This WP: the conftest fixture (used by the research modules), the checker's `--verify` mode.
 
 ## Risks / reviewer guidance
 
