@@ -307,7 +307,9 @@ def test_every_scored_row_carries_the_harness_fields(tmp_path):
         assert x["seed"] == 1000 + x["repeat"] and x["peak_gtt_gib"] == 30.0
         assert x["events_loaded"] > 0 and "links_loaded" in x and x["elapsed_s"] >= 0
         if x["arm"] == "G":
-            assert x["falkordb_rss_peak_mib"] == 512.0 and x["graph_stats"]["group_id"] == f"arms_{x['question']}"
+            # No per-cell graph-store column (arms-preconditions ledger-deltas item 3; WP01 coupled edit).
+            assert not any(k.startswith(("falkordb_", "graph_store_")) for k in x)
+            assert x["graph_stats"]["group_id"] == f"arms_{x['question']}"
             assert x["links_loaded"] > 0
         else:
             assert x["links_loaded"] == 0
