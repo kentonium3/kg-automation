@@ -86,3 +86,18 @@ def test_incomplete_cache_never_downloads_even_with_offline_mode_disabled(tmp_pa
         E.Embedder(cache_dir=tmp_path / "fastembed")
     assert calls == []                                              # no socket was ever opened
     monkeypatch.setattr(socket, "create_connection", real)
+
+
+def test_the_tripwire_firing_is_a_premise_violation_not_a_refusal():
+    """WP02 FR-002: the no-LLM tripwire firing halts the run (contracts/arm-registration item 5), so its
+    exception IS a ``PremiseViolated('tripwire')`` and never the per-cell ``ArmRefusal``."""
+    import asyncio
+
+    from scripts.research.arms849 import errors as ERR
+
+    assert issubclass(E.LLMCallAttempted, ERR.PremiseViolated)
+    assert not issubclass(E.LLMCallAttempted, ERR.ArmRefusal)
+    t = E.TripwireLLMClient()
+    with pytest.raises(ERR.PremiseViolated) as info:
+        asyncio.run(t.generate_response([{"role": "user", "content": "x"}]))
+    assert info.value.reason == "tripwire" and t.llm_calls == 1

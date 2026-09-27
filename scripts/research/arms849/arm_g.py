@@ -29,23 +29,43 @@ D-1, D-2, D-3, D-15; rubric §2 G row with the A3 query plan):
 ``EntityNode.name`` is reserved by Graphiti, so a node is named by the entity's
 ``id``; an entity's own ``name`` attribute is stored as ``display_name``.
 
-The FalkorDB async client binds to the event loop it first runs on: a caller runs
-the whole per-question sequence (build → assemble × 3 → drop) inside ONE loop
-(one ``asyncio.run`` for the harness session), never one ``asyncio.run`` per step.
+**One database per question** (FR-016, research D-2b — a defect fix): every operation for a
+question — node/edge/episode writes, the index build, typed pulls, hybrid search, anchored
+expansion and drop — runs through ONE driver ``self.driver.clone(database=group)``, created once
+per question, cached, and index-ready before first use. The approved code wrote to the root
+driver's ``default_db`` while ``Graphiti.search_``'s ``@handle_multiple_group_ids`` cloned to
+``arms_<Q>``, so hybrid retrieval always read an empty graph.
+
+**Refusals and premise violations** (FR-002; contracts/arm-registration items 3–5): a graph not
+built, a foreign item in G's own graph and an incoherent context limit raise the ONE shared
+:class:`~arms849.errors.ArmRefusal` (terminal for the cell); the no-LLM tripwire firing and
+retrieval crossing the per-question graph boundary raise
+:class:`~arms849.errors.PremiseViolated` (the run halts).
+
+**The loop bridge** (research D-2; NFR-003): the FalkorDB async client binds to the event loop it
+first runs on, so G's registration-facing :class:`Bridge` owns ONE loop on a dedicated thread and
+ONE driver bound to it. Only graph work runs there; serving runs on the attempt thread through the
+synchronous :meth:`GraphArm.respond`, exactly as D and R serve. A cancelled coroutine must
+acknowledge its own termination within ``errors.G_CANCEL_GRACE_S``, or the bridge raises
+:class:`~arms849.errors.GCancellationUnacknowledged` and issues nothing further.
 """
 
 from __future__ import annotations
 
+import asyncio
+import concurrent.futures
 import re
+import threading
 import time
 import uuid as _uuid
-from collections.abc import Iterable, Mapping, Sequence
+from collections.abc import Awaitable, Callable, Iterable, Mapping, Sequence
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
-from typing import Any
+from typing import Any, TypeVar
 
 from graphiti_core import Graphiti
 from graphiti_core.driver.driver import GraphDriver
+from graphiti_core.driver.falkordb_driver import FalkorDriver
 from graphiti_core.edges import EntityEdge, EpisodicEdge
 from graphiti_core.nodes import EntityNode, EpisodeType, EpisodicNode
 from graphiti_core.search.search_config import (
@@ -60,17 +80,29 @@ from graphiti_core.search.search_config import (
 )
 from graphiti_core.tracer import NoOpTracer
 
+from scripts.research.arms849 import errors, serving
 from scripts.research.arms849.embed import (
     CosineReranker,
     Embedder,
     GraphitiEmbedder,
     TripwireLLMClient,
 )
+from scripts.research.arms849.errors import ArmRefusal, GCancellationUnacknowledged, PremiseViolated
 from scripts.research.arms849.text import Block, FrozenCorpusText, edge_key, entity_key
 from scripts.research.load_849_corpus import Loaded, edge_effective_time
 
-__all__ = ["CAP", "GROUP_RE", "TYPED_LABELS", "GraphArm", "GraphStats", "Item", "PlanRecord", "Resolution",
-           "assemble", "group_id_for", "link_targets", "normalise", "resolve_anchors"]
+__all__ = ["CAP", "FALKOR_HOST", "FALKOR_PORT", "GROUP_RE", "LOOP_THREAD_NAME", "TYPED_LABELS", "Bridge", "GraphArm",
+           "GraphStats", "Item", "PlanRecord", "Resolution", "assemble", "group_id_for", "link_targets", "make_bridge",
+           "normalise", "resolve_anchors"]
+
+T = TypeVar("T")
+
+#: The compose service the runner container reaches FalkorDB by (research D-2); tests inject their own.
+FALKOR_HOST, FALKOR_PORT = "falkordb", 6379
+#: The bridge loop's thread: every graph query runs on it and nowhere else.
+LOOP_THREAD_NAME = "arms849-g-loop"
+#: How often the attempt thread re-checks its deadline and ``cancelled`` flag while graph work runs.
+POLL_S = 0.05
 
 GROUP_RE = re.compile(r"^arms_[A-Z0-9]+$")
 TYPED_LABELS = ("Capacity", "Commitment", "Principle", "Interest")
@@ -305,33 +337,70 @@ _assert_no_bfs(TYPED_PULL)
 
 
 class GraphArm:
-    """One driver, one embedder, one tripwire; per-question graphs and maps."""
+    """One root driver, one embedder, one tripwire; per question ONE database, ONE Graphiti, one map.
+
+    The root ``driver`` is never queried for a question: :meth:`_database` clones it ONCE per question
+    (``driver.clone(database=group)``), caches the clone, and AWAITS the clone's detached ``_init_task``
+    (graphiti schedules the index build on construction) before first use, so index readiness is owned
+    per database (``_indices_built`` is a set of databases, not one flag). A ``Graphiti`` instance is
+    built per question bound to that clone, so ``@handle_multiple_group_ids`` takes its
+    ``gid == driver._database`` branch and clones nothing further (research D-2b; installed
+    ``decorators.py`` L59–68). A failed or cancelled index build is never reused: the cache entry is
+    dropped and the next use clones afresh.
+    """
 
     def __init__(self, driver: GraphDriver, embedder: Embedder, text: FrozenCorpusText) -> None:
         self.driver = driver
         self.embedder = embedder
         self.text = text
         self.tripwire = TripwireLLMClient()
-        self.graphiti = Graphiti(graph_driver=driver, llm_client=self.tripwire,
-                                 embedder=GraphitiEmbedder(embedder), cross_encoder=CosineReranker(embedder),
-                                 tracer=NoOpTracer())
+        self._graphiti_embedder = GraphitiEmbedder(embedder)
+        self._reranker = CosineReranker(embedder)
+        self._databases: dict[str, GraphDriver] = {}               # group → its per-question driver
+        self._graphiti: dict[str, Graphiti] = {}                   # group → Graphiti bound to that driver
+        self._indices_built: set[str] = set()                      # databases whose index build completed
         self._uuid_by_id: dict[str, dict[str, str]] = {}          # group → entity id → uuid
         self._key_by_uuid: dict[str, dict[str, tuple[str, str]]] = {}   # group → uuid → (kind, key)
-        self._indices_built = False
-        self._foreign: list[str] = []                             # result uuids not in our map (must stay empty)
+        self._foreign: list[str] = []      # results in THIS group's graph that G did not write (ArmRefusal)
+        self._leaked: list[str] = []       # results from ANOTHER group's graph (PremiseViolated)
 
     @property
     def llm_calls(self) -> int:
         return self.tripwire.llm_calls
+
+    def _check_tripwire(self, llm_calls: int) -> None:
+        if llm_calls:
+            raise PremiseViolated("tripwire", f"{llm_calls} LLM call(s) attempted; G never extracts (D-2)")
+
+    async def _database(self, group: str) -> GraphDriver:
+        """THE driver for ``group``: cloned once, cached, index-ready (FR-016)."""
+        db = self._databases.get(group)
+        if db is None:
+            db = self.driver.clone(database=group)
+            self._databases[group] = db
+            self._graphiti[group] = Graphiti(graph_driver=db, llm_client=self.tripwire,
+                                             embedder=self._graphiti_embedder, cross_encoder=self._reranker,
+                                             tracer=NoOpTracer())
+        if group not in self._indices_built:
+            try:
+                init = getattr(db, "_init_task", None)
+                if init is not None:
+                    await init                                  # the clone's own detached index build
+                else:
+                    await db.build_indices_and_constraints()    # cloned outside a running loop: build it here
+            except BaseException:
+                self._databases.pop(group, None)
+                self._graphiti.pop(group, None)
+                raise
+            self._indices_built.add(group)
+        return db
 
     # -- writes ----------------------------------------------------------------
 
     async def build_graph(self, question: Any, view: Loaded) -> GraphStats:
         group = group_id_for(question.id)
         t0 = time.monotonic()
-        if not self._indices_built:
-            await self.driver.build_indices_and_constraints()
-            self._indices_built = True
+        db = await self._database(group)
         await self.drop_graph(question)                              # idempotent rebuild
         uuid_by_id: dict[str, str] = {}
         key_by_uuid: dict[str, tuple[str, str]] = {}
@@ -345,7 +414,7 @@ class GraphArm:
             node = EntityNode(uuid=stable_uuid(group, "node", eid), name=eid, group_id=group, labels=[kind],
                               summary=summary, attributes=attrs, created_at=ask)
             node.name_embedding = self.embedder.embed_one(summary)     # the id token is noise in the vector
-            await node.save(self.driver)
+            await node.save(db)
             uuid_by_id[eid] = node.uuid
             key_by_uuid[node.uuid] = ("node", eid)
             nodes += 1
@@ -369,7 +438,7 @@ class GraphArm:
                            target_node_uuid=dst, name=str(edge["type"]), fact=fact, created_at=when, valid_at=when,
                            attributes=attrs)
             e.fact_embedding = self.embedder.embed_one(fact)
-            await e.save(self.driver)
+            await e.save(db)
             key_by_uuid[e.uuid] = ("edge", key)
             edges += 1
 
@@ -384,7 +453,7 @@ class GraphArm:
                               source=EpisodeType.text,
                               source_description=str(event.get("source_description") or event.get("channel") or ""),
                               content=self.text.event_line(ref).decode("utf-8"), valid_at=when, created_at=when)
-            await ep.save(self.driver)
+            await ep.save(db)
             ep_uuid[ref] = ep.uuid
             key_by_uuid[ep.uuid] = ("episode", ref)
             episodes += 1
@@ -401,9 +470,10 @@ class GraphArm:
                 # The MENTIONS edge carries ITS EPISODE's time, not ask_time (Codex WP05 c2).
                 await EpisodicEdge(uuid=stable_uuid(group, "link", f"{link.get('ref')}->{mention}"), group_id=group,
                                    source_node_uuid=src, target_node_uuid=dst,
-                                   created_at=ep_when[str(link.get("ref"))]).save(self.driver)
+                                   created_at=ep_when[str(link.get("ref"))]).save(db)
                 links += 1
 
+        self._check_tripwire(self.llm_calls)
         self._uuid_by_id[group] = uuid_by_id
         self._key_by_uuid[group] = key_by_uuid
         return GraphStats(group_id=group, nodes=nodes, edges=edges, episodes=episodes, links=links,
@@ -411,24 +481,45 @@ class GraphArm:
 
     async def drop_graph(self, question: Any) -> None:
         group = group_id_for(question.id)
-        await self.driver.execute_query("MATCH (n {group_id: $group_id}) DETACH DELETE n", group_id=group)
+        db = await self._database(group)
+        await db.execute_query("MATCH (n {group_id: $group_id}) DETACH DELETE n", group_id=group)
         self._uuid_by_id.pop(group, None)
         self._key_by_uuid.pop(group, None)
 
+    async def list_graphs(self) -> list[str]:
+        """The server's graph listing, read-only (``GRAPH.LIST``): WP04 T020 records
+        ``graph_store_first_build.graphs_present`` from it before the first build."""
+        return sorted(str(g) for g in await self.driver.client.list_graphs())
+
+    async def close(self) -> None:
+        """Close the ONE connection the root driver and every per-question clone share."""
+        await self.driver.close()
+
     # -- retrieval -------------------------------------------------------------
 
+    def _key_for(self, group: str, uuid: str, result_group: Any) -> tuple[str, str] | None:
+        """The (kind, key) G wrote for ``uuid`` in ``group``; else record WHY it is not ours.
+
+        A result carrying ANOTHER group — by its own ``group_id``, or a uuid G wrote for another
+        question — crossed the per-question graph boundary: ``_leaked`` (PremiseViolated, the run
+        halts). A result in THIS group's graph that G did not write from this view: ``_foreign``
+        (ArmRefusal, the cell is refused). Neither is ever silently dropped (RQ-6b)."""
+        kk = self._key_by_uuid.get(group, {}).get(uuid)
+        if kk is not None:
+            return kk
+        other = (result_group is not None and str(result_group) != group) or any(
+            uuid in keys for g, keys in self._key_by_uuid.items() if g != group)
+        (self._leaked if other else self._foreign).append(uuid)
+        return None
+
     def _items(self, group: str, results: SearchResults, origin: str) -> list[Item]:
-        keys = self._key_by_uuid.get(group, {})
         out: list[Item] = []
         for coll, scores in ((results.nodes, results.node_reranker_scores),
                              (results.edges, results.edge_reranker_scores),
                              (results.episodes, results.episode_reranker_scores)):
             for i, obj in enumerate(coll):
-                kk = keys.get(obj.uuid)
+                kk = self._key_for(group, obj.uuid, getattr(obj, "group_id", None))
                 if kk is None:
-                    # With explicit group_ids this never happens; if it does it is a cross-group
-                    # leak (RQ-6b) or a stale map — recorded and REFUSED, never silently dropped.
-                    self._foreign.append(obj.uuid)
                     continue
                 score = float(scores[i]) if scores and i < len(scores) else 0.0
                 out.append(Item(kind=kk[0], key=kk[1], uuid=obj.uuid, score=score, origin=origin))
@@ -440,25 +531,25 @@ class GraphArm:
         never names must still be pulled; that is what the constraint pull is for). Score 1.0,
         ordered by entity id. `question_text` is accepted for the interface and unused here."""
         del question_text
-        keys = self._key_by_uuid.get(group, {})
+        db = await self._database(group)
         out: dict[str, list[Item]] = {}
         for label in TYPED_LABELS:
-            rows, _, _ = await self.driver.execute_query(
+            rows, _, _ = await db.execute_query(
                 "MATCH (n:Entity {group_id: $group_id}) WHERE $label IN labels(n) "
-                "RETURN n.uuid AS uuid, n.name AS name ORDER BY n.name",
+                "RETURN n.uuid AS uuid, n.name AS name, n.group_id AS group_id ORDER BY n.name",
                 group_id=group, label=label)
             items = []
             for row in rows:
-                kk = keys.get(str(row["uuid"]))
+                kk = self._key_for(group, str(row["uuid"]), row.get("group_id"))
                 if kk is None:
-                    self._foreign.append(str(row["uuid"]))
                     continue
                 items.append(Item(kind="node", key=kk[1], uuid=str(row["uuid"]), score=1.0, origin=f"pull:{label}"))
             out[label] = sorted(items, key=lambda i: i.key)
         return out
 
     async def hybrid_search(self, question_text: str, group: str) -> list[Item]:
-        res = await self.graphiti.search_(question_text, config=HYBRID_NODE_EDGE, group_ids=[group])
+        await self._database(group)                                     # the Graphiti bound to THIS database
+        res = await self._graphiti[group].search_(question_text, config=HYBRID_NODE_EDGE, group_ids=[group])
         return self._items(group, res, "search")
 
     async def anchored_expansion(self, group: str, anchor_id: str) -> list[Item]:
@@ -466,13 +557,11 @@ class GraphArm:
         uuid = self._uuid_by_id.get(group, {}).get(anchor_id)
         if uuid is None:
             return []
-        episodes = await EpisodicNode.get_by_entity_node_uuid(self.driver, uuid)
-        keys = self._key_by_uuid.get(group, {})
+        episodes = await EpisodicNode.get_by_entity_node_uuid(await self._database(group), uuid)
         items = []
         for ep in episodes:
-            kk = keys.get(ep.uuid)
+            kk = self._key_for(group, ep.uuid, getattr(ep, "group_id", None))
             if kk is None:
-                self._foreign.append(ep.uuid)
                 continue
             items.append((ep.valid_at, Item(kind="episode", key=kk[1], uuid=ep.uuid, score=1.0, origin=f"expand:{anchor_id}")))
         # Anchored HISTORY: most recent first, then ref — when the cap cuts, the latest survive.
@@ -484,9 +573,9 @@ class GraphArm:
     async def plan_and_assemble(self, question: Any, view: Loaded) -> tuple[Block, PlanRecord]:
         group = group_id_for(question.id)
         if group not in self._key_by_uuid:
-            raise RuntimeError(f"graph {group} is not built; build_graph first")
+            raise ArmRefusal(f"graph {group} is not built; build_graph first (a configuration defect, terminal)")
         resolution = resolve_anchors(question.text, view)
-        self._foreign = []
+        self._foreign, self._leaked = [], []
         steps: list[dict[str, Any]] = []
         pulls = await self.typed_pulls(question.text, group)
         for label in TYPED_LABELS:
@@ -501,9 +590,13 @@ class GraphArm:
                 steps.append({"step": f"expand:{anchor}", "count": len(exp)})
         else:
             steps.append({"step": "expand", "count": 0, "note": "search_only: zero anchors"})
+        if self._leaked:
+            raise PremiseViolated("cross_group_leak", f"{len(self._leaked)} retrieval result(s) for {group} came from "
+                                  f"another question's graph (RQ-6b): the per-question boundary is crossed")
         if self._foreign:
-            raise RuntimeError(f"{len(self._foreign)} retrieval result(s) outside the group map — cross-group leak or "
-                               f"stale map; the cell is an error (RQ-6b)")
+            raise ArmRefusal(f"{len(self._foreign)} foreign item(s) in {group}'s graph that G did not write from this "
+                             f"view (a stale map or a graph not built from it); the cell is refused (RQ-6b)")
+        self._check_tripwire(self.llm_calls)
         block, chosen = assemble(self.text, view, [pulls[label] for label in TYPED_LABELS], hits, expansions)
         by_kind: dict[str, int] = {}
         for it in chosen:
@@ -515,23 +608,29 @@ class GraphArm:
                           group_id=group, assembled_context_sha256=block.sha256)
         return block, plan
 
-    # -- the arm ---------------------------------------------------------------
+    # -- serving (the attempt thread) ------------------------------------------
 
-    async def answer(self, question: Any, view: Loaded, ctx: Any) -> dict[str, Any]:
-        """contracts/arm-interface.md: assemble → render → count → complete; every telemetry
-        field from the completion plus the plan. ``ctx`` is the harness's CellContext
-        (prompt, serving facade with serialize/count_tokens/complete, seed, limit)."""
-        block, plan = await self.plan_and_assemble(question, view)
-        if plan.llm_calls:
-            raise RuntimeError(f"tripwire: {plan.llm_calls} LLM call(s) attempted — the cell is an error")
+    def respond(self, block: Block, plan: PlanRecord, question: Any, ctx: Any) -> dict[str, Any]:
+        """contracts/arm-interface.md, the serving half: render → serialize → count → complete, on the
+        CALLER's thread, exactly as D and R serve (C-008; research D-2). Synchronous: it never touches
+        the graph loop. ``ctx`` is the harness's CellContext (prompt, serving facade, config, seed, limit).
+
+        Refuses before anything is counted: a plan that counted an LLM call (PremiseViolated) and an
+        incoherent context limit (the shared ``errors.check_limit``, ctx.config only — ArmRefusal).
+        ``cache_prompt`` is served as configured and never refused (C-008). The ceiling guard's
+        exceptions (``CeilingBreached`` / ``CeilingUnreadable``) raised by ``ctx.serving.complete``'s
+        ``before_send`` are never caught here.
+        """
+        self._check_tripwire(plan.llm_calls)
+        errors.check_limit(ctx)
         request = ctx.prompt.render(block, question.text)
         body = ctx.serving.serialize(request, ctx.seed)
         prompt_tokens = ctx.serving.count_tokens(body)
         if prompt_tokens > ctx.limit:
-            from scripts.research.arms849.serving import ContextExceeded
-
-            raise ContextExceeded(f"prompt is {prompt_tokens} tokens; limit {ctx.limit} ({ctx.limit_applied})")
-        completion = ctx.serving.complete(body)
+            raise serving.ContextExceeded(f"prompt is {prompt_tokens} tokens; limit {ctx.limit} ({ctx.limit_applied})")
+        completion = ctx.serving.complete(body)                       # the same object that was counted
+        if completion.client_prompt_tokens != prompt_tokens:
+            raise serving.TelemetryMissing("the completion was not made for the counted request")
         return {
             "text": completion.text,
             "assembled_context_tokens": ctx.serving.count_text(block.data),
@@ -543,6 +642,168 @@ class GraphArm:
             "generation_s": completion.generation_s, "generation_tok_s": completion.generation_tok_s,
             "assembled_context_sha256": block.sha256, "plan": plan.as_dict(),
         }
+
+
+# ---------------------------------------------------------------------------
+# the loop bridge (research D-2; contracts/arm-registration item 8; NFR-003)
+# ---------------------------------------------------------------------------
+
+
+class Bridge:
+    """G's registration-facing object: ONE asyncio loop on a dedicated thread, ONE :class:`GraphArm`
+    (and so one root driver) bound to it. WP04's ``ARM_FACTORIES`` builds it with :func:`make_bridge`.
+
+    Every graph operation (:meth:`build_graph`, :meth:`drop_graph`, :meth:`list_graphs`, and the
+    retrieval half of :meth:`answer`) is submitted to the loop with ``run_coroutine_threadsafe`` and
+    waited for on the CALLER's thread, honouring its ``deadline`` (``time.monotonic()`` seconds) and
+    its ``cancelled`` flag. The serving half of :meth:`answer` runs on the caller's thread
+    (:meth:`GraphArm.respond`). One operation at a time: a new one waits until the previous one's
+    termination is acknowledged (NFR-003).
+
+    **Cancellation is acknowledged by the coroutine, or the bridge raises.** On a deadline or the
+    ``cancelled`` flag the loop-side task is cancelled, and the caller waits up to
+    ``errors.G_CANCEL_GRACE_S`` for the acknowledgement flag the coroutine sets in its own
+    ``finally`` — AFTER every other task on the bridge loop (a clone's ``_init_task`` included) is
+    done. ``future.done()`` is NOT an acknowledgement: the concurrent future reports cancelled at
+    once, while the coroutine may still be unwinding. An acknowledged cancellation raises
+    ``TimeoutError`` (an ordinary, retryable infrastructure failure); no acknowledgement raises
+    :class:`~arms849.errors.GCancellationUnacknowledged`, after which every call raises it again and
+    the bridge issues no further query — not even the cleanup in :meth:`close`. There is no driver
+    replacement: resume happens in a fresh process, whose ``build_graph`` rebuilds idempotently.
+
+    The quiescence wait is bounded ONLY by the caller's ``deadline`` / ``cancelled``: a live cell
+    must always pass them (WP04: ``CellContext.deadline`` and the harness's ``cancelled`` flag), or
+    work whose own cleanup never finishes is waited for without end.
+    """
+
+    def __init__(self, arm: GraphArm) -> None:
+        self.arm = arm
+        self._loop = asyncio.new_event_loop()
+        self._thread = threading.Thread(target=self._loop.run_forever, name=LOOP_THREAD_NAME, daemon=True)
+        self._thread.start()
+        self._lock = threading.Lock()
+        self._poisoned: float | None = None                          # grace_s of an unacknowledged cancellation
+        self._closed: bool | None = None                             # None: open; else close()'s result
+
+    # -- the operations ------------------------------------------------------------
+
+    def build_graph(self, question: Any, view: Loaded, *, deadline: float | None = None,
+                    cancelled: threading.Event | None = None) -> GraphStats:
+        return self._submit(lambda: self.arm.build_graph(question, view), deadline, cancelled,
+                            f"build_graph {question.id}")
+
+    def drop_graph(self, question: Any, *, deadline: float | None = None,
+                   cancelled: threading.Event | None = None) -> None:
+        self._submit(lambda: self.arm.drop_graph(question), deadline, cancelled, f"drop_graph {question.id}")
+
+    def list_graphs(self, *, deadline: float | None = None, cancelled: threading.Event | None = None) -> list[str]:
+        """The server's graph names, read-only (WP04 T020: ``graph_store_first_build.graphs_present``)."""
+        return self._submit(self.arm.list_graphs, deadline, cancelled, "list_graphs")
+
+    def answer(self, question: Any, view: Loaded, ctx: Any) -> dict[str, Any]:
+        """contracts/arm-interface.md ``arm(question, view, ctx)`` for G. Retrieval on the loop under
+        ``ctx.deadline`` and ``ctx.cancelled`` (WP04 adds ``CellContext.deadline``); serving on this
+        thread via :meth:`GraphArm.respond`."""
+        block, plan = self._submit(lambda: self.arm.plan_and_assemble(question, view), ctx.deadline, ctx.cancelled,
+                                   f"retrieval {question.id}")
+        return self.arm.respond(block, plan, question, ctx)
+
+    def close(self) -> bool:
+        """Quiesce and close the connection under the same bounded grace, then stop the loop and abandon
+        its thread. Returns True only when all of that was acknowledged in time. After an unacknowledged
+        cancellation it issues nothing — no cleanup query — and only stops the loop. Idempotent."""
+        if self._closed is not None:
+            return self._closed
+        clean = False
+        if self._poisoned is None:
+            ack = threading.Event()
+            future = asyncio.run_coroutine_threadsafe(self._guarded(self.arm.close, ack), self._loop)
+            clean = ack.wait(errors.G_CANCEL_GRACE_S)
+            if not clean:
+                future.cancel()
+        self._loop.call_soon_threadsafe(self._loop.stop)
+        self._thread.join(errors.G_CANCEL_GRACE_S if clean else 0.0)
+        clean = clean and not self._thread.is_alive()
+        if clean:
+            self._loop.close()
+        self._closed = clean
+        return clean
+
+    # -- the mechanism ---------------------------------------------------------------
+
+    async def _quiesce(self) -> None:
+        """Every OTHER task on the bridge loop — each one the bridge started: a clone's ``_init_task``,
+        graphiti's gathered sub-queries — cancelled and awaited. A task that ignores its cancellation
+        keeps this from returning, and so keeps the acknowledgement from being given."""
+        me = asyncio.current_task(self._loop)
+        others = [t for t in asyncio.all_tasks(self._loop) if t is not me and not t.done()]
+        for task in others:
+            task.cancel()
+        if others:
+            await asyncio.gather(*others, return_exceptions=True)
+
+    async def _guarded(self, make: Callable[[], Awaitable[T]], ack: threading.Event) -> T:
+        """Run ``make()`` and, however it ends, quiesce the loop and THEN set ``ack`` — the coroutine's
+        own acknowledgement. A coroutine being FINALISED (``GeneratorExit``: garbage-collected after its
+        loop was abandoned, possibly while another loop runs on this thread) acknowledges nothing and
+        touches no loop: quiescing there would cancel another bridge's tasks."""
+        try:
+            result = await make()
+        except GeneratorExit:
+            raise
+        except BaseException:
+            await self._quiesce()
+            ack.set()                                               # THE acknowledgement: set by the coroutine
+            raise
+        await self._quiesce()
+        ack.set()
+        return result
+
+    def _submit(self, make: Callable[[], Awaitable[T]], deadline: float | None,
+                cancelled: threading.Event | None, what: str) -> T:
+        with self._lock:
+            if self._poisoned is not None:
+                raise GCancellationUnacknowledged(self._poisoned)
+            if self._closed is not None:
+                raise RuntimeError(f"G bridge is closed; {what} refused")
+            ack = threading.Event()
+            future = asyncio.run_coroutine_threadsafe(self._guarded(make, ack), self._loop)
+            while True:
+                if cancelled is not None and cancelled.is_set():
+                    why = "the attempt was cancelled"
+                    break
+                remaining = None if deadline is None else deadline - time.monotonic()
+                if remaining is not None and remaining <= 0:
+                    why = "the attempt deadline passed"
+                    break
+                concurrent.futures.wait([future], timeout=POLL_S if remaining is None else min(POLL_S, remaining))
+                if future.done():
+                    return future.result()                          # the coroutine's own exception, unaltered
+            future.cancel()
+            grace = errors.G_CANCEL_GRACE_S
+            if not ack.wait(grace):
+                self._poisoned = grace
+                raise GCancellationUnacknowledged(grace)
+            raise TimeoutError(f"G {what}: {why}; the cancelled work acknowledged its termination within {grace} s")
+
+
+def make_bridge(embedder: Embedder, text: FrozenCorpusText, *, host: str = FALKOR_HOST, port: int = FALKOR_PORT,
+                driver: GraphDriver | None = None) -> Bridge:
+    """G's factory for WP04's ``ARM_FACTORIES`` (imported lazily there: this module imports graphiti).
+
+    The root driver is ``FalkorDriver(host, port)`` — the compose service by default; ``host``/``port``
+    (or a whole ``driver``) are injectable for tests. It is constructed HERE, on the calling thread
+    with no running loop, so graphiti schedules no index build on the root database (which G never
+    queries); its client binds to the bridge loop on first use."""
+    try:
+        asyncio.get_running_loop()
+    except RuntimeError:
+        pass
+    else:
+        raise RuntimeError("make_bridge must not run inside an event loop: the driver's client would bind to it")
+    root = driver if driver is not None else FalkorDriver(host=host, port=port)
+    return Bridge(GraphArm(root, embedder, text))
+
 
 def assemble(text: FrozenCorpusText, view: Loaded, pulls: Sequence[Sequence[Item]], hits: Sequence[Item],
              expansions: Sequence[Sequence[Item]], cap: int = CAP) -> tuple[Block, list[Item]]:
