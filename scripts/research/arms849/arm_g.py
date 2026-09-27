@@ -826,12 +826,19 @@ class SocketGate:
             if self.shut.is_set():
                 sock.close()
                 raise TransportPoisoned("the G bridge's socket gate is shut; no socket may be opened")
+            self._sockets = {known for known in self._sockets if known.fileno() != -1}   # closed ones leave
             self._sockets.add(sock)
             return sock.connect_ex(address)
 
     def forget(self, sock: socket.socket) -> None:
         with self.lock:
             self._sockets.discard(sock)
+
+    def registered(self) -> int:
+        """How many sockets the gate currently owns (closed ones are pruned first)."""
+        with self.lock:
+            self._sockets = {known for known in self._sockets if known.fileno() != -1}
+            return len(self._sockets)
 
     def enqueue(self, writer: Any, data: Iterable[bytes]) -> None:
         """Check and hand the bytes to the transport as ONE critical section — no await between them. The
@@ -893,11 +900,29 @@ class GatedConnection(_redis_async.Connection):
       from the poisoning thread; it carries no application byte, and if the loop ever runs again its
       connect finds the gate shut and is aborted."""
 
+    # The base class's ``_writer`` slot is intentionally dead storage; do not remove the property or add a
+    # non-mangled backing name. A data descriptor in THIS class shadows the base's slot descriptor in the MRO,
+    # so every assignment — including the ones inside redis-py's own connect/reconnect/disconnect code —
+    # goes through the setter, which always wraps: the gate cannot be removed by rebinding ``_writer``.
+    __slots__ = ("_GatedConnection__w", "_owned_socket", "_pending_socket", "_transport_gate")
+
     def __init__(self, *, transport_gate: SocketGate, **kwargs: Any) -> None:
         if not isinstance(transport_gate, SocketGate):
             raise TypeError("GatedConnection needs the pool's SocketGate")
         self._transport_gate = transport_gate
+        self.__w: _GatedWriter | None = None  # type: ignore[misc]  # mypy: mangled slot name
+        self._owned_socket: socket.socket | None = None
+        self._pending_socket: socket.socket | None = None
         super().__init__(**kwargs)
+
+    @property  # type: ignore[override]
+    def _writer(self) -> Any:
+        return self.__w
+
+    @_writer.setter
+    def _writer(self, writer: Any) -> None:
+        self.__w = (writer if writer is None or isinstance(writer, _GatedWriter)  # type: ignore[misc]  # mangled slot
+                    else _GatedWriter(writer, self._transport_gate))
 
     def _refuse_if_shut(self) -> None:
         """An entry check that also leaves no socket behind: once the gate is shut, a connection touched
@@ -944,8 +969,8 @@ class GatedConnection(_redis_async.Connection):
             break
         else:
             raise failure if failure is not None else OSError(f"no address for {self.host}:{self.port}")
-        self._owned_socket: socket.socket | None = sock
-        self._pending_socket: socket.socket | None = sock
+        self._owned_socket = sock
+        self._pending_socket = sock
         try:
             await super()._connect()                                # open_connection(sock=<our socket>)
         except BaseException:
@@ -955,11 +980,8 @@ class GatedConnection(_redis_async.Connection):
         finally:
             self._pending_socket = None
         gate = self._transport_gate
-        with gate.lock:
+        with gate.lock:                                             # the writer is already gated (property)
             opened_across_the_poison = gate.shut.is_set()
-            if not opened_across_the_poison:
-                # get/setattr: redis types _writer as a StreamWriter; the gated wrapper is duck-typed to it
-                setattr(self, "_writer", _GatedWriter(getattr(self, "_writer"), gate))  # noqa: B009, B010
         if opened_across_the_poison:
             self._abort_socket()
             raise TransportPoisoned("a socket opened across the poison was aborted before its first byte")
@@ -985,24 +1007,31 @@ class GatedConnection(_redis_async.Connection):
     def _connection_arguments(self) -> Any:
         """redis-py opens with ``asyncio.open_connection(**self._connection_arguments())``: hand it the socket
         the gate owns and has already connected."""
-        pending = getattr(self, "_pending_socket", None)
+        pending = self._pending_socket
         if pending is not None:
             return {"sock": pending}
         return super()._connection_arguments()
 
     async def disconnect(self, *args: Any, **kwargs: Any) -> None:
-        owned = getattr(self, "_owned_socket", None)
+        """Unregister on normal close: once redis-py has closed the transport, the socket leaves the gate's
+        registry (the fd closes in the transport's own callback, one loop step later; a socket still open at a
+        poison stays registered and is shut down with the rest). The registry also prunes closed sockets
+        whenever a new one registers, so it never grows across a long run."""
+        owned = self._owned_socket
         try:
             await super().disconnect(*args, **kwargs)
         finally:
-            if owned is not None and owned.fileno() == -1:
-                self._transport_gate.forget(owned)                 # unregister on normal close
-                self._owned_socket = None
+            if owned is not None:
+                if owned.fileno() != -1:
+                    await asyncio.sleep(0)                          # let the transport's close callback run
+                if owned.fileno() == -1:
+                    self._transport_gate.forget(owned)             # unregister on normal close
+                    self._owned_socket = None
 
     def _abort_socket(self) -> None:
-        writer: Any = getattr(self, "_writer")  # noqa: B009 — see _connect
-        self._reader = None
-        setattr(self, "_writer", None)  # noqa: B010
+        writer: Any = self._writer
+        self._reader = None  # type: ignore[misc]  # mypy does not see redis-py's inherited slot
+        self._writer = None
         if writer is None:
             return
         sock = writer.transport.get_extra_info("socket")

@@ -2269,9 +2269,21 @@ def test_every_enqueue_is_strictly_before_or_strictly_after_the_poison(resp_serv
 def test_an_interrupt_at_the_submission_poisons(tiny, store, bridges, monkeypatch, when):
     """Codex c4 MAJOR: a KeyboardInterrupt immediately after the work is scheduled (or raised by the submit
     call itself) left the bridge unpoisoned and the gate open, and the scheduled work then issued
-    GRAPH.LIST. Now the submission is inside the guarded frame: poisoned, gate shut, nothing sent."""
+    GRAPH.LIST. Now the submission is inside the guarded frame: poisoned, gate shut, and the scheduled work —
+    held until after the interrupt, so the test does not race it — reaches nothing."""
     text, _ = tiny
     bridge = make_bridge(store, text, bridges)
+    release = threading.Event()
+    reached: list[str] = []
+
+    async def work():
+        while not release.is_set():
+            await asyncio.sleep(0.01)
+        try:
+            await bridge.arm.list_graphs()
+            reached.append("sent")
+        except BaseException as exc:                                        # noqa: BLE001 — recorded
+            reached.append(type(exc).__name__)
     real_submit = A.asyncio.run_coroutine_threadsafe
     interrupt = KeyboardInterrupt(f"interrupted {when}")
 
@@ -2283,11 +2295,12 @@ def test_an_interrupt_at_the_submission_poisons(tiny, store, bridges, monkeypatc
         raise interrupt
     monkeypatch.setattr(A.asyncio, "run_coroutine_threadsafe", interrupted_submit)
     with pytest.raises(KeyboardInterrupt) as info:
-        bridge.list_graphs()
+        bridge._submit(work, None, None, "submission probe")
     monkeypatch.setattr(A.asyncio, "run_coroutine_threadsafe", real_submit)
     assert info.value is interrupt and bridge._shut.is_set() and bridge._poisoned is not None
+    release.set()
     time.sleep(0.3)
-    assert store.queries == [], store.queries
+    assert store.queries == [] and "sent" not in reached, (store.queries, reached)
     with pytest.raises(ERR.GCancellationUnacknowledged):
         bridge.list_graphs()
 
@@ -2450,6 +2463,141 @@ def test_every_retrieved_item_must_be_in_the_current_view(tiny, store):
         await arm.plan_and_assemble(QC1, view)
     with pytest.raises(ERR.ArmRefusal, match="not in the current view"):
         asyncio.run(scenario())
+
+
+# -- cycle 6 additions: the gate cannot be removed; the socket registry's lifecycle; the write-site premise
+
+
+def test_the_gated_writer_cannot_be_removed_by_rebinding(resp_server):
+    """``_writer`` is a PROPERTY of GatedConnection whose setter always wraps, backed by a name-mangled slot
+    of its own; the base class's ``_writer`` slot is dead storage. So redis-py's own connect, a reconnect,
+    and an explicit rebind to a raw StreamWriter all leave a gated writer — and after a poison the rebound
+    connection still sends ZERO bytes."""
+    import redis.asyncio.connection as rconn
+
+    gate, pool, _ = _gated_client(resp_server.port)
+
+    async def scenario():
+        conn = await pool.get_connection()                                  # redis-py's own connect path
+        assert isinstance(conn._writer, A._GatedWriter)
+        await conn.disconnect()
+        await conn.connect()                                                # a reconnect, redis's own code
+        assert isinstance(conn._writer, A._GatedWriter)
+        raw = object.__getattribute__(conn, "_GatedConnection__w")._writer
+        conn._writer = raw                                                  # a rebind to the RAW writer
+        assert isinstance(conn._writer, A._GatedWriter)
+        assert object.__getattribute__(conn, "_GatedConnection__w") is conn._writer
+        with pytest.raises(AttributeError):                                 # the base slot is dead storage
+            rconn.AbstractConnection.__dict__["_writer"].__get__(conn, type(conn))
+        assert not [k for k, v in getattr(conn, "__dict__", {}).items() if v is conn._writer], conn.__dict__
+        gate.shut_now()
+        mark = resp_server.totals()
+        with pytest.raises(A.TransportPoisoned):
+            conn._writer.writelines([b"*1\r\n$4\r\nPING\r\n"])
+        await asyncio.sleep(0.1)
+        assert resp_server.totals()[1] == mark[1]
+    asyncio.run(scenario())
+    assert "_GatedConnection__w" in A.GatedConnection.__slots__
+
+
+def test_the_socket_registry_does_not_grow_across_a_long_run(resp_server):
+    """Deregister on normal close: 50 connect/disconnect cycles on one pool leave the gate owning only the
+    sockets that are actually open (a bridge per cell over a 72-cell run must not accumulate sockets)."""
+    gate, pool, _ = _gated_client(resp_server.port)
+
+    async def scenario():
+        for _ in range(50):
+            conn = await pool.get_connection()
+            await conn.disconnect()
+            await pool.release(conn)
+        return len(gate._sockets)                                           # raw size: nothing pruned here
+    assert asyncio.run(scenario()) <= 1
+
+
+def test_shut_now_shuts_every_socket_in_a_mixed_state_registry(resp_server):
+    """The poison iterates the WHOLE registry, one OSError never stopping the rest: an already-closed socket
+    (EBADF), a never-connected one (ENOTCONN), an idle connected one and an open one in use are all handled;
+    both connected sockets are shut down (the server sees their ends), and the call returns bounded."""
+    import socket as _socket
+
+    gate = A.SocketGate()
+    closed = _socket.socket()
+    closed.close()
+    never = _socket.socket()
+    idle = _socket.create_connection(("127.0.0.1", resp_server.port))
+    busy = _socket.create_connection(("127.0.0.1", resp_server.port))
+    busy.sendall(b"*1\r\n$4\r\nPING\r\n")
+    time.sleep(0.1)
+    before = sorted(resp_server.received)
+    gate._sockets.update({closed, never, idle, busy})
+    t0 = time.monotonic()
+    gate.shut_now()
+    assert time.monotonic() - t0 < A.CONNECT_SHUTDOWN_RETRY_S + 1
+    ends = _wait_ended(resp_server, before[-2:])
+    assert all(e in ("eof", "reset") for e in ends.values()), ends
+    for sock in (never, idle, busy):
+        sock.close()
+
+
+def test_the_eof_a_poison_causes_mid_read_lands_on_a_handled_path(tiny, resp_server, monkeypatch):
+    """A read in flight when the poison shuts its socket down sees EOF: redis-py raises inside the bridge's
+    own task, ``_guarded`` carries it as the work's outcome, and nothing escapes unhandled — the loop's
+    exception handler sees nothing, and the caller's own signal (here a KeyboardInterrupt in the wait)
+    propagates as itself."""
+    text, view = tiny
+    bridge = A.make_bridge(FakeEmbedder(), text, host="127.0.0.1", port=resp_server.port)
+    bridge.build_graph(QC1, view)
+    loop_errors: list = []
+    bridge._loop.set_exception_handler(lambda loop, context: loop_errors.append(context))
+    raw = object.__getattribute__(bridge.arm.driver.client, "_target")
+    resp_server.hold = {"held"}
+    outcome: list = []
+
+    async def work():
+        try:
+            await raw.select_graph("held").query("RETURN 1")               # the read is in flight
+        except BaseException as exc:
+            outcome.append(exc)
+            raise
+    real_wait = A.concurrent.futures.wait
+    interrupt = KeyboardInterrupt("caller interrupted while a read is in flight")
+
+    def interrupted(*a, **k):
+        deadline = time.monotonic() + 5
+        while not any(len(c) > 1 and c[1] == "held" for _, c in resp_server.commands) and time.monotonic() < deadline:
+            time.sleep(0.01)
+        raise interrupt
+    monkeypatch.setattr(A.concurrent.futures, "wait", interrupted)
+    with pytest.raises(KeyboardInterrupt) as info:
+        bridge._submit(work, None, None, "read in flight")
+    monkeypatch.setattr(A.concurrent.futures, "wait", real_wait)
+    assert info.value is interrupt and bridge._shut.is_set()
+    time.sleep(0.3)
+    assert loop_errors == [], loop_errors
+    resp_server.release.set()
+    bridge.close()
+
+
+#: The premise the atomic enqueue rests on, VERIFIED for redis-py 8.1.0: asynchronous redis writes
+#: application bytes ONLY through these calls. Derived at test time from the INSTALLED source.
+VERIFIED_ASYNC_REDIS_WRITE_SITES = (("connection.py", "self._writer.writelines(command)"),
+                                    ("connection.py", "self._writer.writelines(command)"))
+
+
+def test_async_redis_writes_only_where_the_gate_was_verified():
+    """No redis pin (mission C-003), so the premise is DERIVED: scan the installed ``redis/asyncio`` for every
+    write site and require exactly the verified set. An upgrade that adds a write path fails here, loudly."""
+    import pathlib as _pathlib
+
+    import redis.asyncio
+
+    pattern = re.compile(r"\.writelines\(|\.write\(|transport\.write|sendall|sock_sendall|sock_send")
+    found = []
+    for path in sorted(_pathlib.Path(redis.asyncio.__file__).parent.rglob("*.py")):
+        for line in path.read_text(encoding="utf-8").splitlines():
+            if pattern.search(line) and not line.lstrip().startswith("#"):
+                found.append((path.name, line.strip()))
+    assert tuple(found) == VERIFIED_ASYNC_REDIS_WRITE_SITES, found
 
 
 #: The ungated footprint of FalkorDB's constructor, EXACTLY (design lead, bus 20260927T085156195841Zf6c8b07323):
