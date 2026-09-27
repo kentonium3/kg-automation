@@ -1,7 +1,7 @@
 {
-  "event_count": 45,
-  "last_event_id": "01M3HJM7S5GNEDV8Y5PGN03B5R",
-  "materialized_at": "2026-09-27T13:59:43.653255+00:00",
+  "event_count": 47,
+  "last_event_id": "01M3HRB322WHDNEC45AGDNA8PV",
+  "materialized_at": "2026-09-27T15:39:35.362584+00:00",
   "mission_number": "",
   "mission_slug": "arms-preconditions-01M3FVRY",
   "mission_type": "software-dev",
@@ -12,9 +12,9 @@
     "claimed": 0,
     "done": 0,
     "for_review": 0,
-    "in_progress": 0,
+    "in_progress": 1,
     "in_review": 0,
-    "planned": 4
+    "planned": 3
   },
   "work_packages": {
     "WP01": {
@@ -59,9 +59,9 @@
       "agent_profile": "__resolved_profile_absent__",
       "agent_profile_version": "__resolved_profile_version_absent__",
       "force_count": 5,
-      "lane": "planned",
-      "last_event_id": "01M3HJM7S5GNEDV8Y5PGN03B5R",
-      "last_transition_at": "2026-09-27T13:59:43.653255+00:00",
+      "lane": "in_progress",
+      "last_event_id": "01M3HRB322WHDNEC45AGDNA8PV",
+      "last_transition_at": "2026-09-27T15:39:35.362584+00:00",
       "model": "__resolved_model_absent__",
       "notes": [
         "Implemented by python-pedro (Claude Opus 5.5), 2d585b81..b20243c2. FR-016 red on a real FalkorDB (sandbox, torn down); 12/12 mutants killed. Full suite 8038/0 on both seeds; CI simulation 0/0.",
@@ -78,7 +78,7 @@
         "reviewer": "codex-gpt-6-astra",
         "verdict": "changes_requested"
       },
-      "role": "reviewer",
+      "role": "implementer",
       "shell_pid": null,
       "shell_pid_created_at": null,
       "subtasks": {
