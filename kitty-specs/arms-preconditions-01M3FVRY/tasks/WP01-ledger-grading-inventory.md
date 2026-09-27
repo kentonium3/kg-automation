@@ -12,6 +12,9 @@ requirement_refs:
 planning_base_branch: feat/849-preconditions
 merge_target_branch: feat/849-preconditions
 branch_strategy: Planning artifacts for this mission were generated on feat/849-preconditions. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into feat/849-preconditions unless the human explicitly redirects the landing branch.
+base_branch: kitty/mission-arms-preconditions-01M3FVRY
+base_commit: ff67c8cbb54f86d8000c5cf18c406731dea96521
+created_at: '2026-09-27T01:43:12.216614+00:00'
 subtasks:
 - T001
 - T002
@@ -35,8 +38,8 @@ owned_files:
 - tests/research/test_arms849_isolation.py
 - scripts/research/run_849_harness.py
 role: implementer
-tracker_refs: []
 tags: []
+tracker_refs: []
 ---
 
 # Work Package Prompt: WP01 — Ledger, grading and isolation inventory
