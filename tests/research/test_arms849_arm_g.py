@@ -1721,6 +1721,8 @@ class FakeRedisServer:
             return bulk("# Server\r\nredis_version:7.2.4\r\nredis_mode:standalone\r\n")
         if cmd == "PING":
             return b"+PONG\r\n"
+        if cmd == "HELLO":                                                  # a RESP3 client: answer as RESP3 would
+            return b"%1\r\n+proto\r\n:3\r\n"
         return b"+OK\r\n"
 
 
@@ -1905,6 +1907,53 @@ def test_poisoning_one_bridge_leaves_another_in_the_same_process_working(tiny, r
         assert b.close() is True                                            # normal teardown of a clean bridge
         t0 = time.monotonic()
         assert a.close() is False and time.monotonic() - t0 < 5
+
+
+def _on_bridge_loop(bridge, coro_fn):
+    return asyncio.run_coroutine_threadsafe(coro_fn(), bridge._loop).result(5)
+
+
+def test_make_bridge_client_decodes_responses_to_str(tiny, resp_server):
+    """The pool-arguments landmine (design lead, bus 100641/101357): with ``connection_pool=`` supplied,
+    redis-py ignores the CLIENT's arguments silently, so FalkorDB's own ``decode_responses=True`` is inert
+    and the POOL must carry it. Pinned by behaviour: a value round-tripped through make_bridge's client
+    comes back as ``str``, not ``bytes``."""
+    text, _ = tiny
+    bridge = A.make_bridge(FakeEmbedder(), text, host="127.0.0.1", port=resp_server.port)
+    try:
+        raw = object.__getattribute__(bridge.arm.driver.client, "_target")
+        resp_server.graphs = {"arms_Z9"}
+        listed = _on_bridge_loop(bridge, lambda: raw.execute_command("GRAPH.LIST"))
+        assert listed == ["arms_Z9"] and all(type(x) is str for x in listed), listed
+        assert _on_bridge_loop(bridge, raw.list_graphs) == ["arms_Z9"]
+    finally:
+        bridge.close()
+
+
+def test_make_bridge_client_speaks_resp2_as_negotiated(tiny, resp_server):
+    """The protocol IN EFFECT, observed rather than requested: make_bridge's connections negotiate RESP2 —
+    the server sees no ``HELLO`` from them (RESP3 would open with ``HELLO 3``) and the live connection's
+    parser is the RESP2 parser — which is what FalkorDB(host, port) would have used and what its result
+    parsing expects. redis-py's own default is RESP3, so an inert client-level ``protocol=2`` fails here."""
+    text, _ = tiny
+    bridge = A.make_bridge(FakeEmbedder(), text, host="127.0.0.1", port=resp_server.port)
+    try:
+        raw = object.__getattribute__(bridge.arm.driver.client, "_target")
+        seen = len(resp_server.commands)
+
+        async def probe():
+            await raw.list_graphs()
+            pool = raw.connection.connection_pool
+            conn = await pool.get_connection()
+            try:
+                return type(conn._parser).__name__
+            finally:
+                await pool.release(conn)
+        parser = _on_bridge_loop(bridge, probe)
+        hellos = [a for _, a in resp_server.commands[seen:] if a and a[0].upper() == "HELLO"]
+        assert hellos == [] and "RESP2" in parser, (hellos, parser)
+    finally:
+        bridge.close()
 
 
 #: The ungated footprint of FalkorDB's constructor, EXACTLY (design lead, bus 20260927T085156195841Zf6c8b07323):
