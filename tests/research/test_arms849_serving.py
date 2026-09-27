@@ -219,3 +219,78 @@ def test_sampling_cannot_overwrite_authoritative_request_fields():
     body = S.serialize(b"REGISTERED", p, seed=1001, tokenizer=_FakeTok())
     assert set(body) == set(S.SAMPLING) | {"prompt", "n_predict", "seed", "cache_prompt", "stream"}
     assert body["prompt"].startswith("<|im_start|>user\nREGISTERED")
+
+
+# ---------------------------------------------------------------------------
+# WP02 (arms-preconditions-01M3FVRY) T011: complete(..., before_send) — contracts/before-send.md 1
+# ---------------------------------------------------------------------------
+
+
+class _Sentinel(Exception):
+    pass
+
+
+def _ordered(monkeypatch, log: list[str], respond: bool = True):
+    """A counting tokenizer and a urlopen that record the order of count → before_send → send."""
+    import io
+    import json as _json
+    import urllib.request
+
+    class Tok(_FakeTok):
+        def count(self, text):
+            log.append("count")
+            return len(text.split())
+
+    def urlopen(req, timeout=None):
+        log.append("send")
+        if not respond:
+            raise AssertionError("a byte was sent")
+        n = len(_json.loads(req.data)["prompt"].split())
+        payload = {"content": "ok", "stop_type": "eos",
+                   "timings": {"prompt_n": n, "cache_n": 0, "prompt_ms": 1.0, "predicted_n": 1, "predicted_ms": 1.0}}
+
+        class Resp(io.BytesIO):
+            def __enter__(self): return self
+            def __exit__(self, *a): return False
+        return Resp(_json.dumps(payload).encode("utf-8"))
+
+    monkeypatch.setattr(urllib.request, "urlopen", urlopen)
+    return Tok()
+
+
+def test_before_send_runs_after_the_count_and_limit_check_and_immediately_before_the_send(monkeypatch):
+    log: list[str] = []
+    tok = _ordered(monkeypatch, log)
+    out = S.complete({"prompt": "one two three"}, tok, permitted_limit=10, before_send=lambda: log.append("before_send"))
+    assert log == ["count", "before_send", "send"] and out.prompt_tokens == 3
+
+
+def test_a_before_send_exception_propagates_unaltered_and_nothing_is_sent(monkeypatch):
+    log: list[str] = []
+    tok = _ordered(monkeypatch, log, respond=False)
+    exc = _Sentinel("ceiling")
+
+    def guard():
+        log.append("before_send")
+        raise exc
+    with pytest.raises(_Sentinel) as info:
+        S.complete({"prompt": "one two three"}, tok, permitted_limit=10, before_send=guard)
+    assert info.value is exc and info.value.__cause__ is None and info.value.__context__ is None
+    assert log == ["count", "before_send"]
+
+
+def test_over_the_permitted_limit_before_send_is_never_reached(monkeypatch):
+    log: list[str] = []
+    tok = _ordered(monkeypatch, log, respond=False)
+    with pytest.raises(S.ContextExceeded):
+        S.complete({"prompt": "one two three four five"}, tok, permitted_limit=4,
+                   before_send=lambda: log.append("before_send"))
+    assert log == ["count"]
+
+
+def test_without_before_send_existing_callers_still_send(monkeypatch):
+    """The default keeps callers working until WP04 makes the facade require one (before-send item 2)."""
+    log: list[str] = []
+    tok = _ordered(monkeypatch, log)
+    assert S.complete({"prompt": "one two"}, tok, permitted_limit=10).prompt_tokens == 2
+    assert log == ["count", "send"]
