@@ -1,16 +1,16 @@
 {
-  "event_count": 77,
-  "last_event_id": "01M3MQEJCXB9GC0CGFA3J3MFN1",
-  "materialized_at": "2026-09-28T19:21:44.093979+00:00",
+  "event_count": 78,
+  "last_event_id": "01M3MQET9VHC83KFSRP8R29WS1",
+  "materialized_at": "2026-09-28T19:21:52.187090+00:00",
   "mission_number": "",
   "mission_slug": "arms-preconditions-01M3FVRY",
   "mission_type": "software-dev",
   "summary": {
-    "approved": 3,
+    "approved": 2,
     "blocked": 0,
     "canceled": 0,
     "claimed": 0,
-    "done": 2,
+    "done": 3,
     "for_review": 0,
     "in_progress": 0,
     "in_review": 0,
@@ -94,14 +94,14 @@
       }
     },
     "WP03": {
-      "actor": "codex-astra-wp03-review",
+      "actor": "merge",
       "agent": "codex-astra-wp03-review",
       "agent_profile": "__resolved_profile_absent__",
       "agent_profile_version": "__resolved_profile_version_absent__",
       "force_count": 1,
-      "lane": "approved",
-      "last_event_id": "01M3K6VMSR64RMBC2P3AEK22VE",
-      "last_transition_at": "2026-09-28T05:12:32.312800+00:00",
+      "lane": "done",
+      "last_event_id": "01M3MQET9VHC83KFSRP8R29WS1",
+      "last_transition_at": "2026-09-28T19:21:52.187090+00:00",
       "model": "__resolved_model_absent__",
       "notes": [
         "APPROVE at lane c1c13766 after independent charter-aware review. Registered task rubric: tasks/WP03-series-writer-report.md at primary 2bbe5ece01d7f0b3bce66c71c5d4cea3a428bdd8, blob 67707e8c05d386f54a05ff8e2ddbac59cea8b7f7. Additive selector authority: contracts/memory-series.md at planning f7fd482de0738ffea60e9dac3063c30dbdc1e7cb, blob a17e76331614cac1fc186095eab414d640b8cea0; source_series_ids and resumed-generation selection exceed the finalized task rubric additively under the dated contract and team-lead ruling. Applied charter-context Directive IDs 001,003,010,018,024,025,028,029,030-040 plus the eight built-in anti-pattern checks; all pass after DIRECTIVE_037 docstring correction. Seeds 0 and 3: 510 passed, 2 skipped each; py_compile passed; 8,192 tests collected. #1037 remains a mission-level WP02 full-suite blocker excluded from this WP gate. Canonical workaround registry row 107 applied: five reviewed artifacts were byte-verified and committed by the orchestrator on the planning branch; no force or destructive restore."
