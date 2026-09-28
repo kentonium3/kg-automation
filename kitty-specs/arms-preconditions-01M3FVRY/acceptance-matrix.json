@@ -38,10 +38,10 @@
       "criterion_id": "FR-004",
       "description": "Verify FR-004 is satisfied",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
+      "evidence": "tests/research/test_run_849_harness.py::test_an_unregistered_arm_is_recorded_not_silently_skipped;tests/research/test_arms849_grading.py::test_export_refuses_not_implemented_cells",
+      "pass_fail": "pass",
+      "verified_by": "codex-office4-d5c7b35d",
+      "verified_at": "2026-09-28T19:01:08.130649+00:00",
       "notes": "TODO: replace with a real acceptance criterion"
     },
     {
