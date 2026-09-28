@@ -18,10 +18,10 @@
       "criterion_id": "FR-002",
       "description": "Verify FR-002 is satisfied",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
+      "evidence": "tests/research/test_arms849_integration.py::test_a_premise_violation_records_both_events_and_halts_before_later_work;test_an_unacknowledged_g_cancellation_records_stop_and_escapes_without_more_graph_work",
+      "pass_fail": "pass",
+      "verified_by": "codex-office4-d5c7b35d",
+      "verified_at": "2026-09-28T19:00:49.386624+00:00",
       "notes": "TODO: replace with a real acceptance criterion"
     },
     {
