@@ -29,23 +29,60 @@ D-1, D-2, D-3, D-15; rubric §2 G row with the A3 query plan):
 ``EntityNode.name`` is reserved by Graphiti, so a node is named by the entity's
 ``id``; an entity's own ``name`` attribute is stored as ``display_name``.
 
-The FalkorDB async client binds to the event loop it first runs on: a caller runs
-the whole per-question sequence (build → assemble × 3 → drop) inside ONE loop
-(one ``asyncio.run`` for the harness session), never one ``asyncio.run`` per step.
+**One database per question** (FR-016, research D-2b — a defect fix): every operation for a
+question — node/edge/episode writes, the index build, typed pulls, hybrid search, anchored
+expansion and drop — runs through ONE driver ``self.driver.clone(database=group)``, created once
+per question, cached, and index-ready before first use. The approved code wrote to the root
+driver's ``default_db`` while ``Graphiti.search_``'s ``@handle_multiple_group_ids`` cloned to
+``arms_<Q>``, so hybrid retrieval always read an empty graph.
+
+**Refusals and premise violations** (FR-002; contracts/arm-registration items 3–5): a graph not
+built, a foreign item in G's own graph and an incoherent context limit raise the ONE shared
+:class:`~arms849.errors.ArmRefusal` (terminal for the cell); the no-LLM tripwire firing and
+retrieval crossing the per-question graph boundary raise
+:class:`~arms849.errors.PremiseViolated` (the run halts).
+
+**The loop bridge** (research D-2; NFR-003): the FalkorDB async client binds to the event loop it
+first runs on, so G's registration-facing :class:`Bridge` owns ONE loop on a dedicated thread and
+ONE driver bound to it. Only graph work runs there; serving runs on the attempt thread through the
+synchronous :meth:`GraphArm.respond`, exactly as D and R serve. A cancelled coroutine must
+acknowledge its own termination within ``errors.G_CANCEL_GRACE_S``, or the bridge raises
+:class:`~arms849.errors.GCancellationUnacknowledged` and issues nothing further.
+
+**Zero bytes after the fatal signal** is enforced at the socket (:class:`GatedConnection`, one
+:class:`SocketGate` per bridge). **Accepted residual** (design lead, option a, 2026-09-27): the installed
+falkordb client's constructor probes the server ONCE with a separate synchronous redis client
+(``Is_Cluster``: ``INFO``), outside the gate. It runs only in :func:`make_bridge`, strictly before any
+poison can exist, and a poisoned bridge is never reconstructed. The residual — what is ungated, why it is
+acceptable, what pins it — is recorded by the design lead in this mission's ``contracts/``; tests pin its
+exact size at construction (one synchronous connection, three commands) and that no synchronous socket
+is opened after construction. An unreachable FalkorDB therefore fails at registration (WP04).
 """
 
 from __future__ import annotations
 
+import asyncio
+import concurrent.futures
+import contextlib
+import errno
+import hashlib
+import os
 import re
+import socket
+import struct
+import threading
 import time
 import uuid as _uuid
-from collections.abc import Iterable, Mapping, Sequence
+from collections.abc import Awaitable, Callable, Iterable, Mapping, Sequence
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
-from typing import Any
+from typing import Any, NoReturn, TypeVar
 
+import redis.asyncio as _redis_async
+from falkordb.asyncio import FalkorDB
 from graphiti_core import Graphiti
 from graphiti_core.driver.driver import GraphDriver
+from graphiti_core.driver.falkordb_driver import FalkorDriver
 from graphiti_core.edges import EntityEdge, EpisodicEdge
 from graphiti_core.nodes import EntityNode, EpisodeType, EpisodicNode
 from graphiti_core.search.search_config import (
@@ -60,17 +97,61 @@ from graphiti_core.search.search_config import (
 )
 from graphiti_core.tracer import NoOpTracer
 
+from scripts.research.arms849 import errors, serving
 from scripts.research.arms849.embed import (
     CosineReranker,
     Embedder,
     GraphitiEmbedder,
     TripwireLLMClient,
 )
-from scripts.research.arms849.text import Block, FrozenCorpusText, edge_key, entity_key
+from scripts.research.arms849.errors import (
+    ArmRefusal,
+    CeilingBreached,
+    CeilingUnreadable,
+    GCancellationUnacknowledged,
+    PremiseViolated,
+)
+from scripts.research.arms849.text import Block, FrozenCorpusText, edge_key, entity_key, record_line_bytes
 from scripts.research.load_849_corpus import Loaded, edge_effective_time
 
-__all__ = ["CAP", "GROUP_RE", "TYPED_LABELS", "GraphArm", "GraphStats", "Item", "PlanRecord", "Resolution",
-           "assemble", "group_id_for", "link_targets", "normalise", "resolve_anchors"]
+__all__ = [
+    "CAP",
+    "FALKOR_HOST",
+    "FALKOR_PORT",
+    "GROUP_RE",
+    "LOOP_THREAD_NAME",
+    "TYPED_LABELS",
+    "Bridge",
+    "GatedConnection",
+    "GraphArm",
+    "GraphStats",
+    "Item",
+    "PlanRecord",
+    "Resolution",
+    "SocketGate",
+    "TransportGate",
+    "TransportPoisoned",
+    "assemble",
+    "group_id_for",
+    "link_targets",
+    "make_bridge",
+    "normalise",
+    "resolve_anchors",
+]
+
+T = TypeVar("T")
+
+#: The compose service the runner container reaches FalkorDB by (research D-2); tests inject their own.
+FALKOR_HOST, FALKOR_PORT = "falkordb", 6379
+#: The bridge loop's thread: every graph query runs on it and nowhere else.
+LOOP_THREAD_NAME = "arms849-g-loop"
+#: How often the attempt thread re-checks its deadline and ``cancelled`` flag while graph work runs.
+POLL_S = 0.05
+#: How long a stop waits for the loop thread to return before the fatal signal is raised anyway.
+HALT_JOIN_S = 1.0
+#: Raised by the work itself, these decide the cell or the run: after a cancellation they propagate as
+#: themselves, never as a retryable TimeoutError (research D-2's rule for _call_with_timeout, at the bridge).
+TERMINAL_EXCEPTIONS: tuple[type[BaseException], ...] = (PremiseViolated, ArmRefusal, CeilingBreached, CeilingUnreadable)
 
 GROUP_RE = re.compile(r"^arms_[A-Z0-9]+$")
 TYPED_LABELS = ("Capacity", "Commitment", "Principle", "Interest")
@@ -304,34 +385,100 @@ _assert_no_bfs(TYPED_PULL)
 # ---------------------------------------------------------------------------
 
 
+def view_fingerprint(view: Loaded) -> str:
+    """sha256 over every ordered input used to build the graph for a replayed view."""
+    h = hashlib.sha256()
+    h.update(b"ask_time\0")
+    h.update(view.ask_time.isoformat().encode())
+    for tag, records in (("event", view.events), ("entity", view.entities),
+                         ("edge", view.edges), ("link", view.links)):
+        for record in records:
+            h.update(f"\0{tag}\0".encode())
+            h.update(record_line_bytes(record))
+    return h.hexdigest()
+
+
+def _items_outside_view(view: Loaded, items: Iterable[Item]) -> set[str]:
+    """Keys of retrieved items that the CURRENT view does not contain (nodes by entity id, edges by edge key,
+    episodes by event ref)."""
+    present = {"node": {entity_key(e) for e in view.entities}, "edge": {edge_key(e) for e in view.edges},
+               "episode": {str(e["ref"]) for e in view.events}}
+    return {f"{it.kind}:{it.key}" for it in items if it.key not in present.get(it.kind, set())}
+
+
 class GraphArm:
-    """One driver, one embedder, one tripwire; per-question graphs and maps."""
+    """One root driver, one embedder, one tripwire; per question ONE database, ONE Graphiti, one map.
+
+    The root ``driver`` is never queried for a question: :meth:`_database` clones it ONCE per question
+    (``driver.clone(database=group)``), caches the clone, and AWAITS the clone's detached ``_init_task``
+    (graphiti schedules the index build on construction) before first use, so index readiness is owned
+    per database (``_indices_built`` is a set of databases, not one flag). A ``Graphiti`` instance is
+    built per question bound to that clone, so ``@handle_multiple_group_ids`` takes its
+    ``gid == driver._database`` branch and clones nothing further (research D-2b; installed
+    ``decorators.py`` L59–68). A failed or cancelled index build is never reused: the cache entry is
+    dropped and the next use clones afresh.
+    """
 
     def __init__(self, driver: GraphDriver, embedder: Embedder, text: FrozenCorpusText) -> None:
         self.driver = driver
         self.embedder = embedder
         self.text = text
         self.tripwire = TripwireLLMClient()
-        self.graphiti = Graphiti(graph_driver=driver, llm_client=self.tripwire,
-                                 embedder=GraphitiEmbedder(embedder), cross_encoder=CosineReranker(embedder),
-                                 tracer=NoOpTracer())
+        self._graphiti_embedder = GraphitiEmbedder(embedder)
+        self._reranker = CosineReranker(embedder)
+        self._databases: dict[str, GraphDriver] = {}               # group → its per-question driver
+        self._graphiti: dict[str, Graphiti] = {}                   # group → Graphiti bound to that driver
+        self._indices_built: set[str] = set()                      # databases whose index build completed
         self._uuid_by_id: dict[str, dict[str, str]] = {}          # group → entity id → uuid
         self._key_by_uuid: dict[str, dict[str, tuple[str, str]]] = {}   # group → uuid → (kind, key)
-        self._indices_built = False
-        self._foreign: list[str] = []                             # result uuids not in our map (must stay empty)
+        self._foreign: list[str] = []      # results in THIS group's graph that G did not write (ArmRefusal)
+        self._leaked: list[str] = []       # results from ANOTHER group's graph (PremiseViolated)
+        #: uuid → the group G wrote it for. APPEND-ONLY for the arm's life: never deleted by drop_graph or a
+        #: rebuild, so a dropped question's uuid reported under another group is still recognised as a leak
+        #: (review c2 finding 3). RESERVED BEFORE each write — a save that fails, or whose server outcome is
+        #: uncertain, still owns its uuid (review c3 finding C). Separate from the per-view maps above.
+        self._owner: dict[str, str] = {}
+        #: group → fingerprint of the VIEW the graph was built from (review c5 finding 2). Retrieval answers
+        #: only for that view: a different one is refused before any query.
+        self._built_view: dict[str, str] = {}
 
     @property
     def llm_calls(self) -> int:
         return self.tripwire.llm_calls
+
+    def _check_tripwire(self, llm_calls: int) -> None:
+        if llm_calls:
+            raise PremiseViolated("tripwire", f"{llm_calls} LLM call(s) attempted; G never extracts (D-2)")
+
+    async def _database(self, group: str) -> GraphDriver:
+        """THE driver for ``group``: cloned once, cached, index-ready (FR-016)."""
+        db = self._databases.get(group)
+        if db is None:
+            db = self.driver.clone(database=group)
+            self._databases[group] = db
+            self._graphiti[group] = Graphiti(graph_driver=db, llm_client=self.tripwire,
+                                             embedder=self._graphiti_embedder, cross_encoder=self._reranker,
+                                             tracer=NoOpTracer())
+        if group not in self._indices_built:
+            try:
+                init = getattr(db, "_init_task", None)
+                if init is not None:
+                    await init                                  # the clone's own detached index build
+                else:
+                    await db.build_indices_and_constraints()    # cloned outside a running loop: build it here
+            except BaseException:
+                self._databases.pop(group, None)
+                self._graphiti.pop(group, None)
+                raise
+            self._indices_built.add(group)
+        return db
 
     # -- writes ----------------------------------------------------------------
 
     async def build_graph(self, question: Any, view: Loaded) -> GraphStats:
         group = group_id_for(question.id)
         t0 = time.monotonic()
-        if not self._indices_built:
-            await self.driver.build_indices_and_constraints()
-            self._indices_built = True
+        db = await self._database(group)
         await self.drop_graph(question)                              # idempotent rebuild
         uuid_by_id: dict[str, str] = {}
         key_by_uuid: dict[str, tuple[str, str]] = {}
@@ -345,7 +492,8 @@ class GraphArm:
             node = EntityNode(uuid=stable_uuid(group, "node", eid), name=eid, group_id=group, labels=[kind],
                               summary=summary, attributes=attrs, created_at=ask)
             node.name_embedding = self.embedder.embed_one(summary)     # the id token is noise in the vector
-            await node.save(self.driver)
+            self._owner.setdefault(node.uuid, group)                   # reserved BEFORE the write (C)
+            await node.save(db)
             uuid_by_id[eid] = node.uuid
             key_by_uuid[node.uuid] = ("node", eid)
             nodes += 1
@@ -369,7 +517,8 @@ class GraphArm:
                            target_node_uuid=dst, name=str(edge["type"]), fact=fact, created_at=when, valid_at=when,
                            attributes=attrs)
             e.fact_embedding = self.embedder.embed_one(fact)
-            await e.save(self.driver)
+            self._owner.setdefault(e.uuid, group)
+            await e.save(db)
             key_by_uuid[e.uuid] = ("edge", key)
             edges += 1
 
@@ -384,7 +533,8 @@ class GraphArm:
                               source=EpisodeType.text,
                               source_description=str(event.get("source_description") or event.get("channel") or ""),
                               content=self.text.event_line(ref).decode("utf-8"), valid_at=when, created_at=when)
-            await ep.save(self.driver)
+            self._owner.setdefault(ep.uuid, group)
+            await ep.save(db)
             ep_uuid[ref] = ep.uuid
             key_by_uuid[ep.uuid] = ("episode", ref)
             episodes += 1
@@ -399,11 +549,14 @@ class GraphArm:
                 if dst is None:
                     continue
                 # The MENTIONS edge carries ITS EPISODE's time, not ask_time (Codex WP05 c2).
-                await EpisodicEdge(uuid=stable_uuid(group, "link", f"{link.get('ref')}->{mention}"), group_id=group,
-                                   source_node_uuid=src, target_node_uuid=dst,
-                                   created_at=ep_when[str(link.get("ref"))]).save(self.driver)
+                link_uuid = stable_uuid(group, "link", f"{link.get('ref')}->{mention}")
+                self._owner.setdefault(link_uuid, group)
+                await EpisodicEdge(uuid=link_uuid, group_id=group, source_node_uuid=src, target_node_uuid=dst,
+                                   created_at=ep_when[str(link.get("ref"))]).save(db)
                 links += 1
 
+        self._check_tripwire(self.llm_calls)
+        self._built_view[group] = view_fingerprint(view)
         self._uuid_by_id[group] = uuid_by_id
         self._key_by_uuid[group] = key_by_uuid
         return GraphStats(group_id=group, nodes=nodes, edges=edges, episodes=episodes, links=links,
@@ -411,24 +564,53 @@ class GraphArm:
 
     async def drop_graph(self, question: Any) -> None:
         group = group_id_for(question.id)
-        await self.driver.execute_query("MATCH (n {group_id: $group_id}) DETACH DELETE n", group_id=group)
+        db = await self._database(group)
+        await db.execute_query("MATCH (n {group_id: $group_id}) DETACH DELETE n", group_id=group)
         self._uuid_by_id.pop(group, None)
         self._key_by_uuid.pop(group, None)
+        self._built_view.pop(group, None)
+
+    async def list_graphs(self) -> list[str]:
+        """The server's graph listing, read-only (``GRAPH.LIST``): WP04 T020 records
+        ``graph_store_first_build.graphs_present`` from it before the first build."""
+        return sorted(str(g) for g in await self.driver.client.list_graphs())
+
+    async def close(self) -> None:
+        """Close the ONE connection the root driver and every per-question clone share."""
+        await self.driver.close()
 
     # -- retrieval -------------------------------------------------------------
 
+    def _key_for(self, group: str, uuid: str, result_group: Any) -> tuple[str, str] | None:
+        """The (kind, key) G wrote for ``uuid`` in ``group``; else record WHY it is not ours.
+
+        A result carrying ANOTHER group — by its own ``group_id``, or a uuid G EVER wrote for another
+        question (the append-only ``_owner``, which survives drop_graph) — crossed the per-question graph boundary: ``_leaked`` (PremiseViolated, the run
+        halts). A result in THIS group's graph that G did not write from this view: ``_foreign``
+        (ArmRefusal, the cell is refused). Neither is ever silently dropped (RQ-6b). The result's REPORTED
+        group is checked first: a uuid G wrote for this question, returned under another question's group,
+        has crossed the boundary too (review c1 finding 5)."""
+        if result_group is not None and str(result_group) != group:
+            self._leaked.append(uuid)
+            return None
+        owner = self._owner.get(uuid)
+        if owner is not None and owner != group:
+            self._leaked.append(uuid)                               # written for another question, ever
+            return None
+        kk = self._key_by_uuid.get(group, {}).get(uuid)
+        if kk is not None:
+            return kk
+        self._foreign.append(uuid)
+        return None
+
     def _items(self, group: str, results: SearchResults, origin: str) -> list[Item]:
-        keys = self._key_by_uuid.get(group, {})
         out: list[Item] = []
         for coll, scores in ((results.nodes, results.node_reranker_scores),
                              (results.edges, results.edge_reranker_scores),
                              (results.episodes, results.episode_reranker_scores)):
             for i, obj in enumerate(coll):
-                kk = keys.get(obj.uuid)
+                kk = self._key_for(group, obj.uuid, getattr(obj, "group_id", None))
                 if kk is None:
-                    # With explicit group_ids this never happens; if it does it is a cross-group
-                    # leak (RQ-6b) or a stale map — recorded and REFUSED, never silently dropped.
-                    self._foreign.append(obj.uuid)
                     continue
                 score = float(scores[i]) if scores and i < len(scores) else 0.0
                 out.append(Item(kind=kk[0], key=kk[1], uuid=obj.uuid, score=score, origin=origin))
@@ -440,25 +622,25 @@ class GraphArm:
         never names must still be pulled; that is what the constraint pull is for). Score 1.0,
         ordered by entity id. `question_text` is accepted for the interface and unused here."""
         del question_text
-        keys = self._key_by_uuid.get(group, {})
+        db = await self._database(group)
         out: dict[str, list[Item]] = {}
         for label in TYPED_LABELS:
-            rows, _, _ = await self.driver.execute_query(
+            rows, _, _ = await db.execute_query(
                 "MATCH (n:Entity {group_id: $group_id}) WHERE $label IN labels(n) "
-                "RETURN n.uuid AS uuid, n.name AS name ORDER BY n.name",
+                "RETURN n.uuid AS uuid, n.name AS name, n.group_id AS group_id ORDER BY n.name",
                 group_id=group, label=label)
             items = []
             for row in rows:
-                kk = keys.get(str(row["uuid"]))
+                kk = self._key_for(group, str(row["uuid"]), row.get("group_id"))
                 if kk is None:
-                    self._foreign.append(str(row["uuid"]))
                     continue
                 items.append(Item(kind="node", key=kk[1], uuid=str(row["uuid"]), score=1.0, origin=f"pull:{label}"))
             out[label] = sorted(items, key=lambda i: i.key)
         return out
 
     async def hybrid_search(self, question_text: str, group: str) -> list[Item]:
-        res = await self.graphiti.search_(question_text, config=HYBRID_NODE_EDGE, group_ids=[group])
+        await self._database(group)                                     # the Graphiti bound to THIS database
+        res = await self._graphiti[group].search_(question_text, config=HYBRID_NODE_EDGE, group_ids=[group])
         return self._items(group, res, "search")
 
     async def anchored_expansion(self, group: str, anchor_id: str) -> list[Item]:
@@ -466,13 +648,11 @@ class GraphArm:
         uuid = self._uuid_by_id.get(group, {}).get(anchor_id)
         if uuid is None:
             return []
-        episodes = await EpisodicNode.get_by_entity_node_uuid(self.driver, uuid)
-        keys = self._key_by_uuid.get(group, {})
+        episodes = await EpisodicNode.get_by_entity_node_uuid(await self._database(group), uuid)
         items = []
         for ep in episodes:
-            kk = keys.get(ep.uuid)
+            kk = self._key_for(group, ep.uuid, getattr(ep, "group_id", None))
             if kk is None:
-                self._foreign.append(ep.uuid)
                 continue
             items.append((ep.valid_at, Item(kind="episode", key=kk[1], uuid=ep.uuid, score=1.0, origin=f"expand:{anchor_id}")))
         # Anchored HISTORY: most recent first, then ref — when the cap cuts, the latest survive.
@@ -484,9 +664,12 @@ class GraphArm:
     async def plan_and_assemble(self, question: Any, view: Loaded) -> tuple[Block, PlanRecord]:
         group = group_id_for(question.id)
         if group not in self._key_by_uuid:
-            raise RuntimeError(f"graph {group} is not built; build_graph first")
+            raise ArmRefusal(f"graph {group} is not built; build_graph first (a configuration defect, terminal)")
+        if self._built_view.get(group) != view_fingerprint(view):
+            raise ArmRefusal(f"graph {group} was built from a different view than the one retrieval was asked "
+                             f"for; a graph answers only for the view it was built from (FR-002)")
         resolution = resolve_anchors(question.text, view)
-        self._foreign = []
+        self._foreign, self._leaked = [], []
         steps: list[dict[str, Any]] = []
         pulls = await self.typed_pulls(question.text, group)
         for label in TYPED_LABELS:
@@ -501,9 +684,19 @@ class GraphArm:
                 steps.append({"step": f"expand:{anchor}", "count": len(exp)})
         else:
             steps.append({"step": "expand", "count": 0, "note": "search_only: zero anchors"})
+        if self._leaked:
+            raise PremiseViolated("cross_group_leak", f"{len(self._leaked)} retrieval result(s) for {group} came from "
+                                  f"another question's graph (RQ-6b): the per-question boundary is crossed")
         if self._foreign:
-            raise RuntimeError(f"{len(self._foreign)} retrieval result(s) outside the group map — cross-group leak or "
-                               f"stale map; the cell is an error (RQ-6b)")
+            raise ArmRefusal(f"{len(self._foreign)} foreign item(s) in {group}'s graph that G did not write from this "
+                             f"view (a stale map or a graph not built from it); the cell is refused (RQ-6b)")
+        self._check_tripwire(self.llm_calls)
+        outside = _items_outside_view(view, [*(it for label in TYPED_LABELS for it in pulls[label]), *hits,
+                                             *(it for exp in expansions for it in exp)])
+        if outside:
+            raise ArmRefusal(f"{len(outside)} retrieved item(s) not in the current view "
+                             f"({', '.join(sorted(outside)[:5])}); a foreign item is refused, never silently "
+                             f"dropped by assembly (FR-002)")
         block, chosen = assemble(self.text, view, [pulls[label] for label in TYPED_LABELS], hits, expansions)
         by_kind: dict[str, int] = {}
         for it in chosen:
@@ -515,23 +708,29 @@ class GraphArm:
                           group_id=group, assembled_context_sha256=block.sha256)
         return block, plan
 
-    # -- the arm ---------------------------------------------------------------
+    # -- serving (the attempt thread) ------------------------------------------
 
-    async def answer(self, question: Any, view: Loaded, ctx: Any) -> dict[str, Any]:
-        """contracts/arm-interface.md: assemble → render → count → complete; every telemetry
-        field from the completion plus the plan. ``ctx`` is the harness's CellContext
-        (prompt, serving facade with serialize/count_tokens/complete, seed, limit)."""
-        block, plan = await self.plan_and_assemble(question, view)
-        if plan.llm_calls:
-            raise RuntimeError(f"tripwire: {plan.llm_calls} LLM call(s) attempted — the cell is an error")
+    def respond(self, block: Block, plan: PlanRecord, question: Any, ctx: Any) -> dict[str, Any]:
+        """contracts/arm-interface.md, the serving half: render → serialize → count → complete, on the
+        CALLER's thread, exactly as D and R serve (C-008; research D-2). Synchronous: it never touches
+        the graph loop. ``ctx`` is the harness's CellContext (prompt, serving facade, config, seed, limit).
+
+        Refuses before anything is counted: a plan that counted an LLM call (PremiseViolated) and an
+        incoherent context limit (the shared ``errors.check_limit``, ctx.config only — ArmRefusal).
+        ``cache_prompt`` is served as configured and never refused (C-008). The ceiling guard's
+        exceptions (``CeilingBreached`` / ``CeilingUnreadable``) raised by ``ctx.serving.complete``'s
+        ``before_send`` are never caught here.
+        """
+        self._check_tripwire(plan.llm_calls)
+        errors.check_limit(ctx)
         request = ctx.prompt.render(block, question.text)
         body = ctx.serving.serialize(request, ctx.seed)
         prompt_tokens = ctx.serving.count_tokens(body)
         if prompt_tokens > ctx.limit:
-            from scripts.research.arms849.serving import ContextExceeded
-
-            raise ContextExceeded(f"prompt is {prompt_tokens} tokens; limit {ctx.limit} ({ctx.limit_applied})")
-        completion = ctx.serving.complete(body)
+            raise serving.ContextExceeded(f"prompt is {prompt_tokens} tokens; limit {ctx.limit} ({ctx.limit_applied})")
+        completion = ctx.serving.complete(body)                       # the same object that was counted
+        if completion.client_prompt_tokens != prompt_tokens:
+            raise serving.TelemetryMissing("the completion was not made for the counted request")
         return {
             "text": completion.text,
             "assembled_context_tokens": ctx.serving.count_text(block.data),
@@ -543,6 +742,667 @@ class GraphArm:
             "generation_s": completion.generation_s, "generation_tok_s": completion.generation_tok_s,
             "assembled_context_sha256": block.sha256, "plan": plan.as_dict(),
         }
+
+
+# ---------------------------------------------------------------------------
+# the loop bridge (research D-2; contracts/arm-registration item 8; NFR-003)
+# ---------------------------------------------------------------------------
+
+
+#: How long the poisoning thread keeps retrying ``shutdown`` on a socket whose TCP connect was initiated but
+#: had not completed in the kernel at the poison instant (ENOTCONN).
+CONNECT_SHUTDOWN_RETRY_S = 1.0
+
+
+def _shutdown(sock: socket.socket) -> bool:
+    """Shut ``sock`` down both ways. True when it is done with (shut down now, or already closed); False while
+    its connect is still pending in the kernel (ENOTCONN) — the caller retries."""
+    if sock.fileno() == -1:
+        return True
+    try:
+        sock.shutdown(socket.SHUT_RDWR)
+    except OSError as exc:
+        return exc.errno != errno.ENOTCONN
+    return True
+
+
+class SocketGate:
+    """THE poison state of ONE bridge, shared by every connection its pool mints (review c3 design
+    correction; acceptance A.1). Pool-scoped: not a class attribute (one poisoned cell would poison every
+    later bridge in the process) and not per connection (siblings in the pool would keep writing). Each
+    :class:`GatedConnection` receives this same object through the pool's ``connection_kwargs``; a
+    different pool gets a different gate.
+
+    ATOMIC with the wire (review c4 blocker): ``lock`` is held both to shut the gate (:meth:`shut_now`) and
+    to check-and-enqueue a write (:meth:`enqueue`), with no await inside either. So every enqueue of bytes
+    is strictly before or strictly after the poison, and any enqueue after it is refused.
+
+    OWNS ITS SOCKETS (review c5 blocker): every socket the pool's connections open is REGISTERED here, under
+    the lock, BEFORE its TCP connect is initiated (:meth:`register_and_connect`). :meth:`shut_now` shuts down
+    every registered socket from the POISONING THREAD — pending, just opened or idle — so no socket survives
+    the poison whether or not the event loop ever runs again."""
+
+    __slots__ = ("_sockets", "lock", "shut")
+
+    def __init__(self) -> None:
+        self.shut = threading.Event()
+        self._sockets: set[socket.socket] = set()
+        # threading.Lock, not asyncio.Lock: within one event loop tasks interleave only at await, so a
+        # no-await section needs no intra-loop lock; this lock exists solely because poison is set from
+        # ANOTHER THREAD. The critical section must contain no await, no I/O wait, and nothing unbounded
+        # (check shut + writelines only); an await inside it would block the loop thread.
+        self.lock = threading.Lock()
+
+    def check(self) -> None:
+        if self.shut.is_set():
+            raise TransportPoisoned("the G bridge's socket gate is shut; not one byte may reach FalkorDB")
+
+    def shut_now(self) -> None:
+        """Shut the gate, ordered against every enqueue and every registration (the same lock), then shut down
+        every socket this gate ever registered that is still open.
+
+        ``shutdown(SHUT_RDWR)``, not ``close``: it is safe from another thread while a (possibly stopped)
+        loop's selector still holds the fd, and both ends see EOF. A socket whose TCP connect was initiated
+        but has not completed in the kernel raises ENOTCONN; it is retried for up to
+        :data:`CONNECT_SHUTDOWN_RETRY_S` outside the lock (the kernel completes a reachable handshake in
+        milliseconds without the loop), and a connect that completes on a running loop later finds the gate
+        shut at its post-open re-check and is aborted there."""
+        pending: list[socket.socket] = []
+        with self.lock:
+            self.shut.set()
+            for sock in list(self._sockets):
+                if not _shutdown(sock):
+                    pending.append(sock)
+        deadline = time.monotonic() + CONNECT_SHUTDOWN_RETRY_S
+        while pending and time.monotonic() < deadline:
+            time.sleep(0.01)
+            pending = [sock for sock in pending if not _shutdown(sock)]
+
+    def register_and_connect(self, sock: socket.socket, address: Any) -> int:
+        """Register ``sock`` and initiate its non-blocking connect in ONE critical section: after the poison it
+        is refused (closed, never connected); before it, the socket is in the registry before any SYN, so the
+        poison can always find it. Returns the ``connect_ex`` errno (0 or EINPROGRESS on success)."""
+        with self.lock:
+            if self.shut.is_set():
+                sock.close()
+                raise TransportPoisoned("the G bridge's socket gate is shut; no socket may be opened")
+            self._sockets = {known for known in self._sockets if known.fileno() != -1}   # closed ones leave
+            self._sockets.add(sock)
+            return sock.connect_ex(address)
+
+    def forget(self, sock: socket.socket) -> None:
+        with self.lock:
+            self._sockets.discard(sock)
+
+    def registered(self) -> int:
+        """How many sockets the gate currently owns (closed ones are pruned first)."""
+        with self.lock:
+            self._sockets = {known for known in self._sockets if known.fileno() != -1}
+            return len(self._sockets)
+
+    def enqueue(self, writer: Any, data: Iterable[bytes]) -> None:
+        """Check and hand the bytes to the transport as ONE critical section — no await between them. The
+        transport's ``writelines`` is synchronous; the caller awaits ``drain`` only after the lock is
+        released (redis-py's own send path does exactly that)."""
+        with self.lock:
+            self.check()
+            writer.writelines(data)
+
+
+class _GatedWriter:
+    """Wraps a connection's ``asyncio.StreamWriter`` so its ONLY byte-producing calls (``writelines`` — the
+    single write site in redis-py 8.1.0's async connection — and ``write``) go through
+    :meth:`SocketGate.enqueue`. Everything else (``drain``, ``close``, ``wait_closed``, ``transport``,
+    ``get_extra_info``) is the writer's own, so redis-py's error handling is unchanged."""
+
+    __slots__ = ("_gate", "_writer")
+
+    def __init__(self, writer: Any, gate: SocketGate) -> None:
+        self._writer = writer
+        self._gate = gate
+
+    def writelines(self, data: Iterable[bytes]) -> None:
+        self._gate.enqueue(self._writer, data)
+
+    def write(self, data: bytes) -> None:
+        self._gate.enqueue(self._writer, [data])
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(self._writer, name)
+
+
+class GatedConnection(_redis_async.Connection):
+    """The redis connection every byte of a bridge's pool goes through — the PHYSICAL boundary.
+
+    - **Writes.** In the installed redis-py (8.1.0) every command byte leaves through
+      ``self._writer.writelines`` (``send_packed_command`` / ``_send_packed_command``: commands, pipelines,
+      the connect handshake, health-check PINGs, falkordb's ``execute_command`` and its schema refresh,
+      retries). The writer is a :class:`_GatedWriter`, so the gate check and the enqueue are one critical
+      section: no check-then-act across an await (review c4 blocker).
+    - **Opens.** ``connect`` / ``connect_check_health`` / ``_connect`` refuse at entry; and when the socket
+      opens, the gate is re-checked UNDER THE LOCK in the same step that installs the gated writer. A socket
+      opened across the poison is ABORTED (reset, no linger) before its first application byte, and its
+      reader/writer are dropped, so the pool can never hand it out as usable. Invariant A (contract
+      wording, design lead 2026-09-27): after the fatal signal no application byte is written and no socket
+      SURVIVES; a kernel TCP handshake already in flight at the poison instant may complete, but its
+      transport is aborted before any application byte.
+    - **The gate owns the sockets** (review c5). ``_connect`` creates the socket itself and registers it with
+      the gate, under the lock, BEFORE initiating the connect; redis-py's ``_connect`` then opens its streams
+      on that connected socket (``open_connection(sock=…)``) with its usual options. At the poison the gate
+      shuts down every registered socket from the poisoning thread — pending, just opened or idle — so
+      survival no longer depends on the event loop running. This RETIRES the earlier "idle connections stay
+      open until process exit" residual.
+    - Entry checks (``send_packed_command``, ``connect``, ``connect_check_health``, ``_connect``) refuse early
+      and ABORT the connection's socket if it has one; they are not what the no-byte invariant rests on (the
+      locked enqueue is), nor what no-survival rests on (the gate's socket registry is).
+    - Residual: a socket whose kernel TCP handshake has not completed within
+      :data:`CONNECT_SHUTDOWN_RETRY_S` of the poison (an unreachable or stalled server) cannot be shut down
+      from the poisoning thread; it carries no application byte, and if the loop ever runs again its
+      connect finds the gate shut and is aborted."""
+
+    # The base class's ``_writer`` slot is intentionally dead storage; do not remove the property or add a
+    # non-mangled backing name. A data descriptor in THIS class shadows the base's slot descriptor in the MRO,
+    # so every assignment — including the ones inside redis-py's own connect/reconnect/disconnect code —
+    # goes through the setter, which always wraps: the gate cannot be removed by rebinding ``_writer``.
+    __slots__ = ("_GatedConnection__w", "_owned_socket", "_pending_socket", "_transport_gate")
+
+    def __init__(self, *, transport_gate: SocketGate, **kwargs: Any) -> None:
+        if not isinstance(transport_gate, SocketGate):
+            raise TypeError("GatedConnection needs the pool's SocketGate")
+        self._transport_gate = transport_gate
+        self.__w: _GatedWriter | None = None  # type: ignore[misc]  # mypy: mangled slot name
+        self._owned_socket: socket.socket | None = None
+        self._pending_socket: socket.socket | None = None
+        super().__init__(**kwargs)
+
+    @property  # type: ignore[override]
+    def _writer(self) -> Any:
+        return self.__w
+
+    @_writer.setter
+    def _writer(self, writer: Any) -> None:
+        # Accept a gated writer only if it is bound to THIS connection's gate; one gated by another gate is
+        # unwrapped and re-wrapped here, so no writer can carry a foreign (possibly open) gate in.
+        if isinstance(writer, _GatedWriter):
+            if writer._gate is self._transport_gate:
+                self.__w = writer  # type: ignore[misc]  # mangled slot
+                return
+            writer = writer._writer
+        self.__w = (None if writer is None  # type: ignore[misc]  # mangled slot
+                    else _GatedWriter(writer, self._transport_gate))
+
+    def _refuse_if_shut(self) -> None:
+        """An entry check that also leaves no socket behind: once the gate is shut, a connection touched
+        for any reason has its transport aborted before the refusal (no byte, no surviving socket)."""
+        if self._transport_gate.shut.is_set():
+            self._abort_socket()
+            raise TransportPoisoned("the G bridge's socket gate is shut; not one byte may reach FalkorDB")
+
+    async def connect(self) -> None:
+        self._refuse_if_shut()
+        await super().connect()
+
+    async def connect_check_health(self, check_health: bool = True, retry_socket_connect: bool = True) -> None:
+        self._refuse_if_shut()
+        await super().connect_check_health(check_health=check_health, retry_socket_connect=retry_socket_connect)
+
+    async def _connect(self) -> None:
+        """Open the TCP socket OURSELVES so the gate owns it (review c5 blocker): resolve, create a
+        non-blocking socket, register it with the gate and initiate the connect in one critical section,
+        await the connect, then hand the CONNECTED socket to redis-py's own ``_connect`` (via
+        :meth:`_connection_arguments`), which applies its usual options (TCP_NODELAY, keepalive) — parity
+        with the stock connection is pinned by a differential test."""
+        self._refuse_if_shut()
+        loop = asyncio.get_running_loop()
+        infos = await loop.getaddrinfo(self.host, self.port, type=socket.SOCK_STREAM)
+        failure: OSError | None = None
+        for family, kind, proto, _, address in infos:
+            sock = socket.socket(family, kind, proto)
+            sock.setblocking(False)
+            try:
+                started = self._transport_gate.register_and_connect(sock, address)
+                if started not in (0, errno.EINPROGRESS, errno.EWOULDBLOCK):
+                    raise OSError(started, os.strerror(started))
+                await self._await_connected(loop, sock)
+            except OSError as exc:
+                self._transport_gate.forget(sock)
+                sock.close()
+                failure = exc
+                continue
+            except BaseException:
+                self._transport_gate.forget(sock)
+                sock.close()
+                raise
+            break
+        else:
+            raise failure if failure is not None else OSError(f"no address for {self.host}:{self.port}")
+        self._owned_socket = sock
+        self._pending_socket = sock
+        try:
+            await super()._connect()                                # open_connection(sock=<our socket>)
+        except BaseException:
+            self._transport_gate.forget(sock)
+            sock.close()
+            raise
+        finally:
+            self._pending_socket = None
+        gate = self._transport_gate
+        with gate.lock:                                             # the writer is already gated (property)
+            opened_across_the_poison = gate.shut.is_set()
+        if opened_across_the_poison:
+            self._abort_socket()
+            raise TransportPoisoned("a socket opened across the poison was aborted before its first byte")
+
+    async def _await_connected(self, loop: asyncio.AbstractEventLoop, sock: socket.socket) -> None:
+        """Wait until the non-blocking connect completes, then surface its error, if any (what
+        ``loop.sock_connect`` does, without re-issuing the connect the gate already initiated)."""
+        done = loop.create_future()
+        fd = sock.fileno()
+
+        def writable() -> None:
+            if not done.done():
+                done.set_result(None)
+        loop.add_writer(fd, writable)
+        try:
+            await done
+        finally:
+            loop.remove_writer(fd)
+        failed = sock.getsockopt(socket.SOL_SOCKET, socket.SO_ERROR)
+        if failed:
+            raise OSError(failed, os.strerror(failed))
+
+    def _connection_arguments(self) -> Any:
+        """redis-py opens with ``asyncio.open_connection(**self._connection_arguments())``: hand it the socket
+        the gate owns and has already connected."""
+        pending = self._pending_socket
+        if pending is not None:
+            return {"sock": pending}
+        return super()._connection_arguments()
+
+    async def disconnect(self, *args: Any, **kwargs: Any) -> None:
+        """Unregister on normal close: once redis-py has closed the transport, the socket leaves the gate's
+        registry (the fd closes in the transport's own callback, one loop step later; a socket still open at a
+        poison stays registered and is shut down with the rest). The registry also prunes closed sockets
+        whenever a new one registers, so it never grows across a long run."""
+        owned = self._owned_socket
+        try:
+            await super().disconnect(*args, **kwargs)
+        finally:
+            if owned is not None:
+                if owned.fileno() != -1:
+                    await asyncio.sleep(0)                          # let the transport's close callback run
+                if owned.fileno() == -1:
+                    self._transport_gate.forget(owned)             # unregister on normal close
+                    self._owned_socket = None
+
+    def _abort_socket(self) -> None:
+        writer: Any = self._writer
+        self._reader = None  # type: ignore[misc]  # mypy does not see redis-py's inherited slot
+        self._writer = None
+        if writer is None:
+            return
+        sock = writer.transport.get_extra_info("socket")
+        if sock is not None:
+            with contextlib.suppress(OSError):
+                sock.setsockopt(socket.SOL_SOCKET, socket.SO_LINGER, struct.pack("ii", 1, 0))   # reset, no FIN
+        writer.transport.abort()
+
+    async def send_packed_command(self, command: Any, check_health: bool = True) -> None:
+        self._refuse_if_shut()
+        await super().send_packed_command(command, check_health)
+
+
+class TransportPoisoned(RuntimeError):
+    """The bridge's transport gate is shut (an unacknowledged termination, or the bridge closed): no query,
+    no connection operation, nothing reaches FalkorDB any more."""
+
+
+_PLAIN_TYPES = (str, bytes, bytearray, int, float, bool, type(None), list, tuple, dict, set, frozenset)
+
+
+class TransportGate:
+    """THE one boundary every byte the bridge could send to FalkorDB passes (review c2 invariant A).
+
+    It wraps the FalkorDB client object. The installed ``FalkorDriver`` reaches the server ONLY through
+    ``self.client`` — ``_get_graph`` → ``client.select_graph(name)`` → ``graph.query`` (also inside
+    ``FalkorDriverSession.run``), ``close`` → ``client.aclose`` / ``client.connection`` — and every
+    ``clone`` shares its parent's client (``falkor_db=self.client``). So installing the gate as the ROOT
+    driver's client, before any clone exists, puts every clone, every per-question Graphiti and our own
+    ``list_graphs`` behind it.
+
+    The check runs on EVERY attribute access and call, and for an awaitable at the moment it starts
+    running, not when it was created. Objects handed out (a graph handle, the connection) are wrapped the
+    same way; the awaited results of queries are returned raw. Once ``shut`` is set nothing passes,
+    whatever state the event loop is in — a coroutine resuming from blocked synchronous work included."""
+
+    __slots__ = ("_shut", "_target")
+
+    def __init__(self, target: Any, shut: threading.Event) -> None:
+        object.__setattr__(self, "_target", target)
+        object.__setattr__(self, "_shut", shut)
+
+    def _check(self) -> None:
+        if self._shut.is_set():
+            raise TransportPoisoned("the G bridge's transport gate is shut; nothing may reach FalkorDB")
+
+    def __getattr__(self, name: str) -> Any:
+        self._check()
+        return _gated(getattr(self._target, name), self._shut)
+
+    def __setattr__(self, name: str, value: Any) -> None:
+        raise AttributeError("the transport gate is read-only")
+
+    def __call__(self, *args: Any, **kwargs: Any) -> Any:
+        self._check()
+        result = self._target(*args, **kwargs)
+        if hasattr(result, "__await__"):
+            return _gated_await(result, self._shut)
+        return _gated(result, self._shut)
+
+
+def _gated(value: Any, shut: threading.Event) -> Any:
+    return value if isinstance(value, _PLAIN_TYPES) else TransportGate(value, shut)
+
+
+async def _gated_await(awaitable: Awaitable[Any], shut: threading.Event) -> Any:
+    if shut.is_set():
+        close = getattr(awaitable, "close", None)
+        if close is not None:
+            close()                                                 # never started: nothing was sent
+        raise TransportPoisoned("the G bridge's transport gate is shut; nothing may reach FalkorDB")
+    return await awaitable
+
+
+class Bridge:
+    """G's registration-facing object: ONE asyncio loop on a dedicated thread, ONE :class:`GraphArm`
+    (and so one root driver) bound to it. WP04's ``ARM_FACTORIES`` builds it with :func:`make_bridge`.
+
+    Every graph operation (:meth:`build_graph`, :meth:`drop_graph`, :meth:`list_graphs`, and the
+    retrieval half of :meth:`answer`) is submitted to the loop with ``run_coroutine_threadsafe`` and
+    waited for on the CALLER's thread, honouring its ``deadline`` (``time.monotonic()`` seconds) and
+    its ``cancelled`` flag. The serving half of :meth:`answer` runs on the caller's thread
+    (:meth:`GraphArm.respond`). One operation at a time: a new one waits until the previous one's
+    termination is acknowledged (NFR-003).
+
+    **Cancellation is acknowledged by the coroutine, or the bridge raises.** On a deadline or the
+    ``cancelled`` flag the loop-side task is cancelled, and the caller waits up to
+    ``errors.G_CANCEL_GRACE_S`` for the acknowledgement flag the coroutine sets in its own
+    cleanup — AFTER every other task on the bridge loop (a clone's ``_init_task`` included, and any
+    task spawned while cancelling) is done. ``future.done()`` is NOT an acknowledgement: the concurrent
+    future reports cancelled at once, while the coroutine may still be unwinding. After an
+    acknowledgement, a terminal domain exception the work raised while unwinding (:data:`TERMINAL_EXCEPTIONS`)
+    propagates as itself; otherwise the caller gets ``TimeoutError`` (an ordinary, retryable
+    infrastructure failure). No acknowledgement STOPS the loop and then raises
+    :class:`~arms849.errors.GCancellationUnacknowledged`; every later call raises it again and the
+    bridge issues no further query — not even the cleanup in :meth:`close`. There is no driver
+    replacement: resume happens in a fresh process, whose ``build_graph`` rebuilds idempotently.
+    :meth:`close` is the one other cancellation source, and it goes through the same path.
+
+    A live cell must always pass ``deadline`` / ``cancelled`` (WP04: ``CellContext.deadline`` and the
+    harness's ``cancelled`` flag): without them an operation that never returns is waited for until
+    :meth:`close` (or the process) ends it.
+    """
+
+    def __init__(self, arm: GraphArm, gate: SocketGate | None = None) -> None:
+        if arm._databases:
+            raise RuntimeError("the transport gate must be installed before any per-question clone exists")
+        self.arm = arm
+        #: THE poison state of this bridge — the same object its pool's GatedConnections hold (make_bridge).
+        #: Shut FIRST on every fatal path and at close: the socket gate and the object gate then refuse.
+        self._gate = gate if gate is not None else SocketGate()
+        self._shut = self._gate.shut
+        client = getattr(arm.driver, "client", None)
+        if client is None:
+            raise TypeError("the G bridge needs a FalkorDriver-shaped root driver (a .client to gate)")
+        arm.driver.client = TransportGate(client, self._shut)
+        self._loop = asyncio.new_event_loop()
+        self._thread = threading.Thread(target=self._loop.run_forever, name=LOOP_THREAD_NAME, daemon=True)
+        self._thread.start()
+        self._lock = threading.Lock()                               # one operation (or the shutdown) at a time
+        self._closing = threading.Event()
+        self._poisoned: float | None = None                          # grace_s of an unacknowledged cancellation
+        self._closed: bool | None = None                             # None: open; else close()'s result
+
+    # -- the operations ------------------------------------------------------------
+
+    def build_graph(self, question: Any, view: Loaded, *, deadline: float | None = None,
+                    cancelled: threading.Event | None = None) -> GraphStats:
+        return self._submit(lambda: self.arm.build_graph(question, view), deadline, cancelled,
+                            f"build_graph {question.id}")
+
+    def drop_graph(self, question: Any, *, deadline: float | None = None,
+                   cancelled: threading.Event | None = None) -> None:
+        self._submit(lambda: self.arm.drop_graph(question), deadline, cancelled, f"drop_graph {question.id}")
+
+    def list_graphs(self, *, deadline: float | None = None, cancelled: threading.Event | None = None) -> list[str]:
+        """The server's graph names, read-only (WP04 T020: ``graph_store_first_build.graphs_present``)."""
+        return self._submit(self.arm.list_graphs, deadline, cancelled, "list_graphs")
+
+    def answer(self, question: Any, view: Loaded, ctx: Any) -> dict[str, Any]:
+        """contracts/arm-interface.md ``arm(question, view, ctx)`` for G. Retrieval on the loop under
+        ``ctx.deadline`` and ``ctx.cancelled`` (WP04 adds ``CellContext.deadline``); serving on this
+        thread via :meth:`GraphArm.respond`."""
+        block, plan = self._submit(lambda: self.arm.plan_and_assemble(question, view), ctx.deadline, ctx.cancelled,
+                                   f"retrieval {question.id}")
+        return self.arm.respond(block, plan, question, ctx)
+
+    def close(self) -> bool:
+        """Shut down with ONE cancellation owner (review c1 finding 4): stop new submissions, let the active
+        operation (if any) cancel itself through its OWN acknowledgement path, and only then quiesce and close
+        the connection through the same mechanism, under the same bounded grace. Finally stop the loop and
+        abandon its thread. Returns True only when all of that was acknowledged in time. After an
+        unacknowledged cancellation it issues nothing — no cleanup query. Idempotent."""
+        if self._closed is not None:
+            return self._closed
+        self._closing.set()                                         # refuses new work; cancels the active one
+        owned = self._lock.acquire(timeout=errors.G_CANCEL_GRACE_S + HALT_JOIN_S + 1.0)
+        try:
+            if self._closed is not None:
+                return self._closed
+            clean = False
+            if owned and self._poisoned is None:
+                try:
+                    self._run(self.arm.close, time.monotonic() + errors.G_CANCEL_GRACE_S, None, "close",
+                              closing_cancels=False)
+                    clean = True
+                except (Exception, GCancellationUnacknowledged):  # noqa: BLE001 — close reports, never raises
+                    clean = False
+            self._gate.shut_now()                                   # after close, nothing reaches FalkorDB
+            stopped = self._halt_loop(errors.G_CANCEL_GRACE_S if clean else HALT_JOIN_S)
+            clean = clean and stopped
+            if clean:
+                self._loop.close()
+            self._closed = clean
+            return clean
+        finally:
+            if owned:
+                self._lock.release()
+
+    # -- the mechanism ---------------------------------------------------------------
+
+    def _mark_poisoned(self, grace: float) -> None:
+        """Shut the gate FIRST — from then on not one byte reaches FalkorDB, whatever the loop is doing — then
+        mark the bridge and try to stop the loop (best effort: blocked synchronous work may keep it alive; the
+        socket gate already makes that harmless). Idempotent; never raises."""
+        self._gate.shut_now()
+        if self._poisoned is None:
+            self._poisoned = grace
+        self._halt_loop(min(HALT_JOIN_S, grace))
+
+    def _poison(self, grace: float) -> NoReturn:
+        """The fatal path of an unacknowledged termination (review c2 invariants A and B)."""
+        self._mark_poisoned(grace)
+        raise GCancellationUnacknowledged(grace)
+
+    def _halt_loop(self, join_s: float) -> bool:
+        """Stop the loop and wait up to ``join_s`` for its thread: once it has returned, no coroutine of this
+        bridge can take another step, so no further query can reach the transport."""
+        if self._thread.is_alive():
+            try:
+                self._loop.call_soon_threadsafe(self._loop.stop)
+            except RuntimeError:                                    # the loop is already closed
+                pass
+            self._thread.join(join_s)
+        return not self._thread.is_alive()
+
+    async def _quiesce(self) -> bool:
+        """Drain the bridge loop: every OTHER task — each one the bridge's work started (a clone's
+        ``_init_task``, graphiti's gathered sub-queries) AND every task those spawn while being cancelled —
+        cancelled once and awaited, until none is left (review c1 finding 3). Bounded by
+        ``errors.G_CANCEL_GRACE_S``: returns False when work outlives it (a task that ignores its
+        cancellation), and then no acknowledgement is given."""
+        me = asyncio.current_task(self._loop)
+        end = self._loop.time() + errors.G_CANCEL_GRACE_S
+        asked: set[asyncio.Task[Any]] = set()
+        while True:
+            others = {t for t in asyncio.all_tasks(self._loop) if t is not me and not t.done()}
+            if not others:
+                return True
+            remaining = end - self._loop.time()
+            if remaining <= 0:
+                return False
+            for task in others - asked:                             # once each: never re-interrupt an unwind
+                task.cancel()
+            asked |= others
+            await asyncio.wait(others, timeout=remaining, return_when=asyncio.FIRST_COMPLETED)
+
+    async def _guarded(self, make: Callable[[], Awaitable[T]], ack: threading.Event,
+                       outcome: dict[str, BaseException]) -> tuple[str, Any]:
+        """Run ``make()`` and, however it ends, drain the loop and THEN set ``ack`` — the coroutine's own
+        acknowledgement. The outcome is RETURNED, never raised, and also kept in ``outcome``, so an
+        exception the work raises while being cancelled survives the cancellation (review c1 finding 1).
+        A coroutine being FINALISED (``GeneratorExit``: garbage-collected after its loop was abandoned,
+        possibly while another loop runs on this thread) acknowledges nothing and touches no loop."""
+        try:
+            result = await make()
+        except GeneratorExit:
+            raise
+        except BaseException as exc:                                # noqa: BLE001 — carried to the caller
+            outcome["exc"] = exc
+            if await self._quiesce():
+                ack.set()                                           # THE acknowledgement: set by the coroutine
+            return "raised", exc
+        if await self._quiesce():
+            ack.set()                                               # success counts ONLY once drained
+        return "ok", result
+
+    def _submit(self, make: Callable[[], Awaitable[T]], deadline: float | None,
+                cancelled: threading.Event | None, what: str) -> T:
+        if self._closing.is_set() or self._closed is not None:
+            raise RuntimeError(f"G bridge is closed; {what} refused")
+        with self._lock:
+            if self._poisoned is not None:
+                raise GCancellationUnacknowledged(self._poisoned)
+            if self._closing.is_set() or self._closed is not None:
+                raise RuntimeError(f"G bridge is closed; {what} refused")
+            return self._run(make, deadline, cancelled, what)
+
+    def _run(self, make: Callable[[], Awaitable[T]], deadline: float | None, cancelled: threading.Event | None,
+             what: str, *, closing_cancels: bool = True) -> T:
+        """One operation, the lock held: submit, wait (:meth:`_wait`), decide (:meth:`_conclude`), then act.
+
+        THE single exit is enforced by the FRAME, not by the source's shape (review c3 finding B): from the
+        submission itself on (review c4: the submit is INSIDE the frame), unless ``_conclude`` delivered a
+        verdict, the ``finally`` poisons the bridge — whatever raised (an interrupt right after scheduling or
+        inside the submit call, a caller's KeyboardInterrupt during the wait, any helper, ``_conclude``
+        itself) and before it propagates. The verdict — the result, or the exception to raise, decided only after the
+        acknowledgement — is acted on OUTSIDE the guarded region, so ordinary outcomes never poison."""
+        if self._poisoned is not None:
+            raise GCancellationUnacknowledged(self._poisoned)
+        ack = threading.Event()
+        outcome: dict[str, BaseException] = {}
+        concluded = False
+        try:
+            future = asyncio.run_coroutine_threadsafe(self._guarded(make, ack, outcome), self._loop)
+            why = self._wait(future, deadline, cancelled, closing_cancels)
+            verdict = self._conclude(future, ack, outcome, why, what)
+            concluded = True
+        finally:
+            if not concluded:
+                self._mark_poisoned(errors.G_CANCEL_GRACE_S)
+        kind, value = verdict
+        if kind == "raise":
+            raise value
+        return value                                                # type: ignore[no-any-return]
+
+    def _wait(self, future: concurrent.futures.Future[Any], deadline: float | None,
+              cancelled: threading.Event | None, closing_cancels: bool) -> str | None:
+        """Wait on the caller's thread until the work finishes (None) or a stop reason arises (its text)."""
+        while True:
+            if cancelled is not None and cancelled.is_set():
+                return "the attempt was cancelled"
+            if closing_cancels and self._closing.is_set():
+                return "the bridge is closing"
+            remaining = None if deadline is None else deadline - time.monotonic()
+            if remaining is not None and remaining <= 0:
+                return "the attempt deadline passed"
+            concurrent.futures.wait([future], timeout=POLL_S if remaining is None else min(POLL_S, remaining))
+            if future.done():
+                return None
+
+    def _conclude(self, future: concurrent.futures.Future[Any], ack: threading.Event,
+                  outcome: dict[str, BaseException], why: str | None, what: str) -> tuple[str, Any]:
+        """Decide the verdict of an operation (review c2 invariant B): ``("return", value)`` or
+        ``("raise", exc)``. A stop reason cancels the task ONCE and waits up to the grace for the coroutine's
+        acknowledgement; a finished task must already carry it. NO acknowledgement — on any path — poisons
+        (gate shut first) and raises GCancellationUnacknowledged. Only after the acknowledgement: the result;
+        the work's own exception; a terminal domain exception raised while unwinding (as itself); a
+        non-Exception BaseException the work raised (as itself, and the bridge is poisoned: a fatal signal
+        is never downgraded); otherwise a retryable ``TimeoutError`` chained to an ordinary exception."""
+        grace = errors.G_CANCEL_GRACE_S
+        if why is not None:
+            future.cancel()                                         # cancels the loop-side task, once
+            acknowledged = ack.wait(grace)
+        else:
+            acknowledged = ack.is_set()                             # a finished task drained, or it did not
+        if not acknowledged:
+            self._poison(grace)
+        exc = outcome.get("exc")
+        if isinstance(exc, BaseException) and not isinstance(exc, (Exception, asyncio.CancelledError)):
+            self._mark_poisoned(grace)
+            return "raise", exc
+        if why is None:
+            kind, value = future.result()
+            return ("raise", value) if kind == "raised" else ("return", value)
+        if isinstance(exc, TERMINAL_EXCEPTIONS):
+            return "raise", exc                                     # never downgraded to a retryable timeout
+        timeout = TimeoutError(f"G {what}: {why}; the cancelled work acknowledged its termination within {grace} s")
+        timeout.__cause__ = exc if isinstance(exc, Exception) else None
+        return "raise", timeout
+
+
+def make_bridge(embedder: Embedder, text: FrozenCorpusText, *, host: str = FALKOR_HOST, port: int = FALKOR_PORT,
+                driver: GraphDriver | None = None) -> Bridge:
+    """G's factory for WP04's ``ARM_FACTORIES`` (imported lazily there: this module imports graphiti).
+
+    The root driver is a ``FalkorDriver`` over a FalkorDB client whose redis pool mints only
+    :class:`GatedConnection`s holding this bridge's ONE :class:`SocketGate` — the compose service by
+    default; ``host``/``port`` (or a whole ``driver``, then gated at the object level only) are injectable
+    for tests. It is constructed HERE, on the calling thread
+    with no running loop, so graphiti schedules no index build on the root database (which G never
+    queries); its client binds to the bridge loop on first use."""
+    try:
+        asyncio.get_running_loop()
+    except RuntimeError:
+        pass
+    else:
+        raise RuntimeError("make_bridge must not run inside an event loop: the driver's client would bind to it")
+    gate = SocketGate()
+    if driver is None:
+        # A supplied pool makes the client's own arguments INERT (redis-py ignores them, silently), so the pool
+        # carries what FalkorDB(host, port) gives its own client: decoded str responses, RESP2, and NO socket
+        # timeouts or keepalive (redis-py's pool defaults are a 5 s read/connect timeout and keepalive on —
+        # a behaviour change FalkorDB's client does not have). Pinned by behaviour and by a differential
+        # against the connection FalkorDB's own client mints.
+        pool = _redis_async.ConnectionPool(connection_class=GatedConnection, transport_gate=gate, host=host,
+                                           port=port, decode_responses=True, protocol=2, socket_timeout=None,
+                                           socket_connect_timeout=None, socket_keepalive=None)
+        # The client over the gated pool. Its constructor probes the server ONCE with a synchronous client
+        # (falkordb Is_Cluster: INFO) — the one socket outside the gate, before any poison can exist (see
+        # the module docstring; pinned by a test).
+        driver = FalkorDriver(falkor_db=FalkorDB(connection_pool=pool))
+    return Bridge(GraphArm(driver, embedder, text), gate)
+
 
 def assemble(text: FrozenCorpusText, view: Loaded, pulls: Sequence[Sequence[Item]], hits: Sequence[Item],
              expansions: Sequence[Sequence[Item]], cap: int = CAP) -> tuple[Block, list[Item]]:

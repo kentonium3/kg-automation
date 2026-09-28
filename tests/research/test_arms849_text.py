@@ -19,20 +19,21 @@ REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT))
 
 from scripts.research.arms849 import text as T
-from scripts.research.load_849_corpus import DEFAULT_CORPUS, replay
+from scripts.research.load_849_corpus import replay
+from tests.research.conftest import CORPUS, RESEARCH_ENVIRONMENT_SKIP_REASON
 
 pytestmark = pytest.mark.skipif(
-    not (DEFAULT_CORPUS / "entities.json").exists(),
-    reason="rendered corpus absent; run render_849_corpus first")
+    not (CORPUS / "entities.json").exists(),
+    reason=RESEARCH_ENVIRONMENT_SKIP_REASON)
 
 
 @pytest.fixture(scope="module")
 def fct() -> T.FrozenCorpusText:
-    return T.FrozenCorpusText(DEFAULT_CORPUS)
+    return T.FrozenCorpusText(CORPUS)
 
 
 def test_every_event_line_is_the_corpus_bytes(fct):
-    raw = (DEFAULT_CORPUS / "stream.jsonl").read_bytes().split(b"\n")
+    raw = (CORPUS / "stream.jsonl").read_bytes().split(b"\n")
     lines = [l for l in raw if l.strip()]
     assert len(lines) == 5750
     for line in lines:
@@ -73,7 +74,7 @@ def test_block_cannot_be_built_from_strings_or_bytearray():
 
 
 def test_record_lines_digest_is_stable_and_covers_every_record(fct):
-    other = T.FrozenCorpusText(DEFAULT_CORPUS)
+    other = T.FrozenCorpusText(CORPUS)
     assert fct.record_lines_digest == other.record_lines_digest
     assert len(fct.record_keys) == 66
     assert len(fct.entity_keys) == 50 and len(fct.edge_keys) == 16
@@ -81,7 +82,7 @@ def test_record_lines_digest_is_stable_and_covers_every_record(fct):
 
 def test_record_lines_digest_is_reproducible_from_entities_json_alone(fct):
     """Sorted key order, so a reader with only entities.json reaches the same digest."""
-    entities = json.loads((DEFAULT_CORPUS / "entities.json").read_text())
+    entities = json.loads((CORPUS / "entities.json").read_text())
     lines = {}
     for rec in entities:
         key = T.edge_key(rec) if rec.get("kind") == "Edge" else T.entity_key(rec)
@@ -93,7 +94,7 @@ def test_record_lines_digest_is_reproducible_from_entities_json_alone(fct):
 
 
 def test_record_line_is_the_one_serialisation(fct):
-    entity = json.loads((DEFAULT_CORPUS / "entities.json").read_text())[0]
+    entity = json.loads((CORPUS / "entities.json").read_text())[0]
     key = T.edge_key(entity) if entity.get("kind") == "Edge" else T.entity_key(entity)
     assert fct.record_line(key) == T.record_line_bytes(entity)
 
@@ -106,7 +107,7 @@ def test_unknown_keys_are_named(fct):
 
 
 def test_render_full_view_is_events_then_entities_then_edges(fct):
-    view = replay(DEFAULT_CORPUS, datetime.fromisoformat("2026-04-28T09:06:00-04:00"), verify=False)
+    view = replay(CORPUS, datetime.fromisoformat("2026-04-28T09:06:00-04:00"), verify=False)
     block = fct.render_full_view(view)
     assert block.event_refs == tuple(e["ref"] for e in view.events)
     n_ent = len(view.entities)
@@ -118,7 +119,7 @@ def test_render_full_view_is_events_then_entities_then_edges(fct):
 
 def test_full_view_events_are_a_byte_prefix_across_ask_times(fct):
     """The §2 layout protocol: the event section of an earlier question is a prefix of a later's."""
-    early = fct.render_full_view(replay(DEFAULT_CORPUS, datetime.fromisoformat("2026-04-28T09:06:00-04:00"), verify=False))
-    later = fct.render_full_view(replay(DEFAULT_CORPUS, datetime.fromisoformat("2026-06-09T09:15:00-04:00"), verify=False))
+    early = fct.render_full_view(replay(CORPUS, datetime.fromisoformat("2026-04-28T09:06:00-04:00"), verify=False))
+    later = fct.render_full_view(replay(CORPUS, datetime.fromisoformat("2026-06-09T09:15:00-04:00"), verify=False))
     early_events = b"".join(fct.event_line(r) + b"\n" for r in early.event_refs)
     assert later.data.startswith(early_events)

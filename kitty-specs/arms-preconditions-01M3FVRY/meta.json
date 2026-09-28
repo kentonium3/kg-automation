@@ -26,7 +26,6 @@
   "retain_branches": true,
   "retain_worktrees": true,
   "slug": "arms-preconditions-01M3FVRY",
-  "status_phase": "1",
   "target_branch": "feat/849-preconditions",
   "topology": "single_branch",
   "vcs": "git",

@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import asyncio
-import os
 import pathlib
 import sys
 
@@ -11,16 +10,18 @@ import pytest
 
 REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT))
+from tests.research.conftest import CACHE, RESEARCH_ENVIRONMENT_SKIP_REASON
 
 # The research stack (graphiti_core, fastembed) lives in the runner image and the local venv, not in
 # requirements.txt; CI has no graphiti_core, so skip this module there rather than fail collection
 # (same shape as the corpus/cache skips). The real runs happen on office4.
-pytest.importorskip("graphiti_core", reason="research stack (graphiti_core) not installed — e.g. CI")
+pytest.importorskip("graphiti_core", reason=RESEARCH_ENVIRONMENT_SKIP_REASON)
 
 from scripts.research.arms849 import embed as E
 
-CACHE = pathlib.Path(os.environ.get("ARMS849_CACHE", str(REPO_ROOT / "build" / "849-cache")))
-needs_embedder = pytest.mark.skipif(not (CACHE / "fastembed").is_dir(), reason="FastEmbed cache absent (substrate setup)")
+needs_embedder = pytest.mark.skipif(
+    not (CACHE / "fastembed").is_dir(), reason=RESEARCH_ENVIRONMENT_SKIP_REASON
+)
 
 
 def test_tripwire_raises_and_counts_on_every_generation_path():
@@ -86,3 +87,18 @@ def test_incomplete_cache_never_downloads_even_with_offline_mode_disabled(tmp_pa
         E.Embedder(cache_dir=tmp_path / "fastembed")
     assert calls == []                                              # no socket was ever opened
     monkeypatch.setattr(socket, "create_connection", real)
+
+
+def test_the_tripwire_firing_is_a_premise_violation_not_a_refusal():
+    """WP02 FR-002: the no-LLM tripwire firing halts the run (contracts/arm-registration item 5), so its
+    exception IS a ``PremiseViolated('tripwire')`` and never the per-cell ``ArmRefusal``."""
+    import asyncio
+
+    from scripts.research.arms849 import errors as ERR
+
+    assert issubclass(E.LLMCallAttempted, ERR.PremiseViolated)
+    assert not issubclass(E.LLMCallAttempted, ERR.ArmRefusal)
+    t = E.TripwireLLMClient()
+    with pytest.raises(ERR.PremiseViolated) as info:
+        asyncio.run(t.generate_response([{"role": "user", "content": "x"}]))
+    assert info.value.reason == "tripwire" and t.llm_calls == 1

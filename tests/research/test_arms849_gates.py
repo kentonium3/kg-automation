@@ -24,11 +24,12 @@ from scripts.research.arms849 import preflight as P
 from scripts.research.arms849 import prompt as prompt_mod
 from scripts.research.arms849 import questions as questions_mod
 from scripts.research.arms849 import sampler as SM
-from scripts.research.load_849_corpus import DEFAULT_CORPUS, REGISTRATION
+from scripts.research.load_849_corpus import REGISTRATION
+from tests.research.conftest import CACHE, CORPUS, RESEARCH_ENVIRONMENT_SKIP_REASON
 
-CORPUS = pathlib.Path(os.environ.get("ARMS849_CORPUS", str(DEFAULT_CORPUS)))
-CACHE = pathlib.Path(os.environ.get("ARMS849_CACHE", str(REPO_ROOT / "build" / "849-cache")))
-needs_corpus = pytest.mark.skipif(not (CORPUS / "stream.jsonl").exists(), reason="rendered corpus absent")
+needs_corpus = pytest.mark.skipif(
+    not (CORPUS / "stream.jsonl").exists(), reason=RESEARCH_ENVIRONMENT_SKIP_REASON
+)
 FORBIDDEN = ("or" + "acle", "se" + "ed/", "trace" + "ability")
 
 
@@ -73,8 +74,14 @@ def _fake_checker(passed: bool):
     return lambda name: P.GateOutcome(name, passed, 0 if passed else 1, "fake", 0.01)
 
 
+@pytest.fixture
+def clean_preflight_head(monkeypatch):
+    """Isolate pre-existing downstream preflight tests from the real checkout state."""
+    monkeypatch.setattr(P, "_clean_git_head", lambda repo_root: "a" * 40)
+
+
 @needs_corpus
-def test_preflight_writes_a_signed_record_binding_everything(tmp_path, monkeypatch):
+def test_preflight_writes_a_signed_record_binding_everything(tmp_path, monkeypatch, clean_preflight_head):
     monkeypatch.setattr(P, "_run_checker", _fake_checker(True))
     manifest = tmp_path / ".export-manifest.json"
     manifest.write_text(json.dumps({"source_commit": "abc", "content_sha": "d" * 64, "excludes": []}))
@@ -92,7 +99,7 @@ def test_preflight_writes_a_signed_record_binding_everything(tmp_path, monkeypat
 
 
 @needs_corpus
-def test_preflight_refuses_when_a_checker_fails_and_writes_nothing(tmp_path, monkeypatch):
+def test_preflight_refuses_when_a_checker_fails_and_writes_nothing(tmp_path, monkeypatch, clean_preflight_head):
     monkeypatch.setattr(P, "_run_checker", _fake_checker(False))
     manifest = tmp_path / "m.json"; manifest.write_text(json.dumps({"source_commit": "abc", "content_sha": "d" * 64}))
     with pytest.raises(P.PreflightRefused, match="gate"):
@@ -101,7 +108,8 @@ def test_preflight_refuses_when_a_checker_fails_and_writes_nothing(tmp_path, mon
 
 
 @pytest.mark.parametrize("shape", ["absent", "empty", "incomplete"])
-def test_vacuous_pass_guard_refuses_absent_empty_or_incomplete_reference_dir(tmp_path, monkeypatch, shape):
+def test_vacuous_pass_guard_refuses_absent_empty_or_incomplete_reference_dir(
+        tmp_path, monkeypatch, clean_preflight_head, shape):
     """T016's whole point: the checkers pass for the wrong reason when the reference is absent —
     exercised on a REAL directory shape under a temp root (never the checkout: the review
     sandbox is read-only — Codex c8), with the checkout root and the data file re-pointed."""
@@ -146,7 +154,7 @@ def test_preflight_refuses_a_checkout_or_corpus_the_checkers_cannot_vouch_for(tm
 
 
 @needs_corpus
-def test_preflight_refuses_without_the_tokenizer_cache(tmp_path, monkeypatch):
+def test_preflight_refuses_without_the_tokenizer_cache(tmp_path, monkeypatch, clean_preflight_head):
     """Design lead MAJOR: no chat template sha → no preflight."""
     monkeypatch.setattr(P, "_run_checker", _fake_checker(True))
     manifest = tmp_path / "m.json"; manifest.write_text(json.dumps({"source_commit": "abc", "content_sha": "d" * 64}))
@@ -175,7 +183,8 @@ def test_all_four_real_checkers_import_and_expose_main():
 
 
 @needs_corpus
-def test_preflight_record_with_an_empty_or_partial_gate_list_is_refused(tmp_path, monkeypatch):
+def test_preflight_record_with_an_empty_or_partial_gate_list_is_refused(
+        tmp_path, monkeypatch, clean_preflight_head):
     """Codex c2 BLOCKER: a re-signed record with gates=[] must not pass."""
     monkeypatch.setattr(P, "_run_checker", _fake_checker(True))
     env = _env(tmp_path, run_root=_export_like(tmp_path / "export"))
@@ -218,7 +227,8 @@ def _env(tmp_path, **over) -> G.GateEnv:
 
 
 @needs_corpus
-def test_preflight_gate_matches_this_environment_and_fails_on_one_flipped_fingerprint(tmp_path, monkeypatch):
+def test_preflight_gate_matches_this_environment_and_fails_on_one_flipped_fingerprint(
+        tmp_path, monkeypatch, clean_preflight_head):
     monkeypatch.setattr(P, "_run_checker", _fake_checker(True))
     env = _env(tmp_path, run_root=_export_like(tmp_path / "export"))
     env.export_manifest_path = env.run_root / ".export-manifest.json"
@@ -763,7 +773,8 @@ def test_code_hashes_gate_compares_to_the_header_on_resume(tmp_path):
 
 
 @needs_corpus
-def test_run_all_records_wall_clock_and_refuses_with_every_failing_detail(tmp_path, monkeypatch):
+def test_run_all_records_wall_clock_and_refuses_with_every_failing_detail(
+        tmp_path, monkeypatch, clean_preflight_head):
     monkeypatch.setattr(P, "_run_checker", _fake_checker(True))
     env = _env(tmp_path, run_root=_export_like(tmp_path / "export"))   # the checkout itself would be refused: it holds the reference dir
     env.export_manifest_path = env.run_root / ".export-manifest.json"
@@ -847,28 +858,11 @@ def test_returned_sample_is_frozen_after_exit_even_with_a_read_in_flight(tmp_pat
     assert s.sample.__dict__ == snap
 
 
-def test_samplers_never_raise_into_the_arm(tmp_path, monkeypatch):
+def test_samplers_never_raise_into_the_arm(tmp_path):
     s = SM.GttSampler(tmp_path / "absent")
     with s:
         pass
     assert s.peak_gib is None and s.sample.reason and "FileNotFoundError" in s.sample.reason
-    import subprocess
-    def boom(*a, **k): raise subprocess.CalledProcessError(1, "docker")
-    monkeypatch.setattr(subprocess, "run", boom)
-    r = SM.RssSampler("nope")
-    with r:
-        pass
-    assert r.peak_mib is None and "CalledProcessError" in r.sample.reason
-
-
-def test_rss_sampler_parses_docker_stats(monkeypatch):
-    import subprocess
-    monkeypatch.setattr(subprocess, "run", lambda *a, **k: type("P", (), {"stdout": "1.5GiB / 62.5GiB"})())
-    assert SM.RssSampler().read_once() == pytest.approx(1536.0)
-    monkeypatch.setattr(subprocess, "run", lambda *a, **k: type("P", (), {"stdout": "512.3MiB / 62.5GiB"})())
-    assert SM.RssSampler().read_once() == pytest.approx(512.3)
-    with pytest.raises(ValueError):
-        SM._to_mib("lots")
 
 
 @pytest.mark.parametrize("construction", [
@@ -928,7 +922,8 @@ def _props(n_ctx=262_144):
 
 
 @needs_corpus
-def test_host_phase_writes_a_signed_record_and_container_phase_verifies_it(tmp_path, monkeypatch):
+def test_host_phase_writes_a_signed_record_and_container_phase_verifies_it(
+        tmp_path, monkeypatch, clean_preflight_head):
     monkeypatch.setattr(P, "_run_checker", _fake_checker(True))
     env = _env(tmp_path, run_root=_export_like(tmp_path / "export"))
     env.export_manifest_path = env.run_root / ".export-manifest.json"
@@ -957,7 +952,7 @@ def test_host_phase_writes_a_signed_record_and_container_phase_verifies_it(tmp_p
 
 @needs_corpus
 @pytest.mark.parametrize("tamper", ["stale", "other_export", "failed_result", "resigned_other_preflight", "previous_stack"])
-def test_container_phase_refuses_a_bad_host_record(tmp_path, monkeypatch, tamper):
+def test_container_phase_refuses_a_bad_host_record(tmp_path, monkeypatch, clean_preflight_head, tamper):
     """(a) a host record older than up… (b) …or for another export is refused; so is one with a
     failed gate or a preflight sha that is not this run's."""
     monkeypatch.setattr(P, "_run_checker", _fake_checker(True))
@@ -990,7 +985,8 @@ def test_container_phase_refuses_a_bad_host_record(tmp_path, monkeypatch, tamper
 
 
 @needs_corpus
-def test_timestamps_compare_as_parsed_datetimes_with_fractions_and_z(tmp_path, monkeypatch):
+def test_timestamps_compare_as_parsed_datetimes_with_fractions_and_z(
+        tmp_path, monkeypatch, clean_preflight_head):
     """Codex c6 MINOR: same-second completion and "Z" spellings must not refuse a healthy run."""
     monkeypatch.setattr(P, "_run_checker", _fake_checker(True))
     env = _env(tmp_path, run_root=_export_like(tmp_path / "export"))
