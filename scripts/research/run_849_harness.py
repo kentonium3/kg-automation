@@ -36,7 +36,7 @@ What it adds (contracts/arm-interface.md, ledger-schema.md, research.md D-10..D-
   ``error``. ``ArmRefusal`` is terminal: an ``error`` row on the first attempt, zero retries".
   The arm's ``ContextExceeded`` (a ``serving.ContextExceeded`` subclass) → an
   ``exceeds_model_context`` row with ``prompt_tokens``, ``context_limit_applied`` and the plan.
-* **Samplers** — ``GttSampler`` around every attempt, ``RssSampler`` around G's; NFR-004: when the
+* **Sampler** — ``GttSampler`` around every attempt; NFR-004: when the
   sampler's first reading is already above the 57.5 GiB ceiling (``breached``) the cell is NOT
   started — an ``event: memory_ceiling`` row, no ``attempt_start``, and the session stops.
 * **Calibration** — ledger-schema.md item 6 / D-10: written once, via
@@ -79,10 +79,12 @@ import argparse
 import dataclasses
 import hashlib
 import json
+import math
 import os
 import pathlib
 import secrets
 import socket
+import subprocess
 import sys
 import threading
 import time
@@ -105,30 +107,43 @@ from scripts.research.arms849 import (
     serving,
 )
 from scripts.research.arms849 import questions as questions_mod
+from scripts.research.arms849.errors import (
+    G_CANCEL_GRACE_S,
+    ArmRefusal,
+    CeilingBreached,
+    CeilingUnreadable,
+    GCancellationUnacknowledged,
+    PremiseViolated,
+)
 from scripts.research.arms849.ledger import (
     ARMS,
     REFUSAL_PREFIX,
     REPEATS,
     AttemptsExhausted,
     Binding,
+    GRAPH_STORE_ALL_RESIDENT,
+    GRAPH_STORE_FIRST_BUILD,
     Header,
     Ledger,
     LedgerBoundToAnotherConfig,
     LedgerCorrupt,
     LedgerLocked,
     LedgerWriteFailed,
+    MEMORY_CEILING_STAGE,
+    PREMISE_VIOLATED,
     RunKey,
+    SERIES_GENERATION,
+    SESSION_GATES,
+    SESSION_STOPPED,
+    SMOKE_PLAN,
     SecondScoredRow,
+    is_smoke,
     open_ledger,
     plan_keys,
 )
 from scripts.research.arms849.prompt import Prompt
 from scripts.research.arms849.questions import Question
-from scripts.research.arms849.sampler import (
-    GTT_CEILING_GIB,
-    GttSampler,
-    RssSampler,
-)
+from scripts.research.arms849.sampler import GTT_CEILING_GIB, GttSampler, require_breached
 from scripts.research.load_849_corpus import (
     ARM_INPUTS,
     DEFAULT_CORPUS,
@@ -176,6 +191,10 @@ class AttemptCancelled(RuntimeError):
     """The attempt's deadline passed; the facade refuses further calls."""
 
 
+class TokenMeasurementMismatch(RuntimeError):
+    """The freeze-time token measurement does not reproduce the registered exceedance set."""
+
+
 # --------------------------------------------------------------------------
 # CellContext and the serving facade
 # --------------------------------------------------------------------------
@@ -197,6 +216,7 @@ class CellContext:
     config: serving.ServingConfiguration
     serving: Any
     prompt: Prompt
+    deadline: float | None = None
     embedder: Any = None
     calibration: Mapping[str, Any] | None = None
     cancelled: threading.Event = field(default_factory=threading.Event, compare=False)
@@ -232,12 +252,14 @@ class ServingFacade:
     remaining time, and once the attempt is cancelled every call refuses (no late request)."""
 
     def __init__(self, config: serving.ServingConfiguration, tokenizer: Any, base_url: str = LLAMA_URL,
-                 deadline: float | None = None, cancelled: threading.Event | None = None) -> None:
+                 deadline: float | None = None, cancelled: threading.Event | None = None,
+                 before_send: Callable[[], None] | None = None) -> None:
         self.config = config
         self.tokenizer = tokenizer
         self.base_url = base_url
         self.deadline = deadline
         self.cancelled = cancelled or threading.Event()
+        self.before_send = before_send
 
     def _live(self) -> None:
         if self.cancelled.is_set():
@@ -255,11 +277,28 @@ class ServingFacade:
 
     def complete(self, body: dict[str, Any]) -> serving.Completion:
         self._live()
+        if self.before_send is None:
+            raise ArmRefusal("no before_send ceiling guard is bound; nothing was sent")
         remaining = ATTEMPT_TIMEOUT_S if self.deadline is None else self.deadline - time.monotonic()
         if remaining <= 0:
             raise AttemptCancelled("the attempt's deadline passed before the request was sent")
+        def guarded_send() -> None:
+            # Token counting happens inside serving.complete. Re-check cancellation and the deadline
+            # at the actual transport boundary so a timeout during tokenisation cannot send late.
+            self._live()
+            if self.deadline is not None and time.monotonic() >= self.deadline:
+                self.cancelled.set()
+                raise AttemptCancelled("the attempt deadline passed while preparing the request; nothing was sent")
+            self.before_send()
+            # The final GTT read may itself block. Re-check after it returns so tokenisation or
+            # telemetry cannot carry a request across the attempt deadline.
+            self._live()
+            if self.deadline is not None and time.monotonic() >= self.deadline:
+                self.cancelled.set()
+                raise AttemptCancelled("the attempt deadline passed during the send guard; nothing was sent")
+
         return serving.complete(body, self.tokenizer, self.config.limits().permitted, self.base_url,
-                                timeout_s=remaining)
+                                timeout_s=remaining, before_send=guarded_send)
 
 
 # --------------------------------------------------------------------------
@@ -280,7 +319,8 @@ class ArmRegistration:
     lead W8-1). Post-merge cleanup: unify the three arms' ``ArmRefusal`` classes into one shared
     class; this field then becomes redundant.
 
-    G/D: ``answer(question, view, ctx)``; G also ``build_graph(question, view) -> GraphStats-like``
+    G/D: ``answer(question, view, ctx)``; G also
+    ``build_graph(question, view, ctx) -> GraphStats-like``
     and ``drop_graph(question)``. R: ``bind(index_cache) -> answer`` and
     ``calibration_inputs(views, index_cache) -> (availability, assemble_r_tokens)`` — the
     registration closes over the corpus text, tokenizer and embedder, and the harness supplies the
@@ -292,8 +332,10 @@ class ArmRegistration:
     bind: Callable[[dict[str, Any]], AnswerFn] | None = None
     calibration_inputs: Callable[[Mapping[str, Loaded], dict[str, Any]],
                                  tuple[Mapping[str, int], Callable[[str, int], int]]] | None = None
-    build_graph: Callable[[Question, Loaded], Any] | None = None
+    build_graph: Callable[[Question, Loaded, Any], Any] | None = None
     drop_graph: Callable[[Question], Any] | None = None
+    list_graphs: Callable[[Any], Sequence[str]] | None = None
+    close: Callable[[], Any] | None = None
 
     def __post_init__(self) -> None:
         if not (isinstance(self.refusal, type) and issubclass(self.refusal, Exception)):
@@ -317,12 +359,76 @@ class Resources:
     embedder: Any
 
 
-#: arm → factory(resources) → ArmRegistration. Empty here: the arms register themselves.
-ARM_FACTORIES: dict[str, Callable[[Resources], ArmRegistration]] = {}
+def _corpus_text(resources: Resources) -> Any:
+    from scripts.research.arms849.text import FrozenCorpusText
+
+    return FrozenCorpusText(resources.corpus_dir)
+
+
+def _factory_g(resources: Resources) -> ArmRegistration:
+    # Lazy by contract: importing this harness must not import graphiti_core.
+    from scripts.research.arms849 import arm_g
+
+    bridge = arm_g.make_bridge(resources.embedder, _corpus_text(resources))
+    return ArmRegistration(
+        refusal=ArmRefusal,
+        answer=bridge.answer,
+        build_graph=lambda question, view, ctx: bridge.build_graph(
+            question, view, deadline=ctx.deadline, cancelled=ctx.cancelled),
+        drop_graph=lambda question: bridge.drop_graph(
+            question, deadline=time.monotonic() + ATTEMPT_TIMEOUT_S, cancelled=threading.Event()),
+        list_graphs=lambda ctx: bridge.list_graphs(deadline=ctx.deadline, cancelled=ctx.cancelled),
+        close=bridge.close,
+    )
+
+
+def _factory_d(resources: Resources) -> ArmRegistration:
+    from scripts.research.arms849 import arm_d
+
+    return ArmRegistration(refusal=ArmRefusal, answer=arm_d.bind(_corpus_text(resources)), close=lambda: None)
+
+
+def _factory_r(resources: Resources) -> ArmRegistration:
+    from scripts.research.arms849 import arm_r
+
+    text = _corpus_text(resources)
+    return ArmRegistration(
+        refusal=ArmRefusal,
+        bind=lambda cache: arm_r.bind(text, cache),
+        calibration_inputs=lambda views, cache: arm_r.calibration_inputs(
+            text, resources.tokenizer, resources.embedder, views, cache),
+        close=lambda: None,
+    )
+
+
+#: arm → lazy factory(resources) → registration. Exactly the three experimental arms.
+ARM_FACTORIES: dict[str, Callable[[Resources], ArmRegistration]] = {
+    "G": _factory_g,
+    "D": _factory_d,
+    "R": _factory_r,
+}
 
 
 def build_arms(resources: Resources) -> dict[str, ArmRegistration]:
-    return {arm: factory(resources) for arm, factory in ARM_FACTORIES.items()}
+    registrations: dict[str, ArmRegistration] = {}
+    try:
+        for arm, factory in ARM_FACTORIES.items():
+            registrations[arm] = factory(resources)
+    except BaseException as factory_error:
+        for arm, registration in reversed(tuple(registrations.items())):
+            if registration.close is not None:
+                try:
+                    if registration.close() is False:
+                        factory_error.add_note(f"arm {arm} teardown did not acknowledge during factory rollback")
+                except BaseException as close_error:
+                    # Preserve the factory failure while still giving every completed registration
+                    # its teardown opportunity and expose the secondary failure for diagnosis.
+                    factory_error.add_note(
+                        f"arm {arm} teardown failed during factory rollback: "
+                        f"{type(close_error).__name__}: {close_error}"
+                    )
+        raise
+    return registrations
 
 
 def arm_view(key: RunKey, loaded: Loaded) -> Loaded:
@@ -334,8 +440,15 @@ def arm_view(key: RunKey, loaded: Loaded) -> Loaded:
 
 
 def plan(kind: str = "primary") -> list[RunKey]:
-    """The cells in execution order (protocol, C-008): 72 primary, 24 secondary (D only)."""
-    return plan_keys() if kind == "primary" else plan_keys(arms=("D",))
+    """The protocol cells: full primary, D-only secondary, or the ten-cell smoke."""
+    if kind == "primary":
+        return plan_keys()
+    if kind == "secondary":
+        return plan_keys(arms=("D",))
+    if kind == "smoke":
+        return ([RunKey("G", q.id, 1) for q in questions_mod.QUESTIONS]
+                + [RunKey("D", "C1", 1), RunKey("R", "C1", 1)])
+    raise ValueError(f"unknown run kind {kind!r}")
 
 
 # --------------------------------------------------------------------------
@@ -376,7 +489,7 @@ def session_identity() -> dict[str, Any]:
 
 
 def write_session_gates(ledger: Ledger, gates: SessionGates, identity: Mapping[str, Any]) -> None:
-    ledger.event("session_gates", {**identity, **gates.as_detail()})
+    ledger.event(SESSION_GATES, {**identity, **gates.as_detail()})
 
 
 @dataclass
@@ -386,14 +499,13 @@ class Runtime:
 
     config: serving.ServingConfiguration
     arms: Mapping[str, ArmRegistration]
-    facade: Callable[[float, threading.Event], Any]           # (deadline, cancelled) -> ctx.serving
+    facade: Callable[..., Any]       # (deadline, cancelled, before_send) -> ctx.serving
     health: Callable[[], bool]
     gates: SessionGates                                          # this session's fresh gate outcome
     corpus_dir: pathlib.Path = CORPUS_DIR
     prompt: Prompt = field(default_factory=Prompt)
     embedder: Any = None
     gtt_sampler: Callable[[], GttSampler] = GttSampler
-    rss_sampler: Callable[[], RssSampler] = RssSampler
     attempt_timeout_s: float = ATTEMPT_TIMEOUT_S
     cancel_grace_s: float = CANCEL_GRACE_S
     out: Callable[[str], None] = print
@@ -411,6 +523,21 @@ def _peak(sampler: Any, attr: str) -> float | None:
     return value if isinstance(value, (int, float)) and not isinstance(value, bool) else None
 
 
+def _before_send_guard(gtt: Any) -> None:
+    """Take the final synchronous GTT reading at the transport boundary."""
+    try:
+        raw = gtt.read_once()
+        if isinstance(raw, bool):
+            raise ValueError(f"boolean GTT reading {raw!r}")
+        measured = float(raw)
+        if not math.isfinite(measured) or measured < 0:
+            raise ValueError(f"invalid GTT reading {raw!r}")
+    except Exception as exc:
+        raise CeilingUnreadable(f"GTT could not be read immediately before send: {exc}") from exc
+    if measured > GTT_CEILING_GIB:
+        raise CeilingBreached(measured, GTT_CEILING_GIB)
+
+
 class Session:
     """Runs pending cells of one open ledger, in protocol order, until done or stopped."""
 
@@ -420,6 +547,10 @@ class Session:
         #: ONE index cache per session, handed to R's calibration_inputs AND R's bind (N-3).
         self.index_cache: dict[str, Any] = {}
         self.graph_stats: dict[str, Any] = {}          # question → GraphStats built this session
+        self.graphs_built: set[str] = set()
+        self.series: dict[str, Any] | None = None
+        self.graph_boundary_prepared = False
+        self.graph_boundary_present = True
         self._answers: dict[str, AnswerFn] = {}
         self.report = SessionReport()
         self.identity = session_identity()
@@ -482,7 +613,8 @@ class Session:
         for key in keys:
             if self.report.stopped:
                 break
-            if key.arm == "R" and not self.ensure_calibration():
+            if (key.arm == "R" or (self.ledger.header.plan == SMOKE_PLAN and key.arm == "D")) \
+                    and not self.ensure_calibration():
                 break
             outcome = self.execute(key)
             mark = {"ok": "·", "error": "!", "not_implemented": "-", "exceeds_model_context": "x"}.get(str(outcome), "?")
@@ -494,6 +626,84 @@ class Session:
             if key.arm == "G" and key.repeat == REPEATS and self.ledger.terminal(key) is not None:
                 self._drop_graph(key)
         return self.report
+
+    def record_series_generation(self) -> None:
+        """Bind the host writer descriptor to this ledger without making telemetry affect cells."""
+        from scripts.research.arms849.substrate import SERIES_GENERATION_ENV
+
+        raw = os.environ.get(SERIES_GENERATION_ENV)
+        if not raw:
+            return
+        try:
+            detail = json.loads(raw)
+            if not isinstance(detail, dict):
+                raise TypeError("descriptor is not an object")
+            series_id = detail.get("series_id")
+            existing = next((r["detail"] for r in self.ledger.rows
+                             if r.get("record") == "event" and r.get("kind") == SERIES_GENERATION
+                             and r.get("detail", {}).get("series_id") == series_id), None)
+            if existing is None:
+                self.ledger.event(SERIES_GENERATION, detail)
+                self.series = dict(detail)
+            else:
+                self.series = dict(existing)
+        except Exception as exc:  # observational telemetry never refuses a cell
+            self.ledger.event("series_generation_unusable", {"error": f"{type(exc).__name__}: {exc}"})
+
+    def _prepare_graph_boundary(self, reg: ArmRegistration) -> None:
+        """Read the pre-build graph state outside the attempt budget, without claiming a build."""
+        if self.series is None or self.graphs_built:
+            return
+        series_id = str(self.series["series_id"])
+        already = any(r.get("record") == "event" and r.get("kind") == GRAPH_STORE_FIRST_BUILD
+                      and r.get("detail", {}).get("series_id") == series_id for r in self.ledger.rows)
+        if already:
+            return
+        if self.graph_boundary_prepared:
+            return
+        boundary_ctx = types.SimpleNamespace(
+            deadline=time.monotonic() + self.rt.attempt_timeout_s,
+            cancelled=threading.Event(),
+        )
+        try:
+            if reg.list_graphs is None:
+                raise RuntimeError("the G registration exposes no graph listing operation")
+            graphs = reg.list_graphs(boundary_ctx)
+            self.graph_boundary_present = bool(graphs)
+        except Exception as exc:  # a failed listing invalidates the baseline, never the cell
+            self.graph_boundary_present = True
+            self.ledger.event("graph_store_listing_failed", {"series_id": series_id,
+                              "error": f"{type(exc).__name__}: {exc}"})
+        self.graph_boundary_prepared = True
+
+    def _record_graph_boundary_before_build(self) -> None:
+        """Emit the prepared boundary immediately before the first graph build is invoked."""
+        if self.series is None or self.graphs_built:
+            return
+        series_id = str(self.series["series_id"])
+        already = any(r.get("record") == "event" and r.get("kind") == GRAPH_STORE_FIRST_BUILD
+                      and r.get("detail", {}).get("series_id") == series_id for r in self.ledger.rows)
+        if already:
+            return
+        self.ledger.event(GRAPH_STORE_FIRST_BUILD, {
+            "ts": datetime.now(timezone.utc).isoformat(), "series_id": series_id,
+            "graphs_present": self.graph_boundary_present,
+        })
+
+    def _graph_boundary_after_build(self, question_id: str) -> None:
+        if self.series is None:
+            return
+        self.graphs_built.add(question_id)
+        if len(self.graphs_built) != len(questions_mod.QUESTIONS):
+            return
+        series_id = str(self.series["series_id"])
+        already = any(r.get("record") == "event" and r.get("kind") == GRAPH_STORE_ALL_RESIDENT
+                      and r.get("detail", {}).get("series_id") == series_id for r in self.ledger.rows)
+        if not already:
+            self.ledger.event(GRAPH_STORE_ALL_RESIDENT, {
+                "ts": datetime.now(timezone.utc).isoformat(), "series_id": series_id,
+                "n_graphs": len(questions_mod.QUESTIONS),
+            })
 
     def _drop_graph(self, key: RunKey) -> None:
         reg = self.rt.arms.get("G")
@@ -538,9 +748,13 @@ class Session:
         harness-side refusal never spends one of the key's three attempts."""
         view = self._view(key, question)
         answer_fn = self._answer_fn(key.arm, reg)
+        if key.arm == "G" and reg.build_graph is not None and key.question not in self.graph_stats:
+            # Run-level observational telemetry is settled before the attempt starts. It may mark
+            # itself unavailable, but cannot spend or poison a cell attempt.
+            self._prepare_graph_boundary(reg)
         with ExitStack() as stack:
             gtt = stack.enter_context(self.rt.gtt_sampler())
-            rss = stack.enter_context(self.rt.rss_sampler()) if key.arm == "G" else None
+            require_breached(gtt)
             if getattr(gtt, "breached", False):
                 # NFR-004: refuse to START the cell — no attempt row, an event, and stop.
                 self.ledger.event("memory_ceiling", {**key.as_dict(), "gtt_gib": _peak(gtt, "peak_gib"),
@@ -548,9 +762,7 @@ class Session:
                 self.stop(f"memory ceiling: GTT above {GTT_CEILING_GIB} GiB before "
                           f"{key.arm} {key.question} r{key.repeat}; cell not started")
                 return None, False
-            unreadable = [name for name, s, attr in (("peak_gtt_gib", gtt, "peak_gib"),
-                                                     ("falkordb_rss_peak_mib", rss, "peak_mib"))
-                          if s is not None and _peak(s, attr) is None]
+            unreadable = ["peak_gtt_gib"] if _peak(gtt, "peak_gib") is None else []
             if unreadable:
                 # A column the row contract requires cannot be measured: running the arm would
                 # burn an attempt whose row the ledger must refuse. Could-not-check, never zero.
@@ -565,15 +777,22 @@ class Session:
             started = time.monotonic()
             deadline = started + self.rt.attempt_timeout_s
             cancelled = threading.Event()
+
+            def before_send() -> None:
+                _before_send_guard(gtt)
+
             ctx = CellContext(repeat=key.repeat, attempt=attempt, config=self.rt.config,
-                              serving=self.rt.facade(deadline, cancelled), prompt=self.rt.prompt,
+                              serving=self.rt.facade(deadline, cancelled, before_send), prompt=self.rt.prompt,
+                              deadline=deadline,
                               embedder=self.rt.embedder,
                               calibration=self.ledger.calibration() if key.arm == "R" else None,
                               cancelled=cancelled)
 
             def work() -> Mapping[str, Any]:
                 if key.arm == "G" and reg.build_graph is not None and key.question not in self.graph_stats:
-                    self.graph_stats[key.question] = reg.build_graph(question, view)
+                    self._record_graph_boundary_before_build()
+                    self.graph_stats[key.question] = reg.build_graph(question, view, ctx)
+                    self._graph_boundary_after_build(key.question)
                 return answer_fn(question, view, ctx)
 
             status, value = _call_with_timeout(work, self.rt.attempt_timeout_s, cancelled, self.rt.cancel_grace_s)
@@ -584,7 +803,7 @@ class Session:
             base["context_limit_applied"] = ctx.limit_applied
 
         if status == "ok":
-            outcome, retry = self._record_ok(key, question, view, ctx, value, base, peak_gtt, rss)
+            outcome, retry = self._record_ok(key, question, view, ctx, value, base, peak_gtt)
         elif status in ("timeout", "zombie"):
             outcome, retry = self._record_error(key, base, "timeout", peak_gtt), True
             if status == "zombie":
@@ -630,6 +849,23 @@ class Session:
             msg = (f"{REFUSAL_PREFIX} {type(exc).__name__} from arm {key.arm}: {exc} — exceeds_model_context "
                    f"is a D outcome carrying prompt_tokens (data-model.md § Outcome)")
             return self._record_error(key, base, msg, peak_gtt), False
+        if isinstance(exc, PremiseViolated):
+            self.ledger.event(PREMISE_VIOLATED, {"arm": key.arm, "reason": exc.reason,
+                              "message": str(exc), "at_key": key.as_dict()})
+            self.ledger.event(SESSION_STOPPED, {"reason": "premise_violated"})
+            self.stop(f"premise violated by arm {key.arm}: {exc}")
+            return None, False
+        if isinstance(exc, CeilingBreached):
+            row = {**base, "memory_ceiling": {"measured_gib": exc.measured_gib,
+                                              "ceiling_gib": exc.ceiling_gib,
+                                              "stage": MEMORY_CEILING_STAGE}}
+            self.ledger.record(key, "exceeds_memory_ceiling", row, self.rt.config.as_header_dict())
+            self.ledger.event(SESSION_STOPPED, {"reason": "ceiling_breach_at_send"})
+            self.stop(str(exc))
+            return "exceeds_memory_ceiling", False
+        if isinstance(exc, CeilingUnreadable):
+            self.ledger.record(key, "sampler_unreadable_at_send", base, self.rt.config.as_header_dict())
+            return "sampler_unreadable_at_send", False
         if isinstance(exc, reg.refusal):
             name = type(exc).__name__
             msg = f"{REFUSAL_PREFIX} {exc}" if type(exc) is reg.refusal else f"{REFUSAL_PREFIX} {name}: {exc}"
@@ -642,7 +878,7 @@ class Session:
         return self._record_error(key, base, msg, peak_gtt), True
 
     def _record_ok(self, key: RunKey, question: Question, view: Loaded, ctx: CellContext, answer: Any,
-                   base: dict[str, Any], peak_gtt: float | None, rss: Any) -> tuple[str | None, bool]:
+                   base: dict[str, Any], peak_gtt: float | None) -> tuple[str | None, bool]:
         row = dict(answer)
         row.update(base)
         row.update(seed=ctx.seed, peak_gtt_gib=peak_gtt, events_loaded=len(view.events),
@@ -692,13 +928,30 @@ def _call_with_timeout(fn: Callable[[], Any], timeout_s: float, cancelled: threa
     worker.start()
     try:
         worker.join(timeout_s)
-    except BaseException:
+    except BaseException as interrupted:
         cancelled.set()
-        raise
+        # Give the worker one bounded acknowledgement window. A second controller interrupt
+        # ends that wait; it must never turn Ctrl-C into an unkillable loop.
+        try:
+            worker.join(grace_s)
+        except BaseException:
+            pass
+        if worker.is_alive():
+            # run_session must not close registrations underneath a still-live worker. The original
+            # interrupt remains the exception the controller sees.
+            setattr(interrupted, "_arms849_worker_unacknowledged", True)
+        raise interrupted
     if worker.is_alive():
         cancelled.set()
         worker.join(grace_s)
-        return ("zombie", None) if worker.is_alive() else ("timeout", None)
+        if worker.is_alive():
+            return "zombie", None
+        if "exc" in box:
+            exc = box["exc"]
+            if not isinstance(exc, Exception):
+                raise exc
+            return "raised", exc
+        return "timeout", None
     if "exc" in box:
         exc = box["exc"]
         if not isinstance(exc, Exception):
@@ -710,7 +963,8 @@ def _call_with_timeout(fn: Callable[[], Any], timeout_s: float, cancelled: threa
 def status_line(ledger: Ledger, kind: str | None = None) -> str:
     """The ONE line the operator relays to the bus (FR-017)."""
     header = ledger.header
-    kind = kind or ("primary" if header.plan == PRIMARY_PLAN else "secondary")
+    kind = kind or ("smoke" if is_smoke(header)
+                    else {PRIMARY_PLAN: "primary", SECONDARY_PLAN: "secondary"}.get(header.plan, "unknown"))
     keys = plan(kind)
     counts: dict[str, int] = {}
     for k in keys:
@@ -730,14 +984,20 @@ def run_session(ledger: Ledger, runtime: Runtime, limit: int | None = None, kind
     this session's fresh gate outcome and identity; a failing outcome stops the session with no
     attempt. ``before_cells`` (e.g. the secondary's context-window gate) runs next and returns a
     stop reason or None."""
-    todo = ledger.pending_keys(plan(kind))
-    total = len(plan(kind))
-    if limit:
-        todo = todo[:limit]
-    runtime.out(f"{total - len(ledger.pending_keys(plan(kind)))} of {total} cells terminal; {len(todo)} to go this session")
-    session = Session(ledger, runtime)
+    session: Session | None = None
     try:
+        session = Session(ledger, runtime)
+        report = session.report
+        todo = ledger.pending_keys(plan(kind))
+        total = len(plan(kind))
+        if limit:
+            todo = todo[:limit]
+        runtime.out(
+            f"{total - len(ledger.pending_keys(plan(kind)))} of {total} cells terminal; "
+            f"{len(todo)} to go this session"
+        )
         write_session_gates(ledger, runtime.gates, session.identity)
+        session.record_series_generation()
         if not runtime.gates.passed:
             session.stop(f"this session's gates failed ({runtime.gates.error}); no cell attempted")
         elif before_cells is not None:
@@ -745,10 +1005,43 @@ def run_session(ledger: Ledger, runtime: Runtime, limit: int | None = None, kind
             if reason:
                 session.stop(reason)
         report = session.run(todo) if not session.report.stopped else session.report
+    except GCancellationUnacknowledged as exc:
+        assert session is not None
+        ledger.event(SESSION_STOPPED, {"reason": "g_cancellation_unacknowledged", "grace_s": exc.grace_s})
+        session.stop(str(exc))
+        report = session.report
     except LedgerWriteFailed as exc:
+        assert session is not None
         session.stop(f"ledger write failed — {exc}; reopen with the same command (the file is the truth)")
         runtime.out(f"arms849 status: STOPPED — {session.report.stopped}")
         return session.report
+    finally:
+        active_exception = sys.exc_info()[1]
+        worker_unacknowledged = bool(
+            active_exception is not None
+            and getattr(active_exception, "_arms849_worker_unacknowledged", False)
+        )
+        close_errors: list[BaseException] = []
+        close_unacknowledged = False
+        for reg in (() if worker_unacknowledged else runtime.arms.values()):
+            if reg.close is not None:
+                try:
+                    close_unacknowledged = reg.close() is False or close_unacknowledged
+                except BaseException as exc:  # close every registration before preserving the first failure
+                    close_errors.append(exc)
+        if close_errors and active_exception is None:
+            raise close_errors[0]
+        if close_unacknowledged and active_exception is None:
+            already_recorded = any(
+                row.get("record") == "event" and row.get("kind") == SESSION_STOPPED
+                and row.get("detail", {}).get("reason") == "g_cancellation_unacknowledged"
+                for row in ledger.rows
+            )
+            if not already_recorded:
+                ledger.event(SESSION_STOPPED, {
+                    "reason": "g_cancellation_unacknowledged", "grace_s": G_CANCEL_GRACE_S,
+                })
+            session.stop(f"G registration close did not acknowledge teardown within {G_CANCEL_GRACE_S} s")
     if report.stopped:
         runtime.out(f"arms849 status: STOPPED — {report.stopped}")
     runtime.out(status_line(ledger, kind))
@@ -780,7 +1073,12 @@ def open_run_ledger(path: pathlib.Path, binding: Binding, kind: str = "primary")
     existing = peek_header(path)
     seed = existing["blinding_seed"] if existing and type(existing.get("blinding_seed")) is int \
         else secrets.randbelow(2**31)
-    return open_ledger(path, binding, seed, PRIMARY_PLAN if kind == "primary" else SECONDARY_PLAN)
+    plans = {"primary": PRIMARY_PLAN, "secondary": SECONDARY_PLAN, "smoke": SMOKE_PLAN}
+    try:
+        plan_identity = plans[kind]
+    except KeyError:
+        raise ValueError(f"unknown run kind {kind!r}") from None
+    return open_ledger(path, binding, seed, plan_identity)
 
 
 def open_existing(path: pathlib.Path) -> Ledger:
@@ -972,7 +1270,8 @@ def _cross_check(env: Any) -> dict[str, Any] | None:
 
 
 def _gate_env(corpus: pathlib.Path, config: serving.ServingConfiguration, up_ts: str,
-              header_code_hashes: dict[str, str] | None = None, run_root: pathlib.Path = REPO_ROOT) -> Any:
+              header_code_hashes: dict[str, str] | None = None, run_root: pathlib.Path = REPO_ROOT,
+              *, process_start: str = PROCESS_START) -> Any:
     from scripts.research.arms849 import gates
     from scripts.research.arms849.substrate import CACHE_DIR
 
@@ -984,13 +1283,14 @@ def _gate_env(corpus: pathlib.Path, config: serving.ServingConfiguration, up_ts:
         llama_base_url=LLAMA_URL, expect_n_ctx=config.n_ctx,
         expect_rope=_expect_rope(config),
         expected_chat_template_sha256=config.chat_template_sha256, up_ts=up_ts,
-        host_record_path=RUNS_DIR / "gate-host.json", container_start_ts=PROCESS_START,
+        host_record_path=RUNS_DIR / "gate-host.json", container_start_ts=process_start,
         header_code_hashes=header_code_hashes, forbidden_words=forbidden_words())
 
 
 def live_gates(ledger_path: pathlib.Path, corpus: pathlib.Path, config: serving.ServingConfiguration,
                up_ts: str, skip_gates: bool,
-               container_phase: Callable[..., tuple[Any, str]] | None = None) -> SessionGates:
+               container_phase: Callable[..., tuple[Any, str]] | None = None,
+               *, process_start: str = PROCESS_START) -> SessionGates:
     """Run the CONTAINER gate phase afresh for THIS session and return its outcome (never raises for
     a failing gate: the failure is data the session records). ``--skip-gates`` returns a skipped,
     development-only outcome carrying :data:`grading.SKIP_GATES_SHA`."""
@@ -999,12 +1299,13 @@ def live_gates(ledger_path: pathlib.Path, corpus: pathlib.Path, config: serving.
               "can never be graded or used as a primary")
         return SessionGates(passed=True, skipped=True, gate_host_sha=grading.SKIP_GATES_SHA,
                             gate_container_sha=grading.SKIP_GATES_SHA, preflight_sha=grading.SKIP_GATES_SHA,
-                            up_ts=up_ts, container_start_ts=PROCESS_START)
+                            up_ts=up_ts, container_start_ts=process_start)
     from scripts.research.arms849 import gates
     from scripts.research.arms849.preflight import load_preflight
 
     existing = peek_header(ledger_path)
-    env = _gate_env(corpus, config, up_ts, existing.get("code_hashes") if existing else None)
+    env = _gate_env(corpus, config, up_ts, existing.get("code_hashes") if existing else None,
+                    process_start=process_start)
     phase = container_phase or gates.run_container_phase
     try:
         results, gate_container_sha = phase(env, RUNS_DIR / "gate-container.json")
@@ -1013,12 +1314,13 @@ def live_gates(ledger_path: pathlib.Path, corpus: pathlib.Path, config: serving.
     except Exception as exc:  # noqa: BLE001 — a gate that refuses or raises has failed, with the reason
         error = f"{type(exc).__name__}: {exc}"
         failed = write_gate_failure(RUNS_DIR / "gate-container.json", "container", exc, up_ts,
-                                    extra={"chat_template_cross_check": _cross_check(env)})
-        return SessionGates(passed=False, up_ts=up_ts, container_start_ts=PROCESS_START, error=error,
+                                    extra={"chat_template_cross_check": _cross_check(env)},
+                                    process_start=process_start)
+        return SessionGates(passed=False, up_ts=up_ts, container_start_ts=process_start, error=error,
                             details=tuple(failed), chat_template_cross_check=_cross_check(env))
     details = tuple({"name": r.name, "passed": r.passed, "detail": r.detail} for r in results)
     return SessionGates(passed=True, gate_host_sha=str(host["gate_host_sha"]), gate_container_sha=gate_container_sha,
-                        preflight_sha=preflight_sha, up_ts=up_ts, container_start_ts=PROCESS_START, details=details,
+                        preflight_sha=preflight_sha, up_ts=up_ts, container_start_ts=process_start, details=details,
                         chat_template_cross_check=_cross_check(env))
 
 
@@ -1033,7 +1335,8 @@ def failed_gates(exc: BaseException) -> list[dict[str, Any]]:
 
 
 def write_gate_failure(path: pathlib.Path, phase: str, exc: BaseException, up_ts: str,
-                       extra: Mapping[str, Any] | None = None) -> list[dict[str, Any]]:
+                       extra: Mapping[str, Any] | None = None,
+                       *, process_start: str = PROCESS_START) -> list[dict[str, Any]]:
     """Design-lead rider 1: a failing phase still leaves its record (``gate-<phase>.json``) naming the
     failing gate(s) and detail — ``passed: false`` and self-hashed like the passing records, so it
     can never be mistaken for, or verified as, a passing one. No ledger or header is touched."""
@@ -1042,7 +1345,7 @@ def write_gate_failure(path: pathlib.Path, phase: str, exc: BaseException, up_ts
     failed = failed_gates(exc)
     sha_field = f"gate_{phase}_sha"
     record: dict[str, Any] = {"phase": phase, "passed": False, "ts": datetime.now(timezone.utc).isoformat(),
-                              "up_ts": up_ts, "container_start_ts": PROCESS_START if phase == "container" else None,
+                              "up_ts": up_ts, "container_start_ts": process_start if phase == "container" else None,
                               "error": f"{type(exc).__name__}: {exc}", "failed": failed, "results": failed,
                               **(extra or {})}
     record[sha_field] = gates.record_sha(record, sha_field)
@@ -1230,18 +1533,120 @@ def live_config(secondary: bool, development_ledger: bool = False) -> serving.Se
 
 def live_runtime(config: serving.ServingConfiguration, corpus: pathlib.Path, gates_outcome: SessionGates) -> Runtime:
     from scripts.research.arms849.substrate import CACHE_DIR
+    from scripts.research.arms849.embed import Embedder
 
-    tokenizer = serving.Tokenizer(pathlib.Path(os.environ.get("ARMS849_CACHE", str(CACHE_DIR))) / "qwen-tokenizer")
-    embedder = None
+    cache = pathlib.Path(os.environ.get("ARMS849_CACHE", str(CACHE_DIR)))
+    tokenizer = serving.Tokenizer(cache / "qwen-tokenizer")
+    embedder = Embedder(cache / "fastembed")
     arms = build_arms(Resources(corpus_dir=corpus, config=config, tokenizer=tokenizer, embedder=embedder))
     return Runtime(config=config, arms=arms, corpus_dir=corpus,
-                   facade=lambda deadline, cancelled: ServingFacade(config, tokenizer, LLAMA_URL, deadline, cancelled),
-                   health=lambda: container_health(config), gates=gates_outcome)
+                   facade=lambda deadline, cancelled, before_send: ServingFacade(
+                       config, tokenizer, LLAMA_URL, deadline, cancelled, before_send),
+                   health=lambda: container_health(config), gates=gates_outcome, embedder=embedder)
 
 
 def _props_n_ctx() -> int:
     with urllib.request.urlopen(f"{LLAMA_URL}/props", timeout=10) as r:
         return int((json.loads(r.read().decode()).get("default_generation_settings") or {}).get("n_ctx") or 0)
+
+
+REGISTERED_CONTEXT_EXCEEDANCES = frozenset({"F1", "B1", "E2", "E1", "F2", "B2"})
+
+
+def _common_prefix_length(left: Sequence[int], right: Sequence[int]) -> int:
+    n = 0
+    for a, b in zip(left, right):
+        if a != b:
+            break
+        n += 1
+    return n
+
+
+def measure_requests(config: serving.ServingConfiguration, tokenizer: Any, corpus_dir: pathlib.Path,
+                     *, commit_sha: str, preflight_sha: str) -> dict[str, Any]:
+    """Rebuild and count the eight exact D requests used by the freeze-time T039 gate."""
+    from scripts.research.arms849 import arm_d
+    from scripts.research.arms849.text import FrozenCorpusText
+
+    text = FrozenCorpusText(corpus_dir)
+    prompt = Prompt()
+    rows: list[dict[str, Any]] = []
+    previous_ids: list[int] | None = None
+    for question in questions_mod.QUESTIONS:
+        key = RunKey("D", question.id, 1)
+        view = arm_view(key, replay(corpus_dir, questions_mod.ask_time_dt(question), verify=False))
+        block, _ = arm_d.render_dump(text, view)
+        request = prompt.render(block, question.text)
+        body = serving.serialize(request, config, config.seed_for(1), tokenizer)
+        request_ids = list(tokenizer.encode(body["prompt"]))
+        request_tokens = serving.count_tokens(body, tokenizer)
+        if request_tokens != len(request_ids):
+            raise TokenMeasurementMismatch(
+                f"{question.id}: count_tokens={request_tokens} but encode produced {len(request_ids)} ids")
+        prefix_tokens = None if previous_ids is None else _common_prefix_length(previous_ids, request_ids)
+        rows.append({
+            "question": question.id,
+            "request_tokens": request_tokens,
+            "block_tokens": int(tokenizer.count(block.data)),
+            "prefix_tokens": prefix_tokens,
+            "prefix_fraction": None if prefix_tokens is None else prefix_tokens / request_tokens,
+        })
+        previous_ids = request_ids
+
+    actual = {row["question"] for row in rows if row["request_tokens"] > serving.TRAINED_CONTEXT}
+    if actual != REGISTERED_CONTEXT_EXCEEDANCES:
+        missing = sorted(REGISTERED_CONTEXT_EXCEEDANCES - actual)
+        extra = sorted(actual - REGISTERED_CONTEXT_EXCEEDANCES)
+        raise TokenMeasurementMismatch(
+            f"measured context exceedances do not match the registered six; missing={missing}, extra={extra}")
+    return {
+        "commit_sha": commit_sha,
+        "preflight_sha": preflight_sha,
+        "trained_context_tokens": serving.TRAINED_CONTEXT,
+        "questions": rows,
+    }
+
+
+def _clean_measurement_head(repo_root: pathlib.Path) -> str:
+    """Return HEAD only when the checkout contains exactly those committed bytes."""
+    dirty = subprocess.run(
+        ["git", "status", "--porcelain", "--untracked-files=all"], cwd=repo_root, check=True,
+        capture_output=True, text=True,
+    ).stdout
+    if dirty.strip():
+        raise TokenMeasurementMismatch("--measure requires a clean working tree so commit_sha names the measured code")
+    return subprocess.run(
+        ["git", "rev-parse", "HEAD"], cwd=repo_root, check=True,
+        capture_output=True, text=True,
+    ).stdout.strip()
+
+
+def _require_measurement_binding(commit_sha: str, corpus_dir: pathlib.Path,
+                                 preflight_record: Mapping[str, Any]) -> None:
+    """Refuse a table whose cited commit/preflight do not bind the bytes being measured."""
+    source_commit = preflight_record.get("source_commit")
+    if source_commit != commit_sha:
+        raise TokenMeasurementMismatch(
+            f"preflight source_commit {source_commit!r} does not match measurement HEAD {commit_sha}"
+        )
+    expected = preflight_record.get("corpus")
+    if not isinstance(expected, dict) or not expected:
+        raise TokenMeasurementMismatch("preflight corpus fingerprints are absent or malformed")
+    from scripts.research.load_849_corpus import fingerprint
+
+    actual: dict[str, str] = {}
+    for name, digest in expected.items():
+        if not isinstance(name, str) or not isinstance(digest, str):
+            raise TokenMeasurementMismatch("preflight corpus fingerprints are malformed")
+        try:
+            actual[name] = fingerprint(pathlib.Path(corpus_dir) / name)
+        except OSError as exc:
+            raise TokenMeasurementMismatch(f"measurement corpus {name} is unavailable: {exc}") from exc
+    if actual != expected:
+        changed = sorted(name for name in expected if actual.get(name) != expected[name])
+        raise TokenMeasurementMismatch(
+            f"measurement corpus does not match preflight fingerprints: {', '.join(changed)}"
+        )
 
 
 def _gtt_guard(gtt: Any) -> dict[str, Any]:
@@ -1283,6 +1688,7 @@ def live_secondary_gate(runtime: Runtime, props_n_ctx: Callable[[], int] = _prop
 
         config = runtime.config
         with runtime.gtt_sampler() as gtt:
+            require_breached(gtt)
             guard = _gtt_guard(gtt)
             if not guard["safe"]:
                 return _probe_refusal(guard, "before the probe")
@@ -1291,15 +1697,23 @@ def live_secondary_gate(runtime: Runtime, props_n_ctx: Callable[[], int] = _prop
             view = arm_view(RunKey("D", last.id, 1),
                             replay(runtime.corpus_dir, questions_mod.ask_time_dt(last), verify=False))
             block = FrozenCorpusText(runtime.corpus_dir).render_full_view(view)
-            facade = runtime.facade(time.monotonic() + ATTEMPT_TIMEOUT_S, threading.Event())
+            facade = runtime.facade(time.monotonic() + ATTEMPT_TIMEOUT_S, threading.Event(),
+                                    lambda: _before_send_guard(gtt))
             body = facade.serialize(runtime.prompt.render(block, "context-window gate: summarise the material."),
                                     config.seed_for(1))
             tokens = facade.count_tokens(body)
-            guard = _gtt_guard(gtt)                   # immediately before sending
-            if not guard["safe"]:
+            try:
+                completion = facade.complete(body)
+            except CeilingBreached as exc:
+                guard = {"reading": exc.measured_gib, "peak": _peak(gtt, "peak_gib"),
+                         "window_valid": True, "breached": True, "safe": False, "error": None}
                 return {**_probe_refusal(guard, "immediately before sending"), "prompt_tokens": tokens,
                         "n_ctx": n_ctx}
-            completion = facade.complete(body)
+            except CeilingUnreadable as exc:
+                guard = {"reading": None, "peak": _peak(gtt, "peak_gib"),
+                         "window_valid": False, "breached": False, "safe": False, "error": str(exc)}
+                return {**_probe_refusal(guard, "immediately before sending"), "prompt_tokens": tokens,
+                        "n_ctx": n_ctx}
         peak = _peak(gtt, "peak_gib")
         breached = bool(getattr(gtt, "breached", False)) or (peak is not None and peak > GTT_CEILING_GIB)
         window_ok = peak is not None and not breached
@@ -1312,7 +1726,7 @@ def live_secondary_gate(runtime: Runtime, props_n_ctx: Callable[[], int] = _prop
     return probe
 
 
-def host_phase(up_ts: str, config: serving.ServingConfiguration) -> str:
+def host_phase(up_ts: str, config: serving.ServingConfiguration, *, process_start: str = PROCESS_START) -> str:
     """The HOST gate phase (contracts/gates.md), right before the runner launches: boundary
     self-test, docker-derived health, preflight matching → gate-host.json. Returns gate_host_sha.
     Every expectation is derived from the SELECTED configuration (n_ctx, rope, chat template) —
@@ -1330,7 +1744,8 @@ def host_phase(up_ts: str, config: serving.ServingConfiguration) -> str:
     try:
         _, sha = gates.run_host_phase(env, substrate.RUNS_DIR / "gate-host.json")
     except gates.GatesRefused as exc:
-        write_gate_failure(substrate.RUNS_DIR / "gate-host.json", "host", exc, up_ts)
+        write_gate_failure(substrate.RUNS_DIR / "gate-host.json", "host", exc, up_ts,
+                           process_start=process_start)
         raise
     return sha
 
@@ -1361,13 +1776,15 @@ def _dry_run(kind: str) -> int:
     print(f"{len(keys)} cells, in execution order (question order within an arm+repeat is protocol):")
     for key in keys:
         print(f"  {key.arm} {key.question:3} r{key.repeat}")
-    missing = [a for a in (ARMS if kind == "primary" else ("D",)) if a not in ARM_FACTORIES]
+    required = ("D",) if kind == "secondary" else ARMS
+    missing = [a for a in required if a not in ARM_FACTORIES]
     if missing:
         print(f"\narms not yet registered: {', '.join(missing)} — their cells would be not_implemented")
     return 0
 
 
-def _preflight_unusable(args: argparse.Namespace, exc: PreflightUnusable) -> int:
+def _preflight_unusable(args: argparse.Namespace, exc: PreflightUnusable,
+                        *, process_start: str = PROCESS_START) -> int:
     """Codex c3 M-b: a preflight that cannot be used is a failed ``preflight_present_and_matching`` —
     through the same recorder as every other phase failure. ``--host-gates`` writes gate-host.json;
     otherwise gate-container.json, and a run path also records ``session_gates{passed:false}`` into
@@ -1375,14 +1792,16 @@ def _preflight_unusable(args: argparse.Namespace, exc: PreflightUnusable) -> int
     if args.host_gates:
         from scripts.research.arms849 import substrate
 
-        write_gate_failure(substrate.RUNS_DIR / "gate-host.json", "host", exc, args.up_ts)
+        write_gate_failure(substrate.RUNS_DIR / "gate-host.json", "host", exc, args.up_ts,
+                           process_start=process_start)
         print(f"arms849 status: host gates FAILED — gate-host.json records it\n{exc}")
         return EXIT_GATES_FAILED
-    failed = write_gate_failure(RUNS_DIR / "gate-container.json", "container", exc, args.up_ts)
+    failed = write_gate_failure(RUNS_DIR / "gate-container.json", "container", exc, args.up_ts,
+                                process_start=process_start)
     if args.gates:
         print(f"arms849 status: container gates FAILED — gate-container.json records it\n{exc}")
         return EXIT_GATES_FAILED
-    return _refuse_session(args.ledger, SessionGates(passed=False, up_ts=args.up_ts, container_start_ts=PROCESS_START,
+    return _refuse_session(args.ledger, SessionGates(passed=False, up_ts=args.up_ts, container_start_ts=process_start,
                                                      error=f"{type(exc).__name__}: {exc}", details=tuple(failed)))
 
 
@@ -1398,24 +1817,33 @@ def _refuse_session(ledger_path: pathlib.Path, gates_outcome: SessionGates) -> i
     return EXIT_GATES_FAILED
 
 
-def main(argv: list[str]) -> int:
+def main(argv: list[str], *, process_start: str | None = None) -> int:
+    process_start = process_start or datetime.now(timezone.utc).isoformat()
     ap = argparse.ArgumentParser(prog="run_849_harness")
     ap.add_argument("--corpus", type=pathlib.Path, default=CORPUS_DIR)
     ap.add_argument("--ledger", type=pathlib.Path, default=DEFAULT_LEDGER)
     ap.add_argument("--limit", type=int, help="stop after N cells this session")
-    ap.add_argument("--dry-run", action="store_true")
-    ap.add_argument("--status", action="store_true")
-    ap.add_argument("--preflight", action="store_true", help="host only: the four checkers from the full checkout")
-    ap.add_argument("--host-gates", action="store_true", help="host only: the host gate phase (before substrate run)")
-    ap.add_argument("--gates", action="store_true", help="in the runner: the container gate phase only")
-    ap.add_argument("--grading-view", action="store_true")
+    actions = ap.add_mutually_exclusive_group()
+    actions.add_argument("--dry-run", action="store_true")
+    actions.add_argument("--status", action="store_true")
+    actions.add_argument("--preflight", action="store_true",
+                         help="host only: the four checkers from the full checkout")
+    actions.add_argument("--host-gates", action="store_true",
+                         help="host only: the host gate phase (before substrate run)")
+    actions.add_argument("--gates", action="store_true",
+                         help="in the runner: the container gate phase only")
+    actions.add_argument("--grading-view", action="store_true")
     ap.add_argument("--secondary", action="store_true")
+    ap.add_argument("--smoke", action="store_true")
+    actions.add_argument("--measure", action="store_true")
     ap.add_argument("--primary", type=pathlib.Path, help="the complete primary ledger (with --secondary)")
     ap.add_argument("--up-ts", default=os.environ.get("ARMS849_UP_TS", ""),
                     help="when the current stack's `up` reported healthy (ISO, tz-aware)")
     ap.add_argument("--skip-gates", action="store_true", help="DEVELOPMENT ONLY; never for a run")
     args = ap.parse_args(argv[1:])
-    kind = "secondary" if args.secondary else "primary"
+    if args.secondary and args.smoke:
+        ap.error("--secondary and --smoke are mutually exclusive")
+    kind = "secondary" if args.secondary else ("smoke" if args.smoke else "primary")
 
     try:
         if args.dry_run:
@@ -1446,12 +1874,28 @@ def main(argv: list[str]) -> int:
                                                                                           args.skip_gates)
             config = live_config(args.secondary, development_ledger=development)
         except PreflightUnusable as exc:
-            return _preflight_unusable(args, exc)
+            return _preflight_unusable(args, exc, process_start=process_start)
+        if args.measure:
+            if args.secondary or args.smoke:
+                raise TokenMeasurementMismatch("--measure uses the primary registered configuration only")
+            from scripts.research.arms849.preflight import load_preflight
+            from scripts.research.arms849.substrate import CACHE_DIR
+
+            tokenizer = serving.Tokenizer(
+                pathlib.Path(os.environ.get("ARMS849_CACHE", str(CACHE_DIR))) / "qwen-tokenizer")
+            commit_sha = _clean_measurement_head(REPO_ROOT)
+            preflight_record = load_preflight(RUNS_DIR / "preflight.json")
+            _require_measurement_binding(commit_sha, args.corpus, preflight_record)
+            preflight_sha = str(preflight_record["preflight_sha"])
+            print(json.dumps(measure_requests(config, tokenizer, args.corpus,
+                                              commit_sha=commit_sha, preflight_sha=preflight_sha),
+                             indent=2, sort_keys=True))
+            return EXIT_OK
         if args.host_gates:
             from scripts.research.arms849.gates import GatesRefused
 
             try:
-                sha = host_phase(args.up_ts, config)
+                sha = host_phase(args.up_ts, config, process_start=process_start)
             except GatesRefused as exc:
                 print(f"arms849 status: host gates FAILED — gate-host.json records it\n{exc}")
                 return EXIT_GATES_FAILED
@@ -1460,12 +1904,13 @@ def main(argv: list[str]) -> int:
         if args.gates:
             from scripts.research.arms849 import gates
 
-            env = _gate_env(args.corpus, config, args.up_ts)
+            env = _gate_env(args.corpus, config, args.up_ts, process_start=process_start)
             try:
                 results, sha = gates.run_container_phase(env, RUNS_DIR / "gate-container.json")
             except gates.GatesRefused as exc:
                 write_gate_failure(RUNS_DIR / "gate-container.json", "container", exc, args.up_ts,
-                                   extra={"chat_template_cross_check": _cross_check(env)})
+                                   extra={"chat_template_cross_check": _cross_check(env)},
+                                   process_start=process_start)
                 print(f"arms849 status: container gates FAILED — gate-container.json records it\n{exc}")
                 return EXIT_GATES_FAILED
             for r in results:
@@ -1473,19 +1918,20 @@ def main(argv: list[str]) -> int:
             print(f"chat_template_cross_check {json.dumps(_cross_check(env))}")
             print(f"gate_container_sha {sha}")
             return 0
-        gates_outcome = live_gates(args.ledger, args.corpus, config, args.up_ts, args.skip_gates)
+        gates_outcome = live_gates(args.ledger, args.corpus, config, args.up_ts, args.skip_gates,
+                                   process_start=process_start)
         if not gates_outcome.passed:
             return _refuse_session(args.ledger, gates_outcome)
         binding = binding_for(gates_outcome, args.corpus, config)
-        runtime = live_runtime(config, args.corpus, gates_outcome)
         if args.secondary:
             if args.primary is None:
                 print("harness: REFUSED — --secondary needs --primary <ledger>")
                 return 1
             ledger = open_secondary(args.primary, args.ledger, binding)
         else:
-            ledger = open_run_ledger(args.ledger, binding)
+            ledger = open_run_ledger(args.ledger, binding, kind)
         with ledger:
+            runtime = live_runtime(config, args.corpus, gates_outcome)
             def secondary_gate(led: Ledger) -> str | None:
                 return None if secondary_context_gate(led, live_secondary_gate(runtime)) else \
                     "the secondary context-window gate failed (see its event row)"

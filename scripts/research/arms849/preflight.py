@@ -150,6 +150,17 @@ def _git_head(repo_root: pathlib.Path) -> str:
     return out.stdout.strip()
 
 
+def _clean_git_head(repo_root: pathlib.Path) -> str:
+    """Return HEAD only while the checkout contains exactly those committed bytes."""
+    dirty = subprocess.run(
+        ["git", "-C", str(repo_root), "status", "--porcelain", "--untracked-files=all"],
+        capture_output=True, text=True, check=True,
+    ).stdout
+    if dirty.strip():
+        raise PreflightRefused("the preflight requires a clean working tree so source_commit names its code")
+    return _git_head(repo_root)
+
+
 #: The rubric state this record cites (HEAD of the last commit that touched a registered
 #: quantity or clarification: A1–A4, 939d9b29, c166e836). Re-cited by the design lead when a
 #: later clarification lands; the run record and T039's registration point at one rubric.
@@ -160,9 +171,9 @@ def run_preflight(repo_root: pathlib.Path, corpus_dir: pathlib.Path, export_mani
                   out_path: pathlib.Path, *, cache_dir: pathlib.Path | None = None) -> Preflight:
     """Run the four checkers from the full checkout and bind everything into `out_path`.
 
-    Refuses (writes nothing) when the reference material is absent, a checker fails, a
-    registered digest does not verify, the export manifest is missing, or the tokenizer
-    cache (and so the chat template) is unavailable. The checkers inspect THEIR OWN
+    Refuses (writes nothing) when the checkout is dirty, the reference material is absent,
+    a checker fails, a registered digest does not verify, the export manifest is missing,
+    or the tokenizer cache (and so the chat template) is unavailable. The checkers inspect THEIR OWN
     checkout and the loader's default corpus; a `repo_root` or `corpus_dir` they cannot
     vouch for is refused rather than silently ignored (Codex WP04 c3).
     """
@@ -175,6 +186,7 @@ def run_preflight(repo_root: pathlib.Path, corpus_dir: pathlib.Path, export_mani
 
     if corpus_dir != pathlib.Path(DEFAULT_CORPUS).resolve():
         raise PreflightRefused(f"the checkers read the loader's default corpus {DEFAULT_CORPUS}; got {corpus_dir}")
+    source_commit = _clean_git_head(repo_root)
     assert_reference_present(repo_root)
     gates = [_run_checker(name) for name in checkers()]
     failed = [g for g in gates if not g.passed]
@@ -216,7 +228,7 @@ def run_preflight(repo_root: pathlib.Path, corpus_dir: pathlib.Path, export_mani
         gates=gates, corpus=corpus, record_lines_digest=record_digest,
         prompt_hash=prompt_mod.REGISTERED_DIGEST, question_manifest_sha=questions_mod.MANIFEST_DIGEST,
         export_content_sha=str(manifest["content_sha"]), export_source_commit=str(manifest["source_commit"]),
-        source_commit=_git_head(repo_root), registration_commit=str(REGISTRATION["commit"]),
+        source_commit=source_commit, registration_commit=str(REGISTRATION["commit"]),
         rubric_commit=RUBRIC_COMMIT, chat_template_sha256=template_sha,
         ts=datetime.now(timezone.utc).isoformat(timespec="seconds"), wall_seconds=round(time.monotonic() - t0, 3),
     )
@@ -224,6 +236,13 @@ def run_preflight(repo_root: pathlib.Path, corpus_dir: pathlib.Path, export_mani
     payload["preflight_sha"] = preflight_sha(payload)
     out_path = pathlib.Path(out_path)
     out_path.parent.mkdir(parents=True, exist_ok=True)
+    # Mitigate the check/use window by re-verifying at the write boundary. A recorded tree hash
+    # would provide the stronger content-based guarantee; the two clean-HEAD reads do not.
+    final_commit = _clean_git_head(repo_root)
+    if final_commit != source_commit:
+        raise PreflightRefused(
+            f"checkout HEAD changed during preflight ({source_commit} -> {final_commit}); nothing written"
+        )
     tmp = out_path.with_suffix(out_path.suffix + ".tmp")
     tmp.write_text(json.dumps(payload, indent=2, sort_keys=True, ensure_ascii=False) + "\n", encoding="utf-8")
     tmp.replace(out_path)

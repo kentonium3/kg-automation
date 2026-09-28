@@ -29,6 +29,7 @@ REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT))
 
 from scripts.research import run_849_harness as h
+from scripts.research.arms849 import errors as arm_errors
 from scripts.research.arms849 import grading, serving
 from scripts.research.arms849.ledger import (
     Binding,
@@ -38,7 +39,7 @@ from scripts.research.arms849.ledger import (
     open_ledger,
 )
 from scripts.research.arms849.questions import QUESTIONS
-from scripts.research.arms849.sampler import GttSampler, RssSampler
+from scripts.research.arms849.sampler import GttSampler
 
 CORPUS = h.DEFAULT_CORPUS
 pytestmark = pytest.mark.skipif(not (CORPUS / "entities.json").exists(),
@@ -101,7 +102,7 @@ class FakeG:
         self.drops: list[str] = []
         self.calls: list[tuple[str, int, int]] = []
 
-    def build_graph(self, question: Any, view: Any) -> FakeStats:
+    def build_graph(self, question: Any, view: Any, ctx: Any = None) -> FakeStats:
         self.builds.append(question.id)
         return FakeStats(group_id=f"arms_{question.id}", nodes=len(view.entities))
 
@@ -177,11 +178,6 @@ class FakeGtt(GttSampler):
         return self.value
 
 
-class FakeRss(RssSampler):
-    def read_once(self) -> float:
-        return 512.0
-
-
 def fake_arms(g: FakeG | None = None, r: FakeR | None = None) -> dict[str, h.ArmRegistration]:
     return {"G": (g or FakeG()).registration(), "D": h.ArmRegistration(refusal=ArmRefusal, answer=fake_d),
             "R": (r or FakeR()).registration()}
@@ -197,8 +193,8 @@ def make_runtime(arms: dict[str, h.ArmRegistration], config: serving.ServingConf
                  **kw: Any) -> h.Runtime:
     base: dict[str, Any] = {
         "config": config, "arms": arms, "corpus_dir": CORPUS,
-        "facade": lambda deadline, cancelled: types.SimpleNamespace(config=config),
-        "health": lambda: True, "gtt_sampler": FakeGtt, "rss_sampler": FakeRss, "out": lambda s: None,
+        "facade": lambda deadline, cancelled, before_send: types.SimpleNamespace(config=config),
+        "health": lambda: True, "gtt_sampler": FakeGtt, "out": lambda s: None,
         "gates": PASSING_GATES,
     }
     base.update(kw)
@@ -555,22 +551,6 @@ def test_nfr004_the_ceiling_check_is_not_vacuous(tmp_path):
     assert [x["outcome"] for x in runs(path)] == ["ok"]
 
 
-def test_an_unreadable_sampler_refuses_to_start_the_cell(tmp_path):
-    """A required column that cannot be measured is could-not-check: no attempt is spent."""
-    class Broken(FakeRss):
-        def read_once(self) -> float:
-            raise FileNotFoundError("docker")
-
-    path = tmp_path / "ledger.jsonl"
-    with open_fake(path) as ledger:
-        report = h.run_session(ledger, make_runtime(fake_arms(), rss_sampler=Broken), limit=2)
-    rows = rows_of(path)
-    assert not [x for x in rows if x.get("record") in ("attempt_start", "run")]
-    events = [x for x in rows if x.get("kind") == "sampler_unreadable"]
-    assert events and events[0]["detail"]["columns"] == ["falkordb_rss_peak_mib"]
-    assert report.stopped and "cannot read" in report.stopped
-
-
 def test_nfr002_resuming_a_forty_cell_ledger_reaches_the_next_cell_in_under_30s(tmp_path):
     path = tmp_path / "ledger.jsonl"
     with open_fake(path) as ledger:
@@ -765,8 +745,9 @@ def test_a_calibration_record_missing_a_field_is_named(tmp_path):
 
 
 class ProbeFacade:
-    def __init__(self, hold_s: float = 0.0) -> None:
+    def __init__(self, hold_s: float = 0.0, before_send: Callable[[], None] | None = None) -> None:
         self.hold_s = hold_s
+        self.before_send = before_send
         self.sent: list[dict[str, Any]] = []
 
     def serialize(self, request: bytes, seed: int) -> dict[str, Any]:
@@ -776,13 +757,25 @@ class ProbeFacade:
         return 363_000
 
     def complete(self, body: dict[str, Any]) -> Any:
+        if self.before_send is not None:
+            self.before_send()
         self.sent.append(body)
+        self.after_send()
         time.sleep(self.hold_s)
         return types.SimpleNamespace(prefill_s=900.0, prompt_tokens=363_000, generation_tok_s=12.0)
 
+    def after_send(self) -> None:
+        return None
+
+
+def _bind_probe_guard(facade: ProbeFacade, guard: Callable[[], None]) -> ProbeFacade:
+    facade.before_send = guard
+    return facade
+
 
 def _probe(gtt: Callable[[], GttSampler], facade: ProbeFacade) -> dict[str, Any]:
-    runtime = make_runtime(fake_arms(), config=SECONDARY, facade=lambda d, c: facade, gtt_sampler=gtt)
+    runtime = make_runtime(fake_arms(), config=SECONDARY,
+                           facade=lambda d, c, guard: _bind_probe_guard(facade, guard), gtt_sampler=gtt)
     return h.live_secondary_gate(runtime, props_n_ctx=lambda: 393_216)()
 
 
@@ -799,9 +792,8 @@ class InFlightFacade(ProbeFacade):
         super().__init__(hold_s=1.3)
         self.sampler, self.shift = sampler, shift
 
-    def complete(self, body: dict[str, Any]) -> Any:
+    def after_send(self) -> None:
         self.shift(self.sampler)
-        return super().complete(body)
 
 
 def test_secondary_probe_refuses_before_sending_over_the_ceiling(tmp_path):
@@ -809,7 +801,8 @@ def test_secondary_probe_refuses_before_sending_over_the_ceiling(tmp_path):
     primary = tmp_path / "ledger.jsonl"
     full_run(primary)
     facade = ProbeFacade()
-    runtime = make_runtime(fake_arms(), config=SECONDARY, facade=lambda d, c: facade,
+    runtime = make_runtime(fake_arms(), config=SECONDARY,
+                           facade=lambda d, c, guard: _bind_probe_guard(facade, guard),
                            gtt_sampler=lambda: FakeGtt(58.0))
     with h.open_secondary(primary, tmp_path / "secondary.jsonl", make_binding(SECONDARY)) as ledger:
         assert not h.secondary_context_gate(ledger, h.live_secondary_gate(runtime, props_n_ctx=lambda: 393_216))
@@ -1281,8 +1274,8 @@ def run_cli(tmp_path, cli_runs, monkeypatch):
     """main's run path with fake gates (real ones only for --skip-gates) and a fake-arm runtime."""
     real_live_gates = h.live_gates
 
-    def gates(ledger_path, corpus, config, up_ts, skip_gates, container_phase=None):
-        return real_live_gates(ledger_path, corpus, config, up_ts, True) if skip_gates else PASSING_GATES
+    def gates(ledger_path, corpus, config, up_ts, skip_gates, container_phase=None, **kwargs):
+        return real_live_gates(ledger_path, corpus, config, up_ts, True, **kwargs) if skip_gates else PASSING_GATES
 
     monkeypatch.setattr(h, "live_gates", gates)
     monkeypatch.setattr(h, "live_runtime", lambda config, corpus, g: make_runtime(fake_arms(), config=config, gates=g))
@@ -1476,3 +1469,539 @@ def test_is_development_ledger_reads_the_header_binding(tmp_path, run_cli):
     assert run(json.dumps(GOOD_SETUP), "--skip-gates") == h.EXIT_OK        # a development ledger
     assert h._is_development_ledger(ledger_path, skip_gates=True) is True
     assert h._is_development_ledger(ledger_path, skip_gates=False) is False
+
+
+# --------------------------------------------------------------------------
+# WP04 T017/T018/T019/T021/T024 — harness wiring and cancellation boundaries
+# --------------------------------------------------------------------------
+
+
+def test_importing_the_harness_never_imports_graphiti_core(tmp_path):
+    """C13: the default registry exists at import time, but every graph-stack import stays in a factory."""
+    trap = tmp_path / "graphiti_core.py"
+    trap.write_text("raise AssertionError('graphiti_core was imported eagerly')\n", encoding="utf-8")
+    env = {**os.environ, "PYTHONPATH": os.pathsep.join((str(tmp_path), str(REPO_ROOT)))}
+    subprocess.run([sys.executable, "-c", "import scripts.research.run_849_harness"], cwd=REPO_ROOT,
+                   env=env, check=True, capture_output=True, text=True)
+
+
+def test_arm_factories_register_exactly_g_d_r():
+    """FR-001's stable red-first seam: the production registry is complete before live construction."""
+    assert set(h.ARM_FACTORIES) == {"G", "D", "R"}
+
+
+@pytest.mark.skipif(os.environ.get("ARMS849_LIVE") != "1",
+                    reason="live registration needs ARMS849_LIVE=1 and the research stack")
+def test_live_runtime_registers_g_d_r_with_one_embedder():
+    """C13's required live evidence, kept as a stable node for WP05's verification list."""
+    runtime = h.live_runtime(PRIMARY, CORPUS, PASSING_GATES)
+    try:
+        assert set(runtime.arms) == {"G", "D", "R"}
+        assert runtime.embedder is not None
+        assert {registration.refusal for registration in runtime.arms.values()} == {arm_errors.ArmRefusal}
+        g = runtime.arms["G"]
+        assert g.answer is not None and g.build_graph is not None and g.drop_graph is not None
+        assert g.list_graphs is not None and g.close is not None
+        assert g.answer.__self__.arm.embedder is runtime.embedder
+    finally:
+        for registration in runtime.arms.values():
+            if registration.close is not None:
+                registration.close()
+
+
+def test_build_arms_rolls_back_every_completed_registration_and_preserves_factory_failure(monkeypatch):
+    closed: list[str] = []
+
+    def registration(name: str, *, close_raises: bool = False,
+                     close_unacknowledged: bool = False) -> h.ArmRegistration:
+        def close():
+            closed.append(name)
+            if close_raises:
+                raise RuntimeError(f"{name} close failed")
+            return not close_unacknowledged
+
+        return h.ArmRegistration(refusal=ArmRefusal, answer=fake_d, close=close)
+
+    def fail(resources):
+        raise ValueError("factory failed")
+
+    monkeypatch.setattr(h, "ARM_FACTORIES", {
+        "G": lambda resources: registration("G", close_unacknowledged=True),
+        "D": lambda resources: registration("D", close_raises=True),
+        "R": fail,
+    })
+    with pytest.raises(ValueError, match="factory failed") as caught:
+        h.build_arms(types.SimpleNamespace())
+    assert closed == ["D", "G"]
+    assert any("D teardown failed" in note for note in caught.value.__notes__)
+    assert any("G teardown did not acknowledge" in note for note in caught.value.__notes__)
+
+
+def test_main_opens_and_validates_the_ledger_before_constructing_live_runtime(tmp_path, monkeypatch):
+    constructed: list[bool] = []
+    monkeypatch.setattr(h, "live_config", lambda secondary, development_ledger=False: PRIMARY)
+    monkeypatch.setattr(h, "live_gates", lambda *args, **kwargs: PASSING_GATES)
+    monkeypatch.setattr(h, "binding_for", lambda *args, **kwargs: object())
+    monkeypatch.setattr(h, "open_run_ledger", lambda *args, **kwargs: (_ for _ in ()).throw(
+        LedgerLocked("injected ledger refusal")))
+    monkeypatch.setattr(h, "live_runtime", lambda *args, **kwargs: constructed.append(True))
+
+    assert h.main(["harness", "--ledger", str(tmp_path / "ledger.jsonl")]) == 1
+    assert constructed == []
+
+
+def test_run_session_closes_registrations_when_its_ledger_preamble_fails(tmp_path, monkeypatch):
+    closed: list[str] = []
+    arms = {
+        name: dataclasses.replace(registration, close=lambda name=name: closed.append(name))
+        for name, registration in fake_arms().items()
+    }
+    with open_fake(tmp_path / "preamble.jsonl") as ledger:
+        monkeypatch.setattr(ledger, "pending_keys", lambda keys: (_ for _ in ()).throw(
+            RuntimeError("preamble failed")))
+        with pytest.raises(RuntimeError, match="preamble failed"):
+            h.run_session(ledger, make_runtime(arms), limit=1)
+    assert sorted(closed) == ["D", "G", "R"]
+
+
+def test_run_session_closes_registrations_when_session_construction_fails(tmp_path, monkeypatch):
+    closed: list[str] = []
+    arms = {
+        name: dataclasses.replace(registration, close=lambda name=name: closed.append(name))
+        for name, registration in fake_arms().items()
+    }
+    monkeypatch.setattr(h, "Session", lambda *args, **kwargs: (_ for _ in ()).throw(
+        RuntimeError("constructor failed")))
+    with open_fake(tmp_path / "constructor.jsonl") as ledger:
+        with pytest.raises(RuntimeError, match="constructor failed"):
+            h.run_session(ledger, make_runtime(arms), limit=1)
+    assert sorted(closed) == ["D", "G", "R"]
+
+
+def test_false_close_acknowledgement_records_a_terminal_session_stop(tmp_path):
+    path = tmp_path / "close-unacknowledged.jsonl"
+    arms = {name: dataclasses.replace(registration, close=lambda: False)
+            for name, registration in fake_arms().items()}
+    with open_fake(path) as ledger:
+        report = h.run_session(ledger, make_runtime(arms), limit=1)
+    stops = [row for row in rows_of(path) if row.get("kind") == "session_stopped"]
+    assert report.stopped and "acknowledge teardown" in report.stopped
+    assert [row["detail"]["reason"] for row in stops] == ["g_cancellation_unacknowledged"]
+
+
+def test_live_worker_interrupt_skips_unsafe_close_hooks(tmp_path, monkeypatch):
+    """A repeated Ctrl-C leaves a live worker: close hooks cannot run underneath it."""
+    closed: list[str] = []
+    arms = {
+        name: dataclasses.replace(registration, close=lambda name=name: closed.append(name))
+        for name, registration in fake_arms().items()
+    }
+    interrupted = KeyboardInterrupt("worker did not acknowledge cancellation")
+    setattr(interrupted, "_arms849_worker_unacknowledged", True)
+    with open_fake(tmp_path / "live-worker.jsonl") as ledger:
+        monkeypatch.setattr(h.Session, "run", lambda self, keys: (_ for _ in ()).throw(interrupted))
+        with pytest.raises(KeyboardInterrupt) as caught:
+            h.run_session(ledger, make_runtime(arms), limit=1)
+    assert caught.value is interrupted and closed == []
+
+
+@pytest.mark.parametrize("ending", ["completion", "limit", "stop", "exception", "keyboard-interrupt"])
+def test_run_session_closes_every_registration_on_every_exit(tmp_path, monkeypatch, ending):
+    """C13 item 8: normal, bounded, stopped and exceptional exits all close every registration once."""
+    closed: list[str] = []
+    arms = {
+        name: dataclasses.replace(registration, close=lambda name=name: closed.append(name))
+        for name, registration in fake_arms().items()
+    }
+    runtime = make_runtime(arms)
+    limit = None if ending == "completion" else 1
+    if ending == "stop":
+        runtime.gates = dataclasses.replace(PASSING_GATES, passed=False, error="injected gate failure")
+
+    with open_fake(tmp_path / f"{ending}.jsonl") as ledger:
+        if ending in ("exception", "keyboard-interrupt"):
+            exc = RuntimeError("injected session failure") if ending == "exception" else KeyboardInterrupt()
+            with monkeypatch.context() as patch:
+                patch.setattr(h.Session, "run", lambda self, keys: (_ for _ in ()).throw(exc))
+                with pytest.raises(type(exc)):
+                    h.run_session(ledger, runtime, limit=limit)
+        else:
+            h.run_session(ledger, runtime, limit=limit)
+    assert sorted(closed) == ["D", "G", "R"]
+
+
+@pytest.mark.parametrize("make", [
+    pytest.param(lambda: arm_errors.CeilingBreached(58.0, h.GTT_CEILING_GIB), id="ceiling-breached"),
+    pytest.param(lambda: arm_errors.CeilingUnreadable("GTT disappeared"), id="ceiling-unreadable"),
+    pytest.param(lambda: arm_errors.PremiseViolated("tripwire", "late tripwire"), id="premise-violated"),
+])
+def test_a_domain_exception_raised_during_timeout_grace_is_not_downgraded(make):
+    """D-2: an exception raised after cancellation, while join(grace) waits, keeps its identity."""
+    cancelled = threading.Event()
+    exc = make()
+
+    def late_raise():
+        assert cancelled.wait(1), "the worker must enter the grace path"
+        raise exc
+
+    assert h._call_with_timeout(late_raise, 0.01, cancelled, 1.0) == ("raised", exc)
+
+
+def test_a_non_exception_base_exception_raised_during_timeout_grace_is_reraised():
+    """The fatal G cancellation signal follows the same path during grace as before the deadline."""
+    cancelled = threading.Event()
+    exc = arm_errors.GCancellationUnacknowledged(0.25)
+
+    def late_raise():
+        assert cancelled.wait(1), "the worker must enter the grace path"
+        raise exc
+
+    with pytest.raises(arm_errors.GCancellationUnacknowledged) as caught:
+        h._call_with_timeout(late_raise, 0.01, cancelled, 1.0)
+    assert caught.value is exc
+
+
+def test_cell_context_carries_a_read_only_attempt_deadline():
+    deadline = time.monotonic() + 60
+    ctx = h.CellContext(repeat=1, attempt=1, config=PRIMARY, serving=types.SimpleNamespace(config=PRIMARY),
+                        prompt=h.Prompt(), deadline=deadline)
+    assert ctx.deadline == deadline
+    with pytest.raises(dataclasses.FrozenInstanceError):
+        ctx.deadline = deadline + 1
+
+
+def test_a_premise_violation_records_both_events_and_halts_before_later_work(tmp_path):
+    path = tmp_path / "premise.jsonl"
+    graph = FakeG(fail=lambda question, ctx: arm_errors.PremiseViolated("tripwire", "LLM call attempted"))
+    with open_fake(path) as ledger:
+        report = h.run_session(ledger, make_runtime(fake_arms(g=graph)), limit=2)
+
+    rows = rows_of(path)
+    violation = [row for row in rows if row.get("kind") == "premise_violated"]
+    stopped = [row for row in rows if row.get("kind") == "session_stopped"]
+    assert len(violation) == len(stopped) == 1
+    assert violation[0]["detail"] == {
+        "arm": "G", "reason": "tripwire", "message": "premise violated (tripwire): LLM call attempted",
+        "at_key": {"arm": "G", "question": "C1", "repeat": 1},
+    }
+    assert stopped[0]["detail"] == {"reason": "premise_violated"}
+    assert report.stopped and "premise" in report.stopped
+    assert graph.calls == [("C1", 1, 1)] and runs(path) == []
+
+
+def test_an_unacknowledged_g_cancellation_records_stop_and_escapes_without_more_graph_work(tmp_path):
+    path = tmp_path / "unacknowledged.jsonl"
+    exc = arm_errors.GCancellationUnacknowledged(0.125)
+    graph = FakeG(fail=lambda question, ctx: exc)
+    with open_fake(path) as ledger:
+        report = h.run_session(ledger, make_runtime(fake_arms(g=graph)), limit=2)
+
+    assert report.stopped and "acknowledge" in report.stopped
+    stops = [row for row in rows_of(path) if row.get("kind") == "session_stopped"]
+    assert [row["detail"] for row in stops] == [
+        {"reason": "g_cancellation_unacknowledged", "grace_s": 0.125}
+    ]
+    assert graph.builds == ["C1"] and graph.calls == [("C1", 1, 1)] and graph.drops == []
+
+
+class _ManualGtt:
+    """Deterministic cell sampler: the initial peak is sound; send-time reads are injected."""
+
+    breached = False
+    peak_gib = 30.0
+
+    def __init__(self, send_read: Callable[[], float]) -> None:
+        self._send_read = send_read
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        return None
+
+    def read_once(self) -> float:
+        return self._send_read()
+
+
+class _GuardCallingFacade:
+    def __init__(self, config, before_send, sent):
+        self.config, self.before_send, self.sent = config, before_send, sent
+
+    def complete(self, body):
+        self.before_send()
+        self.sent.append(body)
+        raise AssertionError("the test arm should never receive a completion")
+
+
+def _guarded_registration() -> h.ArmRegistration:
+    graph = FakeG()
+
+    def answer(question, view, ctx):
+        ctx.serving.complete({"prompt": "guarded"})
+        raise AssertionError("a send guard must decide before the facade returns")
+
+    return h.ArmRegistration(refusal=ArmRefusal, answer=answer, build_graph=graph.build_graph,
+                             drop_graph=graph.drop_graph)
+
+
+def _guard_runtime(send_read: Callable[[], float], sent: list[dict[str, Any]]) -> h.Runtime:
+    def facade(deadline, cancelled, before_send):
+        return _GuardCallingFacade(PRIMARY, before_send, sent)
+
+    return make_runtime({"G": _guarded_registration()}, facade=facade,
+                        gtt_sampler=lambda: _ManualGtt(send_read))
+
+
+def test_serving_facade_refuses_to_send_without_before_send(monkeypatch):
+    monkeypatch.setattr(h.serving, "complete", lambda *a, **k: pytest.fail("unguarded serving.complete called"))
+    facade = h.ServingFacade(PRIMARY, types.SimpleNamespace(count=lambda text: len(text.split())))
+    with pytest.raises(arm_errors.ArmRefusal, match="before_send"):
+        facade.complete({"prompt": "one two"})
+
+
+def test_serving_facade_rechecks_cancellation_after_a_blocking_send_guard(monkeypatch):
+    cancelled = threading.Event()
+    sent: list[dict[str, Any]] = []
+
+    def complete(body, tokenizer, permitted_limit, base_url, timeout_s, before_send):
+        before_send()
+        sent.append(body)
+
+    monkeypatch.setattr(h.serving, "complete", complete)
+    facade = h.ServingFacade(
+        PRIMARY, object(), deadline=time.monotonic() + 0.01, cancelled=cancelled,
+        before_send=lambda: cancelled.wait(1),
+    )
+    status, exc = h._call_with_timeout(
+        lambda: facade.complete({"prompt": "blocked guard"}), 0.02, cancelled, grace_s=0.2,
+    )
+    assert status == "raised" and isinstance(exc, h.AttemptCancelled)
+    assert sent == []
+
+
+def test_send_time_ceiling_breach_is_terminal_stops_and_sends_zero_bytes(tmp_path):
+    path, sent = tmp_path / "breach.jsonl", []
+    with open_fake(path) as ledger:
+        report = h.run_session(ledger, _guard_runtime(lambda: 58.0, sent), limit=2)
+
+    assert sent == [] and report.stopped
+    row = runs(path)[0]
+    assert row["outcome"] == "exceeds_memory_ceiling"
+    assert row["memory_ceiling"] == {"measured_gib": 58.0, "ceiling_gib": 57.5, "stage": "before_send"}
+    stops = [record["detail"] for record in rows_of(path) if record.get("kind") == "session_stopped"]
+    assert stops == [{"reason": "ceiling_breach_at_send"}]
+
+
+def test_send_time_unreadable_refuses_each_cell_and_the_session_continues(tmp_path):
+    path, sent = tmp_path / "unreadable-at-send.jsonl", []
+
+    def unreadable():
+        raise PermissionError("GTT source disappeared")
+
+    with open_fake(path) as ledger:
+        report = h.run_session(ledger, _guard_runtime(unreadable, sent), limit=2)
+
+    assert sent == [] and report.stopped is None
+    assert [row["outcome"] for row in runs(path)] == ["sampler_unreadable_at_send"] * 2
+    assert not [row for row in rows_of(path) if row.get("kind") == "session_stopped"]
+
+
+def test_session_requires_the_breached_flag_when_it_binds_the_gtt_sampler(tmp_path):
+    class NoFlag:
+        peak_gib = 30.0
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *exc):
+            return None
+
+        def read_once(self):
+            return 30.0
+
+    path = tmp_path / "no-breached-flag.jsonl"
+    with open_fake(path) as ledger, pytest.raises(TypeError, match="breached"):
+        h.run_session(ledger, make_runtime(fake_arms(), gtt_sampler=NoFlag), limit=1)
+    assert not [row for row in rows_of(path) if row.get("record") == "attempt_start"]
+
+
+def test_one_hundred_attempts_never_overlap_a_predecessor_awaiting_cancellation():
+    """NFR-003: acknowledged timeouts serialize; the next worker sees its predecessor fully exited."""
+    lock = threading.Lock()
+    active = 0
+    peak_active = 0
+    outcomes: list[str] = []
+
+    for attempt in range(100):
+        cancelled = threading.Event()
+
+        def work(attempt=attempt, cancelled=cancelled):
+            nonlocal active, peak_active
+            with lock:
+                active += 1
+                peak_active = max(peak_active, active)
+            try:
+                if attempt % 3 == 0:
+                    assert cancelled.wait(1)
+                return attempt
+            finally:
+                with lock:
+                    active -= 1
+
+        timeout = 0.001 if attempt % 3 == 0 else 0.1
+        status, _ = h._call_with_timeout(work, timeout, cancelled, grace_s=0.1)
+        outcomes.append(status)
+        assert active == 0
+
+    assert outcomes.count("timeout") == 34 and outcomes.count("ok") == 66
+    assert peak_active == 1
+    assert h.CANCEL_GRACE_S == 120.0
+
+
+def test_controller_interrupt_waits_for_worker_acknowledgement_before_reraising(monkeypatch):
+    cancelled = threading.Event()
+    finished = threading.Event()
+    original_join = threading.Thread.join
+    joins = 0
+
+    def interrupted_once(worker, timeout=None):
+        nonlocal joins
+        joins += 1
+        if joins == 1:
+            raise KeyboardInterrupt("controller interrupt")
+        return original_join(worker, timeout)
+
+    def work():
+        cancelled.wait(1)
+        finished.set()
+
+    monkeypatch.setattr(threading.Thread, "join", interrupted_once)
+    with pytest.raises(KeyboardInterrupt) as caught:
+        h._call_with_timeout(work, 1.0, cancelled, grace_s=0.2)
+    assert str(caught.value) == "controller interrupt"
+    assert finished.is_set() and not getattr(caught.value, "_arms849_worker_unacknowledged", False)
+
+
+def test_repeated_interrupt_is_bounded_and_marks_the_live_worker(monkeypatch):
+    cancelled = threading.Event()
+    release = threading.Event()
+    original_join = threading.Thread.join
+    joins = 0
+    first = KeyboardInterrupt("first interrupt")
+
+    def interrupted_twice(worker, timeout=None):
+        nonlocal joins
+        joins += 1
+        if joins == 1:
+            raise first
+        if joins == 2:
+            raise KeyboardInterrupt("second interrupt")
+        return original_join(worker, timeout)
+
+    monkeypatch.setattr(threading.Thread, "join", interrupted_twice)
+    try:
+        with pytest.raises(KeyboardInterrupt) as caught:
+            h._call_with_timeout(lambda: release.wait(1), 1.0, cancelled, grace_s=0.2)
+        assert caught.value is first
+        assert getattr(caught.value, "_arms849_worker_unacknowledged", False) is True
+        assert joins == 2
+    finally:
+        release.set()
+
+
+def _series_descriptor(series_id: str = "generation-one") -> dict[str, Any]:
+    return {
+        "series_id": series_id,
+        "path": f"/runs/{series_id}.jsonl",
+        "container_id": "a" * 64,
+        "interval_s": 1.0,
+        "started_ts": "2026-09-28T12:00:00+00:00",
+        "writer_status": "running",
+        "writer_reason": None,
+    }
+
+
+def test_graph_store_generation_and_boundaries_are_run_level_and_ordered(tmp_path, monkeypatch):
+    """FR-005: one descriptor, pre-build listing, then all-resident after eight successful builds."""
+    path = tmp_path / "graph-series.jsonl"
+    graph = FakeG()
+    lists: list[str] = []
+    registration = dataclasses.replace(
+        graph.registration(), list_graphs=lambda ctx: lists.append("listed") or [],
+    )
+    monkeypatch.setenv("ARMS849_SERIES_GENERATION_JSON", json.dumps(_series_descriptor()))
+
+    with open_fake(path) as ledger:
+        report = h.run_session(ledger, make_runtime({**fake_arms(g=graph), "G": registration}), limit=8)
+
+    rows = rows_of(path)
+    boundaries = [row for row in rows if row.get("kind") in {
+        "series_generation", "graph_store_first_build", "graph_store_all_resident",
+    }]
+    assert [row["kind"] for row in boundaries] == [
+        "series_generation", "graph_store_first_build", "graph_store_all_resident",
+    ]
+    assert boundaries[1]["detail"]["graphs_present"] is False
+    assert boundaries[2]["detail"]["n_graphs"] == 8
+    assert lists == ["listed"] and len(graph.builds) == 8 and report.completed == 8
+    assert not any(key.startswith(("falkordb_", "graph_store_"))
+                   for row in runs(path) for key in row)
+
+
+def test_graph_first_build_boundary_is_not_emitted_when_memory_refuses_the_build(tmp_path, monkeypatch):
+    path = tmp_path / "graph-refused.jsonl"
+    monkeypatch.setenv("ARMS849_SERIES_GENERATION_JSON", json.dumps(_series_descriptor()))
+    graph = FakeG()
+    reg = dataclasses.replace(graph.registration(), list_graphs=lambda ctx: [])
+    runtime = make_runtime({**fake_arms(g=graph), "G": reg}, gtt_sampler=lambda: FakeGtt(58.0))
+
+    with open_fake(path) as ledger:
+        report = h.run_session(ledger, runtime, limit=1)
+
+    kinds = [row.get("kind") for row in rows_of(path) if row.get("record") == "event"]
+    assert report.stopped and graph.builds == []
+    assert "series_generation" in kinds and "memory_ceiling" in kinds
+    assert "graph_store_first_build" not in kinds
+
+
+def test_graph_listing_time_is_outside_the_cell_attempt_budget(tmp_path, monkeypatch):
+    path = tmp_path / "slow-listing.jsonl"
+    monkeypatch.setenv("ARMS849_SERIES_GENERATION_JSON", json.dumps(_series_descriptor()))
+    graph = FakeG()
+
+    def slow_list(ctx):
+        time.sleep(0.03)
+        return []
+
+    reg = dataclasses.replace(graph.registration(), list_graphs=slow_list)
+    runtime = make_runtime({**fake_arms(g=graph), "G": reg}, attempt_timeout_s=0.01, cancel_grace_s=0.1)
+    with open_fake(path) as ledger:
+        report = h.run_session(ledger, runtime, limit=1)
+    assert report.completed == 1 and runs(path)[0]["outcome"] == "ok"
+
+
+def test_graph_store_descriptor_absence_and_listing_failure_never_affect_cells(tmp_path, monkeypatch):
+    """Observational telemetry may become could-not-check, but it cannot refuse a cell."""
+    monkeypatch.delenv("ARMS849_SERIES_GENERATION_JSON", raising=False)
+    listed: list[str] = []
+    reg = dataclasses.replace(FakeG().registration(), list_graphs=lambda ctx: listed.append("unexpected") or [])
+    absent = tmp_path / "absent.jsonl"
+    with open_fake(absent) as ledger:
+        h.run_session(ledger, make_runtime({**fake_arms(), "G": reg}), limit=1)
+    assert listed == []
+    assert not [row for row in rows_of(absent) if str(row.get("kind", "")).startswith("graph_store_")]
+    assert runs(absent)[0]["outcome"] == "ok"
+
+    def cannot_list(ctx):
+        raise ConnectionError("FalkorDB listing unavailable")
+
+    monkeypatch.setenv("ARMS849_SERIES_GENERATION_JSON", json.dumps(_series_descriptor("generation-two")))
+    failed = tmp_path / "failed-listing.jsonl"
+    reg = dataclasses.replace(FakeG().registration(), list_graphs=cannot_list)
+    with open_fake(failed) as ledger:
+        report = h.run_session(ledger, make_runtime({**fake_arms(), "G": reg}), limit=1)
+    assert report.completed == 1 and runs(failed)[0]["outcome"] == "ok"
+    events = [row for row in rows_of(failed) if row.get("record") == "event"]
+    assert any(row.get("kind") == "graph_store_listing_failed" for row in events)
+    first = next(row for row in events if row.get("kind") == "graph_store_first_build")
+    assert first["detail"]["graphs_present"] is True
