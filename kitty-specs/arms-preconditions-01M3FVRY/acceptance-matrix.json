@@ -108,10 +108,10 @@
       "criterion_id": "FR-011",
       "description": "Verify FR-011 is satisfied",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
+      "evidence": "tests/research/test_arms849_ledger.py::test_attempt_start_carries_the_session_id_of_its_own_session",
+      "pass_fail": "pass",
+      "verified_by": "codex-office4-d5c7b35d",
+      "verified_at": "2026-09-28T19:02:12.948744+00:00",
       "notes": "TODO: replace with a real acceptance criterion"
     },
     {
