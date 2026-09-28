@@ -1,7 +1,7 @@
 {
-  "event_count": 72,
-  "last_event_id": "01M3MH0NXXT7X1YF7M5MJPYAG9",
-  "materialized_at": "2026-09-28T17:29:17.501010+00:00",
+  "event_count": 73,
+  "last_event_id": "01M3MN9E61B95HE58NHJ35HMDT",
+  "materialized_at": "2026-09-28T18:43:58.785522+00:00",
   "mission_number": "",
   "mission_slug": "arms-preconditions-01M3FVRY",
   "mission_type": "software-dev",
@@ -11,8 +11,8 @@
     "canceled": 0,
     "claimed": 0,
     "done": 0,
-    "for_review": 0,
-    "in_progress": 1,
+    "for_review": 1,
+    "in_progress": 0,
     "in_review": 0,
     "planned": 0
   },
@@ -164,14 +164,20 @@
       "agent_profile": "python-pedro",
       "agent_profile_version": "1.0",
       "force_count": 0,
-      "lane": "in_progress",
-      "last_event_id": "01M3MH0NXXT7X1YF7M5MJPYAG9",
-      "last_transition_at": "2026-09-28T17:29:17.501010+00:00",
+      "lane": "for_review",
+      "last_event_id": "01M3MN9E61B95HE58NHJ35HMDT",
+      "last_transition_at": "2026-09-28T18:43:58.785522+00:00",
       "model": "__resolved_model_absent__",
       "provider": "__resolved_provider_absent__",
       "role": "implementer",
       "shell_pid": 295933,
-      "shell_pid_created_at": "1790560904.51"
+      "shell_pid_created_at": "1790560904.51",
+      "subtasks": {
+        "T025": "done",
+        "T026": "done",
+        "T027": "done",
+        "T028": "done"
+      }
     }
   }
 }
