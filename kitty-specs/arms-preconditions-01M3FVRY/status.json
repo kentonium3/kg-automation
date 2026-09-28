@@ -71,7 +71,8 @@
         "Cycle 5: 08f92821 and 45edc774. Atomic gate check + enqueue under a per-pool threading.Lock; opens across the poison are aborted before any handshake; submission inside the guard; deterministic seams occupy every window Codex probed; 45/45 mutants killed. Full suite 8091/0 on both seeds; CI simulation 0/0.",
         "Cycle 6: 39516405 and c6f4d2eb. The gate owns its sockets (shut down from the poisoning thread); unremovable writer property; registry lifecycle; derived write-site premise; retrieval bound to its view with per-item validation; 54/54 mutants killed. Full suite 8102/0 on both seeds; CI simulation 0/0.",
         "Codex Astra cycle-6 review reproduced two blockers at c6f4d2eb; see attached feedback.",
-        "Cycle 7: 6cc741ee fixes foreign-gated writer poisoning bypass and binds retrieval to full ordered graph-view content. New regressions pass; Arm G 109/3; cross-arm 136/0; full suite 8104/0 on PYTHONHASHSEED 0 and 1."
+        "Cycle 7: 6cc741ee fixes foreign-gated writer poisoning bypass and binds retrieval to full ordered graph-view content. New regressions pass; Arm G 109/3; cross-arm 136/0; full suite 8104/0 on PYTHONHASHSEED 0 and 1.",
+        "Cycle 7 APPROVE at 6cc741ee. Resolver evidence: reviewer-renata / role reviewer / source builtin; model gpt-6-astra; date 2026-09-28; known generated-prompt identity defect #1027 ignored. Independent probes reproduced cycle-6 14-byte PONG bypass, then confirmed cycle-7 zero bytes across public send/write/writelines including in-flight assignment; 11 content/order/time fingerprint mutations refused and hashes deterministic across seeds 0/1/3. Focused review 244 passed/3 skipped; full repository 8104 passed/51 skipped/1 xfailed on NFR seeds 0 and 3. Nonblocking: retain exact public-send regression in a future cycle; known async cleanup warnings remain."
       ],
       "provider": "__resolved_provider_absent__",
       "review": null,
