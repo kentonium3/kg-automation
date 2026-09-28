@@ -46,6 +46,7 @@ from typing import Any, Literal
 
 from scripts.research.arms849 import prompt as prompt_mod
 from scripts.research.arms849 import questions as questions_mod
+from scripts.research.arms849 import sampler as sampler_mod
 from scripts.research.load_849_corpus import (
     REGISTRATION,
     UnfrozenCorpus,
@@ -60,7 +61,7 @@ __all__ = [
     "SMOKE_PLAN", "UNRESOLVED_CELL_OUTCOMES", "WRITER_STATUSES",
     "AttemptsExhausted", "Binding", "Header", "Ledger", "LedgerBoundToAnotherConfig",
     "LedgerClosed", "LedgerCorrupt", "LedgerLocked", "LedgerUnusable", "LedgerWriteFailed", "RunKey",
-    "SecondScoredRow", "SessionGatesMissing", "binds_skip_gates", "is_smoke", "open_ledger", "plan_keys",
+    "RunSummary", "SecondScoredRow", "SessionGatesMissing", "binds_skip_gates", "is_smoke", "open_ledger", "plan_keys",
 ]
 
 ARMS = ("G", "D", "R")
@@ -488,6 +489,23 @@ class Summary:
     attempts: int
 
 
+class RunSummary(dict[tuple[str, str], Summary]):
+    """Run summary with its run-level graph-store report.
+
+    The mapping remains the cell summary callers already consume, while the
+    named ``cells`` and ``graph_store`` attributes make the two scopes
+    explicit.  Graph-store availability never changes or removes a cell.
+    """
+
+    def __init__(self, cells: dict[tuple[str, str], Summary], graph_store: dict[str, Any]) -> None:
+        super().__init__(cells)
+        self.graph_store = copy.deepcopy(graph_store)
+
+    @property
+    def cells(self) -> RunSummary:
+        return self
+
+
 class Ledger:
     """One open ledger: header verified, lock held, rows parsed."""
 
@@ -860,7 +878,7 @@ class Ledger:
             raise LedgerUnusable(f"{self.path}: {PREMISE_VIOLATED} ({violation['reason']} on arm {violation['arm']} "
                                  f"at {violation['at_key']}) — the rows are untouched but unusable as scores")
 
-    def summarise(self) -> dict[tuple[str, str], Summary]:
+    def summarise(self) -> RunSummary:
         """Per (arm, question): sums over `ok` rows only; every other key is COUNTED by its
         terminal outcome (`pending` when none yet), including keys that only ever began
         attempts and died — an exhausted cell with no run row is still a terminal error.
@@ -911,7 +929,7 @@ class Ledger:
                 r_g_ratios=[r["r_g_ratio"] for r in ok if "r_g_ratio" in r],
                 counts=dict(cnt), attempts=attempts.get(cell, 0),
             )
-        return out
+        return RunSummary(out, sampler_mod.graph_store_report(self.rows, self.path.parent))
 
 
 # --------------------------------------------------------------------------

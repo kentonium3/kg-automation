@@ -36,6 +36,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from scripts.research.arms849 import questions as questions_mod
+from scripts.research.arms849 import sampler as sampler_mod
 from scripts.research.arms849.ledger import (
     PREMISE_VIOLATED,
     SCORED_OUTCOME,
@@ -181,7 +182,11 @@ def _admin(ledger: Ledger, name: str) -> dict[str, Any]:
             "prompt_tokens": last.get("prompt_tokens"), "context_limit_applied": last.get("context_limit_applied"),
             "error": last.get("error"),
         })
-    return {"ledger": name, "non_scored": cells}
+    return {
+        "ledger": name,
+        "non_scored": cells,
+        "graph_store": sampler_mod.graph_store_report(ledger.rows, ledger.path.parent),
+    }
 
 
 def _header_sha(ledger: Ledger) -> str:
