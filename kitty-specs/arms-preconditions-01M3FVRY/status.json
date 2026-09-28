@@ -124,7 +124,7 @@
     },
     "WP04": {
       "actor": "codex-office4-wp04-review",
-      "agent": "codex-office4-wp04-review",
+      "agent": null,
       "agent_profile": "reviewer-renata",
       "agent_profile_version": "1.0",
       "force_count": 1,
@@ -136,6 +136,7 @@
         "Implementation commit 23aea5fb; related suite 934 passed, 1 skipped; independent and structural reviews report no remaining findings; durable preflight follow-up #1043."
       ],
       "provider": "__resolved_provider_absent__",
+      "review": null,
       "review_result": {
         "feedback_path": "/home/kgale/repos/kg-automation/kitty-specs/arms-preconditions-01M3FVRY/tasks/WP04-harness-integration/review-cycle-1.md",
         "reference": "review-cycle://arms-preconditions-01M3FVRY/WP04-harness-integration/review-cycle-1.md",
@@ -143,17 +144,17 @@
         "verdict": "changes_requested"
       },
       "role": "reviewer",
-      "shell_pid": 295933,
-      "shell_pid_created_at": "1790560904.51",
+      "shell_pid": null,
+      "shell_pid_created_at": null,
       "subtasks": {
-        "T017": "done",
-        "T018": "done",
-        "T019": "done",
-        "T020": "done",
-        "T021": "done",
-        "T022": "done",
-        "T023": "done",
-        "T024": "done"
+        "T017": "planned",
+        "T018": "planned",
+        "T019": "planned",
+        "T020": "planned",
+        "T021": "planned",
+        "T022": "planned",
+        "T023": "planned",
+        "T024": "planned"
       }
     },
     "WP05": {
