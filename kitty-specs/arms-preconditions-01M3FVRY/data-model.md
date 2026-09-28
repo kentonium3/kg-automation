@@ -40,7 +40,8 @@ These events are validated on write and replay (types, canonical UTC, known `ser
 ### Graph-store report (computed, NOT persisted)
 
 Computed at summary and export time from the series files plus the events above (contracts/memory-series.md item 4):
-- `{baseline_mib, peak_mib, all_resident_mib, interval_s, series_ids}`, each figure a number or `could_not_check: <reason>`.
+- `{baseline_mib, peak_mib, all_resident_mib, marginal_per_graph_mib, interval_s, series_ids, source_series_ids}`, each figure a number or `could_not_check: <reason>`.
+- `source_series_ids` maps every scalar field to the ordered generation IDs that supplied or governed it. This makes resumed-generation selection and a cross-generation marginal refusal directly visible (rubric §5 amendment, 2026-09-28; team-lead ruling `20260928T031145496975Z22b5607322`).
 - It is validated when produced (it is not persisted, so there is no replay). It is never a primary-completeness condition and never a score.
 
 ## Arm registration (in-memory, not persisted)

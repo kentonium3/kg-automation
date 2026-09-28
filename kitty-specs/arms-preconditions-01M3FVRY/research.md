@@ -107,6 +107,7 @@ Sources:
 - **Decision** (Kent's selection ~23:2xZ of the design lead's recommendation `20260926T232216689769Z288a70b37a`; team-lead boundary ruling `20260926T232439481956Z612434ad98`; registered @`91e679e6`):
   - The container's cgroup memory is sampled across the whole run by the host-side writer (D-5, D-6), with one never-truncated series per substrate generation, bound by a `series_generation` event.
   - The run reports `baseline_mib`, `peak_mib` and `all_resident_mib`, using two harness events: `graph_store_first_build` and `graph_store_all_resident`. The marginal per-graph figure is derivable (contracts/memory-series.md item 4).
+  - On resume, scalar selection follows the dated rubric §5 amendment of 2026-09-28: first-generation baseline, first schema-valid all-resident boundary without favourable cherry-picking, consensus interval, same-generation-only marginal, and explicit source generation IDs (team-lead ruling `20260928T031145496975Z22b5607322`).
   - Any unavailable figure is `could_not_check` with a reason. **No cell is ever affected** (two sampler roles).
   - Per-cell rows carry NO graph-store column. The per-attempt graph-store sampler path in the harness is REMOVED.
 - **Rationale**: measured on a throwaway sandbox (#1023): builds take 0.54–2.02 s; the cgroup charge is a high-water mark that never drops after `drop_graph`; the whole footprint is about 150–230 MiB, roughly 0.4 % of the ceiling. A per-question figure is not attributable under any ordering.
