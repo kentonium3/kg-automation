@@ -138,10 +138,10 @@
       "criterion_id": "FR-014",
       "description": "Verify FR-014 is satisfied",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
+      "evidence": "origin/kitty/mission-arms-preconditions-01M3FVRY-lane-a@9db5456a:tests/research/test_arms849_resume.py::test_missing_research_environment_has_one_named_counted_skip_reason",
+      "pass_fail": "pass",
+      "verified_by": "codex-office4-d5c7b35d",
+      "verified_at": "2026-09-28T19:02:40.971383+00:00",
       "notes": "TODO: replace with a real acceptance criterion"
     },
     {
