@@ -213,11 +213,11 @@ local validation and CI.
 - [Local Test Gate (pre-commit + pre-push hooks)](<./runbooks/local-test-gate.md>)
 - [Phone Termius Setup & Recovery](<./runbooks/phone-termius-setup.md>)
 - [Smoke checklist — felix-admin-calendar extraction](<./runbooks/felix-calendar-subagent-extraction-01KTTA33-smoke.md>)
-- [Spec-Kitty — Per-Repo Version-Drift Sweep](<./runbooks/spec-kitty-per-repo-upgrade.md>)
 
 ### Unclassified
 - [Agent prompt sync — operator runbook](<./runbooks/agent-prompt-sync-ops.md>) — missing `audience:` frontmatter
 - [Spec-Kitty Bug Reporting (SUPERSEDED — pointer)](<./runbooks/spec-kitty-bug-reporting.md>) — missing `audience:` frontmatter
+- [Spec-Kitty Per-Repo Upgrade (DEPRECATED — pointer)](<./runbooks/spec-kitty-per-repo-upgrade.md>) — missing `audience:` frontmatter
 - [Spec-Kitty Workflow-Fault Detour Protocol (SUPERSEDED — pointer)](<./runbooks/spec-kitty-workflow-fault-protocol.md>) — missing `audience:` frontmatter
 
 <!-- end:runbook-filter -->
