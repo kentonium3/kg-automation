@@ -88,10 +88,10 @@
       "criterion_id": "FR-009",
       "description": "Verify FR-009 is satisfied",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
+      "evidence": "origin/kitty/mission-arms-preconditions-01M3FVRY-lane-a@9db5456a:tests/research/test_arms849_resume.py::test_live_style_resume_with_fresh_timestamped_gates_preserves_prior_rows;test_live_style_resume_stops_and_records_a_failing_fresh_gate;test_live_style_resume_cannot_write_after_skipped_gates",
+      "pass_fail": "pass",
+      "verified_by": "codex-office4-d5c7b35d",
+      "verified_at": "2026-09-28T19:01:54.577269+00:00",
       "notes": "TODO: replace with a real acceptance criterion"
     },
     {
