@@ -82,7 +82,7 @@ Measure the graph store's memory as rubric §5 now registers it (third correctio
 - There is no compose change.
 
 ### T015 — The run-level report (FR-006, FR-007; contracts/memory-series.md item 4)
-- Write a pure function over the ledger's events and the series files, for example `graph_store_report(events, runs_dir) -> dict`. It returns `{baseline_mib, peak_mib, all_resident_mib, marginal_per_graph_mib, interval_s, series_ids, source_series_ids}`, where each figure is a number or `"could_not_check: <reason>"` and `source_series_ids` records the ordered generation provenance of every scalar. Implement the EXACT rules of item 4, including its 2026-09-28 resumed-generation selector amendment:
+- Write a pure function over the ledger's events and the series files, for example `graph_store_report(events, runs_dir) -> dict`. It returns `{baseline_mib, peak_mib, all_resident_mib, marginal_per_graph_mib, interval_s, series_ids}`, where each figure is a number or `"could_not_check: <reason>"`. Implement the EXACT rules of item 4:
   - **baseline:** requires `graph_store_first_build.graphs_present == false`. It is the latest reading at or before that `ts`, no staler than 5 intervals.
   - **all_resident:** exists only via `graph_store_all_resident`. It is the FIRST reading STRICTLY AFTER its `ts`, within 5 intervals. Otherwise `could_not_check: not_all_resident_in_one_process`.
   - **peak:** the max over every generation whose header matches its `series_generation` descriptor and which has:
@@ -91,7 +91,6 @@ Measure the graph store's memory as rubric §5 now registers it (third correctio
     - no internal gap over 5 intervals.
     Coverage is judged against the generation's own bounds, NEVER against export time. If any generation fails, the result is `could_not_check: coverage`.
   - **marginal:** `(all_resident − baseline)/8`, only when both come from the SAME generation.
-  - **resume selector:** baseline uses the first generation in ledger order; all-resident uses the first schema-valid all-resident event and never skips a CTC result for a later number; interval is numeric only when every running generation agrees; every scalar records its source generation IDs.
   - A `writer_status: "failed"` generation yields `could_not_check: writer_failed` for the figures depending on it.
 - Validate the report when produced. It is never persisted, never a score, and never a completeness condition.
 - **Coupled wiring (declared in `owned_files`; record it):**
