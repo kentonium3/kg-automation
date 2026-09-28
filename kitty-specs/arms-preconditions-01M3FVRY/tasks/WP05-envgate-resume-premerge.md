@@ -140,3 +140,8 @@ Make the arms' only coverage a GATE rather than a habit:
   - a record can never validate a different commit;
   - the live smoke cannot be silently omitted;
   - the C8 test uses real timestamp-bearing gate phases, not fixed stamps.
+
+## Activity Log
+
+- 2026-09-28T18:40:47Z – codex-office4-d5c7b35d – shell_pid=295933 – Implemented T025-T028 at 9db5456a: centralized research-environment gating and fake kit; production live_gates C8 resume proof with terminal-cell mutation evidence; commit-bound premerge checker and contract tests. Validation: 41 focused tests, 316 integration-slice tests, 389 ledger/text/loader tests, no-environment counted skips, required-node collection, Ruff/py_compile/diff-check. Independent Reviewer Renata and Paula Patterns final verdicts: APPROVE. Full two-seed/fresh-worktree execution remains tracked under #1037 per Kent's ruling.
+- 2026-09-28T18:43:45Z – codex-office4-d5c7b35d – shell_pid=295933 – Applied documented row 107 evidence detour after pre-review refused lane-owned kitty-specs: copied implementation-notes.md byte-identically to feat/849-preconditions, verified matching SHA-256 881554c2c623b36e8ccd3b2a5ab04014c4d0813b9c7c4ef74081f42ddecff3ae, and committed planning evidence at bcef7526; lane copy remains intact.
