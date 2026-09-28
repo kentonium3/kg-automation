@@ -1,19 +1,19 @@
 {
-  "event_count": 74,
-  "last_event_id": "01M3MNAS7QBDX44TR8D0XXGA8R",
-  "materialized_at": "2026-09-28T18:44:42.871864+00:00",
+  "event_count": 75,
+  "last_event_id": "01M3MNC25MD7HKHX2T6SDBTY01",
+  "materialized_at": "2026-09-28T18:45:24.788310+00:00",
   "mission_number": "",
   "mission_slug": "arms-preconditions-01M3FVRY",
   "mission_type": "software-dev",
   "summary": {
-    "approved": 4,
+    "approved": 5,
     "blocked": 0,
     "canceled": 0,
     "claimed": 0,
     "done": 0,
     "for_review": 0,
     "in_progress": 0,
-    "in_review": 1,
+    "in_review": 0,
     "planned": 0
   },
   "work_packages": {
@@ -161,17 +161,22 @@
     "WP05": {
       "actor": "codex-office4-wp05-review",
       "agent": "codex-office4-wp05-review",
-      "agent_profile": "reviewer-renata",
-      "agent_profile_version": "1.0",
+      "agent_profile": "__resolved_profile_absent__",
+      "agent_profile_version": "__resolved_profile_version_absent__",
       "force_count": 0,
-      "lane": "in_review",
-      "last_event_id": "01M3MNAS7QBDX44TR8D0XXGA8R",
-      "last_transition_at": "2026-09-28T18:44:42.871864+00:00",
+      "lane": "approved",
+      "last_event_id": "01M3MNC25MD7HKHX2T6SDBTY01",
+      "last_transition_at": "2026-09-28T18:45:24.788310+00:00",
       "model": "__resolved_model_absent__",
       "notes": [
         "Implementation 9db5456a reviewed by Reviewer Renata and Paula Patterns; validation and row 107 evidence placement recorded in WP05 history."
       ],
       "provider": "__resolved_provider_absent__",
+      "review_result": {
+        "reference": "9db5456a68cc41ecf4315e46585e79493120ab9c",
+        "reviewer": "reviewer-renata",
+        "verdict": "approved"
+      },
       "role": "reviewer",
       "shell_pid": 295933,
       "shell_pid_created_at": "1790560904.51",
