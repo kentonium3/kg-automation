@@ -129,3 +129,7 @@ Measure the graph store's memory as rubric §5 now registers it (third correctio
   - no figure is ever a zero, a guess, or taken from a reading that predates its boundary;
   - series files are never truncated or reused;
   - a partial generation can never yield a numeric peak.
+
+## Activity Log
+
+- 2026-09-28T04:16:57Z – codex-office4-d5c7b35d – shell_pid=295933 – Identity transition: WP03 was assigned to codex-office4-2a6a05fa; this session rejoined the bus as codex-office4-d5c7b35d and is the same worker. Corroborated by bus claim claim-20260928T023532780154Z2dbf582a80 (d5c7b35d, WP03-implementation, 02:35:32Z-05:35:32Z) spanning commits b4085f4d and 052e4800. Team-lead ruling 20260928T041047637891Z7ca71c902d thread, 2026-09-28. --force used per the guard own designated override.
