@@ -36,6 +36,42 @@
       "verdict": "in-mission",
       "wp": null
     },
+    "#1037": {
+      "evidence_ref": "Pre-existing WP02 fresh-clone/full-suite deadlock remains open and tracked at #1037; it is outside WP04 scope and was not repaired under the operator direction.",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": null,
+      "title": null,
+      "verdict": "deferred-with-followup",
+      "wp": "WP02"
+    },
+    "#1038": {
+      "evidence_ref": "Reviewer-profile packet identity defect reproduced during WP04 review cycle 2: the generated packet rendered python-pedro/implementer while the actual independent reviewer was explicitly Reviewer Renata/reviewer. Follow-up remains open at #1038.",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": null,
+      "title": null,
+      "verdict": "deferred-with-followup",
+      "wp": "WP04"
+    },
+    "#1040": {
+      "evidence_ref": "Accepted known consequence under Kent Option A ruling: the WP04+ runtime lifecycle chain is deliberately absent by operator direction dated 2026-09-28 and recorded in #1040; decision reference 20260928T161732836312Zb3c5d14a93. Any later missing-lifecycle gate refusal is the same tracked defect.",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": null,
+      "title": null,
+      "verdict": "deferred-with-followup",
+      "wp": "WP04"
+    },
     "#849": {
       "evidence_ref": "This mission delivers the rubric \u00a710 pre-run preconditions (C4, C8, C9, C11, C12, C13, T039 tool). The 72-cell decisive run and grading are out of scope (C-007) and follow as an operation under #849.",
       "fr": null,
