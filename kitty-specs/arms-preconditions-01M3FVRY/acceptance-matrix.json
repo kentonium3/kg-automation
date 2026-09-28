@@ -58,10 +58,10 @@
       "criterion_id": "FR-006",
       "description": "Verify FR-006 is satisfied",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
+      "evidence": "tests/research/test_arms849_sampler.py::test_graph_store_report_round_trips_the_real_writer_against_a_fake_cgroup",
+      "pass_fail": "pass",
+      "verified_by": "codex-office4-d5c7b35d",
+      "verified_at": "2026-09-28T19:01:26.897251+00:00",
       "notes": "TODO: replace with a real acceptance criterion"
     },
     {
