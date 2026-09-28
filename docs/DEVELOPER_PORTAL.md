@@ -193,7 +193,6 @@ local validation and CI.
 - [Restic Backup Operations](<./runbooks/restic-backup-ops.md>)
 - [Security Baseline Operations](<./runbooks/security-baseline-ops.md>)
 - [Signal-driven monitoring operations (felix-core-digest signal extraction + felix-heartbeat-gate)](<./runbooks/signal-driven-monitoring-ops.md>)
-- [Spec-Kitty Bug Reporting](<./runbooks/spec-kitty-bug-reporting.md>)
 - [Spec-Kitty coord-topology flatten workaround](<./runbooks/spec-kitty-coord-flatten-workaround.md>)
 - [Spec-Kitty Mission Review Cycle](<./runbooks/spec-kitty-review-cycle.md>)
 - [Task-Intake Validation Loop Operations](<./runbooks/intake-ops.md>)
@@ -218,6 +217,7 @@ local validation and CI.
 
 ### Unclassified
 - [Agent prompt sync — operator runbook](<./runbooks/agent-prompt-sync-ops.md>) — missing `audience:` frontmatter
-- [Spec-Kitty Workflow-Fault Detour Protocol](<./runbooks/spec-kitty-workflow-fault-protocol.md>) — missing `audience:` frontmatter
+- [Spec-Kitty Bug Reporting (SUPERSEDED — pointer)](<./runbooks/spec-kitty-bug-reporting.md>) — missing `audience:` frontmatter
+- [Spec-Kitty Workflow-Fault Detour Protocol (SUPERSEDED — pointer)](<./runbooks/spec-kitty-workflow-fault-protocol.md>) — missing `audience:` frontmatter
 
 <!-- end:runbook-filter -->

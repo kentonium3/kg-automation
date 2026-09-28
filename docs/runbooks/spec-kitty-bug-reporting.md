@@ -1,413 +1,61 @@
 ---
-title: Spec-Kitty Bug Reporting
+id: spec-kitty-bug-reporting
 doc_type: runbook
-audience: agents_and_humans
-status: approved
-created: 2026-05-28
-last_validated: 2026-09-27
-last_updated: '2026-09-27'
-version: v1.8
-owners: [kgale]
+title: Spec-Kitty Bug Reporting (SUPERSEDED — pointer)
+status: deprecated
+level: reference
+owners: [kent]
+last_validated: 2026-09-28
+version: 2.0.0
 ---
 
-# Spec-Kitty Bug Reporting
+# Spec-Kitty Bug Reporting — SUPERSEDED
 
-How we track and report suspected bugs in `spec-kitty` (and sibling tooling
-like codex, antigravity, openclaw). The workflow is a **dual-track model**:
-internal status tracking lives as a GitHub issue in `kentonium3/kg-automation`;
-when ready to file upstream, a slim external paste-buffer doc is generated
-from the issue body. The two surfaces have different audiences and different
-content shapes.
+⛔ **This copy is retired. Do not follow it. Do not restore it from history.**
 
-## Why dual-track
+**The single canonical source of truth is:**
 
-Past practice put both internal status and external bug reports in
-`docs/diagnostics/*.md`, with a filename-prefix lifecycle (`xx_` → `NNNN_`
-→ `fixed_NNNN_` → archive). That conflated two distinct concerns:
+> `~/repos/spec-kitty-qa/docs/runbooks/spec-kitty-bug-reporting.md`
 
-- **Internal**: priority, status, suggested fix, open questions, next steps,
-  cross-references to our project's issues and missions, environment context
-- **External**: the minimum the maintainer needs to reproduce and fix the bug
-  — summary, reproduction, environment
+**Templates live beside it** — `~/repos/spec-kitty-qa/docs/templates/`:
+- `spec-kitty-bug-report-external-template.md` — a new upstream issue
+- `spec-kitty-upstream-comment-template.md` — a comment on an existing OPEN issue
 
-The new model separates these. Internal lives where status tracking is
-ergonomic (GitHub issues — labels, comments, cross-links, query filters,
-close/reopen state). External is a one-shot paste buffer with only the
-fields the maintainer benefits from.
+The **workflow-fault** protocol (`spec-kitty-qa/docs/runbooks/spec-kitty-workflow-fault-protocol.md`)
+covers **how to handle a fault** and defers **all reporting mechanics** to the runbook above.
+There is no third copy of either.
 
-## Surfaces
+## What changed (2026-09-28)
 
-| Artifact | Path | Audience |
-|---|---|---|
-| **Internal issue template** | `.github/ISSUE_TEMPLATE/spec-kitty-bug.md` | Used as the body of new kg-automation issues |
-| **External paste template** | `docs/diagnostics/spec-kitty-bug-report-external-template.md` | Reference for the slim upstream-body shape — embed it directly in the internal issue, no separate paste file |
-| **Upstream comment template** | `docs/diagnostics/spec-kitty-upstream-comment-template.md` | Shape for a comment on an *existing* upstream issue (recurrence/persistence, supplying a missing build ID, evidence, or responding to a maintainer). Draft in the internal issue, operator-approve, then post. |
-| ~~Per-report paste buffer~~ | ~~`docs/diagnostics/{issue#-or-slug}-external.md`~~ | **DEPRECATED 2026-06-08 (v1.3)** — embed the upstream draft directly in the internal issue body instead. See v1.3 change note below. |
-| **Historical archive** | `docs/archive/spec-kitty-feedback/` | Reports for fixed/closed upstream issues |
+**1. Single-track. `kg-automation` tracking issues are no longer created.**
+Kent leads QA at spec-kitty; the upstream queue is the team's queue. The dual-track model this
+file described — an internal mirror issue, then a slim external report generated from it — is
+retired. **File upstream, using the QA rules.** Existing `kg-automation` issues stay as history.
 
-## Build-ID convention
+**2. Dedup resolves to exactly three dispositions:**
 
-Always identify the spec-kitty build by a **9-character short SHA**, not just the version string —
-the version (`3.2.7`) is not granular enough when the CLI is built from `main`/`dev` (which moves)
-or a pinned tag. Format the Versions/Environment line as:
+| Search result (open AND closed) | Disposition |
+|---|---|
+| **no match** | open a **new issue** |
+| **open match** | add a **recurrence comment** to it |
+| **closed match** | open a **NEW issue referencing the closed one** — ⛔ never comment on a closed issue |
 
-- **Released tag:** `spec-kitty-cli X.Y.Z (pinned tag SHA <9char>)` — e.g. `3.2.7 (pinned tag SHA fb4e8fa98)`.
-- **Off-`main` build:** `spec-kitty-cli X.Y.Z (main build, SHA <9char>)` — e.g. `3.2.6 (main build, SHA 1cb51fb32)`.
+⛔ **Never `@mention` a maintainer in any of the three.**
 
-### Step 1 — identify the install shape
+**3. The footer is two lines.** `Authored by` and `Submission approved by`. The old third line,
+`Local tracking: kentonium3/kg-automation#NNN`, is **dropped** — single-track leaves nothing for
+it to point at. The canonical template already carries the correct two-line form.
 
-Resolution differs by how the CLI was installed, so establish this before reaching for a command:
+**4. The pre-filing approval checklist that lived here is obsolete as a section**, but its
+requirements stand and now live in the filing instructions: **the operator approves the exact
+TITLE and the paste-ready BODY before anything is filed, and the request states the title
+explicitly** rather than assuming it can be inferred from the body.
 
-```bash
-uv tool list                         # a uv-managed tool install and its version
-pipx list                            # a pipx install
-python -m pip show spec-kitty-cli    # a pip install, and its Location
-```
+## Why this file was retired
 
-A `uv tool list` entry showing a plain version with no VCS reference is a **PyPI release install** —
-use Step 2. Anything installed from a git URL or an editable clone is an off-`main` build; those
-shapes are out of scope here (see the scope note below).
+It sat at **v1.7** while the canonical copy advanced to **v2.6**, and had drifted into
+contradicting it — including a three-line footer the canonical template no longer uses, which is
+the version that reached `spec-kitty/spec-kitty#5310` on 2026-09-28.
 
-### Step 2 — released tag (uv tool + PyPI wheel)
-
-This is the shape the personal/customer environment runs: `uv tool install spec-kitty-cli` fetches a
-**PyPI wheel of a tagged release**. The wheel carries no commit reference — there is no
-`direct_url.json` `vcs_info` to read — so resolve the SHA from the upstream tag:
-
-macOS / Linux:
-
-```bash
-git ls-remote --tags https://github.com/spec-kitty/spec-kitty.git | grep '3\.2\.7'
-```
-
-Windows PowerShell (`grep` does not exist there — Git for Windows ships it only inside Git Bash):
-
-```powershell
-git ls-remote --tags https://github.com/spec-kitty/spec-kitty.git | Select-String '3\.2\.7'
-```
-
-Either way the output is the same two lines:
-
-```text
-ed7ccb10a861f3ad0e7b5ffe082e4e822e1cefca   refs/tags/v3.2.7      <- annotated tag OBJECT, not the build
-fb4e8fa9810d053e31d94e9ccc71259b4946c7db   refs/tags/v3.2.7^{}   <- the COMMIT, this is the build ID
-```
-
-Take the first 9 characters of the `^{}` line: `fb4e8fa98`.
-
-**Do not use `gh api repos/<org>/<repo>/git/ref/tags/<tag>` for this.** spec-kitty release tags are
-*annotated*, so that endpoint returns the tag object's SHA rather than the commit it points at — for
-`v3.2.7` it reports `ed7ccb10a`, which identifies no build. If you prefer `gh`, use the tags list
-endpoint, whose `.commit.sha` already dereferences to the commit:
-
-```bash
-gh api repos/spec-kitty/spec-kitty/tags --jq '.[] | select(.name=="v3.2.7") | .commit.sha[0:9]'
-```
-
-On Windows PowerShell, let PowerShell do the filtering — its native-argument quoting mangles the
-`--jq` expression above:
-
-```powershell
-gh api repos/spec-kitty/spec-kitty/tags | ConvertFrom-Json |
-  Where-Object { $_.name -eq 'v3.2.7' } |
-  ForEach-Object { $_.commit.sha.Substring(0,9) }
-```
-
-### Scope note (v1.6)
-
-Only the **uv tool + PyPI release** shape is documented above, because that is what the
-personal/customer environment runs. pipx + git build, uv + git build, and editable clones are all
-valid shapes for QA work and will be documented alongside the QA testing profile rather than here.
-
-### Where the SHA goes
-
-The 9-char SHA goes in **both** the internal issue and the embedded upstream draft, and the
-repository **line** must be named alongside it — a version number identifies neither the build nor
-the line. The full 40-char commit may be mentioned once for reference in the internal issue, but the
-short form is the identifier everywhere else.
-
-Upstream now lives at **`spec-kitty/spec-kitty`** (formerly `Priivacy-ai/spec-kitty`).
-
-For the other install shapes and the upgrade procedure, see the **`spec-kitty-qa`** repo,
-`docs/runbooks/spec-kitty-upgrade.md` §1a/§1b. Refer to it by repo name: clone roots differ per
-machine (`~/repos/` on the Mac and office4; `~/Vaults-repos/` on office3, where it is not yet
-cloned), so a home-relative path in this runbook would be wrong somewhere.
-
-## Lifecycle (v1.3, 2026-06-08)
-
-```text
-1. OBSERVE              Suspected spec-kitty bug surfaces during work.
-2. FILE INTERNAL        gh issue create in kentonium3/kg-automation with
-                        the internal template; label area/tooling; spec: brief.
-                        **When the bug is already understood well enough to draft
-                        the upstream report (the common case), embed the upstream
-                        draft in this SAME issue body in one shot** (step 4 shape),
-                        so Kent reviews the internal tracker AND the upstream copy
-                        together in a single pass. Filing internal in
-                        kg-automation needs no pre-review (repo-scoped exception in
-                        the cross-repo standing rules); only the upstream filing
-                        (step 5/6) is gated.
-3. INVESTIGATE          Edit the issue body / add comments as evidence and
-                        root-cause analysis accumulate. Internal status tracked
-                        via labels (P1-bug, P2-bug, etc.) and issue state.
-4. EMBED UPSTREAM DRAFT If not already embedded at creation (step 2 — preferred),
-                        add a "Proposed upstream title" section and an
-                        "Embedded upstream draft (paste-ready)" code block
-                        directly inside the internal issue body. The embedded
-                        draft uses the slim shape from the external template
-                        (Summary / Reproduction / Root Cause if known /
-                        Workaround Applied / Environment / attribution+approval
-                        footer) — Suggested Fix, Open Questions, Next Steps,
-                        internal refs, frontmatter, and dates are all dropped.
-                        Use a 4-backtick outer fence so the draft's inner
-                        ```bash/```text fences stay verbatim and paste-ready.
-                        No separate paste file.
-5. PRE-FILING APPROVAL  Operator reviews and approves BOTH the proposed
-                        title AND the embedded draft body in the internal
-                        issue, BEFORE the upstream filing step. Never file
-                        upstream on the agent's own initiative.
-6. FILE UPSTREAM        gh issue create --repo spec-kitty/spec-kitty
-                        --title "<approved title>" --type Bug
-                        --body-file <(extract the embedded draft from the
-                        internal issue + fill the Submission approved date
-                        with today).
-                        ── set --type Bug ──
-                        That repo uses GitHub's native issue type
-                        (Bug|Feature|Task). `type:bug` is OBSOLETE upstream:
-                        do not apply it. See Labels.
-7. CROSS-LINK           Comment on the kg-automation issue with the
-                        "Filed upstream: spec-kitty/spec-kitty#NNNN" line +
-                        filing-date + label transitions. Apply the
-                        upstream-filed label. No separate diagnostic snapshot
-                        file needed (the internal issue is the snapshot).
-8. CLOSE                When upstream ships the fix AND we've upgraded
-                        locally to a release that consumes it, transition
-                        labels upstream-filed → upstream-pending-release →
-                        upstream-released and close the kg-automation issue.
-```
-
-### v1.8 change note (2026-09-27)
-
-Removed the runbook's speculation about the obsolete `type:bug` label. v1.7 correctly told the
-reader to pass `--type Bug`, but then explained that applying `type:bug` "succeeds and looks
-right" — which describes the wrong mechanism in enough detail to read as a live option, and
-invites an agent to weigh two choices where there is only one. Corrected on operator instruction
-(Kent, 2026-09-27): **the label is obsolete upstream and the runbook does not describe using it.**
-The 2026-09-22 maintainer-removal evidence is kept, reframed as *why the rule is settled* rather
-than as *what happens if you break it*.
-
-### v1.7 change note (2026-09-23)
-
-`spec-kitty/spec-kitty` adopted GitHub's **native issue type** and retired the `type:bug` label
-on filings. Step 6 now passes `--type Bug`, and a new upstream subsection in *Labels* records the
-three organisation-level types, the `gh issue edit` repair path, and the version floor. The reason
-this needed writing down rather than just remembering: the `type:*` labels were **not deleted**, so
-the stale instruction still succeeds and produces an issue that looks correctly labelled until a
-maintainer strips it — which is how it went unnoticed across four filings on 2026-09-22.
-
-Scope was deliberately held to `spec-kitty/spec-kitty`. The programme repos still use `type:*`
-labels with no native type set, verified 2026-09-23.
-
-### v1.6 change note (2026-09-11)
-
-Rewrote the **Build-ID convention**. The section's `gh api .../git/ref/tags/<tag>` command returned
-the wrong identifier: spec-kitty release tags are annotated, so that endpoint yields the tag
-object's SHA rather than the commit — for `v3.2.7`, `ed7ccb10a` instead of `fb4e8fa98`. Any report
-filed using the section as written would have carried a SHA identifying no build. Replaced it with
-`git ls-remote --tags` plus the `^{}` dereference, added a correct `gh` tags-list alternative and a
-PowerShell form, and added an explicit install-shape identification step. The prior text also
-assumed a pipx install at a Unix path (`$HOME/.local/pipx/venvs/...`), covering neither the `uv tool`
-installs now in use nor Windows; scope is now narrowed deliberately to the uv-tool + PyPI-release
-shape, with other shapes deferred to the QA testing profile. The `spec-kitty-qa` cross-reference is
-by repo name rather than a home-relative path, since clone roots differ per machine. Both templates
-were refreshed to match: the external template still described the paste-file workflow deprecated by
-v1.3, and neither template prompted for the build SHA.
-
-### v1.5 change note (2026-07-21)
-
-Added a third template — the **upstream comment template**
-(`docs/diagnostics/spec-kitty-upstream-comment-template.md`) — for commenting on an *existing*
-upstream issue (recurrence/persistence, supplying a missing build ID, evidence, or responding
-to a maintainer), a peer of the internal and external report templates. Prompted by upstream
-maintainer feedback that a comment of ours cited a bare `3.2.6` (an in-development version
-string that doesn't pin the build) and that some earlier comments gave no build ID at all. The
-template makes the 9-char build SHA and the recurrence-vs-persistence framing mandatory for any
-comment that makes or renews a defect claim, and carries the same operator pre-posting approval
-gate as an upstream filing. See "Upstream comment template" under **The templates**.
-
-### v1.4 change note (2026-07-05)
-
-Two changes: (1) **Embed the upstream draft at issue creation** (step 2), not as a
-separate later step — when the bug is understood well enough to draft the upstream
-report, create the internal issue with the embedded draft already in the body so Kent
-reviews both surfaces in one pass. Step 4 remains as the fallback for drafts added
-during investigation. (2) Recorded the **repo-scoped copy-approval exception**: internal
-`kentonium3/kg-automation` posts need no pre-review (Kent's own tracking repo); only
-copy leaving the repo — the upstream filing — stays gated. Both driven by operator
-preference given 2026-07-05.
-
-### v1.3 change note (2026-06-08)
-
-v1.2 (and prior) required generating a transient paste file at
-`docs/diagnostics/{slug}-external.md` as an intermediate artifact. v1.3
-removes that step: the upstream-bound draft is embedded directly in the
-internal kg-automation issue body, in a code block, ready to copy into
-`gh issue create --body-file`. The shape of the embedded draft still
-follows the slim external template — only the file artifact is removed.
-
-Why: the paste file added a maintenance surface (frontmatter staleness,
-status drift, the question of whether to archive vs delete on close) for
-zero net value over a code block inside the GitHub issue. Existing paste
-docs under `docs/diagnostics/*-external.md` may stay as-is for already-filed
-issues; new bug filings should NOT generate one.
-
-## When to file (and not file)
-
-**File a bug report when**:
-
-- Behavior contradicts documentation, command help text, or a flag's name
-- A spec-kitty command silently corrupts or destroys user-authored data
-- Workflow produces inconsistent state that requires manual recovery
-- Recurring behavior that required manual compensation across multiple sessions
-
-**Don't file when**:
-
-- One-off errors that didn't reproduce after investigation
-- User error (misused flag, wrong working directory)
-- Feature requests or enhancements — file those as proposals on spec-kitty/spec-kitty directly (use the upstream enhancement_request template)
-
-## Required evidence
-
-Before promoting an internal issue to upstream-ready:
-
-- At least one reproducible path (even if not minimal)
-- Command output showing the unexpected behavior
-- Git diff or state snapshot showing data loss/mutation if applicable
-- Environment: OS, Python version, `spec-kitty --version`, `codex --version` or other relevant tool versions
-
-## Labels
-
-### Upstream: `spec-kitty/spec-kitty` takes a native issue type (`type:bug` is obsolete)
-
-⚠ **Applies to the upstream filing (lifecycle step 6) only** — the internal kg-automation labels
-below are unchanged.
-
-That repo moved to GitHub's native issue-type field. Three types are defined at the organisation
-level: **Bug**, **Feature**, **Task**. Set the type on the filing command rather than applying a
-`type:bug` label:
-
-```bash
-gh issue create --repo spec-kitty/spec-kitty --title "<approved title>" \
-  --body-file <path> --type Bug
-```
-
-`gh issue edit <n> --type Bug` fixes an already-filed issue; `--remove-type` clears one. Both
-need gh 2.101.0 or newer.
-
-**`type:bug` is obsolete upstream. Do not apply it.** The native type is the only correct
-mechanism; there is no case in which the label is the right choice, so this runbook does not
-describe using it.
-
-Settled by observation, not inference: on 2026-09-22 a maintainer removed `type:bug` from all four
-of our filings — spec-kitty#4923, #4925, #4927 and #4928 — within an hour and set the issue type
-instead. Every issue created in that repo on 2026-09-23 carries a native type and no `type:*`
-label.
-
-Labels that are still labels upstream: `from:qa`, `domain:*`, `priority:*`. Priority stays the
-maintainers' call — #4923 was filed at `priority:P1` and raised to `priority:P0` on triage.
-
-### Internal (kg-automation)
-
-- `area/tooling` — canonical area label for spec-kitty bugs (and sibling tooling: codex, antigravity, openclaw)
-- `spec: brief` — default state when filed; not yet structured for the spec-kitty mission workflow (these issues usually stay `spec: brief` forever since fixes land upstream, not in our repo)
-- `upstream-filed` — applied at lifecycle step 6 (FILE UPSTREAM → CROSS-LINK) once we have an upstream issue number. The issue body should also carry an `Upstream: <repo>#<n>` line. The label is the at-a-glance signal in queue views; the body link is the navigable cross-reference.
-- Priority labels (`P1-bug`, `P2-bug`, etc.) — applied based on operational impact
-
-## The templates
-
-### Internal template (`.github/ISSUE_TEMPLATE/spec-kitty-bug.md`)
-
-Rich format used as the body of new kg-automation issues. Includes:
-
-- Summary
-- Spec-Kitty version + relevant agent versions (codex, antigravity, etc.)
-- Reproduction (Prereqs / Steps / Expected / Actual)
-- Root Cause (if known)
-- Workaround Applied (with cross-refs to our internal issues if relevant)
-- Suggested Fix (Options A/B/C if applicable)
-- Impact
-- Environment
-- Open Questions
-- Next Steps
-- Discovered (when, by whom, during what mission)
-- Upstream link (populated once filed)
-
-### External template (`docs/diagnostics/spec-kitty-bug-report-external-template.md`)
-
-Slim format that defines the shape of the upstream-bound draft. As of v1.3 (2026-06-08), this template is consulted as a **shape reference** — embed the draft directly into the internal issue body (lifecycle step 4) rather than generating a separate paste file. Drops:
-
-- No frontmatter
-- No date (the upstream issue tracks creation date)
-- No priority (not for us to set)
-- No status (their labels)
-- No Suggested Fix (maintainer knows how to fix)
-- No Open Questions or Next Steps (internal)
-- No internal issue/mission/WP references
-
-Keeps: Summary, Reproduction, Root Cause (only if known), Workaround Applied (trimmed of internal refs), Environment.
-
-**Attribution + reviewer-approval footer (mandatory, added 2026-06-04 / v1.1; structured form added 2026-06-07 / v1.2):**
-
-Every embedded upstream draft MUST end with a footer block of the form:
-
-```markdown
----
-
-**Authored by**: Kent Gale (kentonium3/kg-automation) & Claude Code (Claude Opus 5), YYYY-MM-DD.
-**Submission approved by**: Kent Gale (kentonium3/kg-automation), YYYY-MM-DD.
-**Local tracking**: kentonium3/kg-automation#NNN.
-```
-
-Field rules:
-- **Authored by** — Kent's real name + GH org/repo identifier `(kentonium3/kg-automation)` so upstream maintainers can resolve the operator without guesswork, joined with `&` to the drafting agent's identity. Agent identity should include the specific model (e.g. `Claude Code (Claude Opus 5)`, `Codex (gpt-5.5)`, `Antigravity (gemini-2.5-pro)`). Date is the day the draft was authored.
-- **Submission approved by** — Kent's real name + GH org/repo identifier, repeated. This line is the operator-in-the-loop approval declaration. Date is the day of upstream filing (typically same day or one day after authoring).
-- **Local tracking** — direct link back to the kentonium3/kg-automation tracking issue, so upstream maintainers can navigate to our internal context if useful.
-
-Rationale: bug reports filed in upstream trackers carry an implicit author voice. The structured 3-line form (v1.2, 2026-06-07) replaces the prior single-line attribution because Kent wanted the human-in-the-loop approval declaration to be unmistakably explicit — separating authoring (collaborative) from submission approval (Kent-only) makes accountability clear and prevents any reading of the report as unattended-agent output. The local-tracking link gives maintainers a one-click path back to our internal queue without requiring a separate "ours: #NNN" cross-reference in the body proper.
-
-### Upstream comment template (`docs/diagnostics/spec-kitty-upstream-comment-template.md`)
-
-For **commenting on an existing upstream issue** rather than filing a new one — confirming a
-bug still reproduces, supplying a build identifier the original report lacked, adding fresh
-evidence, or responding to a maintainer's request for next steps. Same slim external
-discipline as the report template (no internal refs, no priority/status, no Suggested Fix, same
-attribution + approval footer), plus two comment-specific requirements:
-
-- **Pin the build, always.** Never reference a bare version number. Per the Build-ID convention
-  above, `X.Y.Z` (e.g. `3.2.6`) is an in-development string when built from `main` and does not
-  identify the build — carry the 9-char commit SHA. State explicitly whether the comment
-  confirms **recurrence on the same build** or **persistence on a newer build**. (This template
-  was added 2026-07-21 after an upstream maintainer flagged a comment of ours that cited a bare
-  `3.2.6`; some earlier comments failed to provide any build ID.)
-- **Reproduce against current `main`** and, when the comment answers a maintainer request,
-  acknowledge the issue's own *Suggested direction* and any referenced directive (e.g.
-  `DIRECTIVE_041`) — e.g. a red-first failing-test PR — and link the PR once opened. Do not
-  propose a fix to their internals.
-
-Same posting gate as a new upstream filing: it is copy leaving kg-automation, so the operator
-approves the **exact comment text** before it is posted (see the pre-posting approval note in
-the template). Draft it in the internal tracking issue, show Kent, then post.
-
-## Pre-filing approval checklist (operator-facing)
-
-Before the agent files upstream, the operator must see and approve, in the internal tracking issue body:
-
-1. **The proposed upstream title** — exact text, in a clearly-labelled "Proposed upstream title" section above the embedded draft body.
-2. **The embedded draft body** — in a code block, ready-to-paste, including the attribution + reviewer-approval footer.
-
-The agent's filing-step prompt to the operator should be of the form: *"Approve title `<title>` and body for upstream filing?"* — explicitly state the title, do not assume the operator will infer it from the embedded body.
-
-## Cross-references
-
-- [`docs/diagnostics/spec-kitty-workflow-journal.md`](<../diagnostics/spec-kitty-workflow-journal.md>) — running observations log; not a bug-tracker. Promote a journal entry to an internal issue when it stabilizes into a reproducible bug.
-- [`docs/archive/spec-kitty-feedback/`](https://github.com/kentonium3/kg-auto-aux/blob/main/archive/spec-kitty-feedback) — historical record of resolved upstream issues, preserved for context.
+**A stale duplicate is worse than a missing document.** An agent that finds no runbook asks; an
+agent that finds an outdated one follows it. **Keep one canonical source. Point at it. Never fork it.**

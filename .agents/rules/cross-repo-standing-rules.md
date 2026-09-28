@@ -104,12 +104,20 @@ protocols are linked, not inlined.
      command+error, state, code inspection); note the spec-kitty build.
   2. **Local issue** (kg-automation): exists → comment noting recurrence on the current build (or
      persistence on a newer build); none → create per `spec-kitty-bug-reporting.md`.
-  3. **Upstream:** search (ours or others'). Exists → comment confirming recurrence-same-build /
-     persistence-newer-build; if the issue is CLOSED, `@mention` **that program/repo's current
-     maintainer** as a safety check — **resolve per-repo, do NOT hardcode a name** (ownership
-     varies by program: spec-kitty-CLI, spec-kitty-SaaS, analyzer+telescope [Kent], Vikunja are
-     separately owned). **[STOP: show Kent the exact copy before posting.]** None → prep the
-     upstream embed in the local issue per the runbook. **[STOP: Kent reviews copy before filing.]**
+  3. **Upstream — dedup, then one of exactly three dispositions.** Search the upstream queue,
+     **open AND closed**:
+     - **no match** → **open a new issue**;
+     - **open match** → **add a recurrence comment** to it;
+     - **closed match** → ⛔ **open a NEW issue that REFERENCES the closed one. Never comment on a
+       closed issue** — a comment there is not seen or processed. Write the reference so GitHub
+       actually links it, and say in the summary which closed issue's acceptance no longer holds.
+     ⛔ **Never `@mention` a maintainer.** (A stale copy of this rule instructed one; on
+     2026-09-28 that notified spec-kitty's CEO, two levels above the actual maintainer, and could
+     not be recalled.)
+     **[STOP: Kent approves the exact TITLE and the paste-ready BODY before anything is filed.
+     State the title explicitly in the request — do not assume it can be inferred from the body.]**
+     ⚠ **Canonical procedure lives in ONE place:**
+     `spec-kitty-qa/docs/runbooks/spec-kitty-bug-reporting.md`. Follow it, not a local copy.
   4. **Known workaround** (documented in the runbook's registry / a tracked issue / upstream /
      memory) → apply it and continue. An **improvised** workaround is NOT "known" — improvising is
      a prohibited silent workaround → treat as step 5.
