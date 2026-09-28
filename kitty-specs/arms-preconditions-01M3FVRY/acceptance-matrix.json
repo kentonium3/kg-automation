@@ -98,10 +98,10 @@
       "criterion_id": "FR-010",
       "description": "Verify FR-010 is satisfied",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
+      "evidence": "tests/research/test_arms849_isolation.py::test_every_package_module_is_registered_in_the_isolation_inventory;test_every_registered_module_exists_in_the_package",
+      "pass_fail": "pass",
+      "verified_by": "codex-office4-d5c7b35d",
+      "verified_at": "2026-09-28T19:02:03.778440+00:00",
       "notes": "TODO: replace with a real acceptance criterion"
     },
     {
