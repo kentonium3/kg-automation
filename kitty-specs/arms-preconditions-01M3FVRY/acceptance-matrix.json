@@ -8,10 +8,10 @@
       "criterion_id": "FR-001",
       "description": "Verify FR-001 is satisfied",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
+      "evidence": "origin/kitty/mission-arms-preconditions-01M3FVRY-lane-a@9db5456a:tests/research/test_arms849_integration.py::test_live_runtime_registers_g_d_r_with_one_embedder",
+      "pass_fail": "pass",
+      "verified_by": "codex-office4-d5c7b35d",
+      "verified_at": "2026-09-28T19:00:40.148261+00:00",
       "notes": "TODO: replace with a real acceptance criterion"
     },
     {
