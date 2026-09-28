@@ -128,10 +128,10 @@
       "criterion_id": "FR-013",
       "description": "Verify FR-013 is satisfied",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
+      "evidence": "tests/research/test_run_849_harness.py::test_measurement_is_ordered_exact_and_bound_to_commit_and_preflight",
+      "pass_fail": "pass",
+      "verified_by": "codex-office4-d5c7b35d",
+      "verified_at": "2026-09-28T19:02:31.502231+00:00",
       "notes": "TODO: replace with a real acceptance criterion"
     },
     {
