@@ -939,8 +939,8 @@ def graph_store_report(events_or_rows: Any, runs_dir: pathlib.Path | str) -> dic
     Ledger order selects the first-build baseline and first schema-valid all-resident
     boundary without cherry-picking a later favourable generation. Marginal is numeric
     only when those two values come from the same generation. ``source_series_ids``
-    makes every scalar's generation provenance explicit. Peak lists every tied source
-    in ledger order when numeric and every generation considered when unavailable.
+    makes every scalar's generation provenance explicit. Peak lists every generation
+    governing its coverage and value in ledger order, whether numeric or unavailable.
     Interval lists the generations governing either its consensus or its failure.
     """
     rows = list(events_or_rows) if isinstance(events_or_rows, (list, tuple)) else []
