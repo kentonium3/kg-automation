@@ -25,7 +25,7 @@
       "wp": null
     },
     "#1023": {
-      "evidence_ref": "This mission's own input issue (the preconditions scope). It is implemented across WP01\u2013WP05, and closes when the mission merges and feat\u2192main lands with the pre-merge record.",
+      "evidence_ref": "Mission implementation is present in squash 72eb7d8c, but #1023 remains open because FR-015/NFR-001 requires a commit-bound full-checker PASS before feat\u2192main. The deterministic Arm G deadlock tracked by live follow-up #1037 blocks that record; repair #1037, rerun the checker at final HEAD, then land feat\u2192main.",
       "fr": null,
       "nfr": null,
       "repo": null,
@@ -33,7 +33,7 @@
       "scope": null,
       "source_file": null,
       "title": null,
-      "verdict": "in-mission",
+      "verdict": "deferred-with-followup",
       "wp": null
     },
     "#1037": {
