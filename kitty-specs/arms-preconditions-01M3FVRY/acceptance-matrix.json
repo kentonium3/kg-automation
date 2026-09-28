@@ -48,10 +48,10 @@
       "criterion_id": "FR-005",
       "description": "Verify FR-005 is satisfied",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
+      "evidence": "tests/research/test_arms849_sampler.py::test_real_cgroup_writer_emits_bound_header_records_and_a_clean_trailer;tests/research/test_arms849_integration.py::test_graph_store_generation_and_boundaries_are_run_level_and_ordered",
+      "pass_fail": "pass",
+      "verified_by": "codex-office4-d5c7b35d",
+      "verified_at": "2026-09-28T19:01:17.475574+00:00",
       "notes": "TODO: replace with a real acceptance criterion"
     },
     {
