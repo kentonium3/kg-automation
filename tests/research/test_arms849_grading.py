@@ -22,8 +22,10 @@ from scripts.research import run_849_harness as h
 from scripts.research.arms849 import grading
 from scripts.research.arms849 import ledger as ledger_mod
 from scripts.research.arms849.questions import QUESTIONS
-from tests.research.test_arms849_integration import (
+from tests.research.conftest import (
     BLINDING_SEED,
+    CORPUS,
+    RESEARCH_ENVIRONMENT_SKIP_REASON,
     fake_arms,
     full_run,
     make_runtime,
@@ -41,9 +43,8 @@ from tests.research.test_arms849_ledger import (
     unreadable_row,
 )
 
-CORPUS = h.DEFAULT_CORPUS
 pytestmark = pytest.mark.skipif(not (CORPUS / "entities.json").exists(),
-                                reason="rendered corpus absent; run render_849_corpus first")
+                                reason=RESEARCH_ENVIRONMENT_SKIP_REASON)
 
 ID_RE = re.compile(r"q[A-Z0-9]+-[0-9a-f]{6}")
 #: Keys that must never appear anywhere in the view (grading-view.md "Forbidden in the view").

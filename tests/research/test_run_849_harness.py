@@ -30,9 +30,11 @@ from scripts.research.arms849.ledger import (
     open_ledger,
 )
 from scripts.research.arms849.questions import QUESTIONS
-from tests.research.test_arms849_integration import (
+from tests.research.conftest import (
     BLINDING_SEED,
+    CORPUS,
     PRIMARY,
+    RESEARCH_ENVIRONMENT_SKIP_REASON,
     ArmRefusal,
     FakeContextExceeded,
     FakeG,
@@ -44,11 +46,9 @@ from tests.research.test_arms849_integration import (
     runs,
 )
 
-CORPUS = h.DEFAULT_CORPUS
-
 pytestmark = pytest.mark.skipif(
     not (CORPUS / "entities.json").exists(),
-    reason="rendered corpus absent; run render_849_corpus first")
+    reason=RESEARCH_ENVIRONMENT_SKIP_REASON)
 
 
 # --------------------------------------------------------------------------
@@ -317,7 +317,7 @@ def test_summarise_would_fail_if_exceeds_cells_leaked_into_the_mean(tmp_path):
     """Guards the guard: a zero-token ok cell is what a leaked exceeds cell would look like — it
     is distinguishable by outcome, and it is."""
     def zero_d(question, view, ctx):
-        from tests.research.test_arms849_integration import scored
+        from tests.research.conftest import scored
         return scored("answer zero", 0, context_limit_applied=ctx.limit_applied)
 
     ledger_path = tmp_path / "ledger.jsonl"

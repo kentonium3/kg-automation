@@ -18,25 +18,22 @@ import pytest
 
 REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT))
+from tests.research.conftest import CACHE, CORPUS, RESEARCH_ENVIRONMENT_SKIP_REASON
 
 # The research stack (graphiti_core, fastembed) lives in the runner image and the local venv, not in
 # requirements.txt; CI has no graphiti_core, so skip this module there rather than fail collection
 # (same shape as the corpus/cache skips). The real runs happen on office4.
-pytest.importorskip("graphiti_core", reason="research stack (graphiti_core) not installed — e.g. CI")
+pytest.importorskip("graphiti_core", reason=RESEARCH_ENVIRONMENT_SKIP_REASON)
 
 from scripts.research.arms849 import arm_g as A
 from scripts.research.arms849 import questions as Q
 from scripts.research.arms849.text import FrozenCorpusText
-from scripts.research.load_849_corpus import (
-    DEFAULT_CORPUS,
-    Loaded,
-    replay,
-)
+from scripts.research.load_849_corpus import Loaded, replay
 
 PKG = REPO_ROOT / "scripts" / "research" / "arms849"
-CORPUS = pathlib.Path(os.environ.get("ARMS849_CORPUS", str(DEFAULT_CORPUS)))
-CACHE = pathlib.Path(os.environ.get("ARMS849_CACHE", str(REPO_ROOT / "build" / "849-cache")))
-needs_corpus = pytest.mark.skipif(not (CORPUS / "stream.jsonl").exists(), reason="rendered corpus absent")
+needs_corpus = pytest.mark.skipif(
+    not (CORPUS / "stream.jsonl").exists(), reason=RESEARCH_ENVIRONMENT_SKIP_REASON
+)
 live = pytest.mark.skipif(os.environ.get("ARMS849_LIVE") != "1", reason="live graph tests need ARMS849_LIVE=1 and the WP02 stack")
 _REAL_URLOPEN = urllib.request.urlopen   # captured before the conftest guard patches it
 

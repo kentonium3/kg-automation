@@ -22,11 +22,11 @@ sys.path.insert(0, str(REPO_ROOT))
 
 from scripts.research.arms849 import ledger as L
 from scripts.research.arms849 import serving as S
-from scripts.research.load_849_corpus import DEFAULT_CORPUS
+from tests.research.conftest import CORPUS, RESEARCH_ENVIRONMENT_SKIP_REASON
 
 pytestmark = pytest.mark.skipif(
-    not (DEFAULT_CORPUS / "entities.json").exists(),
-    reason="rendered corpus absent; run render_849_corpus first")
+    not (CORPUS / "entities.json").exists(),
+    reason=RESEARCH_ENVIRONMENT_SKIP_REASON)
 
 IDENT = S.ServingIdentity("gguf", "sha256:img", "emb", "tok", "c" * 64)
 SERVING = S.ServingConfiguration.primary(IDENT).as_header_dict()
@@ -57,7 +57,7 @@ def calibrated(led):
 
 def binding(**over) -> L.Binding:
     cfg = S.ServingConfiguration.primary(IDENT)
-    b = L.Binding.from_environment(DEFAULT_CORPUS, cfg.as_header_dict(), "trained", "c0ffee",
+    b = L.Binding.from_environment(CORPUS, cfg.as_header_dict(), "trained", "c0ffee",
                                    "export-sha", "a" * 64, "b" * 64, "c" * 64,
                                    repo_root=REPO_ROOT, model_context_tokens=S.TRAINED_CONTEXT)
     if over:
@@ -276,7 +276,7 @@ def test_second_writer_is_refused_while_the_first_holds_the_lock(tmp_path):
             import sys; sys.path.insert(0, {str(REPO_ROOT)!r})
             from scripts.research.arms849 import ledger as L
             from scripts.research.arms849 import serving as S
-            b = L.Binding.from_environment({str(DEFAULT_CORPUS)!r}, S.ServingConfiguration.primary(
+            b = L.Binding.from_environment({str(CORPUS)!r}, S.ServingConfiguration.primary(
                 S.ServingIdentity("gguf", "sha256:img", "emb", "tok", "c" * 64)).as_header_dict(), "trained",
                 "c0ffee", "export-sha", "a" * 64, "b" * 64, "c" * 64, repo_root={str(REPO_ROOT)!r},
                 model_context_tokens=S.TRAINED_CONTEXT)
@@ -685,7 +685,7 @@ def test_gate_shas_are_validated_on_creation_and_on_resume(tmp_path, field, bad)
     kw = {"preflight_sha": "a" * 64, "gate_host_sha": "b" * 64, "gate_container_sha": "c" * 64}
     kw[field] = bad
     with pytest.raises(ValueError, match=field):
-        L.Binding.from_environment(DEFAULT_CORPUS, cfg.as_header_dict(), "trained", "c0ffee", "export-sha",
+        L.Binding.from_environment(CORPUS, cfg.as_header_dict(), "trained", "c0ffee", "export-sha",
                                    kw["preflight_sha"], kw["gate_host_sha"], kw["gate_container_sha"],
                                    repo_root=REPO_ROOT, model_context_tokens=S.TRAINED_CONTEXT)
     with fresh(tmp_path):
@@ -727,13 +727,13 @@ def test_corpus_binding_is_verified_not_computed(tmp_path):
                                           model_context_tokens=S.TRAINED_CONTEXT)
 
     from scripts.research.load_849_corpus import REGISTRATION
-    assert bind(DEFAULT_CORPUS).corpus == REGISTRATION["files"]
+    assert bind(CORPUS).corpus == REGISTRATION["files"]
     empty = tmp_path / "empty"; empty.mkdir()
     with pytest.raises(L.LedgerBoundToAnotherConfig, match="MISSING"):
         bind(empty)
     partial = tmp_path / "partial"; partial.mkdir()
     for name in REGISTRATION["files"]:
-        (partial / name).write_bytes((DEFAULT_CORPUS / name).read_bytes())
+        (partial / name).write_bytes((CORPUS / name).read_bytes())
     (partial / "stream.jsonl").write_bytes(b'{"ref": "x", "at": "2026-01-01"}\n')
     with pytest.raises(L.LedgerBoundToAnotherConfig, match="stream.jsonl"):
         bind(partial)
@@ -748,7 +748,7 @@ def test_corpus_binding_is_verified_not_computed(tmp_path):
 def test_limit_applied_is_validated_and_d_rows_must_agree_with_the_header(tmp_path):
     cfg = S.ServingConfiguration.primary(IDENT).as_header_dict()
     with pytest.raises(ValueError, match="limit_applied"):
-        L.Binding.from_environment(DEFAULT_CORPUS, cfg, "banana", "c0ffee", "export-sha", "a" * 64, "b" * 64,
+        L.Binding.from_environment(CORPUS, cfg, "banana", "c0ffee", "export-sha", "a" * 64, "b" * 64,
                                    "c" * 64, repo_root=REPO_ROOT, model_context_tokens=S.TRAINED_CONTEXT)
     with pytest.raises(ValueError, match="limit_applied"):
         L.open_ledger(tmp_path / "l.jsonl", binding(limit_applied="banana"), blinding_seed=7, plan=72)
@@ -878,11 +878,11 @@ def test_model_context_tokens_must_be_a_positive_int(tmp_path):
     cfg = S.ServingConfiguration.primary(IDENT).as_header_dict()
     for bad in (0, -1, "262144", 262144.0):                # None means "use n_ctx" (tested below)
         with pytest.raises(ValueError, match="model_context_tokens"):
-            L.Binding.from_environment(DEFAULT_CORPUS, cfg, "trained", "c0ffee", "export-sha", "a" * 64, "b" * 64,
+            L.Binding.from_environment(CORPUS, cfg, "trained", "c0ffee", "export-sha", "a" * 64, "b" * 64,
                                        "c" * 64, repo_root=REPO_ROOT, model_context_tokens=bad)
     with pytest.raises(ValueError, match="model_context_tokens"):
         L.open_ledger(tmp_path / "l.jsonl", binding(model_context_tokens=0), blinding_seed=7, plan=72)
-    b = L.Binding.from_environment(DEFAULT_CORPUS, {**cfg, "n_ctx": 393_216}, "permitted", "c0ffee", "export-sha",
+    b = L.Binding.from_environment(CORPUS, {**cfg, "n_ctx": 393_216}, "permitted", "c0ffee", "export-sha",
                                    "a" * 64, "b" * 64, "c" * 64, repo_root=REPO_ROOT)
     assert b.model_context_tokens == 393_216                 # falls back to n_ctx, never to 0
 

@@ -24,11 +24,12 @@ from scripts.research.arms849 import preflight as P
 from scripts.research.arms849 import prompt as prompt_mod
 from scripts.research.arms849 import questions as questions_mod
 from scripts.research.arms849 import sampler as SM
-from scripts.research.load_849_corpus import DEFAULT_CORPUS, REGISTRATION
+from scripts.research.load_849_corpus import REGISTRATION
+from tests.research.conftest import CACHE, CORPUS, RESEARCH_ENVIRONMENT_SKIP_REASON
 
-CORPUS = pathlib.Path(os.environ.get("ARMS849_CORPUS", str(DEFAULT_CORPUS)))
-CACHE = pathlib.Path(os.environ.get("ARMS849_CACHE", str(REPO_ROOT / "build" / "849-cache")))
-needs_corpus = pytest.mark.skipif(not (CORPUS / "stream.jsonl").exists(), reason="rendered corpus absent")
+needs_corpus = pytest.mark.skipif(
+    not (CORPUS / "stream.jsonl").exists(), reason=RESEARCH_ENVIRONMENT_SKIP_REASON
+)
 FORBIDDEN = ("or" + "acle", "se" + "ed/", "trace" + "ability")
 
 

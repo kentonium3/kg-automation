@@ -13,6 +13,7 @@ REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT))
 
 from scripts.research.arms849 import serving as S
+from tests.research.conftest import CACHE, CORPUS, RESEARCH_ENVIRONMENT_SKIP_REASON
 
 IDENT = S.ServingIdentity("gguf-sha", "sha256:img", "emb-sha", "tok-sha", "a" * 64)
 
@@ -88,8 +89,8 @@ def test_endpoint_safety(monkeypatch):
 
 needs_tokenizer = pytest.mark.skipif(
     importlib.util.find_spec("transformers") is None
-    or not (pathlib.Path(os.environ.get("ARMS849_CACHE", "build/849-cache")) / "qwen-tokenizer").exists(),
-    reason="tokenizer classes or cache absent (substrate setup, WP02)")
+    or not (CACHE / "qwen-tokenizer").exists(),
+    reason=RESEARCH_ENVIRONMENT_SKIP_REASON)
 
 
 @needs_tokenizer
@@ -99,11 +100,11 @@ def test_b2_full_block_exceeds_the_trained_context():
 
     from scripts.research.arms849.prompt import Prompt
     from scripts.research.arms849.text import FrozenCorpusText
-    from scripts.research.load_849_corpus import DEFAULT_CORPUS, replay
+    from scripts.research.load_849_corpus import replay
 
     tok = S.Tokenizer()
-    fct = FrozenCorpusText(DEFAULT_CORPUS)
-    view = replay(DEFAULT_CORPUS, datetime.fromisoformat("2026-10-16T09:00:00-04:00"), verify=False)
+    fct = FrozenCorpusText(CORPUS)
+    view = replay(CORPUS, datetime.fromisoformat("2026-10-16T09:00:00-04:00"), verify=False)
     ident = S.ServingIdentity("gguf-sha", "sha256:img", "emb-sha", "tok-sha", tok.chat_template_sha256())
     body = S.serialize(Prompt().render(fct.render_full_view(view), "Why did I miss sub-10?"),
                        S.ServingConfiguration.primary(ident), 1001, tokenizer=tok)

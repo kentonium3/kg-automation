@@ -24,13 +24,16 @@ from scripts.research.arms849 import questions as Q
 from scripts.research.arms849 import serving as S
 from scripts.research.arms849.prompt import Prompt
 from scripts.research.arms849.text import FrozenCorpusText, record_line_bytes
-from scripts.research.load_849_corpus import DEFAULT_CORPUS, replay
+from scripts.research.load_849_corpus import replay
+from tests.research.conftest import CACHE, CORPUS, RESEARCH_ENVIRONMENT_SKIP_REASON
 
 PKG = REPO_ROOT / "scripts" / "research" / "arms849"
-CORPUS = pathlib.Path(os.environ.get("ARMS849_CORPUS", str(DEFAULT_CORPUS)))
-CACHE = pathlib.Path(os.environ.get("ARMS849_CACHE", str(REPO_ROOT / "build" / "849-cache")))
-needs_corpus = pytest.mark.skipif(not (CORPUS / "stream.jsonl").exists(), reason="rendered corpus absent")
-needs_tokenizer = pytest.mark.skipif(not (CACHE / "qwen-tokenizer").exists(), reason="cached tokenizer absent")
+needs_corpus = pytest.mark.skipif(
+    not (CORPUS / "stream.jsonl").exists(), reason=RESEARCH_ENVIRONMENT_SKIP_REASON
+)
+needs_tokenizer = pytest.mark.skipif(
+    not (CACHE / "qwen-tokenizer").exists(), reason=RESEARCH_ENVIRONMENT_SKIP_REASON
+)
 
 ASK_ORDER = tuple(q.id for q in Q.QUESTIONS)                       # C1 A F1 B1 E2 E1 F2 B2
 REGISTERED_B2_PREFIX = 362_772                                     # rubric §2, A1 @c0b35cd1 — a floor now

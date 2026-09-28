@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import ast
 import json
-import os
 import pathlib
 import shutil
 import statistics
@@ -15,11 +14,12 @@ import pytest
 
 REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT))
+from tests.research.conftest import CACHE, CORPUS, RESEARCH_ENVIRONMENT_SKIP_REASON
 
 # The research stack (graphiti_core, fastembed) lives in the runner image and the local venv, not in
 # requirements.txt; CI has no graphiti_core, so skip this module there rather than fail collection
 # (same shape as the corpus/cache skips). The real runs happen on office4.
-pytest.importorskip("graphiti_core", reason="research stack (graphiti_core) not installed — e.g. CI")
+pytest.importorskip("graphiti_core", reason=RESEARCH_ENVIRONMENT_SKIP_REASON)
 
 from scripts.research.arms849 import arm_r as R
 from scripts.research.arms849 import questions as Q
@@ -27,14 +27,14 @@ from scripts.research.arms849 import serving as S
 from scripts.research.arms849.embed import Embedder
 from scripts.research.arms849.prompt import Prompt
 from scripts.research.arms849.text import FrozenCorpusText, edge_key, entity_key
-from scripts.research.load_849_corpus import DEFAULT_CORPUS, Loaded, replay
+from scripts.research.load_849_corpus import Loaded, replay
 
 PKG = REPO_ROOT / "scripts" / "research" / "arms849"
-CORPUS = pathlib.Path(os.environ.get("ARMS849_CORPUS", str(DEFAULT_CORPUS)))
-CACHE = pathlib.Path(os.environ.get("ARMS849_CACHE", str(REPO_ROOT / "build" / "849-cache")))
-needs_corpus = pytest.mark.skipif(not (CORPUS / "stream.jsonl").exists(), reason="rendered corpus absent")
+needs_corpus = pytest.mark.skipif(
+    not (CORPUS / "stream.jsonl").exists(), reason=RESEARCH_ENVIRONMENT_SKIP_REASON
+)
 needs_cache = pytest.mark.skipif(not (CACHE / "fastembed").is_dir() or not (CACHE / "qwen-tokenizer").exists(),
-                                 reason="embedder / tokenizer cache absent")
+                                 reason=RESEARCH_ENVIRONMENT_SKIP_REASON)
 SOURCE = (PKG / "arm_r.py").read_text(encoding="utf-8")
 
 

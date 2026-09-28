@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import asyncio
-import os
 import pathlib
 import sys
 
@@ -11,16 +10,18 @@ import pytest
 
 REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT))
+from tests.research.conftest import CACHE, RESEARCH_ENVIRONMENT_SKIP_REASON
 
 # The research stack (graphiti_core, fastembed) lives in the runner image and the local venv, not in
 # requirements.txt; CI has no graphiti_core, so skip this module there rather than fail collection
 # (same shape as the corpus/cache skips). The real runs happen on office4.
-pytest.importorskip("graphiti_core", reason="research stack (graphiti_core) not installed — e.g. CI")
+pytest.importorskip("graphiti_core", reason=RESEARCH_ENVIRONMENT_SKIP_REASON)
 
 from scripts.research.arms849 import embed as E
 
-CACHE = pathlib.Path(os.environ.get("ARMS849_CACHE", str(REPO_ROOT / "build" / "849-cache")))
-needs_embedder = pytest.mark.skipif(not (CACHE / "fastembed").is_dir(), reason="FastEmbed cache absent (substrate setup)")
+needs_embedder = pytest.mark.skipif(
+    not (CACHE / "fastembed").is_dir(), reason=RESEARCH_ENVIRONMENT_SKIP_REASON
+)
 
 
 def test_tripwire_raises_and_counts_on_every_generation_path():
