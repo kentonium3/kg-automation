@@ -52,12 +52,9 @@ activated_tactics:
 - atomic-state-ownership
 - autonomous-operation-protocol
 - avoid-gold-plating
-- behavior-driven-development
 - black-box-integration-testing
-- boring-code-review
 - bounded-context-canvas-fill
 - bounded-context-identification
-- bug-fixing-checklist
 - c4-zoom-in-architecture-documentation
 - chain-of-responsibility-rule-pipeline
 - change-apply-smallest-viable-diff
@@ -87,7 +84,6 @@ activated_tactics:
 - input-validation-fail-fast
 - interface-variation-design
 - language-driven-design
-- locality-of-change
 - mutation-testing-workflow
 - no-parallel-duplicate-test-runs
 - occurrence-classification-workflow
@@ -136,6 +132,7 @@ activated_tactics:
 - usage-examples-sync
 - work-package-completion-validation
 - zombies-tdd
+- bdd-scenario-formulation
 activated_styleguides:
 - aggregate-design-rules
 - deployable-skill-authoring
@@ -145,6 +142,7 @@ activated_styleguides:
 - python-conventions
 - reasons-canvas-writing
 - testing-principles
+- boring-code-review
 activated_toolguides:
 - contextive
 - efficient-local-tooling

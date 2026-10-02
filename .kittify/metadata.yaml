@@ -451,3 +451,12 @@ migrations:
     applied_at: '2026-09-19T13:38:47.999636+00:00'
     result: skipped
     notes: Not applicable
+  - id: 4.0.0rc5_retire_single_owner_doctrine_ids
+    applied_at: '2026-10-02T12:50:35.470687+00:00'
+    result: success
+    notes: Removed bug-fixing-checklist from .kittify/config.yaml (activated_tactics);
+      Removed locality-of-change from .kittify/config.yaml (activated_tactics); Removed
+      boring-code-review from .kittify/config.yaml (activated_tactics); Activated
+      successor boring-code-review in .kittify/config.yaml (activated_styleguides);
+      Removed behavior-driven-development from .kittify/config.yaml (activated_tactics);
+      Activated successor bdd-scenario-formulation in .kittify/config.yaml (activated_tactics)
