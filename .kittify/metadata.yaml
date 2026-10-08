@@ -3,10 +3,15 @@
 # DO NOT EDIT MANUALLY
 
 spec_kitty:
-  version: 4.0.0rc5
+  version: 4.0.0rc6
   initialized_at: '2026-03-25T23:07:06.539751'
-  last_upgraded_at: '2026-09-22T18:22:40.128218+00:00'
+  last_upgraded_at: '2026-10-08T15:27:48.899029+00:00'
   schema_version: 3
+  schema_capabilities:
+    canonical_context: true
+    event_log_authority: true
+    ownership_manifest: true
+    thin_shims: true
 environment:
   python_version: 3.13.12
   platform: darwin
@@ -460,3 +465,8 @@ migrations:
       successor boring-code-review in .kittify/config.yaml (activated_styleguides);
       Removed behavior-driven-development from .kittify/config.yaml (activated_tactics);
       Activated successor bdd-scenario-formulation in .kittify/config.yaml (activated_tactics)
+  - id: 4.0.0rc5_decision_index_merge_driver
+    applied_at: '2026-10-08T15:27:48.849673+00:00'
+    result: success
+    notes: 'Added .gitattributes entry: kitty-specs/**/decisions/index.json merge=spec-kitty-decision-index;
+      Configured git merge.spec-kitty-decision-index.name; Configured git merge.spec-kitty-decision-index.driver'

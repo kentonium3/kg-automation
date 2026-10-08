@@ -24,7 +24,7 @@ last_updated: '2026-06-05'
   context for kg-automation.
 
 <!-- spec-kitty:orientation -->
-**Spec Kitty v4.0.0rc5** — project: kg-automation (healthy)
+**Spec Kitty v4.0.0rc6** — project: kg-automation (healthy)
 
 Two usage patterns:
 - **Full mission** (spec → plan → tasks → implement → review → merge):
