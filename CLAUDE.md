@@ -148,10 +148,14 @@ kitty-specs/        ← spec-kitty managed (DO NOT EDIT — see below)
 
 **`kitty-specs/` and `.kittify/` are owned by spec-kitty.** These directories
 contain mission specifications, work packages, status event logs, and workflow
-configuration managed exclusively by spec-kitty commands. Agents and humans
-must **never** directly create, edit, move, or delete files in these directories.
-All changes flow through spec-kitty slash commands (`/spec-kitty.*`). Reading
-these files for context is fine; writing to them is not.
+configuration. Reading them is always fine. **Writes the spec-kitty workflow
+instructs are the normal mission path** — authoring spec/plan/tasks/WP artifacts,
+filling the matrices, adding the `meta.json` fields a runbook names, committing
+generated status files. What is prohibited is the **ad hoc workaround**: writing
+here without Kent's permission to get past a workflow fault, to hand-finish a
+command that failed, or to edit lane/review state (`status.events.jsonl`,
+`status.json`, `lanes.json`) instead of moving it through the commands. The
+canonical statement is rule 6 of "Workflow System Rules" in `~/.claude/CLAUDE.md`.
 
 ## Feature Development Workflow
 
