@@ -18,10 +18,10 @@
       "criterion_id": "FR-002",
       "description": "Verify FR-002 is satisfied",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
+      "evidence": "scripts/office2/felix_health_check/tests/test_coverage.py::test_incident_replay_reports_both_failures (127 -> failed), ::test_real_2026_10_14_backup_pointer_is_a_failure; live office2 dry-run: restic-backup failed on stale last_integrity_check_utc",
+      "pass_fail": "pass",
+      "verified_by": "claude-opus-5-5",
+      "verified_at": "2026-10-14T20:04:08.579652+00:00",
       "notes": "TODO: replace with a real acceptance criterion"
     },
     {
