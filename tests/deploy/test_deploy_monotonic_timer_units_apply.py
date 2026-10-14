@@ -136,17 +136,18 @@ def test_one_shared_deadline_across_all_timers(office2):
     assert clock.slept >= mod.NEXT_ELAPSE_TIMEOUT_S
 
 
-def test_deployed_copy_that_differs_fails_convergence(office2, monkeypatch):
+def test_deployed_copy_that_differs_fails_convergence(office2):
+    """Something rewrites a deployed unit after the copy (simulated during
+    daemon-reload, independent of HOW the entrypoint copies): the final
+    convergence re-diff must fail the run."""
     unit_dir, clock = office2
-    import shutil
-    real = shutil.copyfile
-
-    def corrupting_copy(src, dst, *a, **k):
-        real(src, dst, *a, **k)
-        if Path(dst).name == NAMES[0]:
-            Path(dst).write_text(Path(dst).read_text() + "\n# drift\n")
-        return dst
-
-    monkeypatch.setattr(shutil, "copyfile", corrupting_copy)
     sd = FakeSystemd(unit_dir)
-    assert mod._apply(run=sd, sleep=clock.sleep) == 1
+    real_call = sd.__call__
+
+    def drifting(argv):
+        if argv[2] == "daemon-reload":
+            target = unit_dir / NAMES[0]
+            target.write_text(target.read_text() + "\n# drift\n")
+        return real_call(argv)
+
+    assert mod._apply(run=drifting, sleep=clock.sleep) == 1
