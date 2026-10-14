@@ -101,7 +101,7 @@ docs/runbooks/restic-backup-ops.md               # "who tells you backups stoppe
 
 ### IC-03 — Deploy, retire host copy, live proof
 
-- **Verification (review, Codex-2)**: apply checks the individual results, not the combined status. The record's `ran_at_utc` must be ≥ the apply start; `coverage_checks` must hold exactly `felix-canary` and `restic-backup`, neither `unknown`/`unavailable`/`suppressed`; `exit_code` must be an int (the shell ran); `delivery.sent` must be true whenever status ≠ `ALL_HEALTHY`; and `script_path` must equal the repo path. Only then is the host copy retired. A re-apply after retirement is idempotent.
+- **Verification (review, Codex-2)**: apply checks the individual results, not the combined status. The record's `ran_at_utc` must be ≥ the apply start; `coverage_checks` must hold exactly `felix-canary` and `restic-backup`, neither `unknown`/`unavailable`/`suppressed`; `exit_code` must be an int (the shell ran) and `script_status` must be `ALL_HEALTHY` or `FAILURES_DETECTED` (the shell's own verdict was recognised; Codex re-review 2); `delivery.sent` must be true whenever status ≠ `ALL_HEALTHY`; and `script_path` must equal the repo path. Only then is the host copy retired. A re-apply after retirement is idempotent.
 - **Purpose**: a manifest whose entrypoint (dry-run: reports what it would do and evaluates coverage read-only against live pointers; apply: runs the health check once, verifies the live record carries both coverage checks and the repo script path, then moves the host copy out of `~/helper-scripts/` into a dated retired file) plus a `felix-health-check.sh` preflight that points at the repo script.
 - **Relevant requirements**: FR-008, FR-009, SC-002, SC-005, C-004
 - **Affected surfaces**: `scripts/deploy/deploy-health-check-coverage.py`, `tests/deploy/test_deploy_health_check_coverage.py`, `deploys/queued/health-check-coverage.yaml`, `scripts/office2/deploy/felix-health-check.sh`, `scripts/deploy/deploy-deterministic-monitoring-checks.py` (its preflight still names the retired path, Codex-7)
@@ -114,7 +114,7 @@ docs/runbooks/restic-backup-ops.md               # "who tells you backups stoppe
 - **Relevant requirements**: FR-010
 - **Affected surfaces**: `service-inventory.json` (`felix-health-check` entry `expected`/`note`), `service-inventory.md`, `observability-and-alerting.md`, `restic-backup-ops.md`
 - **Sequencing/depends-on**: IC-02 (describe what was built)
-- **Risks**: `validate_architecture_data.py` is a blocking gate. The canary reads the `felix-health-check` `health_check` block, so only `expected`/`note` prose and the dependency fields naming the retired script path change there (Codex-7); `method`, `endpoint`, `max_age_seconds` and `success_status_values` stay byte-identical. Document the shared-fate limit (paula-1/debbie-3) in `observability-and-alerting.md`.
+- **Risks**: `validate_architecture_data.py` is a blocking gate. The canary reads the `felix-health-check` `health_check` block, so only `purpose`/`expected`/`note` prose and the dependency fields naming the retired script path change there (Codex-7 and re-review 7). After retirement, a grep proves no active operational reference to `helper-scripts/health-check.sh` remains outside `deploys/applied/`, `kitty-specs/` and this mission's history; `method`, `endpoint`, `max_age_seconds` and `success_status_values` stay byte-identical. Document the shared-fate limit (paula-1/debbie-3) in `observability-and-alerting.md`.
 
 ### IC-05 — The canary's tick declaration becomes affirmative (key ledger)
 

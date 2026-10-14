@@ -11,6 +11,7 @@
 | `ran_at_utc` | ISO-8601 `Z` string | **unchanged** | Run start. **Must remain the canary's freshness anchor.** |
 | `exit_code` | int \| null | **unchanged** | The shell script's exit code; `null` if it did not run (missing, timeout). |
 | `delivery` | `{attempted: bool, sent: bool, detail: str}` | **unchanged** | Alert-bus delivery record. |
+| `script_status` | `"ALL_HEALTHY" \| "FAILURES_DETECTED" \| "UNKNOWN" \| "SCRIPT_MISSING"` | **NEW** | The shell script's own `classify()` verdict, before coverage is combined. Lets a reader and the deploy distinguish "shell monitoring incomplete" from "coverage failed". |
 | `script_path` | string | **NEW** | Absolute path of the shell script this run executed (or tried to). Repo path after this mission. |
 | `coverage_checks` | list of objects | **NEW** | One entry per coverage component, in fixed order `felix-canary`, `restic-backup`. |
 

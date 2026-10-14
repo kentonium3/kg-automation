@@ -122,4 +122,14 @@ This also strengthens the canary's self-probe, an accepted side effect that is d
 
 ### R12 — Declaration preconditions (validation, not predicate)
 
-Before evaluating, `coverage.py` requires that each target's `health_check` has a numeric `max_age_seconds` > 0 and a `key_ledger` with exactly one `anchor: true` freshness key. Otherwise the finding is `unknown`, "declaration lacks a freshness bound/anchor". The same function runs in CI against the real inventory. This checks the *shape* of the declaration the evaluator needs and restates no value from it.
+Before evaluating, `coverage.py` requires that each target's `health_check` has `max_age_seconds` that is a finite, non-boolean number > 0, and a `key_ledger` with exactly one `anchor: true` freshness key. Every ledger `freshness` key carrying its own `max_age_seconds` override must meet the same rule, because the override takes precedence (`probes.py:598–603`). Otherwise the finding is `unknown`, "declaration lacks a freshness bound/anchor". The same function runs in CI against the real inventory. This checks the *shape* of the declaration the evaluator needs and restates no value from it.
+
+### Plan re-review (Codex, 2026-10-14): REJECT on two PARTIALs, both folded
+
+Codex rated findings 1, 3, 4, 5 and 6 RESOLVED. It ran R11's ledger in memory through `check_key_ledger` and the real probe: missing, null, `partial` and `error` status, a broken anchor with a fresh fallback, and zero components are all rejected. It found no new material defect.
+- **2 PARTIAL → folded:** the run record gains `script_status` (the shell script's own classified verdict, before combination); the deploy requires it to be `ALL_HEALTHY` or `FAILURES_DETECTED`. `script_status` is not in `_explicit_error`'s vocabulary, and the contract test covers it like every new key.
+- **7 PARTIAL (LOW) → folded:** the inventory `purpose` field is in scope, and there is a post-retirement reference grep.
+- **4 refinement → folded into R12:** the bound must be finite and non-boolean, and per-key overrides are validated.
+- **Note:** the new ledger and its harness must land together, because the existing harness-path test requires the harness file to exist (`tests/office2/restic_backup/test_ledger_reconciliation.py:186`).
+
+The fold is mechanical and fully specified, so no third plan review was run. The mandatory post-merge Codex review covers the implementation.
