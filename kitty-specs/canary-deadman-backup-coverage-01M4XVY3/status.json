@@ -1,7 +1,7 @@
 {
-  "event_count": 3,
-  "last_event_id": "01M4XX4QF9BR9FABCDNQ93ZVTV",
-  "materialized_at": "2026-10-14T19:10:04.777191+00:00",
+  "event_count": 4,
+  "last_event_id": "01M4XX4YZ7HSV1KZDP9VXMD0WJ",
+  "materialized_at": "2026-10-14T19:10:12.455421+00:00",
   "mission_number": "",
   "mission_slug": "canary-deadman-backup-coverage-01M4XVY3",
   "mission_type": "software-dev",
@@ -15,7 +15,7 @@
     "for_review": 0,
     "in_progress": 0,
     "in_review": 0,
-    "planned": 3
+    "planned": 4
   },
   "work_packages": {
     "WP01": {
@@ -38,6 +38,13 @@
       "lane": "planned",
       "last_event_id": "01M4XX4QF9BR9FABCDNQ93ZVTV",
       "last_transition_at": "2026-10-14T19:10:04.777191+00:00"
+    },
+    "WP04": {
+      "actor": "finalize-tasks",
+      "force_count": 0,
+      "lane": "planned",
+      "last_event_id": "01M4XX4YZ7HSV1KZDP9VXMD0WJ",
+      "last_transition_at": "2026-10-14T19:10:12.455421+00:00"
     }
   }
 }
