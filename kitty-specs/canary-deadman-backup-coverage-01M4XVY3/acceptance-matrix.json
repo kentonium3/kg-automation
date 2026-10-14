@@ -108,10 +108,10 @@
       "criterion_id": "FR-011",
       "description": "Verify FR-011 is satisfied",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
+      "evidence": "tests/canary/test_tick_ledger_verdicts.py (missing/partial/error/null status, broken+missing anchor with fresh fallback, zero/missing components -> failed; real tick healthy control); reproduced healthy pre-fix 2026-10-14",
+      "pass_fail": "pass",
+      "verified_by": "claude-opus-5-5",
+      "verified_at": "2026-10-14T20:05:32.488169+00:00",
       "notes": "TODO: replace with a real acceptance criterion"
     },
     {
