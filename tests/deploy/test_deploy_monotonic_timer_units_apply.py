@@ -151,3 +151,12 @@ def test_deployed_copy_that_differs_fails_convergence(office2):
         return real_call(argv)
 
     assert mod._apply(run=drifting, sleep=clock.sleep) == 1
+
+
+def test_dry_run_plans_and_writes_nothing(office2, capsys):
+    unit_dir, _clock = office2
+    assert mod._dry_run() == 0
+    out = capsys.readouterr().out
+    assert out.count('"event": "would_copy"') == len(NAMES)
+    assert '"currently_differs": true' in out
+    assert not unit_dir.exists()

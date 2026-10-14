@@ -51,9 +51,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
-import pwd
-import shutil
 import subprocess
 import sys
 import time
@@ -63,6 +60,7 @@ from typing import Callable
 _REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(_REPO_ROOT))
 
+from scripts.deploy.lib import userunits  # noqa: E402
 from scripts.deploy.lib.timer_units import directives, persistent_on_monotonic  # noqa: E402
 
 TIMERS: tuple[Path, ...] = (
@@ -76,12 +74,7 @@ TIMERS: tuple[Path, ...] = (
 _EXPECTED_USER = "claude"
 _EXPECTED_HOME = Path("/home/claude")
 UNIT_DIR = _EXPECTED_HOME / ".config" / "systemd" / "user"
-_SHOW_PROPS = (
-    "Persistent", "UnitFileState", "ActiveState", "SubState",
-    "FragmentPath", "DropInPaths", "NextElapseUSecMonotonic",
-)
 NEXT_ELAPSE_TIMEOUT_S = 300
-_POLL_INTERVAL_S = 5
 
 Runner = Callable[[list[str]], "tuple[int, str, str]"]
 
@@ -95,7 +88,7 @@ def _run(argv: list[str]) -> tuple[int, str, str]:
     return p.returncode, p.stdout.strip(), p.stderr.strip()
 
 
-# --- pure checks (unit-tested) ----------------------------------------------
+# --- policy (this deploy's rules; the mechanism lives in lib.userunits) -------
 
 def source_problems(text: str) -> list[str]:
     problems = []
@@ -106,51 +99,19 @@ def source_problems(text: str) -> list[str]:
     return problems
 
 
-def next_elapse_is_concrete(value: str) -> bool:
-    # systemd renders a human timespan ("54min 36.9s"); only these mean "none".
-    return value.strip() not in {"", "0", "infinity"}
+# The loaded properties every timer must show after the restart.
+EXPECT_LOADED = {"Persistent": "no", "UnitFileState": "enabled", "ActiveState": "active"}
 
 
-def parse_show(out: str) -> dict[str, str]:
-    props: dict[str, str] = {}
-    for line in out.splitlines():
-        key, sep, value = line.partition("=")
-        if sep:
-            props[key] = value
-    return props
-
-
-def loaded_problems(name: str, props: dict[str, str], unit_texts: list[str]) -> list[str]:
-    """``unit_texts`` is the installed fragment followed by its drop-ins."""
-    problems = []
-    if props.get("Persistent") != "no":
-        problems.append(f"loaded Persistent={props.get('Persistent')!r}, want 'no'")
-    if props.get("UnitFileState") != "enabled":
-        problems.append(f"UnitFileState={props.get('UnitFileState')!r}, want 'enabled'")
-    if props.get("ActiveState") != "active":
-        problems.append(f"ActiveState={props.get('ActiveState')!r}, want 'active'")
-    if props.get("FragmentPath") != str(UNIT_DIR / name):
-        problems.append(f"FragmentPath={props.get('FragmentPath')!r}, want {str(UNIT_DIR / name)!r}")
+def _no_persistent_in_loaded_files(_props: dict[str, str], unit_texts: list[str]) -> list[str]:
     # Belt-and-braces over the loaded Persistent= above: re-derive it from the
     # files systemd actually loaded, fragment plus drop-ins, as one stream.
     if unit_texts and persistent_on_monotonic(*unit_texts):
-        problems.append("installed fragment/drop-ins set Persistent= on a monotonic timer")
-    return problems
+        return ["installed fragment/drop-ins set Persistent= on a monotonic timer"]
+    return []
 
 
 # --- steps -------------------------------------------------------------------
-
-def _preflight_user() -> bool:
-    actual = pwd.getpwuid(os.geteuid()).pw_name
-    home = Path.home()
-    if actual != _EXPECTED_USER or home != _EXPECTED_HOME:
-        _emit("preflight_failed",
-              reason="user units install under $HOME; refusing to install as the wrong user",
-              euid_user=actual, home=str(home))
-        return False
-    _emit("preflight_ok", user=actual, home=str(home))
-    return True
-
 
 def _sources_ok() -> bool:
     ok = True
@@ -166,60 +127,31 @@ def _sources_ok() -> bool:
     return ok
 
 
-def _differs(src: Path) -> bool | None:
-    dst = UNIT_DIR / src.name
-    if not dst.exists():
-        return True
-    try:
-        return src.read_text() != dst.read_text()
-    except OSError:
-        return None
-
-
 def _verify_timer(name: str, run: Runner, sleep: Callable[[float], None],
                   timeout_s: int = NEXT_ELAPSE_TIMEOUT_S,
                   deadline: float | None = None,
                   read: Callable[[Path], str] = lambda p: p.read_text(encoding="utf-8"),
                   ) -> list[str]:
-    # One shared deadline across all six (passed by _apply), so a broken
-    # deploy holds the deployer tick for at most ~NEXT_ELAPSE_TIMEOUT_S total.
-    if deadline is None:
-        deadline = time.monotonic() + timeout_s
-    while True:
-        rc, out, err = run(["systemctl", "--user", "show", name,
-                            *[f"-p{p}" for p in _SHOW_PROPS]])
-        if rc != 0:
-            return [f"systemctl show failed rc={rc}: {err}"]
-        props = parse_show(out)
-        paths = [Path(props.get("FragmentPath", "") or "/nonexistent")]
-        paths += [Path(p) for p in props.get("DropInPaths", "").split() if p]
-        texts = []
-        for d in paths:
-            try:
-                texts.append(read(d))
-            except OSError as exc:
-                return [f"cannot read unit file {d}: {exc}"]
-        problems = loaded_problems(name, props, texts)
-        if problems:
-            return problems
-        if next_elapse_is_concrete(props.get("NextElapseUSecMonotonic", "")):
-            _emit("timer_ok", unit=name, sub_state=props.get("SubState"),
-                  next_elapse_monotonic=props["NextElapseUSecMonotonic"])
-            return []
-        if time.monotonic() >= deadline:
-            return [f"no concrete next elapse after {timeout_s}s "
-                    f"(SubState={props.get('SubState')!r}, "
-                    f"NextElapseUSecMonotonic={props.get('NextElapseUSecMonotonic')!r})"]
-        _emit("waiting_for_next_elapse", unit=name, sub_state=props.get("SubState"))
-        sleep(_POLL_INTERVAL_S)
+    """This deploy's verification policy, bound onto userunits.verify_unit."""
+    res = userunits.verify_unit(
+        name, run, unit_dir=UNIT_DIR, expect=EXPECT_LOADED,
+        extra_check=_no_persistent_in_loaded_files, wait_next_elapse=True,
+        sleep=sleep, deadline=deadline, timeout_s=timeout_s, read=read, emit=_emit,
+    )
+    if res.ok:
+        _emit("timer_ok", unit=name, sub_state=res.details["props"].get("SubState"),
+              next_elapse_monotonic=res.details["props"].get("NextElapseUSecMonotonic"))
+        return []
+    return list(res.details["problems"])
 
 
 def _dry_run() -> int:
     if not _sources_ok():
         return 1
-    for src in TIMERS:
-        d = _differs(src)
-        _emit("would_copy", unit=src.name, src=str(src), dst=str(UNIT_DIR / src.name),
+    plan = userunits.plan_install(TIMERS, UNIT_DIR)
+    for unit in plan.details["units"]:
+        d = unit["differs"]
+        _emit("would_copy", unit=unit["name"], src=unit["src"], dst=unit["dst"],
               currently_differs=("unreadable" if d is None else d))
     _emit("would_run", argv=["systemctl", "--user", "daemon-reload"])
     for src in TIMERS:
@@ -229,33 +161,39 @@ def _dry_run() -> int:
 
 
 def _apply(run: Runner = _run, sleep: Callable[[float], None] = time.sleep) -> int:
-    if not _preflight_user() or not _sources_ok():
+    pre = userunits.preflight_user(expected_user=_EXPECTED_USER, expected_home=_EXPECTED_HOME)
+    if not pre.ok:
+        _emit("preflight_failed",
+              reason="user units install under $HOME; refusing to install as the wrong user",
+              **pre.details)
+        return 1
+    _emit("preflight_ok", user=pre.details["euid_user"], home=pre.details["home"])
+    if not _sources_ok():
         return 1
 
-    UNIT_DIR.mkdir(parents=True, exist_ok=True)
-    for src in TIMERS:
-        try:
-            shutil.copyfile(src, UNIT_DIR / src.name)
-        except OSError as exc:
-            _emit("copy_failed", unit=src.name, error=str(exc))
-            return 1
-        _emit("copied", unit=src.name)
-
-    rc, _, err = run(["systemctl", "--user", "daemon-reload"])
-    if rc != 0:
-        _emit("daemon_reload_failed", rc=rc, stderr=err)
+    # Install all, reload once, restart all. The restart is MANDATORY, not
+    # hygiene: a running timer keeps its deserialized state across
+    # daemon-reload; only a restart applies the new definition.
+    applied = userunits.apply_units(TIMERS, UNIT_DIR, action="restart", run=run)
+    if "units" not in applied.details or applied.details.get("error_code") in {"SOURCE_MISSING", "COPY_FAILED"}:
+        _emit("copy_failed", **{k: v for k, v in applied.details.items() if k != "units"})
+        return 1
+    for unit in applied.details.get("installed", []):
+        _emit("copied", unit=unit["name"])
+    if applied.details.get("error_code") == "DAEMON_RELOAD_FAILED":
+        _emit("daemon_reload_failed", rc=applied.details.get("rc"), stderr=applied.details.get("stderr_excerpt"))
         return 1
     _emit("daemon_reload_ok")
 
-    failed: dict[str, list[str]] = {}
-    for src in TIMERS:
-        rc, _, err = run(["systemctl", "--user", "restart", src.name])
-        if rc != 0:
-            failed[src.name] = [f"restart failed rc={rc}: {err}"]
-            _emit("timer_restart_failed", unit=src.name, rc=rc, stderr=err)
-            continue
-        _emit("timer_restarted", unit=src.name)
+    failed: dict[str, list[str]] = dict(applied.details.get("failed", {}))
+    for unit in applied.details["units"]:
+        if unit["ok"]:
+            _emit("timer_restarted", unit=unit["name"])
+        else:
+            _emit("timer_restart_failed", unit=unit["name"], rc=unit.get("rc"), stderr=unit.get("stderr_excerpt"))
 
+    # ONE deadline shared by every timer, so a broken deploy holds the
+    # deployer tick for at most ~NEXT_ELAPSE_TIMEOUT_S in total.
     deadline = time.monotonic() + NEXT_ELAPSE_TIMEOUT_S
     for src in TIMERS:
         if src.name in failed:
@@ -265,11 +203,11 @@ def _apply(run: Runner = _run, sleep: Callable[[float], None] = time.sleep) -> i
             failed[src.name] = problems
             _emit("timer_verify_failed", unit=src.name, problems=problems)
 
-    for src in TIMERS:
-        d = _differs(src)
-        if d is None or d:
-            failed.setdefault(src.name, []).append(
-                "deployed copy unreadable" if d is None else "deployed copy still differs")
+    conv = userunits.converged(TIMERS, UNIT_DIR)
+    for unit in conv.details["units"]:
+        if unit["differs"] is not False:
+            failed.setdefault(unit["name"], []).append(
+                "deployed copy unreadable" if unit["differs"] is None else "deployed copy still differs")
 
     if failed:
         _emit("apply_failed", failed=failed)

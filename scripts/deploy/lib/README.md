@@ -21,6 +21,8 @@ versioning policy and non-goals.
 | `applied` | Applied-entry writer for `deploys/applied/<NNNN>-<name>.yaml` | `write_applied` |
 | `tier` | Tier-policy guard (CI + runtime modes) | `tier_guard` |
 | `apply` | Canonical apply orchestrator (composes everything above) | `dry_run_then_apply_gate` |
+| `userunits` | systemd **user**-unit install mechanism (#1066): preflight, plan, atomic install, one `daemon-reload` then an action per unit, loaded-config verification with a caller-supplied `expect`/`extra_check`, opt-in bounded next-elapse polling under a shared deadline, convergence. Policy (which properties must hold, restart vs enable-now vs none) stays with the caller; the module never prints. New unit-installing entrypoints must use it (`tests/deploy/test_unit_install_uses_userunits.py`). | `preflight_user`, `plan_install`, `install_units`, `daemon_reload`, `unit_action`, `apply_units`, `verify_unit`, `converged`, `parse_show`, `next_elapse_is_concrete` |
+| `timer_units` | Parse unit directives; the #1062 `Persistent=`-on-monotonic predicate | `directives`, `persistent_on_monotonic` |
 
 ## Return type: `LibResult`
 

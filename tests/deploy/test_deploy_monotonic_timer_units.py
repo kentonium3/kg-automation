@@ -59,26 +59,28 @@ def test_source_with_persistent_is_rejected_before_copy() -> None:
     assert mod.source_problems("[Unit]\nDescription=x\n")  # no [Timer]
 
 
-@pytest.mark.parametrize("value, ok", [
-    ("1h 21.06s", True), ("54min 36.9s", True),
-    ("infinity", False), ("0", False), ("", False),
+# parse_show / next_elapse_is_concrete moved to scripts.deploy.lib.userunits
+# (#1066); their cases live in tests/deploy/test_userunits.py. What stays here
+# is THIS deploy's policy, driven through _verify_timer.
+
+@pytest.mark.parametrize("case, overrides, want_ok", [
+    ("all as expected", {}, True),
+    ("loaded Persistent=yes", {"Persistent": "yes"}, False),
+    ("timer disabled", {"UnitFileState": "disabled"}, False),
+    ("loaded from elsewhere", {"FragmentPath": "/etc/systemd/user/felix-canary.timer"}, False),
+    ("not active", {"ActiveState": "inactive"}, False),
 ])
-def test_next_elapse_is_concrete(value: str, ok: bool) -> None:
-    assert mod.next_elapse_is_concrete(value) is ok
+def test_loaded_config_policy(case, overrides, want_ok):
+    problems = mod._verify_timer("felix-canary.timer", FakeRun([_show(**overrides)]), lambda s: None, read=_UNIT)
+    assert (problems == []) is want_ok, f"{case}: {problems}"
 
 
-def test_loaded_config_checks() -> None:
-    good = mod.parse_show(_show())
-    assert mod.loaded_problems("felix-canary.timer", good, []) == []
-    still = mod.parse_show(_show(Persistent="yes"))
-    assert mod.loaded_problems("felix-canary.timer", still, [])
-    disabled = mod.parse_show(_show(UnitFileState="disabled"))
-    assert mod.loaded_problems("felix-canary.timer", disabled, [])
-    elsewhere = mod.parse_show(_show(FragmentPath="/etc/systemd/user/felix-canary.timer"))
-    assert mod.loaded_problems("felix-canary.timer", elsewhere, [])
-    unit = "[Timer]\nOnBootSec=5min\nOnUnitActiveSec=15min\n"
-    assert mod.loaded_problems("felix-canary.timer", good, [unit]) == []
-    assert mod.loaded_problems("felix-canary.timer", good, [unit, "[Timer]\nPersistent=true\n"])
+def test_dropin_readding_persistent_fails_the_policy():
+    run = FakeRun([_show(DropInPaths="/d/10-persist.conf")])
+    texts = {str(mod.UNIT_DIR / "felix-canary.timer"): "[Timer]\nOnBootSec=5min\nOnUnitActiveSec=15min\n",
+             "/d/10-persist.conf": "[Timer]\nPersistent=true\n"}
+    problems = mod._verify_timer("felix-canary.timer", run, lambda s: None, read=lambda p: texts[str(p)])
+    assert any("Persistent" in p for p in problems)
 
 
 def test_slow_service_is_waited_for_not_failed() -> None:
