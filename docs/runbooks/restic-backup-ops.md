@@ -247,6 +247,47 @@ ssh office2-kgale 'sudo RESTIC_REPOSITORY=/mnt/backups/restic-repo \
   restic snapshots --latest 5'
 ```
 
+### Backup drive missing (`/mnt/backups not mounted`)
+
+**Symptom:** the backup log shows `ERROR: /mnt/backups not mounted. Backup
+drive missing?` and the pointer has `restic_exit_code: 127` with a null
+`snapshot_timestamp_utc`. Seen for 17 days after the 2026-09-27 reboot (#1064).
+
+`/etc/fstab` mounts the drive with `nofail`, so a missing drive never stops
+the boot and nothing fails loudly. Work through these in order:
+
+1. **Find the drive by model, not by `sdX`.** The kernel name drifts, and the
+   internal card reader's empty slots also appear as 0-byte `sdX` devices.
+   ```bash
+   ssh office2-claude 'lsblk -d -o NAME,SIZE,TRAN,MODEL | grep -i -E "easystore|WD10SDRW"'
+   ```
+   A real size (931.5G) means the drive is fine and only needs mounting (step 4).
+   **0B** means the USB adapter answers but the disk behind it doesn't. In
+   sysfs, `ioerr_cnt` ≈ `iodone_cnt` confirms every I/O is failing.
+2. **0B → check the port.** The drive is bus-powered. It must be on a **USB 3**
+   port (`lsusb -t` shows `5000M` for it). On a USB 2.0 port (`480M`, 500 mA)
+   it may fail to spin up after a power cycle. Unplugging is safe while it is
+   unmounted. Move it to a rear USB 3 port with no hub. Messages like
+   `failed to bind enclosure -19` and `Failed to get diagnostic page 0x1` on the
+   console are harmless WD enclosure noise.
+3. **Before trusting it, check health** (as `office2-kgale`):
+   ```bash
+   sudo smartctl -a -d sat /dev/sdX
+   sudo fsck.ext4 -n /dev/sdX1
+   ```
+   Require SMART PASSED with 0 reallocated, pending and uncorrectable sectors
+   and a spin-retry count of 0, plus a clean fsck. If it still shows 0B on
+   another machine, the drive or its adapter has failed: start a fresh
+   repository on a replacement rather than waiting.
+4. **Mount, back up, verify** (as `office2-kgale`):
+   ```bash
+   sudo mount /mnt/backups
+   sudo /data/services/backup/scripts/backup.sh
+   sudo restic -r /mnt/backups/restic-repo --password-file /etc/restic/password check
+   ```
+   The weekly integrity check only runs on Sundays, so run `restic check`
+   explicitly after any unclean disconnect.
+
 ### Restore from a snapshot
 
 The standard restic workflow. Identify the snapshot id from the listing
