@@ -4,7 +4,7 @@ tags: [162]
 
 # Project Charter
 
-<!-- Authoritative policy document for spec-kitty workflow governance. Edit directly, run `spec-kitty charter sync` to regenerate derived files. -->
+<!-- Authoritative policy text for this project's governance. Edit directly: spec-kitty never overwrites this file, and `charter context` serves it to agents. It is the curated companion to the compiled `.kittify/charter/charter.yaml`, which `spec-kitty charter generate --no-from-interview` rebuilds from the activations in `.kittify/config.yaml`. (`charter sync` was removed in spec-kitty 4.0.0rc7.) -->
 
 Generated: 2026-03-26T04:46:08Z (original)
 Last amended: 2026-04-11 (mission 027 close-out merge + comprehensive restoration from mission-026/027 lessons)
@@ -226,7 +226,7 @@ template_set: software-dev-default
 - **Deployment Constraints**: office2-only, Tailscale-only, deploy script required, strict-order-of-operations safe-deploy pattern, no system crontab, Tier 2 requires Restic ≤24h.
 - **Documentation Policy**: YAML frontmatter required on all markdown; architecture decisions in `docs/design/`; feature specs via GitHub issues + spec-kitty missions (historical archive in `docs/func-spec/`); conventional commits; update docs when behavior changes; JSON files are authoritative, markdown views follow.
 - **Risk Boundaries**: `~/second-brain/notes/04-Growth/_private/` is the constitutional hard limit — never read, written, referenced, or logged by any agent or script. No credentials in code or committed files. Anthropic API called direct. No community OpenClaw skills without source review. All services Tailscale-only. No untrusted code runs near credentials or personal data.
-- **Amendment Process**: edit `charter.md` directly, run `spec-kitty charter sync`, commit and push. Review the diff to confirm derived files reflect intent.
+- **Amendment Process**: edit `charter.md` directly, commit and push; no regeneration is needed for prose. When the set of active doctrine changes, also run `spec-kitty charter generate --no-from-interview` to recompile `charter.yaml`, and confirm with `spec-kitty charter preflight`.
 - **Exception Policy**: exceptions documented with rationale, scope, and expiration. Hard boundaries (privacy, credentials, agent traceability) cannot be excepted.
 
 ## Project Directives
@@ -277,13 +277,13 @@ template_set: software-dev-default
 
 ## Amendment Process
 
-1. Edit `.kittify/charter/charter.md` directly.
-2. Run `spec-kitty charter sync` to regenerate derived YAML files (`governance.yaml`, `directives.yaml`, `metadata.yaml`, `references.yaml`).
-3. Review the resulting diff to confirm derived files reflect intent.
-4. Commit and push.
-5. Verify new content is picked up by running `spec-kitty charter context --action specify --json` and inspecting the returned text.
+1. Edit `.kittify/charter/charter.md` directly. spec-kitty reads this file as is and never overwrites it, so a prose change needs no regeneration step.
+2. If the change alters which doctrine is active, change the activation lists in `.kittify/config.yaml` (or use `spec-kitty charter activate` / `deactivate`), then run `spec-kitty charter generate --no-from-interview` to recompile `.kittify/charter/charter.yaml`. ⚠ `generate` runs `git add` on `charter.md`, so commit or stash unrelated `charter.md` edits first.
+3. Run `spec-kitty charter preflight`. It must report `passed: true`.
+4. Review the diff, then commit and push.
+5. Verify the new content is picked up by running `spec-kitty charter context --action specify --json` and inspecting the returned text.
 
-If spec-kitty's sync step rejects the edit (schema violation, missing section), diagnose against the charter command's error message rather than fighting the tool. Prefer fixing the charter content over bypassing sync.
+If `charter generate` or `charter preflight` rejects the change (an unknown or retired artifact id, a schema violation), diagnose against the command's error message rather than fighting the tool. Prefer fixing the activation lists or the charter content over bypassing the check.
 
 ## Exception Policy
 
