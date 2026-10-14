@@ -238,6 +238,16 @@ unit, deploy script, etc. edited in the same range); those are matched
 automatically. See
 `docs/runbooks/deployment.md` § felix-deployer rebaseline behavior.
 
+**Entrypoints that install systemd user units use `scripts/deploy/lib/userunits.py`**
+(#1066): `apply_units` (install, one `daemon-reload`, then `restart` /
+`enable-now` / `start` per unit; a running timer only picks up a changed
+definition on restart) and `verify_unit` (the loaded config, not just the file;
+poll for a next elapse under one shared deadline). Do not copy an older
+entrypoint's hand-rolled copy/reload/verify: a guard test fails a new one. A
+unit installed from a new repo directory must also be covered by
+`docs/design/architecture/data/audited-surfaces.json` (#1065).
+`deploy-monotonic-timer-units.py` is the reference adopter.
+
 The entrypoint script MUST support two modes:
 
 - `--dry-run` — print what would happen; no side effects on office2.
