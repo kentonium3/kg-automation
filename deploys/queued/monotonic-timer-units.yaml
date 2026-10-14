@@ -44,5 +44,5 @@ notes: |
   Stamp files are left in place; without Persistent= they are not read.
   Rollback: not via this entrypoint (it refuses Persistent= sources), and
   re-adding Persistent= reintroduces #1062. If needed: git revert, then cp the
-  six timers to ~/.config/systemd/user/, daemon-reload, restart each; verify
-  each with systemctl --user show -p Persistent,NextElapseUSecMonotonic.
+  six to ~/.config/systemd/user/, daemon-reload, restart each; verify each
+  `systemctl --user show $t.timer -p Persistent` = yes, next elapse finite.
