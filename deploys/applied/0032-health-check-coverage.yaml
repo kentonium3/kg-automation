@@ -1,0 +1,48 @@
+schema_version: v1
+name: health-check-coverage
+issue: kentonium3/kg-automation#1063
+tier: 3
+entrypoint: scripts/deploy/deploy-health-check-coverage.py
+audited_surface: true
+verification:
+  pre:
+  - scripts/deploy/deploy-health-check-coverage.py --dry-run
+  post:
+  - test ! -e "$HOME/helper-scripts/health-check.sh"
+  - jq -e '(.coverage_checks | map(.component)) == ["felix-canary","restic-backup"]'
+    /data/services/openclaw/felix-health-check/last-run.json
+  - jq -e '.script_path | endswith("scripts/office2/felix_health_check/health-check.sh")'
+    /data/services/openclaw/felix-health-check/last-run.json
+  - git ls-files -s scripts/office2/felix_health_check/health-check.sh | grep -q '^100755'
+created_at: '2026-10-14T20:00:00Z'
+created_by: claude-code-1063
+notes: '#1063. felix-health-check gains a dead-man switch on felix-canary and an independent
+  restic-backup check, both decided by the canary own evaluator on their service-inventory
+  declarations, and health-check.sh moves into the repo. 2026-09-27 to 10-14 every
+  backup failed unalerted: the canary was dark (#1062) and this check said ALL_HEALTHY
+  34 times.
+
+
+  The code reaches office2 with the checkout (the unit runs from it). The entrypoint
+  runs the health check once, verifies the fresh last-run.json entry by entry (both
+  coverage checks present and not unknown, repo script_path, recognised script_status,
+  shell exit_code, alert delivered if one was due), and only then moves ~/helper-scripts/health-check.sh
+  to /data/services/openclaw/felix-health-check/retired/. A move, not a delete; re-apply
+  is a no-op.
+
+
+  Expect FAILURES_DETECTED at apply: restic-backup reads failed until the Sunday 2026-10-18
+  integrity check, because the outage skipped two weekly runs (last_integrity_check_utc
+  2026-09-27). That is a successful deploy once the alert is delivered.
+
+
+  Tier 3. audited_surface: true because scripts/office2/deploy/felix-health-check.sh
+  matches the systemd-user-units pattern; no deployed unit content changes, so the
+  expected rebaseline outcome is pending_clean (within the ~330 s grace), then cleared_clean
+  on a later tick; the applied record may only show pending_clean.
+
+
+  Rollback: move the retired file back to ~/helper-scripts/health-check.sh and revert
+  the merge; the previous run.py reads that path.'
+apply_mode: manifest
+applied_at: '2026-10-14T20:22:19Z'
