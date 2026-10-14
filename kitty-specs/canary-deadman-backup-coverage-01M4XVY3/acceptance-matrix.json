@@ -2,7 +2,7 @@
   "mission_slug": "canary-deadman-backup-coverage-01M4XVY3",
   "mission_number": "",
   "mission_type": "software-dev",
-  "overall_verdict": "pending",
+  "overall_verdict": "pass",
   "criteria": [
     {
       "criterion_id": "FR-001",
@@ -118,10 +118,10 @@
       "criterion_id": "FR-012",
       "description": "Verify FR-012 is satisfied",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
+      "evidence": "scripts/office2/felix_health_check/tests/test_coverage.py::test_real_inventory_satisfies_preconditions (CI pin), ::test_declaration_problems_detects_each_shape_fault, ::test_missing_bound_at_runtime_is_unknown_not_liveness_only",
+      "pass_fail": "pass",
+      "verified_by": "claude-opus-5-5",
+      "verified_at": "2026-10-14T20:05:41.998683+00:00",
       "notes": "TODO: replace with a real acceptance criterion"
     }
   ],
