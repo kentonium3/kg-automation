@@ -220,3 +220,4 @@ activated_kinds:
 - procedures
 - agent_profiles
 - mission_step_contracts
+charter: .kittify/charter/charter.yaml
