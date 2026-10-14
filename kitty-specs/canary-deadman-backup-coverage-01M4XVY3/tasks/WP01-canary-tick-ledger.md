@@ -9,6 +9,9 @@ requirement_refs:
 planning_base_branch: fix/canary-deadman-backup-coverage
 merge_target_branch: fix/canary-deadman-backup-coverage
 branch_strategy: Planning artifacts for this mission were generated on fix/canary-deadman-backup-coverage. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into fix/canary-deadman-backup-coverage unless the human explicitly redirects the landing branch.
+base_branch: kitty/mission-canary-deadman-backup-coverage-01M4XVY3
+base_commit: 0f7009f6a384fbaeded6c183df657abb84b2e1aa
+created_at: '2026-10-14T19:11:25.573701+00:00'
 subtasks:
 - T001
 - T002
