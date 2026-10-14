@@ -37,6 +37,11 @@ set -euo pipefail
 
 REPO_ROOT="$(git rev-parse --show-toplevel)"
 cd "$REPO_ROOT"
+# Re-read the root in the shell's own path form. On Windows (Git for Windows /
+# MSYS bash) `git rev-parse --show-toplevel` prints `C:/Users/...` while `pwd`
+# prints `/c/Users/...`, so comparing the two below would report every main
+# checkout as a linked worktree. On Linux/macOS this is a no-op.
+REPO_ROOT="$(pwd)"
 
 # In a LINKED WORKTREE (spec-kitty lane worktrees, `git worktree add`), REPO_ROOT
 # is the worktree's own root, which has no .venv — virtualenvs are not
@@ -68,25 +73,43 @@ fi
 # Generalisation worth keeping: an absolute interpreter path baked into checked-in
 # repo config is a latent single-machine assumption. `.vscode/settings.json` had
 # the same defect (d6eddb9d) — prefer resolution over assertion.
+#
+# Windows (Git for Windows): a venv's interpreter is `.venv/Scripts/python.exe`,
+# not `.venv/bin/python`; and the python.org installer ships `python.exe` and the
+# `py` launcher but no `python3.exe` — a `python3` alias in an interactive
+# ~/.bashrc is invisible to this non-interactive hook. Without these candidates
+# no interpreter resolves there, and every commit aborts.
+# `python` and `py` are accepted only if they are Python 3 (a legacy `python`
+# can still be 2.x on old Linux images), which the probe below enforces.
+SYSTEM_PYTHONS=(python3 python py)
+
 resolve_python() {
   local candidates=()
   if [[ -n "${PYTHON:-}" ]]; then
     candidates+=("$PYTHON")
   fi
-  candidates+=("$REPO_ROOT/.venv/bin/python")
+  candidates+=("$REPO_ROOT/.venv/bin/python" "$REPO_ROOT/.venv/Scripts/python.exe")
   # Without this, the hook finds no usable interpreter from any worktree and
   # blocks every commit made there — which is every work-package commit in a
   # spec-kitty mission.
   if [[ -n "$MAIN_CHECKOUT" ]]; then
-    candidates+=("$MAIN_CHECKOUT/.venv/bin/python")
+    candidates+=("$MAIN_CHECKOUT/.venv/bin/python" "$MAIN_CHECKOUT/.venv/Scripts/python.exe")
   fi
-  candidates+=("python3")
+  candidates+=("${SYSTEM_PYTHONS[@]}")
 
-  local candidate
+  # Return the interpreter the probe actually ran (sys.executable), not the
+  # candidate's name. A launcher can pick a DIFFERENT interpreter for a script than
+  # for `-c`: the Windows `py` launcher honours a script's `#!/usr/bin/env python3`
+  # shebang and runs the newest installed Python, while `py -c` runs its default.
+  # Probing one interpreter and executing another let the probe pass and the
+  # validators then fail with "Missing deps" (measured on Windows 11, 2026-10-14).
+  local candidate exe
   for candidate in "${candidates[@]}"; do
-    if command -v "$candidate" >/dev/null 2>&1 \
-       && "$candidate" -c 'import yaml' >/dev/null 2>&1; then
-      printf '%s\n' "$candidate"
+    command -v "$candidate" >/dev/null 2>&1 || continue
+    exe="$("$candidate" -c 'import sys, yaml; sys.version_info >= (3, 8) or sys.exit(1); print(sys.executable)' 2>/dev/null)" || continue
+    exe="${exe%$'\r'}"
+    if [[ -n "$exe" ]]; then
+      printf '%s\n' "$exe"
       return 0
     fi
   done
@@ -99,14 +122,14 @@ if ! PY="$(resolve_python)"; then
   echo "   This is a MISSING DEPENDENCY, not a doc-validation finding." >&2
   echo "   The doc validators need PyYAML. Tried, in order:" >&2
   echo "     \$PYTHON        = ${PYTHON:-<unset>}" >&2
-  echo "     repo venv      = $REPO_ROOT/.venv/bin/python" >&2
+  echo "     repo venv      = $REPO_ROOT/.venv/bin/python, .venv/Scripts/python.exe" >&2
   if [[ -n "$MAIN_CHECKOUT" ]]; then
-    echo "     main checkout  = $MAIN_CHECKOUT/.venv/bin/python (linked worktree)" >&2
+    echo "     main checkout  = $MAIN_CHECKOUT/.venv/{bin/python,Scripts/python.exe} (linked worktree)" >&2
   fi
-  echo "     system         = python3" >&2
+  echo "     system         = ${SYSTEM_PYTHONS[*]} (Python 3.8+ with PyYAML)" >&2
   echo "   Fix: build the repo venv —" >&2
   echo "     uv venv && uv pip install -r requirements.txt" >&2
-  echo "   or install PyYAML for your system python3." >&2
+  echo "   or install PyYAML for your system Python 3." >&2
   exit 1
 fi
 
@@ -132,7 +155,7 @@ if [[ "$fail" -ne 0 ]]; then
   echo "   Fix the finding above (e.g. add a new doc_type to"
   echo "   docs/design/standards/allowed-values.json), then re-commit."
   echo "   If a generated file is STALE, regenerate it —"
-  echo "     python3 tooling/scripts/generate_doc_standards.py"
+  echo "     $PY tooling/scripts/generate_doc_standards.py"
   echo "   Bypass with 'git commit --no-verify' only if you are certain."
   exit 1
 fi
