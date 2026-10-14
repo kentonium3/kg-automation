@@ -116,39 +116,67 @@ def plan_install(sources: Sequence[Path], unit_dir: Path) -> LibResult:
                      {"units": units})
 
 
-def install_units(sources: Sequence[Path], unit_dir: Path) -> LibResult:
+def install_units(sources: Sequence[Path], unit_dir: Path, *,
+                  progress: Emit = _noop_emit) -> LibResult:
     """Copy every source into ``unit_dir``: all or nothing up front, atomic per file.
 
     Every source must exist before any file is copied. Each copy is written to
     a temp file in ``unit_dir`` and renamed into place, so a reader never sees
-    a half-written unit.
+    a half-written unit. The resulting mode matches the ``shutil.copyfile``
+    this replaced (keep an existing file's mode, else ``0666 & ~umask``), and,
+    like it, a destination that is not writable is refused rather than
+    replaced. ``progress("installed", unit=..., changed=...)`` fires per unit
+    as it happens. ``details["units"]`` always lists what was installed so
+    far, including on failure.
     """
     missing = [str(s) for s in sources if not Path(s).is_file()]
     if missing:
         return LibResult(False, "source unit missing; nothing copied",
-                         {"error_code": "SOURCE_MISSING", "missing": missing})
+                         {"error_code": "SOURCE_MISSING", "missing": missing, "units": []})
     unit_dir = Path(unit_dir)
-    unit_dir.mkdir(parents=True, exist_ok=True)
-    units = []
+    units: list[dict[str, Any]] = []
+
+    def fail(name: str, exc: BaseException | str) -> LibResult:
+        return LibResult(False, f"copy failed for {name}",
+                         {"error_code": "COPY_FAILED", "unit": name, "error": str(exc), "units": units})
+
+    try:
+        unit_dir.mkdir(parents=True, exist_ok=True)
+    except OSError as exc:
+        return fail(str(unit_dir), exc)
     for src in sources:
         src = Path(src)
         dst = unit_dir / src.name
         if _differs(src, dst) is False:
             units.append({"name": src.name, "changed": False})
+            progress("installed", unit=src.name, changed=False)
             continue
-        fd, tmp = tempfile.mkstemp(dir=unit_dir, prefix=f".{src.name}.", suffix=".tmp")
+        if dst.exists() and not os.access(dst, os.W_OK):
+            return fail(src.name, f"{dst} is not writable")
+        tmp: str | None = None
         try:
+            if dst.exists():
+                mode = dst.stat().st_mode & 0o7777
+            else:
+                umask = os.umask(0)
+                os.umask(umask)
+                mode = 0o666 & ~umask
+            fd, tmp = tempfile.mkstemp(dir=unit_dir, prefix=f".{src.name}.", suffix=".tmp")
             with os.fdopen(fd, "wb") as fh:
                 fh.write(src.read_bytes())
+            os.chmod(tmp, mode)
             os.replace(tmp, dst)
+            tmp = None
         except OSError as exc:
-            try:
-                os.unlink(tmp)
-            except OSError:
-                pass
-            return LibResult(False, f"copy failed for {src.name}",
-                             {"error_code": "COPY_FAILED", "unit": src.name, "error": str(exc), "units": units})
+            return fail(src.name, exc)
+        finally:
+            if tmp is not None:
+                try:
+                    os.unlink(tmp)
+                except OSError:
+                    pass
         units.append({"name": src.name, "changed": True})
+        progress("installed", unit=src.name, changed=True)
     return LibResult(True, f"installed {len(units)} unit(s)", {"units": units})
 
 
@@ -190,29 +218,39 @@ def unit_action(unit: str, action: str, run: Runner) -> LibResult:
     return LibResult(True, f"{action} {unit}", {"unit": unit, "action": action})
 
 
-def apply_units(sources: Sequence[Path], unit_dir: Path, *, action: str, run: Runner) -> LibResult:
+def apply_units(sources: Sequence[Path], unit_dir: Path, *, action: str, run: Runner,
+                progress: Emit = _noop_emit) -> LibResult:
     """The common path: install every unit, ``daemon-reload`` once, then
     ``action`` on every unit, continuing past per-unit failures.
 
     A running timer keeps its in-memory state across ``daemon-reload``; only a
     restart applies a changed definition (#1062). Pass ``action="none"`` only
     for units that must deliberately not be bounced.
+
+    ``progress`` receives, as they happen: ``installed`` (unit, changed),
+    ``reloaded``, and ``acted`` (unit, action, ok, rc, stderr_excerpt). Every
+    result carries ``details["installed"]`` (what was installed, even on
+    failure), so a caller's event log never loses a completed copy.
     """
-    installed = install_units(sources, unit_dir)
+    installed = install_units(sources, unit_dir, progress=progress)
+    done = installed.details.get("units", [])
     if not installed.ok:
-        return installed
+        return LibResult(False, installed.summary, {**installed.details, "installed": done})
     reloaded = daemon_reload(run)
     if not reloaded.ok:
-        return LibResult(False, reloaded.summary, {**reloaded.details, "units": installed.details["units"]})
+        return LibResult(False, reloaded.summary, {**reloaded.details, "installed": done})
+    progress("reloaded")
     failed: dict[str, list[str]] = {}
     results = []
     for src in sources:
         name = Path(src).name
         res = unit_action(name, action, run)
+        progress("acted", unit=name, action=action, ok=res.ok,
+                 rc=res.details.get("rc"), stderr_excerpt=res.details.get("stderr_excerpt"))
         results.append({"name": name, "ok": res.ok, **{k: v for k, v in res.details.items() if k != "unit"}})
         if not res.ok:
             failed[name] = [f"{action} failed rc={res.details.get('rc')}: {res.details.get('stderr_excerpt', '')}"]
-    details = {"units": results, "installed": installed.details["units"], "failed": failed}
+    details = {"units": results, "installed": done, "failed": failed}
     if failed:
         return LibResult(False, f"{len(failed)} unit(s) failed {action}", {**details, "error_code": "ACTION_FAILED"})
     return LibResult(True, f"installed, reloaded, {action}: {len(results)} unit(s)", details)
@@ -273,9 +311,12 @@ def verify_unit(
             try:
                 texts.append(read(p))
             except OSError as exc:
-                problems.append(f"cannot read unit file {p}: {exc}")
-                break
-        if not problems and extra_check is not None:
+                # An unreadable loaded file is reported on its own: nothing
+                # else about the unit can be judged without it.
+                return LibResult(False, f"{unit}: cannot read a loaded unit file",
+                                 {"error_code": "UNREADABLE_UNIT_FILE", "unit": unit, "props": props,
+                                  "problems": [f"cannot read unit file {p}: {exc}"]})
+        if extra_check is not None:
             problems.extend(extra_check(props, texts))
         if problems:
             return LibResult(False, f"{unit}: loaded config wrong",

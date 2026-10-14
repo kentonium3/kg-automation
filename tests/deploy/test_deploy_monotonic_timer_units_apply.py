@@ -160,3 +160,98 @@ def test_dry_run_plans_and_writes_nothing(office2, capsys):
     assert out.count('"event": "would_copy"') == len(NAMES)
     assert '"currently_differs": true' in out
     assert not unit_dir.exists()
+
+
+def _events(out: str) -> list[tuple[str, str | None]]:
+    import json as _json
+    evs = []
+    for line in out.splitlines():
+        try:
+            d = _json.loads(line)
+        except ValueError:
+            continue
+        evs.append((d["event"], d.get("unit")))
+    return evs
+
+
+def test_event_order_happy_path(office2, capsys):
+    """The deploy's event log, in order (Codex #1066 review): every copy is
+    logged before the reload, and every restart before any verification."""
+    unit_dir, clock = office2
+    assert mod._apply(run=FakeSystemd(unit_dir), sleep=clock.sleep) == 0
+    evs = _events(capsys.readouterr().out)
+    names = [e for e, _ in evs]
+    assert names[0] == "preflight_ok"
+    assert evs[1:1 + len(NAMES)] == [("copied", n) for n in NAMES]
+    assert names[1 + len(NAMES)] == "daemon_reload_ok"
+    r0 = 2 + len(NAMES)
+    assert evs[r0:r0 + len(NAMES)] == [("timer_restarted", n) for n in NAMES]
+    assert [e for e in evs if e[0] == "timer_ok"] == [("timer_ok", n) for n in NAMES]
+    assert names[-1] == "apply_complete"
+
+
+def test_reload_failure_still_logs_every_completed_copy(office2, capsys):
+    unit_dir, clock = office2
+    sd = FakeSystemd(unit_dir)
+    real = sd.__call__
+
+    def failing_reload(argv):
+        if argv[2] == "daemon-reload":
+            sd.calls.append(list(argv))
+            return 1, "", "reload refused"
+        return real(argv)
+
+    assert mod._apply(run=failing_reload, sleep=clock.sleep) == 1
+    evs = _events(capsys.readouterr().out)
+    assert [e for e in evs if e[0] == "copied"] == [("copied", n) for n in NAMES]
+    assert evs[-1][0] == "daemon_reload_failed"
+    assert not any(e[0] == "timer_restarted" for e in evs)
+
+
+def test_copy_failure_midway_logs_earlier_copies_then_copy_failed(office2, monkeypatch, capsys):
+    unit_dir, clock = office2
+    import os as _os
+    real_replace = _os.replace
+
+    def flaky_replace(src, dst, *a, **k):
+        if str(dst).endswith(NAMES[2]):
+            raise PermissionError("disk said no")
+        return real_replace(src, dst, *a, **k)
+
+    import shutil as _shutil
+    real_copy = _shutil.copyfile
+
+    def flaky_copy(src, dst, *a, **k):
+        if str(dst).endswith(NAMES[2]):
+            raise PermissionError("disk said no")
+        return real_copy(src, dst, *a, **k)
+
+    monkeypatch.setattr(_os, "replace", flaky_replace)
+    monkeypatch.setattr(_shutil, "copyfile", flaky_copy)
+    sd = FakeSystemd(unit_dir)
+    assert mod._apply(run=sd, sleep=clock.sleep) == 1
+    evs = _events(capsys.readouterr().out)
+    assert [e for e in evs if e[0] == "copied"] == [("copied", n) for n in NAMES[:2]]
+    assert evs[-1] == ("copy_failed", NAMES[2])
+    assert sd.calls == [], "no reload or restart after a failed copy"
+
+
+def test_unreadable_deployed_copy_fails_convergence(office2):
+    """renata #1066: an unreadable deployed copy must fail the run, never
+    exit 0 (main treated `differs is None` as a failure; this pins it)."""
+    unit_dir, clock = office2
+    sd = FakeSystemd(unit_dir)
+    real_call = sd.__call__
+
+    def unreadable_after_last_verify(argv):
+        # Only once every timer has verified clean, so the ONLY thing that can
+        # fail the run is the convergence re-diff meeting an unreadable copy.
+        rc = real_call(argv)
+        if argv[2] == "show" and argv[3] == NAMES[-1]:
+            (unit_dir / NAMES[0]).chmod(0o000)
+        return rc
+
+    try:
+        assert mod._apply(run=unreadable_after_last_verify, sleep=clock.sleep) == 1
+    finally:
+        (unit_dir / NAMES[0]).chmod(0o644)

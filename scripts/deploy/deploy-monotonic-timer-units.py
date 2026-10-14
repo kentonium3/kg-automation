@@ -174,23 +174,28 @@ def _apply(run: Runner = _run, sleep: Callable[[float], None] = time.sleep) -> i
     # Install all, reload once, restart all. The restart is MANDATORY, not
     # hygiene: a running timer keeps its deserialized state across
     # daemon-reload; only a restart applies the new definition.
-    applied = userunits.apply_units(TIMERS, UNIT_DIR, action="restart", run=run)
-    if "units" not in applied.details or applied.details.get("error_code") in {"SOURCE_MISSING", "COPY_FAILED"}:
-        _emit("copy_failed", **{k: v for k, v in applied.details.items() if k != "units"})
+    def progress(event: str, **f: object) -> None:
+        # Map the library's progress onto this deploy's existing event names,
+        # emitted as each step happens.
+        if event == "installed":
+            _emit("copied", unit=f["unit"])
+        elif event == "reloaded":
+            _emit("daemon_reload_ok")
+        elif event == "acted":
+            if f["ok"]:
+                _emit("timer_restarted", unit=f["unit"])
+            else:
+                _emit("timer_restart_failed", unit=f["unit"], rc=f["rc"], stderr=f["stderr_excerpt"])
+
+    applied = userunits.apply_units(TIMERS, UNIT_DIR, action="restart", run=run, progress=progress)
+    code = applied.details.get("error_code")
+    if code in {"SOURCE_MISSING", "COPY_FAILED"}:
+        _emit("copy_failed", unit=applied.details.get("unit"), error=applied.details.get("error"))
         return 1
-    for unit in applied.details.get("installed", []):
-        _emit("copied", unit=unit["name"])
-    if applied.details.get("error_code") == "DAEMON_RELOAD_FAILED":
+    if code == "DAEMON_RELOAD_FAILED":
         _emit("daemon_reload_failed", rc=applied.details.get("rc"), stderr=applied.details.get("stderr_excerpt"))
         return 1
-    _emit("daemon_reload_ok")
-
     failed: dict[str, list[str]] = dict(applied.details.get("failed", {}))
-    for unit in applied.details["units"]:
-        if unit["ok"]:
-            _emit("timer_restarted", unit=unit["name"])
-        else:
-            _emit("timer_restart_failed", unit=unit["name"], rc=unit.get("rc"), stderr=unit.get("stderr_excerpt"))
 
     # ONE deadline shared by every timer, so a broken deploy holds the
     # deployer tick for at most ~NEXT_ELAPSE_TIMEOUT_S in total.
@@ -204,6 +209,8 @@ def _apply(run: Runner = _run, sleep: Callable[[float], None] = time.sleep) -> i
             _emit("timer_verify_failed", unit=src.name, problems=problems)
 
     conv = userunits.converged(TIMERS, UNIT_DIR)
+    if not conv.ok and not conv.details.get("units"):
+        failed.setdefault("convergence", []).append(conv.summary)
     for unit in conv.details["units"]:
         if unit["differs"] is not False:
             failed.setdefault(unit["name"], []).append(

@@ -233,3 +233,103 @@ def test_every_public_function_returns_libresult(tmp_path):
     for res in (uu.plan_install([a], tmp_path / "u"), uu.install_units([a], tmp_path / "u"),
                 uu.daemon_reload(Run()), uu.unit_action("a.timer", "none", Run()), uu.converged([a], tmp_path / "u")):
         assert isinstance(res, LibResult)
+
+
+def test_install_mode_matches_the_copyfile_it_replaced(tmp_path):
+    """New file: 0666 & ~umask. Existing file: its mode is kept (shutil.copyfile
+    semantics), never mkstemp's 0600."""
+    import os
+    a = _src(tmp_path, "a.timer", "x")
+    unit_dir = tmp_path / "units"
+    old = os.umask(0o022)
+    try:
+        uu.install_units([a], unit_dir)
+        assert (unit_dir / "a.timer").stat().st_mode & 0o777 == 0o644
+        (unit_dir / "a.timer").chmod(0o640)
+        a.write_text("y")
+        uu.install_units([a], unit_dir)
+        assert (unit_dir / "a.timer").stat().st_mode & 0o777 == 0o640
+    finally:
+        os.umask(old)
+
+
+def test_temp_file_creation_failure_is_a_copy_failure_not_a_crash(tmp_path, monkeypatch):
+    import tempfile
+    a = _src(tmp_path, "a.timer", "x")
+
+    def no_temp(*_a, **_k):
+        raise PermissionError("no space for temp files")
+
+    monkeypatch.setattr(tempfile, "mkstemp", no_temp)
+    res = uu.install_units([a], tmp_path / "units")
+    assert not res.ok and res.details["error_code"] == "COPY_FAILED" and res.details["units"] == []
+
+
+def test_read_only_destination_is_refused_not_replaced(tmp_path):
+    a = _src(tmp_path, "a.timer", "new")
+    unit_dir = tmp_path / "units"
+    unit_dir.mkdir()
+    dst = unit_dir / "a.timer"
+    dst.write_text("old")
+    dst.chmod(0o444)
+    try:
+        res = uu.install_units([a], unit_dir)
+        assert not res.ok and res.details["error_code"] == "COPY_FAILED"
+        assert dst.read_text() == "old"
+    finally:
+        dst.chmod(0o644)
+
+
+def test_progress_fires_as_each_step_happens(tmp_path):
+    a, b = _src(tmp_path, "a.timer", "x"), _src(tmp_path, "b.timer", "y")
+    log: list[tuple] = []
+    run = Run(fail={("restart", "b.timer")})
+    orig = run.__call__
+
+    def logging_run(argv):
+        log.append(("run", argv[2]))
+        return orig(argv)
+
+    uu.apply_units([a, b], tmp_path / "units", action="restart", run=logging_run,
+                   progress=lambda ev, **f: log.append((ev, f.get("unit"), f.get("ok"))))
+    assert log == [("installed", "a.timer", None), ("installed", "b.timer", None),
+                   ("run", "daemon-reload"), ("reloaded", None, None),
+                   ("run", "restart"), ("acted", "a.timer", True),
+                   ("run", "restart"), ("acted", "b.timer", False)]
+
+
+def test_installed_is_reported_on_reload_failure(tmp_path):
+    a = _src(tmp_path, "a.timer", "x")
+    res = uu.apply_units([a], tmp_path / "units", action="restart", run=Run(fail={("daemon-reload", "")}))
+    assert not res.ok and res.details["installed"] == [{"name": "a.timer", "changed": True}]
+
+
+def test_verify_unit_honours_a_passed_deadline_without_hanging(tmp_path):
+    """renata #1066: a regression that ignores the caller's deadline must FAIL
+    here, not hang the suite. The clock raises after a bounded number of reads."""
+    run = Run(show={"a.timer": _show(tmp_path, "a.timer", SubState="running", NextElapseUSecMonotonic="infinity")})
+    ticks = iter(range(1000, 1100))
+
+    def bounded_clock():
+        try:
+            return float(next(ticks))
+        except StopIteration:
+            raise AssertionError("verify_unit kept polling past the deadline it was given")
+
+    res = uu.verify_unit("a.timer", run, unit_dir=tmp_path, read=_read, wait_next_elapse=True,
+                         sleep=lambda s: None, deadline=1005.0, monotonic=bounded_clock)
+    assert not res.ok and res.details["error_code"] == "NO_NEXT_ELAPSE"
+
+
+def test_extra_check_runs_even_when_expect_fails_and_unreadable_reports_alone(tmp_path):
+    run = Run(show={"a.timer": _show(tmp_path, "a.timer", Persistent="yes")})
+    res = uu.verify_unit("a.timer", run, unit_dir=tmp_path, expect={"Persistent": "no"}, read=_read,
+                         extra_check=lambda props, texts: ["extra"])
+    assert "extra" in res.details["problems"] and any("Persistent" in p for p in res.details["problems"])
+
+    def boom(_p):
+        raise OSError("gone")
+
+    res2 = uu.verify_unit("a.timer", Run(show={"a.timer": _show(tmp_path, "a.timer", Persistent="yes")}),
+                          unit_dir=tmp_path, expect={"Persistent": "no"}, read=boom)
+    assert res2.details["problems"] == [f"cannot read unit file {tmp_path / 'a.timer'}: gone"]
