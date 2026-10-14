@@ -11,5 +11,7 @@
   "purpose_tldr": "Make the twice-daily health check alert when the canary goes dark or backups stop, so a silent 17-day backup outage cannot recur.",
   "slug": "canary-deadman-backup-coverage-01M4XVY3",
   "target_branch": "fix/canary-deadman-backup-coverage",
-  "topology": "lanes"
+  "topology": "lanes",
+  "vcs": "git",
+  "vcs_locked_at": "2026-10-14T19:11:25.393743+00:00"
 }
