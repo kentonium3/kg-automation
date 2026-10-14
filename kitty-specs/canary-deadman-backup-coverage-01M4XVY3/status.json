@@ -1,20 +1,20 @@
 {
-  "event_count": 9,
-  "last_event_id": "01M4XXP8JH3CTC5BPB6KHFR4Y2",
-  "materialized_at": "2026-10-14T19:19:39.345617+00:00",
+  "event_count": 10,
+  "last_event_id": "01M4XXW603T06ZAG2FZGXXPCF0",
+  "materialized_at": "2026-10-14T19:22:53.315353+00:00",
   "mission_number": "",
   "mission_slug": "canary-deadman-backup-coverage-01M4XVY3",
   "mission_type": "software-dev",
   "schema_version": 2,
   "summary": {
-    "approved": 0,
+    "approved": 1,
     "blocked": 0,
     "canceled": 0,
     "claimed": 0,
     "done": 0,
     "for_review": 0,
     "in_progress": 0,
-    "in_review": 1,
+    "in_review": 0,
     "planned": 4
   },
   "work_packages": {
@@ -25,14 +25,19 @@
       "agent_profile_version": "__resolved_profile_version_absent__",
       "force_count": 0,
       "implementer_of_record": "claude",
-      "lane": "in_review",
-      "last_event_id": "01M4XXP8JH3CTC5BPB6KHFR4Y2",
-      "last_transition_at": "2026-10-14T19:19:39.345617+00:00",
+      "lane": "approved",
+      "last_event_id": "01M4XXW603T06ZAG2FZGXXPCF0",
+      "last_transition_at": "2026-10-14T19:22:53.315353+00:00",
       "model": "__resolved_model_absent__",
       "notes": [
         "Ledger + harness + verdict tests; inventory prose. 481 targeted + full suite 7403 passed."
       ],
       "provider": "__resolved_provider_absent__",
+      "review_result": {
+        "reference": "auto-approval:WP01:20261014",
+        "reviewer": "Kent Gale",
+        "verdict": "approved"
+      },
       "role": "reviewer",
       "shell_pid": 142530,
       "shell_pid_created_at": "1792005577.04",
