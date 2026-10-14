@@ -60,7 +60,7 @@ cleanly** to the next interval — a benign, non-failing event. See
 
 | Unit | Role | Source in repo |
 |---|---|---|
-| `agent-skill-sync.timer` | User timer — `OnUnitInactiveSec=300s` + `OnBootSec=120s` + `Persistent=true` | `scripts/openclaw/deploy/agent-skill-sync.timer` |
+| `agent-skill-sync.timer` | User timer — `OnUnitInactiveSec=300s` + `OnBootSec=120s` | `scripts/openclaw/deploy/agent-skill-sync.timer` |
 | `agent-skill-sync.service` | User oneshot — `ExecStart=/usr/bin/python3 -m scripts.openclaw.deploy.deploy_agent_skills` (WorkingDirectory `/home/claude/kg-automation`) | `scripts/openclaw/deploy/agent-skill-sync.service` |
 
 Both are **user** units (run as `claude`), installed under

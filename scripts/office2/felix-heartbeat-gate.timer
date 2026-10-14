@@ -1,10 +1,11 @@
 [Unit]
 Description=Felix Heartbeat Gate — invoke routing gate every 30 minutes
 
+# No Persistent= here: on a monotonic timer it makes the timer go permanently
+# dormant after a slow boot (#1062). tests/tooling/test_timer_persistent_guard.py
 [Timer]
 OnBootSec=5min
 OnUnitActiveSec=30min
-Persistent=true
 
 [Install]
 WantedBy=timers.target

@@ -1061,7 +1061,7 @@
           "from": "felix-core-digest.timer",
           "to": "felix-core-digest.service",
           "protocol": "systemd timer activation",
-          "description": "OnUnitActiveSec=15min, OnBootSec=3min, Persistent=true. Cadence unchanged from pre-#490."
+          "description": "OnUnitActiveSec=15min, OnBootSec=3min. Cadence unchanged from pre-#490."
         },
         {
           "from": "felix-core-digest.service",
@@ -1128,7 +1128,7 @@
           "from": "felix-heartbeat-gate.timer",
           "to": "felix-heartbeat-gate.service",
           "protocol": "systemd timer activation",
-          "description": "OnUnitActiveSec=30min, OnBootSec=5min, Persistent=true. 5-min boot offset avoids lockstep with felix-core-digest.timer (which uses OnBootSec=3min)."
+          "description": "OnUnitActiveSec=30min, OnBootSec=5min. 5-min boot offset avoids lockstep with felix-core-digest.timer (which uses OnBootSec=3min)."
         },
         {
           "from": "felix-heartbeat-gate.service",
@@ -1521,7 +1521,7 @@
       "deployed_by": "felix-canary-registry-01KX8T7B (#327)",
       "last_updated": "2026-07-11",
       "purpose": "Deterministic component-health scanner (Foundation 1 / Epic #516): evaluate every service-inventory health_check per ADR-0006 and alert on stale/failed/un-evaluable live components via the #701 bus. Zero LLM in the tick path.",
-      "trigger": "felix-canary.timer (systemd --user, OnUnitActiveSec=15min, OnBootSec=5min, Persistent=true); also manual `systemctl --user start felix-canary.service`",
+      "trigger": "felix-canary.timer (systemd --user, OnUnitActiveSec=15min, OnBootSec=5min); also manual `systemctl --user start felix-canary.service`",
       "data_classification": "operational telemetry (component health outcomes + evidence)",
       "path": [
         {

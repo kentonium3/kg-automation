@@ -103,8 +103,12 @@ deploy half:
   entrypoint `scripts/deploy/deploy-felix-canary.py`). No hand-run install.
 - **systemd `--user` timer + `OnFailure=` shim.** The `.service` is a
   `Type=oneshot` running `python3 -m scripts.<pkg>.run --once`; the `.timer` sets
-  the ~15-min cadence (`OnUnitActiveSec=15min`, `OnBootSec=5min`,
-  `Persistent=true`). The canary adds a crash detector trust-scan lacked:
+  the ~15-min cadence (`OnUnitActiveSec=15min`, `OnBootSec=5min`).
+  **Never add `Persistent=` to a monotonic timer like this one.** It only has its
+  intended effect with `OnCalendar=`, and on a monotonic timer it leaves the timer
+  permanently dormant whenever the user manager starts after `OnBootSec=` has
+  passed. That kept this canary dead for 17 days (#1062);
+  `tests/tooling/test_timer_persistent_guard.py` enforces it. The canary adds a crash detector trust-scan lacked:
   `OnFailure=felix-canary-onfailure.service` fires an **out-of-band** ERROR via
   `scripts/common/alert_bus.sh` when the runner itself exits non-zero —
   independent of the runner's own emit logic, so a runner that crashed before it

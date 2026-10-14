@@ -1,0 +1,48 @@
+schema_version: v1
+name: monotonic-timer-units
+issue: kentonium3/kg-automation#1062
+tier: 3
+entrypoint: scripts/deploy/deploy-monotonic-timer-units.py
+audited_surface: true
+verification:
+  pre:
+  - scripts/deploy/deploy-monotonic-timer-units.py --dry-run
+  post:
+  - for t in felix-canary felix-trust-scan felix-heartbeat-gate felix-core-digest agent-prompt-sync agent-skill-sync; do test "$(systemctl --user show $t.timer -p Persistent --value)" = no || exit 1; done
+  - for t in felix-canary felix-trust-scan felix-heartbeat-gate felix-core-digest agent-prompt-sync agent-skill-sync; do test "$(systemctl --user is-enabled $t.timer)" = enabled || exit 1; done
+  - for t in felix-canary felix-trust-scan felix-heartbeat-gate felix-core-digest agent-prompt-sync agent-skill-sync; do v="$(systemctl --user show $t.timer -p NextElapseUSecMonotonic --value)"; case "$v" in ""|0|infinity) exit 1;; esac; done
+  - for t in felix-canary felix-trust-scan felix-heartbeat-gate felix-core-digest; do diff -q scripts/office2/$t.timer "$HOME/.config/systemd/user/$t.timer" || exit 1; done
+  - for t in agent-prompt-sync agent-skill-sync; do diff -q scripts/openclaw/deploy/$t.timer "$HOME/.config/systemd/user/$t.timer" || exit 1; done
+created_at: '2026-10-14T16:30:00Z'
+created_by: claude-code-1062
+notes: |
+  #1062. Removes Persistent=true from six monotonic systemd user timers
+  (felix-canary, felix-trust-scan, felix-heartbeat-gate, felix-core-digest,
+  agent-prompt-sync, agent-skill-sync). On a monotonic timer Persistent= makes
+  systemd load a stamp-file last_trigger at manager start. When the claude
+  user manager starts after OnBootSec= has passed, the boot trigger is
+  disabled as already fired and the timer stays dormant for the whole boot.
+  All six were dead 2026-09-27 -> 2026-10-14, the canary included, which is
+  why 17 days of failed backups went unalerted (#1063).
+
+  Only the .timer files change. The entrypoint copies them, runs
+  daemon-reload, restarts each timer (mandatory: a running timer keeps its old
+  state across daemon-reload), then verifies the LOADED config (Persistent=no,
+  enabled, active, FragmentPath, no drop-in re-add) and polls for a concrete
+  next elapse. Expect one burst of six service runs at apply time: each
+  OnBootSec= is long past, so each restart fires its service immediately.
+
+  Tier 3 (user unit content; no Tier 0/1/2 action).
+  audited_surface: true. Every path is under scripts/office2/*.timer or
+  scripts/openclaw/deploy/*.timer (the systemd-user-units surface, which
+  covers systemd-user-unit-contents.txt), so the deferred-confirm
+  auto-rebaseline should complete. 0029 ended unexpected_drift because
+  scripts/sync/systemd/ is NOT in that surface's patterns (filed separately).
+  Closeout must confirm this record's rebaseline outcome is `completed`.
+  felix-trust-scan/unit-drift will warn for these six between merge and
+  apply. That warning is expected and clears on apply.
+
+  Stamp files under ~/.local/share/systemd/timers/ are left in place: without
+  Persistent= they are not read (felix-vikunja-sync's 2026-08-31 stamp proves
+  it).
+  Rollback: revert the six .timer files and re-run this entrypoint.

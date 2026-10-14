@@ -160,7 +160,11 @@ def test_timer_has_15min_cadence_and_install():
     text = _TIMER_SRC.read_text(encoding="utf-8")
     assert "OnBootSec=5min" in text
     assert "OnUnitActiveSec=15min" in text
-    assert "Persistent=true" in text
+    # Persistent= on this monotonic timer left the canary dead for 17 days
+    # after a slow boot (#1062); this test used to require it.
+    assert not any(
+        line.strip().startswith("Persistent") for line in text.splitlines()
+    )
     assert "WantedBy=timers.target" in text
 
 
