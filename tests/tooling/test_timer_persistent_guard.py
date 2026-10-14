@@ -54,6 +54,9 @@ def _tracked_timers() -> list[Path]:
         # exemption, since systemd ignores an invalid one (Codex).
         ("[Timer]\nOnCalendar=daily\nOnBootSec=5min\nPersistent=true\n", True),
         ("[Timer]\nOnCalendar=garbage\nOnBootSec=5min\nPersistent=true\n", True),
+        # An even run of trailing backslashes is a literal, not a continuation,
+        # so it cannot swallow the next line (Codex round 2).
+        ("[Timer]\nOnBootSec=5min\nX-Note=foo\\\\\nPersistent=true\n", True),
         # A comment inside a continuation is skipped, as systemd does (Codex).
         ("[Timer]\nOnBootSec=5min\nPersistent=\\\n# note\ntrue\n", True),
         # systemd also accepts y/t; an unparseable or empty value is ignored.
@@ -98,6 +101,15 @@ def test_repo_guard_groups_drop_ins_with_their_unit(tmp_path: Path) -> None:
     assert [persistent_on_monotonic(*(p.read_text() for p in g)) for g in groups] == [True]
 
 
+def test_orphan_drop_ins_are_combined_per_directory(tmp_path: Path) -> None:
+    d = tmp_path / "x.timer.d"
+    d.mkdir()
+    (d / "10-boot.conf").write_text("[Timer]\nOnBootSec=5min\n")
+    (d / "20-persistent.conf").write_text("[Timer]\nPersistent=true\n")
+    groups = _group_units([d / "20-persistent.conf", d / "10-boot.conf"])
+    assert [persistent_on_monotonic(*(p.read_text() for p in g)) for g in groups] == [True]
+
+
 def test_drop_in_is_evaluated_with_its_unit() -> None:
     unit = "[Timer]\nOnBootSec=5min\nOnUnitActiveSec=15min\n"
     assert persistent_on_monotonic(unit, "[Timer]\nPersistent=true\n")
@@ -115,7 +127,7 @@ def test_repo_has_timers_to_check() -> None:
 
 def _group_units(paths: list[Path]) -> list[list[Path]]:
     """Each unit followed by its ``<unit>.d/*.conf`` drop-ins in load order
-    (lexical); an orphan drop-in directory forms its own group."""
+    (lexical); each orphan drop-in directory forms one combined group."""
     units = sorted(p for p in paths if p.suffix == ".timer")
     dropins = sorted(p for p in paths if p.suffix == ".conf")
     groups, claimed = [], set()
@@ -123,7 +135,13 @@ def _group_units(paths: list[Path]) -> list[list[Path]]:
         mine = [d for d in dropins if d.parent == u.parent / f"{u.name}.d"]
         claimed.update(mine)
         groups.append([u, *sorted(mine, key=lambda d: d.name)])
-    groups += [[d] for d in dropins if d not in claimed]
+    # Orphan drop-ins (no tracked unit) still combine per directory: two
+    # files that are each harmless can be the #1062 shape together.
+    orphans: dict[Path, list[Path]] = {}
+    for d in dropins:
+        if d not in claimed:
+            orphans.setdefault(d.parent, []).append(d)
+    groups += [sorted(v, key=lambda d: d.name) for _, v in sorted(orphans.items())]
     return groups
 
 

@@ -39,7 +39,10 @@ def directives(text: str) -> list[tuple[str, str, str]]:
         # systemd skips comment lines even in the middle of a continuation.
         if pending and stripped.lstrip().startswith(("#", ";")):
             continue
-        if stripped.endswith("\\") and not stripped.lstrip().startswith(("#", ";")):
+        # Only an ODD number of trailing backslashes continues the line; an
+        # even run is an escaped literal backslash (conf-parser.c).
+        trailing = len(stripped) - len(stripped.rstrip("\\"))
+        if trailing % 2 == 1 and not stripped.lstrip().startswith(("#", ";")):
             pending += stripped[:-1] + " "
             continue
         lines.append(pending + raw)

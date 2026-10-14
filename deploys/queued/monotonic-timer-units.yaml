@@ -15,9 +15,8 @@ verification:
 created_at: '2026-10-14T16:30:00Z'
 created_by: claude-code-1062
 notes: |
-  #1062. Removes Persistent=true from six monotonic systemd user timers
-  (felix-canary, felix-trust-scan, felix-heartbeat-gate, felix-core-digest,
-  agent-prompt-sync, agent-skill-sync). On a monotonic timer Persistent= makes
+  #1062. Removes Persistent=true from six monotonic user timers (listed in
+  the entrypoint). On a monotonic timer Persistent= makes
   systemd load a stamp-file last_trigger at manager start. When the claude
   user manager starts after OnBootSec= has passed, the boot trigger is
   disabled as already fired and the timer stays dormant for the whole boot.
@@ -45,4 +44,5 @@ notes: |
   Stamp files are left in place; without Persistent= they are not read.
   Rollback: not via this entrypoint (it refuses Persistent= sources), and
   re-adding Persistent= reintroduces #1062. If needed: git revert, then cp the
-  six timers to ~/.config/systemd/user/, daemon-reload, restart each.
+  six timers to ~/.config/systemd/user/, daemon-reload, restart each; verify
+  each with systemctl --user show -p Persistent,NextElapseUSecMonotonic.
