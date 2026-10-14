@@ -24,6 +24,18 @@
       "verdict": "in-mission",
       "wp": "WP01"
     },
+    "#1064": {
+      "evidence_ref": "context only: backup-drive facts and inventory naming, closed separately (9f7b9e1d)",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": null,
+      "title": null,
+      "verdict": "not-applicable",
+      "wp": null
+    },
     "#1068": {
       "evidence_ref": "kentonium3/kg-automation#1068 (scoped out by C-005)",
       "fr": null,
