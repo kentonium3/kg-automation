@@ -195,25 +195,41 @@ Missing or vague rebaseline notes are a spec-kitty review-cycle defect. The revi
 
 ## Governance Activation
 
-```yaml
-mission: software-dev
-selected_paradigms: [c4-incremental-detail-modeling]
-selected_directives:
-  - DIRECTIVE_001   # Architectural Integrity Standard — separation of concerns, well-defined boundaries
-  - DIRECTIVE_003   # Decision Documentation Requirement — capture decisions with rationale (→ ADRs)
-  - DIRECTIVE_010   # Specification Fidelity Requirement — implementation faithful to approved specs
-  - DIRECTIVE_024   # Locality of Change — changes stay close to the problem, reduce blast radius
-  - DIRECTIVE_031   # Context-Aware Design — explicit bounded-context awareness, probe real state
-  - DIRECTIVE_033   # Targeted Staging Policy — only stage/commit what the current WP owns
-  - DIRECTIVE_034   # Test-First Development — test-first across acceptance and implementation layers
-# available_tools is constrained to spec-kitty's built-in registry (spec-kitty, git, python, pytest,
-# ruff, mypy, uv). The project also uses bash, docker, docker-compose, ssh, systemctl, gh, curl,
-# tailscale, mermaid, openclaw, restic, rsync, and jq — but listing them here causes a governance
-# resolution failure because they aren't in spec-kitty's DEFAULT_TOOL_REGISTRY. The full tool list
-# is documented in the Policy Summary section instead.
-available_tools: [git, python, spec-kitty, pytest]
-template_set: software-dev-default
-```
+This section describes the active doctrine; it does not set it. Since spec-kitty 4.0.0rc7, `charter.md` is display-only to the charter compiler. What is active comes from the `activated_*` lists in `.kittify/config.yaml`, compiled into `.kittify/charter/charter.yaml` by `spec-kitty charter generate --no-from-interview`. To change it, follow the Amendment Process below, and update this section to match.
+
+As of 2026-10-14 (build `17f02e260`), the lists are pinned to the set the charter-pack cutover found in place. That set matched the released default list, with the retired `rtk-search-tooling` toolguide removed. They are pinned rather than left absent, so new built-ins added by future builds do not activate silently.
+
+**Mission types:** software-dev, documentation, research, plan. The template set is `software-dev-default`, applied by the compiler as a fallback.
+
+**Directives (19):**
+
+| ID | Directive |
+|---|---|
+| 001 | Architectural Integrity Standard |
+| 003 | Decision Documentation Requirement |
+| 010 | Specification Fidelity Requirement |
+| 018 | Doctrine Versioning Requirement |
+| 024 | Locality of Change |
+| 025 | Boy Scout Rule |
+| 028 | Efficient Local Tooling |
+| 029 | Agent Commit Signing Policy |
+| 030 | Test and Typecheck Quality Gate |
+| 031 | Context-Aware Design |
+| 032 | Conceptual Alignment |
+| 033 | Targeted Staging Policy |
+| 034 | Test-First Development |
+| 035 | Bulk Edit Occurrence Classification |
+| 036 | Black-Box Integration Testing |
+| 037 | Living Documentation Sync |
+| 038 | Structured Prompt Change-Boundary |
+| 039 | Lynn Cole Engineering Culture |
+| 040 | Recurring-Bug Structural-Intervention Discipline |
+
+**Paradigms (8):** Atomic Design, Behaviour-Driven Development, Brownfield Onboarding, C4 Incremental Detail Modeling, Deep Module Design, Domain-Driven Design, Specification by Example, Structured-Prompt-Driven Development.
+
+**Also active:** 94 tactics, 9 styleguides, 9 toolguides, 13 procedures, 16 agent profiles and 17 mission step contracts. `.kittify/config.yaml` lists them, and `spec-kitty charter list` shows them by kind.
+
+**Tools:** the compiler records `git` and `spec-kitty` and falls back to its runtime tool registry. The project also uses bash, docker, docker-compose, ssh, systemctl, gh, curl, tailscale, mermaid, openclaw, restic, rsync and jq; the full list is in the Policy Summary below.
 
 ## Policy Summary
 
