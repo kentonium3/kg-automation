@@ -58,10 +58,10 @@
       "criterion_id": "FR-006",
       "description": "Verify FR-006 is satisfied",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
+      "evidence": "scripts/office2/felix_health_check/tests/test_run_record_contract.py: real scripts.canary.probes.run_probe over main()-written records (a-d), hijack controls derived from TIMESTAMP_KEYS, legacy error-key controls; tests/office2/felix_health_check/test_run.py unchanged and green",
+      "pass_fail": "pass",
+      "verified_by": "claude-opus-5-5",
+      "verified_at": "2026-10-14T20:04:45.766010+00:00",
       "notes": "TODO: replace with a real acceptance criterion"
     },
     {
