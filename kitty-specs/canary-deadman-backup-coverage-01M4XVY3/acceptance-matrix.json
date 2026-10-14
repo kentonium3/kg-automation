@@ -38,10 +38,10 @@
       "criterion_id": "FR-004",
       "description": "Verify FR-004 is satisfied",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
+      "evidence": "scripts/office2/felix_health_check/tests/test_coverage.py T008 fail-closed cases (inventory missing/not JSON/no services, target absent, pointer missing, network probe refused, canary code unimportable, evaluator raising) -> unknown; test_run.py::test_combine_spot_checks (blind never healthy)",
+      "pass_fail": "pass",
+      "verified_by": "claude-opus-5-5",
+      "verified_at": "2026-10-14T20:04:27.256676+00:00",
       "notes": "TODO: replace with a real acceptance criterion"
     },
     {
