@@ -1,7 +1,7 @@
 {
   "rows": {
     "#1062": {
-      "evidence_ref": "<link or commit>",
+      "evidence_ref": "context only: root cause of the dark canary, fixed and deployed separately (merge 44faafa9, deploys/applied/0031)",
       "fr": null,
       "nfr": null,
       "repo": null,
@@ -9,7 +9,7 @@
       "scope": null,
       "source_file": "spec.md",
       "title": "<fill at WP-implementation time>",
-      "verdict": "unknown",
+      "verdict": "not-applicable",
       "wp": null
     },
     "#1063": {
