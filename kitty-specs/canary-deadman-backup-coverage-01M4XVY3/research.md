@@ -80,3 +80,46 @@ When the canary is alive and the backup fails, both watchers alert: the canary p
 - R3 (suppressed → unknown) is a judgment call; reviewers should challenge it.
 - ~~Import cost / side effects of `scripts.canary.*`~~: measured at 0.025 s, with no I/O at import (2026-10-14).
 - ~~Is `scripts/office2/felix_health_check/tests/` collected?~~ Yes: a bare `pytest` from the repo root collects it (16 existing tests).
+
+## Post-plan review dispositions (2026-10-14)
+
+Reviewers: **Codex** (GPT, `codex exec -s read-only`): REJECT. **paula-patterns** (Claude Sonnet): APPROVE-WITH-CHANGES. **debugger-debbie** (Claude Sonnet): CONFIRMED-WITH-GAPS. Implementer: Claude Opus 5.5. Codex's HIGH 1 and HIGH 3 were reproduced by the implementer before acceptance.
+
+Debbie's incident replay through the real code with the real inventory: on 2026-09-28 11:00Z, `restic-backup` → `failed` ("restic_exit_code=127 not in good_values [0, 3]") and `felix-canary` → `stale` (age 54003 s vs 2100 s). So the plan does close the 17-day silence.
+
+| # | Finding | Disposition |
+|---|---|---|
+| Codex-1 HIGH | `felix-canary`'s legacy `tick-signal-file` path reads missing/`partial` status, a broken anchor plus a fresh fallback timestamp, and `components_evaluated: 0` as **healthy** (reproduced: all four `healthy`). The dead-man's switch would be blind to a canary that ticks but does nothing. | **Accepted → R11 / FR-011.** `felix-canary` adopts a `key_ledger` (the contract's "second producer" path) with its own reconciliation harness. |
+| Codex-2 HIGH | Deploy verification on combined status can accept missing coverage or failed delivery. | **Accepted → IC-03.** Verify per entry: exactly the two components, neither `unknown`/`unavailable`/`suppressed`; shell ran (`exit_code` is an int, classified); `delivery.sent` is true whenever an alert was required; the record's `ran_at_utc` ≥ the apply start. |
+| Codex-3 HIGH | The bus truncates each `details` value to 500 chars (`render.py:25`), so coverage appended after shell output is lost (reproduced: `DETAIL_VALUE_MAX = 500`). | **Accepted → FR-005 / contract.** Each non-ok coverage finding is its own `details` entry (`coverage:<component>`), inserted before `output`. Tested through the real bus renderer. |
+| Codex-4 MED | Removing `max_age_seconds` silently turns freshness into liveness-only. | **Accepted → R12 / FR-012.** Declaration preconditions are checked before evaluation (unknown at runtime) and pinned in CI against the real inventory. |
+| Codex-5 MED | Invariant 3(b) holds only when the shell exit code is 0 or null. | **Accepted.** Contract scoped; shell-failure-plus-coverage cases added. The shell script exits 0 by construction (it echoes a verdict), and existing behavior is preserved. |
+| Codex-6 MED | Only `TimeoutExpired` is caught around the shell run. | **Accepted → R5 widened.** Any exception from launching or decoding the shell run → script result `UNKNOWN` with evidence. Coverage is evaluated before the shell run and independently of it. One record/alert path. |
+| Codex-7 MED | The inventory `felix-health-check` dependency field and `scripts/deploy/deploy-deterministic-monitoring-checks.py` still reference the retired path. | **Accepted → IC-03/IC-04.** Dependency fields are updated. The old entrypoint's preflight is repointed to the repo script (it is an applied record's entrypoint, so it is updated, not deleted). |
+| Paula-1 / Debbie-3 MED | Shared fate: same code, host, checkout and alert channel. | **Partly accepted.** (a) The limit is documented in `observability-and-alerting.md` and the inventory note. (b) Named sentinel fixtures (the incident's 127 pointer and a 17-day-dead tick) assert `failed`/`stale` through the real evaluator, so a canary-code regression fails CI. (c) **Declined:** a runtime mtime leg would be a second, hand-authored freshness definition (violates C-001). The evaluator only changes through CI, which (b) guards. Off-host heartbeat and channel loss → follow-up issue. |
+| Paula-2 MED | The run-record key namespace is coupled to `_explicit_error` / `TIMESTAMP_KEYS`. | **Accepted (test) + follow-up (structure).** The contract test derives the ranked timestamp keys from `probes.TIMESTAMP_KEYS` at runtime and drives the real probe over each forbidden-key variant. Structural fix (give `felix-health-check` a `key_ledger` too) → follow-up issue. |
+| Paula-3 LOW | R3 is right; make the evidence actionable. | **Accepted:** evidence reads "status '<s>' not alert-eligible: coverage withheld". |
+| Paula-4 MED | The hard-coded tuple can drift from the inventory. | **Accepted → FR-012 CI test:** both components exist, are alert-eligible and meet the declaration preconditions. A third dead-man target triggers the declarative inventory flag (rule of three). |
+| Paula-5 LOW | Script-missing masked by `FAILURES_DETECTED`. | **Accepted:** the alert lists `script` first; test asserts both appear in the rendered body. |
+| Paula-6 / Debbie LOW | No uncaught path; different-CWD test. | **Accepted:** a test raises inside coverage and asserts exit 0 plus an `UNKNOWN` record. Another runs from a different CWD. |
+| Paula-7 LOW | Re-apply idempotency. | **Accepted:** the second apply, with the host copy already retired, succeeds. |
+| Debbie-2 LOW | `load_targets` returns `(targets, gaps)`. | Noted for the implementer. |
+| Debbie-3 LOW | Future-dated fixture; post-boot catch-up wording. | **Accepted:** a future-dated tick fixture is added. Stale-canary evidence appends "(host up <N> min: may be a post-boot catch-up)" when uptime is below the canary bound. Informative only; never changes the finding. |
+| Debbie-1 MED | Direct backup alert deferred. | Already tracked: kentonium3/kg-automation#1067. |
+
+### R11 — `felix-canary` adopts a key ledger
+
+`adjudicated`:
+- `status` with `good_values ["success"]`. The canary writes `"error"` iff `errors` is non-empty (`run.py:462`), so `status` subsumes the legacy truthy-`errors` rule.
+- `completed_at_utc` with `freshness` and `anchor: true`. The bound comes from the existing `max_age_seconds` 2100.
+- `components_evaluated` with `minimum: 1`. A canary that evaluates nothing is not alive.
+
+`diagnostic_only`: `errors` (summarised by `status`), `emitted`, `suppressed_dedup`, `suppressed_status`, `coverage_gaps` (the canary already pages gaps itself) and `duration_ms`.
+
+`reconciliation_harness`: `tests/canary/test_tick_ledger_reconciliation.py`. It executes `scripts.canary.run.run_pass` under injected effects and reconciles the written tick document. The existing restic harness's selection test (`assert_selection_matches(set(REAL_LEDGERS), …)`) picks the new ledger up automatically.
+
+This also strengthens the canary's self-probe, an accepted side effect that is documented in the inventory note.
+
+### R12 — Declaration preconditions (validation, not predicate)
+
+Before evaluating, `coverage.py` requires that each target's `health_check` has a numeric `max_age_seconds` > 0 and a `key_ledger` with exactly one `anchor: true` freshness key. Otherwise the finding is `unknown`, "declaration lacks a freshness bound/anchor". The same function runs in CI against the real inventory. This checks the *shape* of the declaration the evaluator needs and restates no value from it.

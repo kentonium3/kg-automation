@@ -21,7 +21,9 @@ The health check gains two **coverage checks**: is the canary ticking, and is th
 **Project Type**: single repo, scripts layout.
 **Performance Goals**: the two coverage checks are local file reads plus one inventory parse, ≤ 5 s added per run (NFR-002). The inventory is ~3,000 lines of JSON, so it parses in milliseconds.
 **Constraints**: C-001 reuse, not copy; C-002 observe code, not process; C-003 no new alert channel; C-004 Tier 3 and manifest-deployed. The run record must stay compatible with the canary's #891 probe (FR-006; see the contract).
-**Scale/Scope**: about 4 source files, about 3 test files, 1 deploy entrypoint, 1 manifest, and 3–4 doc/data files.
+**Scale/Scope**: about 4 source files, about 4 test files (plus a new canary ledger reconciliation harness), 1 deploy entrypoint, 1 manifest, the `felix-canary` inventory ledger, and 3–4 doc/data files.
+
+**Post-plan review (2026-10-14)**: Codex REJECT, paula APPROVE-WITH-CHANGES, debbie CONFIRMED-WITH-GAPS. All findings are dispositioned in [research.md § Post-plan review dispositions](research.md#post-plan-review-dispositions-2026-10-14); this plan reflects them (IC-05 added; IC-01–IC-04 tightened).
 
 ## Charter Check
 
@@ -85,12 +87,13 @@ docs/runbooks/restic-backup-ops.md               # "who tells you backups stoppe
 - **Purpose**: produce one finding per coverage component (`felix-canary`, `restic-backup`) by evaluating that component's inventory declaration with `scripts.canary.health.evaluate`, mapping the canary outcome to the health-check verdict classes, and failing closed on every inability.
 - **Relevant requirements**: FR-001, FR-002, FR-003, FR-004, NFR-003, NFR-004, C-001, C-002
 - **Affected surfaces**: `scripts/office2/felix_health_check/coverage.py`, its tests and fixtures
-- **Sequencing/depends-on**: none
+- **Also (review)**: declaration preconditions R12 (bound > 0 and exactly one ledger anchor, else unknown); `load_targets` returns `(targets, gaps)`; inventory path resolved from `__file__` with a different-CWD test; named sentinel fixtures (the incident's 127 pointer, a 17-day-dead tick, a future-dated tick) asserted through the real evaluator; post-boot evidence suffix when uptime < the canary bound.
+- **Sequencing/depends-on**: IC-05 (the canary ledger is a declaration precondition)
 - **Risks**: (1) the `suppressed` outcome, when a declaration's status is not alert-eligible, must not read as healthy; it maps to unknown (research R3). (2) Non-file effects must be refused rather than performed, so the health check never executes an inventory-declared shell command (research R4). (3) A naive-datetime or malformed pointer raises inside the probe; `health.evaluate` already catches that and maps it to unknown. Test it, don't re-wrap it.
 
 ### IC-02 — Wrapper integration: verdict, alert, run record, script location
 
-- **Purpose**: fold coverage findings into the one verdict with failure > script-missing > unknown > healthy precedence. List every finding in the alert body, record `coverage_checks` in `last-run.json` without disturbing the #891 probe, run the repo-tracked script, and keep the coverage checks running even when the shell script is missing or times out.
+- **Purpose**: fold coverage findings into the one verdict with failure > script-missing > unknown > healthy precedence. List every finding in the alert body, record `coverage_checks` in `last-run.json` without disturbing the #891 probe, run the repo-tracked script, and keep the coverage checks running even when the shell script is missing, times out, or fails to launch or decode. Coverage is evaluated first, and any shell-run exception becomes an `UNKNOWN` script result. Each non-ok coverage finding goes to the bus as its own `details` entry (`coverage:<component>`) ahead of `output`, because the bus truncates each value to 500 characters. A missing script is listed first.
 - **Relevant requirements**: FR-004, FR-005, FR-006, FR-007, NFR-003
 - **Affected surfaces**: `run.py`, `health-check.sh` (new in repo), `tests/test_run.py`
 - **Sequencing/depends-on**: IC-01
@@ -98,9 +101,10 @@ docs/runbooks/restic-backup-ops.md               # "who tells you backups stoppe
 
 ### IC-03 — Deploy, retire host copy, live proof
 
+- **Verification (review, Codex-2)**: apply checks the individual results, not the combined status. The record's `ran_at_utc` must be ≥ the apply start; `coverage_checks` must hold exactly `felix-canary` and `restic-backup`, neither `unknown`/`unavailable`/`suppressed`; `exit_code` must be an int (the shell ran); `delivery.sent` must be true whenever status ≠ `ALL_HEALTHY`; and `script_path` must equal the repo path. Only then is the host copy retired. A re-apply after retirement is idempotent.
 - **Purpose**: a manifest whose entrypoint (dry-run: reports what it would do and evaluates coverage read-only against live pointers; apply: runs the health check once, verifies the live record carries both coverage checks and the repo script path, then moves the host copy out of `~/helper-scripts/` into a dated retired file) plus a `felix-health-check.sh` preflight that points at the repo script.
 - **Relevant requirements**: FR-008, FR-009, SC-002, SC-005, C-004
-- **Affected surfaces**: `scripts/deploy/deploy-health-check-coverage.py`, `tests/deploy/test_deploy_health_check_coverage.py`, `deploys/queued/health-check-coverage.yaml`, `scripts/office2/deploy/felix-health-check.sh`
+- **Affected surfaces**: `scripts/deploy/deploy-health-check-coverage.py`, `tests/deploy/test_deploy_health_check_coverage.py`, `deploys/queued/health-check-coverage.yaml`, `scripts/office2/deploy/felix-health-check.sh`, `scripts/deploy/deploy-deterministic-monitoring-checks.py` (its preflight still names the retired path, Codex-7)
 - **Sequencing/depends-on**: IC-02
 - **Risks**: the apply runs a real health check, so a genuine failure at deploy time alerts Kent. That is correct, but the deploy must still succeed when the verdict is `FAILURES_DETECTED` and must fail only on `UNKNOWN`/`SCRIPT_MISSING` or a record missing coverage. Retire by move, not delete, so it is reversible. Manifest notes must stay ≤ 2000 characters; office2 has no pytest, so there is no pytest pre-check.
 
@@ -110,9 +114,19 @@ docs/runbooks/restic-backup-ops.md               # "who tells you backups stoppe
 - **Relevant requirements**: FR-010
 - **Affected surfaces**: `service-inventory.json` (`felix-health-check` entry `expected`/`note`), `service-inventory.md`, `observability-and-alerting.md`, `restic-backup-ops.md`
 - **Sequencing/depends-on**: IC-02 (describe what was built)
-- **Risks**: `validate_architecture_data.py` is a blocking gate. The canary reads the `felix-health-check` `health_check` block, so only `expected`/`note` prose changes there; `method`, `endpoint`, `max_age_seconds` and `success_status_values` stay byte-identical.
+- **Risks**: `validate_architecture_data.py` is a blocking gate. The canary reads the `felix-health-check` `health_check` block, so only `expected`/`note` prose and the dependency fields naming the retired script path change there (Codex-7); `method`, `endpoint`, `max_age_seconds` and `success_status_values` stay byte-identical. Document the shared-fate limit (paula-1/debbie-3) in `observability-and-alerting.md`.
+
+### IC-05 — The canary's tick declaration becomes affirmative (key ledger)
+
+- **Purpose**: give `felix-canary`'s `health_check` a `key_ledger` (research R11): `status` ∈ {success}, `completed_at_utc` freshness anchor, `components_evaluated` ≥ 1, the rest diagnostic_only. Register its reconciliation harness, which executes `run_pass` under injected effects. Without this, the dead-man's switch reads a do-nothing or partial canary as alive (Codex-1, reproduced).
+- **Relevant requirements**: FR-011, FR-003
+- **Affected surfaces**: `service-inventory.json` (`felix-canary` `health_check.key_ledger`), `tests/canary/test_tick_ledger_reconciliation.py` (new), and canary probe tests that pinned the legacy tick behavior
+- **Sequencing/depends-on**: none (precedes IC-01)
+- **Risks**: this changes the canary's **self-probe** verdict in production as well; it is stricter, and an `error` tick now reads `failed` through the ledger rather than through the legacy truthy-`errors` rule (same outcome). The existing restic harness's selection test picks up the second ledger automatically, so both harnesses must be green together. The reconciliation must execute the producer, never a hand-written key list (contract Obligation 2.1).
 
 ## Follow-ups (filed, not built — C-005)
 
-- Direct `felix-alert` from `backup.sh` on the "not mounted" path.
-- `health-check.sh`'s `is-active` on `felix-core-digest.timer` cannot see a dormant timer (#1062 class). The script gets a comment saying so.
+- Direct `felix-alert` from `backup.sh` on the "not mounted" path. Follow-up: kentonium3/kg-automation#1067.
+- `health-check.sh`'s `is-active` on `felix-core-digest.timer` cannot see a dormant timer (#1062 class). The script gets a comment saying so. Follow-up: kentonium3/kg-automation#1068.
+- Shared fate of the two on-host watchers (off-host heartbeat; alert-channel loss). Follow-up: kentonium3/kg-automation#1069.
+- Give `felix-health-check`'s run record a `key_ledger`, the structural fix for the key-namespace coupling. Follow-up: kentonium3/kg-automation#1070.
