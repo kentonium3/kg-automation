@@ -60,6 +60,18 @@
       "verdict": "deferred-with-followup",
       "wp": null
     },
+    "#676": {
+      "evidence_ref": "context only: origin of felix-health-check (deterministic-monitoring-checks-01KX1XNW); its contract is preserved",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": null,
+      "title": null,
+      "verdict": "not-applicable",
+      "wp": null
+    },
     "#891": {
       "evidence_ref": "context only: the existing canary->health-check watch; preserved and pinned by test_run_record_contract.py (WP03)",
       "fr": null,
