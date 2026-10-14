@@ -66,7 +66,7 @@ preserves novel-signal escalation as the safety net.
 |---|---|---|
 | Host | office2 (Ubuntu 24.04 LTS) | office2 (Ubuntu 24.04 LTS) |
 | Run-as user | `claude` | `claude` |
-| Schedule | `OnUnitActiveSec=15min`, `OnBootSec=3min`, `Persistent=true` | `OnUnitActiveSec=30min`, `OnBootSec=5min`, `Persistent=true` |
+| Schedule | `OnUnitActiveSec=15min`, `OnBootSec=3min` | `OnUnitActiveSec=30min`, `OnBootSec=5min` |
 | Trigger | `felix-core-digest.timer` (user unit) → `felix-core-digest.service` (oneshot, two chained ExecStart) | `felix-heartbeat-gate.timer` (user unit) → `felix-heartbeat-gate.service` (oneshot) |
 | Entrypoint 1 | `/usr/bin/python3 /home/claude/kg-automation/scripts/openclaw/observation/summarize.py` (existing) | `/usr/bin/python3 /home/claude/kg-automation/scripts/openclaw/heartbeat_gate/run.py` |
 | Entrypoint 2 | `/usr/bin/python3 /home/claude/kg-automation/scripts/openclaw/observation/tick.py` (new) | — |

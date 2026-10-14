@@ -13,10 +13,17 @@
 #   git remote have settled. Without this delay the first post-boot tick
 #   would race the Tailscale connection.
 #
-# Why Persistent=true:
-#   If office2 was off (or the timer was disabled) when a tick was supposed
-#   to fire, run ONE catch-up tick on resume. The helper is idempotent
-#   (NFR-006), so a catch-up tick is harmless.
+# Why NO Persistent= (#1062):
+#   Persistent= only does what its name suggests for OnCalendar= timers, and on
+#   a monotonic timer like this one it is actively harmful. It makes systemd
+#   load a stamp-file last_trigger at manager start. If the claude user manager
+#   starts after OnBootSec= has already passed (slow boot), systemd treats the
+#   boot trigger as already fired and disables it, the service never runs, so
+#   OnUnitInactiveSec= never gets a base, and the timer stays dormant for that
+#   whole boot. That happened 2026-09-27 -> 2026-10-14 (17 days).
+#   Downtime is covered without it: on a late manager start a past OnBootSec=
+#   fires immediately, and the helper is idempotent and converges to the repo
+#   state. tests/tooling/test_timer_persistent_guard.py rejects a re-add.
 #
 # Operator enable (one-time, post-deploy):
 #   systemctl --user enable --now agent-prompt-sync.timer
@@ -35,7 +42,6 @@ Documentation=file:///home/claude/kg-automation/docs/runbooks/agent-prompt-sync-
 OnUnitInactiveSec=300s
 OnBootSec=120s
 Unit=agent-prompt-sync.service
-Persistent=true
 
 [Install]
 WantedBy=timers.target
