@@ -88,10 +88,10 @@
       "criterion_id": "FR-009",
       "description": "Verify FR-009 is satisfied",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
+      "evidence": "deploys/queued/health-check-coverage.yaml validated against manifest-v1 schema by reviewer; tests/deploy/test_deploy_health_check_coverage.py::test_manifest_shape; pre-merge live dry-run on office2 via git archive 2026-10-14 rc=0. Live apply verified post-merge, recorded on #1063",
+      "pass_fail": "pass",
+      "verified_by": "claude-opus-5-5",
+      "verified_at": "2026-10-14T20:05:13.815134+00:00",
       "notes": "TODO: replace with a real acceptance criterion"
     },
     {
