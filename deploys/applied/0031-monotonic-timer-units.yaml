@@ -84,3 +84,7 @@ notes: '#1062. Removes Persistent=true from six monotonic user timers (listed in
   '
 apply_mode: manifest
 applied_at: '2026-10-14T16:22:17Z'
+rebaseline:
+  outcome: completed
+  at_utc: '2026-10-14T16:22:28Z'
+  baseline_count: 15
