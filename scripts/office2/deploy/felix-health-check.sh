@@ -17,7 +17,8 @@ set -euo pipefail
 REPO_ROOT="/home/claude/kg-automation"
 SERVICE_NAME="felix-health-check"
 WRAPPER_PACKAGE_PATH="${REPO_ROOT}/scripts/office2/felix_health_check"
-HEALTH_CHECK_SCRIPT="/home/claude/helper-scripts/health-check.sh"
+# Version-controlled since #1063 (was an untracked ~/helper-scripts/ copy).
+HEALTH_CHECK_SCRIPT="${REPO_ROOT}/scripts/office2/felix_health_check/health-check.sh"
 SYSTEMD_USER_DIR="${HOME}/.config/systemd/user"
 SYSTEMD_REPO_DIR="${REPO_ROOT}/scripts/office2"
 
@@ -38,13 +39,12 @@ git -C "${REPO_ROOT}" pull origin main
 echo ">>> Preflighting health-check.sh presence + executability"
 if [[ ! -f "${HEALTH_CHECK_SCRIPT}" ]]; then
   echo "ERROR: ${HEALTH_CHECK_SCRIPT} not found — the wrapper has nothing to run." >&2
-  echo "       This is the same script the removed openclaw crons invoked;" >&2
-  echo "       confirm it hasn't moved or been deleted before enabling the timer." >&2
+  echo "       It ships in the repo (#1063); check the checkout is current." >&2
   exit 1
 fi
 if [[ ! -x "${HEALTH_CHECK_SCRIPT}" ]]; then
   echo "ERROR: ${HEALTH_CHECK_SCRIPT} exists but is not executable." >&2
-  echo "       Run: chmod +x ${HEALTH_CHECK_SCRIPT}" >&2
+  echo "       Its executable bit is tracked in git (100755); check the checkout." >&2
   exit 1
 fi
 echo "    OK: ${HEALTH_CHECK_SCRIPT} present and executable."

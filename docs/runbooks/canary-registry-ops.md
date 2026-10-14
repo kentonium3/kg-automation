@@ -5,10 +5,10 @@ audience: agents_and_humans
 status: approved
 level: howto
 created: 2026-07-11
-last_validated: '2026-07-11'
-last_updated: '2026-07-11'
-updated_by: '#327 (felix-canary-registry-01KX8T7B)'
-version: v1.0
+last_validated: '2026-10-14'
+last_updated: '2026-10-14'
+updated_by: '#327 (felix-canary-registry-01KX8T7B) + #1063 (canary-deadman-backup-coverage-01M4XVY3)'
+version: v1.1
 owners: [kgale]
 ---
 
@@ -250,14 +250,19 @@ partially in scope here — stated plainly so no one over-trusts it:
   `OnFailure=felix-canary-onfailure.service`, so a non-zero exit fires an
   out-of-band ERROR independent of the runner's own emit logic (SC-006).
   `felix-trust-scan` lacked this; the canary adds it.
-- **A dead timer / whole-host silence is NOT covered here — deferred to
-  [#269](https://github.com/kentonium3/kg-automation/issues/269).** If the timer
-  never fires, or office2 is entirely down, nothing the runner *owns* can detect
-  it (a dead process cannot report itself). The runner is registered as a Felix
-  component in the inventory (its `last-tick.json` freshness `health_check`), so
-  the deferred out-of-band watchdog (#269) will detect a stalled timer once it
-  ships. Full dead-timer and whole-host-silence detection is explicitly out of
-  scope for this mission.
+- **A dead timer is covered by felix-health-check (#1063).** A dead process
+  cannot report itself: from 2026-09-27 to 2026-10-14 this timer was dormant
+  (#1062) and nothing noticed. `felix-health-check`, an independent calendar
+  timer, now evaluates this runner's `last-tick.json` declaration twice a day
+  through the canary's own evaluator. The declaration carries a `key_ledger`
+  (#1063): `status` must be `success`, `completed_at_utc` is the anchor with no
+  fallback timestamp, and `components_evaluated` must be ≥ 1, so a runner that
+  ticks without doing anything does not read as alive. The canary in turn
+  watches the health check's `last-run.json` (#891), so each watches the other.
+- **Whole-host silence is still NOT covered.** If office2 is down, or the
+  shared ntfy topic is lost, both watchers go quiet together. An off-host
+  heartbeat is tracked as [#1069](https://github.com/kentonium3/kg-automation/issues/1069)
+  (the earlier out-of-band watchdog idea is [#269](https://github.com/kentonium3/kg-automation/issues/269)).
 
 ## Cross-references
 

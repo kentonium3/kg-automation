@@ -6,8 +6,8 @@ status: approved
 level: 2
 owners: [kent]
 audience: agents_and_humans
-last_validated: '2026-08-30'
-updated_by: 'pointer-key-ledger-01M189P6 (#934) + #511'
+last_validated: '2026-10-14'
+updated_by: 'canary-deadman-backup-coverage-01M4XVY3 (#1063) + pointer-key-ledger-01M189P6 (#934) + #511'
 ---
 
 # Restic Backup Operations
@@ -206,11 +206,13 @@ ssh office2-claude 'cat /data/services/backup/drift/script-drift-last-tick.json'
 
 ### What this does not cover
 
-- **The canary's own liveness is self-observed.** `felix-canary`'s
-  `tick-signal-file` health check is probed only by the canary process
-  itself, so a stopped runner does not run, therefore does not probe,
-  therefore never reports itself stale. This mission does not fix that; it
-  is recorded as an open risk (spec R-001), not closed here.
+- **The canary's liveness is now watched independently (closed by #1063).**
+  This was recorded here as open risk R-001, and it is exactly what happened:
+  from 2026-09-27 to 2026-10-14 the canary was dark (#1062) and every backup
+  failed with no alert. `felix-health-check` (an independent calendar timer)
+  now evaluates both `felix-canary`'s tick and this `restic-backup` ledger
+  twice a day through the canary's own evaluator. See
+  [What tells you backups stopped](#what-tells-you-backups-stopped).
 - **Sixteen other pointer-emitting components have no ledger.** This
   mechanism covers `restic-backup` (and its sibling retention keys) only.
   The adoption path for the rest is tracked as
@@ -287,6 +289,28 @@ the boot and nothing fails loudly. Work through these in order:
    ```
    The weekly integrity check only runs on Sundays, so run `restic check`
    explicitly after any unclean disconnect.
+
+   ⚠️ A manual `restic check` does **not** update `last_integrity_check_utc`:
+   only `backup.sh`'s Sunday block writes it. If the outage spanned Sundays,
+   the ledger keeps reporting `restic-backup` **failed** on that key (9-day
+   bound) until the next Sunday 04:00 run, even though the snapshot is fresh.
+   That is expected; it clears on its own. (Seen 2026-10-14 → 10-18.)
+
+### What tells you backups stopped
+
+Two independent watchers judge this pointer by the same declaration
+(`health_check.key_ledger` above):
+
+- **felix-canary**, every 15 minutes, through its dedup windows (first
+  sighting pages; a persisting failure re-reminds).
+- **felix-health-check**, at 11:00 and 23:00 UTC, as a `coverage:restic-backup`
+  detail on its alert (#1063). It does not depend on the canary running, and
+  it also reports when the canary itself has stopped ticking.
+
+A missed 04:00 run is reported by the first health-check run after the
+snapshot passes its 28 h bound, at most about 12 h later. The not-mounted path
+does not alert directly from `backup.sh` yet; that is tracked as
+[#1067](https://github.com/kentonium3/kg-automation/issues/1067).
 
 ### Restore from a snapshot
 
@@ -497,7 +521,9 @@ What genuinely remains not-yet-automated:
 - The cron has not been migrated to a systemd timer. Discoverability is
   via this runbook plus `service-inventory.json`; `systemctl` queries
   will return nothing for the backup itself.
-- **The canary's own liveness is self-observed** (spec R-001) and
+- **Both watchers share a host, a checkout and an alert channel.** If
+  office2 or the ntfy topic is lost, both go quiet together
+  ([#1069](https://github.com/kentonium3/kg-automation/issues/1069)). And
   **sixteen other pointer-emitting components have no key ledger** (#937) —
   see [What this does not cover](#what-this-does-not-cover) above. These
   remain true independent of everything else in this runbook.
