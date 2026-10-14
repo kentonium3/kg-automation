@@ -36,6 +36,9 @@ def directives(text: str) -> list[tuple[str, str, str]]:
     pending = ""
     for raw in text.splitlines():
         stripped = raw.rstrip()
+        # systemd skips comment lines even in the middle of a continuation.
+        if pending and stripped.lstrip().startswith(("#", ";")):
+            continue
         if stripped.endswith("\\") and not stripped.lstrip().startswith(("#", ";")):
             pending += stripped[:-1] + " "
             continue
@@ -60,21 +63,25 @@ def directives(text: str) -> list[tuple[str, str, str]]:
     return out
 
 
-def persistent_without_calendar(*texts: str) -> bool:
+def persistent_on_monotonic(*texts: str) -> bool:
     """True when the effective ``[Timer]`` config has a truthy ``Persistent=``
-    and no ``OnCalendar=``.
+    together with any monotonic trigger (OnActiveSec, OnBootSec, OnStartupSec,
+    OnUnitActiveSec, OnUnitInactiveSec).
 
     Pass the unit file followed by its drop-ins, in load order; they are
-    evaluated as one stream. The last parseable ``Persistent=`` wins. An empty
+    evaluated as one stream. The last parseable ``Persistent=`` wins (systemd
+    ignores an empty or invalid boolean and keeps the previous value). An empty
     assignment to any timer expression clears every expression set before it
     (``config_parse_timer()`` → ``timer_free_values()``).
 
-    A timer with ``OnCalendar=`` is exempt even if it also has monotonic
-    triggers. The exemption is deliberate: the calendar trigger keeps
-    re-arming it, so a disabled boot trigger cannot leave it dormant.
+    The rule is "Persistent= only on calendar-only timers". It deliberately
+    does not exempt a timer for also having ``OnCalendar=``. systemd ignores an
+    invalid calendar expression, so such an exemption could be bought with
+    ``OnCalendar=garbage``. And a monotonic trigger next to Persistent= is
+    exactly the combination that gets disabled after a slow boot.
     """
     persistent = False
-    calendar = False
+    monotonic = False
     for text in texts:
         for section, key, value in directives(text):
             if section != "Timer":
@@ -87,7 +94,7 @@ def persistent_without_calendar(*texts: str) -> bool:
                     persistent = False
             elif key in TIMER_EXPRESSIONS:
                 if not value:
-                    calendar = False
-                elif key == "OnCalendar":
-                    calendar = True
-    return persistent and not calendar
+                    monotonic = False
+                elif key != "OnCalendar":
+                    monotonic = True
+    return persistent and monotonic

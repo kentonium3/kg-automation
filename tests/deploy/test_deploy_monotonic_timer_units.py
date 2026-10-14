@@ -32,6 +32,10 @@ def _show(**overrides: str) -> str:
     return "\n".join(f"{k}={v}" for k, v in props.items())
 
 
+def _UNIT(path: Path) -> str:
+    return "[Timer]\nOnBootSec=5min\nOnUnitActiveSec=15min\n"
+
+
 class FakeRun:
     def __init__(self, outputs: list[str]) -> None:
         self.outputs = outputs
@@ -72,7 +76,9 @@ def test_loaded_config_checks() -> None:
     assert mod.loaded_problems("felix-canary.timer", disabled, [])
     elsewhere = mod.parse_show(_show(FragmentPath="/etc/systemd/user/felix-canary.timer"))
     assert mod.loaded_problems("felix-canary.timer", elsewhere, [])
-    assert mod.loaded_problems("felix-canary.timer", good, ["[Timer]\nPersistent=true\n"])
+    unit = "[Timer]\nOnBootSec=5min\nOnUnitActiveSec=15min\n"
+    assert mod.loaded_problems("felix-canary.timer", good, [unit]) == []
+    assert mod.loaded_problems("felix-canary.timer", good, [unit, "[Timer]\nPersistent=true\n"])
 
 
 def test_slow_service_is_waited_for_not_failed() -> None:
@@ -84,19 +90,25 @@ def test_slow_service_is_waited_for_not_failed() -> None:
         _show(),
     ])
     sleeps: list[float] = []
-    assert mod._verify_timer("felix-canary.timer", run, sleeps.append) == []
+    assert mod._verify_timer("felix-canary.timer", run, sleeps.append, read=_UNIT) == []
     assert len(sleeps) == 2
 
 
 def test_never_rearming_timer_fails_after_timeout() -> None:
     # The #1062 symptom: active (elapsed), next elapse infinity, forever.
     run = FakeRun([_show(SubState="elapsed", NextElapseUSecMonotonic="infinity")])
-    problems = mod._verify_timer("felix-canary.timer", run, lambda s: None, timeout_s=0)
+    problems = mod._verify_timer("felix-canary.timer", run, lambda s: None, timeout_s=0, read=_UNIT)
     assert problems and "no concrete next elapse" in problems[0]
 
 
 def test_loaded_persistent_fails_immediately_without_polling() -> None:
     run = FakeRun([_show(Persistent="yes")])
     sleeps: list[float] = []
-    assert mod._verify_timer("felix-canary.timer", run, sleeps.append)
+    assert mod._verify_timer("felix-canary.timer", run, sleeps.append, read=_UNIT)
     assert sleeps == []
+
+
+def test_installed_fragment_with_persistent_fails() -> None:
+    run = FakeRun([_show()])  # loaded Persistent=no, but the file says otherwise
+    bad = lambda p: "[Timer]\nOnBootSec=5min\nPersistent=true\n"
+    assert mod._verify_timer("felix-canary.timer", run, lambda s: None, read=bad)

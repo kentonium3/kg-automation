@@ -1,4 +1,4 @@
-"""Guard: no tracked systemd timer sets Persistent= without OnCalendar= (#1062).
+"""Guard: Persistent= only on calendar-only systemd timers (#1062).
 
 Persistent= is documented to matter only for OnCalendar= timers, which is why
 #925 and #948 called it "inert" on monotonic timers. It is not inert. It makes
@@ -24,7 +24,7 @@ from pathlib import Path
 
 import pytest
 
-from scripts.deploy.lib.timer_units import persistent_without_calendar
+from scripts.deploy.lib.timer_units import persistent_on_monotonic
 
 _REPO_ROOT = Path(__file__).resolve().parents[2]
 
@@ -50,8 +50,12 @@ def _tracked_timers() -> list[Path]:
         ("[Timer]\nOnUnitInactiveSec=300s\nPersistent=1\n", True),
         # A commented-out OnCalendar does not make Persistent legitimate.
         ("[Timer]\n# OnCalendar=hourly\nOnBootSec=5min\nPersistent=true\n", True),
-        # Calendar + monotonic: the calendar trigger keeps it alive -> accepted.
-        ("[Timer]\nOnCalendar=daily\nOnBootSec=5min\nPersistent=true\n", False),
+        # Calendar + monotonic is rejected too: OnCalendar= cannot buy an
+        # exemption, since systemd ignores an invalid one (Codex).
+        ("[Timer]\nOnCalendar=daily\nOnBootSec=5min\nPersistent=true\n", True),
+        ("[Timer]\nOnCalendar=garbage\nOnBootSec=5min\nPersistent=true\n", True),
+        # A comment inside a continuation is skipped, as systemd does (Codex).
+        ("[Timer]\nOnBootSec=5min\nPersistent=\\\n# note\ntrue\n", True),
         # systemd also accepts y/t; an unparseable or empty value is ignored.
         ("[Timer]\nOnBootSec=5min\nPersistent=y\n", True),
         ("[Timer]\nOnBootSec=5min\nPersistent=t\n", True),
@@ -80,13 +84,24 @@ def _tracked_timers() -> list[Path]:
     ],
 )
 def test_detector(body: str, expected: bool) -> None:
-    assert persistent_without_calendar(body) is expected
+    assert persistent_on_monotonic(body) is expected
+
+
+def test_repo_guard_groups_drop_ins_with_their_unit(tmp_path: Path) -> None:
+    # Calendar-only base + a drop-in that clears it and adds OnBootSec: each
+    # file alone looks fine, together they are the #1062 shape (Codex).
+    (tmp_path / "x.timer").write_text("[Timer]\nOnCalendar=daily\nPersistent=true\n")
+    d = tmp_path / "x.timer.d"
+    d.mkdir()
+    (d / "10-boot.conf").write_text("[Timer]\nOnCalendar=\nOnBootSec=5min\n")
+    groups = _group_units([tmp_path / "x.timer", d / "10-boot.conf"])
+    assert [persistent_on_monotonic(*(p.read_text() for p in g)) for g in groups] == [True]
 
 
 def test_drop_in_is_evaluated_with_its_unit() -> None:
     unit = "[Timer]\nOnBootSec=5min\nOnUnitActiveSec=15min\n"
-    assert persistent_without_calendar(unit, "[Timer]\nPersistent=true\n")
-    assert not persistent_without_calendar(
+    assert persistent_on_monotonic(unit, "[Timer]\nPersistent=true\n")
+    assert not persistent_on_monotonic(
         "[Timer]\nOnBootSec=5min\nPersistent=true\n", "[Timer]\nPersistent=no\n"
     )
 
@@ -98,19 +113,34 @@ def test_repo_has_timers_to_check() -> None:
 
 # --- the guard over the real tree -------------------------------------------
 
-def test_no_tracked_timer_sets_persistent_without_oncalendar() -> None:
+def _group_units(paths: list[Path]) -> list[list[Path]]:
+    """Each unit followed by its ``<unit>.d/*.conf`` drop-ins in load order
+    (lexical); an orphan drop-in directory forms its own group."""
+    units = sorted(p for p in paths if p.suffix == ".timer")
+    dropins = sorted(p for p in paths if p.suffix == ".conf")
+    groups, claimed = [], set()
+    for u in units:
+        mine = [d for d in dropins if d.parent == u.parent / f"{u.name}.d"]
+        claimed.update(mine)
+        groups.append([u, *sorted(mine, key=lambda d: d.name)])
+    groups += [[d] for d in dropins if d not in claimed]
+    return groups
+
+
+def test_no_tracked_timer_sets_persistent_on_monotonic() -> None:
     offenders = [
-        str(p.relative_to(_REPO_ROOT))
-        for p in _tracked_timers()
-        if persistent_without_calendar(p.read_text(encoding="utf-8"))
+        str(g[0].relative_to(_REPO_ROOT))
+        for g in _group_units(_tracked_timers())
+        if persistent_on_monotonic(*(p.read_text(encoding="utf-8") for p in g))
     ]
     assert not offenders, (
-        "Persistent= on a timer with no OnCalendar= makes it go permanently "
+        "Persistent= on a timer with a monotonic trigger makes it go permanently "
         "dormant when the user manager starts after OnBootSec= has passed "
         f"(#1062). Remove Persistent= from: {offenders}"
     )
 
 
+_MONOTONIC = {"OnActiveSec", "OnBootSec", "OnStartupSec", "OnUnitActiveSec", "OnUnitInactiveSec"}
 _DOC_PERSISTENT = re.compile(r"Persistent`?\s*=\s*`?(?:true|yes|y|t|1|on)\b", re.I)
 
 
@@ -147,7 +177,7 @@ def test_docs_do_not_describe_persistent_on_monotonic_timers() -> None:
     stems = [
         p.stem for p in _tracked_timers()
         if p.suffix == ".timer"
-        and "OnCalendar" not in {k for s, k, v in _directives(p) if s == "Timer"}
+        and {k for s, k, v in _directives(p) if s == "Timer" and v} & _MONOTONIC
     ]
     assert len(stems) >= 6
     docs = subprocess.run(

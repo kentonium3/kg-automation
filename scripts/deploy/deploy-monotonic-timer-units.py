@@ -19,7 +19,7 @@ Order (each step must hold before the next):
   0. Preflight — euid's passwd name is ``claude`` AND ``Path.home()`` is
      ``/home/claude``. User units install under ``$HOME``.
   1. Validate every source: it has a ``[Timer]`` section and does NOT set
-     Persistent= without OnCalendar=. Refuse before copying anything.
+     Persistent= on a monotonic timer. Refuse before copying anything.
   2. Copy all six into ``~/.config/systemd/user/``; ``daemon-reload``.
   3. Restart every timer. MANDATORY, not hygiene: a running timer keeps its
      deserialized state (last_trigger, disabled triggers) across
@@ -61,7 +61,7 @@ from typing import Callable
 _REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(_REPO_ROOT))
 
-from scripts.deploy.lib.timer_units import directives, persistent_without_calendar  # noqa: E402
+from scripts.deploy.lib.timer_units import directives, persistent_on_monotonic  # noqa: E402
 
 TIMERS: tuple[Path, ...] = (
     _REPO_ROOT / "scripts/office2/felix-canary.timer",
@@ -99,8 +99,8 @@ def source_problems(text: str) -> list[str]:
     problems = []
     if "Timer" not in {s for s, _, _ in directives(text)}:
         problems.append("no [Timer] section directives")
-    if persistent_without_calendar(text):
-        problems.append("sets Persistent= without OnCalendar= (#1062)")
+    if persistent_on_monotonic(text):
+        problems.append("sets Persistent= on a monotonic timer (#1062)")
     return problems
 
 
@@ -118,7 +118,8 @@ def parse_show(out: str) -> dict[str, str]:
     return props
 
 
-def loaded_problems(name: str, props: dict[str, str], dropin_texts: list[str]) -> list[str]:
+def loaded_problems(name: str, props: dict[str, str], unit_texts: list[str]) -> list[str]:
+    """``unit_texts`` is the installed fragment followed by its drop-ins."""
     problems = []
     if props.get("Persistent") != "no":
         problems.append(f"loaded Persistent={props.get('Persistent')!r}, want 'no'")
@@ -128,10 +129,10 @@ def loaded_problems(name: str, props: dict[str, str], dropin_texts: list[str]) -
         problems.append(f"ActiveState={props.get('ActiveState')!r}, want 'active'")
     if props.get("FragmentPath") != str(UNIT_DIR / name):
         problems.append(f"FragmentPath={props.get('FragmentPath')!r}, want {str(UNIT_DIR / name)!r}")
-    # Belt-and-braces over the loaded Persistent= above. Evaluated without the
-    # fragment: none of the six has OnCalendar=, so it cannot be exempted there.
-    if dropin_texts and persistent_without_calendar("", *dropin_texts):
-        problems.append("a drop-in re-adds Persistent=")
+    # Belt-and-braces over the loaded Persistent= above: re-derive it from the
+    # files systemd actually loaded, fragment plus drop-ins, as one stream.
+    if unit_texts and persistent_on_monotonic(*unit_texts):
+        problems.append("installed fragment/drop-ins set Persistent= on a monotonic timer")
     return problems
 
 
@@ -175,7 +176,9 @@ def _differs(src: Path) -> bool | None:
 
 def _verify_timer(name: str, run: Runner, sleep: Callable[[float], None],
                   timeout_s: int = NEXT_ELAPSE_TIMEOUT_S,
-                  deadline: float | None = None) -> list[str]:
+                  deadline: float | None = None,
+                  read: Callable[[Path], str] = lambda p: p.read_text(encoding="utf-8"),
+                  ) -> list[str]:
     # One shared deadline across all six (passed by _apply), so a broken
     # deploy holds the deployer tick for at most ~NEXT_ELAPSE_TIMEOUT_S total.
     if deadline is None:
@@ -186,13 +189,14 @@ def _verify_timer(name: str, run: Runner, sleep: Callable[[float], None],
         if rc != 0:
             return [f"systemctl show failed rc={rc}: {err}"]
         props = parse_show(out)
-        dropins = [Path(p) for p in props.get("DropInPaths", "").split() if p]
+        paths = [Path(props.get("FragmentPath", "") or "/nonexistent")]
+        paths += [Path(p) for p in props.get("DropInPaths", "").split() if p]
         texts = []
-        for d in dropins:
+        for d in paths:
             try:
-                texts.append(d.read_text(encoding="utf-8"))
+                texts.append(read(d))
             except OSError as exc:
-                return [f"cannot read drop-in {d}: {exc}"]
+                return [f"cannot read unit file {d}: {exc}"]
         problems = loaded_problems(name, props, texts)
         if problems:
             return problems
