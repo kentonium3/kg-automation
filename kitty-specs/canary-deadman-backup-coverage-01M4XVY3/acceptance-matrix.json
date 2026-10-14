@@ -78,10 +78,10 @@
       "criterion_id": "FR-008",
       "description": "Verify FR-008 is satisfied",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
+      "evidence": "tests/deploy/test_deploy_health_check_coverage.py (retire only after verified record; move never called on any failure path; idempotent re-apply; no overwrite); live office2 dry-run: would_retire. Live retirement verified post-merge via manifest post-check (charter no-staging form b), recorded on #1063",
+      "pass_fail": "pass",
+      "verified_by": "claude-opus-5-5",
+      "verified_at": "2026-10-14T20:05:04.442740+00:00",
       "notes": "TODO: replace with a real acceptance criterion"
     },
     {
