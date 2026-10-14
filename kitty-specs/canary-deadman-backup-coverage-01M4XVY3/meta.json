@@ -1,4 +1,16 @@
 {
+  "acceptance_history": [
+    {
+      "acceptance_mode": "pr",
+      "accepted_at": "2026-10-14T20:06:00.545343+00:00",
+      "accepted_by": "kgale",
+      "accepted_from_commit": "94b2766ee63c4d03f74c23f30f0f810480901b10"
+    }
+  ],
+  "acceptance_mode": "pr",
+  "accepted_at": "2026-10-14T20:06:00.545343+00:00",
+  "accepted_by": "kgale",
+  "accepted_from_commit": "94b2766ee63c4d03f74c23f30f0f810480901b10",
   "created_at": "2026-10-14T18:48:59.591761+00:00",
   "flattened": false,
   "friendly_name": "Canary dead-man's switch and backup coverage in felix-health-check",
