@@ -25,7 +25,7 @@
       "wp": "WP01"
     },
     "#1068": {
-      "evidence_ref": "<link or commit>",
+      "evidence_ref": "kentonium3/kg-automation#1068 (scoped out by C-005)",
       "fr": null,
       "nfr": null,
       "repo": null,
@@ -33,7 +33,7 @@
       "scope": null,
       "source_file": "spec.md",
       "title": "<fill at WP-implementation time>",
-      "verdict": "unknown",
+      "verdict": "deferred-with-followup",
       "wp": null
     },
     "#891": {
