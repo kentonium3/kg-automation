@@ -18,6 +18,7 @@ exactly that mistake).
 
 from __future__ import annotations
 
+import re
 import subprocess
 from pathlib import Path
 
@@ -51,6 +52,11 @@ def _tracked_timers() -> list[Path]:
         ("[Timer]\n# OnCalendar=hourly\nOnBootSec=5min\nPersistent=true\n", True),
         # Calendar + monotonic: the calendar trigger keeps it alive -> accepted.
         ("[Timer]\nOnCalendar=daily\nOnBootSec=5min\nPersistent=true\n", False),
+        # systemd also accepts y/t; an unparseable or empty value is ignored.
+        ("[Timer]\nOnBootSec=5min\nPersistent=y\n", True),
+        ("[Timer]\nOnBootSec=5min\nPersistent=t\n", True),
+        ("[Timer]\nOnBootSec=5min\nPersistent=true\nPersistent=\n", True),
+        ("[Timer]\nOnBootSec=5min\nPersistent=true\nPersistent=maybe\n", True),
         # Mixed-case truthy spelling.
         ("[Timer]\nOnBootSec=5min\nPersistent=TRUE\n", True),
         # Calendar timers are the correct use of Persistent -> accepted.
@@ -105,21 +111,45 @@ def test_no_tracked_timer_sets_persistent_without_oncalendar() -> None:
     )
 
 
-def test_docs_do_not_describe_persistent_on_monotonic_timers() -> None:
-    """The units are not the only place the wrong belief lived (#925, #948).
+_DOC_PERSISTENT = re.compile(r"Persistent`?\s*=\s*`?(?:true|yes|y|t|1|on)\b", re.I)
 
-    Any active doc line that names a monotonic-only timer unit together with
-    ``Persistent=true`` re-teaches the pattern this guard forbids. The check
-    is narrow on purpose: it only fires on lines naming ``<unit>.timer``.
-    Schedule strings that omit the unit name are covered by review, not
-    here.
+
+def doc_hits(lines: list[str], monotonic_stems: list[str]) -> list[int]:
+    """1-based numbers of lines that name a monotonic timer AND set Persistent.
+
+    Matches the unit stem (with or without ``.timer``) and any truthy spelling.
+    Lines that name no monotonic timer, such as calendar-timer schedules,
+    never match. Schedule strings that omit the unit name entirely are left to
+    review.
     """
-    monotonic = [
-        p.name for p in _tracked_timers()
+    return [
+        n for n, line in enumerate(lines, 1)
+        if _DOC_PERSISTENT.search(line) and any(st in line for st in monotonic_stems)
+        and '"updated_by"' not in line  # change history may name the old state
+    ]
+
+
+@pytest.mark.parametrize("line, hit", [
+    ("| Felix Canary | `felix-canary.timer` (`OnBootSec=5min`, `Persistent=true`) |", True),
+    ("felix-canary runs every 15 min (Persistent = yes)", True),
+    ("trigger: felix-canary.timer (OnBootSec=5min, `Persistent`=`true`)", True),
+    ("crontab-capture.timer: hourly (OnCalendar=hourly, Persistent=true)", False),
+    ("felix-canary.timer: OnBootSec=5min, OnUnitActiveSec=15min", False),
+    ("Never add `Persistent=` to felix-canary (#1062)", False),
+    ('"updated_by": "#1062 (dropped Persistent=true from felix-canary)"', False),
+])
+def test_doc_hits_detector(line: str, hit: bool) -> None:
+    assert bool(doc_hits([line], ["felix-canary"])) is hit
+
+
+def test_docs_do_not_describe_persistent_on_monotonic_timers() -> None:
+    """The units are not the only place the wrong belief lived (#925, #948)."""
+    stems = [
+        p.stem for p in _tracked_timers()
         if p.suffix == ".timer"
         and "OnCalendar" not in {k for s, k, v in _directives(p) if s == "Timer"}
     ]
-    assert len(monotonic) >= 6
+    assert len(stems) >= 6
     docs = subprocess.run(
         ["git", "ls-files", "-z", "--", "docs/*.md", "docs/*.json"],
         cwd=_REPO_ROOT, capture_output=True, check=True,
@@ -128,10 +158,9 @@ def test_docs_do_not_describe_persistent_on_monotonic_timers() -> None:
     for rel in docs:
         if not rel or rel.startswith("docs/archive/") or "/adr/" in rel:
             continue
-        for n, line in enumerate((_REPO_ROOT / rel).read_text(encoding="utf-8").splitlines(), 1):
-            if "Persistent=true" in line and any(t in line for t in monotonic):
-                hits.append(f"{rel}:{n}")
-    assert not hits, f"Docs describe Persistent=true on a monotonic timer (#1062): {hits}"
+        lines = (_REPO_ROOT / rel).read_text(encoding="utf-8").splitlines()
+        hits += [f"{rel}:{n}" for n in doc_hits(lines, stems)]
+    assert not hits, f"Docs describe Persistent on a monotonic timer (#1062): {hits}"
 
 
 def _directives(path: Path) -> list[tuple[str, str, str]]:

@@ -16,7 +16,10 @@ whole boot. office2's canary was dead this way for 17 days.
 
 from __future__ import annotations
 
-TRUTHY = frozenset({"1", "yes", "true", "on"})
+# systemd's parse_boolean(); anything else (including empty) is ignored by
+# config_parse_bool() and leaves the previous value in place.
+TRUTHY = frozenset({"1", "yes", "y", "true", "t", "on"})
+FALSY = frozenset({"0", "no", "n", "false", "f", "off"})
 TIMER_EXPRESSIONS = frozenset({
     "OnCalendar", "OnActiveSec", "OnBootSec", "OnStartupSec",
     "OnUnitActiveSec", "OnUnitInactiveSec",
@@ -62,7 +65,7 @@ def persistent_without_calendar(*texts: str) -> bool:
     and no ``OnCalendar=``.
 
     Pass the unit file followed by its drop-ins, in load order; they are
-    evaluated as one stream. The last ``Persistent=`` wins. An empty
+    evaluated as one stream. The last parseable ``Persistent=`` wins. An empty
     assignment to any timer expression clears every expression set before it
     (``config_parse_timer()`` → ``timer_free_values()``).
 
@@ -77,7 +80,11 @@ def persistent_without_calendar(*texts: str) -> bool:
             if section != "Timer":
                 continue
             if key == "Persistent":
-                persistent = value.lower() in TRUTHY
+                v = value.lower()
+                if v in TRUTHY:
+                    persistent = True
+                elif v in FALSY:
+                    persistent = False
             elif key in TIMER_EXPRESSIONS:
                 if not value:
                     calendar = False

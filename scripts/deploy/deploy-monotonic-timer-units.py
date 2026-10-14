@@ -128,6 +128,8 @@ def loaded_problems(name: str, props: dict[str, str], dropin_texts: list[str]) -
         problems.append(f"ActiveState={props.get('ActiveState')!r}, want 'active'")
     if props.get("FragmentPath") != str(UNIT_DIR / name):
         problems.append(f"FragmentPath={props.get('FragmentPath')!r}, want {str(UNIT_DIR / name)!r}")
+    # Belt-and-braces over the loaded Persistent= above. Evaluated without the
+    # fragment: none of the six has OnCalendar=, so it cannot be exempted there.
     if dropin_texts and persistent_without_calendar("", *dropin_texts):
         problems.append("a drop-in re-adds Persistent=")
     return problems
@@ -172,8 +174,12 @@ def _differs(src: Path) -> bool | None:
 
 
 def _verify_timer(name: str, run: Runner, sleep: Callable[[float], None],
-                  timeout_s: int = NEXT_ELAPSE_TIMEOUT_S) -> list[str]:
-    deadline = time.monotonic() + timeout_s
+                  timeout_s: int = NEXT_ELAPSE_TIMEOUT_S,
+                  deadline: float | None = None) -> list[str]:
+    # One shared deadline across all six (passed by _apply), so a broken
+    # deploy holds the deployer tick for at most ~NEXT_ELAPSE_TIMEOUT_S total.
+    if deadline is None:
+        deadline = time.monotonic() + timeout_s
     while True:
         rc, out, err = run(["systemctl", "--user", "show", name,
                             *[f"-p{p}" for p in _SHOW_PROPS]])
@@ -244,10 +250,11 @@ def _apply(run: Runner = _run, sleep: Callable[[float], None] = time.sleep) -> i
             continue
         _emit("timer_restarted", unit=src.name)
 
+    deadline = time.monotonic() + NEXT_ELAPSE_TIMEOUT_S
     for src in TIMERS:
         if src.name in failed:
             continue
-        problems = _verify_timer(src.name, run, sleep)
+        problems = _verify_timer(src.name, run, sleep, deadline=deadline)
         if problems:
             failed[src.name] = problems
             _emit("timer_verify_failed", unit=src.name, problems=problems)

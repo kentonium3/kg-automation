@@ -10,7 +10,6 @@ verification:
   post:
   - for t in felix-canary felix-trust-scan felix-heartbeat-gate felix-core-digest agent-prompt-sync agent-skill-sync; do test "$(systemctl --user show $t.timer -p Persistent --value)" = no || exit 1; done
   - for t in felix-canary felix-trust-scan felix-heartbeat-gate felix-core-digest agent-prompt-sync agent-skill-sync; do test "$(systemctl --user is-enabled $t.timer)" = enabled || exit 1; done
-  - for t in felix-canary felix-trust-scan felix-heartbeat-gate felix-core-digest agent-prompt-sync agent-skill-sync; do v="$(systemctl --user show $t.timer -p NextElapseUSecMonotonic --value)"; case "$v" in ""|0|infinity) exit 1;; esac; done
   - for t in felix-canary felix-trust-scan felix-heartbeat-gate felix-core-digest; do diff -q scripts/office2/$t.timer "$HOME/.config/systemd/user/$t.timer" || exit 1; done
   - for t in agent-prompt-sync agent-skill-sync; do diff -q scripts/openclaw/deploy/$t.timer "$HOME/.config/systemd/user/$t.timer" || exit 1; done
 created_at: '2026-10-14T16:30:00Z'
@@ -28,8 +27,9 @@ notes: |
   Only the .timer files change. The entrypoint copies them, runs
   daemon-reload, restarts each timer (mandatory: a running timer keeps its old
   state across daemon-reload), then verifies the LOADED config (Persistent=no,
-  enabled, active, FragmentPath, no drop-in re-add) and polls for a concrete
-  next elapse. Expect one burst of six service runs at apply time: each
+  enabled, active, FragmentPath, no drop-in re-add) and polls (bounded) for a
+  concrete next elapse; that is deliberately not a post-check here, since a
+  point-in-time read can catch a service mid-run. Expect one burst of six service runs at apply time: each
   OnBootSec= is long past, so each restart fires its service immediately.
 
   Tier 3 (user unit content; no Tier 0/1/2 action).
@@ -42,7 +42,5 @@ notes: |
   felix-trust-scan/unit-drift will warn for these six between merge and
   apply. That warning is expected and clears on apply.
 
-  Stamp files under ~/.local/share/systemd/timers/ are left in place: without
-  Persistent= they are not read (felix-vikunja-sync's 2026-08-31 stamp proves
-  it).
+  Stamp files are left in place; without Persistent= they are not read.
   Rollback: revert the six .timer files and re-run this entrypoint.
