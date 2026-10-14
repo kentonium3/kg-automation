@@ -23,9 +23,11 @@ Order (each step must hold before the next):
   2. Copy all six into ``~/.config/systemd/user/``; ``daemon-reload``.
   3. Restart every timer. MANDATORY, not hygiene: a running timer keeps its
      deserialized state (last_trigger, disabled triggers) across
-     ``daemon-reload``. Only a restart applies the new definition. Because
-     each OnBootSec= is long past, each restart fires its service at once —
-     expect one burst of six runs.
+     ``daemon-reload``. Only a restart applies the new definition. Observed
+     on apply (2026-10-14): when the service has already run in this manager
+     lifetime, the restart keeps the in-memory last trigger, so no burst.
+     The past OnBootSec= stays spent and OnUnit*Sec= continues from the last
+     run. A timer whose service never ran would fire at once.
   4. Verify the LOADED config, not just the file on disk: Persistent=no,
      UnitFileState=enabled (so it comes back next boot), ActiveState=active,
      FragmentPath is the installed file, no drop-in re-adds Persistent=.
