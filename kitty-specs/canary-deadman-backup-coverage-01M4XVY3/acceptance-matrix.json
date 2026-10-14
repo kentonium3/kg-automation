@@ -98,10 +98,10 @@
       "criterion_id": "FR-010",
       "description": "Verify FR-010 is satisfied",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
+      "evidence": "scripts/office2/felix_health_check/tests/test_coverage.py::test_inventory_prose_names_both_coverage_targets; docs: observability-and-alerting.md s5a, data-flows.json felix-health-check-coverage flow; validate_docs + validate_architecture_data OK; tests/tooling link checks 133 passed",
+      "pass_fail": "pass",
+      "verified_by": "claude-opus-5-5",
+      "verified_at": "2026-10-14T20:05:23.087731+00:00",
       "notes": "TODO: replace with a real acceptance criterion"
     },
     {
