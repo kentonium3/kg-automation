@@ -377,12 +377,16 @@ The observe range is driven by a **persisted last-observed-head watermark**
 so the deployer detects audited-surface changes **regardless of which actor
 advanced the checkout HEAD** — including an out-of-band `git pull` that
 fast-forwards the checkout before the deployer's own tick runs (closes #685).
-One caveat: a deploy whose drift has **no repo-file signal** (e.g. a runtime
-`openclaw cron rm` that drifts a baseline without changing any tracked file)
-is not detected by the observe range; such a deploy must declare the
-baselines it will drift via the `expected_baselines` field in its manifest
-(see [deployment.md](docs/runbooks/deployment.md)) so the auto-rebaseline
-still covers it.
+One caveat: the observe range only sees files changed **in the commit range
+the tick pulled**, not files that are merely tracked. A deploy whose drift has
+no signal in its own range must declare the baselines it will drift via the
+`expected_baselines` field in its manifest so the auto-rebaseline still covers
+it. That means a runtime `openclaw cron rm`, **and also a reconcile deploy that
+installs tracked files changed in an earlier commit**. 0027 and 0029 both ended
+`unexpected_drift` because their authors reasoned "the files are tracked, so
+observe covers it" (#1065, #1072). Ask "does *this commit* change a file on the
+drifting surface?", not "is the file tracked?" (see
+[deployment.md](docs/runbooks/deployment.md#manifest-expected_baselines-declaration)).
 
 **Out-of-band exception (manual reset still required):** changes made
 directly on office2 — not through the manifest pipeline — are invisible
