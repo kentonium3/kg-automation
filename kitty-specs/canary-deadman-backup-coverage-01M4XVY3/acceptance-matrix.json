@@ -48,10 +48,10 @@
       "criterion_id": "FR-005",
       "description": "Verify FR-005 is satisfied",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
+      "evidence": "scripts/office2/felix_health_check/tests/test_run.py::test_combine_full_grid (4x9) + spot checks; scripts/office2/felix_health_check/tests/test_run_record_contract.py::test_findings_survive_long_shell_output (real bus renderer, >6KB) with non-vacuity control test_appending_findings_to_the_output_would_lose_them",
+      "pass_fail": "pass",
+      "verified_by": "claude-opus-5-5",
+      "verified_at": "2026-10-14T20:04:36.572015+00:00",
       "notes": "TODO: replace with a real acceptance criterion"
     },
     {
