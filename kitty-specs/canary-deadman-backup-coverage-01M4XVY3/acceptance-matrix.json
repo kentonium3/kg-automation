@@ -68,10 +68,10 @@
       "criterion_id": "FR-007",
       "description": "Verify FR-007 is satisfied",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
+      "evidence": "scripts/office2/felix_health_check/tests/test_run.py::test_script_lives_in_the_repo_next_to_the_wrapper; health-check.sh git mode 100755; code byte-identical to live copy sha256 7880bf97... except comments (verified by reviewer)",
+      "pass_fail": "pass",
+      "verified_by": "claude-opus-5-5",
+      "verified_at": "2026-10-14T20:04:55.015041+00:00",
       "notes": "TODO: replace with a real acceptance criterion"
     },
     {
