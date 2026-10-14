@@ -20,7 +20,17 @@ sys.modules[_spec.name] = mod
 _spec.loader.exec_module(mod)
 
 T0 = datetime(2026, 10, 14, 20, 0, 0, tzinfo=timezone.utc)
-MANIFEST = _ROOT / "deploys" / "queued" / "health-check-coverage.yaml"
+_MANIFEST_QUEUED = _ROOT / "deploys" / "queued" / "health-check-coverage.yaml"
+
+
+def _resolve_manifest_path() -> Path:
+    """felix-deployer moves the manifest from ``deploys/queued/`` to
+    ``deploys/applied/<NNNN>-health-check-coverage.yaml`` once applied, so it
+    lives in exactly one of the two (same pattern as test_deploy_felix_canary)."""
+    if _MANIFEST_QUEUED.exists():
+        return _MANIFEST_QUEUED
+    applied = sorted((_ROOT / "deploys" / "applied").glob("*-health-check-coverage.yaml"))
+    return applied[-1] if applied else _MANIFEST_QUEUED
 
 
 def _record(**overrides) -> dict:
@@ -181,7 +191,7 @@ def test_record_problems_reports_everything_at_once():
 # --- the manifest ------------------------------------------------------------
 
 def test_manifest_shape():
-    m = yaml.safe_load(MANIFEST.read_text(encoding="utf-8"))
+    m = yaml.safe_load(_resolve_manifest_path().read_text(encoding="utf-8"))
     assert m["name"] == "health-check-coverage"
     assert m["issue"] == "kentonium3/kg-automation#1063"
     assert m["tier"] == 3
