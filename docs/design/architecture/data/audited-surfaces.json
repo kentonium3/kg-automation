@@ -119,11 +119,11 @@
   "system_scope_units": [
     {
       "path": "scripts/vikunja/vikunja.service",
-      "reason": "System-scope unit (/etc/systemd/system, sudo-installed). audit.sh records only the names of enabled system services (enabled-services.txt), never their contents, so a content change cannot drift a baseline. Not passed to the matcher: listing it here must never create a pending token (#1065)."
+      "reason": "System-scope unit (/etc/systemd/system, sudo-installed). audit.sh does not fingerprint system unit contents directly (#1073); it records only the names of enabled system services (enabled-services.txt). A content-only edit therefore drifts no baseline. Effects can still drift one (enabling a new name drifts enabled-services.txt; a changed ExecStart that alters containers or ports can drift docker-images.txt or listening-ports.txt), and a deploy with such an effect must declare expected_baselines. Not passed to the matcher: listing it here never creates a pending token (#1065)."
     },
     {
       "path": "services/transcribe/transcribe.service",
-      "reason": "System-scope unit (/etc/systemd/system, sudo-installed); same reasoning as vikunja.service (#1065)."
+      "reason": "System-scope unit (/etc/systemd/system, sudo-installed); same reasoning and the same expected_baselines caveat as vikunja.service (#1065)."
     }
   ],
   "non_repo_baselines": [

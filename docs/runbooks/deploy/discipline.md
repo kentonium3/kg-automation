@@ -219,9 +219,9 @@ drift. Two cases: a runtime action such as `openclaw cron rm` (which drifts
 changed in an earlier commit** (0027 and 0029 both missed this and ended
 `unexpected_drift`; #1065, #1072). "The file is tracked" is not enough. See
 [deployment.md](../deployment.md#manifest-expected_baselines-declaration).
-Declaring them lets
-felix-deployer's auto-rebaseline (#618/#685) treat that drift as *expected*
-instead of `unexpected_drift`:
+
+Declaring them lets felix-deployer's auto-rebaseline (#618/#685) treat that
+drift as *expected* instead of `unexpected_drift`:
 
 ```yaml
 audited_surface: true

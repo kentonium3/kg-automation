@@ -3,11 +3,17 @@
 
 The security audit hashes the contents of every file under
 ``~/.config/systemd/user`` into ``systemd-user-unit-contents.txt``.
-felix-deployer only expects that baseline to drift when a commit touches a
-path matched by ``docs/design/architecture/data/audited-surfaces.json``. A
-deployed unit that lives outside every pattern therefore ends its deploy in
-``unexpected_drift``, as ``deploys/applied/0029-felix-vikunja-sync-unit-reconcile.yaml``
-did, because ``scripts/sync/systemd/`` was never listed.
+felix-deployer only expects that baseline to drift when the commit range it
+pulled changes a path matched by
+``docs/design/architecture/data/audited-surfaces.json``. A deployed unit that
+lives outside every pattern therefore ends in ``unexpected_drift`` when a
+commit edits it and deploys it. Before #1065, five did: openclaw-gateway, the
+two felix-vikunja-sync units, and felix-deployer's own two units.
+
+(Deploy 0029 also ended ``unexpected_drift``, but for a different reason: it
+re-installed units changed in an earlier commit, and so needed
+``expected_baselines``. A pattern would not have helped. See the last
+paragraph below.)
 
 This guard is default-deny: a new unit directory fails here until it is
 covered by a pattern or listed in the registry's ``system_scope_units`` with a
@@ -55,8 +61,27 @@ def _registry() -> dict:
     return json.loads(_REGISTRY.read_text(encoding="utf-8"))
 
 
+_UNIT_CONTENT_BASELINE = "systemd-user-unit-contents.txt"
+
+
 def _patterns() -> list[str]:
-    return [p for s in _registry()["audited_surfaces"] for p in s["patterns"]]
+    """Patterns of the surfaces that make the deployer EXPECT unit-content
+    drift. A unit matched only by some other surface (e.g. deploy-pipeline,
+    whose affected_baselines is empty) still ends unexpected_drift, so it
+    does not count as covered (post-merge Codex review)."""
+    return [p for s in _registry()["audited_surfaces"]
+            if _UNIT_CONTENT_BASELINE in s.get("affected_baselines", [])
+            for p in s["patterns"]]
+
+
+def test_a_unit_matched_only_by_an_unrelated_surface_is_not_covered():
+    """Non-vacuity for the baseline filter: deploy-pipeline's scripts/deploy/*.sh
+    would match a unit named like a shell script, but it declares no baselines."""
+    registry = _registry()
+    pipeline = next(s for s in registry["audited_surfaces"] if s["id"] == "deploy-pipeline")
+    assert _UNIT_CONTENT_BASELINE not in pipeline.get("affected_baselines", [])
+    assert any(_matcher.file_matches_pattern("scripts/deploy/x.service.sh", p) for p in pipeline["patterns"])
+    assert not _covered("scripts/deploy/x.service.sh", _patterns())
 
 
 def _exempt() -> dict[str, str]:
@@ -99,8 +124,9 @@ def test_exemptions_are_live_and_necessary():
         assert reason.strip()
 
 
-def test_the_0029_units_are_covered():
-    """The concrete regression from deploys/applied/0029."""
+def test_the_felix_vikunja_sync_units_are_covered():
+    """Two of the five units this change brings under the systemd-user-units
+    surface (not a fix for 0029 itself; see the module docstring)."""
     patterns = _patterns()
     for path in ("scripts/sync/systemd/felix-vikunja-sync.service",
                  "scripts/sync/systemd/felix-vikunja-sync.timer"):
