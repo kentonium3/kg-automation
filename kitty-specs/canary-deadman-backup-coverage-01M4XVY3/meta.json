@@ -24,6 +24,7 @@
   "purpose_context": "From 2026-09-27 to 2026-10-14 every nightly backup failed and nothing alerted: the canary, the only watcher of backup freshness, had stopped running, and the independent health check reported healthy 34 times because it never looked at backups or at the canary. This mission gives the health check a dead-man's switch on the canary and a second, independent backup-freshness check using the canary's own predicate, and brings the health-check script under version control. Tracks kentonium3/kg-automation#1063.",
   "purpose_tldr": "Make the twice-daily health check alert when the canary goes dark or backups stop, so a silent 17-day backup outage cannot recur.",
   "slug": "canary-deadman-backup-coverage-01M4XVY3",
+  "status_phase": "1",
   "target_branch": "fix/canary-deadman-backup-coverage",
   "topology": "lanes",
   "vcs": "git",
