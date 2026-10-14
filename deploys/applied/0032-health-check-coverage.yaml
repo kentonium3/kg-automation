@@ -46,3 +46,6 @@ notes: '#1063. felix-health-check gains a dead-man switch on felix-canary and an
   the merge; the previous run.py reads that path.'
 apply_mode: manifest
 applied_at: '2026-10-14T20:22:19Z'
+rebaseline:
+  outcome: pending_clean
+  at_utc: '2026-10-14T20:22:23Z'
