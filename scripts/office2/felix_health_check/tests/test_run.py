@@ -440,9 +440,14 @@ def test_unserializable_finding_becomes_unknown_in_the_record(monkeypatch: pytes
 
     monkeypatch.setattr(run_module, "_evaluate_coverage_guarded",
                         lambda now: [Broken("felix-canary"), _Finding("restic-backup")])
-    _exit, payload, _send = _run_main_with_script_result(monkeypatch, returncode=0, stdout="ALL_HEALTHY")
+    _exit, payload, send = _run_main_with_script_result(monkeypatch, returncode=0, stdout="ALL_HEALTHY")
     assert payload["coverage_checks"][0]["finding"] == "unknown"
     assert "cannot serialize" in payload["coverage_checks"][0]["evidence"]
+    # Post-merge Codex: the verdict must agree with the record, never ALL_HEALTHY.
+    assert payload["status"] == "UNKNOWN"
+    assert len(send.calls) == 1
+    alerted = send.kwargs[0]["findings"]
+    assert alerted[0].finding == "unknown" and "cannot serialize" in alerted[0].evidence
 
 
 def test_component_list_matches_the_coverage_module() -> None:

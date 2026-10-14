@@ -334,15 +334,24 @@ def send_alert(status: str, body: str, *, findings: Sequence[Any] = (),
     return delivery
 
 
-def _coverage_records(findings: Sequence[Any]) -> list[dict]:
-    """Serialize findings; a finding that cannot serialize becomes unknown."""
-    records = []
+def _coverage_records(findings: Sequence[Any]) -> tuple[list, list[dict]]:
+    """``(effective_findings, records)``. A finding that cannot serialize is
+    replaced, in BOTH lists, by an unknown one: the verdict and the record
+    must agree, or a broken finding could read ALL_HEALTHY in the status
+    while the record says unknown (post-merge Codex review)."""
+    effective: list = []
+    records: list[dict] = []
     for component, f in zip(_COVERAGE_COMPONENTS, findings):
         try:
-            records.append(f.to_record())
+            rec = f.to_record()
+            if rec.get("finding") != getattr(f, "finding", None):
+                raise ValueError(f"record finding {rec.get('finding')!r} != {getattr(f, 'finding', None)!r}")
         except Exception as exc:  # noqa: BLE001 - the record must still be written
-            records.append(_Unavailable(component, f"{type(exc).__name__}: {exc}").to_record())
-    return records
+            f = _Unavailable(component, f"{type(exc).__name__}: {exc}")
+            rec = f.to_record()
+        effective.append(f)
+        records.append(rec)
+    return effective, records
 
 
 def _send_alert_guarded(status: str, body: str, findings: Sequence[Any],
@@ -363,8 +372,7 @@ def main(argv: list[str] | None = None) -> int:
 
     # Coverage first and independently of the shell script: a missing or
     # broken script must not also blind the dead-man's switch (research R5).
-    findings = _evaluate_coverage_guarded(now)
-    coverage_records = _coverage_records(findings)
+    findings, coverage_records = _coverage_records(_evaluate_coverage_guarded(now))
     for rec in coverage_records:
         logger.info("coverage %s: %s (%s) %s", rec["component"], rec["finding"], rec["outcome"], rec["evidence"])
 
