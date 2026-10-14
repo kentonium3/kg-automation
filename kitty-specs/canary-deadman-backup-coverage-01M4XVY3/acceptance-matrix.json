@@ -28,10 +28,10 @@
       "criterion_id": "FR-003",
       "description": "Verify FR-003 is satisfied",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
+      "evidence": "scripts/office2/felix_health_check/tests/test_agreement.py (16-doc corpus, canary verdict computed live; sentinels incident backup failed + dead canary stale); tests/canary/test_tick_ledger_reconciliation.py",
+      "pass_fail": "pass",
+      "verified_by": "claude-opus-5-5",
+      "verified_at": "2026-10-14T20:04:17.770872+00:00",
       "notes": "TODO: replace with a real acceptance criterion"
     },
     {
