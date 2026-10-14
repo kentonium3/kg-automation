@@ -1,0 +1,30 @@
+{
+  "entries": [
+    {
+      "created_at": "2026-10-14T18:49:15.713033Z",
+      "decision_id": "01M4XVYKP0998SAA02GFY4F16M",
+      "final_answer": "Derive from issue body. Kent, 2026-10-14: 'proceed with #1063 on your own.' Spec derived from the spec-ready issue body; assumptions recorded in spec.md.",
+      "input_key": "discovery_mode",
+      "mission_id": "01M4XVY3X2ATXJASSYZ7JAJWX5",
+      "mission_slug": "canary-deadman-backup-coverage-01M4XVY3",
+      "opened_by": "cli",
+      "options": [
+        "Interview",
+        "Derive from issue body",
+        "Other"
+      ],
+      "origin_flow": "specify",
+      "other_answer": false,
+      "question": "Run a discovery interview for #1063, or derive the spec from the formalized issue body?",
+      "rationale": null,
+      "resolved_at": "2026-10-14T18:49:16.941341Z",
+      "resolved_by": null,
+      "slot_key": "specify.scope.discovery-mode",
+      "status": "resolved",
+      "step_id": null,
+      "summary_json": null
+    }
+  ],
+  "mission_id": "01M4XVY3X2ATXJASSYZ7JAJWX5",
+  "version": 1
+}

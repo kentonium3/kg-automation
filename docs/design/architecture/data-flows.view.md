@@ -5,10 +5,10 @@ doc_type: guide
 level: reference
 status: approved
 owners: ["@kentonium3"]
-last_updated: '2026-08-28'
+last_updated: '2026-10-14'
 revision: v2.0
 audience: agents_and_humans
-updated_by: 'crontab-backup-coverage-01M12V87 (#895: +crontab-capture — claude crontab captured hourly into /data/services/host-state/, which the existing Restic run already covers; replaces the accidental dependency on the security-monitor crontabs.txt baseline) + felix-canary-registry-01KX8T7B (#327: +observability subgraph — felix-canary + felix-trust-scan deterministic scanners sharing the #701 alert bus + #706 ledger) + restore-whatsapp-dm-reply-delivery-01KTVVHH (#588: +whatsapp_dm subgraph, +phone_wa input node) + #520 (felix-vikunja-sync-project-layer-and-url-config: +sync_driver subgraph, +url_config node)'
+updated_by: 'canary-deadman-backup-coverage-01M4XVY3 (#1063: +felix-health-check mutual watch in the observability subgraph; the canary tick is no longer annotated as waiting on #269) + crontab-backup-coverage-01M12V87 (#895: +crontab-capture — claude crontab captured hourly into /data/services/host-state/, which the existing Restic run already covers; replaces the accidental dependency on the security-monitor crontabs.txt baseline) + felix-canary-registry-01KX8T7B (#327: +observability subgraph — felix-canary + felix-trust-scan deterministic scanners sharing the #701 alert bus + #706 ledger) + restore-whatsapp-dm-reply-delivery-01KTVVHH (#588: +whatsapp_dm subgraph, +phone_wa input node) + #520 (felix-vikunja-sync-project-layer-and-url-config: +sync_driver subgraph, +url_config node)'
 ---
 
 # data-flows.view
@@ -160,6 +160,10 @@ graph LR
             canary_tick[("canary tick-signal<br/>state/last-tick.json<br/>(self-health pointer)")]
             canary_dedup[("dedup.json<br/>component_id → last_outcome")]
 
+            hc_run["felix-health-check run.py<br/>(11:00 + 23:00 UTC; #1063<br/>dead-man's switch + backup check)"]
+            hc_record[("health-check last-run.json<br/>(status + coverage_checks)")]
+            backup_pointer[("backup pointer<br/>last-backup.json")]
+
             trust_timer["felix-trust-scan.timer<br/>(15-min)"]
             trust_run["scripts/trust/run_trust_scan.py<br/>(cron-drift + assertion verify;<br/>no LLM)"]
             trust_state[("seen-findings.json<br/>+ assertion-watermark.json")]
@@ -188,7 +192,13 @@ graph LR
     canary_run -->|"atomic write (FR-010)"| canary_tick
     canary_run -->|"atomic write"| canary_dedup
     canary_service -.->|"OnFailure: non-zero exit<br/>(runner-level fault, SC-006)"| alert_bus
-    canary_tick -.->|"registered as own health_check<br/>(#269 watches the watcher)"| svc_inventory
+    canary_tick -.->|"registered as own health_check<br/>(key_ledger, #1063)"| svc_inventory
+    hc_run -->|"dead-man's switch: evaluate the tick<br/>via the canary's own evaluator"| canary_tick
+    hc_run -->|"independent backup check<br/>(same key_ledger)"| backup_pointer
+    hc_run -->|"read declarations"| svc_inventory
+    hc_run -->|"one alert; coverage details first"| alert_bus
+    hc_run -->|"atomic write"| hc_record
+    canary_run -.->|"#891: is the health check running?"| hc_record
 
     trust_timer -->|"systemd activation → oneshot"| trust_run
     trust_run -->|"findings + drift_resolved<br/>(24h re-alert cadence)"| alert_bus

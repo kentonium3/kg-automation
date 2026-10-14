@@ -1,0 +1,129 @@
+{
+  "mission_slug": "canary-deadman-backup-coverage-01M4XVY3",
+  "mission_number": "",
+  "mission_type": "software-dev",
+  "overall_verdict": "pass",
+  "criteria": [
+    {
+      "criterion_id": "FR-001",
+      "description": "Verify FR-001 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "scripts/office2/felix_health_check/tests/test_coverage.py::test_incident_replay_reports_both_failures (dead tick -> stale/failure), ::test_healthy_system_yields_two_ok_findings (same-fixture control); live office2 dry-run 2026-10-14 felix-canary ok",
+      "pass_fail": "pass",
+      "verified_by": "claude-opus-5-5",
+      "verified_at": "2026-10-14T20:03:58.975652+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-002",
+      "description": "Verify FR-002 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "scripts/office2/felix_health_check/tests/test_coverage.py::test_incident_replay_reports_both_failures (127 -> failed), ::test_real_2026_10_14_backup_pointer_is_a_failure; live office2 dry-run: restic-backup failed on stale last_integrity_check_utc",
+      "pass_fail": "pass",
+      "verified_by": "claude-opus-5-5",
+      "verified_at": "2026-10-14T20:04:08.579652+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-003",
+      "description": "Verify FR-003 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "scripts/office2/felix_health_check/tests/test_agreement.py (16-doc corpus, canary verdict computed live; sentinels incident backup failed + dead canary stale); tests/canary/test_tick_ledger_reconciliation.py",
+      "pass_fail": "pass",
+      "verified_by": "claude-opus-5-5",
+      "verified_at": "2026-10-14T20:04:17.770872+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-004",
+      "description": "Verify FR-004 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "scripts/office2/felix_health_check/tests/test_coverage.py T008 fail-closed cases (inventory missing/not JSON/no services, target absent, pointer missing, network probe refused, canary code unimportable, evaluator raising) -> unknown; test_run.py::test_combine_spot_checks (blind never healthy)",
+      "pass_fail": "pass",
+      "verified_by": "claude-opus-5-5",
+      "verified_at": "2026-10-14T20:04:27.256676+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-005",
+      "description": "Verify FR-005 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "scripts/office2/felix_health_check/tests/test_run.py::test_combine_full_grid (4x9) + spot checks; scripts/office2/felix_health_check/tests/test_run_record_contract.py::test_findings_survive_long_shell_output (real bus renderer, >6KB) with non-vacuity control test_appending_findings_to_the_output_would_lose_them",
+      "pass_fail": "pass",
+      "verified_by": "claude-opus-5-5",
+      "verified_at": "2026-10-14T20:04:36.572015+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-006",
+      "description": "Verify FR-006 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "scripts/office2/felix_health_check/tests/test_run_record_contract.py: real scripts.canary.probes.run_probe over main()-written records (a-d), hijack controls derived from TIMESTAMP_KEYS, legacy error-key controls; tests/office2/felix_health_check/test_run.py unchanged and green",
+      "pass_fail": "pass",
+      "verified_by": "claude-opus-5-5",
+      "verified_at": "2026-10-14T20:04:45.766010+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-007",
+      "description": "Verify FR-007 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "scripts/office2/felix_health_check/tests/test_run.py::test_script_lives_in_the_repo_next_to_the_wrapper; health-check.sh git mode 100755; code byte-identical to live copy sha256 7880bf97... except comments (verified by reviewer)",
+      "pass_fail": "pass",
+      "verified_by": "claude-opus-5-5",
+      "verified_at": "2026-10-14T20:04:55.015041+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-008",
+      "description": "Verify FR-008 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "tests/deploy/test_deploy_health_check_coverage.py (retire only after verified record; move never called on any failure path; idempotent re-apply; no overwrite); live office2 dry-run: would_retire. Live retirement verified post-merge via manifest post-check (charter no-staging form b), recorded on #1063",
+      "pass_fail": "pass",
+      "verified_by": "claude-opus-5-5",
+      "verified_at": "2026-10-14T20:05:04.442740+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-009",
+      "description": "Verify FR-009 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "deploys/queued/health-check-coverage.yaml validated against manifest-v1 schema by reviewer; tests/deploy/test_deploy_health_check_coverage.py::test_manifest_shape; pre-merge live dry-run on office2 via git archive 2026-10-14 rc=0. Live apply verified post-merge, recorded on #1063",
+      "pass_fail": "pass",
+      "verified_by": "claude-opus-5-5",
+      "verified_at": "2026-10-14T20:05:13.815134+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-010",
+      "description": "Verify FR-010 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "scripts/office2/felix_health_check/tests/test_coverage.py::test_inventory_prose_names_both_coverage_targets; docs: observability-and-alerting.md s5a, data-flows.json felix-health-check-coverage flow; validate_docs + validate_architecture_data OK; tests/tooling link checks 133 passed",
+      "pass_fail": "pass",
+      "verified_by": "claude-opus-5-5",
+      "verified_at": "2026-10-14T20:05:23.087731+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-011",
+      "description": "Verify FR-011 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "tests/canary/test_tick_ledger_verdicts.py (missing/partial/error/null status, broken+missing anchor with fresh fallback, zero/missing components -> failed; real tick healthy control); reproduced healthy pre-fix 2026-10-14",
+      "pass_fail": "pass",
+      "verified_by": "claude-opus-5-5",
+      "verified_at": "2026-10-14T20:05:32.488169+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-012",
+      "description": "Verify FR-012 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "scripts/office2/felix_health_check/tests/test_coverage.py::test_real_inventory_satisfies_preconditions (CI pin), ::test_declaration_problems_detects_each_shape_fault, ::test_missing_bound_at_runtime_is_unknown_not_liveness_only",
+      "pass_fail": "pass",
+      "verified_by": "claude-opus-5-5",
+      "verified_at": "2026-10-14T20:05:41.998683+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    }
+  ],
+  "negative_invariants": []
+}

@@ -1,0 +1,16 @@
+{
+  "schema_version": 2,
+  "snapshot_timestamp_utc": "2026-10-14T15:30:30Z",
+  "snapshot_id": "b1c0d27ca3275c8472e4624d0274597db1a61fac6a0ef9656e869d87269c5de2",
+  "restic_exit_code": 0,
+  "prune_exit_code": 0,
+  "script_finished_at_utc": "2026-10-14T15:30:54Z",
+  "repo_size_bytes": 3940475921,
+  "snapshot_count": 13,
+  "integrity_check_run": false,
+  "integrity_check_passed": null,
+  "last_integrity_check_utc": "2026-09-27T04:00:11Z",
+  "files_processed": 50463,
+  "source_roots_present": true,
+  "repo_fs_free_bytes": 928029237248
+}

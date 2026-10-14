@@ -1,0 +1,11 @@
+{
+  "completed_at_utc": "2026-10-14T18:44:16.390963+00:00",
+  "components_evaluated": 32,
+  "coverage_gaps": 0,
+  "duration_ms": 4966,
+  "emitted": 0,
+  "errors": [],
+  "status": "success",
+  "suppressed_dedup": 1,
+  "suppressed_status": 4
+}
