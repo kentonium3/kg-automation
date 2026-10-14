@@ -8,10 +8,10 @@
       "criterion_id": "FR-001",
       "description": "Verify FR-001 is satisfied",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
+      "evidence": "scripts/office2/felix_health_check/tests/test_coverage.py::test_incident_replay_reports_both_failures (dead tick -> stale/failure), ::test_healthy_system_yields_two_ok_findings (same-fixture control); live office2 dry-run 2026-10-14 felix-canary ok",
+      "pass_fail": "pass",
+      "verified_by": "claude-opus-5-5",
+      "verified_at": "2026-10-14T20:03:58.975652+00:00",
       "notes": "TODO: replace with a real acceptance criterion"
     },
     {
