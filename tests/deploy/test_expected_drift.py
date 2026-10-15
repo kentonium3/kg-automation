@@ -263,10 +263,11 @@ def test_a_bad_or_future_fold_stamp_pages_only_that_baseline(tmp_path, monkeypat
     assert ed.fresh_expected_baselines(now=_NOW) == {"openclaw-cron.txt"}
 
 
-def test_a_non_dict_fold_map_is_ignored(tmp_path, monkeypatch):
-    _write_token(tmp_path, monkeypatch, _fresh_payload(folded_at_utc=["nope"]))
-    assert ed.fresh_expected_baselines(now=_NOW) == {
-        "systemd-user-unit-contents.txt", "openclaw-cron.txt"}
+@pytest.mark.parametrize("folded", [None, ["nope"], "x", 0])
+def test_a_corrupt_fold_map_suppresses_nothing(tmp_path, monkeypatch, folded):
+    """Codex re-review 3: present-but-invalid fold metadata fails closed."""
+    _write_token(tmp_path, monkeypatch, _fresh_payload(folded_at_utc=folded))
+    assert ed.fresh_expected_baselines(now=_NOW) == set()
 
 
 @pytest.mark.parametrize("stamp", [None, "", 0, False, [], {}])

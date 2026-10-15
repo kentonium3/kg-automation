@@ -96,8 +96,11 @@ def fresh_expected_baselines(now: "_dt.datetime | None" = None) -> "set[str]":
         # folded in by a later deploy (#1072, folded_at_utc) from its fold
         # time, everything else from pending_since_utc. A bad per-baseline
         # stamp makes only that baseline not-fresh (fail-safe: page).
-        folded = token.get("folded_at_utc")
-        folded = folded if isinstance(folded, dict) else {}
+        # Absent fold metadata means nothing was folded in; present but not a
+        # mapping is corrupt, and a corrupt token suppresses nothing (page).
+        folded = token.get("folded_at_utc", {})
+        if not isinstance(folded, dict):
+            return set()
         # A future-dated token is rejected outright, before any fold override.
         since_dt = _dt.datetime.fromisoformat(str(pending_since).replace("Z", "+00:00"))
         if (now_dt - since_dt).total_seconds() < 0:
