@@ -400,3 +400,13 @@ def test_without_the_variable_no_report_is_written(tmp_path, monkeypatch):
     a = _src(tmp_path, "a.timer", "a")
     assert uu.install_units([a], tmp_path / "units").ok
     assert not list(tmp_path.rglob("*.jsonl"))
+
+
+def test_an_unwritable_report_never_fails_the_install(tmp_path, monkeypatch, capsys):
+    """renata WP02: the install succeeds and only the marker reaches stderr."""
+    monkeypatch.setenv(ir.ENV_VAR, str(tmp_path / "no-such-dir" / "report.jsonl"))
+    a = _src(tmp_path, "a.timer", "a")
+    res = uu.install_units([a], tmp_path / "units")
+    assert res.ok and (tmp_path / "units" / "a.timer").read_text() == "a"
+    out, err = capsys.readouterr()
+    assert out == "" and err.startswith(ir.WRITE_FAILED_MARKER)

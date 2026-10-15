@@ -2216,3 +2216,15 @@ def test_nfr001_mapping_ten_manifests_of_a_hundred_files_under_a_second(reported
                                w["repo"], log_path, set(), [])
     elapsed = time.monotonic() - start
     assert elapsed < 1.0, f"mapping took {elapsed:.3f}s"
+
+
+def test_declared_and_reported_baselines_fold_as_a_union(monkeypatch, reported_world, log_dir):
+    """FR-005: a manifest that declares a baseline AND reports an install folds
+    both; the declaration behaves exactly as before."""
+    w = reported_world
+    w["queue"]("0099-both", audited_surface=True, expected_baselines=["openclaw-cron.txt"])
+    _gate_returning(monkeypatch, (True, _channel(w["report"](w["unit_dir"] / "x.timer"))))
+    entries = _run(w, log_dir, monkeypatch, _Audit(["openclaw-cron.txt", UNIT_CONTENTS]))
+    fold = next(e for e in entries if e.get("event") == "rebaseline_fold")
+    assert {"openclaw-cron.txt", UNIT_CONTENTS} <= set(fold["expected_baselines"])
+    assert _outcome(entries) == "completed"

@@ -160,3 +160,17 @@ def test_mkdtemp_failure_is_a_warning_not_a_crash(tmp_path, monkeypatch):
     assert res.ok
     assert any("no tmp" in w for w in res.details["installed_report"]["warnings"])
     assert {s["var"] for s in _seen(log)} == {None}
+
+
+def test_each_apply_gets_its_own_report_location(tmp_path):
+    """FR-002: two manifests applied in turn never share a report file."""
+    paths = []
+    for i in range(2):
+        d = tmp_path / f"m{i}"
+        d.mkdir()
+        ep, log = _entrypoint(d, apply_lines=_write_lines(A if i == 0 else B))
+        res = apply.dry_run_then_apply_gate(_manifest(ep, name=f"m{i}"), "m.yaml")
+        assert res.ok
+        assert res.details["installed_report"]["entries"] == [A if i == 0 else B]
+        paths.append(next(s["var"] for s in _seen(log) if s["mode"] == "--apply"))
+    assert paths[0] != paths[1]
