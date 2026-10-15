@@ -58,10 +58,10 @@
       "criterion_id": "FR-006",
       "description": "Verify FR-006 is satisfied",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
+      "evidence": "tests/common/test_deadman.py failure-mapping/retry/totality tests; tests/canary/test_run_deadman.py and scripts/office2/felix_health_check/tests/test_run_deadman.py ::test_a_raising_deadman_never_changes_the_exit_code; tick-signal and last-run.json schema pins",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-10-15T18:14:59.957248+00:00",
       "notes": "TODO: replace with a real acceptance criterion"
     },
     {
