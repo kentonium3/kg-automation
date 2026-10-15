@@ -17,11 +17,11 @@
     {
       "criterion_id": "FR-002",
       "description": "Verify FR-002 is satisfied",
-      "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
+      "proof_type": "automated-test",
+      "evidence": "tests/deploy/test_apply_installed_report.py::test_only_apply_sees_a_fresh_report_path, ::test_pre_and_post_commands_never_see_the_variable, ::test_each_apply_gets_its_own_report_location",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-10-15T13:10:55.664738+00:00",
       "notes": "TODO: replace with a real acceptance criterion"
     },
     {
