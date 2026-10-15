@@ -11,5 +11,7 @@
   "purpose_tldr": "If office2, its user manager, the checkout or the ntfy alert channel goes down, Kent still gets an email, because the two on-host watchers stop pinging a hosted dead-man service.",
   "slug": "offhost-deadman-pings-01M50990",
   "target_branch": "feat/offhost-deadman-pings",
-  "topology": "lanes"
+  "topology": "lanes",
+  "contracts": "none",
+  "contracts_rationale": "No external API or schema is defined. The only interface is the internal deadman.ping() function and its small operator CLI, both fully specified in data-model.md; the remote protocol is healthchecks.io's documented ping URL."
 }
