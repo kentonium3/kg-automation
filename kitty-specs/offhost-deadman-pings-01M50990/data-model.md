@@ -8,8 +8,7 @@ FELIX_DEADMAN_HEALTHCHECK_URL=https://hc-ping.com/<uuid>
 ```
 
 - Only `KEY=value` lines are read. Blank lines, `#` comments and malformed lines are ignored, and a single surrounding pair of quotes is stripped.
-- A variable already in the process environment takes precedence over the file.
-- The test-only override `FELIX_DEADMAN_ENV_FILE` points at another file.
+- URLs are read **only** from this file, into a private mapping. They never enter `os.environ`. The test-only override `FELIX_DEADMAN_ENV_FILE` names another file path; it is never a URL.
 
 ## `deadman.ping(label, outcome, *, env=None, env_file=None, run=None) -> PingResult`
 
@@ -22,14 +21,22 @@ FELIX_DEADMAN_HEALTHCHECK_URL=https://hc-ping.com/<uuid>
 
 **Invariants**
 - `ping` never raises, never prints the URL, and never blocks longer than the subprocess timeout (8 s).
-- A URL is valid only if it starts with `https://`, has no whitespace or control characters, contains no `"` or `\`, and is at most 512 characters long. Those characters are rejected outright rather than escaped.
+- A URL is valid only if all of these hold:
+  - `urlsplit` gives scheme `https` and a host;
+  - there is no query, fragment or userinfo;
+  - there is no whitespace, control character, `"` or `\`, and the URL is at most 512 characters;
+  - the final path segment is not `fail`, `start`, `log` or all digits.
+- One trailing `/` is stripped. The fail URL is built by `urlunsplit` with `path + "/fail"`.
+- Transport: `curl -q ... --proto =https --max-redirs 0 --max-time 5 -K -`, given a minimal environment and the URL on stdin. At most 2 attempts (the second after 2 s), so the worst case is about 18 s.
 - The single log line goes to stderr, which the journal captures: `deadman <label> <outcome>: <reason>`.
 
 ## Watcher outcomes
 
 | Watcher | `success` when | `fail` when | nothing when |
 |---|---|---|---|
-| felix-canary | the pass status is `success` and `alerts_undelivered == 0` | the status is `error`, any alert is undelivered, or `run_pass` raised | `--dry-run` or `--self-check` |
-| felix-health-check | the record is written and `not (delivery.attempted and not delivery.sent)` | the delivery was attempted and not sent, or the record write raised (ping `fail`, then re-raise) | — |
+| felix-canary | the pass status is `success`, `alerts_undelivered == 0`, and `channel_broken` is false | the status is `error`, the pass raised, any alert this tick was undelivered, or `channel_broken` | `--dry-run` or `--self-check` |
+| felix-health-check | the record is written, there is no execution fault, `channel_broken` is false, and not (the status is alerting and `delivery.sent` is false) | the status is alerting and `delivery.sent` is false (covers a missing topic, where `attempted` is false), an execution fault, `channel_broken`, or the record write raised (ping `fail`, then re-raise) | — |
+
+`channel_broken(env)` is true when `FELIX_ALERT_NTFY_TOPIC` is absent or blank in `env`, or when the newest alert-bus ledger record (today's file, else yesterday's) has `delivery.ok == false`. A ledger read error counts as not-broken, logged as `unknown`.
 
 `alerts_undelivered` appears in the canary's returned summary only. It is excluded from the persisted tick signal.

@@ -27,7 +27,7 @@ flowchart LR
 **Testing**: pytest. Injected transport fakes for the module. The canary's `run_pass`/`main` seams (`emit_fn`, monkeypatched `run_pass`) and health-check's monkeypatched `send_alert`/`emit` carry a recording ping fake. A sentinel-URL secrecy test scans captured stdout, stderr, logs and written records.
 **Target Platform**: office2. Both watchers run from the checkout, so the pull is the deploy.
 **Project Type**: single repo, operations scripts
-**Performance Goals**: at most 8 s added worst case per run, about 0 s when unconfigured (NFR-001)
+**Performance Goals**: at most 18 s added worst case per run (2 attempts), about 0 s when unconfigured (NFR-001, revised)
 **Constraints**: C-001 (alerting is email-only on healthchecks.io), C-002 (no secret in the repo), C-004 (watcher semantics unchanged), NFR-003 (no body), NFR-004 (https only)
 **Scale/Scope**: 1 new module, 2 small hooks, 1 env template, architecture data and docs, and a runbook section
 
@@ -53,6 +53,16 @@ flowchart LR
    - Dry-run and self-check send nothing.
 6. **The canary counts undelivered alerts.** `run_pass` keeps `emit_fn`'s return value and counts `getattr(result, "ok", True) is False`. That expression treats a fake's `None` as delivered, so existing tests keep their meaning. The count goes into the returned summary as `alerts_undelivered` and is **excluded from the persisted tick signal**, like `component_lines`. That keeps felix-canary's key-ledger reconciliation (`tests/canary/test_tick_ledger_reconciliation.py`) unchanged.
 7. **No retries.** The next tick is the retry.
+
+## Post-plan review dispositions (Codex REJECT, 2026-10-15). These supersede anything above that conflicts.
+
+1. **HIGH: a missing topic reported success.** Channel health is now its own predicate in the module: `deadman.channel_broken(env)`. It is true when `FELIX_ALERT_NTFY_TOPIC` is absent or blank in the watcher's environment (checked without sending), or when the most recent record in the alert-bus ledger (`/data/services/alert-bus/ledger/<today>.jsonl`, falling back to yesterday) has `delivery.ok == false`. Both watchers send `fail` while it is true. Any failure to read the ledger counts as "unknown", which leaves the outcome unchanged; the topic check still applies.
+2. **MED: dedup hid a broken channel.** This is solved by item 1. Channel debt lives in the shared ledger, which every emitter writes, so it is not cleared by component dedup. It clears only on a later successful delivery from any emitter (`alert_bus.sh self-test` is the operator's way to clear it on demand). The canary's own per-tick `alerts_undelivered` count stays an additional trigger.
+3. **MED: watcher execution faults.** This is now FR-010. For the health check, `fail` when `script_status` is `SCRIPT_MISSING`, or the script note shows a timeout, launch or decode failure (`run.py:235-253`), or coverage "could not start", or the record write raised. For the canary, `fail` when the pass status is `error` or the pass raised. Exit codes are unchanged.
+4. **MED: ambient curl config.** Argv becomes `curl -q --silent --show-error --fail --globoff --proto =https --proto-redir =https --max-redirs 0 --max-time 5 --retry 0 --output /dev/null -K -`. `-q` comes first so `~/.curlrc` is ignored. curl's stderr is captured and discarded; only the exit code is mapped. A test sets `CURL_HOME` and `HOME` to a directory with a hostile `.curlrc` and proves it is ignored.
+5. **MED: environment-borne secrets.** URLs are read **only** from the env file into a private mapping; process-environment overrides are dropped. Nothing touches `os.environ`. curl gets an explicit minimal environment (`PATH`, `LANG=C`, no `HOME`, no proxy variables). A test asserts the child environment carries no URL.
+6. **MED: URL canonicalisation.** Parse with `urllib.parse.urlsplit`. Require scheme `https` and a host. Reject any query, fragment, userinfo, whitespace, control characters, `"` or `\`. Reject a final path segment of `fail`, `start`, `log` or all digits. Strip one trailing `/`. The fail URL is `urlunsplit` with `path + "/fail"`.
+7. **MED: scheduling.** office2 is `Etc/UTC`, so there is no daylight-saving issue. Kent switches the health-check check to Cron `0 11,23 * * *` UTC with 1 h grace. Each ping makes at most **2 attempts**, the second after 2 s; worst case is 2 × 8 s + 2 s = 18 s, which updates NFR-001. A double loss still produces one false email, accepted in the spec. The spec's "within grace" wording is corrected to "about an hour" for the canary (period plus grace).
 
 ## Implementation Concern Map
 
