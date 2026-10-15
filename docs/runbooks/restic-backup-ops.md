@@ -6,8 +6,8 @@ status: approved
 level: 2
 owners: [kent]
 audience: agents_and_humans
-last_validated: '2026-10-14'
-updated_by: 'canary-deadman-backup-coverage-01M4XVY3 (#1063) + pointer-key-ledger-01M189P6 (#934) + #511'
+last_validated: '2026-10-15'
+updated_by: 'backup-failure-cause-in-alert-01M502K3 (#1067) + canary-deadman-backup-coverage-01M4XVY3 (#1063) + pointer-key-ledger-01M189P6 (#934) + #511'
 ---
 
 # Restic Backup Operations
@@ -16,17 +16,12 @@ The nightly backup for office2. Runs as a plain cron job under the `claude`
 user with `NOPASSWD sudo` for one specific script — there is no systemd
 unit or timer, so `systemctl status` will not find it.
 
-> ⚠️ **Operator action pending (mission `backup-failure-cause-in-alert-01M502K3`, #1067).**
-> The repo producer (`scripts/office2/restic-backup.sh`) now writes **schema
-> v2, fifteen keys**: it adds `failure_reason`. The copy running on office2
-> still writes fourteen until an operator installs the update by hand. See
-> [Operator handoff: installing the schema v2 producer](#operator-handoff-installing-the-schema-v2-producer)
-> below. Nothing reads unhealthy meanwhile: the new key is diagnostic only,
-> so alerts simply lack the cause text until the install.
->
-> The earlier #934 install (ten keys to fourteen) is **done**. On 2026-10-15
-> the live pointer had fourteen keys and `backup-script-drift` reported
-> `match`.
+> **Current state (2026-10-15).** The deployed `backup.sh` matches the repo
+> producer (`schema_version: 2`, fifteen keys including `failure_reason`).
+> Kent installed the #1067 version at 17:07Z from commit `ca5451e2`, and
+> `backup-script-drift` reported `match` at 17:08:53Z. The earlier #934 install
+> (ten keys to fourteen) was also done before that. No operator action is
+> pending.
 
 ## Where things live
 
@@ -412,7 +407,13 @@ runs as `claude`; and `claude` has no passwordless sudo. There is no credential
 or grant this install could use that the pipeline itself has access to — the
 repo change genuinely cannot install itself (spec C-002).
 
-### ⚠️ backup-failure-cause-in-alert-01M502K3 (#1067): install outstanding (2026-10-15)
+### backup-failure-cause-in-alert-01M502K3 (#1067): install completed
+
+> Completed 2026-10-15. Installed at 17:07Z from commit
+> `ca5451e2e5a516e82e52c68392b22ee0118144d9`, md5
+> `fcd9ddc137488877adac2fbc4b1e67b5`. `backup-script-drift` reported `match` at
+> 17:08:53Z. The first 04:00 run afterwards should write fifteen keys with
+> `"failure_reason": null`. The text below is kept as the record.
 
 The repo copy now writes `failure_reason` (fifteen keys, still
 `schema_version: 2`). Install it with the steps in
@@ -494,7 +495,14 @@ world-writable and invites a swap between fetch and install):
 curl -fsSL -o ~/restic-backup.sh https://raw.githubusercontent.com/kentonium3/kg-automation/<commit-sha>/scripts/office2/restic-backup.sh
 ```
 
-Confirm the content hash matches the commit you reviewed:
+Confirm the content hash matches the commit you reviewed. Get the expected
+hash from your own clone of the repo, not from office2:
+
+```bash
+git show <commit-sha>:scripts/office2/restic-backup.sh | md5sum
+```
+
+Then compare it with the downloaded file:
 
 ```bash
 md5sum ~/restic-backup.sh
@@ -539,7 +547,8 @@ complete — neither alone is sufficient:
    ssh office2-claude 'jq "keys | length" /data/services/backup/state/last-backup.json'
    ```
 
-   Must read `14`, and `schema_version` must read `2`. Until both of these
+   Must read `15` (it read `14` between the #934 and #1067 installs), and
+   `schema_version` must read `2`. Until both of these
    verifications pass, treat the live `restic-backup` component's unhealthy
    reads on the four new keys as the expected, correct state described in
    the sequencing warning above — not a new incident.
