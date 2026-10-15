@@ -13,7 +13,7 @@
       "wp": null
     },
     "#1066": {
-      "evidence_ref": "<link or commit>",
+      "evidence_ref": "87805c32 (closed; userunits library this mission extends)",
       "fr": null,
       "nfr": null,
       "repo": null,
@@ -21,7 +21,7 @@
       "scope": null,
       "source_file": "spec.md",
       "title": "<fill at WP-implementation time>",
-      "verdict": "unknown",
+      "verdict": "verified-already-fixed",
       "wp": null
     }
   },
