@@ -155,6 +155,8 @@ case "$1" in
              # stop; SIGTERM, which -- unlike an OOM SIGKILL -- still runs the EXIT trap) -- the one realistic fatal path with no explicit
              # branch in the script. $PPID is the script's own bash process.
              if [ -n "$STUB_BACKUP_KILL_PARENT" ]; then kill -TERM "$PPID"; sleep 1; fi
+             # SIGKILL variant: no EXIT trap can run, so no pointer is written.
+             if [ -n "$STUB_BACKUP_SIGKILL_PARENT" ]; then kill -KILL "$PPID"; sleep 1; fi
              exit "${STUB_BACKUP_RC:-0}" ;;
   forget)    exit "${STUB_PRUNE_RC:-0}" ;;
   check)     exit "${STUB_CHECK_RC:-0}" ;;
@@ -702,3 +704,17 @@ def test_failed_final_log_write_keeps_nonzero_exit_and_is_unclassified(env):
     assert proc.returncode != 0
     assert ptr["restic_exit_code"] == 0
     assert ptr["failure_reason"] == "unclassified"
+
+
+def test_sigkilled_run_writes_no_pointer_and_leaves_the_previous_one(env):
+    """SIGKILL (the OOM killer, kill -9) runs no EXIT trap, so the previous
+    run's pointer survives byte-for-byte and the failed run carries no cause;
+    only the staleness bound can report it. Pins the runbook's caveat (#1067
+    post-merge re-review) as behaviour, not prose."""
+    _, previous = run(env)  # a completed run leaves a pointer behind
+    state = env[1] / "last-backup.json"
+    before = state.read_bytes()
+    proc, ptr = run(env, STUB_BACKUP_SIGKILL_PARENT="1")
+    assert proc.returncode == -9 or proc.returncode == 137
+    assert state.read_bytes() == before
+    assert ptr == previous and ptr["failure_reason"] is None

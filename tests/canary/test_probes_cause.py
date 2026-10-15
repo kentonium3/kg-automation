@@ -353,3 +353,16 @@ def test_declaration_rejected_by_rule_9_never_decorates(judge, mutate):
     p = not_mounted_pointer()
     assert SUFFIX not in judge(p, key_ledger=ledger).evidence
     assert cause_text(p, ledger) is None
+
+
+
+@pytest.mark.parametrize(
+    "bad_text", ["y" * (CAUSE_TEXT_MAX + 1), "", "two\nlines", 7, None]
+)
+def test_bad_text_on_an_unused_code_rejects_the_whole_declaration(judge, bad_text):
+    """Post-merge Codex re-review: the validator rejects the declaration as a
+    whole, so the runtime must not decorate through its valid codes."""
+    ledger = copy.deepcopy(LEDGER)
+    ledger["cause"]["codes"]["some_other_code"] = bad_text
+    p = not_mounted_pointer()  # uses backup_mount_missing, whose text is fine
+    assert judge(p, key_ledger=ledger).evidence == judge(_without_cause(p)).evidence

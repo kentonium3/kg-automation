@@ -383,8 +383,8 @@ def _cause_declaration_ok(ledger: dict) -> bool:
     A declaration the validator would reject must not decorate an alert just
     because the runtime looked at less of it (post-merge Codex review): exact
     members ``{key, codes}``, the key declared ``diagnostic_only`` and never
-    ``adjudicated``, and every code name a closed identifier. Declared TEXT is
-    checked per code at lookup time (a bad text suppresses only its own code).
+    ``adjudicated``, every code name a closed identifier, and every declared
+    text within rule 9's bounds -- including codes this pointer does not use.
     """
     cause = ledger.get("cause")
     if not isinstance(cause, dict) or set(cause) != {"key", "codes"}:
@@ -400,8 +400,14 @@ def _cause_declaration_ok(ledger: dict) -> bool:
         return False
     if not isinstance(codes, dict) or not codes:
         return False
+    # Every code AND every text, used or not: a declaration the validator
+    # rejects is rejected whole, never decorated through its valid parts
+    # (post-merge Codex re-review).
     return all(
-        isinstance(code, str) and _CAUSE_CODE_PATTERN.fullmatch(code) for code in codes
+        isinstance(code, str)
+        and _CAUSE_CODE_PATTERN.fullmatch(code) is not None
+        and _declared_cause_text_ok(text)
+        for code, text in codes.items()
     )
 
 

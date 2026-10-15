@@ -75,7 +75,9 @@ warnings) both pass.
 
 The pointer at `/data/services/backup/state/last-backup.json` is written
 atomically (`.tmp` + `mv`) by `backup.sh` on every exit — success OR
-failure — so a stale pointer always means the cron has not fired.
+failure — so a stale pointer means the cron has not fired, or the run was
+killed by SIGKILL (for example the OOM killer) or host loss, which runs no
+exit handler and leaves the previous run's pointer in place.
 
 **Fifteen keys, `schema_version: 2`.** The four rows marked **new** below
 were added by mission `pointer-key-ledger-01M189P6` (#934); `failure_reason`
