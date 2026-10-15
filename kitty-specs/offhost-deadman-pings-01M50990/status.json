@@ -29,6 +29,9 @@
       "last_event_id": "01M50AHCYBZ968WXX0ZQMHT9PK",
       "last_transition_at": "2026-10-15T17:42:40.331316+00:00",
       "model": "__resolved_model_absent__",
+      "notes": [
+        "deadman module; 44 tests"
+      ],
       "provider": "__resolved_provider_absent__",
       "role": "implementer",
       "shell_pid": 961580,
