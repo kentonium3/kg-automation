@@ -1,7 +1,10 @@
 {
+  "baseline_merge_commit": "2989a6f5c5564b62855755e0a2d6f21d4639563a",
   "created_at": "2026-10-15T15:23:47.903599+00:00",
   "flattened": false,
   "friendly_name": "Backup alerts name why the run failed",
+  "merged_at": "2026-10-15T16:02:05.643190+00:00",
+  "merged_commit": "1f6b0a7581a78ad38618aa98bca17e4874143c9b",
   "mid8": "01M502K3",
   "mission_id": "01M502K3RQEMBXJCS2B480KC5Z",
   "mission_number": 119,
@@ -10,6 +13,7 @@
   "purpose_context": "Since #1063 the canary pages within about 15 minutes of a failed 04:00 backup, but the alert names a pointer key such as restic_exit_code=127, not the cause. backup.sh will record a failure_reason code in its state pointer, declared diagnostic-only in the key_ledger, and the canary and health-check alerts will include it without it ever affecting health. Root never runs claude-writable code. Tracks kentonium3/kg-automation#1067.",
   "purpose_tldr": "When the nightly backup fails, the canary's alert should say why (for example, the backup drive is not mounted) instead of naming a pointer key.",
   "slug": "backup-failure-cause-in-alert-01M502K3",
+  "status_phase": "1",
   "target_branch": "fix/backup-failure-cause-in-alert",
   "topology": "lanes",
   "vcs": "git",
