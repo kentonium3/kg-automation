@@ -28,10 +28,10 @@
       "criterion_id": "FR-003",
       "description": "Verify FR-003 is satisfied",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
+      "evidence": "tests/office2/restic_backup/test_pointer_emission.py::test_completed_run_records_null_cause[happy_path|prune_failed|backup_warning|integrity_failed]; ::test_failure_reason_is_always_null_or_a_known_code",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-10-15T16:20:53.977690+00:00",
       "notes": "TODO: replace with a real acceptance criterion"
     },
     {
