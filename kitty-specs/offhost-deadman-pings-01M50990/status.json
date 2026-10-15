@@ -122,10 +122,18 @@
       "last_event_id": "01M50ATB3YAWY44ZXCHGTFVZED",
       "last_transition_at": "2026-10-15T17:47:33.359570+00:00",
       "model": "__resolved_model_absent__",
+      "notes": [
+        "- 2026-10-15T17:54:30Z – claude – shell_pid=967333 – Out-of-map: repo-root conftest.py autouse guard (deadman env file to a nonexistent path, ntfy topic unset), from the WP02/WP03 review findings: existing CLI tests reach real deadman, and tests/conftest.py covers neither scripts/**/tests nor subprocess."
+      ],
       "provider": "__resolved_provider_absent__",
       "role": "implementer",
       "shell_pid": 967333,
-      "shell_pid_created_at": "1792086364.53"
+      "shell_pid_created_at": "1792086364.53",
+      "subtasks": {
+        "T011": "done",
+        "T012": "done",
+        "T013": "done"
+      }
     }
   }
 }
