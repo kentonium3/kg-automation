@@ -2,7 +2,7 @@
   "mission_slug": "offhost-deadman-pings-01M50990",
   "mission_number": "120",
   "mission_type": "software-dev",
-  "overall_verdict": "pending",
+  "overall_verdict": "pass",
   "criteria": [
     {
       "criterion_id": "FR-001",
@@ -98,10 +98,10 @@
       "criterion_id": "FR-010",
       "description": "Verify FR-010 is satisfied",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
+      "evidence": "tests/canary/test_run_deadman.py::test_runner_failure_pings_fail_and_keeps_exit_1, ::test_pass_status_error_pings_fail; scripts/office2/felix_health_check/tests/test_run_deadman.py script-missing/timeout/launch/coverage/serialisation/record-write fail tests",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-10-15T18:15:36.582750+00:00",
       "notes": "TODO: replace with a real acceptance criterion"
     }
   ],
