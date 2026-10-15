@@ -1,4 +1,16 @@
 {
+  "acceptance_history": [
+    {
+      "acceptance_mode": "pr",
+      "accepted_at": "2026-10-15T18:15:45.601792+00:00",
+      "accepted_by": "claude",
+      "accepted_from_commit": "058389f78a4b7405dd8b154d79eb2c55f84f1d46"
+    }
+  ],
+  "acceptance_mode": "pr",
+  "accepted_at": "2026-10-15T18:15:45.601792+00:00",
+  "accepted_by": "claude",
+  "accepted_from_commit": "058389f78a4b7405dd8b154d79eb2c55f84f1d46",
   "baseline_merge_commit": "e1a111bbaa5def124bd069cfcbbf2c90d41bbcdc",
   "contracts": "none",
   "contracts_rationale": "No external API or schema is defined. The only interface is the internal deadman.ping() function and its small operator CLI, both fully specified in data-model.md; the remote protocol is healthchecks.io's documented ping URL.",
