@@ -305,3 +305,13 @@ def test_pending_clean_still_raises_stale(tmp_path):
     result = rbl.reconcile(token_path=token_path, registry=_REGISTRY, max_age_seconds=86_400,
                            audit_runner=lambda cmd: _proc("Security audit 2026-10-15: All clear"))
     assert result["outcome"] == rbl.OUTCOME_PENDING_CLEAN and result.get("stale") is True
+
+
+def test_a_future_fold_stamp_does_not_hold_the_token(tmp_path):
+    token_path = tmp_path / "token.json"
+    token = _old_token(_iso(-3600))
+    token["last_fold_utc"] = _iso(7 * 86400)
+    rbl.write_token(token, token_path)
+    result = rbl.reconcile(token_path=token_path, registry=_REGISTRY,
+                           audit_runner=lambda cmd: _proc("Security audit 2026-10-15: All clear"))
+    assert result["outcome"] == rbl.OUTCOME_CLEARED_CLEAN

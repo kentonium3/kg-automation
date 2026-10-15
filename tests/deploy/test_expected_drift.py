@@ -267,3 +267,20 @@ def test_a_non_dict_fold_map_is_ignored(tmp_path, monkeypatch):
     _write_token(tmp_path, monkeypatch, _fresh_payload(folded_at_utc=["nope"]))
     assert ed.fresh_expected_baselines(now=_NOW) == {
         "systemd-user-unit-contents.txt", "openclaw-cron.txt"}
+
+
+@pytest.mark.parametrize("stamp", [None, "", 0, False, [], {}])
+def test_a_present_but_empty_fold_stamp_pages(tmp_path, monkeypatch, stamp):
+    """Codex re-review: present-but-invalid must not fall back to the token."""
+    payload = _fresh_payload(folded_at_utc={"systemd-user-unit-contents.txt": stamp})
+    _write_token(tmp_path, monkeypatch, payload)
+    assert ed.fresh_expected_baselines(now=_NOW) == {"openclaw-cron.txt"}
+
+
+def test_a_future_token_is_rejected_even_with_a_fresh_fold(tmp_path, monkeypatch):
+    payload = _fresh_payload(
+        pending_since_utc=_iso(_NOW + _dt.timedelta(minutes=1)),
+        folded_at_utc={"systemd-user-unit-contents.txt": _iso(_NOW - _dt.timedelta(minutes=1))},
+    )
+    _write_token(tmp_path, monkeypatch, payload)
+    assert ed.fresh_expected_baselines(now=_NOW) == set()

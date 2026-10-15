@@ -1013,7 +1013,9 @@ def _within_grace(
         age_seconds = (now_dt - since_dt).total_seconds()
     except (ValueError, TypeError, AttributeError):
         return False
-    return age_seconds < grace_seconds
+    # A future stamp is not "within grace": it would hold the token (and its
+    # expectations) until that date (#1072 post-merge Codex).
+    return 0 <= age_seconds < grace_seconds
 
 
 def _maybe_stale(

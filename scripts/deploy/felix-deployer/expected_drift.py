@@ -98,17 +98,27 @@ def fresh_expected_baselines(now: "_dt.datetime | None" = None) -> "set[str]":
         # stamp makes only that baseline not-fresh (fail-safe: page).
         folded = token.get("folded_at_utc")
         folded = folded if isinstance(folded, dict) else {}
+        # A future-dated token is rejected outright, before any fold override.
+        since_dt = _dt.datetime.fromisoformat(str(pending_since).replace("Z", "+00:00"))
+        if (now_dt - since_dt).total_seconds() < 0:
+            return set()
         token_fresh = _fresh(pending_since)
         out: set[str] = set()
         for b in expected:
             if not b:
                 continue
-            stamp = folded.get(b)
             try:
-                if (_fresh(stamp) if stamp else token_fresh):
-                    out.add(str(b))
+                if b in folded:
+                    # Present means it must be a valid, fresh, non-future
+                    # timestamp string; anything else pages (never falls back).
+                    stamp = folded[b]
+                    fresh = isinstance(stamp, str) and bool(stamp) and _fresh(stamp)
+                else:
+                    fresh = token_fresh
             except Exception:  # noqa: BLE001 - this baseline pages as usual
                 continue
+            if fresh:
+                out.add(str(b))
         return out
     except Exception:  # noqa: BLE001 - fail-safe: any error -> empty (page as usual)
         return set()
