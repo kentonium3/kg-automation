@@ -76,8 +76,10 @@ The pointer at `/data/services/backup/state/last-backup.json` is written
 atomically (`.tmp` + `mv`) by `backup.sh` on every exit — success OR
 failure — so a stale pointer always means the cron has not fired.
 
-**Fourteen keys, `schema_version: 2`.** The four rows marked **new** below
-were added by mission `pointer-key-ledger-01M189P6` (#934). Which keys
+**Fifteen keys, `schema_version: 2`.** The four rows marked **new** below
+were added by mission `pointer-key-ledger-01M189P6` (#934); `failure_reason`
+was added by `backup-failure-cause-in-alert-01M502K3` (#1067) without a schema
+bump, because it is diagnostic only. Which keys
 *decide health* and which are recorded for diagnosis only is no longer
 prose here — it is the machine-readable declaration at
 `health_check.key_ledger` on the `restic-backup` entry in
@@ -102,6 +104,7 @@ for adjudication.
 | `files_processed` **(new)** | `.total_file_count` from `restic stats --mode files-by-contents latest --json` | Adjudicated, minimum 1. Distinguishes a real capture from an empty one — a source-path typo or an over-broad exclude can exit 0 with a fresh snapshot and capture nothing (US4). |
 | `source_roots_present` **(new)** | whether every path in `SOURCE_ROOTS` appears in the latest snapshot's `paths` | Adjudicated, `good_values: [true]`. A partial capture — one configured root silently missing — is not mistaken for a complete one. `good_values` carries no `unmeasured_is_unknown` modifier (only `minimum` predicates may), so a producer-emitted `null` here (evaluation genuinely could not run) is **unhealthy**, not unknown — a narrower guarantee than `snapshot_count`'s, worth knowing before assuming the two behave alike. |
 | `repo_fs_free_bytes` **(new)** | `df -B1 --output=avail` on the filesystem backing `RESTIC_REPOSITORY` | Adjudicated, minimum 53687091200 (50 GiB). The approach to a full volume is visible before the backup starts failing outright (US5). |
+| `failure_reason` (#1067) | a fixed code set by the script on the way out; see [Failure cause in alerts](#failure-cause-in-alerts-failure_reason-1067) | Diagnostic only, never decides health. `null` when the run completed (even if the prune or integrity check failed); otherwise `backup_mount_missing`, `repo_inaccessible`, `backup_failed` or `unclassified`. The ledger's `cause` member turns the code into the words on the alert. |
 
 ## Key ledger: what decides health
 
@@ -253,7 +256,9 @@ ssh office2-kgale 'sudo RESTIC_REPOSITORY=/mnt/backups/restic-repo \
 
 **Symptom:** the backup log shows `ERROR: /mnt/backups not mounted. Backup
 drive missing?` and the pointer has `restic_exit_code: 127` with a null
-`snapshot_timestamp_utc`. Seen for 17 days after the 2026-09-27 reboot (#1064).
+`snapshot_timestamp_utc` (and, once the #1067 script is installed,
+`failure_reason: "backup_mount_missing"`; the alert then says "backup drive
+/mnt/backups is not mounted"). Seen for 17 days after the 2026-09-27 reboot (#1064).
 
 `/etc/fstab` mounts the drive with `nofail`, so a missing drive never stops
 the boot and nothing fails loudly. Work through these in order:
@@ -308,9 +313,38 @@ Two independent watchers judge this pointer by the same declaration
   it also reports when the canary itself has stopped ticking.
 
 A missed 04:00 run is reported by the first health-check run after the
-snapshot passes its 28 h bound, at most about 12 h later. The not-mounted path
-does not alert directly from `backup.sh` yet; that is tracked as
-[#1067](https://github.com/kentonium3/kg-automation/issues/1067).
+snapshot passes its 28 h bound, at most about 12 h later. A run that ran and
+failed pages sooner: the canary's next tick, within about 15 minutes.
+
+`backup.sh` itself does not alert, on purpose. It runs as root, and the alert
+bus is code the `claude` user can write; root running it would amount to
+giving `claude` root (#899). #1067 instead made both watchers' alerts say *why*
+the run failed; see the next section.
+
+### Failure cause in alerts (`failure_reason`, #1067)
+
+When a run does not complete, the script records a cause code in the pointer.
+The `restic-backup` key ledger's `cause` member maps it to plain words, which
+felix-canary and felix-health-check append to their alert as
+`; cause: <words>`. The cause only decorates an alert the ledger has already
+decided to send: it never changes health, and never changes how often
+alerts fire.
+
+| Code | What happened | What to do |
+|---|---|---|
+| `backup_mount_missing` | `/mnt/backups` was not a mountpoint, so nothing ran | Follow [Backup drive missing](#backup-drive-missing-mntbackups-not-mounted). |
+| `repo_inaccessible` | `restic snapshots --latest 1` failed: wrong or unreadable password file, a stale lock, or a damaged repository | Check `/etc/restic/password` exists (root, 600). Look for a stale lock in the run's log and clear it with `restic unlock` (as root, per [List snapshots](#list-snapshots-requires-sudo-via-kgale)). Then run `restic check`. |
+| `backup_failed` | `restic backup` exited with a code other than 0 or 3 | Read `/data/services/backup/logs/backup-<date>.log` for the restic error. |
+| `unclassified` | The run stopped some other way, typically killed (cron or systemd stop, OOM) before it finished | Read the same log and `journalctl` around 04:00. Then [trigger a backup manually](#trigger-a-backup-manually). |
+
+A completed run records `null`, even when the prune or the Sunday integrity
+check failed. Those conditions already page under their own keys
+(`prune_exit_code`, `last_integrity_check_utc`).
+
+The cause appears only once the #1067 version of `backup.sh` is installed by
+hand (see [Operator handoff](#operator-handoff-installing-the-schema-v2-producer)).
+Until then the pointer has no `failure_reason`, and alerts read exactly as
+before.
 
 ### Restore from a snapshot
 
@@ -366,6 +400,19 @@ fails: `/data/services/backup/scripts/` is `root:root drwxr-xr-x`; felix-deploye
 runs as `claude`; and `claude` has no passwordless sudo. There is no credential
 or grant this install could use that the pipeline itself has access to — the
 repo change genuinely cannot install itself (spec C-002).
+
+### ⚠️ backup-failure-cause-in-alert-01M502K3 (#1067): install outstanding (2026-10-15)
+
+The repo copy now writes `failure_reason` (fifteen keys, still
+`schema_version: 2`). Install it with the steps in
+[Installing an updated script](#installing-an-updated-script), using the
+mission's merge commit as `<commit-sha>`. Then confirm two things:
+`backup-script-drift` reports `converged`, and the next 04:00 pointer has
+`"failure_reason": null`.
+
+Unlike the #934 install below, nothing reads unhealthy while this one is
+pending. `failure_reason` is `diagnostic_only`, and an absent diagnostic key
+is not a failure. Until the install, alerts simply lack the cause text.
 
 ### ⚠️ pointer-key-ledger-01M189P6 (#934): this install is currently outstanding
 
