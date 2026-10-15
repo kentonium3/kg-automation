@@ -1,7 +1,7 @@
 {
-  "event_count": 44,
-  "last_event_id": "01M4ZSB594WAA47CXQJQ6VPY92",
-  "materialized_at": "2026-10-15T12:42:10.084779+00:00",
+  "event_count": 45,
+  "last_event_id": "01M4ZSBEZ4P2RJWW0PRE8S5XQT",
+  "materialized_at": "2026-10-15T12:42:20.005066+00:00",
   "mission_number": "",
   "mission_slug": "deploy-runtime-installed-report-01M4ZP8E",
   "mission_type": "software-dev",
@@ -12,9 +12,9 @@
     "canceled": 0,
     "claimed": 0,
     "done": 0,
-    "for_review": 1,
+    "for_review": 0,
     "in_progress": 0,
-    "in_review": 0,
+    "in_review": 1,
     "planned": 0
   },
   "work_packages": {
@@ -176,20 +176,23 @@
       }
     },
     "WP06": {
-      "actor": "claude",
-      "agent": "claude",
+      "actor": "reviewer-renata",
+      "agent": "reviewer-renata",
       "agent_profile": "__resolved_profile_absent__",
       "agent_profile_version": "__resolved_profile_version_absent__",
       "force_count": 0,
       "implementer_of_record": "claude",
-      "lane": "for_review",
-      "last_event_id": "01M4ZSB594WAA47CXQJQ6VPY92",
-      "last_transition_at": "2026-10-15T12:42:10.084779+00:00",
+      "lane": "in_review",
+      "last_event_id": "01M4ZSBEZ4P2RJWW0PRE8S5XQT",
+      "last_transition_at": "2026-10-15T12:42:20.005066+00:00",
       "model": "__resolved_model_absent__",
+      "notes": [
+        "Ready: guard (13 evidence-bound exemptions, shrink-only, non-vacuous), docs + data-flows; validators + full suite green"
+      ],
       "provider": "__resolved_provider_absent__",
-      "role": "implementer",
-      "shell_pid": 599811,
-      "shell_pid_created_at": "1792067739.44",
+      "role": "reviewer",
+      "shell_pid": 619194,
+      "shell_pid_created_at": "1792068125.56",
       "subtasks": {
         "T019": "done",
         "T020": "done",
