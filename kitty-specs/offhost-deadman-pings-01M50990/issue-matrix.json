@@ -13,7 +13,7 @@
       "wp": null
     },
     "#1069": {
-      "evidence_ref": "<link or commit>",
+      "evidence_ref": "RFC decided and closed 2026-10-15; this mission implements it",
       "fr": null,
       "nfr": null,
       "repo": null,
@@ -21,7 +21,7 @@
       "scope": null,
       "source_file": "spec.md",
       "title": "<fill at WP-implementation time>",
-      "verdict": "unknown",
+      "verdict": "verified-already-fixed",
       "wp": null
     }
   },
