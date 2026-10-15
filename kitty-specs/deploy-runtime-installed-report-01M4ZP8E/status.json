@@ -103,7 +103,8 @@
       "model": "__resolved_model_absent__",
       "notes": [
         "Ready for review: mapper with proof, host_paths, fold freshness; 20 new tests, 6 mutations caught",
-        "Cycle 1 fixes: no-host_paths tests, relative-path reject"
+        "Cycle 1 fixes: no-host_paths tests, relative-path reject",
+        "renata (claude-sonnet-5-5) cycle 2 APPROVE: no-host_paths invariant pinned (mutation fails 4), relative paths rejected; 97 pass"
       ],
       "provider": "__resolved_provider_absent__",
       "review": null,
