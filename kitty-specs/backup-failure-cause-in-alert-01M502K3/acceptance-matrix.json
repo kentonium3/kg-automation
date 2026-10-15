@@ -78,10 +78,10 @@
       "criterion_id": "FR-008",
       "description": "Verify FR-008 is satisfied",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
+      "evidence": "tests/canary/test_probes_cause.py::test_non_string_cause_leaves_evidence_byte_identical, ::test_unknown_string_yields_only_the_fixed_marker, ::test_malformed_cause_member_is_ignored_without_raising, ::test_declaration_rejected_by_rule_9_never_decorates, ::test_bad_text_on_an_unused_code_rejects_the_whole_declaration",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-10-15T16:21:39.259656+00:00",
       "notes": "TODO: replace with a real acceptance criterion"
     },
     {
