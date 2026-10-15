@@ -1,7 +1,7 @@
 {
-  "event_count": 11,
-  "last_event_id": "01M4ZQQ6EHS82X3YKJKWW5YWW5",
-  "materialized_at": "2026-10-15T12:13:47.345957+00:00",
+  "event_count": 13,
+  "last_event_id": "01M4ZQQFNT1YRJ8FZAE8256HXH",
+  "materialized_at": "2026-10-15T12:13:56.781128+00:00",
   "mission_number": "",
   "mission_slug": "deploy-runtime-installed-report-01M4ZP8E",
   "mission_type": "software-dev",
@@ -13,40 +13,41 @@
     "claimed": 0,
     "done": 0,
     "for_review": 0,
-    "in_progress": 0,
+    "in_progress": 1,
     "in_review": 0,
-    "planned": 6
+    "planned": 5
   },
   "work_packages": {
     "WP01": {
-      "actor": "reviewer-renata",
-      "agent": "reviewer-renata",
+      "actor": "claude",
+      "agent": null,
       "agent_profile": "__resolved_profile_absent__",
       "agent_profile_version": "__resolved_profile_version_absent__",
       "force_count": 1,
       "implementer_of_record": "claude",
-      "lane": "planned",
-      "last_event_id": "01M4ZQQ6EHS82X3YKJKWW5YWW5",
-      "last_transition_at": "2026-10-15T12:13:47.345957+00:00",
+      "lane": "in_progress",
+      "last_event_id": "01M4ZQQFNT1YRJ8FZAE8256HXH",
+      "last_transition_at": "2026-10-15T12:13:56.781128+00:00",
       "model": "__resolved_model_absent__",
       "notes": [
         "Channel module + 20 tests"
       ],
       "provider": "__resolved_provider_absent__",
+      "review": null,
       "review_result": {
         "feedback_path": "/home/kgale/repos/kg-automation/kitty-specs/deploy-runtime-installed-report-01M4ZP8E/tasks/WP01-installed-report-channel/review-cycle-1.md",
         "reference": "review-cycle://deploy-runtime-installed-report-01M4ZP8E/WP01-installed-report-channel/review-cycle-1.md",
         "reviewer": "reviewer-renata",
         "verdict": "changes_requested"
       },
-      "role": "reviewer",
-      "shell_pid": 532286,
-      "shell_pid_created_at": "1792066327.29",
+      "role": "implementer",
+      "shell_pid": null,
+      "shell_pid_created_at": null,
       "subtasks": {
-        "T001": "done",
-        "T002": "done",
-        "T003": "done",
-        "T004": "done"
+        "T001": "planned",
+        "T002": "planned",
+        "T003": "planned",
+        "T004": "planned"
       }
     },
     "WP02": {
