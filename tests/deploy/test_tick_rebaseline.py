@@ -2076,6 +2076,10 @@ def test_0029_replay_reported_install_completes(monkeypatch, reported_world, log
     assert _outcome(entries) == "completed"
     rep = next(e for e in entries if e.get("event") == "rebaseline_reported")
     assert rep["apply_ok"] is True and UNIT_CONTENTS in rep["baselines"] and rep["absorbed"] is True
+    # FR-006: the event names the files, since the report is deleted afterwards.
+    assert rep["files"] == [{"source": str((w["repo"] / "scripts/sync/systemd/x.timer").resolve()),
+                             "dest": str(w["unit_dir"] / "x.timer")}]
+    assert rep["matched"] == ["scripts/sync/systemd/x.timer"]
     fold = next(e for e in entries if e.get("event") == "rebaseline_fold")
     assert fold["manifest_names"] == ["0099-reinstall"]
 

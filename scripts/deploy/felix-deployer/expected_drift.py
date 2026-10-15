@@ -85,13 +85,31 @@ def fresh_expected_baselines(now: "_dt.datetime | None" = None) -> "set[str]":
             return set()
 
         now_dt = now if now is not None else _dt.datetime.now(tz=_dt.timezone.utc)
-        since_dt = _dt.datetime.fromisoformat(str(pending_since).replace("Z", "+00:00"))
-        age_seconds = (now_dt - since_dt).total_seconds()
-        # Reject stale (older than the short window) AND future-dated tokens.
-        if age_seconds < 0 or age_seconds > AUDIT_SUPPRESS_WINDOW_SECONDS:
-            return set()
 
-        return {str(b) for b in expected if b}
+        def _fresh(stamp: object) -> bool:
+            since_dt = _dt.datetime.fromisoformat(str(stamp).replace("Z", "+00:00"))
+            age_seconds = (now_dt - since_dt).total_seconds()
+            # Reject stale (older than the short window) AND future-dated stamps.
+            return 0 <= age_seconds <= AUDIT_SUPPRESS_WINDOW_SECONDS
+
+        # Each expectation is fresh from when it entered the token: a baseline
+        # folded in by a later deploy (#1072, folded_at_utc) from its fold
+        # time, everything else from pending_since_utc. A bad per-baseline
+        # stamp makes only that baseline not-fresh (fail-safe: page).
+        folded = token.get("folded_at_utc")
+        folded = folded if isinstance(folded, dict) else {}
+        token_fresh = _fresh(pending_since)
+        out: set[str] = set()
+        for b in expected:
+            if not b:
+                continue
+            stamp = folded.get(b)
+            try:
+                if (_fresh(stamp) if stamp else token_fresh):
+                    out.add(str(b))
+            except Exception:  # noqa: BLE001 - this baseline pages as usual
+                continue
+        return out
     except Exception:  # noqa: BLE001 - fail-safe: any error -> empty (page as usual)
         return set()
 

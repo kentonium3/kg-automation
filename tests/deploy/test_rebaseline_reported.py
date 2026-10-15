@@ -271,3 +271,37 @@ def test_fold_tolerates_a_corrupt_names_field(tmp_path):
                                       manifest_names=["0041-reinstall"], token_path=token_path)
     assert res["outcome"] == "merged"
     assert rbl.read_token(token_path)["manifest_names"] == ["0041-reinstall"]
+
+
+# --- post-merge Codex HIGH: freshness only for NEW expectations ---------------------
+
+def test_refolding_an_already_expected_baseline_refreshes_nothing(tmp_path):
+    token_path = tmp_path / "token.json"
+    token = _old_token(_iso(-3600))
+    rbl.write_token(token, token_path)
+    rbl.fold_manifest_baselines({"openclaw-config.txt"}, observed_head_sha="b" * 40,
+                                manifest_names=["0041-same"], token_path=token_path)
+    folded = rbl.read_token(token_path)
+    assert "last_fold_utc" not in folded and "folded_at_utc" not in folded
+    result = rbl.reconcile(token_path=token_path, registry=_REGISTRY,
+                           audit_runner=lambda cmd: _proc("Security audit 2026-10-15: All clear"))
+    assert result["outcome"] == rbl.OUTCOME_CLEARED_CLEAN
+
+
+def test_a_fold_stamps_only_the_baselines_it_adds(tmp_path):
+    token_path = tmp_path / "token.json"
+    rbl.write_token(_old_token(_iso(-3600)), token_path)
+    rbl.fold_manifest_baselines({"openclaw-config.txt", "systemd-user-units.txt"},
+                                observed_head_sha="b" * 40, token_path=token_path)
+    assert set(rbl.read_token(token_path)["folded_at_utc"]) == {"systemd-user-units.txt"}
+
+
+def test_pending_clean_still_raises_stale(tmp_path):
+    """A fold can hold an old token in grace; the stale alert must still fire."""
+    token_path = tmp_path / "token.json"
+    token = _old_token(_iso(-25 * 3600))
+    token["last_fold_utc"] = _iso(0)
+    rbl.write_token(token, token_path)
+    result = rbl.reconcile(token_path=token_path, registry=_REGISTRY, max_age_seconds=86_400,
+                           audit_runner=lambda cmd: _proc("Security audit 2026-10-15: All clear"))
+    assert result["outcome"] == rbl.OUTCOME_PENDING_CLEAN and result.get("stale") is True

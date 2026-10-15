@@ -177,8 +177,16 @@ the repository and the destination lies under that surface's `host_paths` in
 report. Reported baselines are folded whatever the apply outcome (files that
 landed drift the monitor even if a later step failed); declared
 `expected_baselines` are still folded only on success. Each mapping is logged
-as a `rebaseline_reported` tick-log event. A deploy like 0029, re-installing
-units changed earlier, now needs no declaration.
+as a `rebaseline_reported` tick-log event (naming up to 50 files). A deploy
+like 0029, re-installing units changed earlier, now needs no declaration.
+
+A baseline folded into an existing token, whether reported or declared, gets
+its own freshness from the moment it was added (`folded_at_utc`). That stamp
+drives both the same-tick clear grace and the security audit's 15-minute push
+suppression (`expected_drift.py`). Re-folding a baseline that is already
+expected refreshes nothing, so freshness can be extended at most once per
+distinct baseline, and the 24-hour stale alert still counts from
+`pending_since_utc`.
 
 `expected_baselines` is still **required** for every other drift with no
 signal in the range. The historical examples:

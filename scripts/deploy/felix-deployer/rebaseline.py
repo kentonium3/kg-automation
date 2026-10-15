@@ -340,7 +340,8 @@ def observe(
         # Fields set by fold_manifest_baselines (#1072) must survive a later
         # observe merge: last_fold_utc keeps the grace window fresh for newly
         # folded expectations, manifest_names keeps the contributors.
-        carried = {k: existing[k] for k in ("last_fold_utc", "manifest_names") if k in existing}
+        carried = {k: existing[k] for k in ("last_fold_utc", "folded_at_utc", "manifest_names")
+                   if k in existing}
     else:
         merged_surface_ids = sorted(new_surface_ids)
         merged_expected = sorted(new_expected)
@@ -504,10 +505,20 @@ def fold_manifest_baselines(
         )
         token = dict(existing)
         token["expected_baselines"] = merged_expected
-        # #1072: newly folded expectations get their own grace window
-        # (_within_grace uses the later of pending_since_utc and this); stale
-        # alerting keeps measuring from pending_since_utc.
-        token["last_fold_utc"] = now_iso
+        # #1072: only expectations this fold ADDS get fresh time. Re-folding a
+        # baseline already expected refreshes nothing, so freshness can be
+        # extended at most once per distinct baseline (post-merge Codex HIGH).
+        # last_fold_utc drives the same-tick clear grace (_within_grace);
+        # folded_at_utc gives each new expectation its own audit-suppression
+        # window (expected_drift.py, Codex MEDIUM). Stale alerting keeps
+        # measuring from pending_since_utc.
+        new = declared_set - set(existing.get("expected_baselines", []))
+        if new:
+            token["last_fold_utc"] = now_iso
+            prior = existing.get("folded_at_utc")
+            folded = dict(prior) if isinstance(prior, dict) else {}
+            folded.update({b: now_iso for b in new})
+            token["folded_at_utc"] = folded
         prior_names = existing.get("manifest_names")
         prior_names = [x for x in prior_names if isinstance(x, str)] if isinstance(prior_names, list) else []
         token["manifest_names"] = sorted(set(prior_names) | set(names))
@@ -851,7 +862,11 @@ def reconcile(
             _log.info(
                 "rebaseline.reconcile: pending_clean (D=∅, token within grace)"
             )
-            return {"outcome": OUTCOME_PENDING_CLEAN}
+            # A fold can extend grace past pending_since_utc, so a token can now
+            # sit here while old; staleness is still measured and alerted (#1072).
+            result = {"outcome": OUTCOME_PENDING_CLEAN}
+            result.update(_maybe_stale(token, token_path, now_iso, max_age_seconds))
+            return result
         # Token older than the grace window → cleared_clean: delete token.
         clear_token(token_path)
         _log.info("rebaseline.reconcile: cleared_clean (D=∅)")

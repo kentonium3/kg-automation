@@ -231,3 +231,39 @@ def test_cli_list_always_exits_zero(tmp_path, payload):
         check=False,
     )
     assert proc.returncode == 0
+
+
+# --- #1072: per-expectation freshness for folded baselines ------------------------
+
+def test_a_baseline_folded_into_an_old_token_is_fresh_from_its_fold(tmp_path, monkeypatch):
+    """Post-merge Codex MEDIUM: reconcile expects a reported install folded into
+    an old token, so the audit must not page for it either; the token's older
+    expectations stay not-fresh."""
+    payload = _fresh_payload(
+        pending_since_utc=_iso(_NOW - _dt.timedelta(hours=1)),
+        folded_at_utc={"systemd-user-unit-contents.txt": _iso(_NOW - _dt.timedelta(seconds=30))},
+    )
+    _write_token(tmp_path, monkeypatch, payload)
+    assert ed.fresh_expected_baselines(now=_NOW) == {"systemd-user-unit-contents.txt"}
+
+
+def test_an_old_fold_stamp_is_not_fresh(tmp_path, monkeypatch):
+    payload = _fresh_payload(
+        pending_since_utc=_iso(_NOW - _dt.timedelta(hours=1)),
+        folded_at_utc={"systemd-user-unit-contents.txt": _iso(_NOW - _dt.timedelta(minutes=20))},
+    )
+    _write_token(tmp_path, monkeypatch, payload)
+    assert ed.fresh_expected_baselines(now=_NOW) == set()
+
+
+@pytest.mark.parametrize("stamp", ["garbage", 7, "2999-01-01T00:00:00Z"])
+def test_a_bad_or_future_fold_stamp_pages_only_that_baseline(tmp_path, monkeypatch, stamp):
+    payload = _fresh_payload(folded_at_utc={"systemd-user-unit-contents.txt": stamp})
+    _write_token(tmp_path, monkeypatch, payload)
+    assert ed.fresh_expected_baselines(now=_NOW) == {"openclaw-cron.txt"}
+
+
+def test_a_non_dict_fold_map_is_ignored(tmp_path, monkeypatch):
+    _write_token(tmp_path, monkeypatch, _fresh_payload(folded_at_utc=["nope"]))
+    assert ed.fresh_expected_baselines(now=_NOW) == {
+        "systemd-user-unit-contents.txt", "openclaw-cron.txt"}

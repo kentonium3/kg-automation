@@ -391,6 +391,9 @@ def _coerce_record_result(res: Any) -> _RecordResult:
     return _RecordResult(ok=False, error="unrecognized _record_success result")
 
 
+_REPORTED_LOG_MAX = 50
+
+
 def _collect_reported(
     result: Any,
     manifest_name: str,
@@ -425,6 +428,13 @@ def _collect_reported(
                 "manifest_name": manifest_name,
                 "apply_ok": bool(getattr(result, "ok", False)),
                 "entries": len(entries) if isinstance(entries, list) else 0,
+                # FR-006: name the files (bounded); the report itself is deleted.
+                "files": [
+                    {"source": str(e.get("source"))[:300], "dest": str(e.get("dest"))[:300]}
+                    for e in (entries if isinstance(entries, list) else [])[:_REPORTED_LOG_MAX]
+                    if isinstance(e, dict)
+                ],
+                "matched": [str(m)[:300] for m in (mapped.get("matched") or [])][:_REPORTED_LOG_MAX],
                 "baselines": baselines,
                 "rejected": bool(mapped.get("rejected")),
                 "missing": bool(report_dict.get("missing")),
