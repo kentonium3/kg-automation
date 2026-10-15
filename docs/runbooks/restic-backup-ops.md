@@ -16,16 +16,17 @@ The nightly backup for office2. Runs as a plain cron job under the `claude`
 user with `NOPASSWD sudo` for one specific script — there is no systemd
 unit or timer, so `systemctl status` will not find it.
 
-> ⚠️ **Operator action pending (mission `pointer-key-ledger-01M189P6`, #934).**
+> ⚠️ **Operator action pending (mission `backup-failure-cause-in-alert-01M502K3`, #1067).**
 > The repo producer (`scripts/office2/restic-backup.sh`) now writes **schema
-> v2, fourteen keys**. The copy actually running on office2 still writes
-> **schema v1, ten keys**, until an operator installs the update by hand —
-> see [Operator handoff: installing the schema v2 producer](#operator-handoff-installing-the-schema-v2-producer)
-> below. **Until that install happens, the live `restic-backup` canary
-> component will read unhealthy** on the four adjudicated keys it cannot yet
-> see. That is the ledger working as designed, not the mission having broken
-> the backup — see the sequencing warning in that section before reacting to
-> the alert.
+> v2, fifteen keys**: it adds `failure_reason`. The copy running on office2
+> still writes fourteen until an operator installs the update by hand. See
+> [Operator handoff: installing the schema v2 producer](#operator-handoff-installing-the-schema-v2-producer)
+> below. Nothing reads unhealthy meanwhile: the new key is diagnostic only,
+> so alerts simply lack the cause text until the install.
+>
+> The earlier #934 install (ten keys to fourteen) is **done**. On 2026-10-15
+> the live pointer had fourteen keys and `backup-script-drift` reported
+> `match`.
 
 ## Where things live
 
@@ -333,7 +334,7 @@ alerts fire.
 | Code | What happened | What to do |
 |---|---|---|
 | `backup_mount_missing` | `/mnt/backups` was not a mountpoint, so nothing ran | Follow [Backup drive missing](#backup-drive-missing-mntbackups-not-mounted). |
-| `repo_inaccessible` | `restic snapshots --latest 1` failed: wrong or unreadable password file, a stale lock, or a damaged repository | Check `/etc/restic/password` exists (root, 600). Look for a stale lock in the run's log and clear it with `restic unlock` (as root, per [List snapshots](#list-snapshots-requires-sudo-via-kgale)). Then run `restic check`. |
+| `repo_inaccessible` | `restic snapshots --latest 1` failed. Causes: a wrong or unreadable password file, a stale lock, a damaged repository, or a repository directory that is missing or unreadable even though the drive is mounted | Kent, from his own terminal: confirm `/etc/restic/password` exists (root, 600) and `/mnt/backups/restic-repo` is present. If the run's log names a lock, first make sure no backup is running (`pgrep -f backup.sh` prints nothing). Then clear stale locks with `ssh office2-kgale 'sudo RESTIC_REPOSITORY=/mnt/backups/restic-repo RESTIC_PASSWORD_FILE=/etc/restic/password restic unlock'`. Plain `unlock` removes only stale locks. Finish with the same form of `restic check`, which reads the whole repository and takes a while. |
 | `backup_failed` | `restic backup` exited with a code other than 0 or 3 | Read `/data/services/backup/logs/backup-<date>.log` for the restic error. |
 | `unclassified` | The run stopped some other way, typically killed (cron or systemd stop, OOM) before it finished | Read the same log and `journalctl` around 04:00. Then [trigger a backup manually](#trigger-a-backup-manually). |
 
@@ -407,17 +408,22 @@ The repo copy now writes `failure_reason` (fifteen keys, still
 `schema_version: 2`). Install it with the steps in
 [Installing an updated script](#installing-an-updated-script), using the
 mission's merge commit as `<commit-sha>`. Then confirm two things:
-`backup-script-drift` reports `converged`, and the next 04:00 pointer has
+`backup-script-drift` reports `match`, and the next 04:00 pointer has
 `"failure_reason": null`.
 
 Unlike the #934 install below, nothing reads unhealthy while this one is
 pending. `failure_reason` is `diagnostic_only`, and an absent diagnostic key
 is not a failure. Until the install, alerts simply lack the cause text.
 
-### ⚠️ pointer-key-ledger-01M189P6 (#934): this install is currently outstanding
+### pointer-key-ledger-01M189P6 (#934): install completed
+
+> Completed. Verified 2026-10-15: the live pointer has fourteen keys and
+> `backup-script-drift` reports `match`. The text below is kept as the record
+> of that install. Its key counts are as of #934; #1067 later made the repo
+> producer fifteen keys.
 
 As of this mission's merge, `scripts/office2/restic-backup.sh` writes
-`schema_version: 2` (fourteen keys — four new, see
+`schema_version: 2` (fourteen keys at #934, fifteen after #1067 — four new, see
 [Health-pointer schema](#health-pointer-schema-511-schema-v2-as-of-pointer-key-ledger-01m189p6934)
 above). **The mission is not complete until an operator runs the install below
 and the drift comparator reports converged** (spec C-002) — follow the steps
@@ -438,7 +444,7 @@ installing.
 
 **Sequencing consequence — read before you install, and before you react to
 an alert.** Until this install lands, the deployed producer keeps emitting
-ten keys while the ledger declares fourteen. The four keys the old producer
+ten keys while the ledger declares fourteen (fifteen after #1067, whose added key is diagnostic only, so its absence is never unhealthy). The four keys the old producer
 never wrote are absent-adjudicated keys, and absence is unconditionally
 unhealthy (contract "Absence (unconditional)") — so the **live**
 `restic-backup` canary component reads unhealthy from the moment this
@@ -515,7 +521,7 @@ complete — neither alone is sufficient:
    `verdict` must read `match`. See [Reading the drift signal](#reading-the-drift-signal)
    below for what the other two values mean.
 
-2. **The next real backup run emits all fourteen keys.** After the following
+2. **The next real backup run emits all fourteen keys** (fifteen once the #1067 script is installed, with `failure_reason: null` on a completed run). After the following
    night's cron fire (or a manual trigger, see
    [Trigger a backup manually](#trigger-a-backup-manually)):
 
