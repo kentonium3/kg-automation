@@ -31,7 +31,8 @@
       "model": "__resolved_model_absent__",
       "notes": [
         "deadman module; 44 tests",
-        "cycle 2: canonicalisation hardened; 60 tests"
+        "cycle 2: canonicalisation hardened; 60 tests",
+        "reviewer-renata (claude-sonnet-5-5) APPROVE cycle 2, 2026-10-15"
       ],
       "provider": "__resolved_provider_absent__",
       "review": null,
