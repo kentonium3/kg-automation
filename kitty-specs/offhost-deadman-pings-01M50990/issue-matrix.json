@@ -23,6 +23,18 @@
       "title": "<fill at WP-implementation time>",
       "verdict": "verified-already-fixed",
       "wp": null
+    },
+    "#1077": {
+      "evidence_ref": "this mission's tracking issue; delivered across WP01-WP04",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": null,
+      "title": null,
+      "verdict": "in-mission",
+      "wp": "WP04"
     }
   },
   "schema_version": 1
