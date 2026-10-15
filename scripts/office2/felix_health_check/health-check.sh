@@ -18,10 +18,15 @@ for unit in obsidian-sync.service vikunja.service; do
 done
 
 # User-level services (claude)
-# NOTE: is-active on a .timer reports "active" even for a timer stuck in the
-# #1062 dormant state (active, elapsed), so this cannot see a timer that never
-# fires again. Follow-up: kentonium3/kg-automation#1068.
-for unit in openclaw-gateway.service felix-core-digest.timer; do
+# Long-running services only -- never a .timer (#1068). is-active reports
+# "active" for a timer stuck in the #1062 dormant state (active, elapsed), so
+# it cannot see a timer that never fires again. A timer's health is its
+# producer's freshness, which felix-canary owns (felix-core-digest: tick
+# signal, max_age 1800s); this script's caller watches the canary itself
+# (#1063). Dropping felix-core-digest.timer here also drops the
+# inactive/failed timer cases, which the stale tick catches as well.
+# Guarded by tests/test_health_check_sh.py.
+for unit in openclaw-gateway.service; do
     status=$(systemctl --user is-active $unit 2>/dev/null)
     if [ "$status" != "active" ]; then
         FAILURES="${FAILURES}DOWN: ${unit} (${status})\n"
