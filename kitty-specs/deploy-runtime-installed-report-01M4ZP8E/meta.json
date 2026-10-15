@@ -11,5 +11,7 @@
   "purpose_tldr": "Stop false 'unexpected drift' security alerts after intended deploys by having deploys report the files they actually installed, so the security rebaseline expects exactly that drift.",
   "slug": "deploy-runtime-installed-report-01M4ZP8E",
   "target_branch": "fix/deploy-runtime-installed-report",
-  "topology": "lanes"
+  "topology": "lanes",
+  "vcs": "git",
+  "vcs_locked_at": "2026-10-15T12:11:00.012806+00:00"
 }
