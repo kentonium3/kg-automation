@@ -92,7 +92,8 @@
       "last_transition_at": "2026-10-15T12:31:29.993564+00:00",
       "model": "__resolved_model_absent__",
       "notes": [
-        "Ready: env isolation, report merge on every post-apply return; 11 tests, 6 mutations caught"
+        "Ready: env isolation, report merge on every post-apply return; 11 tests, 6 mutations caught",
+        "renata (claude-sonnet-5-5) APPROVE; non-blocking LOWs (post-cmd TypeError pre-existing, marker spoof widens only)"
       ],
       "provider": "__resolved_provider_absent__",
       "review_result": {
