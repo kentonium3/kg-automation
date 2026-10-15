@@ -16,6 +16,9 @@ requirement_refs:
 planning_base_branch: fix/backup-failure-cause-in-alert
 merge_target_branch: fix/backup-failure-cause-in-alert
 branch_strategy: Planning artifacts for this mission were generated on fix/backup-failure-cause-in-alert. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into fix/backup-failure-cause-in-alert unless the human explicitly redirects the landing branch.
+base_branch: kitty/mission-backup-failure-cause-in-alert-01M502K3
+base_commit: 87258a114840c7aac4ac45239ab5757821fda342
+created_at: '2026-10-15T15:42:57.816502+00:00'
 subtasks:
 - T003
 - T004
