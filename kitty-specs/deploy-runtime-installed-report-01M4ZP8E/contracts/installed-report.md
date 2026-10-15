@@ -32,7 +32,9 @@ UTF-8 JSON Lines, append-only. One object per installed file whose bytes changed
 
 The reader opens the file with `O_RDONLY | O_NOFOLLOW | O_NONBLOCK`, and `fstat` must report a regular file. It reads at most 1 MiB + 1 byte and decodes strictly as UTF-8. Every line must be a JSON object with string `source` and `dest`. Blank lines are allowed, and there may be at most 10,000 entries.
 
-**Any** violation rejects the entire report: `{"entries": [], "rejected": true, "warnings": [<why>]}`. A missing file counts as a valid empty report.
+**Any** violation rejects the entire report: `{"entries": [], "rejected": true, "warnings": [<why>]}`.
+
+**Missing file** (the entrypoint never reported, e.g. it does not use the library): `{"entries": [], "rejected": false, "missing": true}`, logged at info level. This is not an error, because most historical entrypoints never report. Both a missing and a rejected report contribute nothing. The difference is diagnostic only. The spec's FR-004 is aligned to this.
 
 `apply` adds a warning when `--apply`'s stderr carries the write-failure marker.
 
@@ -50,5 +52,6 @@ The reader opens the file with `O_RDONLY | O_NOFOLLOW | O_NONBLOCK`, and `fstat`
 
 ## Result keys (documented API)
 
-- `apply` `LibResult.details["installed_report"]` = `{"entries", "rejected", "warnings"}`, on every return after `--apply` ran.
+- `apply` `LibResult.details["installed_report"]` = `{"entries", "rejected", "missing", "warnings"}` and `details["installed_report_write_failed"]` (bool), on every return after `--apply` ran.
+- Containment: `repo_root` and every expanded `host_paths` entry are `.resolve()`d; containment uses component-wise `Path.is_relative_to` on the resolved paths.
 - Tick log event `rebaseline_reported` = `{manifest_name, apply_ok, entries, baselines, rejected, warnings, absorbed}`.

@@ -12,7 +12,7 @@ All facts were read from source on 2026-10-15.
 
 ## Decisions
 
-### R1 — Report format: JSON lines of absolute source paths
+### R1 — Report format: JSON lines of absolute source paths *(SUPERSEDED: now `{source, dest}`; see dispositions, Codex 1)*
 
 - **Decision**: one JSON object per line, `{"path": "<str(Path(src).resolve())>"}`, appended (opened `"a"`, one `write` per line). The deployer, not the library, decides what is repo-relative.
 - **Rationale**: the library cannot know which repository the deployer considers authoritative; the deployer has `repo_root`. Absolute resolved paths let the deployer reject out-of-repo paths and symlink escapes (C-002). Appending is robust to partial installs: lines exist only for files that landed.
@@ -26,7 +26,7 @@ A byte-identical file causes no drift (`systemd-user-unit-contents.txt` hashes c
 
 Dry runs install nothing, and verification commands are shell strings that must not inherit an install channel. Each manifest gets its own `mkdtemp` directory (FR-002); it is removed after the read.
 
-### R4 — Defensive reader in `apply.py`, mapping in `rebaseline.py`
+### R4 — Defensive reader in `apply.py`, mapping in `rebaseline.py` *(SUPERSEDED: the reader moved to `lib/installed_report.py`; validation is wholesale; see dispositions)*
 
 The reader handles file shape: a 1 MiB cap, per-line JSON, `path` must be a string, and at most 10,000 entries. It returns raw absolute strings and warnings. Mapping, meaning repo containment and surface matching, belongs in `rebaseline.py` next to `observe`, so there is one matcher (C-001).
 
@@ -70,3 +70,14 @@ Reviewers: Codex (GPT, read-only) **REJECT**; paula-patterns (claude-sonnet-5-5)
 | debbie 6 LOW: a repo-only edit with no deploy queued (0029's upstream cause) | Out of scope; trust-scan unit-drift partly covers it. Noted. |
 
 Open for the re-review: whether `host_paths` belongs in `audited-surfaces.json` (the registry of repo→baseline) or in a separate host-location map.
+
+## Plan re-review (Codex, 2026-10-15): REJECT; all six findings folded
+
+1. Canonical containment roots (`repo_root.resolve()`, `host_paths` expanded and resolved, component-wise `is_relative_to`) → IC-04 + contract.
+2. `observe()` preserves `last_fold_utc` and `manifest_names` → IC-05, with an observe-after-fold test.
+3. The write-failure marker is detected in full stderr inside `_run_shell` → IC-03.
+4. The guard is scoped to manifest entrypoints; bookkeeping modules are never scanned; the limit is stated → IC-06.
+5. A missing report is info-level "nothing reported"; spec FR-004 and the contract are aligned.
+6. The data model is rewritten; R1/R4 are marked superseded.
+
+Codex also confirmed: the destination-symlink semantics are sound once roots are canonical; `host_paths` fits the existing registry; removing the variable from the environment breaks nothing (no existing reference).
