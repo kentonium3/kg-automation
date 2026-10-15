@@ -1,20 +1,20 @@
 {
-  "event_count": 12,
-  "last_event_id": "01M503NE5VAC261XFPW3Z9CQS7",
-  "materialized_at": "2026-10-15T15:42:32.635320+00:00",
+  "event_count": 13,
+  "last_event_id": "01M503NNQYR4Y6GRZ7GXQQEJJE",
+  "materialized_at": "2026-10-15T15:42:40.382644+00:00",
   "mission_number": "",
   "mission_slug": "backup-failure-cause-in-alert-01M502K3",
   "mission_type": "software-dev",
   "schema_version": 2,
   "summary": {
-    "approved": 0,
+    "approved": 1,
     "blocked": 0,
     "canceled": 0,
     "claimed": 0,
     "done": 0,
     "for_review": 0,
     "in_progress": 0,
-    "in_review": 1,
+    "in_review": 0,
     "planned": 3
   },
   "work_packages": {
@@ -25,9 +25,9 @@
       "agent_profile_version": "__resolved_profile_version_absent__",
       "force_count": 1,
       "implementer_of_record": "claude",
-      "lane": "in_review",
-      "last_event_id": "01M503NE5VAC261XFPW3Z9CQS7",
-      "last_transition_at": "2026-10-15T15:42:32.635320+00:00",
+      "lane": "approved",
+      "last_event_id": "01M503NNQYR4Y6GRZ7GXQQEJJE",
+      "last_transition_at": "2026-10-15T15:42:40.382644+00:00",
       "model": "__resolved_model_absent__",
       "notes": [
         "Rule 9 validator + 30 rule tests; validator 0 findings on live inventory",
@@ -35,6 +35,11 @@
       ],
       "provider": "__resolved_provider_absent__",
       "review": null,
+      "review_result": {
+        "reference": "auto-approval:WP01:20261015",
+        "reviewer": "Kent Gale",
+        "verdict": "approved"
+      },
       "role": "reviewer",
       "shell_pid": null,
       "shell_pid_created_at": null,
