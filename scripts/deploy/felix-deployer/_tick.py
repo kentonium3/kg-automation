@@ -391,6 +391,68 @@ def _coerce_record_result(res: Any) -> _RecordResult:
     return _RecordResult(ok=False, error="unrecognized _record_success result")
 
 
+def _collect_reported(
+    result: Any,
+    manifest_name: str,
+    repo_root: pathlib.Path,
+    log_path: pathlib.Path,
+    reported_baselines: set[str],
+    reported_contributors: list[str],
+) -> None:
+    """Map one apply result's installed-file report to baselines (#1072).
+
+    Runs for every result that carries ``installed_report`` — success, apply
+    failure or post-verification failure — because files that landed drift
+    the monitor whatever happened next. Logs one ``rebaseline_reported``
+    event. Never raises: a failure becomes a ``rebaseline_reported_error``
+    event and contributes nothing.
+    """
+    try:
+        details = getattr(result, "details", None) or {}
+        if "installed_report" not in details:
+            return
+        report = details.get("installed_report")
+        mapped = _rebaseline.baselines_for_installed_report(
+            report, repo_root, pathlib.Path.home()
+        )
+        baselines = list(mapped.get("baselines") or [])
+        report_dict = report if isinstance(report, dict) else {}
+        entries = report_dict.get("entries")
+        _log(
+            log_path,
+            {
+                "event": "rebaseline_reported",
+                "manifest_name": manifest_name,
+                "apply_ok": bool(getattr(result, "ok", False)),
+                "entries": len(entries) if isinstance(entries, list) else 0,
+                "baselines": baselines,
+                "rejected": bool(mapped.get("rejected")),
+                "missing": bool(report_dict.get("missing")),
+                "warnings": [str(w)[:200] for w in (mapped.get("warnings") or [])][:20],
+                "write_failed": bool(details.get("installed_report_write_failed")),
+                # Out-of-band drift on these files in the same window is
+                # absorbed along with the deploy's own.
+                "absorbed": bool(baselines),
+            },
+        )
+        if baselines:
+            reported_baselines.update(baselines)
+            if manifest_name not in reported_contributors:
+                reported_contributors.append(manifest_name)
+    except Exception as exc:  # noqa: BLE001 - never crash the tick
+        try:
+            _log(
+                log_path,
+                {
+                    "event": "rebaseline_reported_error",
+                    "manifest_name": manifest_name,
+                    "error": f"{type(exc).__name__}: {exc}"[:200],
+                },
+            )
+        except Exception:  # pragma: no cover - logging itself failed
+            pass
+
+
 def run_tick(
     repo_root: pathlib.Path | None = None,
     log_dir: pathlib.Path | None = None,
@@ -540,6 +602,12 @@ def _run_tick_locked(
     # Baselines declared by manifests applied this tick — folded into the
     # pending token AFTER observe, BEFORE reconcile (T006 / FR-005/006).
     declared_baselines: set[str] = set()
+    # Baselines mapped from the installed-file reports of manifests whose
+    # apply ran this tick, whatever its outcome (#1072), and the manifests
+    # that contributed them. Kept apart from declared_baselines and
+    # applied_this_tick: a failed manifest is never stamped as applied.
+    reported_baselines: set[str] = set()
+    reported_contributors: list[str] = []
     # Commit SHAs the deployer itself created this tick — used to advance the
     # watermark past our own bookkeeping commits (T004 / C4).
     own_commit_shas: list[str] = []
@@ -600,6 +668,9 @@ def _run_tick_locked(
             continue
 
         result = _apply.dry_run_then_apply_gate(manifest_data, str(manifest_path))
+        _collect_reported(
+            result, manifest_name, repo_root, log_path, reported_baselines, reported_contributors
+        )
 
         if result.ok:
             rec = _coerce_record_result(
@@ -756,11 +827,14 @@ def _run_tick_locked(
 
         # T006 — fold manifest-declared baselines into the token AFTER observe
         # and BEFORE reconcile (FR-005/006).  No-op when nothing was declared.
-        if declared_baselines:
+        # declared = intent (success only); reported = evidence of what
+        # landed (any outcome) (#1072).
+        folded_baselines = declared_baselines | reported_baselines
+        if folded_baselines:
             fold_result = _rebaseline.fold_manifest_baselines(
-                declared_baselines,
+                folded_baselines,
                 observed_head_sha=post_pull_head,
-                manifest_names=list(applied_this_tick),
+                manifest_names=list(dict.fromkeys([*applied_this_tick, *reported_contributors])),
             )
             _log(
                 log_path,

@@ -4,7 +4,7 @@
   "friendly_name": "Deploys report what they installed so the rebaseline expects it",
   "mid8": "01M4ZP8E",
   "mission_id": "01M4ZP8E6RNPVSBPZ0SQCZ0SVR",
-  "mission_number": null,
+  "mission_number": 118,
   "mission_slug": "deploy-runtime-installed-report-01M4ZP8E",
   "mission_type": "software-dev",
   "purpose_context": "felix-deployer decides which security-monitor baselines a deploy will change from the files changed in git, but drift comes from what was installed on the host. A deploy that re-installs files committed earlier ends in a false 'unexpected drift' alert unless its author remembered to declare it, and two of 32 deploys did not. The deploy library will report the repo files it installed, and the deployer will map them to baselines automatically. Tracks kentonium3/kg-automation#1072.",

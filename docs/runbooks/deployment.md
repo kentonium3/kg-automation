@@ -163,7 +163,33 @@ the pulled range does not itself signal.** Two cases do this:
    file tracked?"**
 
 Reconciling drift a previous commit introduced is exactly case 2, so a
-drift-reconciliation deploy should essentially always declare its baselines.
+drift-reconciliation deploy should essentially always declare its baselines,
+**unless it installs through the deploy library** (next paragraph).
+
+**Library installs are covered automatically (#1072).** An entrypoint that
+installs systemd user units through `scripts/deploy/lib/userunits.py` reports
+every file it actually wrote (`scripts/deploy/lib/installed_report.py`). The
+apply gate hands `--apply` a fresh report file through
+`FELIX_DEPLOY_INSTALLED_REPORT` and reads it back, and felix-deployer maps each
+reported file to its surface's baselines, but only when the source lies inside
+the repository and the destination lies under that surface's `host_paths` in
+`audited-surfaces.json`. Any entry that fails that proof rejects the whole
+report. Reported baselines are folded whatever the apply outcome (files that
+landed drift the monitor even if a later step failed); declared
+`expected_baselines` are still folded only on success. Each mapping is logged
+as a `rebaseline_reported` tick-log event. A deploy like 0029, re-installing
+units changed earlier, now needs no declaration.
+
+`expected_baselines` is still **required** for every other drift with no
+signal in the range. The historical examples:
+
+- runtime `openclaw-config` / `openclaw-cron` changes made through the OpenClaw
+  CLI (twice), where no file is installed at all;
+- 0030's shell entrypoint, which installs without the Python library;
+- any installer that copies files itself instead of using `userunits`
+  (`tests/deploy/test_host_copies_report.py` stops new ones);
+- 0027-style drift of a non-repo baseline (`brew-packages.txt`), which was a
+  correct alert and should stay one unless the deploy really intends it.
 
 The manifest declares them via an optional `expected_baselines` field:
 

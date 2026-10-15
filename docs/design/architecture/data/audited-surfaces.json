@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
-  "last_updated": "2026-10-14",
-  "updated_by": "#1065 (systemd-user-units += scripts/openclaw/*.service, scripts/sync/systemd/*, scripts/deploy/felix-deployer/* units; system_scope_units exemptions; guard test tests/deploy/test_audited_surface_unit_coverage.py) + felix-admin-cron-path-fix-01KWQTY3 (#656) + finalize-inbox-file-01KW8MSQ (#325, #621 correction) + pull-based-deploy-pipeline-01KTYQQS (#136) + #557-rebaseline-workflow + openclaw-skills-sync-01KXW1DQ (#775: scripts/openclaw/deploy/*.{service,timer} + scripts/deploy/*.sh) + #808 (add TOOLS.md to openclaw-agent-prompts patterns — matches deploy_agent_prompts.py IN_SCOPE_FILENAMES) + #818 (expected_baseline_count 14→15 — audit.sh adds the systemd-user-unit-contents.txt content baseline) + #829 (remove GOVERNANCE.md pattern — file retired; surface now equals the synced IN_SCOPE_FILENAMES)",
+  "last_updated": "2026-10-15",
+  "updated_by": "#1072 (systemd-user-units host_paths: where a reported installed file must land for its baselines to be expected) + #1065 (systemd-user-units += scripts/openclaw/*.service, scripts/sync/systemd/*, scripts/deploy/felix-deployer/* units; system_scope_units exemptions; guard test tests/deploy/test_audited_surface_unit_coverage.py) + felix-admin-cron-path-fix-01KWQTY3 (#656) + finalize-inbox-file-01KW8MSQ (#325, #621 correction) + pull-based-deploy-pipeline-01KTYQQS (#136) + #557-rebaseline-workflow + openclaw-skills-sync-01KXW1DQ (#775: scripts/openclaw/deploy/*.{service,timer} + scripts/deploy/*.sh) + #808 (add TOOLS.md to openclaw-agent-prompts patterns — matches deploy_agent_prompts.py IN_SCOPE_FILENAMES) + #818 (expected_baseline_count 14→15 — audit.sh adds the systemd-user-unit-contents.txt content baseline) + #829 (remove GOVERNANCE.md pattern — file retired; surface now equals the synced IN_SCOPE_FILENAMES)",
   "description": "Repo-side inputs whose changes alter the office2 security-monitor baselines. When a commit modifies any matching path, the rebaseline procedure in security-baseline-ops.md should be triggered after the change deploys, otherwise the daily audit will alert as drift. Consumed by tooling/scripts/check_audited_surface_drift.py (CI soft-reminder) and referenced by docs/design/architecture/change-control.md + spec-kitty charter quality gates.",
   "rebaseline_runbook": "docs/runbooks/security-baseline-ops.md",
   "rebaseline_command": "ssh office2-claude 'rm /data/services/security-monitor/baselines/* && sg docker -c /data/services/security-monitor/scripts/audit.sh'",
@@ -35,7 +35,7 @@
     },
     {
       "id": "systemd-user-units",
-      "description": "Systemd user units and drop-ins deployed to ~/.config/systemd/user/ on office2. The audit hashes the enabled-services / systemd-user-units / systemd-user-dropins baselines. Patterns cover the scripts/office2/ conventional location, scripts/openclaw/*.service.d/ drop-ins (#656 PYTHONPATH guardrail), and scripts/openclaw/deploy/*.{service,timer} — the agent-prompt-sync (#567) and agent-skill-sync (#775) deploy-pipeline units live there, not under scripts/office2/. #1065 adds scripts/openclaw/*.service (openclaw-gateway), scripts/sync/systemd/ (felix-vikunja-sync) and scripts/deploy/felix-deployer/ (the deployer's own units): all three deploy into ~/.config/systemd/user, whose contents audit.sh hashes. tests/deploy/test_audited_surface_unit_coverage.py fails on any tracked unit file outside these patterns that is not listed in system_scope_units. NOTE: a pattern only helps a deploy whose OWN commit range changes the file; a deploy that installs files changed earlier must declare expected_baselines (docs/runbooks/deployment.md; #1072).",
+      "description": "Systemd user units and drop-ins deployed to ~/.config/systemd/user/ on office2. The audit hashes the enabled-services / systemd-user-units / systemd-user-dropins baselines. Patterns cover the scripts/office2/ conventional location, scripts/openclaw/*.service.d/ drop-ins (#656 PYTHONPATH guardrail), and scripts/openclaw/deploy/*.{service,timer} — the agent-prompt-sync (#567) and agent-skill-sync (#775) deploy-pipeline units live there, not under scripts/office2/. #1065 adds scripts/openclaw/*.service (openclaw-gateway), scripts/sync/systemd/ (felix-vikunja-sync) and scripts/deploy/felix-deployer/ (the deployer's own units): all three deploy into ~/.config/systemd/user, whose contents audit.sh hashes. tests/deploy/test_audited_surface_unit_coverage.py fails on any tracked unit file outside these patterns that is not listed in system_scope_units. NOTE: a pattern only helps a deploy whose OWN commit range changes the file; a deploy that installs files changed earlier is covered when it installs them through scripts/deploy/lib/userunits.py, which reports what it installed; felix-deployer maps a reported file to this surface's baselines only if its destination lies under host_paths (#1072). Other installers still declare expected_baselines (docs/runbooks/deployment.md).",
       "patterns": [
         "scripts/office2/*.service",
         "scripts/office2/*.timer",
@@ -57,6 +57,9 @@
         "systemd-user-units.txt",
         "systemd-user-dropins.txt",
         "systemd-user-unit-contents.txt"
+      ],
+      "host_paths": [
+        "~/.config/systemd/user/"
       ],
       "deploy_path": "scripts/office2/deploy/<service>.sh (operator-invoked) or deploys/queued/<name>.yaml (felix-deployer, e.g. 0006-gateway-pythonpath-dropin.yaml)",
       "rebaseline_required": true

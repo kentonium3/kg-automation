@@ -15,8 +15,10 @@ Contract (shared with every ``scripts/deploy/lib`` module):
 * every public function returns :class:`~scripts.deploy.lib.LibResult`;
   per-unit outcomes are in ``details["units"]`` and failures in
   ``details["failed"]``;
-* nothing here prints. Callers own their event log; an optional ``emit`` hook
-  carries poll progress;
+* nothing here prints, with one exception: if recording an installed file
+  fails, :mod:`scripts.deploy.lib.installed_report` writes one
+  ``FELIX_DEPLOY_INSTALLED_REPORT_WRITE_FAILED`` line to stderr. Callers own
+  their event log; an optional ``emit`` hook carries poll progress;
 * effects are injected: ``run(argv) -> (rc, stdout, stderr)``, ``sleep``,
   ``monotonic`` (read at call time, so a caller's patched clock is honoured)
   and ``read(path) -> str``.
@@ -30,10 +32,14 @@ Two rules the #1062 incident taught, both built in:
   service runs, so the next-elapse check polls to a deadline instead of
   reading once.
 
+Each changed file is recorded with
+:func:`scripts.deploy.lib.installed_report.record_installed` once it has landed,
+so felix-deployer expects the security-monitor drift it causes even when the
+unit was changed in an earlier commit (#1072). Unchanged files are not recorded.
+
 ⚠ A unit installed from a new repo directory must also be covered by
-``docs/design/architecture/data/audited-surfaces.json`` (#1065). A deploy that
-installs units changed in an earlier commit must declare ``expected_baselines``
-(docs/runbooks/deployment.md).
+``docs/design/architecture/data/audited-surfaces.json`` (#1065); a reported
+file whose source matches no surface is expected to drift nothing.
 """
 from __future__ import annotations
 
@@ -45,6 +51,7 @@ from pathlib import Path
 from typing import Any, Callable, Mapping, Sequence
 
 from scripts.deploy.lib import LibResult
+from scripts.deploy.lib.installed_report import record_installed
 
 Runner = Callable[[list[str]], "tuple[int, str, str]"]
 Emit = Callable[..., None]
@@ -175,6 +182,7 @@ def install_units(sources: Sequence[Path], unit_dir: Path, *,
                     os.unlink(tmp)
                 except OSError:
                     pass
+        record_installed(src, dst)
         units.append({"name": src.name, "changed": True})
         progress("installed", unit=src.name, changed=True)
     return LibResult(True, f"installed {len(units)} unit(s)", {"units": units})
