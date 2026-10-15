@@ -37,6 +37,13 @@ FELIX_DEADMAN_HEALTHCHECK_URL=https://hc-ping.com/<uuid>
 | felix-canary | the pass status is `success`, `alerts_undelivered == 0`, and `channel_broken` is false | the status is `error`, the pass raised, any alert this tick was undelivered, or `channel_broken` | `--dry-run` or `--self-check` |
 | felix-health-check | the record is written, there is no execution fault, `channel_broken` is false, and not (the status is alerting and `delivery.sent` is false) | the status is alerting and `delivery.sent` is false (covers a missing topic, where `attempted` is false), an execution fault, `channel_broken`, or the record write raised (ping `fail`, then re-raise) | — |
 
-`channel_broken(env)` is true when `FELIX_ALERT_NTFY_TOPIC` is absent or blank in `env`, or when the newest alert-bus ledger record (today's file, else yesterday's) has `delivery.ok == false`. A ledger read error counts as not-broken, logged as `unknown`.
+`channel_broken` (revised in post-plan round 2) is true when either holds:
+- `FELIX_ALERT_NTFY_TOPIC` is absent or blank in the watcher's own environment;
+- the watcher's own debt state is set **after** this run's verification attempt.
+
+**Watcher debt state** (`deadman.json` in the watcher's state directory: `{"undelivered_since_utc": iso|null}`, written atomically):
+- **Set** when one of the watcher's own deliveries fails this run.
+- **While set**, each run first emits one INFO "felix-alert channel verification" alert. If that alert is delivered, the debt clears; if not, it stays.
+- **A missing file** means no debt. **An unreadable or corrupt file** means debt.
 
 `alerts_undelivered` appears in the canary's returned summary only. It is excluded from the persisted tick signal.

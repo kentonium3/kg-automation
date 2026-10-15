@@ -64,6 +64,19 @@ flowchart LR
 6. **MED: URL canonicalisation.** Parse with `urllib.parse.urlsplit`. Require scheme `https` and a host. Reject any query, fragment, userinfo, whitespace, control characters, `"` or `\`. Reject a final path segment of `fail`, `start`, `log` or all digits. Strip one trailing `/`. The fail URL is `urlunsplit` with `path + "/fail"`.
 7. **MED: scheduling.** office2 is `Etc/UTC`, so there is no daylight-saving issue. Kent switches the health-check check to Cron `0 11,23 * * *` UTC with 1 h grace. Each ping makes at most **2 attempts**, the second after 2 s; worst case is 2 × 8 s + 2 s = 18 s, which updates NFR-001. A double loss still produces one false email, accepted in the spec. The spec's "within grace" wording is corrected to "about an hour" for the canary (period plus grace).
 
+## Post-plan re-review dispositions (Codex REJECT round 2, 2026-10-15). These supersede item 1 and item 2 above.
+
+The shared alert-bus-ledger "channel debt" is **dropped**: it mixed emitters, expired at the second midnight, and read errors manufactured recovery. In its place, **each watcher owns its own delivery debt**:
+
+- **State file.** Each watcher has a small state file in its own state directory: canary `/data/services/felix-canary/state/deadman.json`, health check `/data/services/openclaw/felix-health-check/deadman.json`. The content is `{"undelivered_since_utc": <iso>|null}`. It is written atomically (temp file + `os.replace`) and read only by its owner.
+- **Setting debt.** Debt is set when any of the watcher's own alert deliveries in this run fails (canary: `alerts_undelivered > 0`; health check: alerting status with `delivery.sent` false).
+- **Clearing debt.** Debt is cleared **only by a delivered alert from the same watcher**. While in debt, each run sends exactly one INFO verification alert (title "felix-alert channel verification", source `<watcher>/deadman`) through the normal `emit`. On delivery, the debt clears and the run pings `success`. That message is also Kent's "alert channel recovered" notice. If it is not delivered, the debt stays and the run pings `fail`. There are no time partitions, so nothing expires.
+- **Fail-closed reads.** If the state file is missing it is treated as no debt, which is the first-run case. If it is unreadable or corrupt it is treated as **debt**, so the run attempts a verification alert and rewrites the file.
+- **Cost of a broken channel.** One `fail` ping per run, but healthchecks.io emails only on the up-to-down transition, so Kent gets one email. Each run's verification attempt fails silently because ntfy is down.
+- **Topic misconfiguration** (`FELIX_ALERT_NTFY_TOPIC` absent or blank in the watcher's own environment) is still checked each run without sending, and forces `fail`. Because it is the watcher's own environment, another emitter's misconfiguration cannot affect it.
+
+The canary's verification alert goes through its injected `emit_fn`, and the health check's through its `send_alert`/`emit` seam, so both are testable with existing fakes. Neither the persisted tick-signal schema nor `last-run.json` changes.
+
 ## Implementation Concern Map
 
 ### IC-01 — `scripts/common/deadman.py`
