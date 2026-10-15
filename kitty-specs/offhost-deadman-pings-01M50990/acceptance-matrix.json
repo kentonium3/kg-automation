@@ -28,10 +28,10 @@
       "criterion_id": "FR-003",
       "description": "Verify FR-003 is satisfied",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
+      "evidence": "tests/canary/test_run_deadman.py::test_undelivered_alert_pings_fail, ::test_broken_channel_pings_fail_even_with_nothing_to_send; scripts/office2/felix_health_check/tests/test_run_deadman.py::test_alerting_run_whose_alert_was_not_delivered_pings_fail[delivery_error|missing_topic]; tests/common/test_deadman.py channel_ok tests (topic, probe, undelivered)",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-10-15T18:14:32.956853+00:00",
       "notes": "TODO: replace with a real acceptance criterion"
     },
     {
