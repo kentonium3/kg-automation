@@ -47,11 +47,11 @@
     {
       "criterion_id": "FR-005",
       "description": "Verify FR-005 is satisfied",
-      "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
+      "proof_type": "automated-test",
+      "evidence": "tests/deploy/test_tick_rebaseline.py::test_declared_and_reported_baselines_fold_as_a_union, ::test_failed_apply_with_only_a_declaration_creates_no_token; existing declared-fold tests unchanged and green",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-10-15T13:11:22.373989+00:00",
       "notes": "TODO: replace with a real acceptance criterion"
     },
     {
