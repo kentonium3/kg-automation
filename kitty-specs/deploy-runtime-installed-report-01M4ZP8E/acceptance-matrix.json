@@ -67,11 +67,11 @@
     {
       "criterion_id": "FR-007",
       "description": "Verify FR-007 is satisfied",
-      "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
+      "proof_type": "automated-test",
+      "evidence": "tests/deploy/test_tick_rebaseline.py::test_failed_apply_declared_folds_nothing_but_reported_folds, ::test_post_verification_failure_with_a_report_folds, ::test_failed_manifest_is_never_stamped",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-10-15T13:11:40.069899+00:00",
       "notes": "TODO: replace with a real acceptance criterion"
     },
     {
