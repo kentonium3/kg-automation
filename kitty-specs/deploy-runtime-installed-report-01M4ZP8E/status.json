@@ -1,7 +1,7 @@
 {
-  "event_count": 36,
-  "last_event_id": "01M4ZRQM6912VM4PQD3G4ANX0S",
-  "materialized_at": "2026-10-15T12:31:29.993564+00:00",
+  "event_count": 38,
+  "last_event_id": "01M4ZRRBS0651C9KJ12BZK3Z12",
+  "materialized_at": "2026-10-15T12:31:54.129907+00:00",
   "mission_number": "",
   "mission_slug": "deploy-runtime-installed-report-01M4ZP8E",
   "mission_type": "software-dev",
@@ -13,9 +13,9 @@
     "claimed": 0,
     "done": 0,
     "for_review": 0,
-    "in_progress": 0,
+    "in_progress": 1,
     "in_review": 0,
-    "planned": 2
+    "planned": 1
   },
   "work_packages": {
     "WP01": {
@@ -146,11 +146,15 @@
       }
     },
     "WP05": {
-      "actor": "finalize-tasks",
+      "actor": "claude",
+      "agent": "claude",
       "force_count": 0,
-      "lane": "planned",
-      "last_event_id": "01M4ZQGJX5MF5808S8ZYRS6SR1",
-      "last_transition_at": "2026-10-15T12:10:10.725074+00:00"
+      "implementer_of_record": "claude",
+      "lane": "in_progress",
+      "last_event_id": "01M4ZRRBS0651C9KJ12BZK3Z12",
+      "last_transition_at": "2026-10-15T12:31:54.129907+00:00",
+      "shell_pid": 590182,
+      "shell_pid_created_at": "1792067503.42"
     },
     "WP06": {
       "actor": "finalize-tasks",
