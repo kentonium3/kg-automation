@@ -38,10 +38,10 @@
       "criterion_id": "FR-004",
       "description": "Verify FR-004 is satisfied",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
+      "evidence": "tests/canary/test_run_deadman.py::test_unhealthy_components_with_delivered_alerts_still_ping_success; scripts/office2/felix_health_check/tests/test_run_deadman.py::test_failures_detected_and_delivered_still_pings_success",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-10-15T18:14:42.078777+00:00",
       "notes": "TODO: replace with a real acceptance criterion"
     },
     {
