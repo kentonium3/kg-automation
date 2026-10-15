@@ -177,7 +177,7 @@
     },
     "WP06": {
       "actor": "reviewer-renata",
-      "agent": "reviewer-renata",
+      "agent": null,
       "agent_profile": "__resolved_profile_absent__",
       "agent_profile_version": "__resolved_profile_version_absent__",
       "force_count": 1,
@@ -190,6 +190,7 @@
         "Ready: guard (13 evidence-bound exemptions, shrink-only, non-vacuous), docs + data-flows; validators + full suite green"
       ],
       "provider": "__resolved_provider_absent__",
+      "review": null,
       "review_result": {
         "feedback_path": "/home/kgale/repos/kg-automation/kitty-specs/deploy-runtime-installed-report-01M4ZP8E/tasks/WP06-guard-and-docs/review-cycle-1.md",
         "reference": "review-cycle://deploy-runtime-installed-report-01M4ZP8E/WP06-guard-and-docs/review-cycle-1.md",
@@ -197,12 +198,12 @@
         "verdict": "changes_requested"
       },
       "role": "reviewer",
-      "shell_pid": 619194,
-      "shell_pid_created_at": "1792068125.56",
+      "shell_pid": null,
+      "shell_pid_created_at": null,
       "subtasks": {
-        "T019": "done",
-        "T020": "done",
-        "T021": "done"
+        "T019": "planned",
+        "T020": "planned",
+        "T021": "planned"
       }
     }
   }
