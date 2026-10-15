@@ -309,7 +309,11 @@ def _two_tick_emits(tmp_path: Path, pointer: dict) -> list:
 def test_alert_cadence_identical_with_and_without_cause(tmp_path):
     with_cause = _two_tick_emits(tmp_path / "a", not_mounted_pointer())
     without = _two_tick_emits(tmp_path / "b", _without_cause(not_mounted_pointer()))
-    assert len(with_cause) == len(without) >= 1
+    # Ticks at 0, 15 min and 6 h 30: first sighting pages, the 15-min tick is
+    # deduped, the third is past the 6 h window and re-reminds. Pin exactly
+    # two so a dedup regression that silenced the re-remind in BOTH runs
+    # cannot pass as "equal" (WP04 review nit, 2026-10-15).
+    assert len(with_cause) == len(without) == 2
     for a, b in zip(with_cause, without):
         assert (a.source, a.severity, a.title) == (b.source, b.severity, b.title)
         assert a.description == f"{b.description}{SUFFIX}{CODES['backup_mount_missing']}"
