@@ -97,6 +97,14 @@ The ping is `success` only when the watcher ran without an execution fault **and
 
 NFR-001 is revised to a 40 s worst case per run. The module exposes `deadman.channel_ok(env, delivered_ok) -> (bool, reason)` and `deadman.ping(...)`.
 
+## Post-plan round 4 (Codex APPROVE-WITH-CHANGES, 2026-10-15)
+
+**The probe's transport matches delivery's.** The ntfy `/v1/health` probe runs curl exactly as `alert_bus/delivery.py` does:
+- it inherits the process environment, including proxy variables;
+- it uses no `-q`, so curl's default config applies as it does for delivery.
+
+That stops a broken proxy or curl config from passing the probe while real delivery fails. The probe carries no secret, so inheriting is safe. **Only the dead-man ping** keeps the hardened, minimal-environment, `-q` transport, because it carries the capability URL. A test asserts that the probe and delivery build the same environment and curl config context.
+
 ## Implementation Concern Map
 
 ### IC-01 — `scripts/common/deadman.py`
