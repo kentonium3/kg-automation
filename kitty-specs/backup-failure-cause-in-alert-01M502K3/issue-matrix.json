@@ -13,7 +13,7 @@
       "wp": null
     },
     "#1067": {
-      "evidence_ref": "<link or commit>",
+      "evidence_ref": "this mission's tracking issue; delivered across WP01-WP04",
       "fr": null,
       "nfr": null,
       "repo": null,
@@ -21,8 +21,8 @@
       "scope": null,
       "source_file": "spec.md",
       "title": "<fill at WP-implementation time>",
-      "verdict": "unknown",
-      "wp": null
+      "verdict": "in-mission",
+      "wp": "WP04"
     },
     "#899": {
       "evidence_ref": "cited as the constraint this mission must not violate (no root-to-claude code edge); owes no work",
