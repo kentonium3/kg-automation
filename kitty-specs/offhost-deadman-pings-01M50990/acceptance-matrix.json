@@ -68,10 +68,10 @@
       "criterion_id": "FR-007",
       "description": "Verify FR-007 is satisfied",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
+      "evidence": "tests/common/test_deadman.py::test_success_ping_transport_is_hardened_and_url_only_on_stdin, ::test_failures_map_retry_once_and_never_leak (sentinel never in output), ::test_real_curl_ignores_hostile_curlrc, ::test_cli_prints_no_url; tests/docs/test_deadman_docs.py secret scan",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-10-15T18:15:09.128539+00:00",
       "notes": "TODO: replace with a real acceptance criterion"
     },
     {
