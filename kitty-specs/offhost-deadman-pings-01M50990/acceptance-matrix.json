@@ -78,10 +78,10 @@
       "criterion_id": "FR-008",
       "description": "Verify FR-008 is satisfied",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
+      "evidence": "tests/docs/test_deadman_docs.py::test_credential_manifest_records_the_ping_urls, ::test_data_flows_record_the_egress; validate_architecture_data 0 findings",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-10-15T18:15:18.308929+00:00",
       "notes": "TODO: replace with a real acceptance criterion"
     },
     {
