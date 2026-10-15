@@ -225,6 +225,14 @@ flowchart LR
 - **"Alive" is affirmative.** The canary's tick declaration carries a
   `key_ledger`: a `success` status, a fresh `completed_at_utc` with no fallback
   timestamp, and at least one evaluated component.
+- **Failed backups say why.** The `restic-backup` ledger declares an optional
+  `cause` member (#1067). When a declared key makes the verdict non-ok, the
+  shared evaluator appends the declared plain-words text for the pointer's
+  `failure_reason` code (for example `; cause: backup drive /mnt/backups is
+  not mounted`). Both watchers get it from the same code path. The cause never
+  changes a verdict or its dedup, and an unknown code shows a fixed marker,
+  never the raw value. See
+  [restic-backup-ops § Failure cause in alerts](<../../runbooks/restic-backup-ops.md#failure-cause-in-alerts-failure_reason-1067>).
 - **Blind is never healthy.** An inability to evaluate (unreadable inventory or
   pointer, missing declaration, a declaration with no freshness bound) is
   `UNKNOWN`, and it alerts. `ALL_HEALTHY` requires every check to pass.

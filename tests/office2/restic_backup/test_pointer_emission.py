@@ -28,6 +28,7 @@ REAL_DATE = shutil.which("date")
 # stubs below can delegate to the genuine binary (#960).
 REAL_STAT = shutil.which("stat") or ""
 REAL_TIMEOUT = shutil.which("timeout") or ""
+REAL_TEE = shutil.which("tee") or "tee"
 
 # Mirrors the SOURCE_ROOTS array defined once in the script (T004): the
 # default snapshot the restic stub reports carries every configured root, so
@@ -48,6 +49,16 @@ BASELINE_TEN_KEYS = {
 FINAL_FOURTEEN_KEYS = BASELINE_TEN_KEYS | {
     "last_integrity_check_utc", "files_processed", "source_roots_present",
     "repo_fs_free_bytes",
+}
+
+# backup-failure-cause-in-alert-01M502K3 (#1067): plus the diagnostic
+# failure_reason, emitted on every path.
+FINAL_FIFTEEN_KEYS = FINAL_FOURTEEN_KEYS | {"failure_reason"}
+
+# The closed vocabulary the producer may emit (data-model.md); null on a run
+# that completed.
+FAILURE_REASON_CODES = {
+    "backup_mount_missing", "repo_inaccessible", "backup_failed", "unclassified",
 }
 
 
@@ -101,6 +112,15 @@ if [ -n "$REAL_TIMEOUT" ] && [ -x "$REAL_TIMEOUT" ]; then exec "$REAL_TIMEOUT" "
 shift
 exec "$@"''')
     _stub(bin_dir, "du", 'echo "1024\t$2"')
+    # #1067 (post-merge review): fail only the FINAL log line's tee, so a test
+    # can prove the completion marker does not mask the script's real final
+    # exit status. Every other log line passes through to the real tee.
+    _stub(bin_dir, "tee", f'''
+input=$(cat)
+if [ -n "$STUB_TEE_FAIL_FINAL" ] && printf '%s' "$input" | grep -q "=== Backup complete ==="; then
+    exit 1
+fi
+printf '%s\\n' "$input" | {REAL_TEE} "$@"''')
     # restic dispatches on its first arg (and, for `snapshots`, whether
     # `--latest` is present) so each call can be tuned independently.
     # `snapshots --latest ...` serves the ts/id/paths lookup; plain
@@ -131,7 +151,13 @@ case "$1" in
   stats)     [ -n "$STUB_STATS_FAIL" ] && exit 1
              echo "{\\"total_file_count\\": ${STUB_FILE_COUNT:-100}}"
              exit 0 ;;
-  backup)    exit "${STUB_BACKUP_RC:-0}" ;;
+  backup)    # #1067: simulate the run being killed mid-backup (cron/systemd
+             # stop; SIGTERM, which -- unlike an OOM SIGKILL -- still runs the EXIT trap) -- the one realistic fatal path with no explicit
+             # branch in the script. $PPID is the script's own bash process.
+             if [ -n "$STUB_BACKUP_KILL_PARENT" ]; then kill -TERM "$PPID"; sleep 1; fi
+             # SIGKILL variant: no EXIT trap can run, so no pointer is written.
+             if [ -n "$STUB_BACKUP_SIGKILL_PARENT" ]; then kill -KILL "$PPID"; sleep 1; fi
+             exit "${STUB_BACKUP_RC:-0}" ;;
   forget)    exit "${STUB_PRUNE_RC:-0}" ;;
   check)     exit "${STUB_CHECK_RC:-0}" ;;
   *)         exit 0 ;;
@@ -254,24 +280,24 @@ def test_existing_fields_are_unchanged(env):
         pytest.param({"STUB_BACKUP_RC": 1}, id="backup_failure"),
     ],
 )
-def test_pointer_emits_exactly_the_final_fourteen_keys(env, overrides):
+def test_pointer_emits_exactly_the_final_fifteen_keys(env, overrides):
     """T001/T006: derive the emitted key set by executing the producer, on
     every execution path -- not just the happy path.
 
     Pinned as the ten-key baseline before T002-T006 landed (this passed
     against the unmodified script); updated in place, per T006, to the
-    final fourteen now that the producer emits them. Never assert this by
+    final fourteen, then to fifteen when #1067 added failure_reason. Never assert this by
     reading the heredoc source -- that is a second model of the producer
     and it will drift (US3 AS4).
 
     Parameterised over the early-exit paths (WP01 cycle-2 fix): the DoD
-    requires the fourteen-key shape on every path, and the early exits are
+    requires the full key shape on every path, and the early exits are
     exactly where this component's historical defects (#906) have lived.
     `run()` parses the document via `json.loads`, so reaching the assertion
     below is itself proof the document stayed valid JSON on each path.
     """
     _, ptr = run(env, **overrides)
-    assert set(ptr.keys()) == FINAL_FOURTEEN_KEYS
+    assert set(ptr.keys()) == FINAL_FIFTEEN_KEYS
     assert ptr["schema_version"] == 2
 
 
@@ -605,3 +631,90 @@ def test_overrides_only_apply_when_unprivileged(env):
         assert f'{var}="/' in guarded, f"{var} not pinned to an absolute path when root"
     # and the unprivileged branch still honours overrides, or the tests above lie
     assert 'LOG_DIR="${LOG_DIR:-' in src
+
+
+# --------------------------------------------------------------------------- #
+# failure_reason (backup-failure-cause-in-alert-01M502K3, #1067). Each fatal
+# exit records its own code; a completed run records null; a run that did not
+# complete by any other path records "unclassified". Exercised by running the
+# script, never by reading the heredoc.
+# --------------------------------------------------------------------------- #
+
+@pytest.mark.parametrize(
+    ("overrides", "code"),
+    [
+        pytest.param({"STUB_MOUNT_RC": 1}, "backup_mount_missing", id="not_mounted"),
+        pytest.param({"STUB_SNAPSHOTS_FAIL": "1"}, "repo_inaccessible", id="repo_inaccessible"),
+        pytest.param({"STUB_BACKUP_RC": 1}, "backup_failed", id="backup_failed"),
+    ],
+)
+def test_each_fatal_exit_records_its_cause(env, overrides, code):
+    proc, ptr = run(env, **overrides)
+    # NFR-003: recording the cause changes neither the exit status nor
+    # whether the pointer is written (run() already parsed it).
+    assert proc.returncode == 1
+    assert ptr["failure_reason"] == code
+
+
+def test_run_killed_mid_backup_records_unclassified(env):
+    """A SIGTERM'd run reaches the EXIT trap with $?=0 (verified empirically,
+    2026-10-15), so classifying on exit status alone would record it as clean.
+    The completion marker is what catches it."""
+    proc, ptr = run(env, STUB_BACKUP_KILL_PARENT="1")
+    assert proc.returncode != 0, "the script must not report success when killed"
+    assert ptr["failure_reason"] == "unclassified"
+    assert ptr["prune_exit_code"] == 127
+
+
+@pytest.mark.parametrize(
+    "overrides",
+    [
+        pytest.param({}, id="happy_path"),
+        pytest.param({"STUB_PRUNE_RC": 1}, id="prune_failed"),
+        pytest.param({"STUB_BACKUP_RC": 3}, id="backup_warning"),
+        pytest.param({"STUB_DOW": 7, "STUB_CHECK_RC": 1}, id="integrity_failed"),
+    ],
+)
+def test_completed_run_records_null_cause(env, overrides):
+    """A run that reached the end records null even when the prune or the
+    weekly check failed -- those page under their own self-describing keys."""
+    proc, ptr = run(env, **overrides)
+    assert proc.returncode == 0
+    assert ptr["failure_reason"] is None
+
+
+@pytest.mark.parametrize(
+    "overrides",
+    [
+        {}, {"STUB_MOUNT_RC": 1}, {"STUB_SNAPSHOTS_FAIL": "1"}, {"STUB_BACKUP_RC": 1},
+        {"STUB_BACKUP_KILL_PARENT": "1"}, {"STUB_PRUNE_RC": 2},
+    ],
+)
+def test_failure_reason_is_always_null_or_a_known_code(env, overrides):
+    _, ptr = run(env, **overrides)
+    value = ptr["failure_reason"]
+    assert value is None or value in FAILURE_REASON_CODES, f"{overrides} -> {value!r}"
+
+
+def test_failed_final_log_write_keeps_nonzero_exit_and_is_unclassified(env):
+    """Post-merge Codex review: RUN_COMPLETED=true must not reset the script's
+    exit status. Before #1067 a failed final `tee` made the script exit
+    non-zero; it still must, and the trap then records `unclassified`."""
+    proc, ptr = run(env, STUB_TEE_FAIL_FINAL="1")
+    assert proc.returncode != 0
+    assert ptr["restic_exit_code"] == 0
+    assert ptr["failure_reason"] == "unclassified"
+
+
+def test_sigkilled_run_writes_no_pointer_and_leaves_the_previous_one(env):
+    """SIGKILL (the OOM killer, kill -9) runs no EXIT trap, so the previous
+    run's pointer survives byte-for-byte and the failed run carries no cause;
+    only the staleness bound can report it. Pins the runbook's caveat (#1067
+    post-merge re-review) as behaviour, not prose."""
+    _, previous = run(env)  # a completed run leaves a pointer behind
+    state = env[1] / "last-backup.json"
+    before = state.read_bytes()
+    proc, ptr = run(env, STUB_BACKUP_SIGKILL_PARENT="1")
+    assert proc.returncode == -9 or proc.returncode == 137
+    assert state.read_bytes() == before
+    assert ptr == previous and ptr["failure_reason"] is None
