@@ -68,10 +68,10 @@
       "criterion_id": "FR-007",
       "description": "Verify FR-007 is satisfied",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
+      "evidence": "tests/canary/test_probes_cause.py::test_verdict_identical_with_and_without_cause, ::test_stale_anchor_verdict_is_enriched_and_still_stale, ::test_healthy_pointer_with_stray_cause_stays_healthy_and_undecorated, ::test_alert_cadence_identical_with_and_without_cause (2 emits each, re-remind pinned)",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-10-15T16:21:30.073662+00:00",
       "notes": "TODO: replace with a real acceptance criterion"
     },
     {
