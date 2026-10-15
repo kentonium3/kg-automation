@@ -94,7 +94,8 @@
       "last_transition_at": "2026-10-15T17:52:48.364939+00:00",
       "model": "__resolved_model_absent__",
       "notes": [
-        "health-check hook; 182 tests"
+        "health-check hook; 182 tests",
+        "reviewer-renata (claude-sonnet-5-5) APPROVE, 2026-10-15; test-isolation note handled by WP04 root conftest"
       ],
       "provider": "__resolved_provider_absent__",
       "review_result": {
