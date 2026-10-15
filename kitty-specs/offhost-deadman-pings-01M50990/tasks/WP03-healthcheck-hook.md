@@ -13,6 +13,9 @@ requirement_refs:
 planning_base_branch: feat/offhost-deadman-pings
 merge_target_branch: feat/offhost-deadman-pings
 branch_strategy: Planning artifacts for this mission were generated on feat/offhost-deadman-pings. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into feat/offhost-deadman-pings unless the human explicitly redirects the landing branch.
+base_branch: kitty/mission-offhost-deadman-pings-01M50990
+base_commit: cd84582ded5af3b95ca5c9265f061001a68a9ef1
+created_at: '2026-10-15T17:47:11.392530+00:00'
 subtasks:
 - T009
 - T010
