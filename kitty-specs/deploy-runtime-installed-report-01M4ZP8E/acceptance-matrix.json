@@ -37,11 +37,11 @@
     {
       "criterion_id": "FR-004",
       "description": "Verify FR-004 is satisfied",
-      "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
+      "proof_type": "automated-test",
+      "evidence": "tests/deploy/test_installed_report.py (wholesale reject: FIFO/symlink/oversize/UTF-8/NUL/relative/limit), tests/deploy/test_rebaseline_reported.py::test_one_bad_entry_rejects_the_whole_report, tests/deploy/test_tick_rebaseline.py::test_malformed_report_completes_with_a_warning",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-10-15T13:11:13.451899+00:00",
       "notes": "TODO: replace with a real acceptance criterion"
     },
     {
