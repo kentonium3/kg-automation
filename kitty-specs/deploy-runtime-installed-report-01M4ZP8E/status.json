@@ -157,7 +157,8 @@
       "last_transition_at": "2026-10-15T12:35:41.880799+00:00",
       "model": "__resolved_model_absent__",
       "notes": [
-        "Ready: two gates, rebaseline_reported event, real-reconcile tests incl. 0029 replay+control, NFR-001 timing; 5 mutations caught"
+        "Ready: two gates, rebaseline_reported event, real-reconcile tests incl. 0029 replay+control, NFR-001 timing; 5 mutations caught",
+        "renata (claude-sonnet-5-5) APPROVE; LOW: repeated failed-apply ticks refresh last_fold_utc (bounded, alert clock unaffected)"
       ],
       "provider": "__resolved_provider_absent__",
       "review_result": {
