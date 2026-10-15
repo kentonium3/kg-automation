@@ -285,3 +285,14 @@ def test_a_future_token_is_rejected_even_with_a_fresh_fold(tmp_path, monkeypatch
     )
     _write_token(tmp_path, monkeypatch, payload)
     assert ed.fresh_expected_baselines(now=_NOW) == set()
+
+
+@pytest.mark.parametrize("expected", [
+    {"systemd-user-unit-contents.txt": False},
+    "systemd-user-unit-contents.txt",
+    ["systemd-user-unit-contents.txt", 7],
+    ["systemd-user-unit-contents.txt", ""],
+])
+def test_a_malformed_expected_list_suppresses_nothing(tmp_path, monkeypatch, expected):
+    _write_token(tmp_path, monkeypatch, _fresh_payload(expected_baselines=expected))
+    assert ed.fresh_expected_baselines(now=_NOW) == set()

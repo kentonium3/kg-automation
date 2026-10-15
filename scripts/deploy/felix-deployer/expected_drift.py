@@ -83,6 +83,10 @@ def fresh_expected_baselines(now: "_dt.datetime | None" = None) -> "set[str]":
         pending_since = token.get("pending_since_utc")
         if not expected or not pending_since:
             return set()
+        # Only a list of non-empty strings can suppress anything; any other
+        # shape is corrupt and pages (#1072 post-merge Codex).
+        if not isinstance(expected, list) or not all(isinstance(b, str) and b for b in expected):
+            return set()
 
         now_dt = now if now is not None else _dt.datetime.now(tz=_dt.timezone.utc)
 
