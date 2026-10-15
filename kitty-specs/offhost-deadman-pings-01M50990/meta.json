@@ -6,7 +6,7 @@
   "friendly_name": "Off-host dead-man pings for the on-host watchers",
   "mid8": "01M50990",
   "mission_id": "01M5099074FJD67YSY2EH661NK",
-  "mission_number": null,
+  "mission_number": 120,
   "mission_slug": "offhost-deadman-pings-01M50990",
   "mission_type": "software-dev",
   "purpose_context": "felix-canary and felix-health-check watch each other (#1063) but share one host, one user manager, one checkout and one ntfy topic, so losing any of them silences both. RFC #1069 decided that both watchers ping a hosted dead-man service (healthchecks.io) after each successful run and send a fail ping when an alert cannot be delivered; the service emails Kent, never through ntfy. Ping URLs are capability secrets kept on office2, never in the repo. Tracks kentonium3/kg-automation#1077.",
