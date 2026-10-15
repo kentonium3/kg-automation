@@ -1,4 +1,6 @@
 {
+  "contracts": "none",
+  "contracts_rationale": "No external API or schema is defined. The only interface is the internal deadman.ping() function and its small operator CLI, both fully specified in data-model.md; the remote protocol is healthchecks.io's documented ping URL.",
   "created_at": "2026-10-15T17:20:36.618791+00:00",
   "flattened": false,
   "friendly_name": "Off-host dead-man pings for the on-host watchers",
@@ -12,6 +14,6 @@
   "slug": "offhost-deadman-pings-01M50990",
   "target_branch": "feat/offhost-deadman-pings",
   "topology": "lanes",
-  "contracts": "none",
-  "contracts_rationale": "No external API or schema is defined. The only interface is the internal deadman.ping() function and its small operator CLI, both fully specified in data-model.md; the remote protocol is healthchecks.io's documented ping URL."
+  "vcs": "git",
+  "vcs_locked_at": "2026-10-15T17:40:22.052985+00:00"
 }
