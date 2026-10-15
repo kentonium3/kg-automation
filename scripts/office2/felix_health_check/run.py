@@ -48,6 +48,7 @@ import tempfile
 from pathlib import Path
 from typing import Any, Sequence
 
+from scripts.common import deadman
 from scripts.common.alert_bus import Alert, AlertResult, Severity, emit
 
 logger = logging.getLogger("felix_health_check")
@@ -366,6 +367,54 @@ def _send_alert_guarded(status: str, body: str, findings: Sequence[Any],
         return {"attempted": True, "sent": False, "detail": f"send_alert raised {type(exc).__name__}: {exc}"}
 
 
+#: Evidence prefixes marking a coverage run that could not do its own work
+#: (the run.py guard's _Unavailable, and coverage.py's _all_unknown).
+_COVERAGE_FAULT_PREFIXES = ("coverage unavailable:", "coverage could not start:")
+
+
+def _execution_fault(script_status: str, script_note: str | None, findings: Sequence[Any]) -> str | None:
+    """Why this run could not do its own watcher work, or None (#1077 FR-010).
+
+    A broken WATCHER, as opposed to unhealthy things it watches: the script
+    is missing, timed out or failed to launch/decode (``script_note`` set), or
+    coverage itself could not run. Never raises.
+    """
+    try:
+        if script_status == STATUS_SCRIPT_MISSING:
+            return "script_missing"
+        if script_note:
+            return "script_did_not_run"
+        for f in findings:
+            # Any _Unavailable finding is the coverage machinery failing
+            # (import, evaluation, or record serialisation), whatever its
+            # evidence text says (post-merge Codex review).
+            if isinstance(f, _Unavailable):
+                return "coverage_unavailable"
+            evidence = str(getattr(f, "evidence", "") or "")
+            if evidence.startswith(_COVERAGE_FAULT_PREFIXES):
+                return "coverage_unavailable"
+        return None
+    except Exception:  # noqa: BLE001 - fail closed
+        return "fault_check_error"
+
+
+def _deadman_configured() -> bool:
+    try:
+        return deadman.is_configured("healthcheck")
+    except Exception:  # noqa: BLE001 - deadman is total; belt and braces
+        return False
+
+
+def _deadman(outcome: str, reason: str | None = None) -> None:
+    """Best-effort off-host dead-man ping (#1077). Never raises."""
+    try:
+        if reason:
+            logger.warning("deadman fail reason: %s", reason)
+        deadman.ping("healthcheck", outcome)
+    except Exception:  # noqa: BLE001 - deadman is total; belt and braces
+        pass
+
+
 def main(argv: list[str] | None = None) -> int:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
     now = _utc_now()
@@ -389,18 +438,41 @@ def main(argv: list[str] | None = None) -> int:
     # A failure to write the record itself is the one fault not contained:
     # it surfaces as a failed unit and a stale record, which the canary's
     # freshness probe on this component reports.
-    _atomic_write_json(
-        SIGNAL_FILE,
-        {
-            "status": status,
-            "ran_at_utc": _iso(now),
-            "exit_code": exit_code,
-            "delivery": delivery,
-            "script_status": script_status,
-            "script_path": str(HEALTH_CHECK_SCRIPT),
-            "coverage_checks": coverage_records,
-        },
-    )
+    try:
+        _atomic_write_json(
+            SIGNAL_FILE,
+            {
+                "status": status,
+                "ran_at_utc": _iso(now),
+                "exit_code": exit_code,
+                "delivery": delivery,
+                "script_status": script_status,
+                "script_path": str(HEALTH_CHECK_SCRIPT),
+                "coverage_checks": coverage_records,
+            },
+        )
+    except Exception:
+        if _deadman_configured():
+            _deadman("fail", "record_write_failed")
+        raise
+
+    # Unconfigured: no probe, no ping, no subprocess at all (FR-005).
+    if not _deadman_configured():
+        return 0
+
+    # #1077 off-host dead-man: liveness plus channel health, never the health
+    # of what is watched. A missing topic gives attempted=False, sent=False, so
+    # "alerting and not sent" -- not "attempted and not sent" -- is the test.
+    delivery_failed = status in ALERTING_STATUSES and not delivery.get("sent")
+    fault = _execution_fault(script_status, script_note, findings)
+    try:
+        ok, why = deadman.channel_ok(os.environ, not delivery_failed)
+    except Exception as exc:  # noqa: BLE001 - deadman is total; belt and braces
+        ok, why = False, f"error:{exc.__class__.__name__}"
+    if fault is None and ok:
+        _deadman("success")
+    else:
+        _deadman("fail", fault or why)
     return 0
 
 

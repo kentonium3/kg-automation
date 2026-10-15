@@ -1,0 +1,86 @@
+{
+  "version": 1,
+  "mission_slug": "offhost-deadman-pings-01M50990",
+  "mission_id": "01M5099074FJD67YSY2EH661NK",
+  "mission_branch": "kitty/mission-offhost-deadman-pings-01M50990",
+  "target_branch": "feat/offhost-deadman-pings",
+  "lanes": [
+    {
+      "lane_id": "lane-a",
+      "wp_ids": [
+        "WP01"
+      ],
+      "write_scope": [
+        "scripts/common/deadman.env.sample",
+        "scripts/common/deadman.py",
+        "tests/common/test_deadman.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "artifact-rendering"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    },
+    {
+      "lane_id": "lane-b",
+      "wp_ids": [
+        "WP02"
+      ],
+      "write_scope": [
+        "scripts/canary/run.py",
+        "tests/canary/test_run_deadman.py"
+      ],
+      "predicted_surfaces": [
+        "api"
+      ],
+      "depends_on_lanes": [
+        "lane-a"
+      ],
+      "parallel_group": 1
+    },
+    {
+      "lane_id": "lane-c",
+      "wp_ids": [
+        "WP03"
+      ],
+      "write_scope": [
+        "scripts/office2/felix_health_check/run.py",
+        "scripts/office2/felix_health_check/tests/test_run_deadman.py"
+      ],
+      "predicted_surfaces": [
+        "api"
+      ],
+      "depends_on_lanes": [
+        "lane-a"
+      ],
+      "parallel_group": 1
+    },
+    {
+      "lane_id": "lane-d",
+      "wp_ids": [
+        "WP04"
+      ],
+      "write_scope": [
+        "docs/design/architecture/data/credential-manifest.json",
+        "docs/design/architecture/data/data-flows.json",
+        "docs/design/architecture/data/service-inventory.json",
+        "docs/design/architecture/observability-and-alerting.md",
+        "docs/runbooks/canary-registry-ops.md",
+        "tests/docs/test_deadman_docs.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "dashboard"
+      ],
+      "depends_on_lanes": [
+        "lane-a"
+      ],
+      "parallel_group": 1
+    }
+  ],
+  "computed_at": "2026-10-15T17:39:49.617432+00:00",
+  "computed_from": "dependency_graph+ownership",
+  "planning_artifact_wps": [],
+  "planning_commit_sha": "e4131ffdc2fa9b578782f5e4981545a53319680b"
+}

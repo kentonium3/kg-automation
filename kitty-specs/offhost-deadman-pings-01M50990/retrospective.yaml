@@ -1,0 +1,117 @@
+schema_version: 1
+mission_id: 01M5099074FJD67YSY2EH661NK
+mission_slug: offhost-deadman-pings-01M50990
+mission_number: 120
+friendly_name: Off-host dead-man pings for the on-host watchers
+mission_type: software-dev
+target_branch: feat/offhost-deadman-pings
+created_at: '2026-10-15T17:57:34.706307+00:00'
+created_by:
+  kind: runtime
+  id: spec-kitty-generator
+  display: Spec Kitty Generator
+provenance:
+  kind: runtime_post_completion
+  invoked_at: '2026-10-15T17:57:34.706307+00:00'
+  policy_resolved_from:
+    enabled: <default>
+    timing: <default>
+    failure_policy: <default>
+    write_record: <default>
+    generate_proposals: <default>
+    apply_proposals: <default>
+    permissions.write_record: <default>
+    permissions.inspect_mission_artifacts: <default>
+    permissions.propose_glossary_changes: <default>
+    permissions.propose_drg_changes: <default>
+    permissions.propose_doctrine_changes: <default>
+    permissions.apply_low_risk_changes: <default>
+    permissions.apply_structural_changes: <default>
+    precedence: <default>
+    generator: <default>
+policy_source:
+  enabled: <default>
+  timing: <default>
+  failure_policy: <default>
+  write_record: <default>
+  generate_proposals: <default>
+  apply_proposals: <default>
+  permissions.write_record: <default>
+  permissions.inspect_mission_artifacts: <default>
+  permissions.propose_glossary_changes: <default>
+  permissions.propose_drg_changes: <default>
+  permissions.propose_doctrine_changes: <default>
+  permissions.apply_low_risk_changes: <default>
+  permissions.apply_structural_changes: <default>
+  precedence: <default>
+  generator: <default>
+findings_status: has_findings
+helped:
+- id: h-001
+  category: implementation
+  summary: WP02 completed without rejection cycles
+  evidence_refs:
+  - e-009
+- id: h-002
+  category: implementation
+  summary: WP03 completed without rejection cycles
+  evidence_refs:
+  - e-009
+- id: h-003
+  category: implementation
+  summary: WP04 completed without rejection cycles
+  evidence_refs:
+  - e-009
+not_helpful:
+- id: n-002
+  category: doc
+  summary: analysis-report.md records 3 finding(s)
+  evidence_refs:
+  - e-011
+  details: The analysis-report.md artifact for this mission records 3 finding(s) in its structured frontmatter. Review
+    them to understand documented issues and decisions.
+- id: n-001
+  category: review_loop
+  summary: WP01 required 1 rejection cycle(s) before approval
+  evidence_refs:
+  - e-010
+  details: WP WP01 was sent back to an earlier lane with documented review feedback 1 time(s).
+gaps: []
+proposals: []
+evidence_refs:
+- id: e-001
+  kind: file
+  path: kitty-specs/offhost-deadman-pings-01M50990/meta.json
+- id: e-002
+  kind: file
+  path: kitty-specs/offhost-deadman-pings-01M50990/spec.md
+- id: e-003
+  kind: file
+  path: kitty-specs/offhost-deadman-pings-01M50990/plan.md
+- id: e-004
+  kind: file
+  path: kitty-specs/offhost-deadman-pings-01M50990/tasks.md
+- id: e-005
+  kind: file
+  path: kitty-specs/offhost-deadman-pings-01M50990/tasks/WP01-deadman-module.md
+- id: e-006
+  kind: file
+  path: kitty-specs/offhost-deadman-pings-01M50990/tasks/WP02-canary-hook.md
+- id: e-007
+  kind: file
+  path: kitty-specs/offhost-deadman-pings-01M50990/tasks/WP03-healthcheck-hook.md
+- id: e-008
+  kind: file
+  path: kitty-specs/offhost-deadman-pings-01M50990/tasks/WP04-docs-and-arch-data.md
+- id: e-009
+  kind: file
+  path: kitty-specs/offhost-deadman-pings-01M50990/status.events.jsonl
+- id: e-010
+  kind: event_range
+  path: kitty-specs/offhost-deadman-pings-01M50990/status.events.jsonl
+  range: 01M50AM72ZBKYSAB5X0MZ9APV3
+- id: e-011
+  kind: file
+  path: kitty-specs/offhost-deadman-pings-01M50990/analysis-report.md
+generator_version: '1.0'
+provenance_history: []

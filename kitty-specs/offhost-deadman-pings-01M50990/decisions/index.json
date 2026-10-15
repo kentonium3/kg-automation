@@ -1,0 +1,30 @@
+{
+  "entries": [
+    {
+      "created_at": "2026-10-15T17:20:51.430428Z",
+      "decision_id": "01M5099EQ6CDPRYPRNHK4HZSWE",
+      "final_answer": "Confirmed",
+      "input_key": "intent_confirmed",
+      "mission_id": "01M5099074FJD67YSY2EH661NK",
+      "mission_slug": "offhost-deadman-pings-01M50990",
+      "opened_by": "cli",
+      "options": [
+        "Confirmed",
+        "Adjust",
+        "Other"
+      ],
+      "origin_flow": "specify",
+      "other_answer": false,
+      "question": "Confirm the #1077 intent summary and authorize driving the mission to merge and deploy without further check-ins unless something unexpected comes up?",
+      "rationale": null,
+      "resolved_at": "2026-10-15T17:25:30.304054Z",
+      "resolved_by": null,
+      "slot_key": "specify.intent.confirm",
+      "status": "resolved",
+      "step_id": null,
+      "summary_json": null
+    }
+  ],
+  "mission_id": "01M5099074FJD67YSY2EH661NK",
+  "version": 1
+}

@@ -241,10 +241,27 @@ flowchart LR
   reported within about 12 h of the snapshot passing its 28 h bound. A run that
   catches up after downtime may report the canary stale once; that is true, and
   it is by design.
-- **Shared-fate limit.** Both watchers run on office2, under one user manager,
-  from one checkout, through one alert topic. CI sentinels guard a regression
-  in the shared evaluator. Loss of the host or the channel blinds both, and is
-  tracked as [#1069](https://github.com/kentonium3/kg-automation/issues/1069).
+- **Shared evaluator.** CI sentinels guard against a regression in the evaluator the two watchers share.
+- **Off-host dead-man (#1077, decided by RFC [#1069](https://github.com/kentonium3/kg-automation/issues/1069)).** Both watchers share one host, one
+  `claude` user manager, one checkout and one ntfy topic, so losing any of
+  them silences both. Each watcher therefore pings its own hosted
+  healthchecks.io check after every run (`scripts/common/deadman.py`). If the
+  pings stop, healthchecks.io **emails** Kent, deliberately never through ntfy.
+  - The canary's check alerts about an hour after silence (15 min period plus
+    45 min grace). The health check's check is on a Cron schedule matching its
+    11:00 and 23:00 timer. The timer uses host-local time, and office2 is
+    `Etc/UTC`.
+  - **A `success` ping means liveness plus a working channel, not component
+    health.** The watcher must have run without an execution fault and the
+    alert channel must be ok, judged freshly every run with no state: the
+    topic is configured, a read-only `ntfy /v1/health` probe answers healthy
+    (in the same transport context as real delivery), and every alert this
+    run tried to send was delivered. Anything else pings `/fail`, which emails
+    at once.
+  - Accepted residuals: a revoked or mistyped topic on a healthy ntfy server
+    is caught only when the next real alert fails to deliver, and losing both
+    attempts of a ping produces one false email. Runbook:
+    [canary-registry-ops § Off-host dead-man pings](<../../runbooks/canary-registry-ops.md#off-host-dead-man-pings-1077>).
 
 ## 6. Adding a new scanner / alert producer — the checklist
 
@@ -315,4 +332,4 @@ transition-always-emits-with-persistence-gated-unknowns.
 - **Coherence invariant**: [doctrine.md](<../coherence/doctrine.md>) `INV-003` (one canonical alert stream) / `INV-001` (no fabrication) / `INV-002` (no silent fallback).
 - **Engineering principles**: [engineering-principles.md](<../engineering-principles.md>) #8 (suspension as an operational state — the backing for status-gates-health).
 - **Data flows**: [data-flows.md](<./data-flows.md>) — the `felix-canary`, `felix-trust-scan`, and `#701-alert-bus-emit` flow entries.
-- **Program context**: Foundation 1 / Epic #516 (health & observability); canary dead-man's switch shipped in #1063 (§5a); off-host whole-host-silence watchdog still deferred (#269, #1069); alert-responder RFC #707.
+- **Program context**: Foundation 1 / Epic #516 (health & observability); canary dead-man's switch shipped in #1063 (§5a); off-host dead-man pings to healthchecks.io (RFC #1069, implemented #1077; Felix-outage watchdog #269 separate); alert-responder RFC #707.

@@ -1,0 +1,109 @@
+{
+  "mission_slug": "offhost-deadman-pings-01M50990",
+  "mission_number": "120",
+  "mission_type": "software-dev",
+  "overall_verdict": "pass",
+  "criteria": [
+    {
+      "criterion_id": "FR-001",
+      "description": "Verify FR-001 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "tests/canary/test_run_deadman.py::test_healthy_tick_pings_success (real run_pass via main)",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-10-15T18:14:14.773506+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-002",
+      "description": "Verify FR-002 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "scripts/office2/felix_health_check/tests/test_run_deadman.py::test_all_healthy_pings_success (real main)",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-10-15T18:14:24.040404+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-003",
+      "description": "Verify FR-003 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "tests/canary/test_run_deadman.py::test_undelivered_alert_pings_fail, ::test_broken_channel_pings_fail_even_with_nothing_to_send; scripts/office2/felix_health_check/tests/test_run_deadman.py::test_alerting_run_whose_alert_was_not_delivered_pings_fail[delivery_error|missing_topic]; tests/common/test_deadman.py channel_ok tests (topic, probe, undelivered)",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-10-15T18:14:32.956853+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-004",
+      "description": "Verify FR-004 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "tests/canary/test_run_deadman.py::test_unhealthy_components_with_delivered_alerts_still_ping_success; scripts/office2/felix_health_check/tests/test_run_deadman.py::test_failures_detected_and_delivered_still_pings_success",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-10-15T18:14:42.078777+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-005",
+      "description": "Verify FR-005 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "tests/common/test_deadman.py::test_missing_file_is_unconfigured_and_never_runs, ::test_is_configured; tests/canary/test_run_deadman.py and scripts/office2/felix_health_check/tests/test_run_deadman.py ::test_unconfigured_deadman_makes_no_probe_and_no_ping",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-10-15T18:14:51.018419+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-006",
+      "description": "Verify FR-006 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "tests/common/test_deadman.py failure-mapping/retry/totality tests; tests/canary/test_run_deadman.py and scripts/office2/felix_health_check/tests/test_run_deadman.py ::test_a_raising_deadman_never_changes_the_exit_code; tick-signal and last-run.json schema pins",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-10-15T18:14:59.957248+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-007",
+      "description": "Verify FR-007 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "tests/common/test_deadman.py::test_success_ping_transport_is_hardened_and_url_only_on_stdin, ::test_failures_map_retry_once_and_never_leak (sentinel never in output), ::test_real_curl_ignores_hostile_curlrc, ::test_cli_prints_no_url; tests/docs/test_deadman_docs.py secret scan",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-10-15T18:15:09.128539+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-008",
+      "description": "Verify FR-008 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "tests/docs/test_deadman_docs.py::test_credential_manifest_records_the_ping_urls, ::test_data_flows_record_the_egress; validate_architecture_data 0 findings",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-10-15T18:15:18.308929+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-009",
+      "description": "Verify FR-009 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "tests/docs/test_deadman_docs.py::test_runbook_section_names_the_operational_facts; docs/runbooks/canary-registry-ops.md \u00a7 Off-host dead-man pings",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-10-15T18:15:27.219502+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-010",
+      "description": "Verify FR-010 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "tests/canary/test_run_deadman.py::test_runner_failure_pings_fail_and_keeps_exit_1, ::test_pass_status_error_pings_fail; scripts/office2/felix_health_check/tests/test_run_deadman.py script-missing/timeout/launch/coverage/serialisation/record-write fail tests",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-10-15T18:15:36.582750+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    }
+  ],
+  "negative_invariants": []
+}
