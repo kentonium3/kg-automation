@@ -18,10 +18,10 @@
       "criterion_id": "FR-002",
       "description": "Verify FR-002 is satisfied",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
+      "evidence": "tests/office2/restic_backup/test_pointer_emission.py::test_each_fatal_exit_records_its_cause[repo_inaccessible|backup_failed], ::test_run_killed_mid_backup_records_unclassified, ::test_failed_final_log_write_keeps_nonzero_exit_and_is_unclassified",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-10-15T16:20:45.068219+00:00",
       "notes": "TODO: replace with a real acceptance criterion"
     },
     {
