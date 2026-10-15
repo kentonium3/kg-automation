@@ -1,0 +1,30 @@
+{
+  "entries": [
+    {
+      "created_at": "2026-10-15T15:24:07.963474Z",
+      "decision_id": "01M502KQCV8SMFM13ZPZ5PZZTA",
+      "final_answer": "Confirmed",
+      "input_key": "intent_confirmed",
+      "mission_id": "01M502K3RQEMBXJCS2B480KC5Z",
+      "mission_slug": "backup-failure-cause-in-alert-01M502K3",
+      "opened_by": "cli",
+      "options": [
+        "Confirmed",
+        "Adjust",
+        "Other"
+      ],
+      "origin_flow": "specify",
+      "other_answer": false,
+      "question": "Confirm the intent summary for #1067 (failure cause named in backup alerts) and authorize driving the mission to merge and deploy without further check-ins unless something unexpected comes up?",
+      "rationale": null,
+      "resolved_at": "2026-10-15T15:25:54.093131Z",
+      "resolved_by": null,
+      "slot_key": "specify.intent.confirm",
+      "status": "resolved",
+      "step_id": null,
+      "summary_json": null
+    }
+  ],
+  "mission_id": "01M502K3RQEMBXJCS2B480KC5Z",
+  "version": 1
+}
