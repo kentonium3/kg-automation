@@ -83,15 +83,50 @@ def fresh_expected_baselines(now: "_dt.datetime | None" = None) -> "set[str]":
         pending_since = token.get("pending_since_utc")
         if not expected or not pending_since:
             return set()
-
-        now_dt = now if now is not None else _dt.datetime.now(tz=_dt.timezone.utc)
-        since_dt = _dt.datetime.fromisoformat(str(pending_since).replace("Z", "+00:00"))
-        age_seconds = (now_dt - since_dt).total_seconds()
-        # Reject stale (older than the short window) AND future-dated tokens.
-        if age_seconds < 0 or age_seconds > AUDIT_SUPPRESS_WINDOW_SECONDS:
+        # Only a list of non-empty strings can suppress anything; any other
+        # shape is corrupt and pages (#1072 post-merge Codex).
+        if not isinstance(expected, list) or not all(isinstance(b, str) and b for b in expected):
             return set()
 
-        return {str(b) for b in expected if b}
+        now_dt = now if now is not None else _dt.datetime.now(tz=_dt.timezone.utc)
+
+        def _fresh(stamp: object) -> bool:
+            since_dt = _dt.datetime.fromisoformat(str(stamp).replace("Z", "+00:00"))
+            age_seconds = (now_dt - since_dt).total_seconds()
+            # Reject stale (older than the short window) AND future-dated stamps.
+            return 0 <= age_seconds <= AUDIT_SUPPRESS_WINDOW_SECONDS
+
+        # Each expectation is fresh from when it entered the token: a baseline
+        # folded in by a later deploy (#1072, folded_at_utc) from its fold
+        # time, everything else from pending_since_utc. A bad per-baseline
+        # stamp makes only that baseline not-fresh (fail-safe: page).
+        # Absent fold metadata means nothing was folded in; present but not a
+        # mapping is corrupt, and a corrupt token suppresses nothing (page).
+        folded = token.get("folded_at_utc", {})
+        if not isinstance(folded, dict):
+            return set()
+        # A future-dated token is rejected outright, before any fold override.
+        since_dt = _dt.datetime.fromisoformat(str(pending_since).replace("Z", "+00:00"))
+        if (now_dt - since_dt).total_seconds() < 0:
+            return set()
+        token_fresh = _fresh(pending_since)
+        out: set[str] = set()
+        for b in expected:
+            if not b:
+                continue
+            try:
+                if b in folded:
+                    # Present means it must be a valid, fresh, non-future
+                    # timestamp string; anything else pages (never falls back).
+                    stamp = folded[b]
+                    fresh = isinstance(stamp, str) and bool(stamp) and _fresh(stamp)
+                else:
+                    fresh = token_fresh
+            except Exception:  # noqa: BLE001 - this baseline pages as usual
+                continue
+            if fresh:
+                out.add(str(b))
+        return out
     except Exception:  # noqa: BLE001 - fail-safe: any error -> empty (page as usual)
         return set()
 

@@ -1,0 +1,35 @@
+{
+  "accept_commit": "0f840bc772d25b06c65c9488dd41a393b22fe07f",
+  "acceptance_history": [
+    {
+      "accept_commit": "0f840bc772d25b06c65c9488dd41a393b22fe07f",
+      "acceptance_mode": "pr",
+      "accepted_at": "2026-10-15T13:12:19.558008+00:00",
+      "accepted_by": "claude",
+      "accepted_from_commit": "56042f36b49526bb15f2c8cdb00c3aed9bcbef84"
+    }
+  ],
+  "acceptance_mode": "pr",
+  "accepted_at": "2026-10-15T13:12:19.558008+00:00",
+  "accepted_by": "claude",
+  "accepted_from_commit": "56042f36b49526bb15f2c8cdb00c3aed9bcbef84",
+  "baseline_merge_commit": "a1bebeffb755bbcd10dd62d77a55315b89805219",
+  "created_at": "2026-10-15T11:48:15.226635+00:00",
+  "flattened": false,
+  "friendly_name": "Deploys report what they installed so the rebaseline expects it",
+  "merged_at": "2026-10-15T12:46:28.530358+00:00",
+  "merged_commit": "02c74825778a5d5e76bebf7d95aaed1961c6c1dc",
+  "mid8": "01M4ZP8E",
+  "mission_id": "01M4ZP8E6RNPVSBPZ0SQCZ0SVR",
+  "mission_number": 118,
+  "mission_slug": "deploy-runtime-installed-report-01M4ZP8E",
+  "mission_type": "software-dev",
+  "purpose_context": "felix-deployer decides which security-monitor baselines a deploy will change from the files changed in git, but drift comes from what was installed on the host. A deploy that re-installs files committed earlier ends in a false 'unexpected drift' alert unless its author remembered to declare it, and two of 32 deploys did not. The deploy library will report the repo files it installed, and the deployer will map them to baselines automatically. Tracks kentonium3/kg-automation#1072.",
+  "purpose_tldr": "Stop false 'unexpected drift' security alerts after intended deploys by having deploys report the files they actually installed, so the security rebaseline expects exactly that drift.",
+  "slug": "deploy-runtime-installed-report-01M4ZP8E",
+  "status_phase": "1",
+  "target_branch": "fix/deploy-runtime-installed-report",
+  "topology": "lanes",
+  "vcs": "git",
+  "vcs_locked_at": "2026-10-15T12:11:00.012806+00:00"
+}

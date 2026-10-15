@@ -708,6 +708,24 @@ that shipped with the parent mission (`pull-based-deploy-pipeline-01KTYQQS`,
 not exist; the applier shipped live on office2 with the notify path silently
 failing.
 
+### Felix-deployer installed-file report (#1072)
+
+```
+<entrypoint> --apply → $FELIX_DEPLOY_INSTALLED_REPORT (temp JSONL, felix-deployer's tmp) → lib.apply reads it
+→ rebaseline.baselines_for_installed_report → rebaseline-pending.json expected_baselines
+```
+
+A local, same-user file handoff inside one felix-deployer tick on office2. The
+apply gate creates a fresh `felix-installed-report-*` temp directory, passes its
+path to `--apply` only, reads the JSONL back and deletes the directory. Library
+installers (`scripts/deploy/lib/userunits.py`) append one `{source, dest}` line
+per file they wrote. felix-deployer maps entries to security-monitor baselines
+only with proof (source inside the checkout, destination under the surface's
+`host_paths`), folds them into the pending rebaseline token, and logs a
+`rebaseline_reported` event. Nothing leaves the host; the file never outlives
+the tick. Contract:
+[`kitty-specs/deploy-runtime-installed-report-01M4ZP8E/contracts/installed-report.md`](<../../../kitty-specs/deploy-runtime-installed-report-01M4ZP8E/contracts/installed-report.md>).
+
 ### Unified Alert Bus — Shared Emit (#701, ledger #706)
 
 ```

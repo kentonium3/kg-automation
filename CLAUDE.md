@@ -382,11 +382,14 @@ the tick pulled**, not files that are merely tracked. A deploy whose drift has
 no signal in its own range must declare the baselines it will drift via the
 `expected_baselines` field in its manifest so the auto-rebaseline still covers
 it. That means a runtime `openclaw cron rm`, **and also a reconcile deploy that
-installs tracked files changed in an earlier commit**. 0027 and 0029 both ended
-`unexpected_drift` because their authors reasoned "the files are tracked, so
+installs tracked files changed in an earlier commit**. 0029 ended
+`unexpected_drift` because its author reasoned "the files are tracked, so
 observe covers it" (#1065, #1072). Ask "does *this commit* change a file on the
 drifting surface?", not "is the file tracked?" (see
 [deployment.md](docs/runbooks/deployment.md#manifest-expected_baselines-declaration)).
+Units installed through `scripts/deploy/lib/userunits.py` are now reported and
+expected automatically (#1072); every other no-signal drift still declares
+`expected_baselines`.
 
 **Out-of-band exception (manual reset still required):** changes made
 directly on office2 — not through the manifest pipeline — are invisible

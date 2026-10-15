@@ -333,3 +333,80 @@ def test_extra_check_runs_even_when_expect_fails_and_unreadable_reports_alone(tm
     res2 = uu.verify_unit("a.timer", Run(show={"a.timer": _show(tmp_path, "a.timer", Persistent="yes")}),
                           unit_dir=tmp_path, expect={"Persistent": "no"}, read=boom)
     assert res2.details["problems"] == [f"cannot read unit file {tmp_path / 'a.timer'}: gone"]
+
+
+# --- installed-file report (#1072) -------------------------------------------------
+
+from scripts.deploy.lib import installed_report as ir  # noqa: E402
+
+
+@pytest.fixture
+def report(tmp_path, monkeypatch):
+    path = tmp_path / "report.jsonl"
+    monkeypatch.setenv(ir.ENV_VAR, str(path))
+    return path
+
+
+def _reported(path):
+    return ir.read_report(path)
+
+
+def test_install_reports_exactly_the_changed_files(tmp_path, report):
+    a = _src(tmp_path, "a.timer", "a")
+    b = _src(tmp_path, "b.timer", "b")
+    c = _src(tmp_path, "c.timer", "c")
+    unit_dir = tmp_path / "units"
+    unit_dir.mkdir()
+    (unit_dir / "c.timer").write_text("c")  # unchanged
+    assert uu.install_units([a, b, c], unit_dir).ok
+    res = _reported(report)
+    assert res["rejected"] is False
+    assert res["entries"] == [
+        {"source": str(a.resolve()), "dest": str((unit_dir / "a.timer").resolve())},
+        {"source": str(b.resolve()), "dest": str((unit_dir / "b.timer").resolve())},
+    ]
+
+
+def test_reinstalling_identical_files_reports_nothing(tmp_path, report):
+    a = _src(tmp_path, "a.timer", "a")
+    unit_dir = tmp_path / "units"
+    assert uu.install_units([a], unit_dir).ok
+    report.unlink()
+    assert uu.install_units([a], unit_dir).ok
+    assert _reported(report)["missing"] is True
+
+
+def test_a_mid_install_failure_reports_only_what_landed(tmp_path, report, monkeypatch):
+    a = _src(tmp_path, "a.timer", "a")
+    b = _src(tmp_path, "b.timer", "b")
+    unit_dir = tmp_path / "units"
+    real_replace = uu.os.replace
+    calls = []
+
+    def flaky_replace(src, dst):
+        calls.append(dst)
+        if len(calls) == 2:
+            raise OSError("disk full")
+        return real_replace(src, dst)
+
+    monkeypatch.setattr(uu.os, "replace", flaky_replace)
+    res = uu.install_units([a, b], unit_dir)
+    assert not res.ok
+    assert [e["dest"] for e in _reported(report)["entries"]] == [str((unit_dir / "a.timer").resolve())]
+
+
+def test_without_the_variable_no_report_is_written(tmp_path, monkeypatch):
+    monkeypatch.delenv(ir.ENV_VAR, raising=False)
+    a = _src(tmp_path, "a.timer", "a")
+    assert uu.install_units([a], tmp_path / "units").ok
+    assert not list(tmp_path.rglob("*.jsonl"))
+
+
+def test_an_unwritable_report_never_fails_the_install(tmp_path, monkeypatch, capsys):
+    """renata WP02: the install succeeds and only the marker reaches stderr."""
+    monkeypatch.setenv(ir.ENV_VAR, str(tmp_path / "no-such-dir" / "report.jsonl"))
+    a = _src(tmp_path, "a.timer", "a")
+    res = uu.install_units([a], tmp_path / "units")
+    assert res.ok and (tmp_path / "units" / "a.timer").read_text() == "a"
+    out, err = capsys.readouterr()
+    assert out == "" and err.startswith(ir.WRITE_FAILED_MARKER)

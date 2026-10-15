@@ -1,0 +1,128 @@
+{
+  "version": 1,
+  "mission_slug": "deploy-runtime-installed-report-01M4ZP8E",
+  "mission_id": "01M4ZP8E6RNPVSBPZ0SQCZ0SVR",
+  "mission_branch": "kitty/mission-deploy-runtime-installed-report-01M4ZP8E",
+  "target_branch": "fix/deploy-runtime-installed-report",
+  "lanes": [
+    {
+      "lane_id": "lane-a",
+      "wp_ids": [
+        "WP01"
+      ],
+      "write_scope": [
+        "scripts/deploy/lib/installed_report.py",
+        "tests/deploy/test_installed_report.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "legacy-cleanup"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    },
+    {
+      "lane_id": "lane-b",
+      "wp_ids": [
+        "WP02"
+      ],
+      "write_scope": [
+        "scripts/deploy/lib/userunits.py",
+        "tests/deploy/test_userunits.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "legacy-cleanup"
+      ],
+      "depends_on_lanes": [
+        "lane-a"
+      ],
+      "parallel_group": 1
+    },
+    {
+      "lane_id": "lane-c",
+      "wp_ids": [
+        "WP03"
+      ],
+      "write_scope": [
+        "scripts/deploy/lib/apply.py",
+        "tests/deploy/test_apply_installed_report.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "legacy-cleanup"
+      ],
+      "depends_on_lanes": [
+        "lane-a"
+      ],
+      "parallel_group": 1
+    },
+    {
+      "lane_id": "lane-d",
+      "wp_ids": [
+        "WP04"
+      ],
+      "write_scope": [
+        "docs/design/architecture/data/audited-surfaces.json",
+        "scripts/deploy/felix-deployer/rebaseline.py",
+        "tests/deploy/test_rebaseline_reported.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "legacy-cleanup",
+        "tracker-integration"
+      ],
+      "depends_on_lanes": [
+        "lane-a"
+      ],
+      "parallel_group": 1
+    },
+    {
+      "lane_id": "lane-e",
+      "wp_ids": [
+        "WP05"
+      ],
+      "write_scope": [
+        "scripts/deploy/felix-deployer/_tick.py",
+        "tests/deploy/test_tick_rebaseline.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "legacy-cleanup"
+      ],
+      "depends_on_lanes": [
+        "lane-c",
+        "lane-d"
+      ],
+      "parallel_group": 2
+    },
+    {
+      "lane_id": "lane-f",
+      "wp_ids": [
+        "WP06"
+      ],
+      "write_scope": [
+        "CLAUDE.md",
+        "docs/design/architecture/data-flows.md",
+        "docs/design/architecture/data/data-flows.json",
+        "docs/runbooks/deploy/discipline.md",
+        "docs/runbooks/deployment.md",
+        "docs/runbooks/security-baseline-ops.md",
+        "scripts/deploy/lib/README.md",
+        "tests/deploy/test_host_copies_report.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "legacy-cleanup"
+      ],
+      "depends_on_lanes": [
+        "lane-e"
+      ],
+      "parallel_group": 3
+    }
+  ],
+  "computed_at": "2026-10-15T12:10:26.082547+00:00",
+  "computed_from": "dependency_graph+ownership",
+  "planning_artifact_wps": [],
+  "planning_commit_sha": "b17190a079eed2a1e569c527aaf0eaac7e2dff49"
+}

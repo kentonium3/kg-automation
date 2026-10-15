@@ -1916,3 +1916,319 @@ def test_stamp_commit_failure_restores_paths(
         and "git commit failed" in (e.get("reason") or "")
         for e in entries
     )
+
+
+# ---------------------------------------------------------------------------
+# #1072 — installed-file reports reach the fold (real reconcile)
+# ---------------------------------------------------------------------------
+#
+# These tests run the REAL observe-free path: reconcile is not stubbed. The
+# audit is a stateful fake: before the rebaseline command it reports the drift
+# the scenario names; the rebaseline command (``rm ... && audit.sh``) resets
+# it, and later audits are clean. The baselines directory holds exactly
+# ``expected_baseline_count`` files so the count check passes.
+
+UNIT_CONTENTS = "systemd-user-unit-contents.txt"
+
+
+class _Audit:
+    def __init__(self, drifted: list[str]):
+        self.drifted = list(drifted)
+        self.calls: list[list[str]] = []
+
+    def __call__(self, cmd):
+        self.calls.append(list(cmd))
+        text = " ".join(cmd)
+        if "rm " in text:
+            self.drifted = []
+            return _FakeProc(returncode=0, stdout="Security audit: All clear")
+        if self.drifted:
+            out = "\n".join(f"[ALERT] {b} changed since baseline: -a\n+b" for b in self.drifted)
+            return _FakeProc(returncode=1, stdout=out)
+        return _FakeProc(returncode=0, stdout="Security audit 2026-10-15: All clear")
+
+
+@pytest.fixture()
+def reported_world(monkeypatch, tmp_path):
+    """A repo with one unit file, a home with a unit dir, isolated state."""
+    import yaml
+
+    repo = tmp_path / "repo"
+    for sub in ("queued", "applied", "failed", "schema"):
+        (repo / "deploys" / sub).mkdir(parents=True, exist_ok=True)
+    unit = repo / "scripts" / "sync" / "systemd" / "x.timer"
+    unit.parent.mkdir(parents=True)
+    unit.write_text("[Timer]\n")
+    home = tmp_path / "home"
+    unit_dir = home / ".config" / "systemd" / "user"
+    unit_dir.mkdir(parents=True)
+    monkeypatch.setenv("HOME", str(home))
+
+    registry, err = rebaseline.load_audited_surfaces_or_error()
+    assert err is None
+    baselines = tmp_path / "baselines"
+    baselines.mkdir()
+    for i in range(registry["expected_baseline_count"]):
+        (baselines / f"b{i}.txt").write_text("x")
+
+    token_path = tmp_path / "state" / "rebaseline-pending.json"
+    monkeypatch.setattr(rebaseline, "DEFAULT_TOKEN_PATH", token_path)
+    monkeypatch.setattr(rebaseline, "DEFAULT_OBSERVED_HEAD_PATH", tmp_path / "state" / "wm.json")
+    monkeypatch.setattr(rebaseline, "DEFAULT_BASELINES_DIR", baselines)
+    monkeypatch.setattr(tick, "_git", _git_mock(pre_sha=PRE, post_sha=POST))
+    # The manifest move has no repo-file signal: observe finds nothing.
+    monkeypatch.setattr(rebaseline, "observe", lambda *a, **kw: {"outcome": "not_required"})
+    monkeypatch.setattr(
+        tick, "_record_success",
+        lambda repo_root, manifest_path, manifest_data, head_sha: tick._RecordResult(
+            ok=True, commit_sha=None, pushed=True,
+            applied_path=str(repo_root / "deploys" / "applied" / "x.yaml")),
+    )
+    monkeypatch.setattr(tick._notify, "dispatch_failure_notification", lambda **kw: None)
+    alerts: list = []
+    monkeypatch.setattr(tick._notify, "dispatch_rebaseline_alert",
+                        lambda *a, **kw: alerts.append((a, kw)) or True)
+
+    def queue(name="0099-reinstall", **extra):
+        manifest = {"name": name, "tier": 3, "entrypoint": "scripts/noop.sh", **extra}
+        (repo / "deploys" / "queued" / f"{name}.yaml").write_text(yaml.safe_dump(manifest))
+
+    def report(*dests, rejected=False):
+        return {
+            "entries": [{"source": str(unit.resolve()), "dest": str(d)} for d in dests],
+            "rejected": rejected, "missing": not dests, "warnings": [],
+        }
+
+    return {"repo": repo, "unit_dir": unit_dir, "token_path": token_path, "queue": queue,
+            "report": report, "tmp": tmp_path, "alerts": alerts}
+
+
+def _gate_returning(monkeypatch, *results):
+    """Patch the apply gate to return *results* in order (one per manifest)."""
+    from scripts.deploy.lib import LibResult
+    from scripts.deploy.lib import apply as _apply_lib
+
+    it = iter(results)
+
+    def _gate(manifest, path):
+        ok, details = next(it)
+        return LibResult(ok=ok, summary="applied" if ok else "apply failed", details=details)
+
+    monkeypatch.setattr(_apply_lib, "dry_run_then_apply_gate", _gate)
+
+
+def _run(world, log_dir, monkeypatch, audit):
+    monkeypatch.setattr(rebaseline, "_default_audit_runner", audit)
+    assert tick.run_tick(repo_root=world["repo"], log_dir=log_dir) == 0
+    entries = _read_log(log_dir)
+    assert not [e for e in entries if e.get("event") in ("tick_error", "rebaseline_error")], entries
+    return entries
+
+
+def _outcome(entries):
+    return next(e for e in entries if e.get("event") == "rebaseline_reconcile")["outcome"]
+
+
+def _channel(report, write_failed=False):
+    return {"installed_report": report, "installed_report_write_failed": write_failed,
+            "phase": "complete"}
+
+
+def _seed_observed_token(w):
+    """0029's tick also pulled a commit touching another audited surface, so
+    observe had a pending token whose expectations excluded the unit drift."""
+    w["token_path"].parent.mkdir(parents=True, exist_ok=True)
+    rebaseline.write_token({
+        "schema_version": rebaseline.SCHEMA_VERSION, "pending_since_utc": rebaseline._utc_now_iso(),
+        "observed_head_sha": POST, "surface_ids": ["openclaw-config"],
+        "expected_baselines": ["openclaw-config.txt"], "matched_files": ["scripts/openclaw/openclaw.json"],
+        "last_check_utc": None, "alerts_emitted": [],
+    }, w["token_path"])
+
+
+def test_0029_replay_with_an_observed_token_completes(monkeypatch, reported_world, log_dir):
+    w = reported_world
+    _seed_observed_token(w)
+    w["queue"]()
+    _gate_returning(monkeypatch, (True, _channel(w["report"](w["unit_dir"] / "x.timer"))))
+    entries = _run(w, log_dir, monkeypatch, _Audit([UNIT_CONTENTS]))
+    assert _outcome(entries) == "completed"
+    assert not w["alerts"]
+
+
+def test_0029_replay_control_without_a_report_is_unexpected_drift(monkeypatch, reported_world, log_dir):
+    """The #1072 false alert, reproduced: same tick, same drift, no report."""
+    w = reported_world
+    _seed_observed_token(w)
+    w["queue"]()
+    _gate_returning(monkeypatch, (True, {"phase": "complete"}))
+    entries = _run(w, log_dir, monkeypatch, _Audit([UNIT_CONTENTS]))
+    rec = next(e for e in entries if e.get("event") == "rebaseline_reconcile")
+    assert rec["outcome"] == "unexpected_drift" and rec["unexpected"] == [UNIT_CONTENTS]
+    assert w["alerts"], "the false alert is what #1072 removes"
+
+
+def test_0029_replay_reported_install_completes(monkeypatch, reported_world, log_dir):
+    w = reported_world
+    w["queue"]()
+    _gate_returning(monkeypatch, (True, _channel(w["report"](w["unit_dir"] / "x.timer"))))
+    entries = _run(w, log_dir, monkeypatch, _Audit([UNIT_CONTENTS]))
+    assert _outcome(entries) == "completed"
+    rep = next(e for e in entries if e.get("event") == "rebaseline_reported")
+    assert rep["apply_ok"] is True and UNIT_CONTENTS in rep["baselines"] and rep["absorbed"] is True
+    # FR-006: the event names the files, since the report is deleted afterwards.
+    assert rep["files"] == [{"source": str((w["repo"] / "scripts/sync/systemd/x.timer").resolve()),
+                             "dest": str(w["unit_dir"] / "x.timer")}]
+    assert rep["matched"] == ["scripts/sync/systemd/x.timer"]
+    fold = next(e for e in entries if e.get("event") == "rebaseline_fold")
+    assert fold["manifest_names"] == ["0099-reinstall"]
+
+
+def test_without_a_report_or_token_nothing_is_expected(monkeypatch, reported_world, log_dir):
+    """Without a token the drift is left to the daily audit to alert on."""
+    w = reported_world
+    w["queue"]()
+    _gate_returning(monkeypatch, (True, {"phase": "complete"}))
+    entries = _run(w, log_dir, monkeypatch, _Audit([UNIT_CONTENTS]))
+    assert _outcome(entries) == "not_required"
+    assert not any(e.get("event") == "rebaseline_reported" for e in entries)
+
+
+def test_scratch_destination_is_not_expected(monkeypatch, reported_world, log_dir):
+    w = reported_world
+    w["queue"]()
+    _gate_returning(monkeypatch, (True, _channel(w["report"](w["tmp"] / "scratch" / "x.timer"))))
+    entries = _run(w, log_dir, monkeypatch, _Audit([UNIT_CONTENTS]))
+    rep = next(e for e in entries if e.get("event") == "rebaseline_reported")
+    assert rep["rejected"] is True and rep["baselines"] == []
+    assert _outcome(entries) == "not_required"
+
+
+def test_failed_apply_declared_folds_nothing_but_reported_folds(monkeypatch, reported_world, log_dir):
+    """Paired: intent (declared) needs success; evidence (reported) does not."""
+    w = reported_world
+    w["queue"]("0098-declared-fails", audited_surface=True, expected_baselines=[UNIT_CONTENTS])
+    w["queue"]("0099-reported-fails")
+    _gate_returning(
+        monkeypatch,
+        (False, {"phase": "entrypoint_apply"}),
+        (False, {**_channel(w["report"](w["unit_dir"] / "x.timer")), "phase": "entrypoint_apply"}),
+    )
+    entries = _run(w, log_dir, monkeypatch, _Audit([UNIT_CONTENTS]))
+    fold = next(e for e in entries if e.get("event") == "rebaseline_fold")
+    assert fold["manifest_names"] == ["0099-reported-fails"]
+    assert _outcome(entries) == "completed"
+    assert not any(e.get("event") == "rebaseline_stamped" for e in entries)
+
+
+def test_failed_apply_with_only_a_declaration_creates_no_token(monkeypatch, reported_world, log_dir):
+    w = reported_world
+    w["queue"]("0098-declared-fails", audited_surface=True, expected_baselines=[UNIT_CONTENTS])
+    _gate_returning(monkeypatch, (False, {"phase": "entrypoint_apply"}))
+    entries = _run(w, log_dir, monkeypatch, _Audit([UNIT_CONTENTS]))
+    assert not any(e.get("event") == "rebaseline_fold" for e in entries)
+    assert not w["token_path"].exists()
+
+
+def test_post_verification_failure_with_a_report_folds(monkeypatch, reported_world, log_dir):
+    w = reported_world
+    w["queue"]()
+    _gate_returning(monkeypatch, (False, {**_channel(w["report"](w["unit_dir"] / "x.timer")),
+                                          "phase": "verification_post"}))
+    entries = _run(w, log_dir, monkeypatch, _Audit([UNIT_CONTENTS]))
+    assert _outcome(entries) == "completed"
+    rep = next(e for e in entries if e.get("event") == "rebaseline_reported")
+    assert rep["apply_ok"] is False
+
+
+def test_no_report_leaves_the_token_untouched(monkeypatch, reported_world, log_dir):
+    """SC-003: a pre-existing token is byte-identical when nothing is reported."""
+    w = reported_world
+    w["token_path"].parent.mkdir(parents=True, exist_ok=True)
+    rebaseline.write_token({
+        "schema_version": rebaseline.SCHEMA_VERSION, "pending_since_utc": "2026-10-15T00:00:00Z",
+        "observed_head_sha": PRE, "surface_ids": ["openclaw-config"],
+        "expected_baselines": ["openclaw-config.txt"], "matched_files": [],
+        "last_check_utc": None, "alerts_emitted": [],
+    }, w["token_path"])
+    w["queue"]()
+    _gate_returning(monkeypatch, (True, {"phase": "complete"}))
+    monkeypatch.setattr(rebaseline, "reconcile", lambda **kw: {"outcome": "inconclusive"})
+    before = w["token_path"].read_bytes()
+    _run(w, log_dir, monkeypatch, _Audit([]))
+    assert w["token_path"].read_bytes() == before
+
+
+@pytest.mark.parametrize("bad", [None, "garbage", {"entries": "nope"}, {"entries": [{"x": 1}]}, 42])
+def test_malformed_report_completes_with_a_warning(monkeypatch, reported_world, log_dir, bad):
+    w = reported_world
+    w["queue"]()
+    _gate_returning(monkeypatch, (True, {"installed_report": bad, "phase": "complete"}))
+    entries = _run(w, log_dir, monkeypatch, _Audit([UNIT_CONTENTS]))
+    rep = next(e for e in entries if e.get("event") == "rebaseline_reported")
+    assert rep["baselines"] == [] and rep["warnings"]
+    assert _outcome(entries) == "not_required"
+
+
+def test_mapper_raising_never_crashes_the_tick(monkeypatch, reported_world, log_dir):
+    w = reported_world
+    w["queue"]()
+    _gate_returning(monkeypatch, (True, _channel(w["report"](w["unit_dir"] / "x.timer"))))
+
+    def boom(*a, **k):
+        raise RuntimeError("mapper exploded")
+
+    monkeypatch.setattr(rebaseline, "baselines_for_installed_report", boom)
+    entries = _run(w, log_dir, monkeypatch, _Audit([]))
+    err = next(e for e in entries if e.get("event") == "rebaseline_reported_error")
+    assert "mapper exploded" in err["error"]
+
+
+def test_failed_manifest_is_never_stamped(monkeypatch, reported_world, log_dir):
+    w = reported_world
+    w["queue"]("0097-ok")
+    w["queue"]("0098-fails")
+    _gate_returning(
+        monkeypatch,
+        (True, _channel(w["report"](w["unit_dir"] / "x.timer"))),
+        (False, {**_channel(w["report"](w["unit_dir"] / "x.timer")), "phase": "entrypoint_apply"}),
+    )
+    entries = _run(w, log_dir, monkeypatch, _Audit([UNIT_CONTENTS]))
+    stamp = next(e for e in entries if e.get("event") == "rebaseline_stamped")
+    assert stamp["applied_manifests"] == ["0097-ok"]
+    fold = next(e for e in entries if e.get("event") == "rebaseline_fold")
+    assert fold["manifest_names"] == ["0097-ok", "0098-fails"]
+
+
+def test_nfr001_mapping_ten_manifests_of_a_hundred_files_under_a_second(reported_world, tmp_path):
+    """NFR-001 (analysis C1): 10 manifests x 100 reported files map in < 1 s."""
+    import time
+
+    w = reported_world
+    units = []
+    for i in range(100):
+        u = w["repo"] / "scripts" / "sync" / "systemd" / f"u{i}.timer"
+        u.write_text("x")
+        units.append(u)
+    report = {"entries": [{"source": str(u.resolve()), "dest": str(w["unit_dir"] / u.name)} for u in units],
+              "rejected": False, "missing": False, "warnings": []}
+    log_path = tmp_path / "nfr.jsonl"
+    start = time.monotonic()
+    for m in range(10):
+        from scripts.deploy.lib import LibResult
+        tick._collect_reported(LibResult(True, "ok", {"installed_report": report}), f"m{m}",
+                               w["repo"], log_path, set(), [])
+    elapsed = time.monotonic() - start
+    assert elapsed < 1.0, f"mapping took {elapsed:.3f}s"
+
+
+def test_declared_and_reported_baselines_fold_as_a_union(monkeypatch, reported_world, log_dir):
+    """FR-005: a manifest that declares a baseline AND reports an install folds
+    both; the declaration behaves exactly as before."""
+    w = reported_world
+    w["queue"]("0099-both", audited_surface=True, expected_baselines=["openclaw-cron.txt"])
+    _gate_returning(monkeypatch, (True, _channel(w["report"](w["unit_dir"] / "x.timer"))))
+    entries = _run(w, log_dir, monkeypatch, _Audit(["openclaw-cron.txt", UNIT_CONTENTS]))
+    fold = next(e for e in entries if e.get("event") == "rebaseline_fold")
+    assert {"openclaw-cron.txt", UNIT_CONTENTS} <= set(fold["expected_baselines"])
+    assert _outcome(entries) == "completed"
