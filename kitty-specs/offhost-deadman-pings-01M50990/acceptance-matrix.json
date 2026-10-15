@@ -48,10 +48,10 @@
       "criterion_id": "FR-005",
       "description": "Verify FR-005 is satisfied",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
+      "evidence": "tests/common/test_deadman.py::test_missing_file_is_unconfigured_and_never_runs, ::test_is_configured; tests/canary/test_run_deadman.py and scripts/office2/felix_health_check/tests/test_run_deadman.py ::test_unconfigured_deadman_makes_no_probe_and_no_ping",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-10-15T18:14:51.018419+00:00",
       "notes": "TODO: replace with a real acceptance criterion"
     },
     {
