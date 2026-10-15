@@ -1,17 +1,17 @@
 {
   "mission_slug": "deploy-runtime-installed-report-01M4ZP8E",
-  "mission_number": "",
+  "mission_number": "118",
   "mission_type": "software-dev",
   "overall_verdict": "pending",
   "criteria": [
     {
       "criterion_id": "FR-001",
       "description": "Verify FR-001 is satisfied",
-      "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
+      "proof_type": "automated-test",
+      "evidence": "tests/deploy/test_userunits.py::test_install_reports_exactly_the_changed_files, ::test_reinstalling_identical_files_reports_nothing, ::test_a_mid_install_failure_reports_only_what_landed",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-10-15T13:10:46.755213+00:00",
       "notes": "TODO: replace with a real acceptance criterion"
     },
     {
