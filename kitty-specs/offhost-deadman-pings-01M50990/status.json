@@ -64,7 +64,8 @@
       "last_transition_at": "2026-10-15T17:51:10.308629+00:00",
       "model": "__resolved_model_absent__",
       "notes": [
-        "canary hook; 355 canary tests"
+        "canary hook; 355 canary tests",
+        "reviewer-renata (claude-sonnet-5-5) APPROVE, 2026-10-15; finding 5 (real deadman reachable from existing CLI tests) fixed repo-wide in WP04 via root conftest.py"
       ],
       "provider": "__resolved_provider_absent__",
       "review_result": {
