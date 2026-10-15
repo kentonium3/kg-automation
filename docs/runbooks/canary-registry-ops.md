@@ -276,7 +276,7 @@ arrives, healthchecks.io **emails** Kent, never through ntfy. Decided in RFC
 | Check | Env variable | Schedule on healthchecks.io |
 |---|---|---|
 | `felix-canary` | `FELIX_DEADMAN_CANARY_URL` | Simple: period 15 min, grace 45 min |
-| `felix-health-check` | `FELIX_DEADMAN_HEALTHCHECK_URL` | Cron `0 11,23 * * *`, timezone UTC, grace 1 h |
+| `felix-health-check` | `FELIX_DEADMAN_HEALTHCHECK_URL` | Cron `0 11,23 * * *`, timezone UTC, grace 1 h. This matches `felix-health-check.timer`'s `OnCalendar`, which uses host-local time; office2 is `Etc/UTC`. If the host timezone ever changes, change the check's timezone too. |
 
 **What a ping means.** A run pings `success` only when the watcher did its own
 work and the felix-alert channel could deliver. It does **not** mean
@@ -305,7 +305,8 @@ ssh -t office2-claude 'umask 077; mkdir -p ~/.config/felix/deadman; read -rsp "c
 ```
 
 To rotate, regenerate the ping URL in healthchecks.io and run the same
-one-liner again.
+one-liner again. The remote command relies on bash's `read -rsp`; `claude`'s
+login shell on office2 is `/bin/bash`, verified 2026-10-15.
 
 ### Verify
 
@@ -325,11 +326,18 @@ You should get an email. The next real tick returns the check to "up".
 
 ### Reading a `fail` email
 
-Check the journal for the reason:
+Check the journal of the watcher whose check failed:
 
 ```bash
-ssh office2-claude 'journalctl --user -u felix-canary.service --since -1h | grep -E "deadman"'
+ssh office2-claude 'journalctl --user -u felix-canary.service --since -1h | grep deadman'
 ```
+
+```bash
+ssh office2-claude 'journalctl --user -u felix-health-check.service --since -13h | grep deadman'
+```
+
+In the canary journal the reason follows `deadman channel:`. In the health-check
+journal it follows `deadman fail reason:`.
 
 Reasons:
 - `topic_missing`: fix `~/.config/felix/alert-bus/env`.

@@ -40,7 +40,9 @@ def test_data_flows_record_the_egress():
     assert "ntfy-health-probe" in names
 
 
-_REAL_PING_URL = re.compile(r"hc-ping\.com/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-")
+# Any concrete ping path (UUID or <ping-key>/<slug> form) -- placeholders such
+# as "<uuid>" start with "<" and are excluded (WP04 review).
+_REAL_PING_URL = re.compile(r"hc-ping\.com/(?!<)[A-Za-z0-9_-]{8,}")
 
 
 def test_no_real_ping_url_is_committed_anywhere_in_docs_or_scripts():
@@ -48,7 +50,10 @@ def test_no_real_ping_url_is_committed_anywhere_in_docs_or_scripts():
     offenders = []
     for root in (REPO / "docs", REPO / "scripts"):
         for path in root.rglob("*"):
-            if path.is_file() and path.suffix in {".md", ".json", ".py", ".sample", ".sh", ".txt"}:
+            if path.is_file() and path.suffix in {
+                ".md", ".json", ".py", ".sample", ".sh", ".txt", ".yaml", ".yml",
+                ".service", ".timer", ".env", ".toml", ".cfg", ".ini",
+            }:
                 if _REAL_PING_URL.search(path.read_text(errors="ignore")):
                     offenders.append(str(path.relative_to(REPO)))
     assert not offenders, offenders

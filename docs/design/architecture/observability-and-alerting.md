@@ -249,7 +249,8 @@ flowchart LR
   pings stop, healthchecks.io **emails** Kent, deliberately never through ntfy.
   - The canary's check alerts about an hour after silence (15 min period plus
     45 min grace). The health check's check is on a Cron schedule matching its
-    11:00 and 23:00 UTC timer.
+    11:00 and 23:00 timer. The timer uses host-local time, and office2 is
+    `Etc/UTC`.
   - **A `success` ping means liveness plus a working channel, not component
     health.** The watcher must have run without an execution fault and the
     alert channel must be ok, judged freshly every run with no state: the
