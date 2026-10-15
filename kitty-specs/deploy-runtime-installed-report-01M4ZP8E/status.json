@@ -94,6 +94,9 @@
       "last_event_id": "01M4ZR5QZZ8HC3Q5H0QKAH8WY2",
       "last_transition_at": "2026-10-15T12:21:44.063597+00:00",
       "model": "__resolved_model_absent__",
+      "notes": [
+        "Ready for review: mapper with proof, host_paths, fold freshness; 20 new tests, 6 mutations caught"
+      ],
       "provider": "__resolved_provider_absent__",
       "role": "implementer",
       "shell_pid": 535375,
