@@ -35,6 +35,18 @@
       "title": null,
       "verdict": "in-mission",
       "wp": "WP04"
+    },
+    "#557": {
+      "evidence_ref": "cited in plan charter check: no audited surface touched",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": null,
+      "title": null,
+      "verdict": "not-applicable",
+      "wp": null
     }
   },
   "schema_version": 1
