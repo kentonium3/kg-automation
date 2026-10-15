@@ -48,10 +48,10 @@
       "criterion_id": "FR-005",
       "description": "Verify FR-005 is satisfied",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
+      "evidence": "tests/canary/test_probes_cause.py::test_not_mounted_pointer_names_the_drive, ::test_each_declared_code_gives_a_distinct_suffix (real run_probe, real inventory ledger)",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-10-15T16:21:12.111973+00:00",
       "notes": "TODO: replace with a real acceptance criterion"
     },
     {
