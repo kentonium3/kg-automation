@@ -42,3 +42,31 @@ Each manifest's report handling is wrapped. Any exception leaves a `rebaseline_r
 
 - R5 widens when expectations can grow (failed applies). Does any failure mode report a file that did not land? No: the line is written after `os.replace`. Reviewers should still check this.
 - Environment inheritance: `--apply` gets `os.environ` plus the report variable. Verify that nothing else changes for existing entrypoints.
+
+## Post-plan review dispositions (2026-10-15)
+
+Reviewers: Codex (GPT, read-only) **REJECT**; paula-patterns (claude-sonnet-5-5) APPROVE-WITH-CHANGES; debugger-debbie (claude-sonnet-5-5) CONFIRMED-WITH-GAPS. Implementer: claude-opus-5-5.
+
+| Finding | Disposition |
+|---|---|
+| Codex 1 HIGH: a reported source does not prove an audited installation (scratch destination, fabricated report) | **Accepted.** Report `{source, dest}`. `dest` must resolve inside the matching surface's new `host_paths`. Trust model stated (same UID, PR-reviewed). FR-009. |
+| Codex 2 MED: post-verification failure discards installed evidence | **Accepted.** `installed_report` is merged into every return after `--apply`. |
+| Codex 3 MED: fold into an old token inherits an expired grace window | **Accepted.** `last_fold_utc` on merge; grace uses max(pending_since, last_fold); stale is unchanged. |
+| Codex 4 MED: the reader can block (FIFO) or race | **Accepted.** `O_NOFOLLOW` + `O_NONBLOCK`, fstat regular-file check, cap+1 read, strict UTF-8. |
+| Codex 5 MED: piecemeal filtering contradicts fail-closed | **Accepted.** Wholesale rejection in both the reader and the mapper. FR-004 reworded. |
+| Codex 6 MED: inherited variable reaches non-apply commands | **Accepted.** Every command gets the environment with the variable removed; only `--apply` gets it set. |
+| Codex 7 LOW: failed manifests mislabelled as applied; fold names not persisted | **Accepted.** Separate `reported_contributors`; the merge persists the `manifest_names` union. |
+| Codex 8 LOW: lost producer reports are unobservable | **Accepted.** stderr marker line, checked by `apply`. |
+| Codex note: the existing "end-to-end" declared test stubs reconcile | **Accepted.** The new tick tests use real reconcile with an injected audit runner. |
+| paula 1 HIGH: writer belongs in a generic module | **Accepted.** `lib/installed_report.py` owns the name, format and reader. |
+| paula 2 HIGH: nothing stops a future installer forgetting to report | **Accepted.** Guard test `test_host_copies_report.py` (IC-06). |
+| paula 3 MED: name the seam | **Accepted.** Contract and README; `_run_shell` env docstring. |
+| paula 4 MED: two fold gates need an explicit invariant | **Accepted.** Two named sets, unioned only at the fold, plus a paired regression test. |
+| paula 5 MED: `manifest_names` loose end | Resolved by Codex 7. |
+| paula 6/7 LOW: source-keyed report; documented keys | **Accepted.** The report is now `{source, dest}`; keys are documented in the contract. |
+| debbie 2 HIGH: 0027 is not this class | **Accepted.** Spec and issue corrected; 0027 was a correct alert and is not suppressed. |
+| debbie 4 MED: other episodes (openclaw-config runtime, 0030 shell) need `expected_baselines` | **Accepted.** FR-008 wording; docs keep the field mandatory for non-library drift. |
+| debbie 5 MED: absorbed out-of-band drift; over-expectation window | **Accepted.** Logged as `absorbed`; the window is bounded by grace and token lifetime and documented. |
+| debbie 6 LOW: a repo-only edit with no deploy queued (0029's upstream cause) | Out of scope; trust-scan unit-drift partly covers it. Noted. |
+
+Open for the re-review: whether `host_paths` belongs in `audited-surfaces.json` (the registry of repo→baseline) or in a separate host-location map.

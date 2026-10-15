@@ -7,7 +7,19 @@
 
 ## Summary
 
-`scripts/deploy/lib/userunits.install_units` appends one JSON line per *changed* installed file to the file named by `FELIX_DEPLOY_INSTALLED_REPORT`, when that variable is set. `scripts/deploy/lib/apply.dry_run_then_apply_gate` creates a fresh empty report file for each manifest and passes it to `--apply` only. Afterwards it reads the report back defensively and returns the repo-relative installed paths in `LibResult.details["installed_paths"]`, on success and on apply failure alike. felix-deployer's `_tick` maps those paths through a new `rebaseline.baselines_for_installed_paths(paths)`. That helper uses the same `match_surfaces` and registry read as `observe`. The tick unions the result into `declared_baselines`, which `fold_manifest_baselines` already folds into the token before reconcile. Each step logs a `rebaseline_reported` event.
+*(Revised 2026-10-15 after the post-plan review: Codex REJECT, paula APPROVE-WITH-CHANGES, debbie CONFIRMED-WITH-GAPS. See research.md, "Post-plan review dispositions".)*
+
+A new `scripts/deploy/lib/installed_report.py` owns the channel: the variable name `FELIX_DEPLOY_INSTALLED_REPORT`, the JSONL format, the producer `record_installed(source, dest)` (advisory; on a write failure it prints one fixed marker line to stderr), and the hardened, fail-closed reader `read_report(path)`. `userunits.install_units` calls `record_installed` after each successful `os.replace` of a changed file.
+
+`apply.dry_run_then_apply_gate` gives every command an environment with the variable **removed**. Only `--apply` gets a fresh `mkdtemp` report path. The read result (`installed_report`) is merged into **every** return after `--apply` runs, including a failed apply and a failed post-verification.
+
+`rebaseline.baselines_for_installed_report(entries, repo_root, home)` validates **wholesale**. Every source must be in the repository, and every destination must resolve inside a host location that the matching surface declares in the new `audited-surfaces.json` field `host_paths`. Otherwise the whole report contributes nothing. It maps sources with the same `match_surfaces` that `observe` uses.
+
+`_tick` keeps two named sets: `declared_baselines` (manifest intent, apply success only) and `reported_baselines` (installation evidence, any apply outcome). It unions them only at the fold call, and passes contributor names separately from `applied_this_tick`.
+
+`fold_manifest_baselines` stamps `last_fold_utc` on a merge and persists the union of `manifest_names`. `_within_grace` measures from the later of `pending_since_utc` and `last_fold_utc`, so newly added expectations get a fresh grace window. Stale alerts still use `pending_since_utc`.
+
+A guard test stops new hand-rolled host copies in deploy scripts.
 
 ## Technical Context
 
@@ -51,41 +63,52 @@ docs/... (see Charter Check)
 
 ## Implementation Concern Map
 
-### IC-01 — Library writes the report
+### IC-01 — The channel module (`lib/installed_report.py`)
 
-- **Purpose**: `install_units` appends `{"path": "<absolute resolved source path>"}` per changed file to `$FELIX_DEPLOY_INSTALLED_REPORT`, if set. Unchanged files and dry runs write nothing.
-- **Relevant requirements**: FR-001, NFR-003
+- **Purpose**: own the variable name, the format `{"source": abs, "dest": abs}`, the producer and the reader. The producer is advisory: a write failure never fails an install and prints `FELIX_DEPLOY_INSTALLED_REPORT_WRITE_FAILED: <reason>` to stderr. The reader opens with `O_RDONLY|O_NOFOLLOW|O_NONBLOCK`, `fstat` must be a regular file, it reads at most 1 MiB + 1 byte, decodes UTF-8 strictly, and parses every line. Any bad line, over 1 MiB, or over 10,000 entries rejects the **whole** report.
+- **Relevant requirements**: FR-001, FR-004, FR-010, NFR-002
+- **Affected surfaces**: `scripts/deploy/lib/installed_report.py` (new), `tests/deploy/test_installed_report.py` (new)
+- **Sequencing/depends-on**: none
+
+### IC-02 — The library reports (userunits)
+
+- **Purpose**: `install_units` calls `record_installed(src.resolve(), dst.resolve())` after each successful replace of a changed file. Unchanged files and dry runs report nothing.
+- **Relevant requirements**: FR-001
 - **Affected surfaces**: `scripts/deploy/lib/userunits.py`, `tests/deploy/test_userunits.py`
-- **Sequencing/depends-on**: none
-- **Risks**: a write failure must not fail the install. The report is advisory; a lost report degrades to today's behavior and is logged by the reader. The write is appended *after* each successful `os.replace`, so a partially failed install reports exactly what landed.
+- **Sequencing/depends-on**: IC-01
 
-### IC-02 — Apply provides and reads the report
+### IC-03 — Apply provides, isolates and reads
 
-- **Purpose**: `dry_run_then_apply_gate` creates a fresh report file and passes it via the environment to `--apply` only, never to `--dry-run` or verification. It reads the file back with a size cap (1 MiB), JSON-per-line parsing and per-line type checks, and returns `details["installed_paths"]` (absolute strings, unfiltered) plus `details["installed_report_warnings"]`. It cleans up the directory, and does all of this on apply success and failure.
+- **Purpose**: an `env` argument for `_run_shell`. All commands get `os.environ` minus the variable; `--apply` gets the variable set to a fresh `mkdtemp` path. After `--apply` returns, success or failure, read the report and check `--apply`'s stderr for the write-failure marker. Merge `details["installed_report"] = {"entries": [...], "rejected": bool, "warnings": [...]}` into every result returned after `--apply` (apply failure, post-verification failure, success). Clean up the directory; any setup, read or cleanup error becomes a warning, never an exception.
 - **Relevant requirements**: FR-002, FR-004, FR-007, NFR-002
-- **Affected surfaces**: `scripts/deploy/lib/apply.py`, `tests/deploy/test_apply_installed_report.py`
-- **Sequencing/depends-on**: IC-01 (contract only)
-- **Risks**: `_run_shell` currently takes no environment. Add an `env` keyword argument used only for the `--apply` call. Every other caller is unchanged.
+- **Affected surfaces**: `scripts/deploy/lib/apply.py`, `tests/deploy/test_apply_installed_report.py` (new)
+- **Sequencing/depends-on**: IC-01
 
-### IC-03 — Map reported paths to baselines
+### IC-04 — Map with proof of installation (`rebaseline`)
 
-- **Purpose**: `rebaseline.baselines_for_installed_paths(paths, repo_root, registry=None)` resolves each path. It rejects anything outside `repo_root` and symlink escapes, makes the rest repo-relative, runs `match_surfaces` (the same function and the same non-exiting registry read as `observe`), and returns `{baselines, matched, rejected, unmatched, warnings}`.
-- **Relevant requirements**: FR-003, FR-004, C-001, C-002
-- **Affected surfaces**: `scripts/deploy/felix-deployer/rebaseline.py`, `tests/deploy/test_rebaseline_reported.py`
-- **Sequencing/depends-on**: none
-- **Risks**: an unreadable registry gives no baselines, plus a warning, mirroring `observe`.
+- **Purpose**: `baselines_for_installed_report(report, repo_root, home, registry=None)`. If the report is rejected, return nothing. Otherwise, for each entry, the source must resolve inside `repo_root` and the destination must resolve inside a `host_paths` entry (expanded against `home`) of a surface whose patterns match the repo-relative source. Validation is wholesale: any entry failing either check rejects the whole report. Union the matched surfaces' `affected_baselines`. A surface without `host_paths` contributes nothing. An unreadable registry gives nothing plus a warning. Add `"host_paths": ["~/.config/systemd/user/"]` to the `systemd-user-units` surface.
+- **Relevant requirements**: FR-003, FR-004, FR-009, C-001, C-002
+- **Affected surfaces**: `scripts/deploy/felix-deployer/rebaseline.py`, `docs/design/architecture/data/audited-surfaces.json`, `tests/deploy/test_rebaseline_reported.py` (new)
+- **Sequencing/depends-on**: IC-01 (entry shape)
 
-### IC-04 — Tick folds and logs
+### IC-05 — Tick: two gates, folding, grace freshness
 
-- **Purpose**: after each `dry_run_then_apply_gate`, successful or failed, the tick maps `details["installed_paths"]` through IC-03 and unions the result into `declared_baselines`. The existing fold runs if `declared_baselines` is non-empty. The tick logs `rebaseline_reported` with manifest, paths, baselines, rejected, unmatched and warnings. Folding on a failed apply needs `fold_manifest_baselines` to receive the manifest name too; check `manifest_names` handling.
-- **Relevant requirements**: FR-003, FR-005, FR-006, FR-007, SC-001, SC-003
-- **Affected surfaces**: `scripts/deploy/felix-deployer/_tick.py`, `tests/deploy/test_tick_rebaseline.py`
-- **Sequencing/depends-on**: IC-02, IC-03
-- **Risks**: the existing comment says declared baselines fold on apply success only (Codex HIGH-1). Reported baselines deliberately fold on failure too (FR-007); keep the two gates separate and documented. Any exception in the reported path must be caught per manifest, so that one manifest's bad report cannot affect the rest of the tick (NFR-002).
+- **Purpose**: in `_tick`, `reported_baselines` is gathered from every `dry_run_then_apply_gate` result that ran `--apply` (any outcome) and mapped through IC-04. `declared_baselines` is unchanged (success only). The two are unioned **only** at the fold call, with a one-line intent-versus-evidence rationale. `reported_contributors` is kept separate from `applied_this_tick`, so failed manifests are never stamped as applied. The tick logs `rebaseline_reported` per manifest: entries, baselines, rejected, warnings, `apply_ok`, and an absorbed-drift note. `fold_manifest_baselines` gets `last_fold_utc` and a persisted `manifest_names` union on merge; `_within_grace` uses the later of `pending_since_utc` and `last_fold_utc`, and `_maybe_stale` is unchanged.
+- **Relevant requirements**: FR-003, FR-005, FR-006, FR-007
+- **Affected surfaces**: `scripts/deploy/felix-deployer/_tick.py`, `scripts/deploy/felix-deployer/rebaseline.py`, `tests/deploy/test_tick_rebaseline.py`
+- **Sequencing/depends-on**: IC-03, IC-04
+- **Tests** (real reconcile with an injected audit runner, not the stubbed reconcile used by the existing declared-baseline test):
+  - the 0029 replay ends `completed`;
+  - a scratch destination gives `unexpected_drift`;
+  - a failed apply plus a declared baseline folds nothing, while a failed apply plus a report folds;
+  - post-verification failure still folds;
+  - old token → fold → clean audit keeps the new expectation through grace.
 
-### IC-05 — Docs and architecture data
+### IC-06 — Recurrence guard and docs
 
-- **Purpose**: describe the automatic path, and narrow the `expected_baselines` guidance to drift the library did not cause. Add the report file to the felix-deployer data flow.
-- **Relevant requirements**: FR-008
-- **Affected surfaces**: `docs/runbooks/deployment.md`, `docs/runbooks/deploy/discipline.md`, `scripts/deploy/lib/README.md`, `CLAUDE.md` (rebaseline caveat paragraph), `docs/design/architecture/data/data-flows.json`, `docs/design/architecture/data-flows.md`
-- **Sequencing/depends-on**: IC-04
+- **Purpose**:
+  - `tests/deploy/test_host_copies_report.py`: a non-allowlisted Python file under `scripts/deploy/` (outside `lib/`) that calls `shutil.copy*`, `shutil.copyfile`, `os.replace`, or `Path.write_*`/`write_bytes` must import a reporting installer (`userunits`) or `installed_report`. This reuses #1066's frozen, evidence-bound allowlist approach, extended with the entrypoints that copy without reloading.
+  - Docs: the lib README contract section, `deployment.md` (automatic for library installs; `expected_baselines` still required for everything else, with the five historical episodes as examples), `discipline.md`, `CLAUDE.md`, and `data-flows.json`/`.md`.
+- **Relevant requirements**: FR-008, FR-010
+- **Affected surfaces**: `tests/deploy/test_host_copies_report.py` (new), docs listed above
+- **Sequencing/depends-on**: IC-05
