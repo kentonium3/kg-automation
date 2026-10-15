@@ -64,11 +64,12 @@ from __future__ import annotations
 
 import json
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime, timedelta
 from typing import Any
 
 from scripts.canary.ledger import FreshnessObligation
+from scripts.canary.ledger import cause_text as _ledger_cause_text
 from scripts.canary.ledger import evaluate as _ledger_evaluate
 
 # --------------------------------------------------------------------------- #
@@ -604,6 +605,34 @@ def _ledger_freshness_result(
 
 
 def _probe_freshness_with_ledger(
+    pointer: dict[str, Any],
+    ledger: dict[str, Any],
+    health_check: dict[str, Any],
+    now: datetime,
+) -> ProbeResult:
+    """Ledger probe plus the declared failure cause (#1067, contract rule 9).
+
+    Wraps :func:`_probe_freshness_with_ledger_inner` so that EVERY return
+    path is covered in one place: when the verdict is evaluable and not
+    healthy (``ok`` false, or stale -- including future-dated), the ledger's
+    declared plain-words cause for the pointer's code is appended to the
+    evidence as ``; cause: <text>``. Only the evidence string changes; ``ok``,
+    ``stale``, ``evaluable`` and ``signal`` are carried over untouched, so
+    the cause decorates a verdict and never decides one. ``unknown``
+    (not evaluable) is left alone: a document that could not be evaluated
+    has no trustworthy cause either. Dedup never reads evidence, so cadence
+    is unchanged.
+    """
+    result = _probe_freshness_with_ledger_inner(pointer, ledger, health_check, now)
+    if not result.evaluable or (result.ok and not result.stale):
+        return result
+    text = _ledger_cause_text(pointer, ledger)
+    if text is None:
+        return result
+    return replace(result, evidence=f"{result.evidence}; cause: {text}")
+
+
+def _probe_freshness_with_ledger_inner(
     pointer: dict[str, Any],
     ledger: dict[str, Any],
     health_check: dict[str, Any],

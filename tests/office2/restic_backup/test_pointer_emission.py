@@ -50,6 +50,16 @@ FINAL_FOURTEEN_KEYS = BASELINE_TEN_KEYS | {
     "repo_fs_free_bytes",
 }
 
+# backup-failure-cause-in-alert-01M502K3 (#1067): plus the diagnostic
+# failure_reason, emitted on every path.
+FINAL_FIFTEEN_KEYS = FINAL_FOURTEEN_KEYS | {"failure_reason"}
+
+# The closed vocabulary the producer may emit (data-model.md); null on a run
+# that completed.
+FAILURE_REASON_CODES = {
+    "backup_mount_missing", "repo_inaccessible", "backup_failed", "unclassified",
+}
+
 
 def _stub(path: Path, name: str, body: str) -> None:
     f = path / name
@@ -131,7 +141,11 @@ case "$1" in
   stats)     [ -n "$STUB_STATS_FAIL" ] && exit 1
              echo "{\\"total_file_count\\": ${STUB_FILE_COUNT:-100}}"
              exit 0 ;;
-  backup)    exit "${STUB_BACKUP_RC:-0}" ;;
+  backup)    # #1067: simulate the run being killed mid-backup (cron/systemd
+             # stop, OOM) -- the one realistic fatal path with no explicit
+             # branch in the script. $PPID is the script's own bash process.
+             if [ -n "$STUB_BACKUP_KILL_PARENT" ]; then kill -TERM "$PPID"; sleep 1; fi
+             exit "${STUB_BACKUP_RC:-0}" ;;
   forget)    exit "${STUB_PRUNE_RC:-0}" ;;
   check)     exit "${STUB_CHECK_RC:-0}" ;;
   *)         exit 0 ;;
@@ -254,24 +268,24 @@ def test_existing_fields_are_unchanged(env):
         pytest.param({"STUB_BACKUP_RC": 1}, id="backup_failure"),
     ],
 )
-def test_pointer_emits_exactly_the_final_fourteen_keys(env, overrides):
+def test_pointer_emits_exactly_the_final_fifteen_keys(env, overrides):
     """T001/T006: derive the emitted key set by executing the producer, on
     every execution path -- not just the happy path.
 
     Pinned as the ten-key baseline before T002-T006 landed (this passed
     against the unmodified script); updated in place, per T006, to the
-    final fourteen now that the producer emits them. Never assert this by
+    final fourteen, then to fifteen when #1067 added failure_reason. Never assert this by
     reading the heredoc source -- that is a second model of the producer
     and it will drift (US3 AS4).
 
     Parameterised over the early-exit paths (WP01 cycle-2 fix): the DoD
-    requires the fourteen-key shape on every path, and the early exits are
+    requires the full key shape on every path, and the early exits are
     exactly where this component's historical defects (#906) have lived.
     `run()` parses the document via `json.loads`, so reaching the assertion
     below is itself proof the document stayed valid JSON on each path.
     """
     _, ptr = run(env, **overrides)
-    assert set(ptr.keys()) == FINAL_FOURTEEN_KEYS
+    assert set(ptr.keys()) == FINAL_FIFTEEN_KEYS
     assert ptr["schema_version"] == 2
 
 
@@ -605,3 +619,66 @@ def test_overrides_only_apply_when_unprivileged(env):
         assert f'{var}="/' in guarded, f"{var} not pinned to an absolute path when root"
     # and the unprivileged branch still honours overrides, or the tests above lie
     assert 'LOG_DIR="${LOG_DIR:-' in src
+
+
+# --------------------------------------------------------------------------- #
+# failure_reason (backup-failure-cause-in-alert-01M502K3, #1067). Each fatal
+# exit records its own code; a completed run records null; a run that did not
+# complete by any other path records "unclassified". Exercised by running the
+# script, never by reading the heredoc.
+# --------------------------------------------------------------------------- #
+
+@pytest.mark.parametrize(
+    ("overrides", "code"),
+    [
+        pytest.param({"STUB_MOUNT_RC": 1}, "backup_mount_missing", id="not_mounted"),
+        pytest.param({"STUB_SNAPSHOTS_FAIL": "1"}, "repo_inaccessible", id="repo_inaccessible"),
+        pytest.param({"STUB_BACKUP_RC": 1}, "backup_failed", id="backup_failed"),
+    ],
+)
+def test_each_fatal_exit_records_its_cause(env, overrides, code):
+    proc, ptr = run(env, **overrides)
+    # NFR-003: recording the cause changes neither the exit status nor
+    # whether the pointer is written (run() already parsed it).
+    assert proc.returncode == 1
+    assert ptr["failure_reason"] == code
+
+
+def test_run_killed_mid_backup_records_unclassified(env):
+    """A SIGTERM'd run reaches the EXIT trap with $?=0 (verified empirically,
+    2026-10-15), so classifying on exit status alone would record it as clean.
+    The completion marker is what catches it."""
+    proc, ptr = run(env, STUB_BACKUP_KILL_PARENT="1")
+    assert proc.returncode != 0, "the script must not report success when killed"
+    assert ptr["failure_reason"] == "unclassified"
+    assert ptr["prune_exit_code"] == 127
+
+
+@pytest.mark.parametrize(
+    "overrides",
+    [
+        pytest.param({}, id="happy_path"),
+        pytest.param({"STUB_PRUNE_RC": 1}, id="prune_failed"),
+        pytest.param({"STUB_BACKUP_RC": 3}, id="backup_warning"),
+        pytest.param({"STUB_DOW": 7, "STUB_CHECK_RC": 1}, id="integrity_failed"),
+    ],
+)
+def test_completed_run_records_null_cause(env, overrides):
+    """A run that reached the end records null even when the prune or the
+    weekly check failed -- those page under their own self-describing keys."""
+    proc, ptr = run(env, **overrides)
+    assert proc.returncode == 0
+    assert ptr["failure_reason"] is None
+
+
+@pytest.mark.parametrize(
+    "overrides",
+    [
+        {}, {"STUB_MOUNT_RC": 1}, {"STUB_SNAPSHOTS_FAIL": "1"}, {"STUB_BACKUP_RC": 1},
+        {"STUB_BACKUP_KILL_PARENT": "1"}, {"STUB_PRUNE_RC": 2},
+    ],
+)
+def test_failure_reason_is_always_null_or_a_known_code(env, overrides):
+    _, ptr = run(env, **overrides)
+    value = ptr["failure_reason"]
+    assert value is None or value in FAILURE_REASON_CODES, f"{overrides} -> {value!r}"

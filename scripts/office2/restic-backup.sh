@@ -48,6 +48,21 @@
 #                              RESTIC_REPOSITORY, so the approach to a full
 #                              volume is visible before the backup starts
 #                              failing outright.
+#
+# backup-failure-cause-in-alert-01M502K3 (#1067): one diagnostic key added,
+# schema_version unchanged (additive, decorates alerts only).
+#   failure_reason            why a fatal run ended, as a closed code:
+#                              backup_mount_missing, repo_inaccessible,
+#                              backup_failed, or unclassified (any other run
+#                              that did not reach the end -- including one
+#                              killed by a signal, whose EXIT trap sees $?=0).
+#                              null when the run completed, even if the prune
+#                              or the weekly integrity check failed: those
+#                              already page under their own keys. The canary
+#                              appends the key_ledger's declared plain-words
+#                              text for the code to its alert; the value never
+#                              decides health. Assigned only from the fixed
+#                              JSON literals below, never from command output.
 
 export RESTIC_REPOSITORY="${RESTIC_REPOSITORY:-/mnt/backups/restic-repo}"
 export RESTIC_PASSWORD_FILE="${RESTIC_PASSWORD_FILE:-/etc/restic/password}"
@@ -109,10 +124,28 @@ INTEGRITY_RUN=false
 INTEGRITY_PASSED=null
 LAST_INTEGRITY_CHECK_UTC=null   # carried forward below, then possibly set by
                                  # the Sunday integrity block (T002)
+FAILURE_REASON=null    # #1067: a JSON literal from a fixed set, set just
+                       # before each fatal exit; classified in the trap.
+RUN_COMPLETED=false    # #1067: set true as the script's last statement.
+                       # Completion -- not the exit status -- is what proves
+                       # the run finished: a run killed by SIGTERM reaches the
+                       # EXIT trap with $?=0, so exit-status alone would
+                       # record a killed run as clean.
 
 log() { echo "[$(date '+%H:%M:%S')] $1" | tee -a "$LOGFILE"; }
 
 write_state_pointer() {
+    # #1067: capture the exit status FIRST -- any statement before this
+    # would overwrite $?. A run that did not complete (non-zero exit, or
+    # killed by a signal before RUN_COMPLETED=true) and recorded no specific
+    # reason is "unclassified", never null. Pure assignments only: nothing
+    # here may fail or change the script's exit status (NFR-003).
+    local script_rc=$?
+    if [ "$FAILURE_REASON" = "null" ] \
+        && { [ "$script_rc" -ne 0 ] || [ "$RUN_COMPLETED" != "true" ]; }; then
+        FAILURE_REASON='"unclassified"'
+    fi
+
     # Authoritative snapshot timestamp comes from `restic snapshots
     # --latest 1 --json` (what landed in the repo), not from `date` at
     # script-end. Per #511 design: the pointer is a fast local read for
@@ -234,7 +267,8 @@ write_state_pointer() {
   "last_integrity_check_utc": $LAST_INTEGRITY_CHECK_UTC,
   "files_processed": $files_processed_json,
   "source_roots_present": $source_roots_present_json,
-  "repo_fs_free_bytes": $repo_fs_free_bytes
+  "repo_fs_free_bytes": $repo_fs_free_bytes,
+  "failure_reason": $FAILURE_REASON
 }
 EOF
     mv -f "$tmp" "$STATE_FILE"
@@ -301,12 +335,14 @@ echo "=== Backup: $DATE ===" > "$LOGFILE"
 # Check if backup drive is mounted
 if ! mountpoint -q "$BACKUP_MOUNT"; then
     log "ERROR: $BACKUP_MOUNT not mounted. Backup drive missing?"
+    FAILURE_REASON='"backup_mount_missing"'
     exit 1
 fi
 
 # Check restic repo is accessible
 if ! restic snapshots --latest 1 &>/dev/null; then
     log "ERROR: Cannot access restic repo"
+    FAILURE_REASON='"repo_inaccessible"'
     exit 1
 fi
 
@@ -325,6 +361,7 @@ BACKUP_RC=$?
 # Exit code 3 = completed with warnings (e.g. permission denied on some files)
 if [ $BACKUP_RC -ne 0 ] && [ $BACKUP_RC -ne 3 ]; then
     log "ERROR: Backup failed with exit code $BACKUP_RC"
+    FAILURE_REASON='"backup_failed"'
     exit 1
 fi
 log "Backup completed successfully"
@@ -372,5 +409,6 @@ REPO_SIZE=$(du -sh /mnt/backups/restic-repo 2>/dev/null | awk '{print $1}')
 DRIVE_FREE=$(df -h /mnt/backups | tail -1 | awk '{print $4}')
 log "Repo size: $REPO_SIZE | Drive free: $DRIVE_FREE"
 log "=== Backup complete ==="
+RUN_COMPLETED=true   # #1067: must stay the last statement before exit
 
 # write_state_pointer fires via the EXIT trap
