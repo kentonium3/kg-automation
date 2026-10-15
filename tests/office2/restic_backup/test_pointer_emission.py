@@ -28,6 +28,7 @@ REAL_DATE = shutil.which("date")
 # stubs below can delegate to the genuine binary (#960).
 REAL_STAT = shutil.which("stat") or ""
 REAL_TIMEOUT = shutil.which("timeout") or ""
+REAL_TEE = shutil.which("tee") or "tee"
 
 # Mirrors the SOURCE_ROOTS array defined once in the script (T004): the
 # default snapshot the restic stub reports carries every configured root, so
@@ -111,6 +112,15 @@ if [ -n "$REAL_TIMEOUT" ] && [ -x "$REAL_TIMEOUT" ]; then exec "$REAL_TIMEOUT" "
 shift
 exec "$@"''')
     _stub(bin_dir, "du", 'echo "1024\t$2"')
+    # #1067 (post-merge review): fail only the FINAL log line's tee, so a test
+    # can prove the completion marker does not mask the script's real final
+    # exit status. Every other log line passes through to the real tee.
+    _stub(bin_dir, "tee", f'''
+input=$(cat)
+if [ -n "$STUB_TEE_FAIL_FINAL" ] && printf '%s' "$input" | grep -q "=== Backup complete ==="; then
+    exit 1
+fi
+printf '%s\\n' "$input" | {REAL_TEE} "$@"''')
     # restic dispatches on its first arg (and, for `snapshots`, whether
     # `--latest` is present) so each call can be tuned independently.
     # `snapshots --latest ...` serves the ts/id/paths lookup; plain
@@ -142,7 +152,7 @@ case "$1" in
              echo "{\\"total_file_count\\": ${STUB_FILE_COUNT:-100}}"
              exit 0 ;;
   backup)    # #1067: simulate the run being killed mid-backup (cron/systemd
-             # stop, OOM) -- the one realistic fatal path with no explicit
+             # stop; SIGTERM, which -- unlike an OOM SIGKILL -- still runs the EXIT trap) -- the one realistic fatal path with no explicit
              # branch in the script. $PPID is the script's own bash process.
              if [ -n "$STUB_BACKUP_KILL_PARENT" ]; then kill -TERM "$PPID"; sleep 1; fi
              exit "${STUB_BACKUP_RC:-0}" ;;
@@ -682,3 +692,13 @@ def test_failure_reason_is_always_null_or_a_known_code(env, overrides):
     _, ptr = run(env, **overrides)
     value = ptr["failure_reason"]
     assert value is None or value in FAILURE_REASON_CODES, f"{overrides} -> {value!r}"
+
+
+def test_failed_final_log_write_keeps_nonzero_exit_and_is_unclassified(env):
+    """Post-merge Codex review: RUN_COMPLETED=true must not reset the script's
+    exit status. Before #1067 a failed final `tee` made the script exit
+    non-zero; it still must, and the trap then records `unclassified`."""
+    proc, ptr = run(env, STUB_TEE_FAIL_FINAL="1")
+    assert proc.returncode != 0
+    assert ptr["restic_exit_code"] == 0
+    assert ptr["failure_reason"] == "unclassified"

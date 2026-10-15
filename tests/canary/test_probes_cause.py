@@ -317,3 +317,39 @@ def test_alert_cadence_identical_with_and_without_cause(tmp_path):
     for a, b in zip(with_cause, without):
         assert (a.source, a.severity, a.title) == (b.source, b.severity, b.title)
         assert a.description == f"{b.description}{SUFFIX}{CODES['backup_mount_missing']}"
+
+
+# --------------------------------------------------------------------------- #
+# Post-merge Codex review: the runtime enforces ALL of rule 9's structure, not
+# only the text -- a declaration the validator rejects must not decorate.
+# --------------------------------------------------------------------------- #
+
+def _ledger_variant(mutate) -> dict:
+    ledger = copy.deepcopy(LEDGER)
+    mutate(ledger)
+    return ledger
+
+
+@pytest.mark.parametrize(
+    "mutate",
+    [
+        pytest.param(lambda l: l["diagnostic_only"].pop("failure_reason"), id="key_not_diagnostic_only"),
+        pytest.param(lambda l: l.__setitem__("diagnostic_only", []), id="diagnostic_only_malformed"),
+        pytest.param(
+            lambda l: l["adjudicated"].__setitem__("failure_reason", {"good_values": [None]}),
+            id="key_also_adjudicated",
+        ),
+        pytest.param(lambda l: l["cause"].__setitem__("severity", "high"), id="extra_member"),
+        pytest.param(
+            lambda l: l["cause"]["codes"].__setitem__("Bad-Code", "text"), id="bad_code_name",
+        ),
+        pytest.param(
+            lambda l: l["cause"]["codes"].__setitem__("backup_failed\n", "text"), id="code_name_newline",
+        ),
+    ],
+)
+def test_declaration_rejected_by_rule_9_never_decorates(judge, mutate):
+    ledger = _ledger_variant(mutate)
+    p = not_mounted_pointer()
+    assert SUFFIX not in judge(p, key_ledger=ledger).evidence
+    assert cause_text(p, ledger) is None

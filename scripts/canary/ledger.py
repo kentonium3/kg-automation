@@ -50,6 +50,7 @@ comments at each site below for the concrete fix):
 """
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any, Literal
@@ -372,11 +373,43 @@ def _declared_cause_text_ok(text: Any) -> bool:
     )
 
 
+#: Mirrors the validator's KEY_LEDGER_CAUSE_CODE_PATTERN (rule 9).
+_CAUSE_CODE_PATTERN = re.compile(r"[a-z][a-z0-9_]{0,63}")
+
+
+def _cause_declaration_ok(ledger: dict) -> bool:
+    """The whole of rule 9's structure, re-checked at runtime.
+
+    A declaration the validator would reject must not decorate an alert just
+    because the runtime looked at less of it (post-merge Codex review): exact
+    members ``{key, codes}``, the key declared ``diagnostic_only`` and never
+    ``adjudicated``, and every code name a closed identifier. Declared TEXT is
+    checked per code at lookup time (a bad text suppresses only its own code).
+    """
+    cause = ledger.get("cause")
+    if not isinstance(cause, dict) or set(cause) != {"key", "codes"}:
+        return False
+    key, codes = cause["key"], cause["codes"]
+    if not isinstance(key, str) or not key.strip():
+        return False
+    diagnostic_only = ledger.get("diagnostic_only")
+    adjudicated = ledger.get("adjudicated")
+    if not isinstance(diagnostic_only, dict) or key not in diagnostic_only:
+        return False
+    if isinstance(adjudicated, dict) and key in adjudicated:
+        return False
+    if not isinstance(codes, dict) or not codes:
+        return False
+    return all(
+        isinstance(code, str) and _CAUSE_CODE_PATTERN.fullmatch(code) for code in codes
+    )
+
+
 def cause_text(document: Any, ledger: Any) -> str | None:
     """Return the plain-words cause to append to a non-ok verdict, or ``None``.
 
     Pure and total: never raises, whatever the shapes. ``None`` when the
-    ledger declares no well-formed ``cause`` member, the document is not an
+    ledger's ``cause`` member breaks any part of rule 9, the document is not an
     object, or the cause value is absent, ``null`` or not a string. A string
     the ledger declares yields its declared text -- unless that text itself
     breaks rule 9, in which case ``None`` (a bad declaration is never
@@ -386,13 +419,10 @@ def cause_text(document: Any, ledger: Any) -> str | None:
     try:
         if not isinstance(ledger, dict) or not isinstance(document, dict):
             return None
-        cause = ledger.get("cause")
-        if not isinstance(cause, dict):
+        if not _cause_declaration_ok(ledger):
             return None
-        key = cause.get("key")
-        codes = cause.get("codes")
-        if not isinstance(key, str) or not key or not isinstance(codes, dict) or not codes:
-            return None
+        cause = ledger["cause"]
+        key, codes = cause["key"], cause["codes"]
         value = document.get(key)
         if not isinstance(value, str):
             return None

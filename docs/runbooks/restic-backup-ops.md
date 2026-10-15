@@ -314,8 +314,11 @@ Two independent watchers judge this pointer by the same declaration
   it also reports when the canary itself has stopped ticking.
 
 A missed 04:00 run is reported by the first health-check run after the
-snapshot passes its 28 h bound, at most about 12 h later. A run that ran and
-failed pages sooner: the canary's next tick, within about 15 minutes.
+snapshot passes its 28 h bound, at most about 12 h later. A run that ran,
+failed and wrote its pointer pages sooner: the canary's next tick, within
+about 15 minutes. A run killed outright (SIGKILL, for example the OOM killer,
+or host loss) writes no pointer at all; the previous pointer survives, and
+only the staleness bound reports it.
 
 `backup.sh` itself does not alert, on purpose. It runs as root, and the alert
 bus is code the `claude` user can write; root running it would amount to
@@ -336,7 +339,12 @@ alerts fire.
 | `backup_mount_missing` | `/mnt/backups` was not a mountpoint, so nothing ran | Follow [Backup drive missing](#backup-drive-missing-mntbackups-not-mounted). |
 | `repo_inaccessible` | `restic snapshots --latest 1` failed. Causes: a wrong or unreadable password file, a stale lock, a damaged repository, or a repository directory that is missing or unreadable even though the drive is mounted | Kent, from his own terminal: confirm `/etc/restic/password` exists (root, 600) and `/mnt/backups/restic-repo` is present. If the run's log names a lock, first make sure no backup is running (`pgrep -f backup.sh` prints nothing). Then clear stale locks with `ssh office2-kgale 'sudo RESTIC_REPOSITORY=/mnt/backups/restic-repo RESTIC_PASSWORD_FILE=/etc/restic/password restic unlock'`. Plain `unlock` removes only stale locks. Finish with the same form of `restic check`, which reads the whole repository and takes a while. |
 | `backup_failed` | `restic backup` exited with a code other than 0 or 3 | Read `/data/services/backup/logs/backup-<date>.log` for the restic error. |
-| `unclassified` | The run stopped some other way, typically killed (cron or systemd stop, OOM) before it finished | Read the same log and `journalctl` around 04:00. Then [trigger a backup manually](#trigger-a-backup-manually). |
+| `unclassified` | The run stopped some other way, or exited non-zero after the backup: typically stopped by a catchable signal (SIGTERM or SIGINT from a cron or systemd stop) before it finished | Read the same log and `journalctl` around 04:00. Then [trigger a backup manually](#trigger-a-backup-manually). |
+
+A run killed by SIGKILL (the OOM killer, `kill -9`) or by host loss runs no
+exit handler, so it records **no** cause. The pointer from the previous run is
+left in place, and the run surfaces only as a stale snapshot, not as a fresh
+failure.
 
 A completed run records `null`, even when the prune or the Sunday integrity
 check failed. Those conditions already page under their own keys

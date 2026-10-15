@@ -54,8 +54,12 @@
 #   failure_reason            why a fatal run ended, as a closed code:
 #                              backup_mount_missing, repo_inaccessible,
 #                              backup_failed, or unclassified (any other run
-#                              that did not reach the end -- including one
-#                              killed by a signal, whose EXIT trap sees $?=0).
+#                              that did not reach the end, or exited non-zero
+#                              -- including one stopped by a catchable signal
+#                              such as SIGTERM, whose EXIT trap sees $?=0).
+#                              SIGKILL (e.g. the OOM killer) runs no trap: the
+#                              previous pointer survives and staleness, not
+#                              this key, reports that run.
 #                              null when the run completed, even if the prune
 #                              or the weekly integrity check failed: those
 #                              already page under their own keys. The canary
@@ -409,6 +413,12 @@ REPO_SIZE=$(du -sh /mnt/backups/restic-repo 2>/dev/null | awk '{print $1}')
 DRIVE_FREE=$(df -h /mnt/backups | tail -1 | awk '{print $4}')
 log "Repo size: $REPO_SIZE | Drive free: $DRIVE_FREE"
 log "=== Backup complete ==="
+# #1067: keep the final command's status as the script's exit status, exactly
+# as before the completion marker existed -- the marker assignment would
+# otherwise reset it to 0 and hide a failed final log write (post-merge Codex
+# review). A non-zero status here is then classified "unclassified" by the trap.
+FINAL_RC=$?
 RUN_COMPLETED=true   # #1067: must stay the last statement before exit
+exit "$FINAL_RC"
 
 # write_state_pointer fires via the EXIT trap
