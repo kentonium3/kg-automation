@@ -1,7 +1,7 @@
 {
-  "event_count": 5,
-  "last_event_id": "01M4ZQGJX5MF5808S8ZYRS6SR1",
-  "materialized_at": "2026-10-15T12:10:10.725074+00:00",
+  "event_count": 6,
+  "last_event_id": "01M4ZQGTFWQNTV8905J88B5WJG",
+  "materialized_at": "2026-10-15T12:10:18.492372+00:00",
   "mission_number": "",
   "mission_slug": "deploy-runtime-installed-report-01M4ZP8E",
   "mission_type": "software-dev",
@@ -15,7 +15,7 @@
     "for_review": 0,
     "in_progress": 0,
     "in_review": 0,
-    "planned": 5
+    "planned": 6
   },
   "work_packages": {
     "WP01": {
@@ -52,6 +52,13 @@
       "lane": "planned",
       "last_event_id": "01M4ZQGJX5MF5808S8ZYRS6SR1",
       "last_transition_at": "2026-10-15T12:10:10.725074+00:00"
+    },
+    "WP06": {
+      "actor": "finalize-tasks",
+      "force_count": 0,
+      "lane": "planned",
+      "last_event_id": "01M4ZQGTFWQNTV8905J88B5WJG",
+      "last_transition_at": "2026-10-15T12:10:18.492372+00:00"
     }
   }
 }
