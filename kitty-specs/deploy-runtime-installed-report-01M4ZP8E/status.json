@@ -188,7 +188,8 @@
       "model": "__resolved_model_absent__",
       "notes": [
         "Ready: guard (13 evidence-bound exemptions, shrink-only, non-vacuous), docs + data-flows; validators + full suite green",
-        "Cycle 1 fixes: alias/from-import detection + stated limits"
+        "Cycle 1 fixes: alias/from-import detection + stated limits",
+        "renata (claude-sonnet-5-5) cycle 2 APPROVE: alias/from-import bypasses caught, limits stated, no new false positives"
       ],
       "provider": "__resolved_provider_absent__",
       "review": null,
