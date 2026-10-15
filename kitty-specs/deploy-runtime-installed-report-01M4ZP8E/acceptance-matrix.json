@@ -87,11 +87,11 @@
     {
       "criterion_id": "FR-009",
       "description": "Verify FR-009 is satisfied",
-      "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
+      "proof_type": "automated-test",
+      "evidence": "tests/deploy/test_rebaseline_reported.py::test_scratch_destination_rejects, ::test_destination_symlink_leaving_the_host_path_rejects, ::test_surface_without_host_paths_contributes_nothing; audited-surfaces.json host_paths",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-10-15T13:11:57.881056+00:00",
       "notes": "TODO: replace with a real acceptance criterion"
     },
     {
