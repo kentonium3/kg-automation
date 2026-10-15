@@ -37,7 +37,9 @@ FELIX_DEADMAN_HEALTHCHECK_URL=https://hc-ping.com/<uuid>
 | felix-canary | the pass status is `success`, `alerts_undelivered == 0`, and `channel_broken` is false | the status is `error`, the pass raised, any alert this tick was undelivered, or `channel_broken` | `--dry-run` or `--self-check` |
 | felix-health-check | the record is written, there is no execution fault, `channel_broken` is false, and not (the status is alerting and `delivery.sent` is false) | the status is alerting and `delivery.sent` is false (covers a missing topic, where `attempted` is false), an execution fault, `channel_broken`, or the record write raised (ping `fail`, then re-raise) | — |
 
-`channel_broken` (revised in post-plan round 2) is true when either holds:
+**Superseded by post-plan round 3 (stateless). The round-2 text below is kept for history only.** `channel_ok` = topic configured AND the ntfy `/v1/health` probe answers `{"healthy": true}` AND every delivery this run succeeded. Any probe error counts as not ok. There are no state files.
+
+Round-2 design (dropped): `channel_broken` was true when either held:
 - `FELIX_ALERT_NTFY_TOPIC` is absent or blank in the watcher's own environment;
 - the watcher's own debt state is set **after** this run's verification attempt.
 

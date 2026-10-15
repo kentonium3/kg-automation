@@ -31,7 +31,7 @@ office2 goes dark at night. Everything on it stops, including both watchers. Abo
 
 ### User Story 2 - A dead alert channel still reaches Kent (Priority: P1)
 
-The ntfy topic env file is missing, or ntfy is down. A watcher detects that its alert channel is broken: the topic is not configured, or the most recent felix-alert delivery from any emitter failed. It sends a *fail* ping instead of a success ping, and healthchecks.io emails Kent at once. It keeps sending fail pings until a felix-alert is delivered again.
+The ntfy topic env file is missing, or ntfy is down. A watcher detects that its alert channel is broken: the topic is not configured, or the most recent felix-alert delivery from any emitter failed. It sends a *fail* ping instead of a success ping, and healthchecks.io emails Kent at once. Every later run re-checks the channel, so the check stays down while ntfy is down or the topic is missing.
 
 **Why this priority**: today an undelivered alert is only written to local files nobody reads.
 
@@ -62,7 +62,7 @@ The ping can be unconfigured, unreachable, slow or misconfigured. In every case 
 
 - **Dry-run and self-check** send nothing.
 - **Runner-level failures send a fail ping.** These are a canary pass that raises, a pass whose status is `error`, or a health-check run that could not do its own work: script missing or timed out, coverage could not start, or the record write failed. The watcher's exit code and the canary's `OnFailure` handler are unchanged.
-- **Channel debt.** A failed delivery is not forgotten when dedup suppresses the next page. The channel counts as healthy again only after a later felix-alert is delivered, from any emitter, including `alert_bus.sh self-test`.
+- **Dedup cannot fake recovery.** A tick whose page is dedup-suppressed still re-proves the channel: topic configured and ntfy healthy. A revoked topic on a healthy server is caught only when the next real alert fails to deliver; this residual is accepted.
 - **Secrecy.** The ping URL never appears in logs, records, exceptions or test output. Only a fixed, redacted label does.
 - **Wrong check.** Each watcher uses its own variable, so a canary ping can never feed the health-check's check.
 - **Unknown failure.** An alert transport that raises counts as a failed delivery: a fail ping, never a success ping.
@@ -75,7 +75,7 @@ The ping can be unconfigured, unreachable, slow or misconfigured. In every case 
 |----|-------|------------|----------|--------|----------|-----------------|
 | FR-001 | Canary pings on completion | As Kent, I want each completed (non-dry-run) canary tick to send one ping to its own check, so that silence from the host becomes an email. | High | Open | [build] | no — no ping exists today; a recording transport sees zero calls |
 | FR-002 | Health-check pings on completion | As Kent, I want each completed felix-health-check run to send one ping to its own check, so that the second watcher is covered too. | High | Open | [build] | no — same as FR-001 |
-| FR-003 | Fail ping while the alert channel is broken | As Kent, I want each watcher to send a fail ping instead of a success ping while its alert channel is broken, so that a dead ntfy channel still reaches me. Broken means the topic is not configured in the watcher's environment, or the most recent felix-alert delivery recorded by the alert bus ledger failed. | High | Open | [build] | no — today nothing reads the channel state |
+| FR-003 | Fail ping while the alert channel is broken | As Kent, I want each watcher to send a fail ping instead of a success ping while its alert channel is broken, so that a dead ntfy channel still reaches me. Broken means the topic is not configured in the watcher's environment, a read-only ntfy server health probe fails, or any alert this run tried to deliver was not delivered. It is judged freshly every run, with no persisted state. | High | Open | [build] | no — today nothing reads the channel state |
 | FR-010 | Fail ping on watcher execution fault | As Kent, I want a watcher that could not do its own work to send a fail ping, so that a broken watcher is never reported up. That covers a canary pass status of `error` or a raised pass, and a health-check script that is missing, timed out or failed to launch, coverage that could not start, or a failed record write. | High | Open | [build] | no — today nothing pings |
 | FR-004 | Liveness, not health | As Kent, I want the success ping sent even when the watcher found unhealthy components, so that a component failure is not mistaken for a dead watcher. | High | Open | [build] | no — paired with FR-001 on an unhealthy fixture |
 | FR-005 | Unconfigured is a no-op | As an operator, I want no ping, no error and no behaviour change when the ping URL is not configured, so that the code can ship before the account exists. | High | Open | [ratchet] | yes — paired with FR-001's positive control on the same fixture |
@@ -88,7 +88,7 @@ The ping can be unconfigured, unreachable, slow or misconfigured. In every case 
 
 | ID | Title | Requirement | Category | Priority | Status |
 |----|-------|-------------|----------|----------|--------|
-| NFR-001 | Bounded cost | A ping adds at most 20 s wall time to a run in the worst case (unreachable endpoint, 2 attempts), and about 0 s when unconfigured. | Performance | High | Open |
+| NFR-001 | Bounded cost | The dead-man adds at most 40 s wall time to a run in the worst case (unreachable ping endpoint and ntfy probe, 2 attempts each), and about 0 s when unconfigured. | Performance | High | Open |
 | NFR-002 | Zero regression | The full test suite passes, with 0 new failures. The existing canary and health-check test suites pass unchanged. | Quality | High | Open |
 | NFR-003 | No payload | A ping carries no request body and no data beyond the URL path (success or `/fail`). | Privacy | High | Open |
 | NFR-004 | HTTPS only, canonical endpoint | A URL that is not `https://`, carries a query or fragment, or already ends in a ping action (`/fail`, `/start`, `/log`, or an exit-code segment) is rejected and never contacted. The fail endpoint is built structurally from the parsed path. | Security | High | Open |

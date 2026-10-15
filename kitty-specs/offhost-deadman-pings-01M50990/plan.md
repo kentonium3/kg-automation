@@ -77,6 +77,26 @@ The shared alert-bus-ledger "channel debt" is **dropped**: it mixed emitters, ex
 
 The canary's verification alert goes through its injected `emit_fn`, and the health check's through its `send_alert`/`emit` seam, so both are testable with existing fakes. Neither the persisted tick-signal schema nor `last-run.json` changes.
 
+## Post-plan re-review dispositions (Codex REJECT round 3, 2026-10-15). These supersede the round-2 section above. The design is now **stateless**.
+
+Per-watcher debt files are **dropped**. Any persisted debt has write-failure, interruption and backup-restore skew modes: a clear-write failure means repeated verification alerts, and debt that fails to persist next to dedup state yields a false success. Instead, each run judges the alert channel **directly and freshly**, with no state:
+
+`channel_ok` holds only when all three checks pass:
+1. `FELIX_ALERT_NTFY_TOPIC` is present and non-blank in the watcher's own environment. This is checked without sending.
+2. A **read-only health probe** of the ntfy server answers healthy: `GET <FELIX_ALERT_NTFY_BASE_URL or https://ntfy.sh>/v1/health` must return JSON `{"healthy": true}`. It runs through the same hardened curl transport (`-q`, `--proto =https`, no redirects, `--max-time 5`, 2 attempts). It publishes nothing and carries no secret.
+3. Every alert **this run** tried to deliver was delivered:
+   - canary: `alerts_undelivered == 0`, a summary-only count that is never persisted;
+   - health check: not (an alerting status with `delivery.sent` false).
+
+The ping is `success` only when the watcher ran without an execution fault **and** `channel_ok`. Otherwise it is `fail`.
+
+- **No false recovery from dedup.** A tick whose page is dedup-suppressed still re-proves the channel via checks 1 and 2, so it cannot report "up" on a dead ntfy server or a missing topic.
+- **What checks 1 and 2 cannot see:** a revoked or mistyped topic on a healthy server. That case surfaces through check 3 on the next real alert. This residual is accepted and recorded in the runbook.
+- **Probe errors are `fail`,** which is fail-closed. A transient blip gives at most one down/up email pair, since healthchecks.io emails only on state change; 2 attempts make that rare.
+- **Cost and volume.** About one extra small HTTPS GET per run, bounded like the ping; worst case per run is about 2 × 18 s. The probe is the same request for every run and needs no state. A long ntfy outage means `fail` every run but only one email, because the check simply stays down.
+
+NFR-001 is revised to a 40 s worst case per run. The module exposes `deadman.channel_ok(env, delivered_ok) -> (bool, reason)` and `deadman.ping(...)`.
+
 ## Implementation Concern Map
 
 ### IC-01 — `scripts/common/deadman.py`
