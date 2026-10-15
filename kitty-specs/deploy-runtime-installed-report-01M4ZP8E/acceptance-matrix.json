@@ -57,11 +57,11 @@
     {
       "criterion_id": "FR-006",
       "description": "Verify FR-006 is satisfied",
-      "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
+      "proof_type": "automated-test",
+      "evidence": "tests/deploy/test_tick_rebaseline.py::test_0029_replay_reported_install_completes asserts rebaseline_reported files/matched/baselines; ::test_scratch_destination_is_not_expected asserts rejected",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-10-15T13:11:31.166390+00:00",
       "notes": "TODO: replace with a real acceptance criterion"
     },
     {
