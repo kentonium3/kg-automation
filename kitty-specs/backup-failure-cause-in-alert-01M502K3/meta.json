@@ -11,5 +11,7 @@
   "purpose_tldr": "When the nightly backup fails, the canary's alert should say why (for example, the backup drive is not mounted) instead of naming a pointer key.",
   "slug": "backup-failure-cause-in-alert-01M502K3",
   "target_branch": "fix/backup-failure-cause-in-alert",
-  "topology": "lanes"
+  "topology": "lanes",
+  "vcs": "git",
+  "vcs_locked_at": "2026-10-15T15:36:57.757265+00:00"
 }

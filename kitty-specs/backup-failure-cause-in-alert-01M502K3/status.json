@@ -29,6 +29,9 @@
       "last_event_id": "01M503DYQNVQRT3V0VQYYJX6AT",
       "last_transition_at": "2026-10-15T15:38:27.445923+00:00",
       "model": "__resolved_model_absent__",
+      "notes": [
+        "Rule 9 validator + 30 rule tests; validator 0 findings on live inventory"
+      ],
       "provider": "__resolved_provider_absent__",
       "role": "implementer",
       "shell_pid": 762004,
