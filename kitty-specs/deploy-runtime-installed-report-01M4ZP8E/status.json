@@ -63,7 +63,8 @@
       "last_transition_at": "2026-10-15T12:27:28.804880+00:00",
       "model": "__resolved_model_absent__",
       "notes": [
-        "Ready for review: record_installed after each changed-file replace; 4 tests, 2 mutations caught"
+        "Ready for review: record_installed after each changed-file replace; 4 tests, 2 mutations caught",
+        "renata (claude-sonnet-5-5) APPROVE; non-blocking: add unwritable-target integration check (carried to WP06), append-before-record ordering"
       ],
       "provider": "__resolved_provider_absent__",
       "review_result": {
