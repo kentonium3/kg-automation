@@ -30,7 +30,8 @@
       "last_transition_at": "2026-10-15T17:44:59.533316+00:00",
       "model": "__resolved_model_absent__",
       "notes": [
-        "deadman module; 44 tests"
+        "deadman module; 44 tests",
+        "cycle 2: canonicalisation hardened; 60 tests"
       ],
       "provider": "__resolved_provider_absent__",
       "review": null,
