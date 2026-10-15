@@ -41,6 +41,7 @@ def harness(tmp_path, monkeypatch):
         "findings": [_Finding("felix-canary"), _Finding("restic-backup")],
         "delivery": SENT,
         "channel": (True, "ok"),
+        "configured": True,
     }
 
     monkeypatch.setattr(run_module.Path, "is_file", lambda self: state["script_exists"])
@@ -66,6 +67,7 @@ def harness(tmp_path, monkeypatch):
 
     monkeypatch.setattr(run_module.deadman, "ping", fake_ping)
     monkeypatch.setattr(run_module.deadman, "channel_ok", fake_channel_ok)
+    monkeypatch.setattr(run_module.deadman, "is_configured", lambda label, **kw: state["configured"])
     return state, pings, channel_calls, signal_file
 
 
@@ -164,3 +166,27 @@ def test_a_raising_deadman_never_changes_the_exit_code(harness, monkeypatch):
     monkeypatch.setattr(run_module.deadman, "ping", boom)
     monkeypatch.setattr(run_module.deadman, "channel_ok", boom)
     assert run_module.main([]) == 0
+
+
+def test_unconfigured_deadman_makes_no_probe_and_no_ping(harness):
+    """FR-005 (post-merge Codex review): no URL means no dead-man subprocess at all."""
+    state, pings, calls, _ = harness
+    state["configured"] = False
+    state["script"] = ("FAILURES_DETECTED\nDOWN: x (inactive)\n", 0)
+    state["delivery"] = NOT_SENT_ERROR
+    assert run_module.main([]) == 0
+    assert pings == [] and calls == []
+
+
+def test_coverage_record_serialisation_failure_pings_fail(harness):
+    """Post-merge Codex review: an _Unavailable substituted by _coverage_records
+    (evidence without the import-failure prefixes) is still an execution fault."""
+    state, pings, _, _ = harness
+
+    class _Unserialisable(_Finding):
+        def to_record(self):
+            raise TypeError("not serialisable")
+
+    state["findings"] = [_Unserialisable("felix-canary"), _Finding("restic-backup")]
+    assert run_module.main([]) == 0
+    assert pings == [("healthcheck", "fail")]

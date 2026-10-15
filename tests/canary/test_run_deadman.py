@@ -58,7 +58,8 @@ def harness(tmp_path, monkeypatch):
     """Route main() to a real run_pass with injected effects; record deadman calls."""
     pings: list[tuple[str, str]] = []
     channel_calls: list[bool] = []
-    state = {"channel": (True, "ok"), "outcomes": {}, "emit_ok": True, "raise": False}
+    state = {"channel": (True, "ok"), "outcomes": {}, "emit_ok": True, "raise": False,
+             "configured": True}
 
     def fake_ping(label, outcome, **kw):
         pings.append((label, outcome))
@@ -72,6 +73,7 @@ def harness(tmp_path, monkeypatch):
 
     monkeypatch.setattr(run_mod.deadman, "ping", fake_ping)
     monkeypatch.setattr(run_mod.deadman, "channel_ok", fake_channel_ok)
+    monkeypatch.setattr(run_mod.deadman, "is_configured", lambda label, **kw: state["configured"])
     real_run_pass = run_mod.run_pass
 
     def fake_run_pass(*, now, dry_run):
@@ -181,3 +183,13 @@ def test_a_raising_deadman_never_changes_the_exit_code(harness, monkeypatch):
     assert run_mod.main(["--once"]) == 0
     state["raise"] = True
     assert run_mod.main(["--once"]) == 1
+
+
+def test_unconfigured_deadman_makes_no_probe_and_no_ping(harness):
+    """FR-005 (post-merge Codex review): no URL means no dead-man subprocess at all."""
+    state, pings, calls, _ = harness
+    state["configured"] = False
+    assert run_mod.main(["--once"]) == 0
+    state["raise"] = True
+    assert run_mod.main(["--once"]) == 1
+    assert pings == [] and calls == []

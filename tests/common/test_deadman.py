@@ -327,3 +327,17 @@ def test_cli_prints_no_url(tmp_path, monkeypatch, capsys):
 )
 def test_canonical_endpoints(url, success, fail):
     assert deadman._canonical(url) == (success, fail)
+
+
+# --------------------------------------------------------------------------- #
+# is_configured gates every dead-man subprocess (post-merge Codex review).
+# --------------------------------------------------------------------------- #
+
+def test_is_configured(tmp_path):
+    good = _env_file(tmp_path, FELIX_DEADMAN_CANARY_URL=SENTINEL)
+    assert deadman.is_configured("canary", env_file=good) is True
+    assert deadman.is_configured("healthcheck", env_file=good) is False
+    assert deadman.is_configured("canary", env_file=tmp_path / "absent") is False
+    bad = tmp_path / "bad"; bad.write_text("FELIX_DEADMAN_CANARY_URL=http://x/y\n")
+    assert deadman.is_configured("canary", env_file=bad) is False
+    assert deadman.is_configured("nope", env_file=good) is False

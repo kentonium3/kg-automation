@@ -155,6 +155,22 @@ def _canonical(url: str) -> tuple[str, str] | None:
     return success, fail
 
 
+def is_configured(label: str, *, env_file: Path | str | None = None) -> bool:
+    """True when ``label`` has a canonical ping URL configured. Never raises.
+
+    Callers check this FIRST so an unconfigured watcher runs no dead-man
+    subprocess at all -- not even the ntfy channel probe (FR-005; post-merge
+    Codex review).
+    """
+    try:
+        if label not in LABEL_VARS:
+            return False
+        url = _load(_env_file(env_file)).get(LABEL_VARS[label], "")
+        return bool(url) and _canonical(url) is not None
+    except Exception:  # noqa: BLE001 -- total
+        return False
+
+
 def _reason_for_exit(code: int) -> str:
     if code == 0:
         return "ok"

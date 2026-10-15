@@ -590,7 +590,7 @@ def main(argv: list[str] | None = None) -> int:
         summary = run_pass(now=now, dry_run=args.dry_run)
     except Exception as exc:  # noqa: BLE001 - runner-level fault → non-zero exit (OnFailure)
         print(f"status=error runner_failure {exc.__class__.__name__}: {exc}")
-        if not args.dry_run:
+        if not args.dry_run and _deadman_configured():
             _deadman_ping("fail")
         return 1
 
@@ -611,15 +611,24 @@ def main(argv: list[str] | None = None) -> int:
 
         # #1077 off-host dead-man: liveness plus channel health, never
         # component health. A tick that found failures but could alert is up.
-        ok, why = _channel_ok(summary.get("alerts_undelivered", 0) == 0)
-        outcome = "success" if summary.get("status") == "success" and ok else "fail"
-        if not ok:
-            print(f"deadman channel: {why}")
-        _deadman_ping(outcome)
+        # Unconfigured: no probe, no ping, no subprocess at all (FR-005).
+        if _deadman_configured():
+            ok, why = _channel_ok(summary.get("alerts_undelivered", 0) == 0)
+            outcome = "success" if summary.get("status") == "success" and ok else "fail"
+            if not ok:
+                print(f"deadman channel: {why}")
+            _deadman_ping(outcome)
 
     # A completed pass is exit 0 even if components are unhealthy (they emit).
     # run_pass only raises for runner-level faults, already handled above.
     return 0
+
+
+def _deadman_configured() -> bool:
+    try:
+        return deadman.is_configured("canary")
+    except Exception:  # noqa: BLE001 - deadman is total; belt and braces
+        return False
 
 
 def _channel_ok(delivered_ok: bool) -> tuple[bool, str]:

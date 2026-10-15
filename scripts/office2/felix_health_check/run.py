@@ -385,12 +385,24 @@ def _execution_fault(script_status: str, script_note: str | None, findings: Sequ
         if script_note:
             return "script_did_not_run"
         for f in findings:
+            # Any _Unavailable finding is the coverage machinery failing
+            # (import, evaluation, or record serialisation), whatever its
+            # evidence text says (post-merge Codex review).
+            if isinstance(f, _Unavailable):
+                return "coverage_unavailable"
             evidence = str(getattr(f, "evidence", "") or "")
             if evidence.startswith(_COVERAGE_FAULT_PREFIXES):
                 return "coverage_unavailable"
         return None
     except Exception:  # noqa: BLE001 - fail closed
         return "fault_check_error"
+
+
+def _deadman_configured() -> bool:
+    try:
+        return deadman.is_configured("healthcheck")
+    except Exception:  # noqa: BLE001 - deadman is total; belt and braces
+        return False
 
 
 def _deadman(outcome: str, reason: str | None = None) -> None:
@@ -440,8 +452,13 @@ def main(argv: list[str] | None = None) -> int:
             },
         )
     except Exception:
-        _deadman("fail", "record_write_failed")
+        if _deadman_configured():
+            _deadman("fail", "record_write_failed")
         raise
+
+    # Unconfigured: no probe, no ping, no subprocess at all (FR-005).
+    if not _deadman_configured():
+        return 0
 
     # #1077 off-host dead-man: liveness plus channel health, never the health
     # of what is watched. A missing topic gives attempted=False, sent=False, so
