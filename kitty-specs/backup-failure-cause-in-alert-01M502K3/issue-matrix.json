@@ -24,6 +24,18 @@
       "verdict": "in-mission",
       "wp": "WP04"
     },
+    "#557": {
+      "evidence_ref": "cited in plan.md charter check: rebaseline obligation; no audited surface touched",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": null,
+      "title": null,
+      "verdict": "not-applicable",
+      "wp": null
+    },
     "#899": {
       "evidence_ref": "cited as the constraint this mission must not violate (no root-to-claude code edge); owes no work",
       "fr": null,
