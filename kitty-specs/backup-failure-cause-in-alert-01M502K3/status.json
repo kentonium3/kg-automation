@@ -30,7 +30,8 @@
       "last_transition_at": "2026-10-15T15:40:34.501800+00:00",
       "model": "__resolved_model_absent__",
       "notes": [
-        "Rule 9 validator + 30 rule tests; validator 0 findings on live inventory"
+        "Rule 9 validator + 30 rule tests; validator 0 findings on live inventory",
+        "Cycle 2: fullmatch + non-str guard; 219 tests pass"
       ],
       "provider": "__resolved_provider_absent__",
       "review": null,
