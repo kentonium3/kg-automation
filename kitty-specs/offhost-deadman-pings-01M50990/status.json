@@ -87,6 +87,9 @@
       "last_event_id": "01M50AZMFVSYSWMVPZ1Z9XEHJK",
       "last_transition_at": "2026-10-15T17:50:26.811317+00:00",
       "model": "__resolved_model_absent__",
+      "notes": [
+        "health-check hook; 182 tests"
+      ],
       "provider": "__resolved_provider_absent__",
       "role": "implementer",
       "shell_pid": 967333,
