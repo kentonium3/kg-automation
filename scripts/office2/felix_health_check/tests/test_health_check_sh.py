@@ -51,7 +51,16 @@ echo active''')
 
 
 def _is_active_units(calls: list[str]) -> list[str]:
-    return [c.split()[-1] for c in calls if "is-active" in c.split()]
+    """Every unit argument of every is-active call, not just the last one, so
+    `is-active b.timer a.service` is caught too (pre-merge review)."""
+    units: list[str] = []
+    for call in calls:
+        tokens = call.split()
+        if "is-active" not in tokens:
+            continue
+        after = tokens[tokens.index("is-active") + 1:]
+        units.extend(t for t in after if not t.startswith("-"))
+    return units
 
 
 def test_no_timer_is_ever_judged_by_is_active(tmp_path):
@@ -119,3 +128,14 @@ def test_core_digest_stays_covered_by_canary_freshness():
     bound = hc["max_age_seconds"]
     assert isinstance(bound, (int, float)) and not isinstance(bound, bool)
     assert 0 < bound <= 3600
+
+
+def test_guard_sees_a_timer_that_is_not_the_last_argument(tmp_path):
+    variant = tmp_path / "health-check-multi.sh"
+    text = SCRIPT.read_text()
+    old = 'status=$(systemctl --user is-active $unit 2>/dev/null)'
+    assert old in text, "user-unit is-active call not found; update this self-test"
+    variant.write_text(text.replace(
+        old, 'status=$(systemctl --user is-active other.timer $unit 2>/dev/null)', 1))
+    _, calls = _run(tmp_path, script=variant)
+    assert "other.timer" in _is_active_units(calls)

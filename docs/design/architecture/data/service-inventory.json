@@ -2273,7 +2273,7 @@
         "method": "tick-signal-file",
         "max_age_seconds": 1800,
         "endpoint": "/data/services/openclaw/felix-core-digest-signals/last-tick.json",
-        "expected": "exit_status=success within the last 30 minutes; errors=[] (see kitty-specs/signal-driven-monitoring-haiku-gate-01KT22PC/contracts/tick-signal.contract.md). A fresh tick means the producer ran, not that the timer is armed: a manual run (including tick.py --dry-run) refreshes it for up to 30 minutes. For timer liveness do NOT rely on `systemctl --user status`/`is-active` -- a timer stuck in the #1062 dormant state still reads active (elapsed); check `systemctl --user show felix-core-digest.timer -p NextElapseUSecMonotonic` is non-empty (#1068).",
+        "expected": "exit_status=success within the last 30 minutes; errors=[] (see kitty-specs/signal-driven-monitoring-haiku-gate-01KT22PC/contracts/tick-signal.contract.md). A fresh tick means the producer ran, not that the timer is armed: a manual run (including tick.py --dry-run) refreshes it for up to 30 minutes. For timer liveness do NOT rely on `systemctl --user status`/`is-active` -- a timer stuck in the #1062 dormant state still reads active (elapsed); check that `systemctl --user show felix-core-digest.timer -p NextElapseUSecMonotonic --value` prints a concrete timespan (e.g. '12min 3.1s'), not empty, '0' or 'infinity' -- systemd renders an unset deadline as 0 or infinity; same rule as scripts/deploy/lib/userunits.py next_elapse_is_concrete (#1068).",
         "timeout_seconds": 5
       },
       "config_files": [
