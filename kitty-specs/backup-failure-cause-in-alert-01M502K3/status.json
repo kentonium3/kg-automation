@@ -94,7 +94,8 @@
       "model": "__resolved_model_absent__",
       "notes": [
         "- 2026-10-15T15:48:11Z – claude – shell_pid=785310 – T008: service-inventory.md has no ledger-member list or restic key count, so no change; observability-and-alerting.md gained a cause bullet.",
-        "Docs + add-only contract amendment; validate_docs OK; links OK"
+        "Docs + add-only contract amendment; validate_docs OK; links OK",
+        "Cycle 2: counts, banner (#934 verified installed), match vocabulary, unlock guidance"
       ],
       "provider": "__resolved_provider_absent__",
       "review": null,
