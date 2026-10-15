@@ -1,20 +1,20 @@
 {
-  "event_count": 22,
-  "last_event_id": "01M50B0Q4PWP7JETB6HY7QFD1X",
-  "materialized_at": "2026-10-15T17:51:02.294102+00:00",
+  "event_count": 23,
+  "last_event_id": "01M50B0YZ4MRBTZHXZ6HKCHB6C",
+  "materialized_at": "2026-10-15T17:51:10.308629+00:00",
   "mission_number": "",
   "mission_slug": "offhost-deadman-pings-01M50990",
   "mission_type": "software-dev",
   "schema_version": 2,
   "summary": {
-    "approved": 1,
+    "approved": 2,
     "blocked": 0,
     "canceled": 0,
     "claimed": 0,
     "done": 0,
     "for_review": 1,
     "in_progress": 1,
-    "in_review": 1,
+    "in_review": 0,
     "planned": 0
   },
   "work_packages": {
@@ -59,14 +59,19 @@
       "agent_profile_version": "__resolved_profile_version_absent__",
       "force_count": 0,
       "implementer_of_record": "claude",
-      "lane": "in_review",
-      "last_event_id": "01M50B0Q4PWP7JETB6HY7QFD1X",
-      "last_transition_at": "2026-10-15T17:51:02.294102+00:00",
+      "lane": "approved",
+      "last_event_id": "01M50B0YZ4MRBTZHXZ6HKCHB6C",
+      "last_transition_at": "2026-10-15T17:51:10.308629+00:00",
       "model": "__resolved_model_absent__",
       "notes": [
         "canary hook; 355 canary tests"
       ],
       "provider": "__resolved_provider_absent__",
+      "review_result": {
+        "reference": "auto-approval:WP02:20261015",
+        "reviewer": "Kent Gale",
+        "verdict": "approved"
+      },
       "role": "reviewer",
       "shell_pid": 967333,
       "shell_pid_created_at": "1792086364.53",
