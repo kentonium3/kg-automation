@@ -9,6 +9,9 @@ requirement_refs:
 planning_base_branch: fix/deploy-runtime-installed-report
 merge_target_branch: fix/deploy-runtime-installed-report
 branch_strategy: Planning artifacts for this mission were generated on fix/deploy-runtime-installed-report. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into fix/deploy-runtime-installed-report unless the human explicitly redirects the landing branch.
+base_branch: kitty/mission-deploy-runtime-installed-report-01M4ZP8E
+base_commit: 295a7c05a3e68a1b123e80b6351da8554799ec7a
+created_at: '2026-10-15T12:11:00.205035+00:00'
 subtasks:
 - T001
 - T002
