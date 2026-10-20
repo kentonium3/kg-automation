@@ -24,6 +24,7 @@
   "purpose_context": "Phase 1 routed all Vikunja consumers through VikunjaClient but left token resolution split across the client default, per-habits-script constants, and sync, so the identity flip is not the one-liner it was meant to be. Phase 2 finishes the seam with a single get_vikunja_token_path() resolution point, performs the atomic flip to the kent token, retires the felix-bot Vikunja credential from the runtime path (user left dormant), reconciles the ADR/identity/credential docs and SKILL/TOOLS, and runs the attended Tier-2 cutover on office2. Resolves #831 and #750 under Epic #531.",
   "purpose_tldr": "Collapse Felix->Vikunja token resolution to one point, then flip felix-bot->kent and retire the felix-bot runtime token.",
   "slug": "vikunja-token-seam-kent-cutover-01KY8XQ0",
+  "status_phase": "1",
   "target_branch": "feat/vikunja-token-seam-kent-cutover",
   "topology": "single_branch",
   "vcs": "git",

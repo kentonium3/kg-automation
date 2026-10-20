@@ -7,6 +7,7 @@
   "mission_type": "software-dev",
   "slug": "refactor-doc-auditor-to-scripts-first-driver-01KS2XNX",
   "source_description": "GitHub issue #343 — refactor felix-doc-auditor from LLM-first procedural agent to scripts-first driver with narrow LLM judgment calls. Discovery answers: (Q1=C) fully retire openclaw agent surface, fail-forward; (Q2=B) reliability as NFR with lightweight observation hook for #327; (Q3=B) process full queue per tick.",
+  "status_phase": "1",
   "target_branch": "main",
   "vcs": "git"
 }

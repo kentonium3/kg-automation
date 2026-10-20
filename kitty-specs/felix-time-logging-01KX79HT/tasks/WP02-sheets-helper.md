@@ -8,7 +8,6 @@ requirement_refs:
 - FR-007
 - NFR-001
 - NFR-002
-tracker_refs: []
 planning_base_branch: feat/felix-time-logging
 merge_target_branch: feat/felix-time-logging
 branch_strategy: Planning artifacts for this mission were generated on feat/felix-time-logging. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into feat/felix-time-logging unless the human explicitly redirects the landing branch.
@@ -18,23 +17,25 @@ subtasks:
 - T005
 phase: Phase 1 - Sheets ops
 assignee: ''
-agent: "claude:opus:reviewer-renata:reviewer"
-agent_profile: "python-pedro"
-shell_pid: "44707"
+agent: claude:opus:reviewer-renata:reviewer
+shell_pid: '44707'
 history:
 - at: '2026-07-10T22:30:00Z'
   actor: system
   action: Prompt generated via /spec-kitty.tasks
+agent_profile: python-pedro
 authoritative_surface: scripts/google/
 create_intent:
 - scripts/google/sheets_helper.py
 - tests/google/test_sheets_helper.py
 execution_mode: code_change
+lane: planned
 owned_files:
 - scripts/google/sheets_helper.py
 - tests/google/test_sheets_helper.py
 role: implementer
 tags: []
+tracker_refs: []
 ---
 
 ## ⚡ Do This First: Load Agent Profile

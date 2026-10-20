@@ -26,6 +26,7 @@ history:
   action: Prompt generated via /spec-kitty.tasks
 authoritative_surface: ''
 execution_mode: code_change
+lane: planned
 mission_id: 01KN5QX3WDVP7JH72J2D8NHKMX
 owned_files:
 - docs/design/architecture/data/credential-manifest.json

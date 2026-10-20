@@ -7,6 +7,7 @@
   "mission_type": "software-dev",
   "slug": "025-vikunja-date-timezone-bug",
   "source_description": "GitHub issue #112 — reopened 2026-04-10; previous fixes did not resolve",
+  "status_phase": "1",
   "target_branch": "main",
   "vcs": "git"
 }

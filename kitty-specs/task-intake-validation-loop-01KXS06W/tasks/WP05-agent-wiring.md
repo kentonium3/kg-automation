@@ -7,7 +7,6 @@ dependencies:
 requirement_refs:
 - FR-004
 - FR-006
-tracker_refs: []
 planning_base_branch: feat/task-intake-validation-loop
 merge_target_branch: feat/task-intake-validation-loop
 branch_strategy: Planning artifacts for this mission were generated on feat/task-intake-validation-loop. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into feat/task-intake-validation-loop unless the human explicitly redirects the landing branch.
@@ -16,9 +15,9 @@ subtasks:
 - T021
 - T022
 phase: Phase 4 - Integration
-agent: "claude:opus:reviewer-renata:reviewer"
-shell_pid: "77883"
-shell_pid_created_at: "1784331567.670278"
+agent: claude:opus:reviewer-renata:reviewer
+shell_pid: '77883'
+shell_pid_created_at: '1784331567.670278'
 history:
 - at: '2026-07-17T21:55:00Z'
   actor: system
@@ -27,6 +26,7 @@ agent_profile: curator-carla
 authoritative_surface: scripts/openclaw/agents
 create_intent: []
 execution_mode: code_change
+lane: planned
 model: claude-sonnet-5
 owned_files:
 - scripts/openclaw/agents/felix-admin-capture/AGENTS.md
@@ -35,6 +35,7 @@ owned_files:
 - scripts/openclaw/agents/main/TOOLS.md
 role: implementer
 tags: []
+tracker_refs: []
 ---
 
 # Work Package Prompt: WP05 — Agent wiring (capture and main prompts)

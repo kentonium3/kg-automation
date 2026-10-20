@@ -19,14 +19,15 @@ subtasks:
 - T003
 - T004
 - T005
-shell_pid: "23571"
-agent: "claude"
+agent: claude
+shell_pid: '23571'
 history:
 - date: '2026-04-09T20:07:16Z'
   action: created
   by: spec-kitty.tasks
 authoritative_surface: scripts/openclaw/agents/felix-admin-capture/
 execution_mode: code_change
+lane: planned
 owned_files:
 - scripts/openclaw/agents/felix-admin-capture/AGENTS.md
 tags: []

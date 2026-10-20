@@ -8,7 +8,6 @@ dependencies:
 - WP04
 requirement_refs:
 - FR-017
-tracker_refs: []
 planning_base_branch: fix/capture-atomic-finalize
 merge_target_branch: fix/capture-atomic-finalize
 branch_strategy: Planning artifacts for this mission were generated on fix/capture-atomic-finalize. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into fix/capture-atomic-finalize unless the human explicitly redirects the landing branch.
@@ -18,9 +17,9 @@ subtasks:
 - T024
 - T025
 phase: Phase 4 - Close-out
-agent: "claude:opus:reviewer-renata:reviewer"
-shell_pid: "7348"
-shell_pid_created_at: "1784318141.726101"
+agent: claude:opus:reviewer-renata:reviewer
+shell_pid: '7348'
+shell_pid_created_at: '1784318141.726101'
 history:
 - at: '2026-07-17T18:30:00Z'
   actor: system
@@ -30,6 +29,7 @@ authoritative_surface: docs/runbooks
 create_intent:
 - deploys/queued/capture-atomic-finalize.yaml
 execution_mode: code_change
+lane: planned
 model: claude-sonnet-5
 owned_files:
 - docs/runbooks/inbox-ops.md
@@ -38,6 +38,7 @@ owned_files:
 - docs/design/felix-capability-roadmap.md
 role: implementer
 tags: []
+tracker_refs: []
 ---
 
 # Work Package Prompt: WP05 – Documentation sync + deploy

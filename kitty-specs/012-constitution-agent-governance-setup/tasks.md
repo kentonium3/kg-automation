@@ -38,7 +38,7 @@
 ---
 
 #### WP01: Constitution & Agent Registry
-**Prompt**: [tasks/WP01-constitution-and-registry.md](tasks/WP01-constitution-and-registry.md)
+**Prompt**: [tasks/WP01-constitution-and-registry.md
 **Priority**: P0 — blocks all other WPs
 **Dependencies**: none
 **Subtasks**: T001, T002, T003, T004
@@ -65,7 +65,7 @@
 ---
 
 #### WP02: Intelligence Layer
-**Prompt**: [tasks/WP02-intelligence-layer.md](tasks/WP02-intelligence-layer.md)
+**Prompt**: [tasks/WP02-intelligence-layer.md
 **Priority**: P1
 **Dependencies**: WP01
 **Subtasks**: T005, T006, T007, T008, T009, T010
@@ -90,7 +90,7 @@
 ---
 
 #### WP03: Skill-Authoring Skill
-**Prompt**: [tasks/WP03-skill-authoring-skill.md](tasks/WP03-skill-authoring-skill.md)
+**Prompt**: [tasks/WP03-skill-authoring-skill.md
 **Priority**: P1
 **Dependencies**: none (independent — reads existing skills, not new constitution)
 **Subtasks**: T011, T012
@@ -110,7 +110,7 @@
 ---
 
 #### WP04: Agent Standing Orders & Documentation
-**Prompt**: [tasks/WP04-agent-updates-and-docs.md](tasks/WP04-agent-updates-and-docs.md)
+**Prompt**: [tasks/WP04-agent-updates-and-docs.md
 **Priority**: P1
 **Dependencies**: WP01
 **Subtasks**: T013, T014, T015, T016, T017
@@ -137,7 +137,7 @@
 ---
 
 #### WP05: Deployment & Verification
-**Prompt**: [tasks/WP05-deployment-and-verification.md](tasks/WP05-deployment-and-verification.md)
+**Prompt**: [tasks/WP05-deployment-and-verification.md
 **Priority**: P2
 **Dependencies**: WP01, WP02, WP03, WP04
 **Subtasks**: T018, T019, T020, T021, T022

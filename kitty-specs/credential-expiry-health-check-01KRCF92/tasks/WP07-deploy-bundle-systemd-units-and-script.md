@@ -15,14 +15,15 @@ subtasks:
 - T030
 - T031
 - T032
-agent: "claude"
-shell_pid: "49962"
+agent: claude
+shell_pid: '49962'
 history:
 - event: created
   at: '2026-05-11T21:43:38Z'
   by: 'spec-kitty.tasks (auto-drive via #115)'
 authoritative_surface: scripts/office2/credential-health-check
 execution_mode: code_change
+lane: planned
 owned_files:
 - scripts/office2/credential-health-check.timer
 - scripts/office2/credential-health-check.service

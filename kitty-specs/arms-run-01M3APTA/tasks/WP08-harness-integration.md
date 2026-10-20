@@ -38,6 +38,7 @@ create_intent:
 - tests/research/test_arms849_grading.py
 - tests/research/test_arms849_integration.py
 execution_mode: code_change
+lane: planned
 owned_files:
 - scripts/research/run_849_harness.py
 - scripts/research/arms849/grading.py

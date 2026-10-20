@@ -21,9 +21,12 @@ subtasks:
 - T023
 - T024
 - T025
+agent: claude:opus:reviewer:reviewer
+shell_pid: '84518'
 history: []
 authoritative_surface: scripts/habits/
 execution_mode: code_change
+lane: planned
 owned_files:
 - scripts/habits/query_active_habits_v2.py
 - scripts/habits/morning_checkin_list.py
@@ -33,8 +36,6 @@ owned_files:
 - scripts/enrichment/reconcile_completions.py
 - scripts/sync/driver.py
 tags: []
-agent: "claude:opus:reviewer:reviewer"
-shell_pid: "84518"
 ---
 
 # WP05 — Touchpoint URL Migration

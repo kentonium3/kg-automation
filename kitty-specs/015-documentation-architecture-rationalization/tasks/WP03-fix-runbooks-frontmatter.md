@@ -25,14 +25,15 @@ subtasks:
 - T013
 phase: Phase 1 - Frontmatter Corrections
 assignee: ''
-agent: "claude"
-shell_pid: "99965"
+agent: claude
+shell_pid: '99965'
 history:
 - at: '2026-04-05T01:28:56Z'
   actor: system
   action: Prompt generated via /spec-kitty.tasks
 authoritative_surface: docs/runbooks/
 execution_mode: code_change
+lane: planned
 owned_files:
 - docs/runbooks/agent-execution-roles.md
 - docs/runbooks/agent-handbook.md

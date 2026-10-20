@@ -25,17 +25,18 @@ subtasks:
 - T015
 - T016
 - T017
+agent: claude:opus:reviewer:reviewer
+shell_pid: '91780'
 history: []
 authoritative_surface: scripts/sync/cycle.py
 execution_mode: code_change
+lane: planned
 owned_files:
 - scripts/sync/state.py
 - scripts/sync/cycle.py
 - tests/sync/test_state.py
 - tests/sync/test_cycle*.py
 tags: []
-agent: "claude:opus:reviewer:reviewer"
-shell_pid: "91780"
 ---
 
 # WP04 — Driver Rewrite + Phase 5b Deletion-Cleanup

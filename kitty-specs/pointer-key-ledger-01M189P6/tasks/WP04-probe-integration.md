@@ -35,6 +35,7 @@ authoritative_surface: scripts/canary/probes.py
 create_intent:
 - tests/canary/test_probes_ledger.py
 execution_mode: code_change
+lane: planned
 model: claude-sonnet-4-6
 owned_files:
 - scripts/canary/probes.py

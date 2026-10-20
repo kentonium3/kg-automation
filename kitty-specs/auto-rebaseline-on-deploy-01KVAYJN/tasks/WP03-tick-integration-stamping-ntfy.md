@@ -9,7 +9,6 @@ requirement_refs:
 - FR-009
 - NFR-002
 - NFR-004
-tracker_refs: []
 planning_base_branch: main
 merge_target_branch: main
 branch_strategy: Planning artifacts for this mission were generated on main. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into main unless the human explicitly redirects the landing branch.
@@ -26,12 +25,14 @@ authoritative_surface: scripts/deploy/felix-deployer/_tick.py
 create_intent:
 - tests/deploy/test_tick_rebaseline.py
 execution_mode: code_change
+lane: planned
 owned_files:
 - scripts/deploy/felix-deployer/_tick.py
 - scripts/deploy/felix-deployer/notify.py
 - tests/deploy/test_tick_rebaseline.py
 role: implementer
 tags: []
+tracker_refs: []
 ---
 
 ## ⚡ Do This First: Load Agent Profile

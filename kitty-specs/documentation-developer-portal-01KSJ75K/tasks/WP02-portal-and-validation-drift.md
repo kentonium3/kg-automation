@@ -18,13 +18,14 @@ subtasks:
 - T010
 - T011
 - T012
-agent: "codex:gpt-5:spec-kitty-review:reviewer"
-shell_pid: "16456"
+agent: codex:gpt-5:spec-kitty-review:reviewer
+shell_pid: '16456'
 history:
 - date: '2026-05-26'
   note: WP authored by spec-kitty.tasks (mission documentation-developer-portal-01KSJ75K)
 authoritative_surface: docs/DEVELOPER_PORTAL.md
 execution_mode: code_change
+lane: planned
 mission_slug: documentation-developer-portal-01KSJ75K
 owned_files:
 - docs/DEVELOPER_PORTAL.md

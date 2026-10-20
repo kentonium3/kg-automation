@@ -5,18 +5,19 @@ dependencies: []
 requirement_refs:
 - FR-007
 - FR-014
-tracker_refs: []
 planning_base_branch: main
 merge_target_branch: main
 branch_strategy: Planning artifacts for this mission were generated on main. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into main unless the human explicitly redirects the landing branch.
 subtasks:
 - T011
 - T012
-agent: "claude"
+agent: claude
+shell_pid: '52879'
 history: []
 agent_profile: python-pedro
 authoritative_surface: scripts/inbox/
 execution_mode: code_change
+lane: planned
 mission_id: 01KTMS5QGXFJWQYVXB03SPYB48
 mission_slug: capture-d6-helpers-extraction-01KTMS5Q
 model: claude-sonnet-4-6
@@ -25,7 +26,7 @@ owned_files:
 - tests/inbox/test_classify_content.py
 role: implementer
 tags: []
-shell_pid: "52879"
+tracker_refs: []
 ---
 
 ## ⚡ Do This First: Load Agent Profile

@@ -53,7 +53,7 @@ escalation/scope tests pass — with no live Vikunja calls.
 missing done tasks (mitigated by done-inclusive paginated enumeration); self-block on
 test task in doomed project (mitigated by ordering test-deletes first).
 
-**Prompt**: [tasks/WP01-migrate-tasks-helper.md](./tasks/WP01-migrate-tasks-helper.md)
+**Prompt**: [tasks/WP01-migrate-tasks-helper.md
 
 ## MVP
 

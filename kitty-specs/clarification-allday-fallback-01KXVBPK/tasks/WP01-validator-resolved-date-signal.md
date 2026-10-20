@@ -5,27 +5,28 @@ dependencies: []
 requirement_refs:
 - FR-001
 - FR-006
-tracker_refs: []
 planning_base_branch: feat/clarification-allday-fallback
 merge_target_branch: feat/clarification-allday-fallback
 branch_strategy: Planning artifacts for this mission were generated on feat/clarification-allday-fallback. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into feat/clarification-allday-fallback unless the human explicitly redirects the landing branch.
 subtasks:
 - T001
 - T002
-agent: "claude:opus:reviewer-renata:reviewer"
-shell_pid: "67366"
-shell_pid_created_at: "1784411824.343509"
+agent: claude:opus:reviewer-renata:reviewer
+shell_pid: '67366'
+shell_pid_created_at: '1784411824.343509'
 history:
 - '2026-07-18: authored by /spec-kitty.tasks'
 agent_profile: python-pedro
 authoritative_surface: scripts/calendar_routing/validate_calendar_event.py
 create_intent: []
 execution_mode: code_change
+lane: planned
 owned_files:
 - scripts/calendar_routing/validate_calendar_event.py
 - tests/calendar/test_validate_calendar_event.py
 role: implementer
 tags: []
+tracker_refs: []
 ---
 
 ## ⚡ Do This First: Load Agent Profile

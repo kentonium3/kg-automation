@@ -1,5 +1,5 @@
 {
-  "event_count": 41,
+  "event_count": 47,
   "last_event_id": "01KS8W3HC0DTX1MD60TZ9TS03C",
   "materialized_at": "2026-05-22T22:15:14.048268+00:00",
   "mission_number": "47",
@@ -19,51 +19,107 @@
   "work_packages": {
     "WP01": {
       "actor": "user",
+      "agent": "agy:gemini-2.5-pro:spec-kitty-review:reviewer",
       "force_count": 1,
       "lane": "approved",
       "last_event_id": "01KS8N4GD87CS3X1KR4V8FNX11",
       "last_transition_at": "2026-05-22T20:13:25.800533+00:00",
-      "review_result": null
+      "review_result": null,
+      "shell_pid": 4370,
+      "subtasks": {
+        "T001": "done",
+        "T002": "done",
+        "T003": "done",
+        "T004": "done",
+        "T005": "done",
+        "T006": "done",
+        "T007": "done"
+      }
     },
     "WP02": {
       "actor": "user",
+      "agent": "agy:gemini-2.5-pro:spec-kitty-review:reviewer",
       "force_count": 1,
       "lane": "approved",
       "last_event_id": "01KS8NP63TKEY947VVZ6389C0R",
       "last_transition_at": "2026-05-22T20:23:05.082870+00:00",
-      "review_result": null
+      "review_result": null,
+      "shell_pid": 6462,
+      "subtasks": {
+        "T008": "done",
+        "T009": "done",
+        "T010": "done",
+        "T011": "done",
+        "T012": "done",
+        "T013": "done"
+      }
     },
     "WP03": {
       "actor": "user",
+      "agent": "agy:gemini-2.5-pro:spec-kitty-review:reviewer",
       "force_count": 1,
       "lane": "approved",
       "last_event_id": "01KS8Q2G41FC5SQ474PGY96RXX",
       "last_transition_at": "2026-05-22T20:47:17.121981+00:00",
-      "review_result": null
+      "review_result": null,
+      "shell_pid": 10389,
+      "subtasks": {
+        "T014": "done",
+        "T015": "done",
+        "T016": "done",
+        "T017": "done"
+      }
     },
     "WP04": {
       "actor": "user",
+      "agent": "agy:gemini-2.5-pro:spec-kitty-review:reviewer",
       "force_count": 2,
       "lane": "approved",
       "last_event_id": "01KS8V0AFSFZP0R99SN2ME9K80",
       "last_transition_at": "2026-05-22T21:56:00.121699+00:00",
-      "review_result": null
+      "review_result": null,
+      "shell_pid": 17087,
+      "subtasks": {
+        "T018": "done",
+        "T019": "done",
+        "T020": "done",
+        "T021": "done",
+        "T022": "done",
+        "T023": "done"
+      }
     },
     "WP05": {
       "actor": "user",
+      "agent": "agy:gemini-2.5-pro:spec-kitty-review:reviewer",
       "force_count": 1,
       "lane": "approved",
       "last_event_id": "01KS8W3HC0DTX1MD60TZ9TS03C",
       "last_transition_at": "2026-05-22T22:15:14.048268+00:00",
-      "review_result": null
+      "review_result": null,
+      "shell_pid": 24424,
+      "subtasks": {
+        "T024": "done",
+        "T025": "done",
+        "T026": "done",
+        "T027": "done",
+        "T028": "done"
+      }
     },
     "WP06": {
       "actor": "user",
+      "agent": "agy:gemini-2.5-pro:spec-kitty-review:reviewer",
       "force_count": 1,
       "lane": "approved",
       "last_event_id": "01KS8MPVV4V9HK4KWWX9CJMB1H",
       "last_transition_at": "2026-05-22T20:05:58.756101+00:00",
-      "review_result": null
+      "review_result": null,
+      "shell_pid": 3065,
+      "subtasks": {
+        "T029": "done",
+        "T030": "done",
+        "T031": "done",
+        "T032": "done"
+      }
     }
   }
 }

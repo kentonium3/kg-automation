@@ -20,6 +20,7 @@ history:
   actor: claude
 authoritative_surface: kitty-specs/009-daily-habit-checkin/
 execution_mode: planning_artifact
+lane: planned
 mission_id: 01KN5QX3WMQC0B8XXG1QKT3N9E
 owned_files:
 - kitty-specs/009-daily-habit-checkin/**

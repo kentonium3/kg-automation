@@ -24,14 +24,15 @@ subtasks:
 - T028
 phase: Phase 2 - Incident Management
 assignee: ''
-agent: "claude"
-shell_pid: "61980"
+agent: claude
+shell_pid: '61980'
 history:
 - at: '2026-04-05T23:00:03Z'
   actor: system
   action: Prompt generated via /spec-kitty.tasks
 authoritative_surface: docs/runbooks/governance/
 execution_mode: code_change
+lane: planned
 owned_files:
 - docs/runbooks/governance/incident-postmortem-template.md
 - docs/issues/postmortems/2026-04-03-vikunja-ufw-outage.md

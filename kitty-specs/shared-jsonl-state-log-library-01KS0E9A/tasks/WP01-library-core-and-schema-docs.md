@@ -35,14 +35,15 @@ subtasks:
 - T004
 - T005
 - T006
-shell_pid: "26952"
-agent: "codex:gpt-5:python-reviewer:reviewer"
+agent: codex:gpt-5:python-reviewer:reviewer
+shell_pid: '26952'
 history:
 - at: '2026-05-19T15:51:00Z'
   actor: spec-kitty.tasks
   event: created
 authoritative_surface: scripts/common/
 execution_mode: code_change
+lane: planned
 mission_id: 01KS0E9A6TZBA9AWT97DR1XMQB
 mission_slug: shared-jsonl-state-log-library-01KS0E9A
 owned_files:

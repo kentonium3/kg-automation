@@ -51,4 +51,4 @@ pair with static AGENTS diff + smoke); over-editing AGENTS beyond FR-009.
 
 **Estimated prompt size**: ~320 lines (6 subtasks).
 
-**Prompt**: [tasks/WP01-author-habits-workspace.md](./tasks/WP01-author-habits-workspace.md)
+**Prompt**: [tasks/WP01-author-habits-workspace.md

@@ -14,13 +14,14 @@ subtasks:
 - T018
 - T019
 - T020
-shell_pid: "50006"
-agent: "claude:opus-4-6:docs-implementer:implementer"
+agent: claude:opus-4-6:docs-implementer:implementer
+shell_pid: '50006'
 history:
 - date: '2026-04-11'
   event: created
 authoritative_surface: docs/design/architecture/
 execution_mode: code_change
+lane: planned
 mission_slug: 027-inbox-pre-scan-helper
 owned_files:
 - docs/design/architecture/data/service-inventory.json

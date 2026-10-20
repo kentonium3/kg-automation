@@ -18,6 +18,7 @@ history:
   agent: claude
 authoritative_surface: ''
 execution_mode: code_change
+lane: planned
 mission_id: 01KN5QX3WQ3CEY5FNQ77X9MCNF
 owned_files:
 - docs/constitution/AGENT-REGISTRY.md

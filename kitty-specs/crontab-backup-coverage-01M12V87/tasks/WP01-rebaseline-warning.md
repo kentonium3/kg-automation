@@ -25,6 +25,7 @@ agent_profile: curator-carla
 authoritative_surface: docs/runbooks/
 create_intent: []
 execution_mode: code_change
+lane: planned
 owned_files:
 - docs/runbooks/security-baseline-ops.md
 - docs/runbooks/governance/post-change-verification.md

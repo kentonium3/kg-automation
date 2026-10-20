@@ -53,7 +53,7 @@
 - [x] T007 Bucket / sort / empty-bucket tests (WP01)
 - [x] T008 Error-case tests (missing portal / markers / fields / invalid enum) (WP01)
 
-**Prompt**: [tasks/WP01-build-runbook-filter-script.md](tasks/WP01-build-runbook-filter-script.md) (estimated ~430 lines)
+**Prompt**: [tasks/WP01-build-runbook-filter-script.md
 
 **Owned files**:
 - `tooling/scripts/build_runbook_filter.py`
@@ -84,7 +84,7 @@
 - [x] T011 Extend `validate_docs.py` with portal drift check (gated on portal existing) (WP02)
 - [x] T012 Add smoke test: validate_docs flags a tampered portal block (WP02)
 
-**Prompt**: [tasks/WP02-portal-and-validation-drift.md](tasks/WP02-portal-and-validation-drift.md) (estimated ~380 lines)
+**Prompt**: [tasks/WP02-portal-and-validation-drift.md
 
 **Owned files**:
 - `docs/DEVELOPER_PORTAL.md`
@@ -114,7 +114,7 @@
 - [x] T014 Add single additive pointer line to `CLAUDE.md` under "Architecture Documentation" (WP03)
 - [x] T015 Run full local verification (`pytest`, `validate_docs.py`, `git diff CLAUDE.md`) (WP03)
 
-**Prompt**: [tasks/WP03-register-and-pointer.md](tasks/WP03-register-and-pointer.md) (estimated ~250 lines)
+**Prompt**: [tasks/WP03-register-and-pointer.md
 
 **Owned files**:
 - `docs/INDEX.md`

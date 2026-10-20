@@ -36,7 +36,7 @@ All sequential in lane-a.
 **Goal**: Build the core enrichment helper module — atomic three-write contract.
 **Dependencies**: none
 **Independent test**: `pytest tests/enrichment/test_record_completion.py -v` ≥85% coverage
-**Prompt**: [WP01-schema-and-record.md](tasks/WP01-schema-and-record.md)
+**Prompt**: [WP01-schema-and-record.md](tasks/WP01-schema-and-record.md
 
 Included: T001 schema, T002 record_completion, T003 tests
 
@@ -47,7 +47,7 @@ Included: T001 schema, T002 record_completion, T003 tests
 **Goal**: Build the backfill + state-computation surfaces.
 **Dependencies**: WP01
 **Independent test**: `pytest tests/enrichment/test_reconcile_completions.py tests/enrichment/test_derive_state.py -v` ≥85%
-**Prompt**: [WP02-reconcile-and-derive.md](tasks/WP02-reconcile-and-derive.md)
+**Prompt**: [WP02-reconcile-and-derive.md](tasks/WP02-reconcile-and-derive.md
 
 Included: T004 reconcile, T005 derive_state, T006 tests
 
@@ -58,7 +58,7 @@ Included: T004 reconcile, T005 derive_state, T006 tests
 **Goal**: Wire tasker to invoke record_completion; cutover script; arch docs + runbook.
 **Dependencies**: WP02
 **Independent test**: `wc -c scripts/openclaw/agents/felix-admin-tasker/AGENTS.md` ≤14000; `pytest tests/openclaw/helpers/test_cutover_tasker.py -v` ≥85%; JSON files parse
-**Prompt**: [WP03-cutover-and-docs.md](tasks/WP03-cutover-and-docs.md)
+**Prompt**: [WP03-cutover-and-docs.md](tasks/WP03-cutover-and-docs.md
 
 Included: T007 AGENTS.md cut, T008 cutover_tasker, T009 tests, T010 arch docs + runbook
 

@@ -6,7 +6,6 @@ dependencies:
 requirement_refs:
 - C-007
 - FR-021
-tracker_refs: []
 planning_base_branch: main
 merge_target_branch: main
 branch_strategy: Planning artifacts for this mission were generated on main. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into main unless the human explicitly redirects the landing branch.
@@ -14,11 +13,13 @@ subtasks:
 - T023
 - T024
 - T025
-agent: "claude:opus:reviewer-renata:reviewer"
+agent: claude:opus:reviewer-renata:reviewer
+shell_pid: '47473'
 history: []
 agent_profile: curator-carla
 authoritative_surface: docs/
 execution_mode: code_change
+lane: planned
 mission_id: 01KTP9M86VF89TQM5SX7JVA83Z
 mission_slug: credential-liveness-probe-01KTP9M8
 owned_files:
@@ -26,7 +27,7 @@ owned_files:
 - docs/runbooks/google-workspace-ops.md
 role: implementer
 tags: []
-shell_pid: "47473"
+tracker_refs: []
 ---
 
 ## ⚡ Do This First: Load Agent Profile

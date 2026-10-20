@@ -15,14 +15,15 @@ subtasks:
 - T035
 phase: Phase 4 — Verification
 assignee: ''
-agent: "codex:gpt-5:spec-kitty-review:reviewer"
-shell_pid: "20967"
+agent: codex:gpt-5:spec-kitty-review:reviewer
+shell_pid: '20967'
 history:
 - timestamp: '2026-05-20T16:25:00Z'
   agent: system
   action: Prompt generated via /spec-kitty.tasks
 authoritative_surface: tests/doc_audit/test_smoke_live.py
 execution_mode: code_change
+lane: planned
 owned_files:
 - tests/doc_audit/test_smoke_live.py
 - docs/design/architecture/baselines/felix-doc-auditor-pre-rework.json

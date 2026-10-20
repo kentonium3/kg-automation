@@ -6,8 +6,6 @@ dependencies:
 requirement_refs:
 - FR-007
 - FR-010
-tracker_refs:
-- kentonium3/kg-automation#327
 planning_base_branch: feat/felix-canary-registry
 merge_target_branch: feat/felix-canary-registry
 branch_strategy: Planning artifacts for this mission were generated on feat/felix-canary-registry. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into feat/felix-canary-registry unless the human explicitly redirects the landing branch.
@@ -15,19 +13,22 @@ subtasks:
 - T022
 - T023
 - T024
-agent: "claude"
-shell_pid: "55097"
+agent: claude
+shell_pid: '55097'
 history:
 - at: '2026-07-11T15:30:13Z'
   actor: spec-kitty agent mission tasks
   event: WP created from /spec-kitty.tasks
 agent_profile: curator-carla
-role: implementer
-execution_mode: code_change
 authoritative_surface: docs/design/architecture/data/
+execution_mode: code_change
+lane: planned
 owned_files:
 - docs/design/architecture/data/service-inventory.json
+role: implementer
 tags: []
+tracker_refs:
+- kentonium3/kg-automation#327
 ---
 
 ## ⚡ Do This First: Load Agent Profile

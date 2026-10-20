@@ -7,6 +7,7 @@
   "mission_type": "software-dev",
   "slug": "003-whisper-transcription-skill",
   "source_description": "Harden transcribe-api (rebind to Tailscale IP, systemd), build OpenClaw whisper skill, document API contract, eliminate last 0.0.0.0 binding.",
+  "status_phase": "1",
   "target_branch": "main",
   "vcs": "git"
 }

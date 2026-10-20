@@ -29,6 +29,7 @@ create_intent:
 - tests/docs_standards/__init__.py
 - tests/docs_standards/test_doc_taxonomy.py
 execution_mode: code_change
+lane: planned
 owned_files:
 - docs/design/standards/allowed-values.json
 - tooling/scripts/doc_taxonomy.py

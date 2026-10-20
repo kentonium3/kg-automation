@@ -7,7 +7,6 @@ requirement_refs:
 - FR-006
 - NFR-002
 - NFR-004
-tracker_refs: []
 planning_base_branch: feat/felix-calendar-helper
 merge_target_branch: feat/felix-calendar-helper
 branch_strategy: Planning artifacts for this mission were generated on feat/felix-calendar-helper. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into feat/felix-calendar-helper unless the human explicitly redirects the landing branch.
@@ -15,7 +14,8 @@ subtasks:
 - T001
 - T002
 - T003
-agent: "claude:opus:reviewer-renata:reviewer"
+agent: claude:opus:reviewer-renata:reviewer
+shell_pid: '48843'
 history: []
 agent_profile: python-pedro
 authoritative_surface: scripts/google/calendar_auth.py
@@ -24,6 +24,7 @@ create_intent:
 - tests/google/test_calendar_auth.py
 - tests/google/__init__.py
 execution_mode: code_change
+lane: planned
 mission_id: 01KX4H3C4CZ2W0DRSHZHSNAY53
 mission_slug: felix-calendar-helper-01KX4H3C
 owned_files:
@@ -32,7 +33,7 @@ owned_files:
 - tests/google/__init__.py
 role: implementer
 tags: []
-shell_pid: "48843"
+tracker_refs: []
 ---
 
 # WP01 — Calendar auth module (per-account, fail-safe)

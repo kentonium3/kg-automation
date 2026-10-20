@@ -1,5 +1,5 @@
 {
-  "event_count": 16,
+  "event_count": 17,
   "last_event_id": "01KNJ6R6F81V34AXS9NVM6MBC4",
   "materialized_at": "2026-04-06T20:11:39.368353+00:00",
   "mission_number": "19",
@@ -22,28 +22,56 @@
       "force_count": 3,
       "lane": "done",
       "last_event_id": "01KNJ6R6B879SABC6R5A6QSPT0",
-      "last_transition_at": "2026-04-06T20:11:39.240416+00:00"
+      "last_transition_at": "2026-04-06T20:11:39.240416+00:00",
+      "shell_pid": 15752,
+      "subtasks": {
+        "T001": "planned"
+      }
     },
     "WP02": {
       "actor": "merge",
       "force_count": 3,
       "lane": "done",
       "last_event_id": "01KNJ6R6EK602BQGY2BVVY07YQ",
-      "last_transition_at": "2026-04-06T20:11:39.347956+00:00"
+      "last_transition_at": "2026-04-06T20:11:39.347956+00:00",
+      "subtasks": {
+        "T002": "planned",
+        "T003": "planned",
+        "T004": "planned",
+        "T005": "planned",
+        "T006": "planned",
+        "T007": "planned"
+      }
     },
     "WP03": {
       "actor": "merge",
       "force_count": 3,
       "lane": "done",
       "last_event_id": "01KNJ6R6EYBYM1RVJKB4HBKK24",
-      "last_transition_at": "2026-04-06T20:11:39.358259+00:00"
+      "last_transition_at": "2026-04-06T20:11:39.358259+00:00",
+      "subtasks": {
+        "T008": "planned",
+        "T009": "planned",
+        "T010": "planned",
+        "T011": "planned",
+        "T012": "planned",
+        "T013": "planned",
+        "T014": "planned"
+      }
     },
     "WP04": {
       "actor": "merge",
       "force_count": 3,
       "lane": "done",
       "last_event_id": "01KNJ6R6F81V34AXS9NVM6MBC4",
-      "last_transition_at": "2026-04-06T20:11:39.368353+00:00"
+      "last_transition_at": "2026-04-06T20:11:39.368353+00:00",
+      "subtasks": {
+        "T015": "planned",
+        "T016": "planned",
+        "T017": "planned",
+        "T018": "planned",
+        "T019": "planned"
+      }
     }
   }
 }

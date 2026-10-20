@@ -29,6 +29,7 @@ authoritative_surface: docs/
 create_intent:
 - tests/docs/test_deadman_docs.py
 execution_mode: code_change
+lane: planned
 model: claude-opus-5-5
 owned_files:
 - docs/design/architecture/data/credential-manifest.json

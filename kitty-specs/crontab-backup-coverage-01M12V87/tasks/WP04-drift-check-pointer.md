@@ -23,6 +23,7 @@ authoritative_surface: scripts/openclaw/enforcement/drift_check.py
 create_intent:
 - tests/openclaw/enforcement/test_drift_check_pointer.py
 execution_mode: code_change
+lane: planned
 owned_files:
 - scripts/openclaw/enforcement/drift_check.py
 - tests/openclaw/enforcement/test_drift_check_pointer.py

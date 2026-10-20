@@ -13,14 +13,15 @@ subtasks:
 - T010
 - T011
 - T012
-agent: "codex:gpt-4o:reviewer:reviewer"
-shell_pid: "91215"
+agent: codex:gpt-4o:reviewer:reviewer
+shell_pid: '91215'
 history:
 - date: '2026-04-13'
   action: created
   agent: claude-opus-4-6
 authoritative_surface: scripts/openclaw/enforcement/
 execution_mode: code_change
+lane: planned
 owned_files:
 - scripts/openclaw/enforcement/drift_check.py
 - scripts/openclaw/enforcement/detection.py

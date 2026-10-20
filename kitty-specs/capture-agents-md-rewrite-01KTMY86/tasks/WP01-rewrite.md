@@ -18,7 +18,6 @@ requirement_refs:
 - FR-013
 - FR-014
 - FR-015
-tracker_refs: []
 planning_base_branch: main
 merge_target_branch: main
 branch_strategy: Planning artifacts for this mission were generated on main. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into main unless the human explicitly redirects the landing branch.
@@ -27,11 +26,13 @@ subtasks:
 - T002
 - T003
 - T004
-agent: "codex"
+agent: codex
+shell_pid: '67857'
 history: []
 agent_profile: curator-carla
 authoritative_surface: scripts/openclaw/agents/felix-admin-capture/
 execution_mode: code_change
+lane: planned
 mission_id: 01KTMY86X63W50FF36GWPWADH2
 mission_slug: capture-agents-md-rewrite-01KTMY86
 model: claude-sonnet-4-6
@@ -40,7 +41,7 @@ owned_files:
 - docs/design/architecture/data/service-inventory.json
 role: implementer
 tags: []
-shell_pid: "67857"
+tracker_refs: []
 ---
 
 ## ⚡ Do This First: Load Agent Profile

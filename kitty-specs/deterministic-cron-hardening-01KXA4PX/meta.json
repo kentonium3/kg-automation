@@ -25,6 +25,7 @@
   "purpose_context": "Two scheduled Felix crons fail silently by improvising fragile operations through an LLM. This mission mechanizes their deterministic work into tested helpers and a non-LLM driver, and makes their Vikunja scope selection config-driven so the upcoming Vikunja reorganization (#714) is a config change, not code. It is a stability precondition before expanding Felix's executive-assistant capabilities.",
   "purpose_tldr": "Make Felix's daily escalation and weekly habit-report crons run deterministically and deliver reliably, ending silent failures.",
   "slug": "deterministic-cron-hardening-01KXA4PX",
+  "status_phase": "1",
   "target_branch": "fix/deterministic-cron-hardening",
   "topology": "lanes",
   "vcs": "git",

@@ -7,6 +7,7 @@
   "mission_type": "software-dev",
   "slug": "habits-checkin-d6-extract-01KRNV46",
   "source_description": "Phase 4 mission #1 of epic #281 (Felix-wide D6 audit + helper script management hardening). Implements the highest-priority refactor identified by the Phase 1 survey: extract `felix-admin-habits` morning check-in Steps 1-4 to helper scripts in `scripts/habits/`, preserving behavior while eliminating LLM hallucination paths on TZ rules, comment formats, and state transitions. Tracks #282. Scope excludes Sonnet→Haiku migration (deferred to a follow-up mission), action-logging boundary changes (deferred), and `scripts/lib/vikunja.py` extraction (per conventions § 9 don't-pre-extract guardrail; deferred until a second helper needs the primitives).",
+  "status_phase": "1",
   "target_branch": "main",
   "vcs": "git"
 }

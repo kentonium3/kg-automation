@@ -17,14 +17,15 @@ subtasks:
 - T024
 - T025
 - T026
-agent: "claude:opus-4-6:implementer:implementer"
-shell_pid: "43130"
+agent: claude:opus-4-6:implementer:implementer
+shell_pid: '43130'
 history:
 - date: '2026-04-11T01:15:00Z'
   action: created
   by: spec-kitty.tasks
 authoritative_surface: kitty-specs/026-vault-path-registry-and-folder-renumber/research/
 execution_mode: planning_artifact
+lane: planned
 owned_files:
 - kitty-specs/026-vault-path-registry-and-folder-renumber/research/wp04-fidelity-checkpoint.md
 - kitty-specs/026-vault-path-registry-and-folder-renumber/research/wp04-baseline-capture.md

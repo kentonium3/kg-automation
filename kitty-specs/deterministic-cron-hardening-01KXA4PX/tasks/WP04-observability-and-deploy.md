@@ -8,7 +8,6 @@ requirement_refs:
 - FR-007
 - FR-009
 - FR-010
-tracker_refs: []
 planning_base_branch: fix/deterministic-cron-hardening
 merge_target_branch: fix/deterministic-cron-hardening
 branch_strategy: Planning artifacts for this mission were generated on fix/deterministic-cron-hardening. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into fix/deterministic-cron-hardening unless the human explicitly redirects the landing branch.
@@ -16,8 +15,8 @@ subtasks:
 - T012
 - T013
 - T014
-agent: "claude:opus:reviewer-renata:reviewer"
-shell_pid: "36552"
+agent: claude:opus:reviewer-renata:reviewer
+shell_pid: '36552'
 history:
 - '2026-07-12: authored by /spec-kitty.tasks'
 agent_profile: implementer-ivan
@@ -26,12 +25,14 @@ create_intent:
 - scripts/deploy/deploy-habits-weekly-driver.py
 - deploys/queued/habits-weekly-driver.yaml
 execution_mode: code_change
+lane: planned
 owned_files:
 - docs/design/architecture/data/service-inventory.json
 - scripts/deploy/deploy-habits-weekly-driver.py
 - deploys/queued/habits-weekly-driver.yaml
 role: implementer
 tags: []
+tracker_refs: []
 ---
 
 ## ⚡ Do This First: Load Agent Profile

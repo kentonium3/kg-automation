@@ -9,7 +9,6 @@ requirement_refs:
 - FR-008
 - FR-009
 - FR-010
-tracker_refs: []
 planning_base_branch: main
 merge_target_branch: main
 branch_strategy: Planning artifacts for this mission were generated on main. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into main unless the human explicitly redirects the landing branch.
@@ -22,19 +21,21 @@ subtasks:
 - T023
 - T024
 phase: Phase 2 - Deploy Substrate
-shell_pid: "40362"
+agent: claude::reviewer-renata:reviewer
+shell_pid: '40362'
 history:
 - at: '2026-06-11T03:26:12Z'
   actor: system
   action: Prompt generated via /spec-kitty.tasks
+agent_profile: implementer-ivan
 authoritative_surface: scripts/deploy/
 execution_mode: code_change
+lane: planned
 owned_files:
 - scripts/deploy/deploy-felix-admin-calendar.sh
-tags: []
-agent_profile: implementer-ivan
 role: implementer
-agent: "claude::reviewer-renata:reviewer"
+tags: []
+tracker_refs: []
 ---
 
 # Work Package Prompt: WP04 – Deploy script (strict-order-of-operations Bash wrapper)

@@ -7,7 +7,6 @@ requirement_refs:
 - FR-001
 - FR-003
 - NFR-001
-tracker_refs: []
 planning_base_branch: fix/860-retire-vikunja-felix-bot
 merge_target_branch: fix/860-retire-vikunja-felix-bot
 branch_strategy: Planning artifacts for this mission were generated on fix/860-retire-vikunja-felix-bot. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into fix/860-retire-vikunja-felix-bot unless the human explicitly redirects the landing branch.
@@ -21,18 +20,18 @@ subtasks:
 - T021
 phase: Phase 1 - Migration
 assignee: ''
-agent: "claude:opus:reviewer-renata:reviewer"
-agent_profile: python-pedro
-role: implementer
-shell_pid: "56408"
-shell_pid_created_at: "1784845938.014625"
+agent: claude:opus:reviewer-renata:reviewer
+shell_pid: '56408'
+shell_pid_created_at: '1784845938.014625'
 history:
 - at: '2026-07-23T21:04:52Z'
   actor: system
   action: Prompt generated via /spec-kitty.tasks
+agent_profile: python-pedro
 authoritative_surface: scripts/habits/
 create_intent: []
 execution_mode: code_change
+lane: planned
 owned_files:
 - scripts/habits/sweeper.py
 - scripts/habits/identify_workout_task.py
@@ -43,7 +42,9 @@ owned_files:
 - tests/habits/test_identify_workout_task.py
 - tests/habits/test_backfill_jsonl_from_comments.py
 - tests/habits/test_reconcile_completions.py
+role: implementer
 tags: []
+tracker_refs: []
 ---
 
 # Work Package Prompt: WP05 — Migrate habits (reads/misc) + dead-token cleanup

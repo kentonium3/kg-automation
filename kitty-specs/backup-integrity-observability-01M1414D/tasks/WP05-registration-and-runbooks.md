@@ -31,6 +31,7 @@ authoritative_surface: docs/
 create_intent:
 - docs/runbooks/crontab-recovery.md
 execution_mode: code_change
+lane: planned
 owned_files:
 - docs/design/architecture/data/service-inventory.json
 - docs/design/architecture/service-inventory.md

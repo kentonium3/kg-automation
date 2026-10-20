@@ -7,6 +7,7 @@
   "mission_type": "software-dev",
   "slug": "drift-event-auto-resolution-01KS8J32",
   "source_description": "GitHub issue #362 (P1-feature). Extend handle_drift_events.py with a new 'drift interpretation' LLM judgment moment (Moment 0) that classifies each detected drift event as PROPOSED_EDIT (≥80% confidence → routes through existing tier_classification), JUDGMENT_REQUIRED (escalate to operator with specific question), or NO_CHANGE_NEEDED (auto-close with audit-ledger entry). LLM failures retry with exponential backoff (30s/60s/120s) then escalate to operator via pre-#362 issue path. One-time replay of 10+ existing [doc-audit] P3 issues on first deploy. Tier 3 standard. Cut-over immediately (no shadow mode) with config-flag rollback. Target: ≤30% operator-triage rate.",
+  "status_phase": "1",
   "target_branch": "main",
   "vcs": "git"
 }

@@ -29,7 +29,7 @@ Inputs: [spec.md](spec.md) · [plan.md](plan.md) · [contracts/installed-report.
 
 ## WP01 — The installed-report channel module
 
-**Prompt**: [tasks/WP01-installed-report-channel.md](tasks/WP01-installed-report-channel.md) · **Depends on**: none
+**Prompt**: [tasks/WP01-installed-report-channel.md
 
 T001 (WP01)
 T002 (WP01)
@@ -38,14 +38,14 @@ T004 (WP01)
 
 ## WP02 — userunits reports what it installed
 
-**Prompt**: [tasks/WP02-userunits-reports.md](tasks/WP02-userunits-reports.md) · **Depends on**: WP01
+**Prompt**: [tasks/WP02-userunits-reports.md
 
 T005 (WP02)
 T006 (WP02)
 
 ## WP03 — apply provides, isolates and reads the report
 
-**Prompt**: [tasks/WP03-apply-isolates-and-reads.md](tasks/WP03-apply-isolates-and-reads.md) · **Depends on**: WP01
+**Prompt**: [tasks/WP03-apply-isolates-and-reads.md
 
 T007 (WP03)
 T008 (WP03)
@@ -54,7 +54,7 @@ T010 (WP03)
 
 ## WP04 — rebaseline maps reports with proof of installation; fold freshness
 
-**Prompt**: [tasks/WP04-rebaseline-maps-with-proof.md](tasks/WP04-rebaseline-maps-with-proof.md) · **Depends on**: WP01
+**Prompt**: [tasks/WP04-rebaseline-maps-with-proof.md
 
 T011 (WP04)
 T012 (WP04)
@@ -64,7 +64,7 @@ T015 (WP04)
 
 ## WP05 — Tick folds reported baselines with two named gates
 
-**Prompt**: [tasks/WP05-tick-two-gates.md](tasks/WP05-tick-two-gates.md) · **Depends on**: WP03, WP04
+**Prompt**: [tasks/WP05-tick-two-gates.md
 
 T016 (WP05)
 T017 (WP05)
@@ -72,7 +72,7 @@ T018 (WP05)
 
 ## WP06 — Recurrence guard and docs
 
-**Prompt**: [tasks/WP06-guard-and-docs.md](tasks/WP06-guard-and-docs.md) · **Depends on**: WP05
+**Prompt**: [tasks/WP06-guard-and-docs.md
 
 T019 (WP06)
 T020 (WP06)

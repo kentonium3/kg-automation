@@ -20,14 +20,15 @@ subtasks:
 - T008
 - T009
 - T010
-agent: "claude:opus:reviewer:reviewer"
-shell_pid: "26593"
+agent: claude:opus:reviewer:reviewer
+shell_pid: '26593'
 history:
 - at: '2026-06-04T22:24:02Z'
   by: spec-kitty.tasks
   note: Created WP02 from plan.md + contracts/migration-pattern.md for 3 cache-only TPs
 authoritative_surface: scripts/habits/
 execution_mode: code_change
+lane: planned
 owned_files:
 - scripts/habits/query_active_habits_v2.py
 - scripts/habits/set_due_dates.py

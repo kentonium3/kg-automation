@@ -7,7 +7,6 @@ requirement_refs:
 - FR-004
 - NFR-002
 - NFR-003
-tracker_refs: []
 planning_base_branch: main
 merge_target_branch: main
 branch_strategy: Planning artifacts for this mission were generated on main. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into main unless the human explicitly redirects the landing branch.
@@ -27,10 +26,12 @@ authoritative_surface: tests/architectural/test_habits_history_canonical_read.py
 create_intent:
 - tests/architectural/test_habits_history_canonical_read.py
 execution_mode: code_change
+lane: planned
 owned_files:
 - tests/architectural/test_habits_history_canonical_read.py
 role: implementer
 tags: []
+tracker_refs: []
 ---
 
 ## ⚡ Do This First: Load Agent Profile

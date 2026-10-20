@@ -38,7 +38,7 @@ The WPs are a strict chain (WP01 → WP02 → WP03 → WP04 → WP05). Each one 
 
 ## WP01 — The canary's tick declaration becomes affirmative (IC-05)
 
-**Prompt**: [tasks/WP01-canary-tick-ledger.md](tasks/WP01-canary-tick-ledger.md) · **Priority**: P1 · **Depends on**: none
+**Prompt**: [tasks/WP01-canary-tick-ledger.md
 **Goal**: `felix-canary`'s inventory `health_check` gains a `key_ledger`, with its reconciliation harness. A canary that ticks with a missing or non-success status, an unusable `completed_at_utc`, or zero evaluated components is no longer read as alive. All inventory edits for the mission land here (single owner of `service-inventory.json`).
 **Independent test**: the four reproduced shapes go from `healthy` to non-healthy through `health.evaluate`; the real 2026-10-14 tick stays `healthy`.
 
@@ -52,7 +52,7 @@ T005 Validators and the full canary and restic suites green together (WP01)
 
 ## WP02 — Coverage evaluation through the canary's own path (IC-01)
 
-**Prompt**: [tasks/WP02-coverage-evaluation.md](tasks/WP02-coverage-evaluation.md) · **Priority**: P1 · **Depends on**: WP01
+**Prompt**: [tasks/WP02-coverage-evaluation.md
 **Goal**: `scripts/office2/felix_health_check/coverage.py` returns exactly two findings (`felix-canary`, `restic-backup`), each decided by `scripts.canary.health.evaluate` on the inventory target. Every inability fails closed to `unknown`.
 **Independent test**: the incident replay (17-day-dead tick, 127/null pointer) yields `stale` and `failed`; the real 2026-10-14 documents yield `healthy` twice.
 
@@ -64,7 +64,7 @@ T010 Post-boot evidence suffix; different-CWD test (WP02)
 
 ## WP03 — Wrapper integration: verdict, alert, record, script location (IC-02)
 
-**Prompt**: [tasks/WP03-wrapper-integration.md](tasks/WP03-wrapper-integration.md) · **Priority**: P1 · **Depends on**: WP02
+**Prompt**: [tasks/WP03-wrapper-integration.md
 **Goal**: `run.py` evaluates coverage first and runs the repo-tracked shell script with every exception contained. It combines the two by precedence, emits bus-safe alert details, and writes the extended run record per the contract.
 **Independent test**: SC-001 end to end through `main()`: the incident fixtures produce `FAILURES_DETECTED`, and the rendered alert shows both findings despite more than 4 KB of shell output.
 
@@ -76,7 +76,7 @@ T015 Run-record contract tests (dynamic `TIMESTAMP_KEYS`, canary verdicts a–d)
 
 ## WP04 — Deploy, retire the host copy, live proof (IC-03)
 
-**Prompt**: [tasks/WP04-deploy-and-retire.md](tasks/WP04-deploy-and-retire.md) · **Priority**: P2 · **Depends on**: WP03
+**Prompt**: [tasks/WP04-deploy-and-retire.md
 **Goal**: a queued manifest whose entrypoint proves the new coverage live, through per-entry checks on a fresh run record, and only then moves `~/helper-scripts/health-check.sh` to a dated retired file. The entrypoint is idempotent.
 **Independent test**: the entrypoint tests with injected effects. The pre-merge `--dry-run` runs against live office2 state via `git archive` (quickstart).
 
@@ -87,7 +87,7 @@ T019 Repoint `felix-health-check.sh` and `deploy-deterministic-monitoring-checks
 
 ## WP05 — Architecture docs and runbooks (IC-04)
 
-**Prompt**: [tasks/WP05-docs.md](tasks/WP05-docs.md) · **Priority**: P3 · **Depends on**: WP04
+**Prompt**: [tasks/WP05-docs.md
 **Goal**: the narrative docs describe the mutual watch, the shared-fate limit (#1069) and where a backup failure is reported. No active reference to the retired path remains.
 
 T020 `observability-and-alerting.md`: mutual watch + shared-fate limit (WP05)

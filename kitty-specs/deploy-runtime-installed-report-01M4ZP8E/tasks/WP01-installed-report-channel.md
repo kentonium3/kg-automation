@@ -27,6 +27,7 @@ create_intent:
 - scripts/deploy/lib/installed_report.py
 - tests/deploy/test_installed_report.py
 execution_mode: code_change
+lane: planned
 model: claude-opus-5-5
 owned_files:
 - scripts/deploy/lib/installed_report.py

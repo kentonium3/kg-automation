@@ -12,7 +12,6 @@ requirement_refs:
 - FR-007
 - NFR-002
 - NFR-003
-tracker_refs: []
 planning_base_branch: feat/felix-time-logging
 merge_target_branch: feat/felix-time-logging
 branch_strategy: Planning artifacts for this mission were generated on feat/felix-time-logging. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into feat/felix-time-logging unless the human explicitly redirects the landing branch.
@@ -24,25 +23,27 @@ subtasks:
 - T010
 phase: Phase 2 - Normalizer
 assignee: ''
-agent: "claude:opus:reviewer-renata:reviewer"
-agent_profile: "python-pedro"
-shell_pid: "49242"
+agent: claude:opus:reviewer-renata:reviewer
+shell_pid: '49242'
 history:
 - at: '2026-07-10T22:30:00Z'
   actor: system
   action: Prompt generated via /spec-kitty.tasks
+agent_profile: python-pedro
 authoritative_surface: scripts/google/
 create_intent:
 - scripts/google/timelog.py
 - docs/design/architecture/data/timelog-clients.json
 - tests/google/test_timelog.py
 execution_mode: code_change
+lane: planned
 owned_files:
 - scripts/google/timelog.py
 - docs/design/architecture/data/timelog-clients.json
 - tests/google/test_timelog.py
 role: implementer
 tags: []
+tracker_refs: []
 ---
 
 # WP03 — `timelog` normalizer (validate/resolve/typed-union/state)

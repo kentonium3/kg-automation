@@ -6,7 +6,6 @@ requirement_refs:
 - FR-001
 - FR-008
 - NFR-001
-tracker_refs: []
 planning_base_branch: main
 merge_target_branch: main
 branch_strategy: Planning artifacts for this mission were generated on main. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into main unless the human explicitly redirects the landing branch.
@@ -26,12 +25,14 @@ create_intent:
 - tooling/scripts/audited_surfaces.py
 - tests/deploy/test_audited_surfaces.py
 execution_mode: code_change
+lane: planned
 owned_files:
 - tooling/scripts/audited_surfaces.py
 - tooling/scripts/check_audited_surface_drift.py
 - tests/deploy/test_audited_surfaces.py
 role: implementer
 tags: []
+tracker_refs: []
 ---
 
 ## ⚡ Do This First: Load Agent Profile

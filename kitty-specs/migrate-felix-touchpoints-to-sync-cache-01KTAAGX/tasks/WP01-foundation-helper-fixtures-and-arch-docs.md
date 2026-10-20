@@ -18,14 +18,15 @@ subtasks:
 - T002
 - T003
 - T004
-shell_pid: "19157"
-agent: "claude:opus:reviewer:reviewer"
+agent: claude:opus:reviewer:reviewer
+shell_pid: '19157'
 history:
 - at: '2026-06-04T22:24:02Z'
   by: spec-kitty.tasks
   note: Created WP01 from plan.md + contracts/helper-api.md + contracts/test-fixture.md
 authoritative_surface: scripts/common/
 execution_mode: code_change
+lane: planned
 owned_files:
 - scripts/common/sync_cache.py
 - tests/common/__init__.py

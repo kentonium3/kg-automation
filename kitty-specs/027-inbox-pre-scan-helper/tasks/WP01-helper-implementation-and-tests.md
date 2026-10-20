@@ -33,13 +33,14 @@ subtasks:
 - T005
 - T006
 - T007
-shell_pid: "49934"
-agent: "claude:opus-4-6:python-implementer:implementer"
+agent: claude:opus-4-6:python-implementer:implementer
+shell_pid: '49934'
 history:
 - date: '2026-04-11'
   event: created
 authoritative_surface: scripts/inbox/
 execution_mode: code_change
+lane: planned
 mission_slug: 027-inbox-pre-scan-helper
 owned_files:
 - scripts/inbox/**

@@ -14,14 +14,15 @@ subtasks:
 - T017
 - T018
 - T019
-shell_pid: "71341"
-agent: "codex:gpt-4o:python-reviewer:reviewer"
+agent: codex:gpt-4o:python-reviewer:reviewer
+shell_pid: '71341'
 history:
 - action: drafted
   agent: claude
   timestamp: '2026-05-17T05:25:00Z'
 authoritative_surface: scripts/vikunja/revoke_kent_tokens.py
 execution_mode: code_change
+lane: planned
 mission_slug: felix-bot-vikunja-provisioning-01KRT3N4
 owned_files:
 - scripts/vikunja/revoke_kent_tokens.py

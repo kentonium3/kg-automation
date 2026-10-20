@@ -7,6 +7,7 @@
   "mission_type": "software-dev",
   "slug": "018-habit-today-filter-visibility",
   "source_description": "Add due_date = today to scheduled habits during morning check-in so they appear in Vikunja Today filter",
+  "status_phase": "1",
   "target_branch": "main",
   "vcs": "git"
 }

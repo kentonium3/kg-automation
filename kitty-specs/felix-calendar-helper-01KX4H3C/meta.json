@@ -12,6 +12,7 @@
   "purpose_context": "Felix currently reaches Google Calendar through OpenClaw's gog skill, an agent-to-agent path that is fragile and silently broken for inbox-driven scheduling. This mission gives Felix a Felix-owned Calendar helper that talks to Google directly, is multi-account-ready from day one, and reshapes the calendar agent to judgment-only. It is the first concrete step of accepted RFC #681 and restores reliable calendar automation against Kent's real personal calendar.",
   "purpose_tldr": "Give Felix direct, deterministic Google Calendar access as a multi-account helper, replacing the gog skill and fixing the broken inbox-to-calendar path.",
   "slug": "felix-calendar-helper-01KX4H3C",
+  "status_phase": "1",
   "target_branch": "feat/felix-calendar-helper",
   "topology": "coord"
 }

@@ -28,6 +28,7 @@ create_intent:
 - scripts/deploy/deploy-crontab-capture.py
 - deploys/queued/crontab-capture.yaml
 execution_mode: code_change
+lane: planned
 owned_files:
 - scripts/office2/crontab-capture.service
 - scripts/office2/crontab-capture.timer

@@ -40,6 +40,7 @@ create_intent:
 - tests/office2/felix_health_check/test_coverage_cause.py
 - tests/docs/test_restic_cause_codes_documented.py
 execution_mode: code_change
+lane: planned
 model: claude-opus-5-5
 owned_files:
 - scripts/canary/probes.py

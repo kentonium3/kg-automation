@@ -34,6 +34,7 @@ authoritative_surface: docs/design/research/849-synthesis/
 create_intent:
 - docs/design/research/849-synthesis/run-record-arms-run.md
 execution_mode: planning_artifact
+lane: planned
 owned_files:
 - docs/design/research/849-synthesis/README.md
 - docs/design/research/849-synthesis/run-record-arms-run.md

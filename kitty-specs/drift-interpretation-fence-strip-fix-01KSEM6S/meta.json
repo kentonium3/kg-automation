@@ -7,6 +7,7 @@
   "mission_type": "software-dev",
   "slug": "drift-interpretation-fence-strip-fix-01KSEM6S",
   "source_description": "GitHub issue #411 — Fix drift_interpretation schema validation root cause (from #404 diagnostic). Mission #54's captured payloads confirm Haiku 4.5 wraps JSON responses in markdown code fences despite the prompt explicitly saying 'No code fences' (drift_interpretation.prompt.md:21-22). The prompt instruction is already there and is ignored — Option A (parser-side fence strip) is mandatory, not just preferred. Code-change-only mission (no office2 deploy); operational verification happens post-merge.",
+  "status_phase": "1",
   "target_branch": "main",
   "vcs": "git"
 }

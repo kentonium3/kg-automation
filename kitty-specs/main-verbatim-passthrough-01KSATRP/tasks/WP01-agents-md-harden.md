@@ -21,16 +21,17 @@ subtasks:
 - T002
 - T003
 - T004
+agent: codex:gpt-5:spec-kitty-review:reviewer
+shell_pid: '86964'
 history: []
 authoritative_surface: scripts/openclaw/agents/main/
 execution_mode: code_change
+lane: planned
 mission_id: 01KSATRP0S0TDA5HV995Y558JK
 mission_slug: main-verbatim-passthrough-01KSATRP
 owned_files:
 - scripts/openclaw/agents/main/AGENTS.md
 tags: []
-agent: "codex:gpt-5:spec-kitty-review:reviewer"
-shell_pid: "86964"
 ---
 
 # WP01 — Harden main agent's AGENTS.md

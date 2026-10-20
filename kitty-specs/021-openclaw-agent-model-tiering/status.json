@@ -22,35 +22,66 @@
       "force_count": 1,
       "lane": "done",
       "last_event_id": "01KNSMJ20YA21GZ9HDT2QMJ28R",
-      "last_transition_at": "2026-04-09T17:27:39.294502+00:00"
+      "last_transition_at": "2026-04-09T17:27:39.294502+00:00",
+      "subtasks": {
+        "T001": "planned",
+        "T002": "planned",
+        "T003": "planned"
+      }
     },
     "WP02": {
       "actor": "claude",
       "force_count": 1,
       "lane": "done",
       "last_event_id": "01KNSNP2KGXF1EKP24ZX19AYC3",
-      "last_transition_at": "2026-04-09T17:47:19.536234+00:00"
+      "last_transition_at": "2026-04-09T17:47:19.536234+00:00",
+      "subtasks": {
+        "T004": "planned",
+        "T005": "planned"
+      }
     },
     "WP03": {
       "actor": "claude",
       "force_count": 1,
       "lane": "done",
       "last_event_id": "01KNSNX2NK622BERRB8WK6JJCH",
-      "last_transition_at": "2026-04-09T17:51:08.979370+00:00"
+      "last_transition_at": "2026-04-09T17:51:08.979370+00:00",
+      "subtasks": {
+        "T006": "planned",
+        "T007": "planned",
+        "T008": "planned",
+        "T009": "planned",
+        "T010": "planned",
+        "T011": "planned",
+        "T012": "planned"
+      }
     },
     "WP04": {
       "actor": "claude",
       "force_count": 1,
       "lane": "done",
       "last_event_id": "01KNSP6KZJXFK7JN0EX2PHQM6V",
-      "last_transition_at": "2026-04-09T17:56:21.618093+00:00"
+      "last_transition_at": "2026-04-09T17:56:21.618093+00:00",
+      "subtasks": {
+        "T013": "planned",
+        "T014": "planned",
+        "T015": "planned",
+        "T016": "planned"
+      }
     },
     "WP05": {
       "actor": "claude",
       "force_count": 1,
       "lane": "done",
       "last_event_id": "01KNSPBDRA8C3R16B2VGYNTBKB",
-      "last_transition_at": "2026-04-09T17:58:59.082626+00:00"
+      "last_transition_at": "2026-04-09T17:58:59.082626+00:00",
+      "subtasks": {
+        "T017": "planned",
+        "T018": "planned",
+        "T019": "planned",
+        "T020": "planned",
+        "T021": "planned"
+      }
     }
   }
 }

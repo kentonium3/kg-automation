@@ -24,6 +24,7 @@ history:
   action: Prompt generated via /spec-kitty.tasks
 authoritative_surface: kitty-specs/005-system-architecture-development/
 execution_mode: planning_artifact
+lane: planned
 mission_id: 01KN5QX3WEJQ6KMCTQ8K1FX4FS
 owned_files:
 - kitty-specs/005-system-architecture-development/**

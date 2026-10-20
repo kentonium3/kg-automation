@@ -6,7 +6,6 @@ dependencies:
 requirement_refs:
 - FR-014
 - NFR-005
-tracker_refs: []
 planning_base_branch: kitty/mission-vikunja-client-and-habits-weekly-report-01KTKSFT
 merge_target_branch: kitty/mission-vikunja-client-and-habits-weekly-report-01KTKSFT
 branch_strategy: Planning artifacts for this mission were generated on kitty/mission-vikunja-client-and-habits-weekly-report-01KTKSFT. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into kitty/mission-vikunja-client-and-habits-weekly-report-01KTKSFT unless the human explicitly redirects the landing branch.
@@ -18,17 +17,19 @@ subtasks:
 - T019
 - T020
 - T021
-shell_pid: "44073"
+agent: codex:gpt-5:reviewer-renata:reviewer
+shell_pid: '44073'
 history: []
 authoritative_surface: docs/design/architecture/
 execution_mode: code_change
+lane: planned
 owned_files:
 - docs/design/architecture/data/service-inventory.json
 - docs/design/architecture/data/signal-to-doc-map.json
 - docs/design/architecture/service-inventory.md
 - docs/runbooks/openclaw-agent-setup.md
 tags: []
-agent: "codex:gpt-5:reviewer-renata:reviewer"
+tracker_refs: []
 ---
 
 # WP04: Architecture doc sync

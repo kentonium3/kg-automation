@@ -4,7 +4,6 @@ title: Shared Vikunja scope config (foundation)
 dependencies: []
 requirement_refs:
 - FR-008
-tracker_refs: []
 planning_base_branch: fix/deterministic-cron-hardening
 merge_target_branch: fix/deterministic-cron-hardening
 branch_strategy: Planning artifacts for this mission were generated on fix/deterministic-cron-hardening. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into fix/deterministic-cron-hardening unless the human explicitly redirects the landing branch.
@@ -13,8 +12,8 @@ subtasks:
 - T002
 - T003
 - T004
-agent: "claude:opus:reviewer-renata:reviewer"
-shell_pid: "89726"
+agent: claude:opus:reviewer-renata:reviewer
+shell_pid: '89726'
 history:
 - '2026-07-12: authored by /spec-kitty.tasks'
 agent_profile: python-pedro
@@ -23,12 +22,14 @@ create_intent:
 - scripts/common/vikunja_scope.py
 - tests/common/test_vikunja_scope.py
 execution_mode: code_change
+lane: planned
 owned_files:
 - scripts/common/vikunja_scope.py
 - scripts/habits/query_active_habits_weekly.py
 - tests/common/test_vikunja_scope.py
 role: implementer
 tags: []
+tracker_refs: []
 ---
 
 ## ⚡ Do This First: Load Agent Profile

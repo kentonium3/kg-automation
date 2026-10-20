@@ -18,8 +18,8 @@ base_branch: 014-felix-core-digest-WP01
 base_commit: 1cc6045874580b1c667cd01084ae1076d74bcfbf
 created_at: '2026-04-04T15:35:20.433513+00:00'
 subtasks: [T011, T012, T013, T014, T015, T016, T017]
-shell_pid: "96073"
-agent: "claude"
+agent: claude
+shell_pid: '96073'
 history:
 - date: '2026-04-04'
   action: created
@@ -27,6 +27,7 @@ history:
 authoritative_surface: scripts/openclaw/observation/tests/
 execution_mode: code_change
 feature: 014-felix-core-digest
+lane: planned
 owned_files:
 - scripts/openclaw/observation/summarize.py
 - scripts/openclaw/observation/tests/test_summarize.py

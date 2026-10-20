@@ -31,6 +31,7 @@ history:
   action: Prompt generated via /spec-kitty.tasks
 authoritative_surface: kitty-specs/001-vikunja-docker-deploy/
 execution_mode: planning_artifact
+lane: planned
 mission_id: 01KN5QX3W9YZC8278D6BM01V28
 owned_files:
 - kitty-specs/001-vikunja-docker-deploy/**

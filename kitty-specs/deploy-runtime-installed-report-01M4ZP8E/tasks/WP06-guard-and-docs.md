@@ -29,6 +29,7 @@ authoritative_surface: docs/
 create_intent:
 - tests/deploy/test_host_copies_report.py
 execution_mode: code_change
+lane: planned
 model: claude-opus-5-5
 owned_files:
 - tests/deploy/test_host_copies_report.py

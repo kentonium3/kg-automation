@@ -18,7 +18,7 @@
   "flattened": false,
   "friendly_name": "backup integrity observability",
   "mission_id": "01M1414DJR4NR3CQ8875X06Y9W",
-  "mission_number": null,
+  "mission_number": "",
   "mission_slug": "backup-integrity-observability-01M1414D",
   "mission_type": "software-dev",
   "purpose_context": "This mission advances backup integrity observability on feat/backup-integrity-observability so stakeholders can track the work from mission creation onward.",

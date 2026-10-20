@@ -20,6 +20,7 @@ history:
 agent_profile: python-pedro
 authoritative_surface: docs/
 execution_mode: planning_artifact
+lane: planned
 model: claude-opus-5-5
 owned_files:
 - docs/runbooks/restic-backup-ops.md

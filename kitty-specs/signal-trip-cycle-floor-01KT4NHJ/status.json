@@ -1,5 +1,5 @@
 {
-  "event_count": 11,
+  "event_count": 12,
   "last_event_id": "01KT4R3ASE2MHPFCYSG42CHRKV",
   "materialized_at": "2026-06-02T18:03:57.103017+00:00",
   "mission_number": "61",
@@ -19,11 +19,18 @@
   "work_packages": {
     "WP01": {
       "actor": "user",
+      "agent": "codex",
       "force_count": 4,
       "lane": "approved",
       "last_event_id": "01KT4R3ASE2MHPFCYSG42CHRKV",
       "last_transition_at": "2026-06-02T18:03:57.103017+00:00",
-      "review_result": null
+      "review_result": null,
+      "shell_pid": 63470,
+      "subtasks": {
+        "T001": "done",
+        "T002": "done",
+        "T003": "done"
+      }
     }
   }
 }

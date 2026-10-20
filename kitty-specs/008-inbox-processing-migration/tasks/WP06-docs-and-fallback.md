@@ -21,6 +21,7 @@ history:
   actor: claude
 authoritative_surface: docs/
 execution_mode: code_change
+lane: planned
 mission_id: 01KN5QX3WJGAVA67AVPSBGXX96
 owned_files:
 - docs/design/architecture/data/service-inventory.json

@@ -7,6 +7,7 @@
   "mission_type": "software-dev",
   "slug": "drift-interpretation-debug-capture-01KSEFT8",
   "source_description": "GitHub issue #404 — Investigate why drift_interpretation schema validation fails 100% of the time. Diagnostic-only mission: add env-var-gated raw-payload capture, run one tick on office2, document findings. Fix lands in a follow-up mission.",
+  "status_phase": "1",
   "target_branch": "main",
   "vcs": "git"
 }

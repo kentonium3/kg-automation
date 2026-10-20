@@ -6,7 +6,6 @@ requirement_refs:
 - FR-001
 - FR-002
 - FR-011
-tracker_refs: []
 planning_base_branch: kitty/mission-vikunja-client-and-habits-weekly-report-01KTKSFT
 merge_target_branch: kitty/mission-vikunja-client-and-habits-weekly-report-01KTKSFT
 branch_strategy: Planning artifacts for this mission were generated on kitty/mission-vikunja-client-and-habits-weekly-report-01KTKSFT. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into kitty/mission-vikunja-client-and-habits-weekly-report-01KTKSFT unless the human explicitly redirects the landing branch.
@@ -20,15 +19,17 @@ subtasks:
 - T004
 - T005
 - T006
-agent: "codex:gpt-5:reviewer-renata:reviewer"
-shell_pid: "8342"
+agent: codex:gpt-5:reviewer-renata:reviewer
+shell_pid: '8342'
 history: []
 authoritative_surface: scripts/common/
 execution_mode: code_change
+lane: planned
 owned_files:
 - scripts/common/vikunja_client.py
 - tests/common/**
 tags: []
+tracker_refs: []
 ---
 
 # WP01: Shared Vikunja client + tests

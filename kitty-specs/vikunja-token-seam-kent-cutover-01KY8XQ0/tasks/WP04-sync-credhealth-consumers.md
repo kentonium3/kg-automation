@@ -7,7 +7,6 @@ requirement_refs:
 - FR-001
 - FR-002
 - NFR-001
-tracker_refs: []
 planning_base_branch: feat/vikunja-token-seam-kent-cutover
 merge_target_branch: feat/vikunja-token-seam-kent-cutover
 branch_strategy: Planning artifacts for this mission were generated on feat/vikunja-token-seam-kent-cutover. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into feat/vikunja-token-seam-kent-cutover unless the human explicitly redirects the landing branch.
@@ -16,11 +15,15 @@ subtasks:
 - T010
 - T011
 phase: Phase 1 - Consumers
+agent: claude
+shell_pid: '72212'
+shell_pid_created_at: '1784864197.958657'
 history: []
 agent_profile: python-pedro
 authoritative_surface: scripts/sync/
 create_intent: []
 execution_mode: code_change
+lane: planned
 owned_files:
 - scripts/sync/cycle.py
 - scripts/sync/fetch.py
@@ -30,9 +33,7 @@ owned_files:
 - tests/security/test_vikunja_writer.py
 role: implementer
 tags: []
-agent: "claude"
-shell_pid: "72212"
-shell_pid_created_at: "1784864197.958657"
+tracker_refs: []
 ---
 
 # Work Package Prompt: WP04 — Sync + credential-health consumers

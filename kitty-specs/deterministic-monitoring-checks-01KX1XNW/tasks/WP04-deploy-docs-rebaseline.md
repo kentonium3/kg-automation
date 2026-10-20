@@ -12,7 +12,6 @@ requirement_refs:
 - FR-012
 - FR-013
 - NFR-003
-tracker_refs: []
 planning_base_branch: feat/deterministic-monitoring-checks
 merge_target_branch: feat/deterministic-monitoring-checks
 branch_strategy: Planning artifacts for this mission were generated on feat/deterministic-monitoring-checks. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into feat/deterministic-monitoring-checks unless the human explicitly redirects the landing branch.
@@ -22,13 +21,15 @@ subtasks:
 - T018
 - T019
 - T020
-agent: "claude:opus:reviewer-renata:reviewer"
+agent: claude:opus:reviewer-renata:reviewer
+shell_pid: '72895'
 history: []
 agent_profile: implementer-ivan
 authoritative_surface: deploys/queued/deterministic-monitoring-checks.yaml
 create_intent:
 - deploys/queued/deterministic-monitoring-checks.yaml
 execution_mode: code_change
+lane: planned
 owned_files:
 - deploys/queued/deterministic-monitoring-checks.yaml
 - docs/design/architecture/data/service-inventory.json
@@ -36,7 +37,7 @@ owned_files:
 - docs/constitution/AGENT-REGISTRY.md
 role: implementer
 tags: []
-shell_pid: "72895"
+tracker_refs: []
 ---
 
 ## ⚡ Do This First: Load Agent Profile

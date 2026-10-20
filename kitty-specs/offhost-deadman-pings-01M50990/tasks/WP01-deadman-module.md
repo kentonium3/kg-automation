@@ -36,6 +36,7 @@ create_intent:
 - scripts/common/deadman.env.sample
 - tests/common/test_deadman.py
 execution_mode: code_change
+lane: planned
 model: claude-opus-5-5
 owned_files:
 - scripts/common/deadman.py

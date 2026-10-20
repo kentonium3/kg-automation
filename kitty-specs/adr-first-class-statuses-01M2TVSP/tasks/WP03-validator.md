@@ -34,6 +34,7 @@ create_intent:
 - tests/docs_standards/test_validator_scoping.py
 - tests/docs_standards/test_decision_log.py
 execution_mode: code_change
+lane: planned
 owned_files:
 - tooling/scripts/validate_docs.py
 - tests/docs_standards/test_validator_scoping.py

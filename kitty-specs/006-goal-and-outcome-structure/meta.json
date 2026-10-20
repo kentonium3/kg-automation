@@ -7,6 +7,7 @@
   "mission_type": "software-dev",
   "slug": "goal-and-outcome-structure",
   "source_description": "F006 — establish goal declaration format, Vikunja goal structure, and Goals-MOC integration",
+  "status_phase": "1",
   "target_branch": "main",
   "vcs": "git"
 }

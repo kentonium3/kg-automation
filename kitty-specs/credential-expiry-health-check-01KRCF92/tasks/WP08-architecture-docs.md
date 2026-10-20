@@ -12,14 +12,15 @@ subtasks:
 - T033
 - T034
 - T035
-agent: "claude"
-shell_pid: "15422"
+agent: claude
+shell_pid: '15422'
 history:
 - event: created
   at: '2026-05-11T21:43:38Z'
   by: 'spec-kitty.tasks (auto-drive via #115)'
 authoritative_surface: docs/design/architecture/
 execution_mode: code_change
+lane: planned
 owned_files:
 - docs/design/architecture/data/service-inventory.json
 - docs/design/architecture/service-inventory.md

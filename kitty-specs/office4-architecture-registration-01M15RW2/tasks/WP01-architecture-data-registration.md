@@ -27,6 +27,7 @@ agent_profile: implementer-ivan
 authoritative_surface: docs/design/architecture/data/
 create_intent: []
 execution_mode: code_change
+lane: planned
 model: ''
 owned_files:
 - docs/design/architecture/data/network-topology.json

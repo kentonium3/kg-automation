@@ -84,7 +84,7 @@ MVP scope: WP01 + WP02 + WP03 deliver record_completion + derive_state. That's t
 **Dependencies**: none
 **Independent test**: `pytest tests/escalation/test_schema.py -v` passes; the DOMAIN_STATES update is reflected by `python3 -c "from scripts.common.state_log_schema import DOMAIN_STATES; print(DOMAIN_STATES['escalation'])"`.
 **Estimated prompt size**: ~340 lines (5 subtasks)
-**Prompt**: [WP01-schema-foundation.md](tasks/WP01-schema-foundation.md)
+**Prompt**: [WP01-schema-foundation.md](tasks/WP01-schema-foundation.md
 
 Included subtasks:
 
@@ -107,7 +107,7 @@ Risks:
 **Dependencies**: WP01
 **Independent test**: `pytest tests/escalation/test_derive_state.py -v` passes ≥85% coverage. `python3 -m scripts.escalation.derive_state --help` prints usage.
 **Estimated prompt size**: ~340 lines (3 subtasks)
-**Prompt**: [WP02-derive-state.md](tasks/WP02-derive-state.md)
+**Prompt**: [WP02-derive-state.md](tasks/WP02-derive-state.md
 
 Included subtasks:
 
@@ -129,7 +129,7 @@ Risks:
 **Dependencies**: WP02
 **Independent test**: `pytest tests/escalation/test_record_completion.py -v` passes ≥85% coverage. Manual smoke test via mocked Vikunja in conftest.
 **Estimated prompt size**: ~480 lines (3 subtasks)
-**Prompt**: [WP03-record-completion.md](tasks/WP03-record-completion.md)
+**Prompt**: [WP03-record-completion.md](tasks/WP03-record-completion.md
 
 Included subtasks:
 
@@ -150,7 +150,7 @@ Risks:
 **Dependencies**: WP02 (uses EscalationStateError taxonomy)
 **Independent test**: `pytest tests/escalation/test_hard_fail.py -v` passes ≥85% coverage. Dedup query verified via mocked `gh` subprocess.
 **Estimated prompt size**: ~320 lines (3 subtasks)
-**Prompt**: [WP04-hard-fail-dedup.md](tasks/WP04-hard-fail-dedup.md)
+**Prompt**: [WP04-hard-fail-dedup.md](tasks/WP04-hard-fail-dedup.md
 
 Included subtasks:
 
@@ -173,7 +173,7 @@ Risks:
 **Dependencies**: WP03, WP04
 **Independent test**: `pytest tests/escalation/test_reconcile_completions.py -v` passes ≥85% coverage. CLI smoke: `python3 -m scripts.escalation.reconcile_completions --all --dry-run` returns exit 0 against a populated mock JSONL.
 **Estimated prompt size**: ~400 lines (3 subtasks)
-**Prompt**: [WP05-reconcile.md](tasks/WP05-reconcile.md)
+**Prompt**: [WP05-reconcile.md](tasks/WP05-reconcile.md
 
 Included subtasks:
 
@@ -193,7 +193,7 @@ Risks:
 **Dependencies**: WP03 (uses state_log.append via the same path), WP04 (no — backfill doesn't fire hard-fails; malformed comments are reported, not bug-filed)
 **Independent test**: `pytest tests/escalation/test_backfill.py -v` passes ≥85% coverage. Dry-run on mocked Vikunja returns parsed/replayed counts.
 **Estimated prompt size**: ~440 lines (3 subtasks)
-**Prompt**: [WP06-backfill.md](tasks/WP06-backfill.md)
+**Prompt**: [WP06-backfill.md](tasks/WP06-backfill.md
 
 Included subtasks:
 
@@ -216,7 +216,7 @@ Risks:
 **Dependencies**: WP03 (CLI exists), WP05 (CLI exists)
 **Independent test**: `grep -c "Felix-Escalation.*parse\|comment-parsing" scripts/openclaw/skills/escalation/SKILL.md scripts/openclaw/agents/felix-admin-escalation/AGENTS.md` returns 0 for parsing-language matches; positive count for "v1 compatibility" notes referencing WP03's parity-write.
 **Estimated prompt size**: ~280 lines (3 subtasks)
-**Prompt**: [WP07-agent-prompts.md](tasks/WP07-agent-prompts.md)
+**Prompt**: [WP07-agent-prompts.md](tasks/WP07-agent-prompts.md
 
 Included subtasks:
 
@@ -237,7 +237,7 @@ Risks:
 **Dependencies**: none (fully parallel)
 **Independent test**: `python3 tooling/scripts/validate_docs.py docs/design/architecture/data/` returns exit 0.
 **Estimated prompt size**: ~260 lines (3 subtasks)
-**Prompt**: [WP08-arch-docs.md](tasks/WP08-arch-docs.md)
+**Prompt**: [WP08-arch-docs.md](tasks/WP08-arch-docs.md
 
 Included subtasks:
 
@@ -258,7 +258,7 @@ Risks:
 **Dependencies**: WP07 (the runbook references the new SKILL.md/AGENTS.md surface)
 **Independent test**: A new operator reading `docs/runbooks/escalation-ops.md` end-to-end can execute the cutover without consulting any other doc. Quickstart.md and the runbook agree on every CLI command + path.
 **Estimated prompt size**: ~280 lines (3 subtasks)
-**Prompt**: [WP09-ops-runbook.md](tasks/WP09-ops-runbook.md)
+**Prompt**: [WP09-ops-runbook.md](tasks/WP09-ops-runbook.md
 
 Included subtasks:
 

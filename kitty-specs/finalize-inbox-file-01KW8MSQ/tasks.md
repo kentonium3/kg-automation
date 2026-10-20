@@ -33,7 +33,7 @@ without weakening atomicity/idempotency/round-trip. **Priority**: P1 (foundation
 **Independent test**: `pytest tests/inbox/ -v` green, with new coverage for the
 five outcomes (happy/idempotent/validation/fs-fail/private).
 **Dependencies**: none. **Requirements**: FR-001, FR-002, FR-003, FR-004; NFR-003, NFR-004.
-**Prompt**: [tasks/WP01-harden-mark-processed.md](tasks/WP01-harden-mark-processed.md) (~320 lines). Est. 6 subtasks.
+**Prompt**: [tasks/WP01-harden-mark-processed.md
 
 - [x] T001 Add inbox-root validation via `prescan.resolve_registry()`; path outside root → exit 1 (WP01)
 - [x] T002 Wrap the atomic write; catch `OSError` → exit 2 + `{"error":"fs_error",...}` on stderr; original uncorrupted (WP01)
@@ -51,7 +51,7 @@ surfaced/escalated, not silently continued; retain the "do NOT move" invariant.
 **Priority**: P1. **Independent test**: AGENTS.md Step 5c documents the 0/1/2/3 →
 action mapping and reaffirms the invariant; no stale inline-Edit finalize references.
 **Dependencies**: WP01. **Requirements**: FR-005.
-**Prompt**: [tasks/WP02-step5c-cutover.md](tasks/WP02-step5c-cutover.md) (~210 lines). Est. 3 subtasks.
+**Prompt**: [tasks/WP02-step5c-cutover.md
 
 - [ ] T007 Add an exit-code handling table to Step 5c: 0→proceed, 1→surface validation, 2→surface/escalate, 3→skip private (WP02)
 - [ ] T008 Reaffirm "do NOT move; preserve in 01-Inbox/" invariant, tied to the helper call (WP02)
@@ -66,7 +66,7 @@ change is reflected in the architecture record. **Priority**: P2. **Independent
 test**: service-inventory JSON+md reflect the error-surfacing finalize; audited-
 surfaces + runbooks reviewed; architecture-data validator passes.
 **Dependencies**: WP01. **Requirements**: FR-006.
-**Prompt**: [tasks/WP03-architecture-doc-updates.md](tasks/WP03-architecture-doc-updates.md) (~230 lines). Est. 4 subtasks.
+**Prompt**: [tasks/WP03-architecture-doc-updates.md
 
 - [ ] T010 Update `service-inventory.json` felix-admin-capture entry (finalize now error-surfacing; depends_on mark_processed) (WP03)
 - [ ] T011 Update `service-inventory.md` narrative counterpart to match (WP03)

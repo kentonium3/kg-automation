@@ -8,7 +8,6 @@ requirement_refs:
 - FR-006
 - NFR-001
 - NFR-004
-tracker_refs: []
 planning_base_branch: fix/prompt-sync-ff-race
 merge_target_branch: fix/prompt-sync-ff-race
 branch_strategy: Planning artifacts for this mission were generated on fix/prompt-sync-ff-race. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into fix/prompt-sync-ff-race unless the human explicitly redirects the landing branch.
@@ -17,7 +16,8 @@ subtasks:
 - T002
 - T003
 - T004
-agent: "claude"
+agent: claude
+shell_pid: '64625'
 history: []
 agent_profile: python-pedro
 authoritative_surface: scripts/deploy/lib/
@@ -25,6 +25,7 @@ create_intent:
 - scripts/deploy/lib/gitsync.py
 - tests/deploy/test_gitsync.py
 execution_mode: code_change
+lane: planned
 mission_id: 01KX3SZC2YHPWRCYD7WXQSFZQ7
 mission_slug: prompt-sync-ff-race-01KX3SZC
 owned_files:
@@ -32,7 +33,7 @@ owned_files:
 - tests/deploy/test_gitsync.py
 role: implementer
 tags: []
-shell_pid: "64625"
+tracker_refs: []
 ---
 
 # WP01 — gitsync primitive (race-immune advance)

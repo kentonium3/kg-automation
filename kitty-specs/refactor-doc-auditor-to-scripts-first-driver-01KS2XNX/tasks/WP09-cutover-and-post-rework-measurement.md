@@ -19,14 +19,15 @@ subtasks:
 - T045
 phase: Phase 5 — Cutover
 assignee: ''
-agent: "codex:gpt-5:spec-kitty-review:reviewer"
-shell_pid: "33376"
+agent: codex:gpt-5:spec-kitty-review:reviewer
+shell_pid: '33376'
 history:
 - timestamp: '2026-05-20T16:25:00Z'
   agent: system
   action: Prompt generated via /spec-kitty.tasks
 authoritative_surface: docs/design/architecture/baselines/
 execution_mode: code_change
+lane: planned
 owned_files:
 - docs/design/architecture/baselines/felix-doc-auditor-post-rework.json
 - docs/design/architecture/baselines/cutover-log.md

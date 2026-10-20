@@ -7,6 +7,7 @@
   "mission_type": "software-dev",
   "slug": "027-inbox-pre-scan-helper",
   "source_description": "GitHub issue #149 — eliminate agent scan cost on empty inbox runs via a Python pre-scan helper + cron pre-step",
+  "status_phase": "1",
   "target_branch": "main",
   "vcs": "git"
 }

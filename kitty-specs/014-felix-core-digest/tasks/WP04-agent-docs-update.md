@@ -12,8 +12,8 @@ base_branch: 014-felix-core-digest-WP02
 base_commit: 0cd529e780b8fd84a3aad9a96bef737d873b0b21
 created_at: '2026-04-04T15:38:48.993549+00:00'
 subtasks: [T018, T019, T020, T021]
-shell_pid: "95751"
-agent: "claude"
+agent: claude
+shell_pid: '95751'
 history:
 - date: '2026-04-04'
   action: created
@@ -21,6 +21,7 @@ history:
 authoritative_surface: scripts/openclaw/agents/
 execution_mode: code_change
 feature: 014-felix-core-digest
+lane: planned
 owned_files:
 - scripts/openclaw/agents/felix-admin-capture/AGENTS.md
 - scripts/openclaw/agents/felix-admin-habits/AGENTS.md

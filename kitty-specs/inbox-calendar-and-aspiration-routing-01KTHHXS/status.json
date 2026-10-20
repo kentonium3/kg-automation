@@ -1,5 +1,5 @@
 {
-  "event_count": 33,
+  "event_count": 37,
   "last_event_id": "01KTKGN5BK322WPNGP1062W0TD",
   "materialized_at": "2026-06-08T11:42:29.235938+00:00",
   "mission_number": "69",
@@ -19,35 +19,74 @@
   "work_packages": {
     "WP01": {
       "actor": "user",
+      "agent": "claude:opus-4-7:reviewer-renata:reviewer",
       "force_count": 3,
       "lane": "done",
       "last_event_id": "01KTKGMQV3RSX7BEB64MJS75G1",
       "last_transition_at": "2026-06-08T11:42:15.395583+00:00",
-      "review_result": null
+      "review_result": null,
+      "shell_pid": 92285,
+      "subtasks": {
+        "T001": "done",
+        "T002": "done",
+        "T003": "done",
+        "T004": "done",
+        "T005": "done",
+        "T006": "done"
+      }
     },
     "WP02": {
       "actor": "user",
+      "agent": "claude:opus-4-7:reviewer-renata:reviewer",
       "force_count": 3,
       "lane": "done",
       "last_event_id": "01KTKGMWDY94ZGD3KVZSZ6ZV4J",
       "last_transition_at": "2026-06-08T11:42:20.095128+00:00",
-      "review_result": null
+      "review_result": null,
+      "shell_pid": 21577,
+      "subtasks": {
+        "T007": "done",
+        "T008": "done",
+        "T009": "done",
+        "T010": "done",
+        "T011": "done",
+        "T012": "done",
+        "T013": "done",
+        "T014": "done"
+      }
     },
     "WP03": {
       "actor": "user",
+      "agent": "claude:opus-4-7:reviewer-renata:reviewer",
       "force_count": 3,
       "lane": "done",
       "last_event_id": "01KTKGN10R9SR42AAQCAEYBE70",
       "last_transition_at": "2026-06-08T11:42:24.792723+00:00",
-      "review_result": null
+      "review_result": null,
+      "shell_pid": 26434,
+      "subtasks": {
+        "T015": "done",
+        "T016": "done",
+        "T017": "done",
+        "T018": "done",
+        "T019": "done"
+      }
     },
     "WP04": {
       "actor": "user",
+      "agent": "claude:opus-4-7:reviewer-renata:reviewer",
       "force_count": 4,
       "lane": "done",
       "last_event_id": "01KTKGN5BK322WPNGP1062W0TD",
       "last_transition_at": "2026-06-08T11:42:29.235938+00:00",
-      "review_result": null
+      "review_result": null,
+      "shell_pid": 39877,
+      "subtasks": {
+        "T020": "done",
+        "T021": "done",
+        "T022": "done",
+        "T023": "done"
+      }
     }
   }
 }

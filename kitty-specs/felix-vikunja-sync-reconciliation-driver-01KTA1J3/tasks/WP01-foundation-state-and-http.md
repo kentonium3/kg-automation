@@ -19,14 +19,15 @@ subtasks:
 - T003
 - T004
 - T005
-shell_pid: "77893"
-agent: "claude"
+agent: claude
+shell_pid: '77893'
 history:
 - at: '2026-06-04T19:53:57Z'
   by: spec-kitty.tasks
   note: Created WP01 from plan.md + data-model.md + contracts/state-directory.md
 authoritative_surface: scripts/sync/
 execution_mode: code_change
+lane: planned
 owned_files:
 - scripts/sync/__init__.py
 - scripts/sync/state.py

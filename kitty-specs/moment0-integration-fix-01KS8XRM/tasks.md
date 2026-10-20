@@ -46,7 +46,7 @@ All sequential — lane-a.
 **Independent test**: `pytest tests/doc_audit/routing/test_drift_moment0.py -v` ≥85%; existing `tests/doc_audit/helpers/test_handle_drift_events.py` still passes.
 
 **Estimated prompt size**: ~280 lines (5 subtasks)
-**Prompt**: [WP01-shared-helper.md](tasks/WP01-shared-helper.md)
+**Prompt**: [WP01-shared-helper.md](tasks/WP01-shared-helper.md
 
 Included:
 - [x] T001 Create `routing/drift_moment0.py` (WP01)
@@ -70,7 +70,7 @@ Included:
 **Independent test**: `pytest tests/doc_audit/signals/test_drift_event.py -v` ≥85% on new code paths. Full `tests/doc_audit/` suite passes.
 
 **Estimated prompt size**: ~260 lines (4 subtasks)
-**Prompt**: [WP02-signals-integration.md](tasks/WP02-signals-integration.md)
+**Prompt**: [WP02-signals-integration.md](tasks/WP02-signals-integration.md
 
 Included:
 - [x] T006 JudgmentClient lazy lifecycle in adapter (WP02)
@@ -93,7 +93,7 @@ Included:
 **Independent test**: `pytest tests/doc_audit/helpers/test_cleanup_391.py -v` ≥85%; JSON files parse; markdown views match JSON.
 
 **Estimated prompt size**: ~220 lines (4 subtasks)
-**Prompt**: [WP03-cleanup-and-docs.md](tasks/WP03-cleanup-and-docs.md)
+**Prompt**: [WP03-cleanup-and-docs.md](tasks/WP03-cleanup-and-docs.md
 
 Included:
 - [x] T010 cleanup_391.py module (WP03)

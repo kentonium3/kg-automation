@@ -24,14 +24,15 @@ subtasks:
 - T004
 - T005
 - T006
-shell_pid: "25272"
-agent: "codex:gpt-5:spec-kitty-review:reviewer"
+agent: codex:gpt-5:spec-kitty-review:reviewer
+shell_pid: '25272'
 history:
 - date: '2026-05-20T02:30:00Z'
   event: created
   note: G7 filter fix — single WP for the helper change, test, docs append, and reconcile audit.
 authoritative_surface: scripts/habits/
 execution_mode: code_change
+lane: planned
 mission_id: 01KS1K1YE6H1CTY29A6MRWW836
 mission_slug: vikunja-g7-query-filter-fix-01KS1K1Y
 owned_files:

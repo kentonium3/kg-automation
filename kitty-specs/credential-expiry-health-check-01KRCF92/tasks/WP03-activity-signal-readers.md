@@ -14,14 +14,15 @@ subtasks:
 - T013
 - T014
 - T015
-agent: "claude"
-shell_pid: "22743"
+agent: claude
+shell_pid: '22743'
 history:
 - event: created
   at: '2026-05-11T21:43:38Z'
   by: 'spec-kitty.tasks (auto-drive via #115)'
 authoritative_surface: scripts/security/credential_health_check/signals.py
 execution_mode: code_change
+lane: planned
 owned_files:
 - scripts/security/credential_health_check/signals.py
 - tests/security/test_tailscale_signal.py

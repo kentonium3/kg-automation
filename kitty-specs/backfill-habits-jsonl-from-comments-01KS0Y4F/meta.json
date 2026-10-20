@@ -7,6 +7,7 @@
   "mission_type": "software-dev",
   "slug": "backfill-habits-jsonl-from-comments-01KS0Y4F",
   "source_description": "GitHub issue #307 (Phase 4 of ADR-0002). One-time backfill: read existing [Felix] comments from production habit tasks and replay as JSONL entries via Phase 2's state_log library so historical completion data is preserved before Phase 5 cutover (#308). Production data probe (2026-05-19) found only 26 total comments across the 8 originally-touched habit tasks, with 2 distinct state values (complete: 24, will-not-do: 2). Depends on #305 (state_log) + #306 (post-migration task state).",
+  "status_phase": "1",
   "target_branch": "main",
   "vcs": "git"
 }

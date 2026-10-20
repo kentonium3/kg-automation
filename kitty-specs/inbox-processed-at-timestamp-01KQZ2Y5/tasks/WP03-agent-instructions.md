@@ -13,14 +13,15 @@ merge_target_branch: main
 branch_strategy: Planning artifacts for this feature were generated on main. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into main unless the human explicitly redirects the landing branch.
 subtasks:
 - T009
-agent: "claude:opus:implementer:implementer"
-shell_pid: "96925"
+agent: claude:opus:implementer:implementer
+shell_pid: '96925'
 history:
 - date: '2026-05-06'
   event: created
   agent: claude-opus
 authoritative_surface: scripts/openclaw/agents/felix-admin-capture/
 execution_mode: code_change
+lane: planned
 owned_files:
 - scripts/openclaw/agents/felix-admin-capture/AGENTS.md
 tags: []

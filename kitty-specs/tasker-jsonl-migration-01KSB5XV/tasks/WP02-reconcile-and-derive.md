@@ -19,9 +19,12 @@ subtasks:
 - T004
 - T005
 - T006
+agent: codex:gpt-5:spec-kitty-review:reviewer
+shell_pid: '14969'
 history: []
 authoritative_surface: scripts/enrichment/
 execution_mode: code_change
+lane: planned
 mission_id: 01KSB5XVGW5WRDQFR17JSA52M5
 mission_slug: tasker-jsonl-migration-01KSB5XV
 owned_files:
@@ -30,8 +33,6 @@ owned_files:
 - tests/enrichment/test_reconcile_completions.py
 - tests/enrichment/test_derive_state.py
 tags: []
-agent: "codex:gpt-5:spec-kitty-review:reviewer"
-shell_pid: "14969"
 ---
 
 # WP02 — reconcile + derive_state

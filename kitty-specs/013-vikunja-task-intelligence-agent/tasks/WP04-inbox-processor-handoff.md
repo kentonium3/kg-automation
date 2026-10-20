@@ -17,6 +17,7 @@ history:
   by: spec-kitty.tasks
 authoritative_surface: scripts/openclaw/agents/felix-admin-capture/
 execution_mode: code_change
+lane: planned
 owned_files: [scripts/openclaw/agents/felix-admin-capture/AGENTS.md]
 ---
 

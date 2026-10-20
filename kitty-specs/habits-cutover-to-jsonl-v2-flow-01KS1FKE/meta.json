@@ -7,6 +7,7 @@
   "mission_type": "software-dev",
   "slug": "habits-cutover-to-jsonl-v2-flow-01KS1FKE",
   "source_description": "GitHub issue #308 (Phase 5 of ADR-0002). Cutover the felix-admin-habits agent from v1 (comment-parsing + inline POST/PUT) to v2 (JSONL state log via Phase 2-4 helpers). Tier 2: deployed AGENTS.md mutates; morning check-in cron behavior changes. 2-3 day soak with fail-forward posture (rollback only for catastrophic failure). V1 decommission deferred to a separate post-soak mission (Q2=A). Depends on #305 (state_log), #306 (Phase 3 helpers), #307 (Phase 4 backfill — 31 records preserved 2026-05-19), #333 (G6 fix — load-bearing for reconcile).",
+  "status_phase": "1",
   "target_branch": "main",
   "vcs": "git"
 }

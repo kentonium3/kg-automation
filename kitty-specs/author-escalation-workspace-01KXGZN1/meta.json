@@ -24,6 +24,7 @@
   "purpose_context": "felix-admin-escalation's OpenClaw workspace passes both #587 invariants but is cross-contaminated at the ownership level: SOUL carries an operational role block and the full enforceable privacy rule; USER carries date-handling mechanics. This mission re-homes each block to its canonical file (a pure clean-separation refactor, no behavior change), removes stale references to the deleted Goals project (#724), and deploys to office2 via agent-prompt-sync with a smoke test.",
   "purpose_tldr": "Re-home felix-admin-escalation workspace files to their #587-canonical owners and absorb the #724 Goals(11) cleanup.",
   "slug": "author-escalation-workspace-01KXGZN1",
+  "status_phase": "1",
   "target_branch": "feat/author-escalation-workspace",
   "topology": "single_branch",
   "vcs": "git",

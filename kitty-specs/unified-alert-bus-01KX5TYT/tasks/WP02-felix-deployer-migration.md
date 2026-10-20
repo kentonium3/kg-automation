@@ -6,8 +6,6 @@ dependencies:
 requirement_refs:
 - FR-003
 - FR-006
-tracker_refs:
-- kentonium3/kg-automation#701
 planning_base_branch: feat/unified-alert-bus
 merge_target_branch: feat/unified-alert-bus
 branch_strategy: Planning artifacts for this mission were generated on feat/unified-alert-bus. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into feat/unified-alert-bus unless the human explicitly redirects the landing branch.
@@ -17,8 +15,8 @@ subtasks:
 - T010
 - T011
 - T012
-agent: "claude:opus:reviewer-renata:reviewer"
-shell_pid: "22532"
+agent: claude:opus:reviewer-renata:reviewer
+shell_pid: '22532'
 history:
 - at: '2026-07-10T11:30:00Z'
   actor: spec-kitty agent mission tasks
@@ -27,6 +25,7 @@ agent_profile: python-pedro
 authoritative_surface: scripts/deploy/felix-deployer/
 create_intent: []
 execution_mode: code_change
+lane: planned
 owned_files:
 - scripts/deploy/felix-deployer/notify.py
 - scripts/deploy/felix-deployer/_tick.py
@@ -39,6 +38,8 @@ owned_files:
 - tests/openclaw/test_deploy_agent_prompts.py
 role: implementer
 tags: []
+tracker_refs:
+- kentonium3/kg-automation#701
 ---
 
 ## ⚡ Do This First: Load Agent Profile

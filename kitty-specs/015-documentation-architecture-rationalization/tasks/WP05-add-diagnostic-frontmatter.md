@@ -16,14 +16,15 @@ subtasks:
 - T019
 phase: Phase 0 - Foundation
 assignee: ''
-agent: "claude"
-shell_pid: "2740"
+agent: claude
+shell_pid: '2740'
 history:
 - at: '2026-04-05T01:28:56Z'
   actor: system
   action: Prompt generated via /spec-kitty.tasks
 authoritative_surface: docs/issues/diagnostics/
 execution_mode: code_change
+lane: planned
 owned_files:
 - docs/issues/diagnostics/f012-merge-breadcrumbs.md
 - docs/issues/diagnostics/spec-kitty-feedback/f014-accept-not-in-resolver.md

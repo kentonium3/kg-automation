@@ -24,14 +24,15 @@ subtasks:
 - T031
 - T032
 - T033
-agent: "claude:opus-4-6:implementer:implementer"
-shell_pid: "24186"
+agent: claude:opus-4-6:implementer:implementer
+shell_pid: '24186'
 history:
 - date: '2026-04-11T01:15:00Z'
   action: created
   by: spec-kitty.tasks
 authoritative_surface: kitty-specs/026-vault-path-registry-and-folder-renumber/research/
 execution_mode: planning_artifact
+lane: planned
 owned_files:
 - kitty-specs/026-vault-path-registry-and-folder-renumber/research/wp05-risky-window-runlog.md
 tags: []

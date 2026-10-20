@@ -20,6 +20,7 @@ history:
   actor: claude
 authoritative_surface: kitty-specs/010-obsidian-sync-office2/
 execution_mode: planning_artifact
+lane: planned
 mission_id: 01KN5QX3WNQ7X8S386F2A0ME8Q
 owned_files:
 - kitty-specs/010-obsidian-sync-office2/**

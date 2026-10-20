@@ -1,5 +1,5 @@
 {
-  "event_count": 56,
+  "event_count": 64,
   "last_event_id": "01KTZ340JX40SP4A2A26DK5RAJ",
   "materialized_at": "2026-06-12T23:36:48.989154+00:00",
   "mission_number": "74",
@@ -19,67 +19,140 @@
   "work_packages": {
     "WP01": {
       "actor": "merge",
+      "agent": "claude:sonnet:implementer-ivan:reviewer",
       "force_count": 0,
       "lane": "done",
       "last_event_id": "01KTZ2Y6W4DKHM1G4FHK7VBQZA",
       "last_transition_at": "2026-06-12T23:33:38.820724+00:00",
-      "review_result": null
+      "review_result": null,
+      "shell_pid": 19091,
+      "subtasks": {
+        "T001": "done",
+        "T002": "done",
+        "T003": "done",
+        "T004": "done",
+        "T005": "done"
+      }
     },
     "WP02": {
       "actor": "merge",
+      "agent": "claude:sonnet:implementer-ivan:reviewer",
       "force_count": 0,
       "lane": "done",
       "last_event_id": "01KTZ33YD0E44MWBN374GFPCRT",
       "last_transition_at": "2026-06-12T23:36:46.752950+00:00",
-      "review_result": null
+      "review_result": null,
+      "shell_pid": 23670,
+      "subtasks": {
+        "T006": "done",
+        "T007": "done",
+        "T008": "done",
+        "T009": "done",
+        "T010": "done"
+      }
     },
     "WP03": {
       "actor": "merge",
+      "agent": "claude:sonnet:implementer-ivan:reviewer",
       "force_count": 0,
       "lane": "done",
       "last_event_id": "01KTZ33ZE888QGEFDF3DY36EJK",
       "last_transition_at": "2026-06-12T23:36:47.816508+00:00",
-      "review_result": null
+      "review_result": null,
+      "shell_pid": 28269,
+      "subtasks": {
+        "T011": "done",
+        "T012": "done",
+        "T013": "done",
+        "T014": "done",
+        "T015": "done"
+      }
     },
     "WP04": {
       "actor": "merge",
+      "agent": "claude:sonnet:implementer-ivan:reviewer",
       "force_count": 0,
       "lane": "done",
       "last_event_id": "01KTZ34023TD0MB4145XBQW84V",
       "last_transition_at": "2026-06-12T23:36:48.451512+00:00",
-      "review_result": null
+      "review_result": null,
+      "shell_pid": 34101,
+      "subtasks": {
+        "T016": "done",
+        "T017": "done",
+        "T018": "done",
+        "T019": "done",
+        "T020": "done",
+        "T021": "done"
+      }
     },
     "WP05": {
       "actor": "merge",
+      "agent": "claude:sonnet:implementer-ivan:reviewer",
       "force_count": 0,
       "lane": "done",
       "last_event_id": "01KTZ340JX40SP4A2A26DK5RAJ",
       "last_transition_at": "2026-06-12T23:36:48.989154+00:00",
-      "review_result": null
+      "review_result": null,
+      "shell_pid": 37340,
+      "subtasks": {
+        "T022": "done",
+        "T023": "done",
+        "T024": "done",
+        "T025": "done"
+      }
     },
     "WP06": {
       "actor": "merge",
+      "agent": "claude:sonnet:implementer-ivan:reviewer",
       "force_count": 0,
       "lane": "done",
       "last_event_id": "01KTZ33YXVHFSDCB4KQTZCSC73",
       "last_transition_at": "2026-06-12T23:36:47.291315+00:00",
-      "review_result": null
+      "review_result": null,
+      "shell_pid": 45240,
+      "subtasks": {
+        "T026": "done",
+        "T027": "done",
+        "T028": "done",
+        "T029": "done"
+      }
     },
     "WP07": {
       "actor": "merge",
+      "agent": "claude:sonnet:implementer-ivan:reviewer",
       "force_count": 0,
       "lane": "done",
       "last_event_id": "01KTZ33X4HEDHH2S22VQ3SYN2Y",
       "last_transition_at": "2026-06-12T23:36:45.457973+00:00",
-      "review_result": null
+      "review_result": null,
+      "shell_pid": 39530,
+      "subtasks": {
+        "T030": "done",
+        "T031": "done",
+        "T032": "done",
+        "T033": "done",
+        "T034": "done",
+        "T035": "done",
+        "T036": "done"
+      }
     },
     "WP08": {
       "actor": "merge",
+      "agent": "claude:sonnet:implementer-ivan:reviewer",
       "force_count": 0,
       "lane": "done",
       "last_event_id": "01KTZ33XWG65G4T0BXDKHKDXFZ",
       "last_transition_at": "2026-06-12T23:36:46.224829+00:00",
-      "review_result": null
+      "review_result": null,
+      "shell_pid": 42185,
+      "subtasks": {
+        "T037": "done",
+        "T038": "done",
+        "T039": "done",
+        "T040": "done",
+        "T041": "done"
+      }
     }
   }
 }

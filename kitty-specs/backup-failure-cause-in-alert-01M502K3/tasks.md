@@ -22,14 +22,14 @@ Inputs: [spec.md](spec.md) · [plan.md](plan.md) · [contracts/key-ledger-cause-
 
 ## WP01 — Validator learns the `cause` member (rule 9)
 
-**Prompt**: [tasks/WP01-validator-cause-rule.md](tasks/WP01-validator-cause-rule.md) · **Depends on**: none
+**Prompt**: [tasks/WP01-validator-cause-rule.md
 
 T001 (WP01)
 T002 (WP01)
 
 ## WP02 — Backup script records the cause; inventory declares it
 
-**Prompt**: [tasks/WP02-producer-and-declaration.md](tasks/WP02-producer-and-declaration.md) · **Depends on**: WP01
+**Prompt**: [tasks/WP02-producer-and-declaration.md
 
 T003 (WP02)
 T004 (WP02)
@@ -38,7 +38,7 @@ T006 (WP02)
 
 ## WP03 — Operator docs and contract amendment
 
-**Prompt**: [tasks/WP03-docs-and-contract.md](tasks/WP03-docs-and-contract.md) · **Depends on**: WP02
+**Prompt**: [tasks/WP03-docs-and-contract.md
 
 T007 (WP03)
 T008 (WP03)
@@ -46,7 +46,7 @@ T009 (WP03)
 
 ## WP04 — Canary and health-check alerts name the cause
 
-**Prompt**: [tasks/WP04-canary-enrichment.md](tasks/WP04-canary-enrichment.md) · **Depends on**: WP02, WP03
+**Prompt**: [tasks/WP04-canary-enrichment.md
 
 T010 (WP04)
 T011 (WP04)

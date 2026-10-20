@@ -24,6 +24,7 @@ authoritative_surface: scripts/canary/probes.py
 create_intent:
 - tests/canary/test_probes_prune.py
 execution_mode: code_change
+lane: planned
 owned_files:
 - scripts/canary/probes.py
 - tests/canary/test_probes_prune.py

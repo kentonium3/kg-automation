@@ -18,7 +18,6 @@ requirement_refs:
 - FR-013
 - FR-014
 - FR-015
-tracker_refs: []
 planning_base_branch: main
 merge_target_branch: main
 branch_strategy: Planning artifacts for this mission were generated on main. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into main unless the human explicitly redirects the landing branch.
@@ -28,11 +27,13 @@ subtasks:
 - T003
 - T004
 - T005
-agent: "codex"
+agent: codex
+shell_pid: '75032'
 history: []
 agent_profile: python-pedro
 authoritative_surface: scripts/inbox/
 execution_mode: code_change
+lane: planned
 mission_id: 01KTMZPE0QR0AZACXF1A0X9SV6
 mission_slug: prescan-archive-anomalies-01KTMZPE
 model: claude-sonnet-4-6
@@ -42,7 +43,7 @@ owned_files:
 - docs/design/architecture/data/service-inventory.json
 role: implementer
 tags: []
-shell_pid: "75032"
+tracker_refs: []
 ---
 
 ## ⚡ Do This First: Load Agent Profile

@@ -29,6 +29,7 @@ create_intent:
 - tests/canary/test_tick_ledger_reconciliation.py
 - tests/canary/test_tick_ledger_verdicts.py
 execution_mode: code_change
+lane: planned
 model: claude-opus-5-5
 owned_files:
 - docs/design/architecture/data/service-inventory.json

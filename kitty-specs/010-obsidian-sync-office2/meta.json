@@ -7,6 +7,7 @@
   "mission_type": "software-dev",
   "slug": "obsidian-sync-office2",
   "source_description": "Configure Obsidian Sync on office2 via ob CLI, define git coexistence strategy, backfill stale vault, update architecture docs",
+  "status_phase": "1",
   "target_branch": "main",
   "vcs": "git"
 }

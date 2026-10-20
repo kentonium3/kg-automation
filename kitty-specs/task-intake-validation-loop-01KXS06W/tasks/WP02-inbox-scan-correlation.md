@@ -11,7 +11,6 @@ requirement_refs:
 - FR-011
 - FR-014
 - FR-016
-tracker_refs: []
 planning_base_branch: feat/task-intake-validation-loop
 merge_target_branch: feat/task-intake-validation-loop
 branch_strategy: Planning artifacts for this mission were generated on feat/task-intake-validation-loop. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into feat/task-intake-validation-loop unless the human explicitly redirects the landing branch.
@@ -22,9 +21,9 @@ subtasks:
 - T008
 - T009
 phase: Phase 2 - Engine
-agent: "claude:opus:reviewer-renata:reviewer"
-shell_pid: "63112"
-shell_pid_created_at: "1784328759.330247"
+agent: claude:opus:reviewer-renata:reviewer
+shell_pid: '63112'
+shell_pid_created_at: '1784328759.330247'
 history:
 - at: '2026-07-17T21:55:00Z'
   actor: system
@@ -37,6 +36,7 @@ create_intent:
 - tests/intake/__init__.py
 - tests/intake/test_scan_inbox.py
 execution_mode: code_change
+lane: planned
 model: claude-sonnet-5
 owned_files:
 - scripts/intake/__init__.py
@@ -45,6 +45,7 @@ owned_files:
 - tests/intake/test_scan_inbox.py
 role: implementer
 tags: []
+tracker_refs: []
 ---
 
 # Work Package Prompt: WP02 — Inbox scan, Tier-1 classification, correlation record

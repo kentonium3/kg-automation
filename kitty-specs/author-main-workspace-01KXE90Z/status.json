@@ -1,5 +1,5 @@
 {
-  "event_count": 7,
+  "event_count": 8,
   "last_event_id": "01KXEE36VKVVX4WXBMKT82WCFQ",
   "materialized_at": "2026-07-13T19:08:37.107944+00:00",
   "mission_number": "100",
@@ -19,6 +19,7 @@
   "work_packages": {
     "WP01": {
       "actor": "merge",
+      "agent": "claude:opus:reviewer-renata:reviewer",
       "force_count": 0,
       "lane": "done",
       "last_event_id": "01KXEE36VKVVX4WXBMKT82WCFQ",
@@ -27,6 +28,17 @@
         "reference": "Review passed (reviewer-renata): all 8 criteria green; main ok:true; AGENTS 11586B<12K; six routes + load-bearing rules preserved; timelog-in-AGENTS correct per committed guard",
         "reviewer": "Kent Gale",
         "verdict": "approved"
+      },
+      "shell_pid": 25652,
+      "shell_pid_created_at": "1783968976.342954",
+      "subtasks": {
+        "T001": "done",
+        "T002": "done",
+        "T003": "done",
+        "T004": "done",
+        "T005": "done",
+        "T006": "done",
+        "T007": "done"
       }
     }
   }

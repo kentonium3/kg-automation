@@ -24,7 +24,7 @@
 
 ### WP01: Full Investigation and Findings
 
-**Prompt**: [WP01-full-investigation-and-findings.md](tasks/WP01-full-investigation-and-findings.md)
+**Prompt**: [WP01-full-investigation-and-findings.md](tasks/WP01-full-investigation-and-findings.md
 **Priority**: P0 (only WP)
 **Dependencies**: none
 **Subtasks**: T001, T002, T003, T004, T005, T006

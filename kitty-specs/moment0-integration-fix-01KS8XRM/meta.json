@@ -7,6 +7,7 @@
   "mission_type": "software-dev",
   "slug": "moment0-integration-fix-01KS8XRM",
   "source_description": "GitHub issue #391 (P1-bug). #362 deployed but Moment 0 LLM integration is dead — wired into handle_drift_events.py::process_events() which is NOT invoked by the cron service. Active cron path runs through scripts/doc_audit/run.py -> signals/drift_event.py::DriftEventSignalSource.commit(). Fix: extract Moment 0 routing into shared helper scripts/doc_audit/routing/drift_moment0.py, invoke from BOTH commit() (cron path) and process_events() (library/CLI path). Also bulk-close #378-390 (re-filed via broken pipeline). Architecture decision locked from #362 post-mortem.",
+  "status_phase": "1",
   "target_branch": "main",
   "vcs": "git"
 }

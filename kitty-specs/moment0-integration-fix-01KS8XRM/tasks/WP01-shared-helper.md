@@ -22,10 +22,12 @@ subtasks:
 - T003
 - T004
 - T005
-shell_pid: "35040"
+agent: agy:gemini-2.5-pro:spec-kitty-review:reviewer
+shell_pid: '35040'
 history: []
 authoritative_surface: scripts/doc_audit/routing/
 execution_mode: code_change
+lane: planned
 mission_id: 01KS8XRMC0EQZ8HCJ52GXCJ226
 mission_slug: moment0-integration-fix-01KS8XRM
 owned_files:
@@ -35,7 +37,6 @@ owned_files:
 - tests/doc_audit/routing/test_drift_moment0.py
 - tests/doc_audit/helpers/test_handle_drift_events.py
 tags: []
-agent: "agy:gemini-2.5-pro:spec-kitty-review:reviewer"
 ---
 
 # WP01 — Extract Moment 0 routing into shared helper

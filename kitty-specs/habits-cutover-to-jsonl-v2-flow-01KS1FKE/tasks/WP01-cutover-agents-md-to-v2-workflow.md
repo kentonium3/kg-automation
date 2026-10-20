@@ -26,14 +26,15 @@ subtasks:
 - T004
 - T005
 - T006
-shell_pid: "16670"
-agent: "codex:gpt-5:spec-kitty-review:reviewer"
+agent: codex:gpt-5:spec-kitty-review:reviewer
+shell_pid: '16670'
 history:
 - date: '2026-05-20T01:35:51Z'
   event: created
   note: Phase 5 cutover — single WP for the AGENTS.md edit + runbook documentation update.
 authoritative_surface: scripts/openclaw/agents/felix-admin-habits/
 execution_mode: code_change
+lane: planned
 mission_id: 01KS1FKE0QHYEHZW684YEJNEPW
 mission_slug: habits-cutover-to-jsonl-v2-flow-01KS1FKE
 owned_files:

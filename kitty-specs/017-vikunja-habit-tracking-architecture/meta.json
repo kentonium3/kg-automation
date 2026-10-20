@@ -7,6 +7,7 @@
   "mission_type": "research",
   "slug": "017-vikunja-habit-tracking-architecture",
   "source_description": "Investigate the correct Vikunja data model for daily habit tracking so habits appear in the Today filter",
+  "status_phase": "1",
   "target_branch": "main",
   "vcs": "git"
 }

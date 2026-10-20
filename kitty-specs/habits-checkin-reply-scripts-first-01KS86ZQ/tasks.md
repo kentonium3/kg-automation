@@ -63,7 +63,7 @@ MVP scope: WP01 + WP02 + WP04 delivers a working scripts-first flow. WP03 (disam
 **Dependencies**: none
 **Independent test**: `pytest tests/habits/test_morning_checkin_list.py -v` ≥85% coverage. `python3 -m scripts.habits.morning_checkin_list --dry-run` emits a valid formatted message.
 **Estimated prompt size**: ~380 lines (4 subtasks)
-**Prompt**: [WP01-morning-checkin-list.md](tasks/WP01-morning-checkin-list.md)
+**Prompt**: [WP01-morning-checkin-list.md](tasks/WP01-morning-checkin-list.md
 
 Included subtasks:
 - [x] T001 Module skeleton + dataclasses + module constants (WP01)
@@ -85,7 +85,7 @@ Risks:
 **Dependencies**: none (structurally independent of WP01; shares no Python types)
 **Independent test**: SC-002 test scenario passes — "Skipped 3,7,8 done" against the 2026-05-22 fixture produces exactly the intent Kent expressed.
 **Estimated prompt size**: ~420 lines (4 subtasks)
-**Prompt**: [WP02-parse-morning-reply.md](tasks/WP02-parse-morning-reply.md)
+**Prompt**: [WP02-parse-morning-reply.md](tasks/WP02-parse-morning-reply.md
 
 Included subtasks:
 - [x] T005 Module skeleton + dataclasses (WP02)
@@ -107,7 +107,7 @@ Risks:
 **Dependencies**: WP02 (uses JudgmentItem dataclass)
 **Independent test**: `pytest tests/habits/test_disambiguate_reply.py -v` ≥85% coverage. Mocked Anthropic returns are validated against schema; out-of-set chosen_task_id raises.
 **Estimated prompt size**: ~320 lines (4 subtasks)
-**Prompt**: [WP03-disambiguator.md](tasks/WP03-disambiguator.md)
+**Prompt**: [WP03-disambiguator.md](tasks/WP03-disambiguator.md
 
 Included subtasks:
 - [x] T009 Module skeleton + dataclass + prompt template (WP03)
@@ -131,7 +131,7 @@ Risks:
 **Dependencies**: WP01, WP02, WP03 (CLI invocations must reference real, working helpers)
 **Independent test**: `wc -c scripts/openclaw/agents/felix-admin-habits/AGENTS.md` returns ≤14000. Audit grep finds no imperative parsing prose. CLI examples match deployed helper `--help` output.
 **Estimated prompt size**: ~260 lines (3 subtasks)
-**Prompt**: [WP04-agents-md-cut.md](tasks/WP04-agents-md-cut.md)
+**Prompt**: [WP04-agents-md-cut.md](tasks/WP04-agents-md-cut.md
 
 Included subtasks:
 - [x] T013 Build new AGENTS.md following data-model.md Entity 5 (WP04)
@@ -154,7 +154,7 @@ Risks:
 **Dependencies**: none (can run parallel with everything)
 **Independent test**: `tooling/scripts/validate_docs.py` (or project's standard validator) passes. Runbook walks end-to-end without ambiguity.
 **Estimated prompt size**: ~340 lines (4 subtasks)
-**Prompt**: [WP05-docs.md](tasks/WP05-docs.md)
+**Prompt**: [WP05-docs.md](tasks/WP05-docs.md
 
 Included subtasks:
 - [x] T016 service-inventory.json — register 3 new helpers + update felix-admin-habits entry (WP05)

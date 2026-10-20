@@ -4,21 +4,21 @@ title: Model doc updates (architecture data + agent registry)
 dependencies: []
 requirement_refs:
 - FR-004
-tracker_refs: []
 planning_base_branch: feat/harden-inbox-capture
 merge_target_branch: feat/harden-inbox-capture
 branch_strategy: Planning artifacts for this mission were generated on feat/harden-inbox-capture. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into feat/harden-inbox-capture unless the human explicitly redirects the landing branch.
 subtasks:
 - T030
 - T031
-agent: "claude"
-shell_pid: "45586"
+agent: claude
+shell_pid: '45586'
 history:
 - 2026-07-06 authored from plan IC-03 (docs) + Codex MED-5 (agent-registry.json)
 agent_profile: curator-carla
 authoritative_surface: docs/constitution/
 create_intent: []
 execution_mode: code_change
+lane: planned
 model: claude-sonnet-4-6
 owned_files:
 - docs/design/architecture/data/service-inventory.json
@@ -27,6 +27,7 @@ owned_files:
 - docs/constitution/agent-registry.json
 role: implementer
 tags: []
+tracker_refs: []
 ---
 
 ## ⚡ Do This First: Load Agent Profile

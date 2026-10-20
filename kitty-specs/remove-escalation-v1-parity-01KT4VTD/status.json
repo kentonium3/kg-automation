@@ -1,5 +1,5 @@
 {
-  "event_count": 32,
+  "event_count": 34,
   "last_event_id": "01KT5NP50NECCCPBMT8FQC35ED",
   "materialized_at": "2026-06-03T02:41:02.486504+00:00",
   "mission_number": "62",
@@ -19,19 +19,38 @@
   "work_packages": {
     "WP01": {
       "actor": "user",
+      "agent": "codex",
       "force_count": 7,
       "lane": "approved",
       "last_event_id": "01KT5KZ277P4G13VXR317C2780",
       "last_transition_at": "2026-06-03T02:10:57.383342+00:00",
-      "review_result": null
+      "review_result": null,
+      "shell_pid": 69299,
+      "subtasks": {
+        "T001": "done",
+        "T002": "done",
+        "T003": "done",
+        "T004": "done",
+        "T005": "done",
+        "T006": "done"
+      }
     },
     "WP02": {
       "actor": "user",
+      "agent": "codex",
       "force_count": 7,
       "lane": "approved",
       "last_event_id": "01KT5NP50NECCCPBMT8FQC35ED",
       "last_transition_at": "2026-06-03T02:41:02.486504+00:00",
-      "review_result": null
+      "review_result": null,
+      "shell_pid": 78915,
+      "subtasks": {
+        "T007": "done",
+        "T008": "done",
+        "T009": "done",
+        "T010": "done",
+        "T011": "done"
+      }
     }
   }
 }

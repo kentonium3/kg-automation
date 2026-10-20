@@ -15,14 +15,15 @@ subtasks:
 - T001
 - T002
 - T003
-shell_pid: "4043"
-agent: "claude"
+agent: claude
+shell_pid: '4043'
 history:
 - event: created
   at: '2026-05-12T20:55:30Z'
   by: 'spec-kitty.tasks (auto-drive via #185)'
 authoritative_surface: scripts/inbox/routing_log.py
 execution_mode: code_change
+lane: planned
 owned_files:
 - scripts/inbox/routing_log.py
 - tests/inbox/conftest.py

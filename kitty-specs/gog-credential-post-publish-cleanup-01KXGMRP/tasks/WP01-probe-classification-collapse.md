@@ -13,7 +13,6 @@ requirement_refs:
 - NFR-002
 - NFR-003
 - NFR-004
-tracker_refs: []
 planning_base_branch: feat/731-gog-cred-post-publish-cleanup
 merge_target_branch: feat/731-gog-cred-post-publish-cleanup
 branch_strategy: Planning artifacts for this mission were generated on feat/731-gog-cred-post-publish-cleanup. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into feat/731-gog-cred-post-publish-cleanup unless the human explicitly redirects the landing branch.
@@ -22,15 +21,16 @@ subtasks:
 - T002
 - T003
 - T004
-agent: "claude"
-shell_pid: "78397"
-shell_pid_created_at: "1784045813.349397"
+agent: claude
+shell_pid: '78397'
+shell_pid_created_at: '1784045813.349397'
 history:
 - '2026-07-14: authored from spec + plan (post-plan Codex folded)'
 agent_profile: python-pedro
 authoritative_surface: scripts/security/credential_health_check/
 create_intent: []
 execution_mode: code_change
+lane: planned
 owned_files:
 - scripts/security/credential_health_check/liveness.py
 - scripts/security/credential_health_check/manifest.py
@@ -38,6 +38,7 @@ owned_files:
 - tests/security/test_liveness.py
 role: implementer
 tags: []
+tracker_refs: []
 ---
 
 ## ⚡ Do This First: Load Agent Profile

@@ -15,7 +15,6 @@ requirement_refs:
 - FR-010
 - FR-011
 - FR-012
-tracker_refs: []
 planning_base_branch: feat/author-escalation-workspace
 merge_target_branch: feat/author-escalation-workspace
 branch_strategy: Planning artifacts for this mission were generated on feat/author-escalation-workspace. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into feat/author-escalation-workspace unless the human explicitly redirects the landing branch.
@@ -30,9 +29,9 @@ subtasks:
 - T008
 phase: Phase 1 - Author
 assignee: ''
-agent: "claude"
-shell_pid: "84195"
-shell_pid_created_at: "1784057402.499142"
+agent: claude
+shell_pid: '84195'
+shell_pid_created_at: '1784057402.499142'
 history:
 - at: '2026-07-14T19:19:26Z'
   actor: system
@@ -41,6 +40,7 @@ agent_profile: curator-carla
 authoritative_surface: scripts/openclaw/agents/felix-admin-escalation/
 create_intent: []
 execution_mode: code_change
+lane: planned
 model: claude-sonnet-5
 owned_files:
 - scripts/openclaw/agents/felix-admin-escalation/SOUL.md
@@ -54,6 +54,7 @@ owned_files:
 role: implementer
 tags: []
 task_type: implement
+tracker_refs: []
 ---
 
 # Work Package Prompt: WP01 – Author felix-admin-escalation workspace to #587 + full #724

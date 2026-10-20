@@ -5,7 +5,6 @@ dependencies:
 - WP01
 requirement_refs:
 - FR-006
-tracker_refs: []
 planning_base_branch: feat/vikunja-token-seam-kent-cutover
 merge_target_branch: feat/vikunja-token-seam-kent-cutover
 branch_strategy: Planning artifacts for this mission were generated on feat/vikunja-token-seam-kent-cutover. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into feat/vikunja-token-seam-kent-cutover unless the human explicitly redirects the landing branch.
@@ -13,11 +12,15 @@ subtasks:
 - T017
 - T018
 phase: Phase 2 - Docs
+agent: claude
+shell_pid: '73940'
+shell_pid_created_at: '1784864327.692636'
 history: []
 agent_profile: python-pedro
 authoritative_surface: scripts/openclaw/
 create_intent: []
 execution_mode: code_change
+lane: planned
 owned_files:
 - scripts/openclaw/skills/vikunja-api/SKILL.md
 - scripts/openclaw/skills/escalation/SKILL.md
@@ -28,9 +31,7 @@ owned_files:
 - tests/intake/test_scan_inbox.py
 role: implementer
 tags: []
-agent: "claude"
-shell_pid: "73940"
-shell_pid_created_at: "1784864327.692636"
+tracker_refs: []
 ---
 
 # Work Package Prompt: WP07 — Agent surface + comment reconciliation

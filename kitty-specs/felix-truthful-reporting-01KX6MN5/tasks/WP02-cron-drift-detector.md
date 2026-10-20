@@ -9,7 +9,6 @@ requirement_refs:
 - FR-006
 - NFR-001
 - NFR-002
-tracker_refs: []
 planning_base_branch: fix/felix-truthful-reporting
 merge_target_branch: fix/felix-truthful-reporting
 branch_strategy: Planning artifacts for this mission were generated on fix/felix-truthful-reporting. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into fix/felix-truthful-reporting unless the human explicitly redirects the landing branch.
@@ -21,13 +20,13 @@ subtasks:
 - T010
 phase: Phase 1 - Detection
 assignee: ''
-agent: "claude:opus:reviewer-renata:reviewer"
-agent_profile: "python-pedro"
-shell_pid: "6593"
+agent: claude:opus:reviewer-renata:reviewer
+shell_pid: '6593'
 history:
 - at: '2026-07-10T18:45:00Z'
   actor: system
   action: Prompt generated via /spec-kitty.tasks
+agent_profile: python-pedro
 authoritative_surface: scripts/trust/
 create_intent:
 - scripts/trust/__init__.py
@@ -38,6 +37,7 @@ create_intent:
 - tests/trust/test_cron_baseline.py
 - tests/trust/test_cron_drift_detector.py
 execution_mode: code_change
+lane: planned
 owned_files:
 - scripts/trust/__init__.py
 - scripts/trust/cron_baseline.py
@@ -48,6 +48,7 @@ owned_files:
 - tests/trust/test_cron_drift_detector.py
 role: implementer
 tags: []
+tracker_refs: []
 ---
 
 # WP02 — Cron-drift detector + approved-cron baseline

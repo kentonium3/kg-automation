@@ -32,6 +32,7 @@ authoritative_surface: docs/design/architecture/adr/
 create_intent:
 - docs/design/architecture/adr/0008-three-machine-model.md
 execution_mode: code_change
+lane: planned
 model: ''
 owned_files:
 - docs/design/architecture/adr/0008-three-machine-model.md

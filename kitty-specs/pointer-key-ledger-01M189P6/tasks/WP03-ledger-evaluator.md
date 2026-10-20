@@ -33,6 +33,7 @@ create_intent:
 - scripts/canary/ledger.py
 - tests/canary/test_ledger_eval.py
 execution_mode: code_change
+lane: planned
 model: claude-sonnet-4-6
 owned_files:
 - scripts/canary/ledger.py

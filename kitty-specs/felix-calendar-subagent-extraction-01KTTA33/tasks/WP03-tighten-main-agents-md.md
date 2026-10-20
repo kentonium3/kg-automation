@@ -7,7 +7,6 @@ requirement_refs:
 - FR-001
 - FR-007
 - FR-012
-tracker_refs: []
 planning_base_branch: main
 merge_target_branch: main
 branch_strategy: Planning artifacts for this mission were generated on main. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into main unless the human explicitly redirects the landing branch.
@@ -18,19 +17,21 @@ subtasks:
 - T016
 - T017
 phase: Phase 3 - Main Tightening
-shell_pid: "47012"
+agent: claude::reviewer-renata:reviewer
+shell_pid: '47012'
 history:
 - at: '2026-06-11T03:26:12Z'
   actor: system
   action: Prompt generated via /spec-kitty.tasks
+agent_profile: implementer-ivan
 authoritative_surface: scripts/openclaw/agents/main/
 execution_mode: code_change
+lane: planned
 owned_files:
 - scripts/openclaw/agents/main/AGENTS.md
-tags: []
-agent_profile: implementer-ivan
 role: implementer
-agent: "claude::reviewer-renata:reviewer"
+tags: []
+tracker_refs: []
 ---
 
 # Work Package Prompt: WP03 – Tighten main/AGENTS.md below 12K bootstrap context cap

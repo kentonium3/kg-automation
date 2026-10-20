@@ -11,7 +11,6 @@ requirement_refs:
 - FR-001
 - FR-003
 - NFR-002
-tracker_refs: []
 planning_base_branch: fix/860-retire-vikunja-felix-bot
 merge_target_branch: fix/860-retire-vikunja-felix-bot
 branch_strategy: Planning artifacts for this mission were generated on fix/860-retire-vikunja-felix-bot. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into fix/860-retire-vikunja-felix-bot unless the human explicitly redirects the landing branch.
@@ -24,22 +23,24 @@ subtasks:
 - T024
 phase: Phase 2 - Gate
 assignee: ''
-agent: "claude:opus:reviewer-renata:reviewer"
-agent_profile: python-pedro
-role: implementer
-shell_pid: "88725"
-shell_pid_created_at: "1784848170.219541"
+agent: claude:opus:reviewer-renata:reviewer
+shell_pid: '88725'
+shell_pid_created_at: '1784848170.219541'
 history:
 - at: '2026-07-23T21:04:52Z'
   actor: system
   action: Prompt generated via /spec-kitty.tasks
+agent_profile: python-pedro
 authoritative_surface: scripts/security/credential_health_check/
 create_intent: []
 execution_mode: code_change
+lane: planned
 owned_files:
 - scripts/security/credential_health_check/vikunja_writer.py
 - tests/security/test_vikunja_writer.py
+role: implementer
 tags: []
+tracker_refs: []
 ---
 
 # Work Package Prompt: WP06 — Migrate credential-health + final SC gate

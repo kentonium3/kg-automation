@@ -19,6 +19,7 @@ history:
   by: spec-kitty.tasks
 authoritative_surface: scripts/openclaw/agents/felix-admin-tasker/
 execution_mode: code_change
+lane: planned
 owned_files: [scripts/openclaw/agents/felix-admin-tasker/SOUL.md, scripts/openclaw/agents/felix-admin-tasker/USER.md, scripts/openclaw/agents/felix-admin-tasker/IDENTITY.md, scripts/openclaw/agents/felix-admin-tasker/TOOLS.md]
 ---
 

@@ -30,6 +30,7 @@ authoritative_surface: scripts/deploy/felix-deployer/
 create_intent:
 - tests/deploy/test_rebaseline_reported.py
 execution_mode: code_change
+lane: planned
 model: claude-opus-5-5
 owned_files:
 - scripts/deploy/felix-deployer/rebaseline.py

@@ -19,14 +19,15 @@ subtasks:
 - T010
 phase: Phase 2 — Policy + use-case mapping
 assignee: ''
-agent: "claude:opus:reviewer:reviewer"
-shell_pid: "87344"
+agent: claude:opus:reviewer:reviewer
+shell_pid: '87344'
 history:
 - timestamp: '2026-06-03T22:59:10Z'
   agent: system
   action: Prompt generated via /spec-kitty.tasks
 authoritative_surface: docs/research/felix-vikunja-sync-architecture/findings/
 execution_mode: planning_artifact
+lane: planned
 owned_files:
 - docs/research/felix-vikunja-sync-architecture/findings/rq-3-conflict-policy.md
 - docs/research/felix-vikunja-sync-architecture/findings/rq-4-use-case-mapping.md

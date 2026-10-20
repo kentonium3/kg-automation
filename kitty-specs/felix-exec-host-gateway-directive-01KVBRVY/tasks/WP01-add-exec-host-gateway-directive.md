@@ -10,8 +10,6 @@ requirement_refs:
 - FR-005
 - NFR-001
 - NFR-002
-tracker_refs:
-- kentonium3/kg-automation#603
 planning_base_branch: fix/felix-exec-host-gateway-directive
 merge_target_branch: fix/felix-exec-host-gateway-directive
 branch_strategy: Planning artifacts for this mission were generated on fix/felix-exec-host-gateway-directive. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into fix/felix-exec-host-gateway-directive unless the human explicitly redirects the landing branch.
@@ -21,12 +19,14 @@ subtasks:
 - T003
 - T004
 - T005
-agent: "claude"
+agent: claude
+shell_pid: '71210'
 history: []
 agent_profile: implementer-ivan
 authoritative_surface: scripts/openclaw/agents/
 create_intent: []
 execution_mode: code_change
+lane: planned
 owned_files:
 - scripts/openclaw/agents/felix-admin-capture/AGENTS.md
 - scripts/openclaw/agents/felix-admin-habits/AGENTS.md
@@ -34,7 +34,8 @@ owned_files:
 - scripts/openclaw/agents/felix-admin-escalation/AGENTS.md
 role: implementer
 tags: []
-shell_pid: "71210"
+tracker_refs:
+- kentonium3/kg-automation#603
 ---
 
 ## ⚡ Do This First: Load Agent Profile

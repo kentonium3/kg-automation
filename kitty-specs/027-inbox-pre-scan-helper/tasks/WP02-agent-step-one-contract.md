@@ -14,13 +14,14 @@ subtasks:
 - T008
 - T009
 - T010
-agent: "claude:opus-4-6:implementer:implementer"
-shell_pid: "55000"
+agent: claude:opus-4-6:implementer:implementer
+shell_pid: '55000'
 history:
 - date: '2026-04-11'
   event: created
 authoritative_surface: ai-agents/felix-admin-capture/
 execution_mode: code_change
+lane: planned
 mission_slug: 027-inbox-pre-scan-helper
 owned_files:
 - ai-agents/felix-admin-capture/**

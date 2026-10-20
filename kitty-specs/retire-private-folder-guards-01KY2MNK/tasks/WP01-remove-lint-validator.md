@@ -4,7 +4,6 @@ title: Remove the stale-path lint validator + all wiring
 dependencies: []
 requirement_refs:
 - FR-001
-tracker_refs: []
 planning_base_branch: feat/retire-private-folder-guards
 merge_target_branch: feat/retire-private-folder-guards
 branch_strategy: Planning artifacts for this mission were generated on feat/retire-private-folder-guards. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into feat/retire-private-folder-guards unless the human explicitly redirects the landing branch.
@@ -14,12 +13,15 @@ subtasks:
 - T003
 - T004
 - T005
-agent: "claude:sonnet:reviewer-renata:reviewer"
+agent: claude:sonnet:reviewer-renata:reviewer
+shell_pid: '36550'
+shell_pid_created_at: '1784651688.29879'
 history: []
 agent_profile: implementer-ivan
 authoritative_surface: tooling/scripts/
 create_intent: []
 execution_mode: code_change
+lane: planned
 owned_files:
 - tooling/scripts/validate_privacy_boundary.py
 - .githooks/pre-commit
@@ -29,8 +31,7 @@ owned_files:
 - docs/runbooks/local-test-gate.md
 role: implementer
 tags: []
-shell_pid: "36550"
-shell_pid_created_at: "1784651688.29879"
+tracker_refs: []
 ---
 
 ## ⚡ Do This First: Load Agent Profile

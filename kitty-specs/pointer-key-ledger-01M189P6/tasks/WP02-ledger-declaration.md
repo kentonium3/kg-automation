@@ -28,6 +28,7 @@ authoritative_surface: tooling/scripts/
 create_intent:
 - tests/architecture/test_key_ledger_rules.py
 execution_mode: code_change
+lane: planned
 model: claude-sonnet-4-6
 owned_files:
 - docs/design/architecture/data/service-inventory.json

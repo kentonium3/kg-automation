@@ -16,17 +16,18 @@ subtasks:
 - T008
 - T009
 - T010
+agent: claude:opus:reviewer:reviewer
+shell_pid: '83081'
 history: []
 authoritative_surface: scripts/sync/fetch.py
 execution_mode: code_change
+lane: planned
 owned_files:
 - scripts/sync/fetch.py
 - scripts/sync/diff.py
 - tests/sync/test_fetch.py
 - tests/sync/test_diff.py
 tags: []
-agent: "claude:opus:reviewer:reviewer"
-shell_pid: "83081"
 ---
 
 # WP03 — fetch.py + diff.py Rewrite

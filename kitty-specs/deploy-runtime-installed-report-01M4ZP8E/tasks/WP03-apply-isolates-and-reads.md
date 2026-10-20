@@ -27,6 +27,7 @@ authoritative_surface: scripts/deploy/lib/
 create_intent:
 - tests/deploy/test_apply_installed_report.py
 execution_mode: code_change
+lane: planned
 model: claude-opus-5-5
 owned_files:
 - scripts/deploy/lib/apply.py

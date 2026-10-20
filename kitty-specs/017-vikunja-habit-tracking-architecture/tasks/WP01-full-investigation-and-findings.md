@@ -15,14 +15,15 @@ base_branch: main
 base_commit: 2a39adad78006cb5315584147485318ceed2c970
 created_at: '2026-04-06T18:13:51.316232+00:00'
 subtasks: [T001, T002, T003, T004, T005, T006]
-shell_pid: "2294"
-agent: "claude"
+agent: claude
+shell_pid: '2294'
 history:
 - date: '2026-04-06'
   action: created
   by: spec-kitty.tasks
 authoritative_surface: kitty-specs/017-vikunja-habit-tracking-architecture/
 execution_mode: planning_artifact
+lane: planned
 owned_files:
 - kitty-specs/017-vikunja-habit-tracking-architecture/findings.md
 ---

@@ -17,14 +17,15 @@ subtasks:
 - T004
 phase: Phase 0 - Foundation
 assignee: ''
-agent: "claude"
-shell_pid: "59840"
+agent: claude
+shell_pid: '59840'
 history:
 - at: '2026-04-05T23:00:03Z'
   actor: system
   action: Prompt generated via /spec-kitty.tasks
 authoritative_surface: docs/design/architecture/data/change-risk-taxonomy.json
 execution_mode: code_change
+lane: planned
 owned_files:
 - docs/design/architecture/data/change-risk-taxonomy.json
 ---

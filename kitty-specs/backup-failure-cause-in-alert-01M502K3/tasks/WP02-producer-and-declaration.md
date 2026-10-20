@@ -31,6 +31,7 @@ history:
 agent_profile: python-pedro
 authoritative_surface: scripts/office2/
 execution_mode: code_change
+lane: planned
 model: claude-opus-5-5
 owned_files:
 - scripts/office2/restic-backup.sh

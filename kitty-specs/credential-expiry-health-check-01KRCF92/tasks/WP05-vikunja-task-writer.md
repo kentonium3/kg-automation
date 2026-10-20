@@ -18,14 +18,15 @@ subtasks:
 - T022
 - T023
 - T024
-agent: "claude"
-shell_pid: "23936"
+agent: claude
+shell_pid: '23936'
 history:
 - event: created
   at: '2026-05-11T21:43:38Z'
   by: 'spec-kitty.tasks (auto-drive via #115)'
 authoritative_surface: scripts/security/credential_health_check/vikunja_writer.py
 execution_mode: code_change
+lane: planned
 owned_files:
 - scripts/security/credential_health_check/vikunja_writer.py
 - tests/security/test_vikunja_writer.py

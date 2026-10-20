@@ -79,7 +79,7 @@ MVP scope: WP01 + WP02 + WP03 + WP04 delivers a working pipeline. WP05 (cutover)
 **Independent test**: `pytest tests/doc_audit/judgment/test_drift_interpretation.py -v` ≥85% coverage. `python3 -m scripts.doc_audit.judgment.drift_interpretation --input-file tests/doc_audit/fixtures/drift_event_openclaw_cron.json` returns a valid `DriftVerdict` JSON (with mocked SDK).
 
 **Estimated prompt size**: ~480 lines (7 subtasks)
-**Prompt**: [WP01-drift-interpretation.md](tasks/WP01-drift-interpretation.md)
+**Prompt**: [WP01-drift-interpretation.md](tasks/WP01-drift-interpretation.md
 
 Included subtasks:
 - [x] T001 Module skeleton + dataclasses + module constants (WP01)
@@ -106,7 +106,7 @@ Included subtasks:
 **Independent test**: `pytest tests/doc_audit/output/test_drift_ledger.py -v` ≥85% coverage. Atomic-write race test passes. CLI `summary` + `triage-rate` subcommands run cleanly against a fixture ledger.
 
 **Estimated prompt size**: ~360 lines (6 subtasks)
-**Prompt**: [WP02-drift-ledger.md](tasks/WP02-drift-ledger.md)
+**Prompt**: [WP02-drift-ledger.md](tasks/WP02-drift-ledger.md
 
 Included subtasks:
 - [x] T008 Module skeleton + AuditLedgerEntry dataclass (WP02)
@@ -132,7 +132,7 @@ Included subtasks:
 **Independent test**: `pytest tests/doc_audit/routing/test_drift_to_proposed_edit.py -v` ≥85% coverage. Pre-condition violations raise `ValueError`. Out-of-set `doc_path` rejection tested.
 
 **Estimated prompt size**: ~220 lines (4 subtasks — slightly under target range but cohesive)
-**Prompt**: [WP03-translator.md](tasks/WP03-translator.md)
+**Prompt**: [WP03-translator.md](tasks/WP03-translator.md
 
 Included subtasks:
 - [x] T014 data_model.py docstring update (WP03)
@@ -157,7 +157,7 @@ Included subtasks:
 **Independent test**: `pytest tests/doc_audit/helpers/test_handle_drift_events.py -v` ≥85% coverage including new paths. Smoke run with `[drift_interpretation].enabled = false` produces pre-#362 behavior (existence test).
 
 **Estimated prompt size**: ~400 lines (6 subtasks)
-**Prompt**: [WP04-handle-drift-events.md](tasks/WP04-handle-drift-events.md)
+**Prompt**: [WP04-handle-drift-events.md](tasks/WP04-handle-drift-events.md
 
 Included subtasks:
 - [x] T018 Config.toml loading (WP04)
@@ -183,7 +183,7 @@ Included subtasks:
 **Independent test**: `pytest tests/doc_audit/helpers/test_cutover_362.py -v` ≥85% coverage. Mocked gh + mocked filesystem. Idempotency verified.
 
 **Estimated prompt size**: ~280 lines (5 subtasks)
-**Prompt**: [WP05-cutover-script.md](tasks/WP05-cutover-script.md)
+**Prompt**: [WP05-cutover-script.md](tasks/WP05-cutover-script.md
 
 Included subtasks:
 - [x] T024 Module skeleton + CutoverResult (WP05)
@@ -209,7 +209,7 @@ Included subtasks:
 **Independent test**: `python3 -c "import json; json.load(open('docs/design/architecture/data/service-inventory.json'))"` succeeds. Runbook walks the cutover end-to-end without dangling references.
 
 **Estimated prompt size**: ~240 lines (4 subtasks)
-**Prompt**: [WP06-architecture-docs.md](tasks/WP06-architecture-docs.md)
+**Prompt**: [WP06-architecture-docs.md](tasks/WP06-architecture-docs.md
 
 Included subtasks:
 - [x] T029 service-inventory.json update (WP06)

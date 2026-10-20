@@ -4,7 +4,6 @@ title: Architecture data updates
 dependencies: []
 requirement_refs:
 - FR-013
-tracker_refs: []
 planning_base_branch: main
 merge_target_branch: main
 branch_strategy: Planning artifacts for this mission were generated on main. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into main unless the human explicitly redirects the landing branch.
@@ -14,8 +13,8 @@ subtasks:
 - T039
 - T040
 - T041
-agent: "claude:sonnet:implementer-ivan:reviewer"
-shell_pid: "42185"
+agent: claude:sonnet:implementer-ivan:reviewer
+shell_pid: '42185'
 history:
 - ts: '2026-06-12T20:30:00Z'
   actor: spec-kitty.tasks
@@ -23,6 +22,7 @@ history:
 agent_profile: implementer-ivan
 authoritative_surface: docs/design/architecture/data/
 execution_mode: code_change
+lane: planned
 mission_slug: pull-based-deploy-pipeline-01KTYQQS
 owned_files:
 - docs/design/architecture/data/service-inventory.json
@@ -32,6 +32,7 @@ owned_files:
 - docs/design/architecture/data/mutation-surfaces.json
 role: implementer
 tags: []
+tracker_refs: []
 ---
 
 ## ⚡ Do This First: Load Agent Profile

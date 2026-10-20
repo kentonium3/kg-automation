@@ -15,9 +15,12 @@ subtasks:
 - T011
 - T012
 - T013
+agent: codex:gpt-5:spec-kitty-review:reviewer
+shell_pid: '57000'
 history: []
 authoritative_surface: scripts/doc_audit/helpers/cleanup_391.py
 execution_mode: code_change
+lane: planned
 mission_id: 01KS8XRMC0EQZ8HCJ52GXCJ226
 mission_slug: moment0-integration-fix-01KS8XRM
 owned_files:
@@ -29,8 +32,6 @@ owned_files:
 - docs/design/architecture/data-flows.md
 - docs/runbooks/doc-auditor-driver-ops.md
 tags: []
-agent: "codex:gpt-5:spec-kitty-review:reviewer"
-shell_pid: "57000"
 ---
 
 # WP03 — cleanup_391 + architecture docs correction

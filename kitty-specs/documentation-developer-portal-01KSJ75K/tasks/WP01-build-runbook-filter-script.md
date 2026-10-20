@@ -19,13 +19,14 @@ subtasks:
 - T006
 - T007
 - T008
-shell_pid: "13310"
-agent: "codex:gpt-5:spec-kitty-review:reviewer"
+agent: codex:gpt-5:spec-kitty-review:reviewer
+shell_pid: '13310'
 history:
 - date: '2026-05-26'
   note: WP authored by spec-kitty.tasks (mission documentation-developer-portal-01KSJ75K)
 authoritative_surface: tooling/scripts/build_runbook_filter.py
 execution_mode: code_change
+lane: planned
 mission_slug: documentation-developer-portal-01KSJ75K
 owned_files:
 - tooling/scripts/build_runbook_filter.py

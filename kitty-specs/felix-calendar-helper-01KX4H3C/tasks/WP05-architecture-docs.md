@@ -4,7 +4,6 @@ title: Architecture documentation sync
 dependencies: []
 requirement_refs:
 - FR-011
-tracker_refs: []
 planning_base_branch: feat/felix-calendar-helper
 merge_target_branch: feat/felix-calendar-helper
 branch_strategy: Planning artifacts for this mission were generated on feat/felix-calendar-helper. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into feat/felix-calendar-helper unless the human explicitly redirects the landing branch.
@@ -13,13 +12,15 @@ subtasks:
 - T018
 - T019
 - T020
-agent: "claude:opus:reviewer-renata:reviewer"
+agent: claude:opus:reviewer-renata:reviewer
+shell_pid: '52570'
 history: []
 agent_profile: curator-carla
 authoritative_surface: docs/design/architecture/data/
 create_intent:
 - docs/runbooks/calendar-helper-ops.md
 execution_mode: code_change
+lane: planned
 mission_id: 01KX4H3C4CZ2W0DRSHZHSNAY53
 mission_slug: felix-calendar-helper-01KX4H3C
 owned_files:
@@ -34,7 +35,7 @@ owned_files:
 - docs/runbooks/calendar-helper-ops.md
 role: implementer
 tags: []
-shell_pid: "52570"
+tracker_refs: []
 ---
 
 # WP05 — Architecture documentation sync

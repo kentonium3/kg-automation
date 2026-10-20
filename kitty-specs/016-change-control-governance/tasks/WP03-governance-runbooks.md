@@ -22,14 +22,15 @@ subtasks:
 - T017
 phase: Phase 2 - Governance Docs
 assignee: ''
-agent: "claude"
-shell_pid: "62497"
+agent: claude
+shell_pid: '62497'
 history:
 - at: '2026-04-05T23:00:03Z'
   actor: system
   action: Prompt generated via /spec-kitty.tasks
 authoritative_surface: docs/runbooks/governance/
 execution_mode: code_change
+lane: planned
 owned_files:
 - docs/runbooks/governance/pre-flight-checklist.md
 - docs/runbooks/governance/post-change-verification.md

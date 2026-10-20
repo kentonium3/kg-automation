@@ -16,15 +16,16 @@ subtasks:
 - T001
 - T002
 - T003
-shell_pid: "79874"
+agent: claude:opus:reviewer:reviewer
+shell_pid: '79874'
 history: []
 authoritative_surface: scripts/common/vikunja_config.py
 execution_mode: code_change
+lane: planned
 owned_files:
 - scripts/common/vikunja_config.py
 - tests/test_vikunja_config.py
 tags: []
-agent: "claude:opus:reviewer:reviewer"
 ---
 
 # WP01 — URL Config Helper

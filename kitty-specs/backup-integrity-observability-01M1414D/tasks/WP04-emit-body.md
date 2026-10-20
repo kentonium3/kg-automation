@@ -23,6 +23,7 @@ agent_profile: python-pedro
 authoritative_surface: scripts/office2/crontab_capture.py
 create_intent: []
 execution_mode: code_change
+lane: planned
 owned_files:
 - scripts/office2/crontab_capture.py
 - tests/office2/crontab_capture/**

@@ -25,6 +25,7 @@
   "purpose_context": "Vikunja's project structure drifted into pseudo-view projects (Today, Someday, etc.) that conflate cross-project views with topic buckets. This mission additively creates the canonical topic projects — Felix / kg-automation, a Clients folder with PointerHealth and spec-kitty sub-projects, and a Personal catch-all — verifies Inbox is present, and deletes the legacy ad-hoc saved filters, so Kent's task system reflects domain ownership rather than temporal context. Task migration and deletion of task-bearing projects are handled separately in issue #717.",
   "purpose_tldr": "Establish Vikunja's canonical topic-project structure and remove legacy saved filters.",
   "slug": "vikunja-restructure-projects-01KXBS2P",
+  "status_phase": "1",
   "target_branch": "feat/vikunja-restructure-projects",
   "topology": "lanes",
   "vcs": "git",

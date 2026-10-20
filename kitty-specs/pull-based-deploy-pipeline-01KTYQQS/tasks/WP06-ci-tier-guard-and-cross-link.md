@@ -9,7 +9,6 @@ requirement_refs:
 - FR-006
 - FR-008
 - FR-016
-tracker_refs: []
 planning_base_branch: main
 merge_target_branch: main
 branch_strategy: Planning artifacts for this mission were generated on main. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into main unless the human explicitly redirects the landing branch.
@@ -18,8 +17,8 @@ subtasks:
 - T027
 - T028
 - T029
-agent: "claude:sonnet:implementer-ivan:reviewer"
-shell_pid: "45240"
+agent: claude:sonnet:implementer-ivan:reviewer
+shell_pid: '45240'
 history:
 - ts: '2026-06-12T20:30:00Z'
   actor: spec-kitty.tasks
@@ -27,12 +26,14 @@ history:
 agent_profile: implementer-ivan
 authoritative_surface: .github/workflows/
 execution_mode: code_change
+lane: planned
 mission_slug: pull-based-deploy-pipeline-01KTYQQS
 owned_files:
 - .github/workflows/deploy-manifest-validate.yml
 - tests/deploy/test_cross_link.py
 role: implementer
 tags: []
+tracker_refs: []
 ---
 
 ## ⚡ Do This First: Load Agent Profile

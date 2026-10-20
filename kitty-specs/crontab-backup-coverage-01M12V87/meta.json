@@ -18,7 +18,7 @@
   "flattened": false,
   "friendly_name": "crontab backup coverage",
   "mission_id": "01M12V8722GCVSJER9Y6BN7YM0",
-  "mission_number": null,
+  "mission_number": "",
   "mission_slug": "crontab-backup-coverage-01M12V87",
   "mission_type": "software-dev",
   "purpose_context": "This mission advances crontab backup coverage on feat/crontab-backup-coverage so stakeholders can track the work from mission creation onward.",

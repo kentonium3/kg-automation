@@ -41,6 +41,7 @@ create_intent:
 - scripts/office2/felix_health_check/tests/fixtures/last-tick.2026-10-14.json
 - scripts/office2/felix_health_check/tests/fixtures/last-backup.2026-10-14.json
 execution_mode: code_change
+lane: planned
 model: claude-opus-5-5
 owned_files:
 - scripts/office2/felix_health_check/coverage.py

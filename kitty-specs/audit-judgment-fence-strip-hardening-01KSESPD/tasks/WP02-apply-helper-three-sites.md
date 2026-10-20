@@ -21,14 +21,15 @@ subtasks:
 - T009
 - T010
 - T011
-agent: "codex:gpt-5:spec-kitty-review:reviewer"
-shell_pid: "25553"
+agent: codex:gpt-5:spec-kitty-review:reviewer
+shell_pid: '25553'
 history:
 - event: created
   by: spec-kitty.tasks orchestrator
   at: '2026-05-25T05:35:51Z'
 authoritative_surface: scripts/doc_audit/judgment/audit_interpretation.py
 execution_mode: code_change
+lane: planned
 owned_files:
 - scripts/doc_audit/judgment/audit_interpretation.py
 - scripts/doc_audit/judgment/cross_file_implication.py

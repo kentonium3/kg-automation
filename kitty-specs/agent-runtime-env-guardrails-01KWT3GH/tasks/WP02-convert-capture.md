@@ -5,7 +5,6 @@ dependencies:
 - WP01
 requirement_refs:
 - FR-005
-tracker_refs: []
 planning_base_branch: feat/agent-runtime-env-guardrails
 merge_target_branch: feat/agent-runtime-env-guardrails
 branch_strategy: Planning artifacts for this mission were generated on feat/agent-runtime-env-guardrails. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into feat/agent-runtime-env-guardrails unless the human explicitly redirects the landing branch.
@@ -14,20 +13,22 @@ subtasks:
 - T008
 - T009
 - T010
-agent: "claude"
-shell_pid: "7663"
+agent: claude
+shell_pid: '7663'
 history:
 - 2026-07-05 authored from plan IC-04 (capture)
 agent_profile: implementer-ivan
 authoritative_surface: scripts/openclaw/agents/felix-admin-capture/
 create_intent: []
 execution_mode: code_change
+lane: planned
 model: claude-sonnet-4-6
 owned_files:
 - scripts/openclaw/agents/felix-admin-capture/AGENTS.md
 - scripts/openclaw/agents/felix-admin-capture/AGENTS.md.tmpl
 role: implementer
 tags: []
+tracker_refs: []
 ---
 
 ## ⚡ Do This First: Load Agent Profile

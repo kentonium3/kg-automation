@@ -30,6 +30,7 @@ create_intent:
 - tooling/scripts/generate_doc_standards.py
 - tests/docs_standards/test_generator.py
 execution_mode: code_change
+lane: planned
 owned_files:
 - tooling/scripts/generate_doc_standards.py
 - docs/design/standards/frontmatter.schema.json

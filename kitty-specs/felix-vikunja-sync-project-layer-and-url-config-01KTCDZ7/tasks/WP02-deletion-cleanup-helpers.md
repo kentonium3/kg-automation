@@ -14,15 +14,16 @@ subtasks:
 - T004
 - T005
 - T006
-shell_pid: "80386"
+agent: claude:opus:reviewer:reviewer
+shell_pid: '80386'
 history: []
 authoritative_surface: scripts/sync/cleanup.py
 execution_mode: code_change
+lane: planned
 owned_files:
 - scripts/sync/cleanup.py
 - tests/sync/test_cleanup.py
 tags: []
-agent: "claude:opus:reviewer:reviewer"
 ---
 
 # WP02 — Deletion-Cleanup Helpers

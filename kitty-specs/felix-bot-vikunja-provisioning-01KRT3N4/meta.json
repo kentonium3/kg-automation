@@ -7,6 +7,7 @@
   "mission_type": "software-dev",
   "slug": "felix-bot-vikunja-provisioning-01KRT3N4",
   "source_description": "Phase 1 of ADR-0002 implementation. Input from issue #304. Sibling phases tracked under umbrella #311.",
+  "status_phase": "1",
   "target_branch": "main",
   "vcs": "git"
 }

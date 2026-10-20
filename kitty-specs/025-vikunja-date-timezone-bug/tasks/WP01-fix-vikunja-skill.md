@@ -15,14 +15,15 @@ subtasks:
 - T003
 - T004
 - T005
-agent: "claude:opus-4.6:reviewer:reviewer"
-shell_pid: "35660"
+agent: claude:opus-4.6:reviewer:reviewer
+shell_pid: '35660'
 history:
 - date: '2026-04-10T17:15:00Z'
   action: created
   by: spec-kitty.tasks
 authoritative_surface: kitty-specs/025-vikunja-date-timezone-bug/artifacts/
 execution_mode: planning_artifact
+lane: planned
 owned_files:
 - kitty-specs/025-vikunja-date-timezone-bug/artifacts/skill-update-report.md
 tags: []

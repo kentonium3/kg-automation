@@ -19,14 +19,15 @@ subtasks:
 - T004
 - T005
 - T006
-shell_pid: "7919"
-agent: "claude:opus-4-6:reviewer:reviewer"
+agent: claude:opus-4-6:reviewer:reviewer
+shell_pid: '7919'
 history:
 - date: '2026-04-11T01:15:00Z'
   action: created
   by: spec-kitty.tasks
 authoritative_surface: scripts/vault/
 execution_mode: code_change
+lane: planned
 owned_files:
 - scripts/vault/paths.json
 - scripts/vault/targets.json

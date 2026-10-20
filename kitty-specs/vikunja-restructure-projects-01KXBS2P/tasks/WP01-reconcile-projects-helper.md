@@ -28,8 +28,6 @@ requirement_refs:
 - NFR-003
 - NFR-004
 - NFR-005
-tracker_refs:
-- kentonium3/kg-automation#716
 planning_base_branch: feat/vikunja-restructure-projects
 merge_target_branch: feat/vikunja-restructure-projects
 branch_strategy: Planning artifacts for this mission were generated on feat/vikunja-restructure-projects. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into feat/vikunja-restructure-projects unless the human explicitly redirects the landing branch.
@@ -41,8 +39,8 @@ subtasks:
 - T005
 - T006
 - T007
-agent: "claude"
-shell_pid: "13817"
+agent: claude
+shell_pid: '13817'
 history:
 - '2026-07-12: authored by /spec-kitty.tasks'
 agent_profile: python-pedro
@@ -51,12 +49,15 @@ create_intent:
 - scripts/vikunja/reconcile_projects.py
 - tests/vikunja/test_reconcile_projects.py
 execution_mode: code_change
+lane: planned
 owned_files:
 - scripts/vikunja/reconcile_projects.py
 - tests/vikunja/test_reconcile_projects.py
 - docs/design/vikunja-configuration-design.md
 role: implementer
 tags: []
+tracker_refs:
+- kentonium3/kg-automation#716
 ---
 
 ## ⚡ Do This First: Load Agent Profile

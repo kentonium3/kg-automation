@@ -16,14 +16,15 @@ subtasks:
 - T003
 - T004
 - T005
-shell_pid: "21074"
-agent: "claude"
+agent: claude
+shell_pid: '21074'
 history:
 - event: created
   at: '2026-05-11T21:43:38Z'
   by: 'spec-kitty.tasks (auto-drive via #115)'
 authoritative_surface: tests/security/fixtures/
 execution_mode: code_change
+lane: planned
 owned_files:
 - docs/design/architecture/data/credential-manifest.json
 - tests/security/fixtures/**

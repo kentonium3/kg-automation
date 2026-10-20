@@ -5,7 +5,6 @@ dependencies: []
 requirement_refs:
 - FR-002
 - FR-006
-tracker_refs: []
 planning_base_branch: feat/task-intake-validation-loop
 merge_target_branch: feat/task-intake-validation-loop
 branch_strategy: Planning artifacts for this mission were generated on feat/task-intake-validation-loop. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into feat/task-intake-validation-loop unless the human explicitly redirects the landing branch.
@@ -15,9 +14,9 @@ subtasks:
 - T003
 - T004
 phase: Phase 1 - Foundation
-agent: "claude:opus:reviewer-renata:reviewer"
-shell_pid: "57404"
-shell_pid_created_at: "1784327736.623405"
+agent: claude:opus:reviewer-renata:reviewer
+shell_pid: '57404'
+shell_pid_created_at: '1784327736.623405'
 history:
 - at: '2026-07-17T21:55:00Z'
   actor: system
@@ -27,6 +26,7 @@ authoritative_surface: scripts/common/vikunja_refs
 create_intent:
 - tests/common/test_vikunja_refs_labels.py
 execution_mode: code_change
+lane: planned
 model: claude-sonnet-5
 owned_files:
 - scripts/common/vikunja_refs.json
@@ -34,6 +34,7 @@ owned_files:
 - tests/common/test_vikunja_refs_labels.py
 role: implementer
 tags: []
+tracker_refs: []
 ---
 
 # Work Package Prompt: WP01 — Seam label taxonomy declaration

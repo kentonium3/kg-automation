@@ -13,9 +13,12 @@ created_at: '2026-05-23T22:50:00+00:00'
 subtasks:
 - T006
 - T007
+agent: codex:gpt-5:spec-kitty-review:reviewer
+shell_pid: '79830'
 history: []
 authoritative_surface: docs/
 execution_mode: code_change
+lane: planned
 mission_id: 01KSBGBS9BBDWV2Z28FESVJ9KQ
 mission_slug: audit-interpretation-moment0-01KSBGBS
 owned_files:
@@ -27,8 +30,6 @@ owned_files:
 - docs/design/architecture/data-flows.md
 - docs/runbooks/doc-auditor-driver-ops.md
 tags: []
-agent: "codex:gpt-5:spec-kitty-review:reviewer"
-shell_pid: "79830"
 ---
 
 # WP03 — Config + arch docs + cutover replay

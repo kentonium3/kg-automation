@@ -23,6 +23,7 @@ agent_profile: python-pedro
 authoritative_surface: scripts/deploy/lib/
 create_intent: []
 execution_mode: code_change
+lane: planned
 model: claude-opus-5-5
 owned_files:
 - scripts/deploy/lib/userunits.py

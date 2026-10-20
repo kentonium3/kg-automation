@@ -4,7 +4,6 @@ title: Governance/instruction/constitution docs — remove absolute rule, keep r
 dependencies: []
 requirement_refs:
 - FR-004
-tracker_refs: []
 planning_base_branch: feat/retire-private-folder-guards
 merge_target_branch: feat/retire-private-folder-guards
 branch_strategy: Planning artifacts for this mission were generated on feat/retire-private-folder-guards. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into feat/retire-private-folder-guards unless the human explicitly redirects the landing branch.
@@ -12,12 +11,15 @@ subtasks:
 - T017
 - T018
 - T019
-agent: "claude:sonnet:reviewer-renata:reviewer"
+agent: claude:sonnet:reviewer-renata:reviewer
+shell_pid: '38015'
+shell_pid_created_at: '1784651857.325672'
 history: []
 agent_profile: curator-carla
 authoritative_surface: ai-agents/
 create_intent: []
 execution_mode: code_change
+lane: planned
 owned_files:
 - CLAUDE.md
 - CODEX.md
@@ -27,8 +29,7 @@ owned_files:
 - docs/constitution/FELIX-CONSTITUTION.md
 role: implementer
 tags: []
-shell_pid: "38015"
-shell_pid_created_at: "1784651857.325672"
+tracker_refs: []
 ---
 
 ## ⚡ Do This First: Load Agent Profile

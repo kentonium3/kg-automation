@@ -10,8 +10,6 @@ requirement_refs:
 - FR-007
 - NFR-002
 - NFR-003
-tracker_refs:
-- kentonium3/kg-automation#675
 planning_base_branch: feat/f0-exec-hardening
 merge_target_branch: feat/f0-exec-hardening
 branch_strategy: Planning artifacts for this mission were generated on feat/f0-exec-hardening. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into feat/f0-exec-hardening unless the human explicitly redirects the landing branch.
@@ -21,8 +19,8 @@ subtasks:
 - T003
 - T004
 - T005
-agent: "claude"
-shell_pid: "52210"
+agent: claude
+shell_pid: '52210'
 history:
 - at: '2026-07-10T03:00:00Z'
   actor: spec-kitty agent mission tasks
@@ -31,10 +29,13 @@ agent_profile: architect-alphonso
 authoritative_surface: docs/design/felix-openclaw-boundary.md
 create_intent: []
 execution_mode: code_change
+lane: planned
 owned_files:
 - docs/design/felix-openclaw-boundary.md
 role: implementer
 tags: []
+tracker_refs:
+- kentonium3/kg-automation#675
 ---
 
 ## ⚡ Do This First: Load Agent Profile

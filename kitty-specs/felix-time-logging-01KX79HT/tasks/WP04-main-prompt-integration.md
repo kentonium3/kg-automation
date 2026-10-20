@@ -7,7 +7,6 @@ requirement_refs:
 - FR-001
 - FR-003
 - FR-004
-tracker_refs: []
 planning_base_branch: feat/felix-time-logging
 merge_target_branch: feat/felix-time-logging
 branch_strategy: Planning artifacts for this mission were generated on feat/felix-time-logging. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into feat/felix-time-logging unless the human explicitly redirects the landing branch.
@@ -17,22 +16,24 @@ subtasks:
 - T013
 phase: Phase 3 - Dialog
 assignee: ''
-agent: "claude:opus:reviewer-renata:reviewer"
-agent_profile: "curator-carla"
-shell_pid: "56921"
+agent: claude:opus:reviewer-renata:reviewer
+shell_pid: '56921'
 history:
 - at: '2026-07-10T22:30:00Z'
   actor: system
   action: Prompt generated via /spec-kitty.tasks
+agent_profile: curator-carla
 authoritative_surface: scripts/openclaw/agents/
 create_intent:
 - scripts/openclaw/agents/tests/test_timelog_prompt.py
 execution_mode: code_change
+lane: planned
 owned_files:
 - scripts/openclaw/agents/main/AGENTS.md
 - scripts/openclaw/agents/tests/test_timelog_prompt.py
 role: implementer
 tags: []
+tracker_refs: []
 ---
 
 # WP04 — `main` prompt integration (option A, no sub-agent)

@@ -45,7 +45,7 @@
 **Goal**: Capture 4 files from office2 into the repo, retire the main-patches/ overlay pattern
 **Dependencies**: None
 **Estimated prompt size**: ~350 lines
-**Prompt**: [WP01-office2-captures-and-retirement.md](tasks/WP01-office2-captures-and-retirement.md)
+**Prompt**: [WP01-office2-captures-and-retirement.md](tasks/WP01-office2-captures-and-retirement.md
 
 - [x] T001 Capture main/AGENTS.md from office2 to repo (WP01)
 - [x] T002 Capture main/TOOLS.md from office2 to repo (WP01)
@@ -69,7 +69,7 @@
 **Goal**: Generate machine-readable JSON manifests recording post-reconciliation state
 **Dependencies**: WP01
 **Estimated prompt size**: ~300 lines
-**Prompt**: [WP02-baseline-manifests-and-config.md](tasks/WP02-baseline-manifests-and-config.md)
+**Prompt**: [WP02-baseline-manifests-and-config.md](tasks/WP02-baseline-manifests-and-config.md
 
 - [x] T006 Generate baseline-manifest.json from reconciled state (WP02)
 - [x] T007 Generate factory-baselines.json with known factory hashes (WP02)
@@ -90,7 +90,7 @@
 **Goal**: Build the drift detection engine that reads manifests, computes current hashes, and classifies drift via three-way diff
 **Dependencies**: WP02
 **Estimated prompt size**: ~400 lines
-**Prompt**: [WP03-enforcement-detection-engine.md](tasks/WP03-enforcement-detection-engine.md)
+**Prompt**: [WP03-enforcement-detection-engine.md](tasks/WP03-enforcement-detection-engine.md
 
 - [x] T009 Create drift-check.py — CLI entry, manifest loading, hash computation (WP03)
 - [x] T010 Implement three-way diff logic (current vs baseline for both sides) (WP03)
@@ -116,7 +116,7 @@
 **Goal**: Implement auto-deploy, auto-capture, conflict notification, and factory-default alerts
 **Dependencies**: WP03
 **Estimated prompt size**: ~450 lines
-**Prompt**: [WP04-enforcement-remediation-notification.md](tasks/WP04-enforcement-remediation-notification.md)
+**Prompt**: [WP04-enforcement-remediation-notification.md](tasks/WP04-enforcement-remediation-notification.md
 
 - [x] T013 Implement auto-deploy action (repo→office2 via SCP) (WP04)
 - [x] T014 Implement auto-capture action (office2→repo + git commit) (WP04)
@@ -143,7 +143,7 @@
 **Goal**: Deploy reconciled tasker files + enforcement cron to office2, verify with controlled drift test
 **Dependencies**: WP01, WP04
 **Estimated prompt size**: ~400 lines
-**Prompt**: [WP05-deploy-and-integration.md](tasks/WP05-deploy-and-integration.md)
+**Prompt**: [WP05-deploy-and-integration.md](tasks/WP05-deploy-and-integration.md
 
 - [x] T019 Create deploy-028.sh following safe-deploy pattern (WP05)
 - [x] T020 Deploy reconciled tasker files repo→office2 via SCP (WP05)
@@ -168,7 +168,7 @@
 **Goal**: Write the reconciliation runbook, factory-default lifecycle policy, and update docs index
 **Dependencies**: WP04
 **Estimated prompt size**: ~300 lines
-**Prompt**: [WP06-runbook-and-documentation.md](tasks/WP06-runbook-and-documentation.md)
+**Prompt**: [WP06-runbook-and-documentation.md](tasks/WP06-runbook-and-documentation.md
 
 - [x] T024 Write runbook: agent-workspace-reconciliation.md (WP06)
 - [x] T025 Document factory-default lifecycle policy in runbook (WP06)

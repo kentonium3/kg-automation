@@ -19,14 +19,15 @@ subtasks:
 - T022
 - T023
 - T024
-agent: "codex:gpt-4o:python-reviewer:reviewer"
-shell_pid: "80021"
+agent: codex:gpt-4o:python-reviewer:reviewer
+shell_pid: '80021'
 history:
 - action: drafted
   agent: claude
   timestamp: '2026-05-17T05:30:00Z'
 authoritative_surface: docs/runbooks/felix-bot-vikunja-provisioning.md
 execution_mode: code_change
+lane: planned
 mission_slug: felix-bot-vikunja-provisioning-01KRT3N4
 owned_files:
 - docs/runbooks/felix-bot-vikunja-provisioning.md

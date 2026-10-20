@@ -22,14 +22,15 @@ subtasks:
 - T003
 - T004
 - T005
-shell_pid: "78531"
-agent: "codex:gpt-5:spec-kitty-review:reviewer"
+agent: codex:gpt-5:spec-kitty-review:reviewer
+shell_pid: '78531'
 history:
 - event: planned
   timestamp: '2026-05-25T03:54:30Z'
   note: Created by /spec-kitty.tasks under mission drift-interpretation-fence-strip-fix-01KSEM6S
 authoritative_surface: scripts/doc_audit/judgment/
 execution_mode: code_change
+lane: planned
 mission_slug: drift-interpretation-fence-strip-fix-01KSEM6S
 owned_files:
 - scripts/doc_audit/judgment/drift_interpretation.py

@@ -19,14 +19,15 @@ subtasks:
 - T024
 phase: Phase 1 - Frontmatter Corrections
 assignee: ''
-agent: "claude"
-shell_pid: "3857"
+agent: claude
+shell_pid: '3857'
 history:
 - at: '2026-04-05T01:28:56Z'
   actor: system
   action: Prompt generated via /spec-kitty.tasks
 authoritative_surface: docs/design/
 execution_mode: code_change
+lane: planned
 owned_files:
 - docs/design/Vikunja.md
 - docs/design/adversarial-analysis.md

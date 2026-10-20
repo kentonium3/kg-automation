@@ -12,8 +12,8 @@ subtasks:
 - T006
 - T007
 - T008
-agent: "codex:gpt-5:code-reviewer:reviewer"
-shell_pid: "4914"
+agent: codex:gpt-5:code-reviewer:reviewer
+shell_pid: '4914'
 history:
 - event: created
   at: '2026-05-15T17:15:12Z'
@@ -21,6 +21,7 @@ history:
   note: WP02 prompt generated
 authoritative_surface: scripts/habits/query_active_habits.py
 execution_mode: code_change
+lane: planned
 mission_slug: habits-checkin-d6-extract-01KRNV46
 owned_files:
 - scripts/habits/query_active_habits.py

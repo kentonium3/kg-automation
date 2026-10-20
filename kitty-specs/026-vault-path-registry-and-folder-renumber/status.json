@@ -1,5 +1,5 @@
 {
-  "event_count": 51,
+  "event_count": 60,
   "last_event_id": "01KNYP6CE6VJ5Q1ZWS4B7M38GV",
   "materialized_at": "2026-04-11T16:32:26.054831+00:00",
   "mission_number": "26",
@@ -19,45 +19,124 @@
   "work_packages": {
     "WP01": {
       "actor": "merge",
+      "agent": "claude:opus-4-6:reviewer:reviewer",
       "force_count": 4,
       "lane": "done",
       "last_event_id": "01KNYP6C6TXNPCG8SY8BAQHNFY",
-      "last_transition_at": "2026-04-11T16:32:25.818575+00:00"
+      "last_transition_at": "2026-04-11T16:32:25.818575+00:00",
+      "shell_pid": 7919,
+      "subtasks": {
+        "T001": "done",
+        "T002": "done",
+        "T003": "done",
+        "T004": "done",
+        "T005": "done",
+        "T006": "done"
+      }
     },
     "WP02": {
       "actor": "merge",
+      "agent": "claude:opus-4-6:reviewer:reviewer",
       "force_count": 7,
       "lane": "done",
       "last_event_id": "01KNYP6CC260XP2DRCE89W5RFV",
-      "last_transition_at": "2026-04-11T16:32:25.986692+00:00"
+      "last_transition_at": "2026-04-11T16:32:25.986692+00:00",
+      "review_result": {
+        "feedback_path": "/Users/kentgale/repos/kg-automation/kitty-specs/026-vault-path-registry-and-folder-renumber/tasks/WP02-code-migration-to-template-markers/review-cycle-1.md",
+        "reference": "review-cycle://026-vault-path-registry-and-folder-renumber/WP02-code-migration-to-template-markers/review-cycle-1.md",
+        "reviewer": "unknown",
+        "verdict": "changes_requested"
+      },
+      "shell_pid": 42489,
+      "subtasks": {
+        "T007": "done",
+        "T008": "done",
+        "T009": "done",
+        "T010": "done",
+        "T011": "done",
+        "T012": "done",
+        "T013": "done"
+      }
     },
     "WP03": {
       "actor": "merge",
+      "agent": "claude:opus-4-6:reviewer:reviewer",
       "force_count": 4,
       "lane": "done",
       "last_event_id": "01KNYP6CCN9HQ3B3XXAWCSW2AP",
-      "last_transition_at": "2026-04-11T16:32:26.005473+00:00"
+      "last_transition_at": "2026-04-11T16:32:26.005473+00:00",
+      "shell_pid": 17958,
+      "subtasks": {
+        "T014": "done",
+        "T015": "done",
+        "T016": "done",
+        "T017": "done",
+        "T018": "done",
+        "T019": "done",
+        "T020": "done",
+        "T021": "done"
+      }
     },
     "WP04": {
       "actor": "merge",
+      "agent": "claude:opus-4-6:implementer:implementer",
       "force_count": 3,
       "lane": "done",
       "last_event_id": "01KNYP6CD38QZEWXNNMZBZDM06",
-      "last_transition_at": "2026-04-11T16:32:26.019535+00:00"
+      "last_transition_at": "2026-04-11T16:32:26.019535+00:00",
+      "review_result": {
+        "feedback_path": "/Users/kentgale/repos/kg-automation/kitty-specs/026-vault-path-registry-and-folder-renumber/tasks/WP04-pre-rename-deploy-and-fidelity-checkpoint/review-cycle-1.md",
+        "reference": "review-cycle://026-vault-path-registry-and-folder-renumber/WP04-pre-rename-deploy-and-fidelity-checkpoint/review-cycle-1.md",
+        "reviewer": "unknown",
+        "verdict": "changes_requested"
+      },
+      "shell_pid": 43130,
+      "subtasks": {
+        "T022": "done",
+        "T023": "done",
+        "T024": "done",
+        "T025": "done",
+        "T026": "done"
+      }
     },
     "WP05": {
       "actor": "merge",
+      "agent": "claude:opus-4-6:implementer:implementer",
       "force_count": 3,
       "lane": "done",
       "last_event_id": "01KNYP6CDK85AHS9BMS0Y44SY7",
-      "last_transition_at": "2026-04-11T16:32:26.035265+00:00"
+      "last_transition_at": "2026-04-11T16:32:26.035265+00:00",
+      "review_result": {
+        "feedback_path": "/Users/kentgale/repos/kg-automation/kitty-specs/026-vault-path-registry-and-folder-renumber/tasks/WP05-folder-rename-and-post-rename-deploy/review-cycle-1.md",
+        "reference": "review-cycle://026-vault-path-registry-and-folder-renumber/WP05-folder-rename-and-post-rename-deploy/review-cycle-1.md",
+        "reviewer": "unknown",
+        "verdict": "changes_requested"
+      },
+      "shell_pid": 24186,
+      "subtasks": {
+        "T027": "done",
+        "T028": "done",
+        "T029": "done",
+        "T030": "done",
+        "T031": "done",
+        "T032": "done",
+        "T033": "done"
+      }
     },
     "WP06": {
       "actor": "merge",
+      "agent": "claude:opus-4-6:implementer:implementer",
       "force_count": 3,
       "lane": "done",
       "last_event_id": "01KNYP6CE6VJ5Q1ZWS4B7M38GV",
-      "last_transition_at": "2026-04-11T16:32:26.054831+00:00"
+      "last_transition_at": "2026-04-11T16:32:26.054831+00:00",
+      "shell_pid": 31150,
+      "subtasks": {
+        "T034": "done",
+        "T035": "done",
+        "T036": "done",
+        "T037": "done"
+      }
     }
   }
 }

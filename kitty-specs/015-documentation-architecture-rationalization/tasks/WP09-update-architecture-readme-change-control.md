@@ -19,14 +19,15 @@ subtasks:
 - T038
 phase: Phase 3 - Entry Point Updates
 assignee: ''
-agent: "claude"
-shell_pid: "7366"
+agent: claude
+shell_pid: '7366'
 history:
 - at: '2026-04-05T01:28:56Z'
   actor: system
   action: Prompt generated via /spec-kitty.tasks
 authoritative_surface: docs/design/architecture/
 execution_mode: code_change
+lane: planned
 owned_files:
 - docs/design/architecture/README.md
 - docs/design/architecture/change-control.md

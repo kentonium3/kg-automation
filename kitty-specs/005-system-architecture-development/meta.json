@@ -20,6 +20,7 @@
   "mission_slug": "005-system-architecture-development",
   "mission_type": "research",
   "slug": "005-system-architecture-development",
+  "status_phase": "1",
   "target_branch": "main",
   "vcs": "git",
   "vcs_locked_at": "2026-03-29T03:25:17.141786+00:00"

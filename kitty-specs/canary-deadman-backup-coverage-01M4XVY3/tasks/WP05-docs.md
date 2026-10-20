@@ -27,6 +27,7 @@ agent_profile: python-pedro
 authoritative_surface: docs/
 create_intent: []
 execution_mode: code_change
+lane: planned
 model: claude-opus-5-5
 owned_files:
 - docs/design/architecture/observability-and-alerting.md

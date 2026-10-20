@@ -1,5 +1,5 @@
 {
-  "event_count": 42,
+  "event_count": 48,
   "last_event_id": "01KX639RHM1HCBZJRDBNQYNDEY",
   "materialized_at": "2026-07-10T13:26:02.036289+00:00",
   "mission_number": "92",
@@ -19,51 +19,81 @@
   "work_packages": {
     "WP01": {
       "actor": "merge",
+      "agent": "claude:opus:reviewer-renata:reviewer",
       "force_count": 0,
       "lane": "done",
       "last_event_id": "01KX639HBXHGXWMQEH8VEMW8JT",
       "last_transition_at": "2026-07-10T13:25:54.685303+00:00",
-      "review_result": null
+      "review_result": null,
+      "shell_pid": 99631,
+      "tracker_refs": [
+        "kentonium3/kg-automation#701"
+      ]
     },
     "WP02": {
       "actor": "merge",
+      "agent": "claude:opus:reviewer-renata:reviewer",
       "force_count": 0,
       "lane": "done",
       "last_event_id": "01KX639K8S21H4CA7FQ8DJKC12",
       "last_transition_at": "2026-07-10T13:25:56.633257+00:00",
-      "review_result": null
+      "review_result": null,
+      "shell_pid": 22532,
+      "tracker_refs": [
+        "kentonium3/kg-automation#701"
+      ]
     },
     "WP03": {
       "actor": "merge",
+      "agent": "claude:opus:reviewer-renata:reviewer",
       "force_count": 0,
       "lane": "done",
       "last_event_id": "01KX639MK9YSAPYKT36MSKGEED",
       "last_transition_at": "2026-07-10T13:25:57.993464+00:00",
-      "review_result": null
+      "review_result": null,
+      "shell_pid": 7256,
+      "tracker_refs": [
+        "kentonium3/kg-automation#701"
+      ]
     },
     "WP04": {
       "actor": "merge",
+      "agent": "claude:opus:reviewer-renata:reviewer",
       "force_count": 0,
       "lane": "done",
       "last_event_id": "01KX639NX8K2XWSAWGEGJA7M3C",
       "last_transition_at": "2026-07-10T13:25:59.336104+00:00",
-      "review_result": null
+      "review_result": null,
+      "shell_pid": 8111,
+      "tracker_refs": [
+        "kentonium3/kg-automation#701"
+      ]
     },
     "WP05": {
       "actor": "merge",
+      "agent": "claude:opus:reviewer-renata:reviewer",
       "force_count": 0,
       "lane": "done",
       "last_event_id": "01KX639Q6R7549J5FHK9VBQFRM",
       "last_transition_at": "2026-07-10T13:26:00.664725+00:00",
-      "review_result": null
+      "review_result": null,
+      "shell_pid": 37002,
+      "tracker_refs": [
+        "kentonium3/kg-automation#701"
+      ]
     },
     "WP06": {
       "actor": "merge",
+      "agent": "claude:opus:reviewer-renata:reviewer",
       "force_count": 0,
       "lane": "done",
       "last_event_id": "01KX639RHM1HCBZJRDBNQYNDEY",
       "last_transition_at": "2026-07-10T13:26:02.036289+00:00",
-      "review_result": null
+      "review_result": null,
+      "shell_pid": 41648,
+      "tracker_refs": [
+        "kentonium3/kg-automation#701"
+      ]
     }
   }
 }

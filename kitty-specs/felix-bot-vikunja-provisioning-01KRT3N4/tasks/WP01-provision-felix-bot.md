@@ -19,14 +19,15 @@ subtasks:
 - T003
 - T004
 - T005
-shell_pid: "66245"
-agent: "codex:gpt-4o:python-reviewer:reviewer"
+agent: codex:gpt-4o:python-reviewer:reviewer
+shell_pid: '66245'
 history:
 - action: drafted
   agent: claude
   timestamp: '2026-05-17T05:10:00Z'
 authoritative_surface: scripts/vikunja/provision_felix_bot.py
 execution_mode: code_change
+lane: planned
 mission_slug: felix-bot-vikunja-provisioning-01KRT3N4
 owned_files:
 - scripts/vikunja/provision_felix_bot.py

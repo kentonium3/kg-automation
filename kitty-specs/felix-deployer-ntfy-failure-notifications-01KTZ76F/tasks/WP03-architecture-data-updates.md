@@ -5,8 +5,6 @@ dependencies:
 - WP02
 requirement_refs:
 - FR-011
-tracker_refs:
-- kentonium3/kg-automation#595
 planning_base_branch: main
 merge_target_branch: main
 branch_strategy: Planning artifacts for this mission were generated on main. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into main unless the human explicitly redirects the landing branch.
@@ -21,6 +19,7 @@ history: []
 agent_profile: implementer-ivan
 authoritative_surface: docs/design/
 execution_mode: code_change
+lane: planned
 mission_slug: felix-deployer-ntfy-failure-notifications-01KTZ76F
 owned_files:
 - docs/design/architecture/data/data-flows.json
@@ -33,6 +32,8 @@ owned_files:
 - docs/design/felix-capability-roadmap.md
 role: implementer
 tags: []
+tracker_refs:
+- kentonium3/kg-automation#595
 ---
 
 ## ⚡ Do This First: Load Agent Profile

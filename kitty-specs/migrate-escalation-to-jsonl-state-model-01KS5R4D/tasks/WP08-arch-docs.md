@@ -14,14 +14,15 @@ subtasks:
 - T024
 - T025
 - T026
-shell_pid: "89971"
-agent: "codex:gpt-5:spec-kitty-review:reviewer"
+agent: codex:gpt-5:spec-kitty-review:reviewer
+shell_pid: '89971'
 history:
 - at: '2026-05-21T17:45:30+00:00'
   actor: spec-kitty.tasks
   event: created
 authoritative_surface: docs/design/architecture/
 execution_mode: code_change
+lane: planned
 mission_id: 01KS5R4D79WQQWY2MCHZVCT85G
 mission_slug: migrate-escalation-to-jsonl-state-model-01KS5R4D
 owned_files:

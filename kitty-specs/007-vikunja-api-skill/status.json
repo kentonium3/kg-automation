@@ -22,28 +22,56 @@
       "force_count": 2,
       "lane": "done",
       "last_event_id": "01KN0NDBDBVDWEAPAN7M545SHD",
-      "last_transition_at": "2026-03-31T00:41:32.843804+00:00"
+      "last_transition_at": "2026-03-31T00:41:32.843804+00:00",
+      "subtasks": {
+        "T001": "done",
+        "T002": "done",
+        "T003": "done",
+        "T004": "done"
+      }
     },
     "WP02": {
       "actor": "user",
       "force_count": 2,
       "lane": "done",
       "last_event_id": "01KN0NDKH1K3MNX4ZZV65EKC6Y",
-      "last_transition_at": "2026-03-31T00:41:41.153249+00:00"
+      "last_transition_at": "2026-03-31T00:41:41.153249+00:00",
+      "subtasks": {
+        "T005": "done",
+        "T006": "done",
+        "T007": "done",
+        "T008": "done",
+        "T009": "done",
+        "T010": "done"
+      }
     },
     "WP03": {
       "actor": "user",
       "force_count": 2,
       "lane": "done",
       "last_event_id": "01KN0NDNDBQEVWPD6NJDAWP904",
-      "last_transition_at": "2026-03-31T00:41:43.083392+00:00"
+      "last_transition_at": "2026-03-31T00:41:43.083392+00:00",
+      "subtasks": {
+        "T011": "done",
+        "T012": "done",
+        "T013": "done",
+        "T014": "done"
+      }
     },
     "WP04": {
       "actor": "user",
       "force_count": 2,
       "lane": "done",
       "last_event_id": "01KN0NDQFT45FSTP0CPMC7RW9Z",
-      "last_transition_at": "2026-03-31T00:41:45.210772+00:00"
+      "last_transition_at": "2026-03-31T00:41:45.210772+00:00",
+      "subtasks": {
+        "T015": "done",
+        "T016": "done",
+        "T017": "done",
+        "T018": "done",
+        "T019": "done",
+        "T020": "done"
+      }
     }
   }
 }

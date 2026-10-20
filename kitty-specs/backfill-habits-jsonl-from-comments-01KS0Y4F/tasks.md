@@ -24,7 +24,7 @@
 
 ### WP01 — Backfill helper + tests + architecture documentation
 
-**Prompt**: [tasks/WP01-backfill-helper-and-arch-docs.md](tasks/WP01-backfill-helper-and-arch-docs.md)
+**Prompt**: [tasks/WP01-backfill-helper-and-arch-docs.md
 **Goal**: Deliver the complete one-shot backfill helper (`scripts/habits/backfill_jsonl_from_comments.py`), its exhaustive test suite, and architecture-doc updates. After this WP merges and the operator runs the helper, historical `[Felix]` completion comments become JSONL records via the Phase 2 `state_log` library — preserving the data before Phase 5 cutover (#308).
 **Priority**: P0 (only WP — full Phase 4 scope)
 **Dependencies**: none (Phase 3 deliverables already on main via mission #40)

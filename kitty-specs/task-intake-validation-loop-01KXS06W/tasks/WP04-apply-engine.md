@@ -13,8 +13,6 @@ requirement_refs:
 - FR-013
 - FR-014
 - FR-017
-tracker_refs:
-- '750'
 planning_base_branch: feat/task-intake-validation-loop
 merge_target_branch: feat/task-intake-validation-loop
 branch_strategy: Planning artifacts for this mission were generated on feat/task-intake-validation-loop. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into feat/task-intake-validation-loop unless the human explicitly redirects the landing branch.
@@ -26,9 +24,9 @@ subtasks:
 - T018
 - T019
 phase: Phase 3 - Apply
-shell_pid_created_at: "1784330437.759753"
-agent: "claude:opus:reviewer-renata:reviewer"
-shell_pid: "72078"
+agent: claude:opus:reviewer-renata:reviewer
+shell_pid: '72078'
+shell_pid_created_at: '1784330437.759753'
 history:
 - at: '2026-07-17T21:55:00Z'
   actor: system
@@ -39,12 +37,15 @@ create_intent:
 - scripts/intake/apply_reply.py
 - tests/intake/test_apply_reply.py
 execution_mode: code_change
+lane: planned
 model: claude-sonnet-5
 owned_files:
 - scripts/intake/apply_reply.py
 - tests/intake/test_apply_reply.py
 role: implementer
 tags: []
+tracker_refs:
+- '750'
 ---
 
 # Work Package Prompt: WP04 — Apply engine

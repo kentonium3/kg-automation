@@ -31,6 +31,7 @@
   "purpose_context": "Today an intentional change to an audited surface requires a human to remember and run the security-baseline reset by hand; a forgotten reset fires a false-positive drift alert on the next daily audit and erodes trust in the security signal. This mission makes the rebaseline an automatic, silent step of the deploy pipeline on the happy path: felix-deployer observes the change on pull, waits until a read-only audit confirms the expected drift, then resets and verifies the baselines with no human involved. Humans are pulled in only for genuinely unexpected drift, rebaseline failures, or out-of-band changes the pipeline cannot see.",
   "purpose_tldr": "felix-deployer automatically resets the security-monitor baselines when a deploy changes an audited surface, so a forgotten manual rebaseline can no longer cause false-positive drift alerts.",
   "slug": "auto-rebaseline-on-deploy-01KVAYJN",
+  "status_phase": "1",
   "target_branch": "main",
   "vcs": "git",
   "vcs_locked_at": "2026-06-17T14:42:27.497965+00:00"

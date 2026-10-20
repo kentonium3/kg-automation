@@ -6,7 +6,6 @@ requirement_refs:
 - FR-007
 - FR-008
 - NFR-003
-tracker_refs: []
 planning_base_branch: feat/retire-private-folder-guards
 merge_target_branch: feat/retire-private-folder-guards
 branch_strategy: Planning artifacts for this mission were generated on feat/retire-private-folder-guards. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into feat/retire-private-folder-guards unless the human explicitly redirects the landing branch.
@@ -16,12 +15,15 @@ subtasks:
 - T012
 - T013
 - T014
-agent: "claude:sonnet:reviewer-renata:reviewer"
+agent: claude:sonnet:reviewer-renata:reviewer
+shell_pid: '40719'
+shell_pid_created_at: '1784652217.539403'
 history: []
 agent_profile: implementer-ivan
 authoritative_surface: scripts/inbox/
 create_intent: []
 execution_mode: code_change
+lane: planned
 owned_files:
 - scripts/escalation/hard_fail.py
 - tests/escalation/test_hard_fail.py
@@ -37,8 +39,7 @@ owned_files:
 - scripts/office2/gitignore-additions.txt
 role: implementer
 tags: []
-shell_pid: "40719"
-shell_pid_created_at: "1784652217.539403"
+tracker_refs: []
 ---
 
 ## ⚡ Do This First: Load Agent Profile

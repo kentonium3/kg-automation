@@ -11,7 +11,6 @@ requirement_refs:
 - FR-004
 - FR-006
 - FR-012
-tracker_refs: []
 planning_base_branch: fix/felix-admin-cron-path-fix
 merge_target_branch: fix/felix-admin-cron-path-fix
 branch_strategy: Planning artifacts for this mission were generated on fix/felix-admin-cron-path-fix. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into fix/felix-admin-cron-path-fix unless the human explicitly redirects the landing branch.
@@ -19,8 +18,8 @@ subtasks:
 - T019
 - T020
 - T021
-agent: "claude:opus:reviewer-renata:reviewer"
-shell_pid: "7715"
+agent: claude:opus:reviewer-renata:reviewer
+shell_pid: '7715'
 history:
 - at: 2026-07-05T02:30:00Z
   actor: system
@@ -29,6 +28,7 @@ agent_profile: curator-carla
 authoritative_surface: docs/design/architecture/
 create_intent: []
 execution_mode: code_change
+lane: planned
 model: claude-sonnet-4-6
 owned_files:
 - docs/design/architecture/data/service-inventory.json
@@ -36,6 +36,7 @@ owned_files:
 - docs/design/architecture/data/data-flows.json
 role: implementer
 tags: []
+tracker_refs: []
 ---
 
 # Work Package Prompt: WP06 – Architecture docs + rebaseline record

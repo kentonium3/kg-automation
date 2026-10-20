@@ -25,6 +25,7 @@ agent_profile: implementer-ivan
 authoritative_surface: scripts/office2/restic-backup.sh
 create_intent: []
 execution_mode: code_change
+lane: planned
 owned_files:
 - scripts/office2/restic-backup.sh
 role: implementer

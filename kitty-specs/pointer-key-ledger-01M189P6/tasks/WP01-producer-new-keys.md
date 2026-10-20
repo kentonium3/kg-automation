@@ -29,6 +29,7 @@ agent_profile: python-pedro
 authoritative_surface: scripts/office2/
 create_intent: []
 execution_mode: code_change
+lane: planned
 model: claude-sonnet-4-6
 owned_files:
 - scripts/office2/restic-backup.sh

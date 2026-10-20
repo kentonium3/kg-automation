@@ -15,7 +15,6 @@ requirement_refs:
 - FR-010
 - FR-011
 - FR-012
-tracker_refs: []
 planning_base_branch: feat/author-habits-workspace
 merge_target_branch: feat/author-habits-workspace
 branch_strategy: Planning artifacts for this mission were generated on feat/author-habits-workspace. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into feat/author-habits-workspace unless the human explicitly redirects the landing branch.
@@ -28,9 +27,9 @@ subtasks:
 - T006
 phase: Phase 1 - Author
 assignee: ''
-agent: "claude"
-shell_pid: "27940"
-shell_pid_created_at: "1784470341.522141"
+agent: claude
+shell_pid: '27940'
+shell_pid_created_at: '1784470341.522141'
 history:
 - at: '2026-07-19T13:50:00Z'
   actor: system
@@ -39,6 +38,7 @@ agent_profile: curator-carla
 authoritative_surface: scripts/openclaw/agents/felix-admin-habits/
 create_intent: []
 execution_mode: code_change
+lane: planned
 model: claude-sonnet-5
 owned_files:
 - scripts/openclaw/agents/felix-admin-habits/SOUL.md
@@ -49,6 +49,7 @@ owned_files:
 role: implementer
 tags: []
 task_type: implement
+tracker_refs: []
 ---
 
 # Work Package Prompt: WP01 – Author felix-admin-habits workspace to #587 + weekly-report doc-sync

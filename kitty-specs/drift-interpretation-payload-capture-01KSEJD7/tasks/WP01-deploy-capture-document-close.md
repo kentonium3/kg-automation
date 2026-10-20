@@ -26,14 +26,15 @@ subtasks:
 - T005
 - T006
 - T007
-shell_pid: "73675"
-agent: "codex:gpt-5:spec-kitty-review:reviewer"
+agent: codex:gpt-5:spec-kitty-review:reviewer
+shell_pid: '73675'
 history:
 - event: planned
   timestamp: '2026-05-25T03:25:00Z'
   note: Created by /spec-kitty.tasks under mission drift-interpretation-payload-capture-01KSEJD7
 authoritative_surface: docs/
 execution_mode: code_change
+lane: planned
 mission_slug: drift-interpretation-payload-capture-01KSEJD7
 owned_files:
 - docs/diagnostics/drift-interpretation-payload-shape.md

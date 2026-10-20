@@ -22,21 +22,42 @@
       "force_count": 2,
       "lane": "approved",
       "last_event_id": "01KMTN51YVTRCTNXYJAMJ7G6DC",
-      "last_transition_at": "2026-03-28T16:41:34.427207+00:00"
+      "last_transition_at": "2026-03-28T16:41:34.427207+00:00",
+      "subtasks": {
+        "T001": "done",
+        "T002": "done",
+        "T003": "done",
+        "T004": "done",
+        "T005": "done",
+        "T006": "done"
+      }
     },
     "WP02": {
       "actor": "merge",
       "force_count": 2,
       "lane": "done",
       "last_event_id": "01KMTNTEZRQGFJF72P43MPKRSB",
-      "last_transition_at": "2026-03-28T16:53:15.896270+00:00"
+      "last_transition_at": "2026-03-28T16:53:15.896270+00:00",
+      "subtasks": {
+        "T007": "done",
+        "T008": "done",
+        "T009": "done",
+        "T010": "done"
+      }
     },
     "WP03": {
       "actor": "merge",
       "force_count": 2,
       "lane": "done",
       "last_event_id": "01KMTNTF7V0E4AQ8J47J9AS0XK",
-      "last_transition_at": "2026-03-28T16:53:16.156015+00:00"
+      "last_transition_at": "2026-03-28T16:53:16.156015+00:00",
+      "subtasks": {
+        "T011": "done",
+        "T012": "done",
+        "T013": "done",
+        "T014": "done",
+        "T015": "done"
+      }
     }
   }
 }

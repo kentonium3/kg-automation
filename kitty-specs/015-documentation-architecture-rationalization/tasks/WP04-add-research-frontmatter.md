@@ -19,14 +19,15 @@ subtasks:
 - T016
 phase: Phase 1 - Frontmatter Corrections
 assignee: ''
-agent: "claude"
-shell_pid: "1637"
+agent: claude
+shell_pid: '1637'
 history:
 - at: '2026-04-05T01:28:56Z'
   actor: system
   action: Prompt generated via /spec-kitty.tasks
 authoritative_surface: docs/design/research/005-system-architecture-development/
 execution_mode: code_change
+lane: planned
 owned_files:
 - docs/design/research/005-system-architecture-development/agent-team-architecture.md
 - docs/design/research/005-system-architecture-development/data-architecture.md

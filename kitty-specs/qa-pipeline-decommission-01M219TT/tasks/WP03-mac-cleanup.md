@@ -20,6 +20,7 @@ authoritative_surface: scripts/decommission/mac/
 create_intent:
 - scripts/decommission/mac/cleanup.sh
 execution_mode: planning_artifact
+lane: planned
 owned_files:
 - scripts/decommission/mac/**
 role: implementer

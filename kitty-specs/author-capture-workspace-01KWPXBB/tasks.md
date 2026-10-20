@@ -24,7 +24,7 @@ post-merge acceptance (agent-prompt-sync fires only on merge to main) — docume
 
 ## WP01 — Author capture workspace files
 
-**Prompt**: [tasks/WP01-author-workspace-files.md](./tasks/WP01-author-workspace-files.md)
+**Prompt**: [tasks/WP01-author-workspace-files.md
 
 - **Goal**: Relocate leaked content to the correct owner file per the #587 contract, producing
   the authored SOUL/USER/TOOLS set (+ AGENTS.md label receiver), with zero behavior change.

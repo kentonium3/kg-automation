@@ -11,7 +11,6 @@ requirement_refs:
 - FR-011
 - FR-012
 - FR-013
-tracker_refs: []
 planning_base_branch: feat/vikunja-reference-seam
 merge_target_branch: feat/vikunja-reference-seam
 branch_strategy: Planning artifacts for this mission were generated on feat/vikunja-reference-seam. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into feat/vikunja-reference-seam unless the human explicitly redirects the landing branch.
@@ -23,26 +22,28 @@ subtasks:
 - T022
 phase: Phase 3 - Routing + Gate
 assignee: ''
-agent_profile: python-pedro
-role: implementer
-model: claude-sonnet-5
-shell_pid_created_at: "1784149755.488995"
-agent: "codex:gpt-5-codex:reviewer-renata:reviewer"
-shell_pid: "51641"
+agent: codex:gpt-5-codex:reviewer-renata:reviewer
+shell_pid: '51641'
+shell_pid_created_at: '1784149755.488995'
 history:
 - at: '2026-07-15T17:18:48Z'
   actor: system
   action: Prompt generated via /spec-kitty.tasks
+agent_profile: python-pedro
 authoritative_surface: scripts/inbox/route_someday.py
 create_intent:
 - tests/common/test_sc001_grep.py
 execution_mode: code_change
+lane: planned
+model: claude-sonnet-5
 owned_files:
 - scripts/inbox/route_someday.py
 - scripts/openclaw/agents/felix-admin-capture/AGENTS.md
 - tests/inbox/test_route_someday.py
 - tests/common/test_sc001_grep.py
+role: implementer
 tags: []
+tracker_refs: []
 ---
 
 # Work Package Prompt: WP05 – #745 capture routing alignment + SC-001 acceptance gate

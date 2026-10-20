@@ -34,6 +34,7 @@ create_intent:
 - tests/research/test_arms849_questions.py
 - tests/research/test_arms849_serving.py
 execution_mode: code_change
+lane: planned
 owned_files:
 - scripts/research/arms849/__init__.py
 - scripts/research/arms849/text.py

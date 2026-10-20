@@ -4,7 +4,6 @@ title: Sheets auth (per-account, spreadsheets scope)
 dependencies: []
 requirement_refs:
 - C-002
-tracker_refs: []
 planning_base_branch: feat/felix-time-logging
 merge_target_branch: feat/felix-time-logging
 branch_strategy: Planning artifacts for this mission were generated on feat/felix-time-logging. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into feat/felix-time-logging unless the human explicitly redirects the landing branch.
@@ -13,23 +12,25 @@ subtasks:
 - T002
 phase: Phase 1 - Auth
 assignee: ''
-agent: "claude:opus:reviewer-renata:reviewer"
-agent_profile: "python-pedro"
-shell_pid: "41877"
+agent: claude:opus:reviewer-renata:reviewer
+shell_pid: '41877'
 history:
 - at: '2026-07-10T22:30:00Z'
   actor: system
   action: Prompt generated via /spec-kitty.tasks
+agent_profile: python-pedro
 authoritative_surface: scripts/google/
 create_intent:
 - scripts/google/sheets_auth.py
 - tests/google/test_sheets_auth.py
 execution_mode: code_change
+lane: planned
 owned_files:
 - scripts/google/sheets_auth.py
 - tests/google/test_sheets_auth.py
 role: implementer
 tags: []
+tracker_refs: []
 ---
 
 ## ⚡ Do This First: Load Agent Profile

@@ -1,5 +1,5 @@
 {
-  "event_count": 49,
+  "event_count": 56,
   "last_event_id": "01KX98H5WXQQEK860PJ0B02RTA",
   "materialized_at": "2026-07-11T18:55:11.261685+00:00",
   "mission_number": "95",
@@ -19,6 +19,7 @@
   "work_packages": {
     "WP01": {
       "actor": "merge",
+      "agent": "claude",
       "force_count": 0,
       "lane": "done",
       "last_event_id": "01KX98GVZ0HBZ64YC4E6RVFW67",
@@ -27,10 +28,20 @@
         "reference": "APPROVE (reviewer-renata): all 6 DoD items pass; strict exit 0; 82 tests green.",
         "reviewer": "reviewer-renata",
         "verdict": "approved"
-      }
+      },
+      "shell_pid": 41611,
+      "subtasks": {
+        "T001": "done",
+        "T002": "done",
+        "T003": "done"
+      },
+      "tracker_refs": [
+        "kentonium3/kg-automation#327"
+      ]
     },
     "WP02": {
       "actor": "merge",
+      "agent": "claude",
       "force_count": 0,
       "lane": "done",
       "last_event_id": "01KX98GY55VW67MFGZAPTE6290",
@@ -39,10 +50,23 @@
         "reference": "APPROVE (reviewer-renata): all 7 DoD pass; pointer order + gap gating + SERVICE_TYPES match verified; 20 tests.",
         "reviewer": "reviewer-renata",
         "verdict": "approved"
-      }
+      },
+      "shell_pid": 54709,
+      "subtasks": {
+        "T004": "done",
+        "T005": "done",
+        "T006": "done",
+        "T007": "done",
+        "T008": "done",
+        "T009": "done"
+      },
+      "tracker_refs": [
+        "kentonium3/kg-automation#327"
+      ]
     },
     "WP03": {
       "actor": "merge",
+      "agent": "claude",
       "force_count": 0,
       "lane": "done",
       "last_event_id": "01KX98H18F863E4ECRV3D1WT36",
@@ -51,10 +75,23 @@
         "reference": "APPROVE (reviewer-renata): all 6 DoD pass; gate-before-probe + never-raises proven; restic probe coordination honored; pure.",
         "reviewer": "reviewer-renata",
         "verdict": "approved"
-      }
+      },
+      "shell_pid": 58263,
+      "subtasks": {
+        "T010": "done",
+        "T011": "done",
+        "T012": "done",
+        "T013": "done",
+        "T014": "done",
+        "T015": "done"
+      },
+      "tracker_refs": [
+        "kentonium3/kg-automation#327"
+      ]
     },
     "WP04": {
       "actor": "merge",
+      "agent": "claude",
       "force_count": 0,
       "lane": "done",
       "last_event_id": "01KX98H2VM80JE6B6NPH8DVXNZ",
@@ -63,10 +100,23 @@
         "reference": "APPROVE (reviewer-renata, re-review): F5 fix correct + scoped; F7 intact; no regressions; 98 tests; no silent-never-paged path.",
         "reviewer": "reviewer-renata",
         "verdict": "approved"
-      }
+      },
+      "shell_pid": 60916,
+      "subtasks": {
+        "T016": "done",
+        "T017": "done",
+        "T018": "done",
+        "T019": "done",
+        "T020": "done",
+        "T021": "done"
+      },
+      "tracker_refs": [
+        "kentonium3/kg-automation#327"
+      ]
     },
     "WP05": {
       "actor": "merge",
+      "agent": "claude",
       "force_count": 0,
       "lane": "done",
       "last_event_id": "01KX98GZQ89QFMCN49M22F54XV",
@@ -75,10 +125,20 @@
         "reference": "APPROVE (reviewer-renata): all 5 DoD pass; FR-007+FR-010; strict exit 0; surgical diff.",
         "reviewer": "reviewer-renata",
         "verdict": "approved"
-      }
+      },
+      "shell_pid": 55097,
+      "subtasks": {
+        "T022": "done",
+        "T023": "done",
+        "T024": "done"
+      },
+      "tracker_refs": [
+        "kentonium3/kg-automation#327"
+      ]
     },
     "WP06": {
       "actor": "merge",
+      "agent": "claude",
       "force_count": 0,
       "lane": "done",
       "last_event_id": "01KX98H4DEMWHAB0KBGV2HXP6P",
@@ -87,10 +147,22 @@
         "reference": "APPROVE (reviewer-renata): all 6 DoD pass; ExecStart guard + OnFailure + enable-last F9 gate all test-proven; fixes #711 hazard.",
         "reviewer": "reviewer-renata",
         "verdict": "approved"
-      }
+      },
+      "shell_pid": 69736,
+      "subtasks": {
+        "T025": "done",
+        "T026": "done",
+        "T027": "done",
+        "T028": "done",
+        "T029": "done"
+      },
+      "tracker_refs": [
+        "kentonium3/kg-automation#327"
+      ]
     },
     "WP07": {
       "actor": "merge",
+      "agent": "claude",
       "force_count": 0,
       "lane": "done",
       "last_event_id": "01KX98H5WXQQEK860PJ0B02RTA",
@@ -99,7 +171,17 @@
         "reference": "APPROVE (reviewer-renata): all 5 DoD pass; runbook accurate vs shipped code; linked from INDEX+PORTAL; DEC-007 valid; no JSON edit.",
         "reviewer": "reviewer-renata",
         "verdict": "approved"
-      }
+      },
+      "shell_pid": 73281,
+      "subtasks": {
+        "T030": "done",
+        "T031": "done",
+        "T032": "done",
+        "T033": "done"
+      },
+      "tracker_refs": [
+        "kentonium3/kg-automation#327"
+      ]
     }
   }
 }

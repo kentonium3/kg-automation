@@ -17,14 +17,15 @@ subtasks:
 - T016
 - T017
 - T018
-agent: "claude:opus-4-6:implementer:implementer"
-shell_pid: "97329"
+agent: claude:opus-4-6:implementer:implementer
+shell_pid: '97329'
 history:
 - date: '2026-04-13'
   action: created
   agent: claude-opus-4-6
 authoritative_surface: scripts/openclaw/enforcement/
 execution_mode: code_change
+lane: planned
 owned_files:
 - scripts/openclaw/enforcement/remediation.py
 - scripts/openclaw/enforcement/notification.py

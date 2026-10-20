@@ -16,14 +16,15 @@ subtasks:
 - T013
 - T014
 - T015
-agent: "claude:opus-4.6:reviewer:reviewer"
-shell_pid: "42860"
+agent: claude:opus-4.6:reviewer:reviewer
+shell_pid: '42860'
 history:
 - date: '2026-04-10T17:15:00Z'
   action: created
   by: spec-kitty.tasks
 authoritative_surface: docs/runbooks/
 execution_mode: code_change
+lane: planned
 owned_files:
 - docs/runbooks/vikunja-date-handling.md
 tags: []

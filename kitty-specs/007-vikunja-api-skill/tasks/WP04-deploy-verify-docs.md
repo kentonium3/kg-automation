@@ -19,6 +19,7 @@ history:
   actor: claude
 authoritative_surface: docs/
 execution_mode: code_change
+lane: planned
 mission_id: 01KN5QX3WHZRDC03C5G6MQ2Y75
 owned_files:
 - docs/design/architecture/data/data-flows.json

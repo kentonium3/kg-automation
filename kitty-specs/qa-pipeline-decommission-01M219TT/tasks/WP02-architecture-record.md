@@ -27,6 +27,7 @@ authoritative_surface: docs/design/architecture/
 create_intent:
 - docs/runbooks/qa-pipeline-decommission.md
 execution_mode: code_change
+lane: planned
 owned_files:
 - docs/design/architecture/**
 - docs/runbooks/**

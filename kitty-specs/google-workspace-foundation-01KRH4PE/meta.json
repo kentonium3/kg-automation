@@ -7,6 +7,7 @@
   "mission_type": "software-dev",
   "slug": "google-workspace-foundation-01KRH4PE",
   "source_description": "Phase 2 implementation of GitHub issue #100. ADR-0001 (committed in a0a7660) selected option A (gog CLI) via Linuxbrew. This mission delivers the documentation and architecture artifacts that complete the integration: operator runbook, service-inventory entries, credential-manifest update, identity-model note, legacy script deprecation, and post-merge verification recipe. Closes #100 and #120 on merge. Built on the live setup work completed 2026-05-13 (Linuxbrew install, gog brew install, OAuth client creation, OAuth scopes for 6 services granted, refresh token minted, end-to-end auth verified for Calendar, Gmail, Drive, Contacts).",
+  "status_phase": "1",
   "target_branch": "main",
   "vcs": "git"
 }

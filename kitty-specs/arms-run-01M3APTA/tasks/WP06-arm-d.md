@@ -24,6 +24,7 @@ create_intent:
 - scripts/research/arms849/arm_d.py
 - tests/research/test_arms849_arm_d.py
 execution_mode: code_change
+lane: planned
 owned_files:
 - scripts/research/arms849/arm_d.py
 - tests/research/test_arms849_arm_d.py

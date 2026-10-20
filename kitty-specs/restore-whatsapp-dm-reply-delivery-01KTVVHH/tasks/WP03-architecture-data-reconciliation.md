@@ -5,7 +5,6 @@ dependencies: []
 requirement_refs:
 - FR-011
 - FR-012
-tracker_refs: []
 planning_base_branch: main
 merge_target_branch: main
 branch_strategy: Planning artifacts for this mission were generated on main. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into main unless the human explicitly redirects the landing branch.
@@ -15,8 +14,8 @@ subtasks:
 - T015
 - T016
 - T017
-agent: "claude:opus:reviewer-renata:reviewer"
-shell_pid: "49713"
+agent: claude:opus:reviewer-renata:reviewer
+shell_pid: '49713'
 history:
 - event: created
   timestamp: '2026-06-11T18:30:00Z'
@@ -24,6 +23,7 @@ history:
 agent_profile: curator-carla
 authoritative_surface: docs/design/architecture/
 execution_mode: planning_artifact
+lane: planned
 mission_id: 01KTVVHHBJKKG3JPMGRVHSB81P
 mission_slug: restore-whatsapp-dm-reply-delivery-01KTVVHH
 owned_files:
@@ -35,6 +35,7 @@ owned_files:
 - docs/design/architecture/data-flows.view.md
 role: curator
 tags: []
+tracker_refs: []
 ---
 
 ## ⚡ Do This First: Load Agent Profile

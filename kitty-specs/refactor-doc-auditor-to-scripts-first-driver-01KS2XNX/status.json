@@ -1,5 +1,5 @@
 {
-  "event_count": 155,
+  "event_count": 165,
   "last_event_id": "01KS5K38ZS35EJRHCQECMHHR3V",
   "materialized_at": "2026-05-21T15:40:04.985419+00:00",
   "mission_number": "44",
@@ -19,83 +19,174 @@
   "work_packages": {
     "WP01": {
       "actor": "user",
+      "agent": "codex:gpt-5:spec-kitty-review:reviewer",
       "force_count": 3,
       "lane": "approved",
       "last_event_id": "01KS37QHDAWVXYAAC0KKHPKKJ2",
       "last_transition_at": "2026-05-20T17:42:57.194744+00:00",
-      "review_result": null
+      "review_result": null,
+      "shell_pid": 46024,
+      "subtasks": {
+        "T001": "done",
+        "T002": "done",
+        "T003": "done",
+        "T004": "done",
+        "T005": "done"
+      }
     },
     "WP02": {
       "actor": "user",
+      "agent": "codex:gpt-5:spec-kitty-review:reviewer",
       "force_count": 2,
       "lane": "approved",
       "last_event_id": "01KS390VHRHMS7BW8S44NV9Q32",
       "last_transition_at": "2026-05-20T18:05:31.064668+00:00",
-      "review_result": null
+      "review_result": null,
+      "shell_pid": 52371,
+      "subtasks": {
+        "T006": "done",
+        "T007": "done",
+        "T008": "done",
+        "T009": "done",
+        "T010": "done"
+      }
     },
     "WP03": {
       "actor": "user",
+      "agent": "codex:gpt-5:spec-kitty-review:reviewer",
       "force_count": 3,
       "lane": "approved",
       "last_event_id": "01KS3C4K5SQMQ6B42Z9979XDT3",
       "last_transition_at": "2026-05-20T18:59:59.289906+00:00",
-      "review_result": null
+      "review_result": null,
+      "shell_pid": 63336,
+      "subtasks": {
+        "T011": "done",
+        "T012": "done",
+        "T013": "done",
+        "T014": "done",
+        "T015": "done"
+      }
     },
     "WP04": {
       "actor": "user",
+      "agent": "codex:gpt-5:spec-kitty-review:reviewer",
       "force_count": 3,
       "lane": "approved",
       "last_event_id": "01KS3E5SS6V5JDX8BY43J707W5",
       "last_transition_at": "2026-05-20T19:35:35.975019+00:00",
-      "review_result": null
+      "review_result": null,
+      "shell_pid": 71886,
+      "subtasks": {
+        "T016": "done",
+        "T017": "done",
+        "T018": "done",
+        "T019": "done",
+        "T020": "done",
+        "T021": "done"
+      }
     },
     "WP05": {
       "actor": "user",
+      "agent": "codex:gpt-5:spec-kitty-review:reviewer",
       "force_count": 2,
       "lane": "approved",
       "last_event_id": "01KS3HRM40B9VQ5ANP6GHQMN4S",
       "last_transition_at": "2026-05-20T20:38:18.496094+00:00",
-      "review_result": null
+      "review_result": null,
+      "shell_pid": 76770,
+      "subtasks": {
+        "T022": "done",
+        "T023": "done",
+        "T024": "done",
+        "T025": "done"
+      }
     },
     "WP06": {
       "actor": "user",
+      "agent": "codex:gpt-5:spec-kitty-review:reviewer",
       "force_count": 7,
       "lane": "approved",
       "last_event_id": "01KS5B41W2FVXJFSTQN8X9JYJG",
       "last_transition_at": "2026-05-21T13:20:41.859030+00:00",
-      "review_result": null
+      "review_result": null,
+      "shell_pid": 15196,
+      "subtasks": {
+        "T026": "done",
+        "T027": "done",
+        "T028": "done",
+        "T029": "done",
+        "T030": "done",
+        "T031": "done"
+      }
     },
     "WP07": {
       "actor": "user",
+      "agent": "codex:gpt-5:spec-kitty-review:reviewer",
       "force_count": 2,
       "lane": "approved",
       "last_event_id": "01KS5CPRYD4YPTFGSYKN26TZCG",
       "last_transition_at": "2026-05-21T13:48:23.885319+00:00",
-      "review_result": null
+      "review_result": null,
+      "shell_pid": 20967,
+      "subtasks": {
+        "T032": "done",
+        "T033": "done",
+        "T034": "done",
+        "T035": "done"
+      }
     },
     "WP08": {
       "actor": "user",
+      "agent": "codex:gpt-5:spec-kitty-review:reviewer",
       "force_count": 4,
       "lane": "approved",
       "last_event_id": "01KS5EVX4Z5X7HBQXP6BWVPN54",
       "last_transition_at": "2026-05-21T14:26:09.184092+00:00",
-      "review_result": null
+      "review_result": null,
+      "shell_pid": 29972,
+      "subtasks": {
+        "T036": "done",
+        "T037": "done",
+        "T038": "done",
+        "T039": "done"
+      }
     },
     "WP09": {
       "actor": "user",
+      "agent": "codex:gpt-5:spec-kitty-review:reviewer",
       "force_count": 2,
       "lane": "approved",
       "last_event_id": "01KS5FVDD2BQQ3022VBYZPYJAZ",
       "last_transition_at": "2026-05-21T14:43:21.634703+00:00",
-      "review_result": null
+      "review_result": null,
+      "shell_pid": 33376,
+      "subtasks": {
+        "T040": "done",
+        "T041": "done",
+        "T042": "done",
+        "T043": "done",
+        "T044": "done",
+        "T045": "done"
+      }
     },
     "WP10": {
       "actor": "user",
+      "agent": "codex:gpt-5:spec-kitty-review:reviewer",
       "force_count": 4,
       "lane": "approved",
       "last_event_id": "01KS5K38ZS35EJRHCQECMHHR3V",
       "last_transition_at": "2026-05-21T15:40:04.985419+00:00",
-      "review_result": null
+      "review_result": null,
+      "shell_pid": 44410,
+      "subtasks": {
+        "T046": "done",
+        "T047": "done",
+        "T048": "done",
+        "T049": "done",
+        "T050": "done",
+        "T051": "done"
+      }
     }
   }
 }

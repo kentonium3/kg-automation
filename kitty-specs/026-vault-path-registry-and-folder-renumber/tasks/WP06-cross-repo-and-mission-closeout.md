@@ -15,14 +15,15 @@ subtasks:
 - T035
 - T036
 - T037
-agent: "claude:opus-4-6:implementer:implementer"
-shell_pid: "31150"
+agent: claude:opus-4-6:implementer:implementer
+shell_pid: '31150'
 history:
 - date: '2026-04-11T01:15:00Z'
   action: created
   by: spec-kitty.tasks
 authoritative_surface: kitty-specs/026-vault-path-registry-and-folder-renumber/research/
 execution_mode: planning_artifact
+lane: planned
 owned_files:
 - kitty-specs/026-vault-path-registry-and-folder-renumber/research/wp06-mission-closeout.md
 tags: []

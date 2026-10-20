@@ -22,14 +22,15 @@ subtasks:
 - T009
 - T010
 - T011
-agent: "claude"
-shell_pid: "40557"
+agent: claude
+shell_pid: '40557'
 history:
 - event: created
   at: '2026-05-12T20:55:30Z'
   by: 'spec-kitty.tasks (auto-drive via #185)'
 authoritative_surface: scripts/inbox/
 execution_mode: code_change
+lane: planned
 owned_files:
 - scripts/inbox/inject_parse_error_marker.py
 - scripts/inbox/strip_parse_error_marker.py

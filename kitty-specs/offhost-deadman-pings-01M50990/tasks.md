@@ -21,7 +21,7 @@ Inputs: [spec.md](spec.md) · [plan.md](plan.md) (read the four "Post-plan … d
 
 ## WP01 — `scripts/common/deadman.py`
 
-**Prompt**: [tasks/WP01-deadman-module.md](tasks/WP01-deadman-module.md) · **Depends on**: none
+**Prompt**: [tasks/WP01-deadman-module.md
 
 T001 (WP01)
 T002 (WP01)
@@ -31,7 +31,7 @@ T005 (WP01)
 
 ## WP02 — felix-canary pings
 
-**Prompt**: [tasks/WP02-canary-hook.md](tasks/WP02-canary-hook.md) · **Depends on**: WP01
+**Prompt**: [tasks/WP02-canary-hook.md
 
 T006 (WP02)
 T007 (WP02)
@@ -39,14 +39,14 @@ T008 (WP02)
 
 ## WP03 — felix-health-check pings
 
-**Prompt**: [tasks/WP03-healthcheck-hook.md](tasks/WP03-healthcheck-hook.md) · **Depends on**: WP01
+**Prompt**: [tasks/WP03-healthcheck-hook.md
 
 T009 (WP03)
 T010 (WP03)
 
 ## WP04 — Architecture data, docs, runbook
 
-**Prompt**: [tasks/WP04-docs-and-arch-data.md](tasks/WP04-docs-and-arch-data.md) · **Depends on**: WP01
+**Prompt**: [tasks/WP04-docs-and-arch-data.md
 
 T011 (WP04)
 T012 (WP04)

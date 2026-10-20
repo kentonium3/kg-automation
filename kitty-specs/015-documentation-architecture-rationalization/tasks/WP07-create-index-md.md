@@ -28,14 +28,15 @@ subtasks:
 - T031
 phase: Phase 2 - Master Index
 assignee: ''
-agent: "claude"
-shell_pid: "5374"
+agent: claude
+shell_pid: '5374'
 history:
 - at: '2026-04-05T01:28:56Z'
   actor: system
   action: Prompt generated via /spec-kitty.tasks
 authoritative_surface: docs/INDEX.md
 execution_mode: code_change
+lane: planned
 owned_files:
 - docs/INDEX.md
 ---

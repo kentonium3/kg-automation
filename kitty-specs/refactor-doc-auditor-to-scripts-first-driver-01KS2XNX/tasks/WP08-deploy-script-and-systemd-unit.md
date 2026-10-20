@@ -15,14 +15,15 @@ subtasks:
 - T039
 phase: Phase 4 — Verification
 assignee: ''
-agent: "codex:gpt-5:spec-kitty-review:reviewer"
-shell_pid: "29972"
+agent: codex:gpt-5:spec-kitty-review:reviewer
+shell_pid: '29972'
 history:
 - timestamp: '2026-05-20T16:25:00Z'
   agent: system
   action: Prompt generated via /spec-kitty.tasks
 authoritative_surface: scripts/office2/
 execution_mode: code_change
+lane: planned
 owned_files:
 - scripts/office2/felix-doc-auditor.service
 - scripts/office2/felix-doc-auditor.timer

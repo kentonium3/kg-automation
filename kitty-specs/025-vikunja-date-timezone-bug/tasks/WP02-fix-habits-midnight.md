@@ -18,14 +18,15 @@ subtasks:
 - T007
 - T008
 - T009
-shell_pid: "37013"
-agent: "claude:opus-4.6:reviewer:reviewer"
+agent: claude:opus-4.6:reviewer:reviewer
+shell_pid: '37013'
 history:
 - date: '2026-04-10T17:15:00Z'
   action: created
   by: spec-kitty.tasks
 authoritative_surface: scripts/openclaw/agents/felix-admin-habits/
 execution_mode: code_change
+lane: planned
 owned_files:
 - scripts/openclaw/agents/felix-admin-habits/AGENTS.md
 tags: []

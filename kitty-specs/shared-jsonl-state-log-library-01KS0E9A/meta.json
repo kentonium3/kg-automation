@@ -7,6 +7,7 @@
   "mission_type": "software-dev",
   "slug": "shared-jsonl-state-log-library-01KS0E9A",
   "source_description": "GitHub issue #305 (Phase 2 of ADR-0002). Builds the shared JSONL state-log infrastructure per ADR Q5-C. Foundation for downstream phases 3-7 (habits, escalation, tasker migrations to JSONL state model).",
+  "status_phase": "1",
   "target_branch": "main",
   "vcs": "git"
 }

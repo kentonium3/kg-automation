@@ -19,6 +19,7 @@ history:
   by: spec-kitty.tasks
 authoritative_surface: docs/
 execution_mode: code_change
+lane: planned
 owned_files:
 - docs/design/architecture/service-inventory.md
 tags: []
