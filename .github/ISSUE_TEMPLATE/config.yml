@@ -3,3 +3,6 @@ contact_links:
   - name: Felix Documentation
     url: https://github.com/kentonium3/kg-automation/blob/main/docs/INDEX.md
     about: Read the documentation index before filing an issue
+  - name: Spec-Kitty bug (file upstream, not here)
+    url: https://github.com/spec-kitty/spec-kitty-qa/blob/main/docs/runbooks/spec-kitty-bug-reporting.md
+    about: Spec-kitty reporting is single-track since 2026-09-28. Follow the spec-kitty-qa runbook and file upstream; do not open a kg-automation tracking issue. Other tooling bugs use the Bug form with area/tooling.

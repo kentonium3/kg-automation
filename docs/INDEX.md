@@ -250,7 +250,7 @@ Active troubleshooting and upstream bug reporting.
 - [Spec-Kitty Upstream Filing Packet — rc4](<./diagnostics/spec-kitty-upstream-filing-packet-rc4.md>) — work order for the spec-kitty QA bot: six ready-to-post upstream posts (one new defect, three persistence-after-closure, one verification report, one comment on open #4902) with suggested labels, plus what is verified fixed and the do-not-file list; exists because upstream label/priority privileges sit with the work-hat account, not the personal hat that does the analysis
 - [Spec-Kitty External Bug Report Template](<./diagnostics/spec-kitty-bug-report-external-template.md>) — slim template for upstream submission; source for transient paste docs at `{slug}-external.md`
 - [Spec-Kitty Upstream Issue Comment Template](<./diagnostics/spec-kitty-upstream-comment-template.md>) — peer template for commenting on an *existing* upstream issue (recurrence/persistence, supplying a missing build SHA, evidence, or responding to a maintainer); mandates the 9-char build ID and the pre-posting approval gate
-- [Spec-Kitty Bug Report Template (deprecated)](<./diagnostics/spec-kitty-bug-report-template.md>) — original combined internal+external template; superseded 2026-05-28 by the dual-track workflow (internal issue template at `.github/ISSUE_TEMPLATE/spec-kitty-bug.md` + external template above); retained as reference during the migration window
+- [Spec-Kitty Bug Report Template (deprecated)](<./diagnostics/spec-kitty-bug-report-template.md>) — original combined internal+external template; superseded 2026-05-28 by the dual-track workflow, itself retired 2026-09-28 for single-track upstream filing per the spec-kitty-qa runbook (the internal issue form was removed 2026-10-20); retained as reference
 
 ---
 
