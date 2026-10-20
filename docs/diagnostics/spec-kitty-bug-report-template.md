@@ -1,173 +1,30 @@
 ---
-title: "Bug Report: {short title}"
-doc_type: diagnostic
-status: active
----
-# Bug Report: {short title}
-
-**Date**: YYYY-MM-DD
-**Spec-Kitty Build**: {X.Y.Z (pinned tag SHA <9char>) or X.Y.Z (main build, SHA <9char>)}
-**Reporter**: {name} (via {agent or tool})
-**Priority**: {Critical | High | Medium | Low} — {one-line impact}
-**Status**: {PENDING INVESTIGATION | READY TO FILE | FILED #issue | FIXED in version}
-
-## Summary
-
-{One-paragraph problem statement. What went wrong and why it matters. No more than 4-5 sentences.}
-
-## Reproduction
-
-### Prerequisites
-
-- {Preconditions required to hit the bug}
-- {State the repo/feature/workflow must be in}
-
-### Steps
-
-```bash
-{exact commands to reproduce}
-```
-
-### Expected Behavior
-
-{What should happen according to documentation, command name, or reasonable expectations.}
-
-### Actual Behavior
-
-{What actually happens. Include command output verbatim when available.}
-
-```text
-{command output / error message / diff showing the unexpected mutation}
-```
-
-### Root Cause
-
-{If known or strongly suspected, describe the mechanism. Link to source files in the spec-kitty-cli package if reproducible.}
-
-## Workaround Applied ({Feature ID})
-
-{Describe what the user/agent did to work around the bug. Include exact commands if they were run, and call out any manual steps that violated normal workflow.}
-
-```bash
-{workaround commands}
-```
-
-## Suggested Fix
-
-Option A: {primary recommendation}
-
-Option B: {alternative approach}
-
-Option C: {fallback / defensive option}
-
-## Impact
-
-- {Who hits this and how often}
-- {What work is lost or corrupted if not worked around}
-- {Downstream consequences in the spec-kitty workflow}
-
-## Environment
-
-- OS: {e.g., macOS Darwin 25.3.0 / Windows 11 26200}
-- Python: {e.g., 3.13.12}
-- spec-kitty-cli: {X.Y.Z (pinned tag SHA <9char>) or X.Y.Z (main build, SHA <9char>)}
-- Install method: {e.g., uv tool install from PyPI / pipx from git main}
-- Feature: {feature-slug where bug observed}
-
-<!--
-The 9-char build SHA is MANDATORY - a bare version string does not identify
-a build. Resolve it per the Build-ID convention in
-runbooks/spec-kitty-bug-reporting.md, and name the repository line alongside it.
--->
-
-## Open Questions
-
-1. **{Question about root cause, scope, or behavior under different conditions}?**
-   {Context + what's unknown.}
-
-2. **{Question about fix design or compatibility}?**
-   {Context.}
-
-## Next Steps
-
-- {Action needed to validate, reproduce more cleanly, or file upstream}
-- {Data to gather before filing}
-
-## Discovered
-
-YYYY-MM-DD by {name/agent} during {feature or workflow context}
-
+id: spec-kitty-bug-report-template
+doc_type: reference
+title: Spec-Kitty Bug Report Template (SUPERSEDED — pointer)
+status: deprecated
+level: reference
+owners: [kent]
+last_validated: 2026-10-20
+version: 9.0.0
 ---
 
-## Template Usage Notes
+# Spec-Kitty Bug Report Template — SUPERSEDED
 
-**Filename convention** (three tiers):
+⛔ **This copy is retired. Do not follow it. Do not restore it from history.**
 
-- **In progress** (still gathering evidence, not yet ready to file): no prefix.
-  Filename is just `{short-slug}.md`. Report is a stub, needs investigation,
-  or has unresolved root-cause questions.
-- **Ready to submit** (evidence complete, awaiting filing): `xx_{short-slug}.md`.
-  The `xx_` prefix visually groups reports that are actionable-but-unfiled.
-- **Submitted** (has an upstream issue number): `{issue-number}_{short-slug}.md`.
-  Replace `xx_` with the GitHub issue number once filed
-  (e.g., `42_finalize-tasks-strips-dependencies.md`).
-- **Archived** (issue resolved, released, and confirmed in our workflow):
-  `git mv` to `docs/archive/spec-kitty-feedback/{issue-number}_{short-slug}.md`.
-  Historical record only; no further maintenance.
-- **F### feature number**: do NOT include in the filename. Record the
-  originating feature in the `## Discovered` section inside the doc body.
-  Filename audience = maintainer (who doesn't care which F# surfaced it);
-  F### audience = us (who traces lineage via the doc body).
-- **Template filename**: stays `_TEMPLATE_bug_report.md` — the leading
-  underscore keeps it sorted at the top of all three active tiers.
+This was the original combined internal+external template, deprecated since 2026-05-28.
 
-**Typical progression**:
+**The canonical procedure** is `~/repos/spec-kitty-qa/docs/runbooks/spec-kitty-bug-reporting.md`, with its templates in
+`~/repos/spec-kitty-qa/docs/templates/`:
+- `spec-kitty-bug-report-external-template.md` — a new upstream issue
+- `spec-kitty-upstream-comment-template.md` — a comment on an existing OPEN issue
 
-```text
-stub-or-draft.md                                       → evidence gathering
-xx_stub-or-draft.md                                    → renamed when ready to file
-42_stub-or-draft.md                                    → renamed when upstream issue opened
-docs/archive/spec-kitty-feedback/42_stub-or-draft.md   → moved after fix released + confirmed
-```
+Spec-kitty reporting is **single-track** since 2026-09-28: file upstream directly, and do not
+create a `kentonium3/kg-automation` tracking issue. The dual-track model this copy belonged to
+(internal tracker issue, then a slim upstream report generated from it) is retired. See the
+retired pointer [`runbooks/spec-kitty-bug-reporting.md`](<../runbooks/spec-kitty-bug-reporting.md>)
+for what changed.
 
-**Directory-listing sort order** (alphabetical, by leading character):
-
-1. `_TEMPLATE_*.md` (underscore sorts first)
-2. `{issue#}_*.md` (digits sort before letters)
-3. `xx_*.md` (lowercase x)
-4. `{slug}.md` (no prefix — drafts in progress)
-
-This groups submitted reports together, ready-to-submit together, and
-in-progress together, visible at a glance.
-
-**When to create a new bug report**:
-
-- Behavior contradicts documentation, command help text, or a flag's name
-- Workflow produces corrupted/inconsistent state
-- A spec-kitty command silently destroys user-authored data
-- Recurring behavior that required manual compensation
-
-**When NOT to create a bug report**:
-
-- One-off errors that didn't reproduce after investigation
-- User error (misused flag, wrong working directory)
-- Feature requests or enhancements (file as proposal instead)
-
-**Required evidence for filing**:
-
-- At least one reproducible path (even if not minimal)
-- Command output showing the unexpected behavior
-- Git diff or state snapshot showing data loss/mutation if applicable
-- Environment details (version, OS, Python)
-
-**Cross-reference the running journal**:
-
-The [spec-kitty workflow journal](<./spec-kitty-workflow-journal.md>) captures
-observations during feature work. Promote an entry to a standalone bug report
-here when:
-
-- The observation has stabilized into a reproducible bug
-- You have enough evidence to write a minimal repro
-- The issue warrants upstream attention from the spec-kitty maintainer
-
-Link the report back to the journal entry via the `## Discovered` section.
+**A stale duplicate is worse than a missing document.** It is kept only as a pointer, so that
+links from older filing packets still resolve.

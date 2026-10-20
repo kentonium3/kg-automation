@@ -13,7 +13,7 @@ tags: [416]
 
 **Related**:
 - Upstream bug reports are now tracked as GitHub issues (archived reports at `docs/archive/spec-kitty-feedback/`)
-- Bug report template: `docs/diagnostics/spec-kitty-bug-report-template.md`
+- Bug reporting: single-track, per `~/repos/spec-kitty-qa/docs/runbooks/spec-kitty-bug-reporting.md` (the local templates in this directory are retired pointers)
 - This file is a running internal log; entries may graduate to GitHub issues when they warrant upstream attention
 
 ---
