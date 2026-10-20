@@ -23,9 +23,8 @@ protocols are linked, not inlined.
 - **The test is INTENT, not possible readership.** A record does not need review because a
   teammate could theoretically read it one day. It needs review when it is *written to be read*
   by someone other than Kent. Conversely a post in one of his own repos **does** need sign-off
-  if it is addressed to a maintainer or teammate — for example an upstream draft embedded in a
-  local issue, which stays gated by the pre-filing approval step (see the spec-kitty
-  bug-reporting runbook).
+  if it is addressed to a maintainer or teammate — for example an upstream issue draft, which
+  stays gated by the pre-filing approval step (see the spec-kitty bug-reporting runbook).
 - When the audience is genuinely unclear, ask — one question is cheaper than a retraction.
 - The no-`@mentions`-of-outsiders rule below still applies to local tracking records regardless.
 
@@ -55,7 +54,8 @@ protocols are linked, not inlined.
 - **Exception — the named spec-kitty mission-running repo set** (`kg-automation`, `spec-kitty`,
   `spec-kitty-analyzer`, `spec-kitty-saas`, `spec-kitty-telescope`, `vikunja-harness`): the
   **Spec-Kitty workflow-fault detour protocol** (below) supersedes the *stop-and-ask-how-to-proceed*
-  step. There you still fully **capture** the evidence (diagnose + track the issue) and still get
+  step. There you still fully **capture** the evidence (diagnose + file or update the upstream
+  issue) and still get
   Kent's sign-off on any **upstream** copy, but you run the detour **autonomously** and only halt
   when there is **no pre-known workaround**. This narrows *where you must halt* — never the duty to
   preserve evidence, and never the ban on silent (improvised) workarounds.
@@ -84,26 +84,35 @@ protocols are linked, not inlined.
   `~/.claude/CLAUDE.md`. If that runbook's paths do not match the machine you are on, **that is the
   bug — fix the runbook**; never fall back to `--version`.
 
-## Spec-Kitty (and sibling tooling) issue reporting
-- Follow the dual-track runbook `~/repos/kg-automation/docs/runbooks/spec-kitty-bug-reporting.md`.
-  Do NOT file upstream ad-hoc. Flow: file the INTERNAL status tracker as a
-  `kentonium3/kg-automation` issue (template `.github/ISSUE_TEMPLATE/spec-kitty-bug.md`), then
-  generate the slim EXTERNAL upstream report from it via
-  `docs/diagnostics/spec-kitty-bug-report-external-template.md`.
-- Internal kg-automation issues use the `.github/ISSUE_TEMPLATE/` forms (bug / feature / infra /
-  docs-debt / research / rfc).
+## Spec-Kitty (and sibling tooling) issue reporting — SINGLE-TRACK
+- **Single-track since 2026-09-28. Do NOT create `kentonium3/kg-automation` tracking issues for
+  spec-kitty defects**, and do not keep a local mirror of an upstream issue. File upstream
+  directly. Existing kg-automation spec-kitty issues stay as history only; do not add to them.
+- The ONE canonical procedure: `~/repos/spec-kitty-qa/docs/runbooks/spec-kitty-bug-reporting.md`
+  (dedup → intent check → draft → Kent's sign-off → file → register), with templates in
+  `~/repos/spec-kitty-qa/docs/templates/`. Do NOT file upstream ad-hoc.
+- ⛔ `~/repos/kg-automation/docs/runbooks/spec-kitty-bug-reporting.md` and
+  `spec-kitty-workflow-fault-protocol.md` are **retired pointers**. Never follow them as procedure.
+  The dual-track model (internal tracker issue, then a slim external report generated from it)
+  is gone. Following it was a measured failure on 2026-10-20: this file still prescribed it, and
+  a session created a local tracker issue that the canonical runbook had retired.
+- Workarounds are recorded in the registry `~/repos/spec-kitty-qa/docs/spec-kitty-issues.md`
+  (a row per open upstream issue that needs one), which is team-facing copy and gated as such.
+- kg-automation's own non-spec-kitty work still uses the `.github/ISSUE_TEMPLATE/` forms (bug /
+  feature / infra / docs-debt / research / rfc).
 
 ## Spec-kitty workflow-fault detour protocol (named repo set)
 - **Applies in:** `kg-automation`, `spec-kitty`, `spec-kitty-analyzer`, `spec-kitty-saas`,
   `spec-kitty-telescope`, `vikunja-harness`. On ANY unexpected spec-kitty (or sibling-tooling)
   workflow fault in these repos, run the protocol
-  `~/repos/kg-automation/docs/runbooks/spec-kitty-workflow-fault-protocol.md` **autonomously** —
+  `~/repos/spec-kitty-qa/docs/runbooks/spec-kitty-workflow-fault-protocol.md` **autonomously** —
   do NOT stop to ask how to proceed when a workaround is pre-known. Evidence-preservation is
   unchanged (met by diagnose+track, not by halting).
   1. **Stop the failing action and fully diagnose the root cause** while evidence is fresh (exact
      command+error, state, code inspection); note the spec-kitty build.
-  2. **Local issue** (kg-automation): exists → comment noting recurrence on the current build (or
-     persistence on a newer build); none → create per `spec-kitty-bug-reporting.md`.
+  2. **Registry check** — read `~/repos/spec-kitty-qa/docs/spec-kitty-issues.md`. If the symptom
+     is there, apply its workaround (step 4). ⛔ **No kg-automation tracking issue** (single-track;
+     see *issue reporting* above).
   3. **Upstream — dedup, then one of exactly three dispositions.** Search the upstream queue,
      **open AND closed**:
      - **no match** → **open a new issue**;
@@ -118,10 +127,11 @@ protocols are linked, not inlined.
      State the title explicitly in the request — do not assume it can be inferred from the body.]**
      ⚠ **Canonical procedure lives in ONE place:**
      `spec-kitty-qa/docs/runbooks/spec-kitty-bug-reporting.md`. Follow it, not a local copy.
-  4. **Known workaround** (documented in the runbook's registry / a tracked issue / upstream /
-     memory) → apply it and continue. An **improvised** workaround is NOT "known" — improvising is
+  4. **Known workaround** (documented in the registry `spec-kitty-qa/docs/spec-kitty-issues.md` /
+     an upstream issue / memory) → apply it and continue. An **improvised** workaround is NOT "known" — improvising is
      a prohibited silent workaround → treat as step 5.
   5. **No known workaround → [STOP: present continue-with-a-manual-step vs abandon-mission.]**
 - The **only** stops in this set are the two upstream-copy reviews (3) and the no-workaround
   decision (5). Outside the set, the general stop-and-capture rule (stop + surface) applies. Full
-  protocol + the Known-Workarounds Registry live in the runbook above.
+  protocol: `spec-kitty-qa/docs/runbooks/spec-kitty-workflow-fault-protocol.md`; workarounds
+  registry: `spec-kitty-qa/docs/spec-kitty-issues.md`.
