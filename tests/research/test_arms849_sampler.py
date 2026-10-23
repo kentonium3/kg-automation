@@ -14,11 +14,16 @@ REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT))
 
 from scripts.research.arms849 import sampler as SM
+from tests.research.conftest import CORPUS, RESEARCH_ENVIRONMENT_SKIP_REASON
 
 CID = "f00dfacecafe" * 5 + "beef"
 T0 = datetime(2026, 9, 25, 22, 0, 0, tzinfo=timezone.utc)
 STEP = timedelta(seconds=SM.SAMPLE_INTERVAL_S)
 EPS = timedelta(microseconds=1)
+# The ledger-backed test below borrows test_arms849_ledger's helpers, so it borrows that
+# module's corpus gate too (its pytestmark does not travel with the import).
+needs_ledger_corpus = pytest.mark.skipif(
+    not (CORPUS / "entities.json").exists(), reason=RESEARCH_ENVIRONMENT_SKIP_REASON)
 
 
 class FakeClock:
@@ -438,6 +443,7 @@ def test_report_refuses_a_symlink_even_when_it_names_a_valid_series(tmp_path):
     assert report["peak_mib"] == "could_not_check: unsafe_path"
 
 
+@needs_ledger_corpus
 @pytest.mark.parametrize("series_bytes, interval_s, reason", [
     (b"not json\n", 1.0, "malformed"),
     (None, 1e308, "invalid_interval"),
