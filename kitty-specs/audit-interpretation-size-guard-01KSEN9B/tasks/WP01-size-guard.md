@@ -23,14 +23,15 @@ subtasks:
 - T003
 - T004
 - T005
-shell_pid: "84183"
-agent: "codex:gpt-5:spec-kitty-review:reviewer"
+agent: codex:gpt-5:spec-kitty-review:reviewer
+shell_pid: '84183'
 history:
 - event: planned
   timestamp: '2026-05-25T04:13:30Z'
   note: Created by /spec-kitty.tasks under mission audit-interpretation-size-guard-01KSEN9B
 authoritative_surface: scripts/doc_audit/judgment/
 execution_mode: code_change
+lane: planned
 mission_slug: audit-interpretation-size-guard-01KSEN9B
 owned_files:
 - scripts/doc_audit/judgment/audit_interpretation.py

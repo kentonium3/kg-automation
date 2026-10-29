@@ -7,6 +7,7 @@
   "mission_type": "software-dev",
   "slug": "028-agent-workspace-reconciliation",
   "source_description": "https://github.com/kentonium3/kg-automation/issues/166",
+  "status_phase": "1",
   "target_branch": "main",
   "vcs": "git"
 }

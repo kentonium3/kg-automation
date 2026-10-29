@@ -1,5 +1,5 @@
 {
-  "event_count": 7,
+  "event_count": 8,
   "last_event_id": "01KXBB1XW7K9A30VXCANWR4ETC",
   "materialized_at": "2026-07-12T14:17:46.119711+00:00",
   "mission_number": "97",
@@ -19,6 +19,7 @@
   "work_packages": {
     "WP01": {
       "actor": "merge",
+      "agent": "claude",
       "force_count": 0,
       "lane": "done",
       "last_event_id": "01KXBB1XW7K9A30VXCANWR4ETC",
@@ -27,6 +28,17 @@
         "reference": "reviewer-renata APPROVE; nit folded (delete-inconsistent action for INV-8)",
         "reviewer": "Kent Gale",
         "verdict": "approved"
+      },
+      "shell_pid": 16518,
+      "subtasks": {
+        "T001": "done",
+        "T002": "done",
+        "T003": "done",
+        "T004": "done",
+        "T005": "done",
+        "T006": "done",
+        "T007": "done",
+        "T008": "done"
       }
     }
   }

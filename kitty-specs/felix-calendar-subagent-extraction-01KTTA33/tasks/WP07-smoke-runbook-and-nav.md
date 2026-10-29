@@ -5,7 +5,6 @@ dependencies:
 - WP02
 requirement_refs:
 - FR-011
-tracker_refs: []
 planning_base_branch: main
 merge_target_branch: main
 branch_strategy: Planning artifacts for this mission were generated on main. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into main unless the human explicitly redirects the landing branch.
@@ -14,21 +13,23 @@ subtasks:
 - T035
 - T036
 phase: Phase 3 - Acceptance Substrate
-shell_pid: "46069"
+agent: claude::reviewer-renata:reviewer
+shell_pid: '46069'
 history:
 - at: '2026-06-11T03:26:12Z'
   actor: system
   action: Prompt generated via /spec-kitty.tasks
+agent_profile: curator-carla
 authoritative_surface: docs/
 execution_mode: code_change
+lane: planned
 owned_files:
 - docs/runbooks/felix-calendar-subagent-extraction-01KTTA33-smoke.md
 - docs/INDEX.md
 - docs/DEVELOPER_PORTAL.md
-tags: []
-agent_profile: curator-carla
 role: curator
-agent: "claude::reviewer-renata:reviewer"
+tags: []
+tracker_refs: []
 ---
 
 # Work Package Prompt: WP07 – Smoke runbook + navigation entries

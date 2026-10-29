@@ -63,7 +63,7 @@ WP01 (Registry + Config)
 
 ## WP01: Registry and Config Foundation
 
-**Prompt**: [tasks/WP01-registry-config-foundation.md](tasks/WP01-registry-config-foundation.md)
+**Prompt**: [tasks/WP01-registry-config-foundation.md
 **Priority**: Critical (blocks all other WPs)
 **Dependencies**: None
 **Estimated size**: ~300 lines
@@ -90,7 +90,7 @@ add log_verbosity to all agents, and expose the verbosity lookup in config.py.
 
 ## WP02: Log Writer (log_action.py)
 
-**Prompt**: [tasks/WP02-log-writer.md](tasks/WP02-log-writer.md)
+**Prompt**: [tasks/WP02-log-writer.md
 **Priority**: High
 **Dependencies**: WP01
 **Estimated size**: ~500 lines
@@ -122,7 +122,7 @@ Can run simultaneously with WP03 — no file overlap.
 
 ## WP03: summarize.py JSONL Rewrite
 
-**Prompt**: [tasks/WP03-summarize-jsonl-rewrite.md](tasks/WP03-summarize-jsonl-rewrite.md)
+**Prompt**: [tasks/WP03-summarize-jsonl-rewrite.md
 **Priority**: High
 **Dependencies**: WP01
 **Estimated size**: ~500 lines
@@ -157,7 +157,7 @@ Can run simultaneously with WP02 — no file overlap.
 
 ## WP04: Agent AGENTS.md Updates
 
-**Prompt**: [tasks/WP04-agent-docs-update.md](tasks/WP04-agent-docs-update.md)
+**Prompt**: [tasks/WP04-agent-docs-update.md
 **Priority**: Medium
 **Dependencies**: WP02
 **Estimated size**: ~350 lines
@@ -184,7 +184,7 @@ No fields silently dropped.
 
 ## WP05: Infrastructure and Deploy
 
-**Prompt**: [tasks/WP05-infrastructure-deploy.md](tasks/WP05-infrastructure-deploy.md)
+**Prompt**: [tasks/WP05-infrastructure-deploy.md
 **Priority**: Medium
 **Dependencies**: WP03, WP04
 **Estimated size**: ~400 lines
@@ -210,7 +210,7 @@ and include the gitignore update step for the second-brain repo.
 
 ## WP06: Documentation and Architecture
 
-**Prompt**: [tasks/WP06-documentation-architecture.md](tasks/WP06-documentation-architecture.md)
+**Prompt**: [tasks/WP06-documentation-architecture.md
 **Priority**: Medium
 **Dependencies**: WP05
 **Estimated size**: ~450 lines

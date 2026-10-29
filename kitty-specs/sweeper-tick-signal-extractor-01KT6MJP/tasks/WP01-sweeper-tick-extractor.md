@@ -35,15 +35,16 @@ subtasks:
 - T005
 - T006
 - T007
-shell_pid: "61874"
-agent: "claude"
-assignee: "claude"
+assignee: claude
+agent: claude
+shell_pid: '61874'
 history:
 - timestamp: '2026-06-03T11:50:00Z'
   actor: claude:opus-4-7:planner
   action: created
 authoritative_surface: scripts/openclaw/observation/
 execution_mode: code_change
+lane: planned
 owned_files:
 - scripts/openclaw/observation/signals/sweeper_tick.py
 - scripts/openclaw/observation/signals/config_loader.py

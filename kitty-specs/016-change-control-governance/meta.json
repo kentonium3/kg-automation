@@ -6,7 +6,8 @@
   "mission_slug": "016-change-control-governance",
   "mission_type": "software-dev",
   "slug": "change-control-governance",
-  "source_description": "Five-tier risk taxonomy (Tier 0 Hard Lock \u2192 Tier 4 Auto-Commit), service inventory enrichment with dependencies and health checks, pre-flight checklists, post-change verification, CLAUDE.md guardrail enforcement, incident postmortem template and process, documentation standards principle. Triggered by 2026-04-03 Vikunja UFW outage.",
+  "source_description": "Five-tier risk taxonomy (Tier 0 Hard Lock → Tier 4 Auto-Commit), service inventory enrichment with dependencies and health checks, pre-flight checklists, post-change verification, CLAUDE.md guardrail enforcement, incident postmortem template and process, documentation standards principle. Triggered by 2026-04-03 Vikunja UFW outage.",
+  "status_phase": "1",
   "target_branch": "main",
   "vcs": "git"
 }

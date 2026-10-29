@@ -19,14 +19,15 @@ subtasks:
 - T005
 - T006
 - T007
-agent: "claude"
-shell_pid: "5229"
+agent: claude
+shell_pid: '5229'
 history:
 - event: created
   at: '2026-05-12T20:55:30Z'
   by: 'spec-kitty.tasks (auto-drive via #185)'
 authoritative_surface: scripts/inbox/prescan.py
 execution_mode: code_change
+lane: planned
 owned_files:
 - scripts/inbox/prescan.py
 - tests/inbox/test_prescan_parse_failure.py

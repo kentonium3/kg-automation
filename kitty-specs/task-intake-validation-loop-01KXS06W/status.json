@@ -1,5 +1,5 @@
 {
-  "event_count": 47,
+  "event_count": 53,
   "last_event_id": "01KXS99SGGM5DMKXEQBKX2BB9X",
   "materialized_at": "2026-07-18T00:16:28.689015+00:00",
   "mission_number": "105",
@@ -19,6 +19,7 @@
   "work_packages": {
     "WP01": {
       "actor": "merge",
+      "agent": "claude:opus:reviewer-renata:reviewer",
       "force_count": 0,
       "lane": "done",
       "last_event_id": "01KXS98M3JRNS355GB02VD9Z6R",
@@ -27,10 +28,19 @@
         "reference": "reviewer-renata APPROVE: 12 kent-owned labels ids 18-29 on seam; validator+354 tests green",
         "reviewer": "Kent Gale",
         "verdict": "approved"
+      },
+      "shell_pid": 57404,
+      "shell_pid_created_at": "1784327736.623405",
+      "subtasks": {
+        "T001": "done",
+        "T002": "done",
+        "T003": "done",
+        "T004": "done"
       }
     },
     "WP02": {
       "actor": "merge",
+      "agent": "claude:opus:reviewer-renata:reviewer",
       "force_count": 0,
       "lane": "done",
       "last_event_id": "01KXS98X8YCQ86YH6THC7HY6YD",
@@ -39,10 +49,20 @@
         "reference": "reviewer-renata APPROVE: felix-bot read, immutable per-digest_id record + overwrite guard, f:4 exclusion, SC-009, 29 tests",
         "reviewer": "Kent Gale",
         "verdict": "approved"
+      },
+      "shell_pid": 63112,
+      "shell_pid_created_at": "1784328759.330247",
+      "subtasks": {
+        "T005": "done",
+        "T006": "done",
+        "T007": "done",
+        "T008": "done",
+        "T009": "done"
       }
     },
     "WP03": {
       "actor": "merge",
+      "agent": "claude:opus:reviewer-renata:reviewer",
       "force_count": 0,
       "lane": "done",
       "last_event_id": "01KXS9951PD77QG6AJMZWRYWZX",
@@ -51,10 +71,19 @@
         "reference": "reviewer-renata APPROVE: sparse parser + seam resolution + real fallback guard, 58 tests green",
         "reviewer": "Kent Gale",
         "verdict": "approved"
+      },
+      "shell_pid": 62768,
+      "shell_pid_created_at": "1784328720.142682",
+      "subtasks": {
+        "T010": "done",
+        "T011": "done",
+        "T012": "done",
+        "T013": "done"
       }
     },
     "WP04": {
       "actor": "merge",
+      "agent": "claude:opus:reviewer-renata:reviewer",
       "force_count": 1,
       "lane": "done",
       "last_event_id": "01KXS99BN3P0KE37Q63WCP2XN2",
@@ -63,10 +92,24 @@
         "reference": "reviewer-renata APPROVE (cycle 2): kent-token family-replace, Tier-2 matrix, per-line statuses, closes #750; 128 tests",
         "reviewer": "Kent Gale",
         "verdict": "approved"
-      }
+      },
+      "shell_pid": 72078,
+      "shell_pid_created_at": "1784330437.759753",
+      "subtasks": {
+        "T014": "done",
+        "T015": "done",
+        "T016": "done",
+        "T017": "done",
+        "T018": "done",
+        "T019": "done"
+      },
+      "tracker_refs": [
+        "750"
+      ]
     },
     "WP05": {
       "actor": "merge",
+      "agent": "claude:opus:reviewer-renata:reviewer",
       "force_count": 0,
       "lane": "done",
       "last_event_id": "01KXS99JDKH4JEC9YTAF7RWRKJ",
@@ -75,10 +118,18 @@
         "reference": "reviewer-renata APPROVE: capture scan+digest + main apply-reply wiring faithful to helpers; .tmpl parity; 268 tests",
         "reviewer": "Kent Gale",
         "verdict": "approved"
+      },
+      "shell_pid": 77883,
+      "shell_pid_created_at": "1784331567.670278",
+      "subtasks": {
+        "T020": "done",
+        "T021": "done",
+        "T022": "done"
       }
     },
     "WP06": {
       "actor": "merge",
+      "agent": "claude:opus:reviewer-renata:reviewer",
       "force_count": 0,
       "lane": "done",
       "last_event_id": "01KXS99SGGM5DMKXEQBKX2BB9X",
@@ -87,7 +138,18 @@
         "reference": "reviewer-renata APPROVE: docs sync + manifest-free deploy accurate; validators green; nav coverage; #750 closure documented",
         "reviewer": "Kent Gale",
         "verdict": "approved"
-      }
+      },
+      "shell_pid": 86934,
+      "shell_pid_created_at": "1784333305.009575",
+      "subtasks": {
+        "T023": "done",
+        "T024": "done",
+        "T025": "done",
+        "T026": "done"
+      },
+      "tracker_refs": [
+        "750"
+      ]
     }
   }
 }

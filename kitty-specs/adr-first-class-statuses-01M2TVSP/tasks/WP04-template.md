@@ -24,6 +24,7 @@ authoritative_surface: docs/_templates/
 create_intent:
 - tests/docs_standards/test_adr_template.py
 execution_mode: code_change
+lane: planned
 owned_files:
 - docs/_templates/decision.md
 - tests/docs_standards/test_adr_template.py

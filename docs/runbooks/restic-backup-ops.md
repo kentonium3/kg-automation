@@ -6,8 +6,8 @@ status: approved
 level: 2
 owners: [kent]
 audience: agents_and_humans
-last_validated: '2026-08-30'
-updated_by: 'pointer-key-ledger-01M189P6 (#934) + #511'
+last_validated: '2026-10-15'
+updated_by: 'backup-failure-cause-in-alert-01M502K3 (#1067) + canary-deadman-backup-coverage-01M4XVY3 (#1063) + pointer-key-ledger-01M189P6 (#934) + #511'
 ---
 
 # Restic Backup Operations
@@ -16,16 +16,12 @@ The nightly backup for office2. Runs as a plain cron job under the `claude`
 user with `NOPASSWD sudo` for one specific script — there is no systemd
 unit or timer, so `systemctl status` will not find it.
 
-> ⚠️ **Operator action pending (mission `pointer-key-ledger-01M189P6`, #934).**
-> The repo producer (`scripts/office2/restic-backup.sh`) now writes **schema
-> v2, fourteen keys**. The copy actually running on office2 still writes
-> **schema v1, ten keys**, until an operator installs the update by hand —
-> see [Operator handoff: installing the schema v2 producer](#operator-handoff-installing-the-schema-v2-producer)
-> below. **Until that install happens, the live `restic-backup` canary
-> component will read unhealthy** on the four adjudicated keys it cannot yet
-> see. That is the ledger working as designed, not the mission having broken
-> the backup — see the sequencing warning in that section before reacting to
-> the alert.
+> **Current state (2026-10-15).** The deployed `backup.sh` matches the repo
+> producer (`schema_version: 2`, fifteen keys including `failure_reason`).
+> Kent installed the #1067 version at 17:07Z from commit `ca5451e2`, and
+> `backup-script-drift` reported `match` at 17:08:53Z. The earlier #934 install
+> (ten keys to fourteen) was also done before that. No operator action is
+> pending.
 
 ## Where things live
 
@@ -74,10 +70,14 @@ warnings) both pass.
 
 The pointer at `/data/services/backup/state/last-backup.json` is written
 atomically (`.tmp` + `mv`) by `backup.sh` on every exit — success OR
-failure — so a stale pointer always means the cron has not fired.
+failure — so a stale pointer means the cron has not fired, or the run was
+killed by SIGKILL (for example the OOM killer) or host loss, which runs no
+exit handler and leaves the previous run's pointer in place.
 
-**Fourteen keys, `schema_version: 2`.** The four rows marked **new** below
-were added by mission `pointer-key-ledger-01M189P6` (#934). Which keys
+**Fifteen keys, `schema_version: 2`.** The four rows marked **new** below
+were added by mission `pointer-key-ledger-01M189P6` (#934); `failure_reason`
+was added by `backup-failure-cause-in-alert-01M502K3` (#1067) without a schema
+bump, because it is diagnostic only. Which keys
 *decide health* and which are recorded for diagnosis only is no longer
 prose here — it is the machine-readable declaration at
 `health_check.key_ledger` on the `restic-backup` entry in
@@ -102,6 +102,7 @@ for adjudication.
 | `files_processed` **(new)** | `.total_file_count` from `restic stats --mode files-by-contents latest --json` | Adjudicated, minimum 1. Distinguishes a real capture from an empty one — a source-path typo or an over-broad exclude can exit 0 with a fresh snapshot and capture nothing (US4). |
 | `source_roots_present` **(new)** | whether every path in `SOURCE_ROOTS` appears in the latest snapshot's `paths` | Adjudicated, `good_values: [true]`. A partial capture — one configured root silently missing — is not mistaken for a complete one. `good_values` carries no `unmeasured_is_unknown` modifier (only `minimum` predicates may), so a producer-emitted `null` here (evaluation genuinely could not run) is **unhealthy**, not unknown — a narrower guarantee than `snapshot_count`'s, worth knowing before assuming the two behave alike. |
 | `repo_fs_free_bytes` **(new)** | `df -B1 --output=avail` on the filesystem backing `RESTIC_REPOSITORY` | Adjudicated, minimum 53687091200 (50 GiB). The approach to a full volume is visible before the backup starts failing outright (US5). |
+| `failure_reason` (#1067) | a fixed code set by the script on the way out; see [Failure cause in alerts](#failure-cause-in-alerts-failure_reason-1067) | Diagnostic only, never decides health. `null` when the run completed (even if the prune or integrity check failed); otherwise `backup_mount_missing`, `repo_inaccessible`, `backup_failed` or `unclassified`. The ledger's `cause` member turns the code into the words on the alert. |
 
 ## Key ledger: what decides health
 
@@ -206,11 +207,13 @@ ssh office2-claude 'cat /data/services/backup/drift/script-drift-last-tick.json'
 
 ### What this does not cover
 
-- **The canary's own liveness is self-observed.** `felix-canary`'s
-  `tick-signal-file` health check is probed only by the canary process
-  itself, so a stopped runner does not run, therefore does not probe,
-  therefore never reports itself stale. This mission does not fix that; it
-  is recorded as an open risk (spec R-001), not closed here.
+- **The canary's liveness is now watched independently (closed by #1063).**
+  This was recorded here as open risk R-001, and it is exactly what happened:
+  from 2026-09-27 to 2026-10-14 the canary was dark (#1062) and every backup
+  failed with no alert. `felix-health-check` (an independent calendar timer)
+  now evaluates both `felix-canary`'s tick and this `restic-backup` ledger
+  twice a day through the canary's own evaluator. See
+  [What tells you backups stopped](#what-tells-you-backups-stopped).
 - **Sixteen other pointer-emitting components have no ledger.** This
   mechanism covers `restic-backup` (and its sibling retention keys) only.
   The adoption path for the rest is tracked as
@@ -246,6 +249,108 @@ ssh office2-kgale 'sudo RESTIC_REPOSITORY=/mnt/backups/restic-repo \
   RESTIC_PASSWORD_FILE=/etc/restic/password \
   restic snapshots --latest 5'
 ```
+
+### Backup drive missing (`/mnt/backups not mounted`)
+
+**Symptom:** the backup log shows `ERROR: /mnt/backups not mounted. Backup
+drive missing?` and the pointer has `restic_exit_code: 127` with a null
+`snapshot_timestamp_utc` (and, once the #1067 script is installed,
+`failure_reason: "backup_mount_missing"`; the alert then says "backup drive
+/mnt/backups is not mounted"). Seen for 17 days after the 2026-09-27 reboot (#1064).
+
+`/etc/fstab` mounts the drive with `nofail`, so a missing drive never stops
+the boot and nothing fails loudly. Work through these in order:
+
+1. **Find the drive by model, not by `sdX`.** The kernel name drifts, and the
+   internal card reader's empty slots also appear as 0-byte `sdX` devices.
+   ```bash
+   ssh office2-claude 'lsblk -d -o NAME,SIZE,TRAN,MODEL | grep -i -E "easystore|WD10SDRW"'
+   ```
+   A real size (931.5G) means the drive is fine and only needs mounting (step 4).
+   **0B** means the USB adapter answers but the disk behind it doesn't. In
+   sysfs, `ioerr_cnt` ≈ `iodone_cnt` confirms every I/O is failing.
+2. **0B → check the port.** The drive is bus-powered. It must be on a **USB 3**
+   port (`lsusb -t` shows `5000M` for it). On a USB 2.0 port (`480M`, 500 mA)
+   it may fail to spin up after a power cycle. Unplugging is safe while it is
+   unmounted. Move it to a rear USB 3 port with no hub. Messages like
+   `failed to bind enclosure -19` and `Failed to get diagnostic page 0x1` on the
+   console are harmless WD enclosure noise.
+3. **Before trusting it, check health** (as `office2-kgale`):
+   ```bash
+   sudo smartctl -a -d sat /dev/sdX
+   sudo fsck.ext4 -n /dev/sdX1
+   ```
+   Require SMART PASSED with 0 reallocated, pending and uncorrectable sectors
+   and a spin-retry count of 0, plus a clean fsck. If it still shows 0B on
+   another machine, the drive or its adapter has failed: start a fresh
+   repository on a replacement rather than waiting.
+4. **Mount, back up, verify** (as `office2-kgale`):
+   ```bash
+   sudo mount /mnt/backups
+   sudo /data/services/backup/scripts/backup.sh
+   sudo restic -r /mnt/backups/restic-repo --password-file /etc/restic/password check
+   ```
+   The weekly integrity check only runs on Sundays, so run `restic check`
+   explicitly after any unclean disconnect.
+
+   ⚠️ A manual `restic check` does **not** update `last_integrity_check_utc`:
+   only `backup.sh`'s Sunday block writes it. If the outage spanned Sundays,
+   the ledger keeps reporting `restic-backup` **failed** on that key (9-day
+   bound) until the next Sunday 04:00 run, even though the snapshot is fresh.
+   That is expected; it clears on its own. (Seen 2026-10-14 → 10-18.)
+
+### What tells you backups stopped
+
+Two independent watchers judge this pointer by the same declaration
+(`health_check.key_ledger` above):
+
+- **felix-canary**, every 15 minutes, through its dedup windows (first
+  sighting pages; a persisting failure re-reminds).
+- **felix-health-check**, at 11:00 and 23:00 UTC, as a `coverage:restic-backup`
+  detail on its alert (#1063). It does not depend on the canary running, and
+  it also reports when the canary itself has stopped ticking.
+
+A missed 04:00 run is reported by the first health-check run after the
+snapshot passes its 28 h bound, at most about 12 h later. A run that ran,
+failed and wrote its pointer pages sooner: the canary's next tick, within
+about 15 minutes. A run killed outright (SIGKILL, for example the OOM killer,
+or host loss) writes no pointer at all; the previous pointer survives, and
+only the staleness bound reports it.
+
+`backup.sh` itself does not alert, on purpose. It runs as root, and the alert
+bus is code the `claude` user can write; root running it would amount to
+giving `claude` root (#899). #1067 instead made both watchers' alerts say *why*
+the run failed; see the next section.
+
+### Failure cause in alerts (`failure_reason`, #1067)
+
+When a run does not complete, the script records a cause code in the pointer.
+The `restic-backup` key ledger's `cause` member maps it to plain words, which
+felix-canary and felix-health-check append to their alert as
+`; cause: <words>`. The cause only decorates an alert the ledger has already
+decided to send: it never changes health, and never changes how often
+alerts fire.
+
+| Code | What happened | What to do |
+|---|---|---|
+| `backup_mount_missing` | `/mnt/backups` was not a mountpoint, so nothing ran | Follow [Backup drive missing](#backup-drive-missing-mntbackups-not-mounted). |
+| `repo_inaccessible` | `restic snapshots --latest 1` failed. Causes: a wrong or unreadable password file, a stale lock, a damaged repository, or a repository directory that is missing or unreadable even though the drive is mounted | Kent, from his own terminal: confirm `/etc/restic/password` exists (root, 600) and `/mnt/backups/restic-repo` is present. If the run's log names a lock, first make sure no backup is running (`pgrep -f backup.sh` prints nothing). Then clear stale locks with `ssh office2-kgale 'sudo RESTIC_REPOSITORY=/mnt/backups/restic-repo RESTIC_PASSWORD_FILE=/etc/restic/password restic unlock'`. Plain `unlock` removes only stale locks. Finish with the same form of `restic check`, which reads the whole repository and takes a while. |
+| `backup_failed` | `restic backup` exited with a code other than 0 or 3 | Read `/data/services/backup/logs/backup-<date>.log` for the restic error. |
+| `unclassified` | The run stopped some other way, or exited non-zero after the backup: typically stopped by a catchable signal (SIGTERM or SIGINT from a cron or systemd stop) before it finished | Read the same log and `journalctl` around 04:00. Then [trigger a backup manually](#trigger-a-backup-manually). |
+
+A run killed by SIGKILL (the OOM killer, `kill -9`) or by host loss runs no
+exit handler, so it records **no** cause. The pointer from the previous run is
+left in place, and the run surfaces only as a stale snapshot, not as a fresh
+failure.
+
+A completed run records `null`, even when the prune or the Sunday integrity
+check failed. Those conditions already page under their own keys
+(`prune_exit_code`, `last_integrity_check_utc`).
+
+The cause appears only once the #1067 version of `backup.sh` is installed by
+hand (see [Operator handoff](#operator-handoff-installing-the-schema-v2-producer)).
+Until then the pointer has no `failure_reason`, and alerts read exactly as
+before.
 
 ### Restore from a snapshot
 
@@ -302,10 +407,34 @@ runs as `claude`; and `claude` has no passwordless sudo. There is no credential
 or grant this install could use that the pipeline itself has access to — the
 repo change genuinely cannot install itself (spec C-002).
 
-### ⚠️ pointer-key-ledger-01M189P6 (#934): this install is currently outstanding
+### backup-failure-cause-in-alert-01M502K3 (#1067): install completed
+
+> Completed 2026-10-15. Installed at 17:07Z from commit
+> `ca5451e2e5a516e82e52c68392b22ee0118144d9`, md5
+> `fcd9ddc137488877adac2fbc4b1e67b5`. `backup-script-drift` reported `match` at
+> 17:08:53Z. The first 04:00 run afterwards should write fifteen keys with
+> `"failure_reason": null`. The text below is kept as the record.
+
+The repo copy now writes `failure_reason` (fifteen keys, still
+`schema_version: 2`). Install it with the steps in
+[Installing an updated script](#installing-an-updated-script), using the
+mission's merge commit as `<commit-sha>`. Then confirm two things:
+`backup-script-drift` reports `match`, and the next 04:00 pointer has
+`"failure_reason": null`.
+
+Unlike the #934 install below, nothing reads unhealthy while this one is
+pending. `failure_reason` is `diagnostic_only`, and an absent diagnostic key
+is not a failure. Until the install, alerts simply lack the cause text.
+
+### pointer-key-ledger-01M189P6 (#934): install completed
+
+> Completed. Verified 2026-10-15: the live pointer has fourteen keys and
+> `backup-script-drift` reports `match`. The text below is kept as the record
+> of that install. Its key counts are as of #934; #1067 later made the repo
+> producer fifteen keys.
 
 As of this mission's merge, `scripts/office2/restic-backup.sh` writes
-`schema_version: 2` (fourteen keys — four new, see
+`schema_version: 2` (fourteen keys at #934, fifteen after #1067 — four new, see
 [Health-pointer schema](#health-pointer-schema-511-schema-v2-as-of-pointer-key-ledger-01m189p6934)
 above). **The mission is not complete until an operator runs the install below
 and the drift comparator reports converged** (spec C-002) — follow the steps
@@ -326,7 +455,7 @@ installing.
 
 **Sequencing consequence — read before you install, and before you react to
 an alert.** Until this install lands, the deployed producer keeps emitting
-ten keys while the ledger declares fourteen. The four keys the old producer
+ten keys while the ledger declares fourteen (fifteen after #1067, whose added key is diagnostic only, so its absence is never unhealthy). The four keys the old producer
 never wrote are absent-adjudicated keys, and absence is unconditionally
 unhealthy (contract "Absence (unconditional)") — so the **live**
 `restic-backup` canary component reads unhealthy from the moment this
@@ -366,7 +495,14 @@ world-writable and invites a swap between fetch and install):
 curl -fsSL -o ~/restic-backup.sh https://raw.githubusercontent.com/kentonium3/kg-automation/<commit-sha>/scripts/office2/restic-backup.sh
 ```
 
-Confirm the content hash matches the commit you reviewed:
+Confirm the content hash matches the commit you reviewed. Get the expected
+hash from your own clone of the repo, not from office2:
+
+```bash
+git show <commit-sha>:scripts/office2/restic-backup.sh | md5sum
+```
+
+Then compare it with the downloaded file:
 
 ```bash
 md5sum ~/restic-backup.sh
@@ -403,7 +539,7 @@ complete — neither alone is sufficient:
    `verdict` must read `match`. See [Reading the drift signal](#reading-the-drift-signal)
    below for what the other two values mean.
 
-2. **The next real backup run emits all fourteen keys.** After the following
+2. **The next real backup run emits all fourteen keys** (fifteen once the #1067 script is installed, with `failure_reason: null` on a completed run). After the following
    night's cron fire (or a manual trigger, see
    [Trigger a backup manually](#trigger-a-backup-manually)):
 
@@ -411,7 +547,8 @@ complete — neither alone is sufficient:
    ssh office2-claude 'jq "keys | length" /data/services/backup/state/last-backup.json'
    ```
 
-   Must read `14`, and `schema_version` must read `2`. Until both of these
+   Must read `15` (it read `14` between the #934 and #1067 installs), and
+   `schema_version` must read `2`. Until both of these
    verifications pass, treat the live `restic-backup` component's unhealthy
    reads on the four new keys as the expected, correct state described in
    the sequencing warning above — not a new incident.
@@ -456,7 +593,9 @@ What genuinely remains not-yet-automated:
 - The cron has not been migrated to a systemd timer. Discoverability is
   via this runbook plus `service-inventory.json`; `systemctl` queries
   will return nothing for the backup itself.
-- **The canary's own liveness is self-observed** (spec R-001) and
+- **Both watchers share a host, a checkout and an alert channel.** If
+  office2 or the ntfy topic is lost, both go quiet together
+  ([#1069](https://github.com/kentonium3/kg-automation/issues/1069)). And
   **sixteen other pointer-emitting components have no key ledger** (#937) —
   see [What this does not cover](#what-this-does-not-cover) above. These
   remain true independent of everything else in this runbook.

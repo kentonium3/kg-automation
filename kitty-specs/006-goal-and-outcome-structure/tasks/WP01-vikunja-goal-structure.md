@@ -28,6 +28,7 @@ history:
   action: Prompt generated via /spec-kitty.tasks
 authoritative_surface: kitty-specs/006-goal-and-outcome-structure/
 execution_mode: code_change
+lane: planned
 mission_id: 01KN5QX3WGCV3TGJ9CKAPFQ5N7
 owned_files:
 - kitty-specs/006-goal-and-outcome-structure/data-model.md

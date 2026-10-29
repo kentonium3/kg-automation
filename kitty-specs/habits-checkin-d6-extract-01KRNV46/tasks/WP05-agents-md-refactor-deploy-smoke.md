@@ -19,8 +19,8 @@ subtasks:
 - T017
 - T018
 - T019
-agent: "codex:gpt-5:code-reviewer:reviewer"
-shell_pid: "10897"
+agent: codex:gpt-5:code-reviewer:reviewer
+shell_pid: '10897'
 history:
 - event: created
   at: '2026-05-15T17:15:12Z'
@@ -28,6 +28,7 @@ history:
   note: WP05 prompt generated
 authoritative_surface: scripts/openclaw/agents/felix-admin-habits/AGENTS.md
 execution_mode: code_change
+lane: planned
 mission_slug: habits-checkin-d6-extract-01KRNV46
 owned_files:
 - scripts/openclaw/agents/felix-admin-habits/AGENTS.md

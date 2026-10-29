@@ -52,6 +52,7 @@ from scripts.canary.registry import (
     load_inventory,
     load_targets,
 )
+from scripts.common import deadman
 from scripts.common.alert_bus import Alert, Severity, emit
 
 __all__ = ["main", "run_pass"]
@@ -263,6 +264,9 @@ def run_pass(
 
     components_evaluated = 0
     emitted = 0
+    # #1077: alerts emit_fn reported as NOT delivered (AlertResult.ok False).
+    # A fake returning None counts as delivered. Summary-only: never persisted.
+    alerts_undelivered = 0
     suppressed_dedup = 0
     suppressed_status = 0
 
@@ -297,7 +301,7 @@ def run_pass(
         first-seen unknown/gap only — the general transition invariant (F7) and
         the immediate emit for failed/stale/degraded are untouched.
         """
-        nonlocal emitted, suppressed_dedup
+        nonlocal emitted, suppressed_dedup, alerts_undelivered
         should_emit, is_recovery, new_entry = dedup_mod.decide(
             component_id, outcome, now, state, signal=signal
         )
@@ -322,7 +326,9 @@ def run_pass(
                 component_id, outcome, evidence, is_recovery=is_recovery
             )
             if not dry_run:
-                emit_fn(alert)
+                result = emit_fn(alert)
+                if getattr(result, "ok", True) is False:
+                    alerts_undelivered += 1
             did_emit = True
             emitted += 1
         elif outcome != "healthy":
@@ -470,6 +476,9 @@ def run_pass(
         "suppressed_status": suppressed_status,
         "errors": errors,
         "duration_ms": duration_ms,
+        # #1077 dead-man input; excluded from the persisted tick signal below so
+        # the TickSignal schema (and felix-canary's key-ledger) is unchanged.
+        "alerts_undelivered": alerts_undelivered,
         # Per-component one-liners (evaluation order). Not persisted to the
         # tick-signal file (excluded below); used for the --dry-run preview and
         # returned to callers/tests.
@@ -480,7 +489,10 @@ def run_pass(
     # The persisted tick-signal is the TickSignal schema only (data-model.md);
     # component_lines is a return-value convenience, not part of the signal file.
     if not dry_run:
-        tick_signal = {k: v for k, v in summary.items() if k != "component_lines"}
+        tick_signal = {
+            k: v for k, v in summary.items()
+            if k not in ("component_lines", "alerts_undelivered")
+        }
         try:
             _write_tick_signal(Path(tick_path), tick_signal)
         except Exception as exc:  # noqa: BLE001 - a tick-signal write fault is recorded, not fatal
@@ -578,6 +590,8 @@ def main(argv: list[str] | None = None) -> int:
         summary = run_pass(now=now, dry_run=args.dry_run)
     except Exception as exc:  # noqa: BLE001 - runner-level fault → non-zero exit (OnFailure)
         print(f"status=error runner_failure {exc.__class__.__name__}: {exc}")
+        if not args.dry_run and _deadman_configured():
+            _deadman_ping("fail")
         return 1
 
     if args.dry_run:
@@ -595,9 +609,41 @@ def main(argv: list[str] | None = None) -> int:
             )
         )
 
+        # #1077 off-host dead-man: liveness plus channel health, never
+        # component health. A tick that found failures but could alert is up.
+        # Unconfigured: no probe, no ping, no subprocess at all (FR-005).
+        if _deadman_configured():
+            ok, why = _channel_ok(summary.get("alerts_undelivered", 0) == 0)
+            outcome = "success" if summary.get("status") == "success" and ok else "fail"
+            if not ok:
+                print(f"deadman channel: {why}")
+            _deadman_ping(outcome)
+
     # A completed pass is exit 0 even if components are unhealthy (they emit).
     # run_pass only raises for runner-level faults, already handled above.
     return 0
+
+
+def _deadman_configured() -> bool:
+    try:
+        return deadman.is_configured("canary")
+    except Exception:  # noqa: BLE001 - deadman is total; belt and braces
+        return False
+
+
+def _channel_ok(delivered_ok: bool) -> tuple[bool, str]:
+    try:
+        return deadman.channel_ok(os.environ, delivered_ok)
+    except Exception as exc:  # noqa: BLE001 - deadman is total; belt and braces
+        return False, f"error:{exc.__class__.__name__}"
+
+
+def _deadman_ping(outcome: str) -> None:
+    """Best-effort: never changes the exit code or the tick (#1077)."""
+    try:
+        deadman.ping("canary", outcome)
+    except Exception:  # noqa: BLE001 - deadman is total; belt and braces
+        pass
 
 
 if __name__ == "__main__":  # pragma: no cover - module entry

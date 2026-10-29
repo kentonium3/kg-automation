@@ -23,6 +23,7 @@ agent_profile: curator-carla
 authoritative_surface: docs/design/architecture/adr/README.md
 create_intent: []
 execution_mode: code_change
+lane: planned
 model: ''
 owned_files:
 - docs/design/architecture/adr/README.md

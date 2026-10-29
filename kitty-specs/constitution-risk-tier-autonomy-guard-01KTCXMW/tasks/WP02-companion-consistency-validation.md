@@ -15,14 +15,15 @@ subtasks:
 - T006
 - T007
 - T008
-agent: "codex:gpt-5:docs-reviewer:reviewer"
-shell_pid: "73650"
+agent: codex:gpt-5:docs-reviewer:reviewer
+shell_pid: '73650'
 history:
 - at: '2026-06-06T00:37:37Z'
   by: spec-kitty.tasks
   note: 'Created WP02 from #528 spec and plan artifacts.'
 authoritative_surface: CLAUDE.md
 execution_mode: code_change
+lane: planned
 owned_files:
 - CLAUDE.md
 - .kittify/charter/charter.md

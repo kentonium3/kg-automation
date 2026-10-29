@@ -9,8 +9,6 @@ requirement_refs:
 - FR-013
 - FR-014
 - NFR-006
-tracker_refs:
-- kentonium3/kg-automation#597
 planning_base_branch: main
 merge_target_branch: main
 branch_strategy: Planning artifacts for this mission were generated on main. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into main unless the human explicitly redirects the landing branch.
@@ -18,18 +16,21 @@ subtasks:
 - T011
 - T012
 - T013
-agent: "claude:sonnet:reviewer-rachel:reviewer"
+agent: claude:sonnet:reviewer-rachel:reviewer
+shell_pid: '90849'
 history: []
 agent_profile: implementer-ivan
 authoritative_surface: scripts/security/
 execution_mode: code_change
+lane: planned
 mission_slug: openclaw-auth-verifier-01KV0Y9E
 owned_files:
 - scripts/security/anthropic-rotate.sh
 - tests/security/test_anthropic_rotate_gate.py
 role: implementer
 tags: []
-shell_pid: "90849"
+tracker_refs:
+- kentonium3/kg-automation#597
 ---
 
 ## ⚡ Do This First: Load Agent Profile

@@ -17,14 +17,15 @@ subtasks:
 - T034
 phase: Phase 2 - Documentation
 assignee: ''
-agent: "claude"
-shell_pid: "62497"
+agent: claude
+shell_pid: '62497'
 history:
 - at: '2026-04-05T23:00:03Z'
   actor: system
   action: Prompt generated via /spec-kitty.tasks
 authoritative_surface: docs/design/architecture/service-dependencies.view.md
 execution_mode: code_change
+lane: planned
 owned_files:
 - docs/design/architecture/service-dependencies.view.md
 ---

@@ -23,7 +23,7 @@
 
 ### WP01: Agent Update and Deployment
 
-**Prompt**: [WP01-agent-update-and-deployment.md](tasks/WP01-agent-update-and-deployment.md)
+**Prompt**: [WP01-agent-update-and-deployment.md](tasks/WP01-agent-update-and-deployment.md
 **Priority**: P0 (only WP)
 **Dependencies**: none
 **Subtasks**: T001, T002, T003, T004, T005

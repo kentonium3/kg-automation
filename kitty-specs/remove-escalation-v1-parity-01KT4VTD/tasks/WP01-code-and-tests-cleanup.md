@@ -29,14 +29,15 @@ subtasks:
 - T004
 - T005
 - T006
-shell_pid: "69299"
-agent: "codex"
+agent: codex
+shell_pid: '69299'
 history:
 - timestamp: '2026-06-02T19:30:00Z'
   actor: claude:opus-4-7:planner
   action: created
 authoritative_surface: scripts/escalation/
 execution_mode: code_change
+lane: planned
 owned_files:
 - scripts/escalation/record_completion.py
 - scripts/escalation/reconcile_completions.py

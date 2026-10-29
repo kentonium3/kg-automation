@@ -210,13 +210,21 @@ verification:
 The full manifest schema lives at `deploys/schema/manifest-v1.schema.json` —
 that file is authoritative. CI rejects any manifest that does not validate.
 
-#### Optional `expected_baselines` (CLI-mutation deploys)
+#### `expected_baselines` (drift with no signal in this commit's range)
 
-When a deploy drifts a security-monitor baseline through a runtime action with
-**no repo-file signal** — e.g. removing an OpenClaw cron via `openclaw cron rm`
-(which drifts `openclaw-cron.txt`) — declare the baselines it will drift so
-felix-deployer's auto-rebaseline (#618/#685) treats that drift as *expected*
-instead of `unexpected_drift`:
+When a deploy drifts a security-monitor baseline and **this commit's range does
+not change a file on the drifting surface**, declare the baselines it will
+drift. Two cases: a runtime action such as `openclaw cron rm` (which drifts
+`openclaw-cron.txt`), and a **reconcile deploy that installs tracked files
+changed in an earlier commit** (0029 missed this and ended
+`unexpected_drift`; #1065, #1072). "The file is tracked" is not enough. See
+[deployment.md](../deployment.md#manifest-expected_baselines-declaration).
+An entrypoint that installs units through `scripts/deploy/lib/userunits.py` is
+covered automatically by the installed-file report and declares nothing for
+those files (#1072).
+
+Declaring them lets felix-deployer's auto-rebaseline (#618/#685) treat that
+drift as *expected* instead of `unexpected_drift`:
 
 ```yaml
 audited_surface: true
@@ -225,12 +233,23 @@ expected_baselines:
 ```
 
 Validation rules (`validate_manifest`): every name must be a known
-security-monitor baseline (the 14-name set derived from
+security-monitor baseline (the 15-name set derived from
 `docs/design/architecture/data/audited-surfaces.json`), and `expected_baselines`
-requires `audited_surface: true`. Omit the field entirely for deploys whose
-audited-surface change *is* signaled by a repo-file (systemd unit, deploy
-script, etc.) — those are matched automatically. See
+requires `audited_surface: true`. Omit the field only when the
+deploy's own commit range changes the file on the drifting surface (a systemd
+unit, deploy script, etc. edited in the same range); those are matched
+automatically. See
 `docs/runbooks/deployment.md` § felix-deployer rebaseline behavior.
+
+**Entrypoints that install systemd user units use `scripts/deploy/lib/userunits.py`**
+(#1066): `apply_units` (install, one `daemon-reload`, then `restart` /
+`enable-now` / `start` per unit; a running timer only picks up a changed
+definition on restart) and `verify_unit` (the loaded config, not just the file;
+poll for a next elapse under one shared deadline). Do not copy an older
+entrypoint's hand-rolled copy/reload/verify: a guard test fails a new one. A
+unit installed from a new repo directory must also be covered by
+`docs/design/architecture/data/audited-surfaces.json` (#1065).
+`deploy-monotonic-timer-units.py` is the reference adopter.
 
 The entrypoint script MUST support two modes:
 

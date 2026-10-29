@@ -22,6 +22,7 @@ history:
   actor: claude
 authoritative_surface: kitty-specs/008-inbox-processing-migration/
 execution_mode: planning_artifact
+lane: planned
 mission_id: 01KN5QX3WJGAVA67AVPSBGXX96
 owned_files:
 - kitty-specs/008-inbox-processing-migration/**

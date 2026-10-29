@@ -53,6 +53,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
 from dataclasses import dataclass
 from datetime import date, datetime
@@ -176,8 +177,21 @@ KEY_LEDGER_MODIFIER_ALLOWLIST: dict[str, frozenset[str]] = {
 # method reads a JSON document.
 KEY_LEDGER_ELIGIBLE_METHODS: frozenset[str] = frozenset({"state-file", "tick-signal-file", "signal-file"})
 
-# The members a key_ledger object may declare (contract rule 1).
-KEY_LEDGER_MEMBERS: frozenset[str] = frozenset({"adjudicated", "diagnostic_only", "reconciliation_harness"})
+# The members a key_ledger object may declare (contract rule 1, amended for
+# rule 9 by backup-failure-cause-in-alert-01M502K3 / #1067 to admit the
+# optional ``cause`` member; authority for that member:
+# kitty-specs/backup-failure-cause-in-alert-01M502K3/contracts/key-ledger-cause-member.md).
+KEY_LEDGER_MEMBERS: frozenset[str] = frozenset(
+    {"adjudicated", "diagnostic_only", "reconciliation_harness", "cause"}
+)
+
+# Rule 9 — the optional ``cause`` member names the pointer key that carries a
+# failure-cause code and the plain-words text for each code. The text reaches
+# alert descriptions verbatim, so it is bounded and control-character free; a
+# code name is a closed identifier, never free text.
+KEY_LEDGER_CAUSE_MEMBERS: frozenset[str] = frozenset({"key", "codes"})
+KEY_LEDGER_CAUSE_CODE_PATTERN: re.Pattern[str] = re.compile(r"^[a-z][a-z0-9_]{0,63}$")
+KEY_LEDGER_CAUSE_TEXT_MAX: int = 120
 
 
 @dataclass(frozen=True, order=True)
@@ -352,7 +366,7 @@ def check_max_age_missing(entry: dict, file: str) -> Iterable[Finding]:
 
 
 def check_key_ledger(entry: dict, file: str) -> Iterable[Finding]:
-    """Validate an optional ``health_check.key_ledger`` (contract rules 1-8).
+    """Validate an optional ``health_check.key_ledger`` (contract rules 1-9).
 
     Gated on ``entry.get("health_check")``, **never** on ``"key_ledger" in
     entry``: the traversal in ``_iter_objects`` yields every nested dict, so
@@ -619,6 +633,95 @@ def check_key_ledger(entry: dict, file: str) -> Iterable[Finding]:
                 "at most one is permitted"
             ),
         )
+
+    # Rule 9 — optional ``cause`` member (#1067). Absence is always legal.
+    if "cause" in ledger:
+        yield from _check_key_ledger_cause(
+            ledger["cause"], adjudicated, diagnostic_only, file, label,
+        )
+
+
+def _cause_finding(file: str, label: str, detail: str) -> Finding:
+    return Finding(file=file, entity=label, rule="key-ledger-cause", detail=detail)
+
+
+def _check_key_ledger_cause(
+    cause: Any, adjudicated: dict, diagnostic_only: dict, file: str, label: str,
+) -> Iterable[Finding]:
+    """Rule 9: ``cause`` = ``{"key": <diagnostic_only key>, "codes": {code: text}}``.
+
+    The cause decorates alert text and must never decide health, so its key
+    has to be declared ``diagnostic_only`` and never ``adjudicated``. Every
+    declared text reaches an alert description verbatim, hence the length and
+    control-character bounds. ``adjudicated``/``diagnostic_only`` arrive
+    already normalised to ``{}`` when malformed (rules 2a/2b report that).
+    """
+    if not isinstance(cause, dict):
+        yield _cause_finding(
+            file, label, f"key_ledger.cause must be an object, got {type(cause).__name__}",
+        )
+        return
+
+    members = set(cause)
+    if members != KEY_LEDGER_CAUSE_MEMBERS:
+        extra = sorted(members - KEY_LEDGER_CAUSE_MEMBERS)
+        missing = sorted(KEY_LEDGER_CAUSE_MEMBERS - members)
+        yield _cause_finding(
+            file, label,
+            f"key_ledger.cause must have exactly the members {sorted(KEY_LEDGER_CAUSE_MEMBERS)}; "
+            f"extra {extra}, missing {missing}",
+        )
+
+    key = cause.get("key")
+    if not isinstance(key, str) or not key.strip():
+        yield _cause_finding(
+            file, label, f"key_ledger.cause.key must be a non-empty string, got {key!r}",
+        )
+    else:
+        if key in adjudicated:
+            yield _cause_finding(
+                file, label,
+                f"key_ledger.cause.key {key!r} is adjudicated; a cause key may never "
+                "decide health and must be declared diagnostic_only",
+            )
+        if key not in diagnostic_only:
+            yield _cause_finding(
+                file, label,
+                f"key_ledger.cause.key {key!r} must be declared in diagnostic_only",
+            )
+
+    codes = cause.get("codes")
+    if not isinstance(codes, dict) or not codes:
+        yield _cause_finding(
+            file, label, f"key_ledger.cause.codes must be a non-empty object, got {codes!r}",
+        )
+        return
+
+    for code, text in codes.items():
+        # fullmatch, not match: `$` also matches before a trailing newline,
+        # so `match` would accept "backup_failed\n" (WP01 review, 2026-10-15).
+        if not isinstance(code, str) or not KEY_LEDGER_CAUSE_CODE_PATTERN.fullmatch(code):
+            yield _cause_finding(
+                file, label,
+                f"key_ledger.cause code {code!r} must match {KEY_LEDGER_CAUSE_CODE_PATTERN.pattern}",
+            )
+        if not isinstance(text, str) or not text.strip():
+            yield _cause_finding(
+                file, label,
+                f"key_ledger.cause code {code!r} text must be a non-empty string, got {text!r}",
+            )
+            continue
+        if len(text) > KEY_LEDGER_CAUSE_TEXT_MAX:
+            yield _cause_finding(
+                file, label,
+                f"key_ledger.cause code {code!r} text is {len(text)} characters; "
+                f"at most {KEY_LEDGER_CAUSE_TEXT_MAX} are allowed",
+            )
+        if any(ord(ch) < 0x20 or ord(ch) == 0x7F for ch in text):
+            yield _cause_finding(
+                file, label,
+                f"key_ledger.cause code {code!r} text contains a control character",
+            )
 
 
 def check_status(entry: dict, file: str) -> Iterable[Finding]:

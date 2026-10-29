@@ -13,14 +13,15 @@ subtasks:
 - T011
 - T012
 - T013
-agent: "codex:gpt5:reviewer:reviewer"
-shell_pid: "42747"
+agent: codex:gpt5:reviewer:reviewer
+shell_pid: '42747'
 history:
 - at: '2026-05-09T23:54:00Z'
   actor: spec-kitty.tasks
   note: Initial scaffold from /spec-kitty.tasks
 authoritative_surface: docs/constitution/
 execution_mode: code_change
+lane: planned
 mission_id: 01KR7JK9QTHM5F4PD3YC43KDQW
 mission_slug: felix-doc-auditor-agent-01KR7JK9
 owned_files:

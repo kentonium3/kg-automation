@@ -13,8 +13,8 @@ base_branch: 014-felix-core-digest-WP04
 base_commit: 415450a05812b5684cbe16f034f7156f6ebea2ec
 created_at: '2026-04-04T15:54:49.207256+00:00'
 subtasks: [T022, T023, T024, T025]
-shell_pid: "99630"
-agent: "claude"
+agent: claude
+shell_pid: '99630'
 history:
 - date: '2026-04-04'
   action: created
@@ -22,6 +22,7 @@ history:
 authoritative_surface: scripts/
 execution_mode: code_change
 feature: 014-felix-core-digest
+lane: planned
 owned_files:
 - scripts/office2/felix-core-digest.timer
 - scripts/office2/felix-core-digest.service

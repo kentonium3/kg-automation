@@ -12,8 +12,8 @@ base_branch: 014-felix-core-digest-WP05
 base_commit: 861d1f1401a2975ed369677125eac0ea60285256
 created_at: '2026-04-04T16:19:37.192830+00:00'
 subtasks: [T026, T027, T028, T029, T030, T031, T032]
-shell_pid: "4269"
-agent: "claude"
+agent: claude
+shell_pid: '4269'
 history:
 - date: '2026-04-04'
   action: created
@@ -21,6 +21,7 @@ history:
 authoritative_surface: docs/
 execution_mode: code_change
 feature: 014-felix-core-digest
+lane: planned
 owned_files:
 - docs/handbooks/observation-ops.md
 - docs/design/architecture/data/service-inventory.json

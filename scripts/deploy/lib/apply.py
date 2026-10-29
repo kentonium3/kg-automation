@@ -21,16 +21,27 @@ from the contract):
 
 The orchestrator never writes the applied entry itself; callers (the
 applier in WP04) record success or failure based on the LibResult.
+
+Installed-file report (#1072): ``--apply`` alone runs with
+:data:`scripts.deploy.lib.installed_report.ENV_VAR` pointing at a fresh
+temporary file, and every other command runs with that variable removed. After
+``--apply`` (success or failure) the report is read back and every result
+returned from then on carries ``details["installed_report"]`` and
+``details["installed_report_write_failed"]``. Results returned before
+``--apply`` ran never carry them.
 """
 
 from __future__ import annotations
 
+import os
 import shlex
+import shutil
 import subprocess
+import tempfile
 from typing import Any, Mapping, Sequence
 
 from . import LibResult
-from . import snapshot, tier
+from . import installed_report, snapshot, tier
 
 # ---------------------------------------------------------------------------
 # Phase constants — MUST match contracts/dm-payload-v1.md and data-model.md.
@@ -71,8 +82,15 @@ def _excerpt(text: str | None, limit: int = _STDERR_EXCERPT_MAX) -> str:
     return text[:limit] + "...<truncated>"
 
 
-def _run_shell(cmd: str | Sequence[str]) -> LibResult:
+def _run_shell(cmd: str | Sequence[str], *, env: Mapping[str, str] | None = None) -> LibResult:
     """Run *cmd* as a subprocess and return a LibResult.
+
+    ``env`` exists for the installed-file report channel (#1072), not as
+    general plumbing: the gate passes an environment without
+    :data:`installed_report.ENV_VAR` to every command, and one with it to
+    ``--apply``. When ``env`` carries that variable, the *complete* stderr is
+    scanned for :data:`installed_report.WRITE_FAILED_MARKER` before any
+    truncation, and ``details["installed_report_write_failed"]`` is set.
 
     * ``str`` → ``shell=True`` (verification commands may use pipes, env
       expansion, etc.). Shell injection risk is acknowledged in the
@@ -99,6 +117,7 @@ def _run_shell(cmd: str | Sequence[str]) -> LibResult:
                 capture_output=True,
                 text=True,
                 check=False,
+                env=env,
             )
         except OSError as exc:
             return LibResult(
@@ -120,6 +139,7 @@ def _run_shell(cmd: str | Sequence[str]) -> LibResult:
                 capture_output=True,
                 text=True,
                 check=False,
+                env=env,
             )
         except OSError as exc:
             return LibResult(
@@ -132,6 +152,11 @@ def _run_shell(cmd: str | Sequence[str]) -> LibResult:
                 },
             )
 
+    channel: dict[str, Any] = {}
+    if env is not None and installed_report.ENV_VAR in env:
+        channel["installed_report_write_failed"] = (
+            installed_report.WRITE_FAILED_MARKER in (proc.stderr or "")
+        )
     if proc.returncode == 0:
         return LibResult(
             ok=True,
@@ -140,6 +165,7 @@ def _run_shell(cmd: str | Sequence[str]) -> LibResult:
                 "argv": argv_for_log,
                 "returncode": 0,
                 "stdout_excerpt": _excerpt(proc.stdout),
+                **channel,
             },
         )
     return LibResult(
@@ -150,6 +176,7 @@ def _run_shell(cmd: str | Sequence[str]) -> LibResult:
             "returncode": proc.returncode,
             "stdout_excerpt": _excerpt(proc.stdout),
             "stderr_excerpt": _excerpt(proc.stderr),
+            **channel,
         },
     )
 
@@ -234,10 +261,14 @@ def dry_run_then_apply_gate(
                 PHASE_SNAPSHOT,
             )
 
+    # Every command runs without the report variable, whatever the parent
+    # environment holds; only --apply gets one, pointing at a fresh file.
+    base_env = {k: v for k, v in os.environ.items() if k != installed_report.ENV_VAR}
+
     # 3. verification.pre
     verification = manifest.get("verification") or {}
     for cmd in verification.get("pre", []) or []:
-        r = _run_shell(cmd)
+        r = _run_shell(cmd, env=base_env)
         if not r.ok:
             return _with_phase(
                 LibResult(
@@ -251,7 +282,7 @@ def dry_run_then_apply_gate(
     entrypoint = manifest.get("entrypoint")
 
     # 4. entrypoint --dry-run
-    r = _run_shell([entrypoint, "--dry-run"])
+    r = _run_shell([entrypoint, "--dry-run"], env=base_env)
     if not r.ok:
         return _with_phase(
             LibResult(
@@ -262,8 +293,9 @@ def dry_run_then_apply_gate(
             PHASE_ENTRYPOINT_DRY_RUN,
         )
 
-    # 5. entrypoint --apply
-    r = _run_shell([entrypoint, "--apply"])
+    # 5. entrypoint --apply, reporting what it installed (#1072)
+    r, report = _apply_with_report(entrypoint, base_env)
+    context = {**context, **report}
     if not r.ok:
         return _with_phase(
             LibResult(
@@ -276,7 +308,7 @@ def dry_run_then_apply_gate(
 
     # 6. verification.post
     for cmd in verification.get("post", []) or []:
-        r = _run_shell(cmd)
+        r = _run_shell(cmd, env=base_env)
         if not r.ok:
             return _with_phase(
                 LibResult(
@@ -292,6 +324,45 @@ def dry_run_then_apply_gate(
         summary="applied",
         details={**context, "phase": PHASE_COMPLETE},
     )
+
+
+def _apply_with_report(entrypoint: Any, base_env: Mapping[str, str]) -> tuple[LibResult, dict[str, Any]]:
+    """Run ``<entrypoint> --apply`` with a fresh report file and read it back.
+
+    Returns the run's LibResult and the two channel keys to merge into every
+    later result. Setup, read and cleanup problems become warnings in the
+    report; none of them raises or changes the apply outcome.
+    """
+    warnings: list[str] = []
+    tmpdir: str | None = None
+    env = dict(base_env)
+    try:
+        tmpdir = tempfile.mkdtemp(prefix="felix-installed-report-")
+        report_path = os.path.join(tmpdir, "installed.jsonl")
+        env[installed_report.ENV_VAR] = report_path
+    except OSError as exc:
+        report_path = None
+        warnings.append(f"could not create the report file: {exc}")
+
+    r = _run_shell([entrypoint, "--apply"], env=env)
+    write_failed = bool(r.details.get("installed_report_write_failed", False))
+    details = {k: v for k, v in r.details.items() if k != "installed_report_write_failed"}
+    r = LibResult(ok=r.ok, summary=r.summary, details=details)
+
+    if report_path is not None:
+        try:
+            report = installed_report.read_report(report_path)
+        except Exception as exc:  # noqa: BLE001 - read_report never raises; belt and braces
+            report = {"entries": [], "rejected": True, "missing": False,
+                      "warnings": [f"reading the report failed: {exc}"]}
+    else:
+        report = {"entries": [], "rejected": False, "missing": True, "warnings": []}
+    if tmpdir is not None:
+        shutil.rmtree(tmpdir, ignore_errors=True)
+        if os.path.exists(tmpdir):
+            warnings.append(f"could not remove {tmpdir}")
+    report = {**report, "warnings": [*report.get("warnings", []), *warnings]}
+    return r, {"installed_report": report, "installed_report_write_failed": write_failed}
 
 
 __all__ = [

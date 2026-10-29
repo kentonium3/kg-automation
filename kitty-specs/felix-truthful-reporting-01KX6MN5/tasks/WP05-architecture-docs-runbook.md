@@ -8,7 +8,6 @@ dependencies:
 requirement_refs:
 - C-004
 - NFR-003
-tracker_refs: []
 planning_base_branch: fix/felix-truthful-reporting
 merge_target_branch: fix/felix-truthful-reporting
 branch_strategy: Planning artifacts for this mission were generated on fix/felix-truthful-reporting. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into fix/felix-truthful-reporting unless the human explicitly redirects the landing branch.
@@ -19,17 +18,18 @@ subtasks:
 - T024
 phase: Phase 3 - Docs
 assignee: ''
-agent: "claude:opus:reviewer-renata:reviewer"
-agent_profile: "curator-carla"
-shell_pid: "18707"
+agent: claude:opus:reviewer-renata:reviewer
+shell_pid: '18707'
 history:
 - at: '2026-07-10T18:45:00Z'
   actor: system
   action: Prompt generated via /spec-kitty.tasks
+agent_profile: curator-carla
 authoritative_surface: docs/
 create_intent:
 - docs/runbooks/trust-reporting-detector.md
 execution_mode: code_change
+lane: planned
 owned_files:
 - docs/design/architecture/data/service-inventory.json
 - docs/design/architecture/service-inventory.md
@@ -38,6 +38,7 @@ owned_files:
 - docs/DEVELOPER_PORTAL.md
 role: implementer
 tags: []
+tracker_refs: []
 ---
 
 ## ⚡ Do This First: Load Agent Profile

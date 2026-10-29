@@ -22,17 +22,18 @@ created_at: '2026-05-23T22:50:00+00:00'
 subtasks:
 - T004
 - T005
+agent: codex:gpt-5:spec-kitty-review:reviewer
+shell_pid: '74269'
 history: []
 authoritative_surface: scripts/doc_audit/helpers/
 execution_mode: code_change
+lane: planned
 mission_id: 01KSBGBS9BBDWV2Z28FESVJ9KQ
 mission_slug: audit-interpretation-moment0-01KSBGBS
 owned_files:
 - scripts/doc_audit/helpers/handle_audit_routing.py
 - tests/doc_audit/helpers/test_handle_audit_routing.py
 tags: []
-agent: "codex:gpt-5:spec-kitty-review:reviewer"
-shell_pid: "74269"
 ---
 
 # WP02 — Wire audit_interpretation into handle_audit_routing

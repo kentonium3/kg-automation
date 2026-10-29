@@ -50,6 +50,7 @@ comments at each site below for the concrete fix):
 """
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any, Literal
@@ -344,3 +345,96 @@ def evaluate(document: Any, ledger: dict[str, Any], *, now: datetime) -> LedgerR
         return _evaluate(document, ledger, now)
     except Exception as exc:  # noqa: BLE001 -- fail-safe boundary (NFR-006/TRAP 3)
         return _unknown(f"{type(exc).__name__}: {exc}")
+
+
+# --------------------------------------------------------------------------- #
+# Failure cause (contract rule 9; backup-failure-cause-in-alert-01M502K3,
+# #1067). A ledger may declare ``cause = {"key": <pointer key>, "codes":
+# {code: text}}``. The probe appends the declared text to the evidence of a
+# verdict that is ALREADY non-ok -- the cause decorates, it never decides.
+# Generic like the rest of this module: no component or key name below.
+# --------------------------------------------------------------------------- #
+
+#: Shown for a string cause value the ledger does not declare. Fixed text, so
+#: no byte the producer wrote can reach an alert description (NFR-002).
+UNRECOGNISED_CAUSE_TEXT = "unrecognised failure code"
+
+#: Mirrors the validator's KEY_LEDGER_CAUSE_TEXT_MAX (rule 9). Re-checked here
+#: because the runtime must not trust that the validator ran.
+CAUSE_TEXT_MAX = 120
+
+
+def _declared_cause_text_ok(text: Any) -> bool:
+    return (
+        isinstance(text, str)
+        and 0 < len(text) <= CAUSE_TEXT_MAX
+        and bool(text.strip())
+        and not any(ord(ch) < 0x20 or ord(ch) == 0x7F for ch in text)
+    )
+
+
+#: Mirrors the validator's KEY_LEDGER_CAUSE_CODE_PATTERN (rule 9).
+_CAUSE_CODE_PATTERN = re.compile(r"[a-z][a-z0-9_]{0,63}")
+
+
+def _cause_declaration_ok(ledger: dict) -> bool:
+    """The whole of rule 9's structure, re-checked at runtime.
+
+    A declaration the validator would reject must not decorate an alert just
+    because the runtime looked at less of it (post-merge Codex review): exact
+    members ``{key, codes}``, the key declared ``diagnostic_only`` and never
+    ``adjudicated``, every code name a closed identifier, and every declared
+    text within rule 9's bounds -- including codes this pointer does not use.
+    """
+    cause = ledger.get("cause")
+    if not isinstance(cause, dict) or set(cause) != {"key", "codes"}:
+        return False
+    key, codes = cause["key"], cause["codes"]
+    if not isinstance(key, str) or not key.strip():
+        return False
+    diagnostic_only = ledger.get("diagnostic_only")
+    adjudicated = ledger.get("adjudicated")
+    if not isinstance(diagnostic_only, dict) or key not in diagnostic_only:
+        return False
+    if isinstance(adjudicated, dict) and key in adjudicated:
+        return False
+    if not isinstance(codes, dict) or not codes:
+        return False
+    # Every code AND every text, used or not: a declaration the validator
+    # rejects is rejected whole, never decorated through its valid parts
+    # (post-merge Codex re-review).
+    return all(
+        isinstance(code, str)
+        and _CAUSE_CODE_PATTERN.fullmatch(code) is not None
+        and _declared_cause_text_ok(text)
+        for code, text in codes.items()
+    )
+
+
+def cause_text(document: Any, ledger: Any) -> str | None:
+    """Return the plain-words cause to append to a non-ok verdict, or ``None``.
+
+    Pure and total: never raises, whatever the shapes. ``None`` when the
+    ledger's ``cause`` member breaks any part of rule 9, the document is not an
+    object, or the cause value is absent, ``null`` or not a string. A string
+    the ledger declares yields its declared text -- unless that text itself
+    breaks rule 9, in which case ``None`` (a bad declaration is never
+    emitted). Any other string yields :data:`UNRECOGNISED_CAUSE_TEXT`, never
+    the raw value.
+    """
+    try:
+        if not isinstance(ledger, dict) or not isinstance(document, dict):
+            return None
+        if not _cause_declaration_ok(ledger):
+            return None
+        cause = ledger["cause"]
+        key, codes = cause["key"], cause["codes"]
+        value = document.get(key)
+        if not isinstance(value, str):
+            return None
+        if value in codes:
+            text = codes[value]
+            return text if _declared_cause_text_ok(text) else None
+        return UNRECOGNISED_CAUSE_TEXT
+    except Exception:  # noqa: BLE001 -- totality boundary, same shape as evaluate()
+        return None

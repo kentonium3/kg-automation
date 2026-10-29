@@ -7,6 +7,7 @@
   "mission_type": "software-dev",
   "slug": "001-vikunja-docker-deploy",
   "source_description": "Deploy Vikunja on office2 as the foundational task store and web UI, with automated setup script, Restic backup integration, and ops runbook.",
+  "status_phase": "1",
   "target_branch": "main",
   "vcs": "git"
 }

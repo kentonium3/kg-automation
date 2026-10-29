@@ -1,0 +1,109 @@
+{
+  "mission_slug": "deploy-runtime-installed-report-01M4ZP8E",
+  "mission_number": "118",
+  "mission_type": "software-dev",
+  "overall_verdict": "pass",
+  "criteria": [
+    {
+      "criterion_id": "FR-001",
+      "description": "Verify FR-001 is satisfied",
+      "proof_type": "automated-test",
+      "evidence": "tests/deploy/test_userunits.py::test_install_reports_exactly_the_changed_files, ::test_reinstalling_identical_files_reports_nothing, ::test_a_mid_install_failure_reports_only_what_landed",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-10-15T13:10:46.755213+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-002",
+      "description": "Verify FR-002 is satisfied",
+      "proof_type": "automated-test",
+      "evidence": "tests/deploy/test_apply_installed_report.py::test_only_apply_sees_a_fresh_report_path, ::test_pre_and_post_commands_never_see_the_variable, ::test_each_apply_gets_its_own_report_location",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-10-15T13:10:55.664738+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-003",
+      "description": "Verify FR-003 is satisfied",
+      "proof_type": "automated-test",
+      "evidence": "tests/deploy/test_tick_rebaseline.py::test_0029_replay_with_an_observed_token_completes (completed) vs ::test_0029_replay_control_without_a_report_is_unexpected_drift (real reconcile)",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-10-15T13:11:04.577740+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-004",
+      "description": "Verify FR-004 is satisfied",
+      "proof_type": "automated-test",
+      "evidence": "tests/deploy/test_installed_report.py (wholesale reject: FIFO/symlink/oversize/UTF-8/NUL/relative/limit), tests/deploy/test_rebaseline_reported.py::test_one_bad_entry_rejects_the_whole_report, tests/deploy/test_tick_rebaseline.py::test_malformed_report_completes_with_a_warning",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-10-15T13:11:13.451899+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-005",
+      "description": "Verify FR-005 is satisfied",
+      "proof_type": "automated-test",
+      "evidence": "tests/deploy/test_tick_rebaseline.py::test_declared_and_reported_baselines_fold_as_a_union, ::test_failed_apply_with_only_a_declaration_creates_no_token; existing declared-fold tests unchanged and green",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-10-15T13:11:22.373989+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-006",
+      "description": "Verify FR-006 is satisfied",
+      "proof_type": "automated-test",
+      "evidence": "tests/deploy/test_tick_rebaseline.py::test_0029_replay_reported_install_completes asserts rebaseline_reported files/matched/baselines; ::test_scratch_destination_is_not_expected asserts rejected",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-10-15T13:11:31.166390+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-007",
+      "description": "Verify FR-007 is satisfied",
+      "proof_type": "automated-test",
+      "evidence": "tests/deploy/test_tick_rebaseline.py::test_failed_apply_declared_folds_nothing_but_reported_folds, ::test_post_verification_failure_with_a_report_folds, ::test_failed_manifest_is_never_stamped",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-10-15T13:11:40.069899+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-008",
+      "description": "Verify FR-008 is satisfied",
+      "proof_type": "automated-test",
+      "evidence": "docs/runbooks/deployment.md \u00a7 Manifest expected_baselines declaration (library installs automatic; expected_baselines required otherwise, examples), discipline.md, security-baseline-ops.md, CLAUDE.md",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-10-15T13:11:49.015992+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-009",
+      "description": "Verify FR-009 is satisfied",
+      "proof_type": "automated-test",
+      "evidence": "tests/deploy/test_rebaseline_reported.py::test_scratch_destination_rejects, ::test_destination_symlink_leaving_the_host_path_rejects, ::test_surface_without_host_paths_contributes_nothing; audited-surfaces.json host_paths",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-10-15T13:11:57.881056+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-010",
+      "description": "Verify FR-010 is satisfied",
+      "proof_type": "automated-test",
+      "evidence": "tests/deploy/test_host_copies_report.py (default-deny guard, evidence-bound shrink-only exemptions, non-vacuous); single writer scripts/deploy/lib/installed_report.py",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-10-15T13:12:06.845369+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    }
+  ],
+  "negative_invariants": []
+}

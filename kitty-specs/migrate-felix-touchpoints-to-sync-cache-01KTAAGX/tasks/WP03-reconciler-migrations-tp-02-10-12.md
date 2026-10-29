@@ -20,14 +20,15 @@ subtasks:
 - T014
 - T015
 - T016
-agent: "claude:opus:reviewer:reviewer"
-shell_pid: "34523"
+agent: claude:opus:reviewer:reviewer
+shell_pid: '34523'
 history:
 - at: '2026-06-04T22:24:02Z'
   by: spec-kitty.tasks
   note: Created WP03 from plan.md + contracts/migration-pattern.md for 3 reconciler TPs
 authoritative_surface: scripts/
 execution_mode: code_change
+lane: planned
 owned_files:
 - scripts/habits/reconcile_completions.py
 - scripts/escalation/reconcile_completions.py

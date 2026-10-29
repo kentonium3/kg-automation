@@ -19,6 +19,7 @@ history:
   by: tasks-prompt
 authoritative_surface: docs/design/architecture/data/
 execution_mode: code_change
+lane: planned
 owned_files:
 - docs/design/architecture/data/doc-domain-map.json
 - .github/ISSUE_TEMPLATE/docs-debt.md

@@ -26,14 +26,15 @@ subtasks:
 - T001
 - T002
 - T003
-shell_pid: "84243"
-agent: "codex"
+agent: codex
+shell_pid: '84243'
 history:
 - timestamp: '2026-06-03T03:00:00Z'
   actor: claude:opus-4-7:planner
   action: created
 authoritative_surface: docs/constitution/
 execution_mode: code_change
+lane: planned
 owned_files:
 - docs/constitution/FELIX-CONSTITUTION.md
 tags: []

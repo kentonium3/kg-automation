@@ -19,14 +19,15 @@ subtasks:
 - T002
 - T003
 - T004
-shell_pid: "66366"
-agent: "codex:gpt-5:spec-kitty-review:reviewer"
+agent: codex:gpt-5:spec-kitty-review:reviewer
+shell_pid: '66366'
 history:
 - at: '2026-05-22T16:30:00+00:00'
   actor: spec-kitty.tasks
   event: created
 authoritative_surface: scripts/habits/
 execution_mode: code_change
+lane: planned
 mission_id: 01KS86ZQE8GSZ77ZSGSSQMN08K
 mission_slug: habits-checkin-reply-scripts-first-01KS86ZQ
 owned_files:

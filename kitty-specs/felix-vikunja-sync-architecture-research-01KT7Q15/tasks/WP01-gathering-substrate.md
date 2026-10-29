@@ -21,14 +21,15 @@ subtasks:
 - T005
 phase: Phase 1 — Gathering substrate
 assignee: ''
-agent: "claude:opus:reviewer:reviewer"
-shell_pid: "81592"
+agent: claude:opus:reviewer:reviewer
+shell_pid: '81592'
 history:
 - timestamp: '2026-06-03T22:59:10Z'
   agent: system
   action: Prompt generated via /spec-kitty.tasks
 authoritative_surface: docs/research/felix-vikunja-sync-architecture/findings/
 execution_mode: planning_artifact
+lane: planned
 owned_files:
 - docs/research/felix-vikunja-sync-architecture/findings/rq-1-vikunja-api.md
 - docs/research/felix-vikunja-sync-architecture/findings/rq-2-touchpoints.md

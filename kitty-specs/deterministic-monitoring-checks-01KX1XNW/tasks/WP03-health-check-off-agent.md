@@ -7,7 +7,6 @@ requirement_refs:
 - FR-009
 - FR-010
 - NFR-002
-tracker_refs: []
 planning_base_branch: feat/deterministic-monitoring-checks
 merge_target_branch: feat/deterministic-monitoring-checks
 branch_strategy: Planning artifacts for this mission were generated on feat/deterministic-monitoring-checks. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into feat/deterministic-monitoring-checks unless the human explicitly redirects the landing branch.
@@ -17,7 +16,8 @@ subtasks:
 - T013
 - T014
 - T015
-agent: "claude:opus:reviewer-renata:reviewer"
+agent: claude:opus:reviewer-renata:reviewer
+shell_pid: '64745'
 history: []
 agent_profile: python-pedro
 authoritative_surface: scripts/office2/felix_health_check/
@@ -29,6 +29,7 @@ create_intent:
 - scripts/office2/felix-health-check.timer
 - scripts/office2/deploy/felix-health-check.sh
 execution_mode: code_change
+lane: planned
 owned_files:
 - scripts/office2/felix_health_check/**
 - scripts/office2/felix-health-check.service
@@ -36,7 +37,7 @@ owned_files:
 - scripts/office2/deploy/felix-health-check.sh
 role: implementer
 tags: []
-shell_pid: "64745"
+tracker_refs: []
 ---
 
 ## ⚡ Do This First: Load Agent Profile

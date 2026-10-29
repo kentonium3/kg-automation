@@ -19,14 +19,15 @@ subtasks:
 - T010
 - T011
 - T012
-agent: "codex:gpt-5:python-reviewer:reviewer"
-shell_pid: "62860"
+agent: codex:gpt-5:python-reviewer:reviewer
+shell_pid: '62860'
 history:
 - at: '2026-05-19T17:30:00Z'
   actor: spec-kitty.tasks
   event: created
 authoritative_surface: scripts/habits/
 execution_mode: code_change
+lane: planned
 mission_id: 01KS0M59313RF0WVJZTXYDJC6C
 mission_slug: habits-native-repeat-jsonl-state-01KS0M59
 owned_files:

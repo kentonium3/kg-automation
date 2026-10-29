@@ -23,6 +23,7 @@ history:
   agent: claude
 authoritative_surface: kitty-specs/012-constitution-agent-governance-setup/
 execution_mode: planning_artifact
+lane: planned
 mission_id: 01KN5QX3WQ3CEY5FNQ77X9MCNF
 owned_files:
 - kitty-specs/012-constitution-agent-governance-setup/**

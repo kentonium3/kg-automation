@@ -27,14 +27,15 @@ subtasks:
 - T027
 - T028
 - T029
-agent: "claude"
-shell_pid: "49509"
+agent: claude
+shell_pid: '49509'
 history:
 - event: created
   at: '2026-05-11T21:43:38Z'
   by: 'spec-kitty.tasks (auto-drive via #115)'
 authoritative_surface: scripts/security/credential_health_check/orchestrator.py
 execution_mode: code_change
+lane: planned
 owned_files:
 - scripts/security/credential_health_check/orchestrator.py
 - scripts/security/credential_health_check/__main__.py

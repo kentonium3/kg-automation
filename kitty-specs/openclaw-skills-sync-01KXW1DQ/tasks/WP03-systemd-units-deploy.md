@@ -7,7 +7,6 @@ requirement_refs:
 - C-002
 - FR-008
 - FR-012
-tracker_refs: []
 planning_base_branch: feat/openclaw-skills-sync
 merge_target_branch: feat/openclaw-skills-sync
 branch_strategy: Planning artifacts for this mission were generated on feat/openclaw-skills-sync. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into feat/openclaw-skills-sync unless the human explicitly redirects the landing branch.
@@ -16,9 +15,9 @@ subtasks:
 - T011
 - T012
 - T013
-agent: "claude"
-shell_pid: "89929"
-shell_pid_created_at: "1784429842.402429"
+agent: claude
+shell_pid: '89929'
+shell_pid_created_at: '1784429842.402429'
 history:
 - '2026-07-19: authored by /spec-kitty.tasks'
 agent_profile: implementer-ivan
@@ -29,6 +28,7 @@ create_intent:
 - scripts/deploy/deploy-skills-sync.sh
 - deploys/queued/skills-sync.yaml
 execution_mode: code_change
+lane: planned
 owned_files:
 - scripts/openclaw/deploy/agent-skill-sync.service
 - scripts/openclaw/deploy/agent-skill-sync.timer
@@ -36,6 +36,7 @@ owned_files:
 - deploys/queued/skills-sync.yaml
 role: implementer
 tags: []
+tracker_refs: []
 ---
 
 ## ⚡ Do This First: Load Agent Profile

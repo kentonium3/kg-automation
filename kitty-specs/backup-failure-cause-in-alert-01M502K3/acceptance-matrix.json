@@ -1,0 +1,99 @@
+{
+  "mission_slug": "backup-failure-cause-in-alert-01M502K3",
+  "mission_number": "119",
+  "mission_type": "software-dev",
+  "overall_verdict": "pass",
+  "criteria": [
+    {
+      "criterion_id": "FR-001",
+      "description": "Verify FR-001 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "tests/office2/restic_backup/test_pointer_emission.py::test_each_fatal_exit_records_its_cause[not_mounted] (executes restic-backup.sh with mountpoint stubbed failing)",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-10-15T16:20:35.776909+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-002",
+      "description": "Verify FR-002 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "tests/office2/restic_backup/test_pointer_emission.py::test_each_fatal_exit_records_its_cause[repo_inaccessible|backup_failed], ::test_run_killed_mid_backup_records_unclassified, ::test_failed_final_log_write_keeps_nonzero_exit_and_is_unclassified",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-10-15T16:20:45.068219+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-003",
+      "description": "Verify FR-003 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "tests/office2/restic_backup/test_pointer_emission.py::test_completed_run_records_null_cause[happy_path|prune_failed|backup_warning|integrity_failed]; ::test_failure_reason_is_always_null_or_a_known_code",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-10-15T16:20:53.977690+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-004",
+      "description": "Verify FR-004 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "tests/architecture/test_key_ledger_rules.py rule-9 block (validator); tests/office2/restic_backup/test_ledger_reconciliation.py green with failure_reason diagnostic_only; validate_architecture_data 0 findings",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-10-15T16:21:03.134653+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-005",
+      "description": "Verify FR-005 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "tests/canary/test_probes_cause.py::test_not_mounted_pointer_names_the_drive, ::test_each_declared_code_gives_a_distinct_suffix (real run_probe, real inventory ledger)",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-10-15T16:21:12.111973+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-006",
+      "description": "Verify FR-006 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "tests/office2/felix_health_check/test_coverage_cause.py::test_coverage_finding_and_rendered_detail_carry_the_cause (real evaluate_coverage, <=500 chars)",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-10-15T16:21:20.941610+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-007",
+      "description": "Verify FR-007 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "tests/canary/test_probes_cause.py::test_verdict_identical_with_and_without_cause, ::test_stale_anchor_verdict_is_enriched_and_still_stale, ::test_healthy_pointer_with_stray_cause_stays_healthy_and_undecorated, ::test_alert_cadence_identical_with_and_without_cause (2 emits each, re-remind pinned)",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-10-15T16:21:30.073662+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-008",
+      "description": "Verify FR-008 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "tests/canary/test_probes_cause.py::test_non_string_cause_leaves_evidence_byte_identical, ::test_unknown_string_yields_only_the_fixed_marker, ::test_malformed_cause_member_is_ignored_without_raising, ::test_declaration_rejected_by_rule_9_never_decorates, ::test_bad_text_on_an_unused_code_rejects_the_whole_declaration",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-10-15T16:21:39.259656+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-009",
+      "description": "Verify FR-009 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "tests/docs/test_restic_cause_codes_documented.py; docs/runbooks/restic-backup-ops.md \u00a7 Failure cause in alerts",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-10-15T16:21:48.669848+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    }
+  ],
+  "negative_invariants": []
+}

@@ -24,12 +24,12 @@ last_updated: '2026-06-05'
   context for kg-automation.
 
 <!-- spec-kitty:orientation -->
-**Spec Kitty v4.0.0rc5** — project: kg-automation (healthy)
+**Spec Kitty v4.0.0rc8** — project: kg-automation (healthy)
 
 Two usage patterns:
 - **Full mission** (spec → plan → tasks → implement → review → merge):
   trigger: "spec out", "create a mission", "write a spec", "plan this"
-  → run `/spec-kitty.specify`
+  → run `/spec-kitty.specify` (slash-command agents), `$spec-kitty-specify` (codex), `/skill:spec-kitty-specify` (pi) or `/spec-kitty-specify` (antigravity, letta, vibe)
 - **Lightweight dispatch** (ad-hoc fix, question, or advice — no mission created):
   trigger: "hey spec kitty", "use spec kitty to", "spec kitty <anything>"
   → **ALWAYS run `spec-kitty dispatch "<request verbatim>"` — do NOT answer directly.**

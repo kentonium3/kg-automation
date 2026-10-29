@@ -9,7 +9,6 @@ dependencies:
 requirement_refs:
 - C-002
 - C-004
-tracker_refs: []
 planning_base_branch: feat/felix-time-logging
 merge_target_branch: feat/felix-time-logging
 branch_strategy: Planning artifacts for this mission were generated on feat/felix-time-logging. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into feat/felix-time-logging unless the human explicitly redirects the landing branch.
@@ -20,19 +19,20 @@ subtasks:
 - T017
 phase: Phase 4 - Deploy
 assignee: ''
-agent: "claude:opus:reviewer-renata:reviewer"
-agent_profile: "python-pedro"
-shell_pid: "74894"
+agent: claude:opus:reviewer-renata:reviewer
+shell_pid: '74894'
 history:
 - at: '2026-07-10T22:30:00Z'
   actor: system
   action: Prompt generated via /spec-kitty.tasks
+agent_profile: python-pedro
 authoritative_surface: scripts/deploy/
 create_intent:
 - scripts/deploy/deploy-timelog.py
 - deploys/queued/timelog.yaml
 - docs/runbooks/timelog.md
 execution_mode: code_change
+lane: planned
 owned_files:
 - scripts/deploy/deploy-timelog.py
 - deploys/queued/timelog.yaml
@@ -43,6 +43,7 @@ owned_files:
 - docs/runbooks/timelog.md
 role: implementer
 tags: []
+tracker_refs: []
 ---
 
 ## ⚡ Do This First: Load Agent Profile

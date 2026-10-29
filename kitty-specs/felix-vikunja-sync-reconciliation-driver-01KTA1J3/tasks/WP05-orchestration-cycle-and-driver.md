@@ -20,14 +20,15 @@ subtasks:
 - T019
 - T020
 - T021
-agent: "claude"
-shell_pid: "89521"
+agent: claude
+shell_pid: '89521'
 history:
 - at: '2026-06-04T19:53:57Z'
   by: spec-kitty.tasks
   note: Created WP05 from plan.md + contracts/cycle-pipeline.md § cycle entry point
 authoritative_surface: scripts/sync/
 execution_mode: code_change
+lane: planned
 owned_files:
 - scripts/sync/cycle.py
 - scripts/sync/driver.py

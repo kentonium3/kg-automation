@@ -4,7 +4,6 @@ title: Architecture-doc corrections
 dependencies: []
 requirement_refs:
 - FR-006
-tracker_refs: []
 planning_base_branch: fix/observation-digest-repoint
 merge_target_branch: fix/observation-digest-repoint
 branch_strategy: Planning artifacts for this mission were generated on fix/observation-digest-repoint. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into fix/observation-digest-repoint unless the human explicitly redirects the landing branch.
@@ -12,14 +11,15 @@ subtasks:
 - T014
 - T015
 - T016
-agent: "claude"
-shell_pid: "44231"
+agent: claude
+shell_pid: '44231'
 history:
 - created by /spec-kitty.tasks 2026-07-05
 agent_profile: curator-carla
 authoritative_surface: docs/design/architecture/data/service-inventory.json
 create_intent: []
 execution_mode: code_change
+lane: planned
 owned_files:
 - docs/design/architecture/data/service-inventory.json
 - docs/design/architecture/data/data-flows.json
@@ -29,6 +29,7 @@ owned_files:
 - docs/design/architecture/service-dependencies.view.md
 role: implementer
 tags: []
+tracker_refs: []
 ---
 
 ## ⚡ Do This First: Load Agent Profile

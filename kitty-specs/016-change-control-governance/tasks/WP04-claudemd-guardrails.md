@@ -23,14 +23,15 @@ subtasks:
 - T022
 phase: Phase 3 - Enforcement
 assignee: ''
-agent: "claude"
-shell_pid: "63145"
+agent: claude
+shell_pid: '63145'
 history:
 - at: '2026-04-05T23:00:03Z'
   actor: system
   action: Prompt generated via /spec-kitty.tasks
 authoritative_surface: CLAUDE.md
 execution_mode: code_change
+lane: planned
 owned_files:
 - CLAUDE.md
 ---

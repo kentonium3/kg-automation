@@ -31,6 +31,7 @@ create_intent:
 - scripts/research/arms849/ledger.py
 - tests/research/test_arms849_ledger.py
 execution_mode: code_change
+lane: planned
 owned_files:
 - scripts/research/arms849/ledger.py
 - tests/research/test_arms849_ledger.py

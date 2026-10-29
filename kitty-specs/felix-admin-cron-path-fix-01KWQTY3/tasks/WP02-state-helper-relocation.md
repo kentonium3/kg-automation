@@ -6,7 +6,6 @@ requirement_refs:
 - FR-004
 - FR-010
 - FR-012
-tracker_refs: []
 planning_base_branch: fix/felix-admin-cron-path-fix
 merge_target_branch: fix/felix-admin-cron-path-fix
 branch_strategy: Planning artifacts for this mission were generated on fix/felix-admin-cron-path-fix. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into fix/felix-admin-cron-path-fix unless the human explicitly redirects the landing branch.
@@ -14,8 +13,8 @@ subtasks:
 - T004
 - T005
 - T006
-agent: "codex:gpt-5-codex:reviewer-renata:reviewer"
-shell_pid: "55465"
+agent: codex:gpt-5-codex:reviewer-renata:reviewer
+shell_pid: '55465'
 history:
 - at: 2026-07-05T02:30:00Z
   actor: system
@@ -25,6 +24,7 @@ authoritative_surface: scripts/inbox/
 create_intent:
 - tests/inbox/test_state_paths.py
 execution_mode: code_change
+lane: planned
 model: claude-sonnet-4-6
 owned_files:
 - scripts/inbox/routing_log.py
@@ -32,6 +32,7 @@ owned_files:
 - tests/inbox/test_state_paths.py
 role: implementer
 tags: []
+tracker_refs: []
 ---
 
 # Work Package Prompt: WP02 – Inbox state helpers relocation + ownership

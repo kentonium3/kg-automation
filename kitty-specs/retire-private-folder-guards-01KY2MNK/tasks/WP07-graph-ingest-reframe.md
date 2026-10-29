@@ -4,7 +4,6 @@ title: Graph-ingest model reframe (#692/#696) to verify-not-present
 dependencies: []
 requirement_refs:
 - FR-006
-tracker_refs: []
 planning_base_branch: feat/retire-private-folder-guards
 merge_target_branch: feat/retire-private-folder-guards
 branch_strategy: Planning artifacts for this mission were generated on feat/retire-private-folder-guards. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into feat/retire-private-folder-guards unless the human explicitly redirects the landing branch.
@@ -14,19 +13,21 @@ created_at: '2026-07-21T16:27:09.719463+00:00'
 subtasks:
 - T023
 - T024
-agent: "claude:sonnet:reviewer-renata:reviewer"
-shell_pid: "38015"
-shell_pid_created_at: "1784651857.325672"
+agent: claude:sonnet:reviewer-renata:reviewer
+shell_pid: '38015'
+shell_pid_created_at: '1784651857.325672'
 history: []
 agent_profile: architect-alphonso
 authoritative_surface: docs/design/
 create_intent: []
 execution_mode: code_change
+lane: planned
 owned_files:
 - docs/design/second-brain-graph-layer.md
 - docs/design/executive-assistant-architecture.md
 role: implementer
 tags: []
+tracker_refs: []
 ---
 
 ## ⚡ Do This First: Load Agent Profile

@@ -6,7 +6,6 @@ dependencies:
 requirement_refs:
 - FR-005
 - FR-011
-tracker_refs: []
 planning_base_branch: main
 merge_target_branch: main
 branch_strategy: Planning artifacts for this mission were generated on main. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into main unless the human explicitly redirects the landing branch.
@@ -17,23 +16,25 @@ subtasks:
 - T028
 - T029
 phase: Phase 3 - Documentation
-shell_pid: "47640"
+agent: claude::reviewer-renata:reviewer
+shell_pid: '47640'
 history:
 - at: '2026-06-11T03:26:12Z'
   actor: system
   action: Prompt generated via /spec-kitty.tasks
+agent_profile: curator-carla
 authoritative_surface: docs/
 execution_mode: code_change
+lane: planned
 owned_files:
 - docs/constitution/agent-registry.json
 - docs/constitution/AGENT-REGISTRY.md
 - docs/design/architecture/data/service-inventory.json
 - docs/design/architecture/service-inventory.md
 - docs/design/architecture/service-dependencies.view.md
-tags: []
-agent_profile: curator-carla
 role: curator
-agent: "claude::reviewer-renata:reviewer"
+tags: []
+tracker_refs: []
 ---
 
 # Work Package Prompt: WP05 – Architecture + Constitution documentation sync

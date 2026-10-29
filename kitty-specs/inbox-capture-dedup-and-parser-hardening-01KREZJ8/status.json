@@ -1,5 +1,5 @@
 {
-  "event_count": 36,
+  "event_count": 42,
   "last_event_id": "01KRFK4TJS1437GVGAFFMEWZFD",
   "materialized_at": "2026-05-13T02:37:38.265688+00:00",
   "mission_number": "32",
@@ -19,51 +19,95 @@
   "work_packages": {
     "WP01": {
       "actor": "user",
+      "agent": "claude",
       "force_count": 1,
       "lane": "approved",
       "last_event_id": "01KRF0YYFAYGVC2TMM9VK8AA6W",
       "last_transition_at": "2026-05-12T21:19:51.274448+00:00",
-      "review_result": null
+      "review_result": null,
+      "shell_pid": 4043,
+      "subtasks": {
+        "T001": "done",
+        "T002": "done",
+        "T003": "done"
+      }
     },
     "WP02": {
       "actor": "user",
+      "agent": "claude",
       "force_count": 1,
       "lane": "approved",
       "last_event_id": "01KRFGKNVQWZE6Q6RGNYV3VZ9A",
       "last_transition_at": "2026-05-13T01:53:19.223882+00:00",
-      "review_result": null
+      "review_result": null,
+      "shell_pid": 5229,
+      "subtasks": {
+        "T004": "done",
+        "T005": "done",
+        "T006": "done",
+        "T007": "done"
+      }
     },
     "WP03": {
       "actor": "user",
+      "agent": "claude",
       "force_count": 1,
       "lane": "approved",
       "last_event_id": "01KRFHA86X62KRVAA7D55KT87D",
       "last_transition_at": "2026-05-13T02:05:38.909186+00:00",
-      "review_result": null
+      "review_result": null,
+      "shell_pid": 40557,
+      "subtasks": {
+        "T008": "done",
+        "T009": "done",
+        "T010": "done",
+        "T011": "done"
+      }
     },
     "WP04": {
       "actor": "user",
+      "agent": "claude",
       "force_count": 1,
       "lane": "approved",
       "last_event_id": "01KRFHPW5QECSW7H6PAMQCQNVG",
       "last_transition_at": "2026-05-13T02:12:32.567147+00:00",
-      "review_result": null
+      "review_result": null,
+      "shell_pid": 43610,
+      "subtasks": {
+        "T012": "done",
+        "T013": "done"
+      }
     },
     "WP05": {
       "actor": "user",
+      "agent": "claude",
       "force_count": 1,
       "lane": "approved",
       "last_event_id": "01KRFJJ8S6G7AEHSVR900VMGF8",
       "last_transition_at": "2026-05-13T02:27:30.214726+00:00",
-      "review_result": null
+      "review_result": null,
+      "shell_pid": 45413,
+      "subtasks": {
+        "T014": "done",
+        "T015": "done",
+        "T016": "done",
+        "T017": "done"
+      }
     },
     "WP06": {
       "actor": "user",
+      "agent": "claude",
       "force_count": 1,
       "lane": "approved",
       "last_event_id": "01KRFK4TJS1437GVGAFFMEWZFD",
       "last_transition_at": "2026-05-13T02:37:38.265688+00:00",
-      "review_result": null
+      "review_result": null,
+      "shell_pid": 49569,
+      "subtasks": {
+        "T018": "done",
+        "T019": "done",
+        "T020": "done"
+      }
     }
   }
 }

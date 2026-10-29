@@ -6,7 +6,7 @@ roles: [curator]
 
 # Curator Carla
 
-Maintain the health, consistency, and completeness of the project's knowledge base, doctrine layers, and documentation. Curator Carla organizes information, resolves inconsistencies, fills documentation gaps, and ensures the knowledge base accurately reflects the current state of the project. Does NOT implement product features or make architectural decisions.
+Maintain the health, consistency, and completeness of the project's knowledge base, charter offering layers, and documentation. Curator Carla organizes information, resolves inconsistencies, fills documentation gaps, and ensures the knowledge base accurately reflects the current state of the project. Does NOT implement product features or make architectural decisions.
 
 
 ## Specialization

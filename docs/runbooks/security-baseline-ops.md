@@ -75,16 +75,27 @@ audited surface. **No operator action is needed on the happy path.**
    recording the matched surface IDs, expected affected baselines, and
    `pending_since` timestamp.
 
-   **CLI-mutation deploys.** Some deploys drift a baseline without any
-   tracked-file change — e.g. an `openclaw cron rm` that drifts
-   `openclaw-cron.txt` but touches no `openclaw.json`. These have no
-   repo-file signal for the observe step, so the deploy manifest declares
+   **Deploys with no signal in their own range.** Some deploys drift a
+   baseline while their own commit range changes no file on that surface.
+   One case is a runtime action, e.g. an `openclaw cron rm` that drifts
+   `openclaw-cron.txt` but touches no `openclaw.json`. The other is a
+   reconcile deploy that installs tracked files changed in an earlier
+   commit (0029; #1065, #1072). Neither gives the observe step a signal, so
+   the deploy manifest declares
    the baselines it will drift via an `expected_baselines` field
    (requires `audited_surface: true`; each name must be a known baseline).
    Those declared baselines are folded into the pending token's expected
    set, so the auto-rebaseline covers them and **no manual reset is
    needed**. See the felix-deployer reference in
    [deployment.md](<./deployment.md#manifest-expected_baselines-declaration>).
+
+   **Reported installs (#1072).** A deploy that installs units through
+   `scripts/deploy/lib/userunits.py` reports each file it wrote. felix-deployer
+   maps a reported file to its surface's baselines only when the source is in
+   the repository and the destination is under the surface's `host_paths`, and
+   folds them into the expected set (logged as `rebaseline_reported`). Such a
+   deploy needs no `expected_baselines` for those files. Out-of-band drift on
+   the same files in the same window is absorbed with the deploy's own.
 
 2. On each subsequent tick while a pending token exists, the deployer
    runs a **read-only** audit (baselines present — compare mode, no

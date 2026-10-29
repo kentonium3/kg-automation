@@ -31,7 +31,7 @@
 
 ### WP01 — Library core + schema documentation
 
-**Prompt**: [tasks/WP01-library-core-and-schema-docs.md](tasks/WP01-library-core-and-schema-docs.md)
+**Prompt**: [tasks/WP01-library-core-and-schema-docs.md
 **Goal**: Produce the production-ready Python library (`scripts/common/state_log.py` + `state_log_schema.py`) and the public schema documentation. Foundation for all downstream phases.
 **Priority**: P0 (foundational; WP02 depends on this)
 **Dependencies**: none
@@ -74,7 +74,7 @@ Verified by code structure + the WP02 test suite:
 
 ### WP02 — Test suite (happy path, validation, idempotency, concurrency, CLI)
 
-**Prompt**: [tasks/WP02-test-suite.md](tasks/WP02-test-suite.md)
+**Prompt**: [tasks/WP02-test-suite.md
 **Goal**: Exhaustive test coverage of the library — happy path, every validation failure mode, idempotency, multiprocess concurrent-append safety, and CLI surface. Establish the ≥ 90% coverage floor.
 **Priority**: P0 (verification of WP01)
 **Dependencies**: **WP01** (tests import / invoke the library)

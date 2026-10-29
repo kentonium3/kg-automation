@@ -19,14 +19,15 @@ subtasks:
 - T035
 phase: Phase 3 - Entry Point Updates
 assignee: ''
-agent: "claude"
-shell_pid: "6451"
+agent: claude
+shell_pid: '6451'
 history:
 - at: '2026-04-05T01:28:56Z'
   actor: system
   action: Prompt generated via /spec-kitty.tasks
 authoritative_surface: CLAUDE.md
 execution_mode: code_change
+lane: planned
 owned_files:
 - CLAUDE.md
 - ai-agents/claude-code-instructions.md

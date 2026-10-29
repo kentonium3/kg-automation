@@ -18,6 +18,7 @@ history:
   by: tasks-prompt
 authoritative_surface: .github/workflows/
 execution_mode: code_change
+lane: planned
 owned_files:
 - CLAUDE.md
 - .github/workflows/doc-audit-trigger.yml

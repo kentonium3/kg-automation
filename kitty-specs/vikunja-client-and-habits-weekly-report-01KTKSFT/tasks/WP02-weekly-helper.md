@@ -11,7 +11,6 @@ requirement_refs:
 - FR-011
 - FR-012
 - FR-013
-tracker_refs: []
 planning_base_branch: kitty/mission-vikunja-client-and-habits-weekly-report-01KTKSFT
 merge_target_branch: kitty/mission-vikunja-client-and-habits-weekly-report-01KTKSFT
 branch_strategy: Planning artifacts for this mission were generated on kitty/mission-vikunja-client-and-habits-weekly-report-01KTKSFT. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into kitty/mission-vikunja-client-and-habits-weekly-report-01KTKSFT unless the human explicitly redirects the landing branch.
@@ -26,16 +25,18 @@ subtasks:
 - T011
 - T012
 - T013
-shell_pid: "12214"
+agent: claude:sonnet:python-pedro:implementer
+shell_pid: '12214'
 history: []
 authoritative_surface: scripts/habits/
 execution_mode: code_change
+lane: planned
 owned_files:
 - scripts/habits/query_active_habits_weekly.py
 - tests/habits/test_query_active_habits_weekly.py
 - tests/habits/fixtures/weekly_report_responses.json
 tags: []
-agent: "claude:sonnet:python-pedro:implementer"
+tracker_refs: []
 ---
 
 # WP02: Weekly habit-report helper + tests

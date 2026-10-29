@@ -6,7 +6,6 @@ requirement_refs:
 - FR-001
 - FR-003
 - NFR-002
-tracker_refs: []
 planning_base_branch: feat/vikunja-token-seam-kent-cutover
 merge_target_branch: feat/vikunja-token-seam-kent-cutover
 branch_strategy: Planning artifacts for this mission were generated on feat/vikunja-token-seam-kent-cutover. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into feat/vikunja-token-seam-kent-cutover unless the human explicitly redirects the landing branch.
@@ -15,6 +14,9 @@ subtasks:
 - T002
 - T003
 phase: Phase 0 - Foundation
+agent: claude
+shell_pid: '69381'
+shell_pid_created_at: '1784863803.55448'
 history: []
 agent_profile: python-pedro
 authoritative_surface: scripts/common/
@@ -22,6 +24,7 @@ create_intent:
 - tests/common/test_vikunja_config.py
 - tests/common/test_vikunja_token_seam.py
 execution_mode: code_change
+lane: planned
 owned_files:
 - scripts/common/vikunja_config.py
 - scripts/common/vikunja_client.py
@@ -30,9 +33,7 @@ owned_files:
 - tests/common/test_vikunja_token_seam.py
 role: implementer
 tags: []
-agent: "claude"
-shell_pid: "69381"
-shell_pid_created_at: "1784863803.55448"
+tracker_refs: []
 ---
 
 # Work Package Prompt: WP01 — Token seam foundation

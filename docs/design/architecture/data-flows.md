@@ -2,8 +2,8 @@
 title: Data Flows
 doc_type: reference
 status: approved
-last_updated: '2026-09-08'
-updated_by: 'qa-pipeline-decommission-01M219TT (#970 — qa-linear-dispatch-ingress registered-at-retirement: the Linear→office2 QA dispatch flow, the host''s only public-internet data flow, retired; never recorded here while live, an out-of-band gap from #886) + crontab-backup-coverage-01M12V87 (#895 — +crontab-capture flow: hourly claude-crontab capture into /data/services/, already a Restic source path, so the crontab becomes recoverable from a snapshot without depending on a security-monitor drift baseline) + vikunja-token-seam-kent-cutover-01KY8XQ0 (#860 phase 2, ADR-0007 — intake scan flow flips from a felix-bot read token to the kent token, collapsing the #715 two-token model onto the single runtime vikunja-api-kent credential) + openclaw-skills-sync-01KXW1DQ (#775 — +openclaw-skill-sync flow: pull-based SKILL.md deploy/sync repo -> office2 via agent-skill-sync, sibling to agent-prompt-sync #567; closes the #563 skills silent-drift class) + task-intake-validation-loop-01KXS06W (#749 — +intake-validation-loop flow: scan -> WhatsApp digest -> compact-shorthand reply -> kent-token apply; closes #750) + felix-canary-registry-01KX8T7B (#327 — +felix-canary, +felix-trust-scan, +unified-alert-bus-emit observability flows) + felix-calendar-helper-01KX4H3C (#699 — calendar surface now Felix helper -> Google direct, not gog; closes #679) + felix-admin-cron-path-fix-01KWQTY3 (#656) + restore-whatsapp-dm-reply-delivery-01KTVVHH (#588) + inbox-calendar-and-aspiration-routing-01KTHHXS + #520-felix-vikunja-sync-project-layer-and-url-config'
+last_updated: '2026-10-14'
+updated_by: 'canary-deadman-backup-coverage-01M4XVY3 (#1063 — +felix-health-check-coverage flow: twice-daily dead-man''s switch on the canary tick and independent backup check through the canary''s evaluator) + qa-pipeline-decommission-01M219TT (#970 — qa-linear-dispatch-ingress registered-at-retirement: the Linear→office2 QA dispatch flow, the host''s only public-internet data flow, retired; never recorded here while live, an out-of-band gap from #886) + crontab-backup-coverage-01M12V87 (#895 — +crontab-capture flow: hourly claude-crontab capture into /data/services/, already a Restic source path, so the crontab becomes recoverable from a snapshot without depending on a security-monitor drift baseline) + vikunja-token-seam-kent-cutover-01KY8XQ0 (#860 phase 2, ADR-0007 — intake scan flow flips from a felix-bot read token to the kent token, collapsing the #715 two-token model onto the single runtime vikunja-api-kent credential) + openclaw-skills-sync-01KXW1DQ (#775 — +openclaw-skill-sync flow: pull-based SKILL.md deploy/sync repo -> office2 via agent-skill-sync, sibling to agent-prompt-sync #567; closes the #563 skills silent-drift class) + task-intake-validation-loop-01KXS06W (#749 — +intake-validation-loop flow: scan -> WhatsApp digest -> compact-shorthand reply -> kent-token apply; closes #750) + felix-canary-registry-01KX8T7B (#327 — +felix-canary, +felix-trust-scan, +unified-alert-bus-emit observability flows) + felix-calendar-helper-01KX4H3C (#699 — calendar surface now Felix helper -> Google direct, not gog; closes #679) + felix-admin-cron-path-fix-01KWQTY3 (#656) + restore-whatsapp-dm-reply-delivery-01KTVVHH (#588) + inbox-calendar-and-aspiration-routing-01KTHHXS + #520-felix-vikunja-sync-project-layer-and-url-config'
 tags: [860, 775, 567, 563, 327, 683, 701, 706, 516, 656, 588, 520, 507, 519, 518, 309, 343, 362, 391, 400, 310, 374]
 ---
 
@@ -708,6 +708,24 @@ that shipped with the parent mission (`pull-based-deploy-pipeline-01KTYQQS`,
 not exist; the applier shipped live on office2 with the notify path silently
 failing.
 
+### Felix-deployer installed-file report (#1072)
+
+```
+<entrypoint> --apply → $FELIX_DEPLOY_INSTALLED_REPORT (temp JSONL, felix-deployer's tmp) → lib.apply reads it
+→ rebaseline.baselines_for_installed_report → rebaseline-pending.json expected_baselines
+```
+
+A local, same-user file handoff inside one felix-deployer tick on office2. The
+apply gate creates a fresh `felix-installed-report-*` temp directory, passes its
+path to `--apply` only, reads the JSONL back and deletes the directory. Library
+installers (`scripts/deploy/lib/userunits.py`) append one `{source, dest}` line
+per file they wrote. felix-deployer maps entries to security-monitor baselines
+only with proof (source inside the checkout, destination under the surface's
+`host_paths`), folds them into the pending rebaseline token, and logs a
+`rebaseline_reported` event. Nothing leaves the host; the file never outlives
+the tick. Contract:
+[`kitty-specs/deploy-runtime-installed-report-01M4ZP8E/contracts/installed-report.md`](<../../../kitty-specs/deploy-runtime-installed-report-01M4ZP8E/contracts/installed-report.md>).
+
 ### Unified Alert Bus — Shared Emit (#701, ledger #706)
 
 ```
@@ -773,8 +791,9 @@ state dir unwritable) — that fires the `OnFailure=` shim, a crash detector
 any transition emits (incl. recovery INFO); `failed`/`stale` page immediately then
 once per 6h window; `unknown`/`gap` are recorded but page only once persistent
 past the window. The runner registers itself as a canary citizen via its
-`last-tick.json` freshness pointer, so the deferred #269 watchdog can watch the
-watcher. Deploy: manifest `deploys/queued/0017-felix-canary-registry.yaml`
+`last-tick.json` freshness pointer (affirmative `key_ledger` since #1063). The
+watcher is watched by `felix-health-check`'s dead-man's switch (flow
+`felix-health-check-coverage`, #1063); whole-host silence remains open (#1069). Deploy: manifest `deploys/queued/0017-felix-canary-registry.yaml`
 (entrypoint `scripts/deploy/deploy-felix-canary.py`, verify-before-enable per
 #703/#711). Ops: [`canary-registry-ops.md`](<../../runbooks/canary-registry-ops.md>);
 contract [ADR-0006](<./adr/0006-felix-component-lifecycle-status-contract.md>);

@@ -7,7 +7,6 @@ requirement_refs:
 - FR-002
 - FR-007
 - NFR-001
-tracker_refs: []
 planning_base_branch: feat/agent-runtime-env-guardrails
 merge_target_branch: feat/agent-runtime-env-guardrails
 branch_strategy: Planning artifacts for this mission were generated on feat/agent-runtime-env-guardrails. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into feat/agent-runtime-env-guardrails unless the human explicitly redirects the landing branch.
@@ -18,8 +17,8 @@ subtasks:
 - T004
 - T005
 - T006
-agent: "claude"
-shell_pid: "3092"
+agent: claude
+shell_pid: '3092'
 history:
 - 2026-07-05 authored from plan IC-01 (+ post-plan Codex fixes)
 agent_profile: python-pedro
@@ -28,12 +27,14 @@ create_intent:
 - scripts/openclaw/agents/env_assumptions.py
 - scripts/openclaw/agents/tests/test_env_assumptions.py
 execution_mode: code_change
+lane: planned
 model: claude-sonnet-4-6
 owned_files:
 - scripts/openclaw/agents/env_assumptions.py
 - scripts/openclaw/agents/tests/test_env_assumptions.py
 role: implementer
 tags: []
+tracker_refs: []
 ---
 
 ## ⚡ Do This First: Load Agent Profile

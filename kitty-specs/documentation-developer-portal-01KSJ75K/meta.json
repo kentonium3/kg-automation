@@ -7,6 +7,7 @@
   "mission_type": "software-dev",
   "slug": "documentation-developer-portal-01KSJ75K",
   "source_description": "GitHub issue #417 — Documentation Overhaul Phase 1: Developer Portal + CLAUDE.md pointer. Scope governed by docs/temp/documentation_blueprint.md v1.2.",
+  "status_phase": "1",
   "target_branch": "main",
   "vcs": "git"
 }

@@ -18,7 +18,6 @@ requirement_refs:
 - NFR-003
 - NFR-004
 - NFR-005
-tracker_refs: []
 planning_base_branch: fix/capture-atomic-finalize
 merge_target_branch: fix/capture-atomic-finalize
 branch_strategy: Planning artifacts for this mission were generated on fix/capture-atomic-finalize. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into fix/capture-atomic-finalize unless the human explicitly redirects the landing branch.
@@ -32,9 +31,9 @@ subtasks:
 - T012
 - T013
 phase: Phase 2 - Core
-agent: "claude:opus:reviewer-renata:reviewer"
-shell_pid: "93430"
-shell_pid_created_at: "1784315679.948309"
+agent: claude:opus:reviewer-renata:reviewer
+shell_pid: '93430'
+shell_pid_created_at: '1784315679.948309'
 history:
 - at: '2026-07-17T18:30:00Z'
   actor: system
@@ -45,6 +44,7 @@ create_intent:
 - scripts/inbox/route_and_finalize.py
 - tests/inbox/test_route_and_finalize.py
 execution_mode: code_change
+lane: planned
 model: claude-sonnet-5
 owned_files:
 - scripts/inbox/route_and_finalize.py
@@ -55,6 +55,7 @@ owned_files:
 - tests/inbox/test_route_and_finalize.py
 role: implementer
 tags: []
+tracker_refs: []
 ---
 
 # Work Package Prompt: WP02 – Note-level finalize transaction + per-kind adapters

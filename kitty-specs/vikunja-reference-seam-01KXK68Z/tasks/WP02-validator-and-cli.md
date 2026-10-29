@@ -6,7 +6,6 @@ dependencies:
 requirement_refs:
 - FR-004
 - NFR-002
-tracker_refs: []
 planning_base_branch: feat/vikunja-reference-seam
 merge_target_branch: feat/vikunja-reference-seam
 branch_strategy: Planning artifacts for this mission were generated on feat/vikunja-reference-seam. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into feat/vikunja-reference-seam unless the human explicitly redirects the landing branch.
@@ -16,16 +15,14 @@ subtasks:
 - T008
 phase: Phase 1 - Foundation
 assignee: ''
-agent: "codex:gpt-5-codex:reviewer-renata:reviewer"
-agent_profile: python-pedro
-role: implementer
-model: claude-sonnet-5
-shell_pid: "31245"
-shell_pid_created_at: "1784146350.973112"
+agent: codex:gpt-5-codex:reviewer-renata:reviewer
+shell_pid: '31245'
+shell_pid_created_at: '1784146350.973112'
 history:
 - at: '2026-07-15T17:18:48Z'
   actor: system
   action: Prompt generated via /spec-kitty.tasks
+agent_profile: python-pedro
 authoritative_surface: scripts/common/vikunja_refs_validate.py
 create_intent:
 - scripts/common/vikunja_refs_validate.py
@@ -33,12 +30,16 @@ create_intent:
 - tests/common/test_vikunja_refs_validate.py
 - tests/vikunja/test_validate_refs.py
 execution_mode: code_change
+lane: planned
+model: claude-sonnet-5
 owned_files:
 - scripts/common/vikunja_refs_validate.py
 - scripts/vikunja/validate_refs.py
 - tests/common/test_vikunja_refs_validate.py
 - tests/vikunja/test_validate_refs.py
+role: implementer
 tags: []
+tracker_refs: []
 ---
 
 # Work Package Prompt: WP02 – Drift / unreachable validator + CLI

@@ -15,14 +15,15 @@ subtasks:
 - T001
 - T002
 - T003
-shell_pid: "95789"
-agent: "claude:opus:reviewer:reviewer"
+agent: claude:opus:reviewer:reviewer
+shell_pid: '95789'
 history:
 - date: '2026-05-06'
   event: created
   agent: claude-opus
 authoritative_surface: scripts/inbox/
 execution_mode: code_change
+lane: planned
 owned_files:
 - scripts/inbox/prescan.py
 tags: []

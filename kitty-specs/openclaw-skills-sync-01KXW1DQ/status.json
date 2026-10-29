@@ -1,5 +1,5 @@
 {
-  "event_count": 28,
+  "event_count": 32,
   "last_event_id": "01KXW68W2XDA0DKZ6EA287QA5D",
   "materialized_at": "2026-07-19T03:21:16.125641+00:00",
   "mission_number": "107",
@@ -19,6 +19,7 @@
   "work_packages": {
     "WP01": {
       "actor": "merge",
+      "agent": "claude",
       "force_count": 0,
       "lane": "done",
       "last_event_id": "01KXW687A9DDS1SEWNRR7NT5YM",
@@ -27,10 +28,21 @@
         "reference": "reviewer-renata APPROVE; M1/L1/L3/L4 folded; 38 tests green; issue-matrix filled.",
         "reviewer": "Kent Gale",
         "verdict": "approved"
+      },
+      "shell_pid": 84204,
+      "shell_pid_created_at": "1784428902.119846",
+      "subtasks": {
+        "T001": "done",
+        "T002": "done",
+        "T003": "done",
+        "T004": "done",
+        "T005": "done",
+        "T006": "done"
       }
     },
     "WP02": {
       "actor": "merge",
+      "agent": "claude",
       "force_count": 0,
       "lane": "done",
       "last_event_id": "01KXW68EWFQXV933PRXMBJMECF",
@@ -39,10 +51,18 @@
         "reference": "Comparator reviewed: independent of sync, exit contract + orphan + backup-ignore covered by 16 tests; smoke green. Canary wiring in WP04.",
         "reviewer": "Kent Gale",
         "verdict": "approved"
+      },
+      "shell_pid": 88535,
+      "shell_pid_created_at": "1784429630.771975",
+      "subtasks": {
+        "T007": "done",
+        "T008": "done",
+        "T009": "done"
       }
     },
     "WP03": {
       "actor": "merge",
+      "agent": "claude",
       "force_count": 0,
       "lane": "done",
       "last_event_id": "01KXW68NDPBY2Z0E0Q24QAHYM5",
@@ -51,10 +71,19 @@
         "reference": "Hard enable gate verified: smoke-before-enable, XDG_RUNTIME_DIR, loud failure, no sudo. Manifest schema-valid. systemd-analyze runs on office2 at deploy.",
         "reviewer": "Kent Gale",
         "verdict": "approved"
+      },
+      "shell_pid": 89929,
+      "shell_pid_created_at": "1784429842.402429",
+      "subtasks": {
+        "T010": "done",
+        "T011": "done",
+        "T012": "done",
+        "T013": "done"
       }
     },
     "WP04": {
       "actor": "merge",
+      "agent": "claude",
       "force_count": 0,
       "lane": "done",
       "last_event_id": "01KXW68W2XDA0DKZ6EA287QA5D",
@@ -63,6 +92,14 @@
         "reference": "Audited-surface globs verified to match new units + deploy script; service entry wires independent drift check as canary probe; validators green. Post-merge Codex is the whole-diff backstop.",
         "reviewer": "Kent Gale",
         "verdict": "approved"
+      },
+      "shell_pid": 96426,
+      "shell_pid_created_at": "1784431015.853065",
+      "subtasks": {
+        "T014": "done",
+        "T015": "done",
+        "T016": "done",
+        "T017": "done"
       }
     }
   }

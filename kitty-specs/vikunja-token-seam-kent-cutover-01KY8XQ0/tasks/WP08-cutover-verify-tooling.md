@@ -5,7 +5,6 @@ dependencies:
 - WP01
 requirement_refs:
 - FR-007
-tracker_refs: []
 planning_base_branch: feat/vikunja-token-seam-kent-cutover
 merge_target_branch: feat/vikunja-token-seam-kent-cutover
 branch_strategy: Planning artifacts for this mission were generated on feat/vikunja-token-seam-kent-cutover. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into feat/vikunja-token-seam-kent-cutover unless the human explicitly redirects the landing branch.
@@ -13,6 +12,9 @@ subtasks:
 - T019
 - T020
 phase: Phase 2 - Cutover tooling
+agent: claude
+shell_pid: '73940'
+shell_pid_created_at: '1784864327.692636'
 history: []
 agent_profile: python-pedro
 authoritative_surface: scripts/vikunja/
@@ -20,14 +22,13 @@ create_intent:
 - scripts/vikunja/cutover_verify.py
 - tests/vikunja/test_cutover_verify.py
 execution_mode: code_change
+lane: planned
 owned_files:
 - scripts/vikunja/cutover_verify.py
 - tests/vikunja/test_cutover_verify.py
 role: implementer
 tags: []
-agent: "claude"
-shell_pid: "73940"
-shell_pid_created_at: "1784864327.692636"
+tracker_refs: []
 ---
 
 # Work Package Prompt: WP08 — Cutover verification tooling

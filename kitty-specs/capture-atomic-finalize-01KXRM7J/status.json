@@ -1,5 +1,5 @@
 {
-  "event_count": 35,
+  "event_count": 40,
   "last_event_id": "01KXRV0ZVT4D88NE5T01BQ9BK5",
   "materialized_at": "2026-07-17T20:07:00.218512+00:00",
   "mission_number": "104",
@@ -19,6 +19,7 @@
   "work_packages": {
     "WP01": {
       "actor": "merge",
+      "agent": "claude:opus:reviewer-renata:reviewer",
       "force_count": 0,
       "lane": "done",
       "last_event_id": "01KXRTZZS1NG9YXKPNZVF3R7FM",
@@ -27,10 +28,13 @@
         "reference": "Review passed (reviewer-renata): block-keyed routing log, backward-compatible, 56+370 tests green.",
         "reviewer": "Kent Gale",
         "verdict": "approved"
-      }
+      },
+      "shell_pid": 85155,
+      "shell_pid_created_at": "1784314249.190977"
     },
     "WP02": {
       "actor": "merge",
+      "agent": "claude:opus:reviewer-renata:reviewer",
       "force_count": 0,
       "lane": "done",
       "last_event_id": "01KXRV0AGA9K0Q4Z6WBNKWGJ40",
@@ -39,10 +43,13 @@
         "reference": "Review passed (reviewer-renata, adversarial): note-level finalize; retry-no-double-create + state-machine + journal-idempotency all confirmed; 400 tests green. 3 residual contract-scoped risks recorded (dup-create window→follow-up; verbatim-content→WP04; substring-provenance→follow-up).",
         "reviewer": "Kent Gale",
         "verdict": "approved"
-      }
+      },
+      "shell_pid": 93430,
+      "shell_pid_created_at": "1784315679.948309"
     },
     "WP03": {
       "actor": "merge",
+      "agent": "claude:opus:reviewer-renata:reviewer",
       "force_count": 0,
       "lane": "done",
       "last_event_id": "01KXRV0HP47J4M5BS70PN0ADWN",
@@ -51,10 +58,13 @@
         "reference": "Review passed (reviewer-renata): health rail + D9 dedup-shift; mid-flight reconciliation invariant confirmed; zero false positives; 385 tests green.",
         "reviewer": "Kent Gale",
         "verdict": "approved"
-      }
+      },
+      "shell_pid": 92597,
+      "shell_pid_created_at": "1784315564.864742"
     },
     "WP04": {
       "actor": "merge",
+      "agent": "claude:opus:reviewer-renata:reviewer",
       "force_count": 0,
       "lane": "done",
       "last_event_id": "01KXRV0S16W1WNKSG85FR52E5R",
@@ -63,10 +73,13 @@
         "reference": "Review passed (reviewer-renata): note-level single-finalize; no mark-processed path outside finalize; verbatim-content load-bearing note present; invariants verbatim; AGENTS.md trimmed to 21015B.",
         "reviewer": "Kent Gale",
         "verdict": "approved"
-      }
+      },
+      "shell_pid": 2301,
+      "shell_pid_created_at": "1784317287.09685"
     },
     "WP05": {
       "actor": "merge",
+      "agent": "claude:opus:reviewer-renata:reviewer",
       "force_count": 0,
       "lane": "done",
       "last_event_id": "01KXRV0ZVT4D88NE5T01BQ9BK5",
@@ -75,7 +88,9 @@
         "reference": "Review passed (reviewer-renata, cycle 1 fix verified): docs sync accurate to shipped behavior; github_issue provenance overclaim corrected (existence-verified); validate_architecture_data green; no manifest needed; rebaseline not-required. Commit e4264010 (swept review-lock.json removed).",
         "reviewer": "Kent Gale",
         "verdict": "approved"
-      }
+      },
+      "shell_pid": 7348,
+      "shell_pid_created_at": "1784318141.726101"
     }
   }
 }

@@ -7,6 +7,7 @@
   "mission_type": "software-dev",
   "slug": "constitution-risk-tier-autonomy-guard-01KTCXMW",
   "source_description": "GitHub issue #528: amend Felix Constitution to bind autonomy to risk-tier gates",
+  "status_phase": "1",
   "target_branch": "main",
   "vcs": "git"
 }

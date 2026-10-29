@@ -17,14 +17,15 @@ subtasks:
 - T006
 - T007
 - T008
-agent: "codex:gpt5:reviewer:reviewer"
-shell_pid: "40706"
+agent: codex:gpt5:reviewer:reviewer
+shell_pid: '40706'
 history:
 - at: '2026-05-09T23:54:00Z'
   actor: spec-kitty.tasks
   note: Initial scaffold from /spec-kitty.tasks
 authoritative_surface: scripts/openclaw/skills/doc-audit/
 execution_mode: code_change
+lane: planned
 mission_id: 01KR7JK9QTHM5F4PD3YC43KDQW
 mission_slug: felix-doc-auditor-agent-01KR7JK9
 owned_files:

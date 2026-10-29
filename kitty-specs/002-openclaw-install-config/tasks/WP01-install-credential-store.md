@@ -33,6 +33,7 @@ history:
   action: Prompt generated via /spec-kitty.tasks
 authoritative_surface: kitty-specs/002-openclaw-install-config/
 execution_mode: code_change
+lane: planned
 mission_id: 01KN5QX3WBC1M57EENV2JHWAT7
 owned_files:
 - kitty-specs/002-openclaw-install-config/data-model.md

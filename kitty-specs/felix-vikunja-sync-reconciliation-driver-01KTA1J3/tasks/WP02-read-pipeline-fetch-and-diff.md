@@ -15,14 +15,15 @@ subtasks:
 - T007
 - T008
 - T009
-agent: "claude"
-shell_pid: "80920"
+agent: claude
+shell_pid: '80920'
 history:
 - at: '2026-06-04T19:53:57Z'
   by: spec-kitty.tasks
   note: Created WP02 from plan.md + contracts/cycle-pipeline.md § Phase 1/2
 authoritative_surface: scripts/sync/
 execution_mode: code_change
+lane: planned
 owned_files:
 - scripts/sync/fetch.py
 - scripts/sync/diff.py

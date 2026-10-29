@@ -12,6 +12,7 @@
   "purpose_context": "Agent prompt changes reach office2 via a timer that git-pulls a shared checkout, but a second deploy actor (felix-deployer) races the shared FETCH_HEAD and intermittently breaks the pull for weeks, so merged prompt changes never reach the running Felix agents. This mission makes both actors' pulls race-immune, serializes their working-tree mutation, deletes the stale lane branch that amplifies the race, and adds a behind-N-ticks health signal so a silent deploy stall cannot recur.",
   "purpose_tldr": "Stop the office2 prompt-sync deploy path from silently failing under a git concurrency race.",
   "slug": "prompt-sync-ff-race-01KX3SZC",
+  "status_phase": "1",
   "target_branch": "fix/prompt-sync-ff-race",
   "topology": "coord"
 }

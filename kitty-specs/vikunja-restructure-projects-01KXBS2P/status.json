@@ -1,5 +1,5 @@
 {
-  "event_count": 7,
+  "event_count": 8,
   "last_event_id": "01KXBVMN24T04NFE0YYJRFF3K9",
   "materialized_at": "2026-07-12T19:07:36.900254+00:00",
   "mission_number": "98",
@@ -19,6 +19,7 @@
   "work_packages": {
     "WP01": {
       "actor": "merge",
+      "agent": "claude",
       "force_count": 0,
       "lane": "done",
       "last_event_id": "01KXBVMN24T04NFE0YYJRFF3K9",
@@ -27,7 +28,20 @@
         "reference": "reviewer-renata APPROVE; do-no-harm + owner clean, 60 tests 95.88% cov; nit#1 folded bacd5f30",
         "reviewer": "reviewer-renata",
         "verdict": "approved"
-      }
+      },
+      "shell_pid": 13817,
+      "subtasks": {
+        "T001": "done",
+        "T002": "done",
+        "T003": "done",
+        "T004": "done",
+        "T005": "done",
+        "T006": "done",
+        "T007": "done"
+      },
+      "tracker_refs": [
+        "kentonium3/kg-automation#716"
+      ]
     }
   }
 }

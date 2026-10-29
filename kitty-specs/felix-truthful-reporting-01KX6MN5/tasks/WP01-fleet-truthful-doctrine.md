@@ -7,7 +7,6 @@ requirement_refs:
 - FR-002
 - FR-003
 - NFR-003
-tracker_refs: []
 planning_base_branch: fix/felix-truthful-reporting
 merge_target_branch: fix/felix-truthful-reporting
 branch_strategy: Planning artifacts for this mission were generated on fix/felix-truthful-reporting. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into fix/felix-truthful-reporting unless the human explicitly redirects the landing branch.
@@ -19,17 +18,18 @@ subtasks:
 - T005
 phase: Phase 1 - Prevention doctrine
 assignee: ''
-agent: "claude:opus:reviewer-renata:reviewer"
-agent_profile: "curator-carla"
-shell_pid: "7000"
+agent: claude:opus:reviewer-renata:reviewer
+shell_pid: '7000'
 history:
 - at: '2026-07-10T18:45:00Z'
   actor: system
   action: Prompt generated via /spec-kitty.tasks
+agent_profile: curator-carla
 authoritative_surface: scripts/openclaw/agents/
 create_intent:
 - scripts/openclaw/agents/tests/test_truthful_doctrine.py
 execution_mode: code_change
+lane: planned
 owned_files:
 - scripts/openclaw/agents/main/AGENTS.md
 - scripts/openclaw/agents/felix-admin-capture/AGENTS.md
@@ -43,6 +43,7 @@ owned_files:
 - scripts/openclaw/agents/tests/test_truthful_doctrine.py
 role: implementer
 tags: []
+tracker_refs: []
 ---
 
 ## ⚡ Do This First: Load Agent Profile

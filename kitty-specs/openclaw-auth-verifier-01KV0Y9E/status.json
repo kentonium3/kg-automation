@@ -1,5 +1,5 @@
 {
-  "event_count": 28,
+  "event_count": 32,
   "last_event_id": "01KV15XJ0NSXSR686773JGR6E1",
   "materialized_at": "2026-06-13T19:04:12.053296+00:00",
   "mission_number": "76",
@@ -19,35 +19,79 @@
   "work_packages": {
     "WP01": {
       "actor": "merge",
+      "agent": "claude:sonnet:reviewer-rachel:reviewer",
       "force_count": 0,
       "lane": "done",
       "last_event_id": "01KV15306VW6B1HW0G4FTC5Z8G",
       "last_transition_at": "2026-06-13T18:49:41.851169+00:00",
-      "review_result": null
+      "review_result": null,
+      "shell_pid": 83662,
+      "subtasks": {
+        "T001": "done",
+        "T002": "done",
+        "T003": "done",
+        "T004": "done",
+        "T005": "done",
+        "T006": "done",
+        "T007": "done"
+      },
+      "tracker_refs": [
+        "kentonium3/kg-automation#597"
+      ]
     },
     "WP02": {
       "actor": "merge",
+      "agent": "claude:sonnet:reviewer-rachel:reviewer",
       "force_count": 0,
       "lane": "done",
       "last_event_id": "01KV15XGM8BBCDBDVKAA6807BH",
       "last_transition_at": "2026-06-13T19:04:10.632333+00:00",
-      "review_result": null
+      "review_result": null,
+      "shell_pid": 87097,
+      "subtasks": {
+        "T008": "done",
+        "T009": "done",
+        "T010": "done"
+      },
+      "tracker_refs": [
+        "kentonium3/kg-automation#597"
+      ]
     },
     "WP03": {
       "actor": "merge",
+      "agent": "claude:sonnet:reviewer-rachel:reviewer",
       "force_count": 0,
       "lane": "done",
       "last_event_id": "01KV15XHDVVNMPHJBNPSKQW7VV",
       "last_transition_at": "2026-06-13T19:04:11.451522+00:00",
-      "review_result": null
+      "review_result": null,
+      "shell_pid": 90849,
+      "subtasks": {
+        "T011": "done",
+        "T012": "done",
+        "T013": "done"
+      },
+      "tracker_refs": [
+        "kentonium3/kg-automation#597"
+      ]
     },
     "WP04": {
       "actor": "merge",
+      "agent": "claude:sonnet:reviewer-rachel:reviewer",
       "force_count": 0,
       "lane": "done",
       "last_event_id": "01KV15XJ0NSXSR686773JGR6E1",
       "last_transition_at": "2026-06-13T19:04:12.053296+00:00",
-      "review_result": null
+      "review_result": null,
+      "shell_pid": 94232,
+      "subtasks": {
+        "T014": "done",
+        "T015": "done",
+        "T016": "done"
+      },
+      "tracker_refs": [
+        "kentonium3/kg-automation#597"
+      ]
     }
   }
 }

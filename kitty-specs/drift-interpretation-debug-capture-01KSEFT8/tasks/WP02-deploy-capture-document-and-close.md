@@ -17,14 +17,15 @@ subtasks:
 - T011
 - T012
 - T013
-agent: "claude:opus:python-implementer:implementer"
-shell_pid: "65499"
+agent: claude:opus:python-implementer:implementer
+shell_pid: '65499'
 history:
 - event: planned
   timestamp: '2026-05-25T02:42:46Z'
   note: Created by /spec-kitty.tasks under mission drift-interpretation-debug-capture-01KSEFT8
 authoritative_surface: docs/
 execution_mode: code_change
+lane: planned
 mission_slug: drift-interpretation-debug-capture-01KSEFT8
 owned_files:
 - docs/diagnostics/drift-interpretation-payload-shape.md

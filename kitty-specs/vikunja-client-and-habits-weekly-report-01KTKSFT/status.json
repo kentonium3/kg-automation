@@ -1,5 +1,5 @@
 {
-  "event_count": 61,
+  "event_count": 65,
   "last_event_id": "01KTM6NGVGHJGX61GZ0Z7XGWNY",
   "materialized_at": "2026-06-08T18:07:09.680778+00:00",
   "mission_number": "",
@@ -19,35 +19,72 @@
   "work_packages": {
     "WP01": {
       "actor": "user",
+      "agent": "codex:gpt-5:reviewer-renata:reviewer",
       "force_count": 3,
       "lane": "done",
       "last_event_id": "01KTM6MTAJ6PHH02V9R8E3XST0",
       "last_transition_at": "2026-06-08T18:06:46.610867+00:00",
-      "review_result": null
+      "review_result": null,
+      "shell_pid": 8342,
+      "subtasks": {
+        "T001": "done",
+        "T002": "done",
+        "T003": "done",
+        "T004": "done",
+        "T005": "done",
+        "T006": "done"
+      }
     },
     "WP02": {
       "actor": "user",
+      "agent": "claude:sonnet:python-pedro:implementer",
       "force_count": 8,
       "lane": "done",
       "last_event_id": "01KTM6NGVGHJGX61GZ0Z7XGWNY",
       "last_transition_at": "2026-06-08T18:07:09.680778+00:00",
-      "review_result": null
+      "review_result": null,
+      "shell_pid": 12214,
+      "subtasks": {
+        "T007": "done",
+        "T008": "done",
+        "T009": "done",
+        "T010": "done",
+        "T011": "done",
+        "T012": "done",
+        "T013": "done"
+      }
     },
     "WP03": {
       "actor": "user",
+      "agent": "codex:gpt-5:reviewer-renata:reviewer",
       "force_count": 4,
       "lane": "done",
       "last_event_id": "01KTM6N1S6505VEH7GA8MWP7PQ",
       "last_transition_at": "2026-06-08T18:06:54.246121+00:00",
-      "review_result": null
+      "review_result": null,
+      "shell_pid": 35633,
+      "subtasks": {
+        "T014": "done",
+        "T015": "done",
+        "T016": "done",
+        "T017": "done"
+      }
     },
     "WP04": {
       "actor": "user",
+      "agent": "codex:gpt-5:reviewer-renata:reviewer",
       "force_count": 6,
       "lane": "done",
       "last_event_id": "01KTM6N6MYWCYSBD7A6KYQFDBQ",
       "last_transition_at": "2026-06-08T18:06:59.230870+00:00",
-      "review_result": null
+      "review_result": null,
+      "shell_pid": 44073,
+      "subtasks": {
+        "T018": "done",
+        "T019": "done",
+        "T020": "done",
+        "T021": "done"
+      }
     }
   }
 }

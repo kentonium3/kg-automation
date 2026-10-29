@@ -23,17 +23,18 @@ subtasks:
 - T007
 - T008
 - T009
+agent: codex:gpt-5:spec-kitty-review:reviewer
+shell_pid: '80526'
 history: []
 authoritative_surface: scripts/doc_audit/signals/
 execution_mode: code_change
+lane: planned
 mission_id: 01KS8XRMC0EQZ8HCJ52GXCJ226
 mission_slug: moment0-integration-fix-01KS8XRM
 owned_files:
 - scripts/doc_audit/signals/drift_event.py
 - tests/doc_audit/signals/test_drift_event.py
 tags: []
-agent: "codex:gpt-5:spec-kitty-review:reviewer"
-shell_pid: "80526"
 ---
 
 # WP02 — Wire shared helper into signals/drift_event.py

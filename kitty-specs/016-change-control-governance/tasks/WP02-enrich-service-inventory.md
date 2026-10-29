@@ -23,14 +23,15 @@ subtasks:
 - T011
 phase: Phase 1 - Data Enrichment
 assignee: ''
-agent: "claude"
-shell_pid: "60801"
+agent: claude
+shell_pid: '60801'
 history:
 - at: '2026-04-05T23:00:03Z'
   actor: system
   action: Prompt generated via /spec-kitty.tasks
 authoritative_surface: docs/design/architecture/data/
 execution_mode: code_change
+lane: planned
 owned_files:
 - docs/design/architecture/data/service-inventory.json
 - docs/design/architecture/data/network-topology.json

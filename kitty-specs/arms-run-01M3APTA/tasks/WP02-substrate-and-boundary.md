@@ -33,6 +33,7 @@ create_intent:
 - tests/research/test_arms849_substrate.py
 - tests/research/test_arms849_isolation.py
 execution_mode: code_change
+lane: planned
 owned_files:
 - scripts/research/arms849/substrate.py
 - scripts/research/arms849/compose/compose.yaml

@@ -24,6 +24,7 @@
   "purpose_context": "Kent moved his private growth-work folder to a separate Obsidian vault that office2 never joins, so the in-repo 'never touch _private' apparatus (a lint validator + CI step + workspace-validator invariants + a red-line in every agent prompt + governance/design/runbook docs) now protects a directory that is not present. This mission removes that folder-specific apparatus, generalizes the general privacy hygiene (redact vault paths from alerts; refuse writes to arbitrary vault paths), and reframes the graph-ingest privacy model to 'verify not present'.",
   "purpose_tldr": "Retire the obsolete in-repo guards for the _private folder (now a laptop/phone-only vault office2 never syncs), keeping and generalizing the still-valuable vault-path hygiene.",
   "slug": "retire-private-folder-guards-01KY2MNK",
+  "status_phase": "1",
   "target_branch": "feat/retire-private-folder-guards",
   "topology": "single_branch",
   "vcs": "git",

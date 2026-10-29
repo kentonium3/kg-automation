@@ -47,8 +47,7 @@ gh issue create --repo spec-kitty/spec-kitty --title "<title below>" --body-file
   --type Bug --label from:qa --label domain:status --label priority:P3     # Action D
 ```
 
-`--type Bug` is the native issue type; do **not** apply a `type:bug` label (it still exists and looks right
-until a maintainer strips it). Priority labels were set by Kent: P0 for C, P3 for D.
+`--type Bug` is the native issue type. `type:bug` is **obsolete** upstream — do not apply it. Priority labels were set by Kent: P0 for C, P3 for D.
 
 ## Build under test
 

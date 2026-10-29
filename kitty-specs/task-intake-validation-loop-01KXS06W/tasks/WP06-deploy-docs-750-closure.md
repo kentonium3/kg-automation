@@ -9,8 +9,6 @@ dependencies:
 - WP05
 requirement_refs:
 - FR-015
-tracker_refs:
-- '750'
 planning_base_branch: feat/task-intake-validation-loop
 merge_target_branch: feat/task-intake-validation-loop
 branch_strategy: Planning artifacts for this mission were generated on feat/task-intake-validation-loop. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into feat/task-intake-validation-loop unless the human explicitly redirects the landing branch.
@@ -20,9 +18,9 @@ subtasks:
 - T025
 - T026
 phase: Phase 5 - Release
-agent: "claude:opus:reviewer-renata:reviewer"
-shell_pid: "86934"
-shell_pid_created_at: "1784333305.009575"
+agent: claude:opus:reviewer-renata:reviewer
+shell_pid: '86934'
+shell_pid_created_at: '1784333305.009575'
 history:
 - at: '2026-07-17T21:55:00Z'
   actor: system
@@ -33,6 +31,7 @@ create_intent:
 - deploys/queued/task-intake-validation-loop.yaml
 - docs/runbooks/intake-ops.md
 execution_mode: code_change
+lane: planned
 model: claude-sonnet-5
 owned_files:
 - deploys/queued/task-intake-validation-loop.yaml
@@ -47,6 +46,8 @@ owned_files:
 - docs/DEVELOPER_PORTAL.md
 role: implementer
 tags: []
+tracker_refs:
+- '750'
 ---
 
 # Work Package Prompt: WP06 — Deploy manifest, docs sync, #750 closure

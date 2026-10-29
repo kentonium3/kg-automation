@@ -98,3 +98,33 @@ kitty-ops/ops-index.jsonl
 # intentionally tracked (audited 2026-07-22).
 scripts/**/state/
 build/
+
+# AI Agent directories (added by Spec Kitty CLI)
+# These contain auth tokens and should NEVER be committed
+.codex/
+.opencode/
+.windsurf/
+.gemini/
+.cursor/
+.qwen/
+.kilocode/
+.augment/
+.roo/
+.amazonq/
+.github/copilot/
+.kittify/merge-state.json
+.kittify/events/
+.kittify/dossiers/
+kitty-specs/**/.kittify/dossiers/
+.kittify/.kitty.env
+.kittify/lint-report.json
+.cursor/rules/spec-kitty.mdc
+.cursor/commands/
+.cursor/skills/
+
+# Tracked on purpose despite the spec-kitty block above (ignore rules do not
+# untrack files; NEW files under these paths need `git add -f`):
+#   .codex/agents/, config.toml, hooks.json - project Codex profiles + config (e7c3b923)
+#   .kittify/events/glossary/ - Op glossary events; spec-kitty Ops cannot commit
+#     their own records on protected main (kentonium3/kg-automation#975)
+#   kitty-specs/pointer-key-ledger-01M189P6/.kittify/dossiers/ - mission dossier snapshot

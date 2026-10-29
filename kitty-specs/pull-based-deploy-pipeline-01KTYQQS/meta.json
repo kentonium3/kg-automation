@@ -10,6 +10,7 @@
   "purpose_context": "Every mission that touches office2 today builds a one-shot deploy wrapper, reinventing patterns and occasionally reintroducing bug classes the governance prohibits (closed #162 conflated system crontab with openclaw-managed crons). This mission delivers a manifest-driven pull-based pipeline where office2 reads a deploys/queued/ directory every 5 minutes, runs a vetted Python library of primitives, enforces tier-aware controls in CI and at execute time, and anchors the discipline in CLAUDE.md, the project charter, issue templates, and the architecture signal-to-doc map. The result is that any future agent writing a spec for new work automatically incorporates the deploy story without operator prompting. Existing deploy scripts are grandfathered; sibling issue #548 handles their cleanup post-merge.",
   "purpose_tldr": "Replace ad-hoc deploy wrappers with a manifest-driven pull-based pipeline; anchor the deploy discipline in agent-facing docs so future specify/plan runs include it automatically.",
   "slug": "pull-based-deploy-pipeline-01KTYQQS",
+  "status_phase": "1",
   "target_branch": "main",
   "vcs": "git",
   "vcs_locked_at": "2026-06-12T21:52:53.167029+00:00"

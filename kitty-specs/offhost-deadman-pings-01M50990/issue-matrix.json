@@ -1,0 +1,53 @@
+{
+  "rows": {
+    "#1063": {
+      "evidence_ref": "946e69ef (closed; on-host dead-man this mission extends off-host)",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": "spec.md",
+      "title": "<fill at WP-implementation time>",
+      "verdict": "verified-already-fixed",
+      "wp": null
+    },
+    "#1069": {
+      "evidence_ref": "RFC decided and closed 2026-10-15; this mission implements it",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": "spec.md",
+      "title": "<fill at WP-implementation time>",
+      "verdict": "verified-already-fixed",
+      "wp": null
+    },
+    "#1077": {
+      "evidence_ref": "this mission's tracking issue; delivered across WP01-WP04",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": null,
+      "title": null,
+      "verdict": "in-mission",
+      "wp": "WP04"
+    },
+    "#557": {
+      "evidence_ref": "cited in plan charter check: no audited surface touched",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": null,
+      "title": null,
+      "verdict": "not-applicable",
+      "wp": null
+    }
+  },
+  "schema_version": 1
+}

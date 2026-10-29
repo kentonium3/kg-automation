@@ -3,10 +3,11 @@
   "deliverables_path": "docs/research/felix-vikunja-sync-architecture",
   "friendly_name": "felix vikunja sync architecture research",
   "mission_id": "01KT7Q15NKQFW1J276F4KN2JFG",
-  "mission_number": null,
+  "mission_number": "",
   "mission_slug": "felix-vikunja-sync-architecture-research-01KT7Q15",
   "mission_type": "research",
   "slug": "felix-vikunja-sync-architecture-research-01KT7Q15",
+  "status_phase": "1",
   "target_branch": "main",
   "vcs": "git"
 }

@@ -29,10 +29,12 @@ subtasks:
 - T005
 - T006
 - T007
-shell_pid: "4370"
+agent: agy:gemini-2.5-pro:spec-kitty-review:reviewer
+shell_pid: '4370'
 history: []
 authoritative_surface: scripts/doc_audit/judgment/
 execution_mode: code_change
+lane: planned
 mission_id: 01KS8J321F8KE7369R3DA02329
 mission_slug: drift-event-auto-resolution-01KS8J32
 owned_files:
@@ -43,7 +45,6 @@ owned_files:
 - tests/doc_audit/fixtures/drift_event_openclaw_json_hash.json
 - tests/doc_audit/fixtures/drift_event_systemd_dropins.json
 tags: []
-agent: "agy:gemini-2.5-pro:spec-kitty-review:reviewer"
 ---
 
 # WP01 — drift_interpretation module + prompt

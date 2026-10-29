@@ -9,7 +9,6 @@ requirement_refs:
 - FR-009
 - NFR-004
 - NFR-005
-tracker_refs: []
 planning_base_branch: fix/felix-deployer-rebaseline-detection
 merge_target_branch: fix/felix-deployer-rebaseline-detection
 branch_strategy: Planning artifacts for this mission were generated on fix/felix-deployer-rebaseline-detection. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into fix/felix-deployer-rebaseline-detection unless the human explicitly redirects the landing branch.
@@ -20,12 +19,14 @@ subtasks:
 - T012
 - T013
 - T014
-agent: "claude:opus:reviewer-renata:reviewer"
+agent: claude:opus:reviewer-renata:reviewer
+shell_pid: '13871'
 history: []
 agent_profile: python-pedro
 authoritative_surface: scripts/deploy/lib/manifest.py
 create_intent: []
 execution_mode: code_change
+lane: planned
 owned_files:
 - deploys/schema/manifest-v1.schema.json
 - scripts/deploy/lib/manifest.py
@@ -35,7 +36,7 @@ owned_files:
 - tests/deploy/test_audited_surfaces.py
 role: implementer
 tags: []
-shell_pid: "13871"
+tracker_refs: []
 ---
 
 ## ⚡ Do This First: Load Agent Profile

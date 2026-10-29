@@ -22,21 +22,40 @@
       "force_count": 1,
       "lane": "done",
       "last_event_id": "01KMZP1XA5DPQ4PTTK47DM8ZRR",
-      "last_transition_at": "2026-03-30T15:33:32.101814+00:00"
+      "last_transition_at": "2026-03-30T15:33:32.101814+00:00",
+      "subtasks": {
+        "T001": "done",
+        "T002": "done",
+        "T003": "done",
+        "T004": "done",
+        "T005": "done",
+        "T006": "done"
+      }
     },
     "WP02": {
       "actor": "user",
       "force_count": 1,
       "lane": "done",
       "last_event_id": "01KMZP1YT7QND9AAMKH7YB5Y1F",
-      "last_transition_at": "2026-03-30T15:33:33.639756+00:00"
+      "last_transition_at": "2026-03-30T15:33:33.639756+00:00",
+      "subtasks": {
+        "T007": "done",
+        "T008": "done",
+        "T009": "done"
+      }
     },
     "WP03": {
       "actor": "merge",
       "force_count": 1,
       "lane": "done",
       "last_event_id": "01KMZMJ176QZ3GKXCF1BBKEG6A",
-      "last_transition_at": "2026-03-30T15:07:23.238848+00:00"
+      "last_transition_at": "2026-03-30T15:07:23.238848+00:00",
+      "subtasks": {
+        "T010": "done",
+        "T011": "done",
+        "T012": "done",
+        "T013": "done"
+      }
     }
   }
 }

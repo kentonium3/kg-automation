@@ -5,7 +5,6 @@ dependencies:
 - WP05
 requirement_refs:
 - FR-009
-tracker_refs: []
 planning_base_branch: feat/agent-runtime-env-guardrails
 merge_target_branch: feat/agent-runtime-env-guardrails
 branch_strategy: Planning artifacts for this mission were generated on feat/agent-runtime-env-guardrails. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into feat/agent-runtime-env-guardrails unless the human explicitly redirects the landing branch.
@@ -14,8 +13,8 @@ subtasks:
 - T024
 - T025
 - T026
-agent: "claude"
-shell_pid: "16079"
+agent: claude
+shell_pid: '16079'
 history:
 - 2026-07-05 authored from plan IC-05/IC-06 (docs + deploy + verify)
 agent_profile: curator-carla
@@ -23,6 +22,7 @@ authoritative_surface: deploys/queued/0010-agent-runtime-env-guardrails.yaml
 create_intent:
 - deploys/queued/0010-agent-runtime-env-guardrails.yaml
 execution_mode: code_change
+lane: planned
 model: claude-sonnet-4-6
 owned_files:
 - deploys/queued/0010-agent-runtime-env-guardrails.yaml
@@ -30,6 +30,7 @@ owned_files:
 - docs/runbooks/openclaw-agent-setup.md
 role: implementer
 tags: []
+tracker_refs: []
 ---
 
 ## ⚡ Do This First: Load Agent Profile

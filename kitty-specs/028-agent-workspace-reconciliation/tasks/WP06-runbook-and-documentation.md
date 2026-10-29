@@ -13,14 +13,15 @@ subtasks:
 - T025
 - T026
 - T027
-agent: "claude:opus-4-6:implementer:implementer"
-shell_pid: "6143"
+agent: claude:opus-4-6:implementer:implementer
+shell_pid: '6143'
 history:
 - date: '2026-04-13'
   action: created
   agent: claude-opus-4-6
 authoritative_surface: docs/
 execution_mode: code_change
+lane: planned
 owned_files:
 - docs/runbooks/agent-workspace-reconciliation.md
 - docs/INDEX.md

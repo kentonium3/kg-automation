@@ -28,6 +28,7 @@ history:
   action: Prompt generated via /spec-kitty.tasks
 authoritative_surface: docs/design/roadmap.md/
 execution_mode: code_change
+lane: planned
 mission_id: 01KN5QX3WEJQ6KMCTQ8K1FX4FS
 owned_files:
 - docs/design/roadmap.md

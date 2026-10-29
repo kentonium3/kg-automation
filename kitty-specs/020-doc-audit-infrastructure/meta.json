@@ -7,6 +7,7 @@
   "mission_slug": "020-doc-audit-infrastructure",
   "mission_type": "software-dev",
   "slug": "020-doc-audit-infrastructure",
+  "status_phase": "1",
   "target_branch": "main",
   "vcs": "git",
   "vcs_locked_at": "2026-04-08T19:45:37.047712+00:00"

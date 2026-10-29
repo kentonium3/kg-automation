@@ -18,14 +18,15 @@ subtasks:
 - T051
 phase: Phase 6 — Final docs
 assignee: ''
-agent: "codex:gpt-5:spec-kitty-review:reviewer"
-shell_pid: "44410"
+agent: codex:gpt-5:spec-kitty-review:reviewer
+shell_pid: '44410'
 history:
 - timestamp: '2026-05-20T16:25:00Z'
   agent: system
   action: Prompt generated via /spec-kitty.tasks
 authoritative_surface: docs/runbooks/
 execution_mode: code_change
+lane: planned
 owned_files:
 - docs/design/architecture/data/service-inventory.json
 - docs/design/architecture/data/data-flows.json

@@ -15,10 +15,12 @@ subtasks:
 - T030
 - T031
 - T032
-shell_pid: "3065"
+agent: agy:gemini-2.5-pro:spec-kitty-review:reviewer
+shell_pid: '3065'
 history: []
 authoritative_surface: docs/
 execution_mode: code_change
+lane: planned
 mission_id: 01KS8J321F8KE7369R3DA02329
 mission_slug: drift-event-auto-resolution-01KS8J32
 owned_files:
@@ -29,7 +31,6 @@ owned_files:
 - docs/design/architecture/data-flows.view.md
 - docs/runbooks/doc-auditor-driver-ops.md
 tags: []
-agent: "agy:gemini-2.5-pro:spec-kitty-review:reviewer"
 ---
 
 # WP06 — Architecture docs + ops runbook

@@ -8,7 +8,6 @@ requirement_refs:
 - FR-005
 - FR-008
 - FR-012
-tracker_refs: []
 planning_base_branch: fix/felix-admin-cron-path-fix
 merge_target_branch: fix/felix-admin-cron-path-fix
 branch_strategy: Planning artifacts for this mission were generated on fix/felix-admin-cron-path-fix. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into fix/felix-admin-cron-path-fix unless the human explicitly redirects the landing branch.
@@ -16,8 +15,8 @@ subtasks:
 - T016
 - T017
 - T018
-agent: "claude:opus:reviewer-renata:reviewer"
-shell_pid: "13191"
+agent: claude:opus:reviewer-renata:reviewer
+shell_pid: '13191'
 history:
 - at: 2026-07-05T02:30:00Z
   actor: system
@@ -29,6 +28,7 @@ create_intent:
 - deploys/queued/0007-migrate-inbox-state-and-logs.yaml
 - tests/deploy/test_migrate_inbox_state.py
 execution_mode: code_change
+lane: planned
 model: claude-sonnet-4-6
 owned_files:
 - scripts/deploy/migrate-inbox-state-and-logs.py
@@ -36,6 +36,7 @@ owned_files:
 - tests/deploy/test_migrate_inbox_state.py
 role: implementer
 tags: []
+tracker_refs: []
 ---
 
 # Work Package Prompt: WP05 – Migration entrypoint + manifest

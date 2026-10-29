@@ -36,6 +36,7 @@ create_intent:
 - scripts/decommission/office2/verify.sh
 - deploys/queued/0xxx-qa-pipeline-decommission.yaml
 execution_mode: code_change
+lane: planned
 owned_files:
 - scripts/decommission/office2/**
 - deploys/queued/**

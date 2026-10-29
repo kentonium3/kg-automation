@@ -15,14 +15,15 @@ subtasks:
 - T006
 - T007
 - T008
-agent: "claude:opus:implementer:implementer"
-shell_pid: "96144"
+agent: claude:opus:implementer:implementer
+shell_pid: '96144'
 history:
 - date: '2026-05-06'
   event: created
   agent: claude-opus
 authoritative_surface: tests/scripts/inbox/
 execution_mode: code_change
+lane: planned
 owned_files:
 - tests/scripts/inbox/fixtures/processed-recent.md
 - tests/scripts/inbox/fixtures/processed-stale.md

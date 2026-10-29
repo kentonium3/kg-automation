@@ -1,0 +1,53 @@
+{
+  "rows": {
+    "#1063": {
+      "evidence_ref": "946e69ef (closed; prior context: canary already pages on a failed run)",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": "spec.md",
+      "title": "<fill at WP-implementation time>",
+      "verdict": "verified-already-fixed",
+      "wp": null
+    },
+    "#1067": {
+      "evidence_ref": "this mission's tracking issue; delivered across WP01-WP04",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": "spec.md",
+      "title": "<fill at WP-implementation time>",
+      "verdict": "in-mission",
+      "wp": "WP04"
+    },
+    "#557": {
+      "evidence_ref": "cited in plan.md charter check: rebaseline obligation; no audited surface touched",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": null,
+      "title": null,
+      "verdict": "not-applicable",
+      "wp": null
+    },
+    "#899": {
+      "evidence_ref": "cited as the constraint this mission must not violate (no root-to-claude code edge); owes no work",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": "spec.md",
+      "title": "<fill at WP-implementation time>",
+      "verdict": "not-applicable",
+      "wp": null
+    }
+  },
+  "schema_version": 1
+}

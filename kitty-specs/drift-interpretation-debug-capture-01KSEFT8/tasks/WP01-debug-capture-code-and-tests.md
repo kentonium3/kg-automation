@@ -22,14 +22,15 @@ subtasks:
 - T004
 - T005
 - T006
-shell_pid: "60752"
-agent: "codex:gpt-5:spec-kitty-review:reviewer"
+agent: codex:gpt-5:spec-kitty-review:reviewer
+shell_pid: '60752'
 history:
 - event: planned
   timestamp: '2026-05-25T02:42:46Z'
   note: Created by /spec-kitty.tasks under mission drift-interpretation-debug-capture-01KSEFT8
 authoritative_surface: scripts/doc_audit/judgment/
 execution_mode: code_change
+lane: planned
 mission_slug: drift-interpretation-debug-capture-01KSEFT8
 owned_files:
 - scripts/doc_audit/judgment/drift_interpretation.py

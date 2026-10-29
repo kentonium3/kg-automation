@@ -6,11 +6,11 @@ level: concept
 audience: agents_and_humans
 owners: [kgale]
 created: 2026-07-11
-last_updated: '2026-07-11'
-last_validated: '2026-07-11'
-version: v1.0
-updated_by: '#327 (felix-canary-registry-01KX8T7B) — captures the reusable observability pattern established by #701 (bus) + #683 (trust-scan) + #327 (canary)'
-tags: [327, 683, 701, 706, 516, 269, 707]
+last_updated: '2026-10-14'
+last_validated: '2026-10-14'
+version: v1.1
+updated_by: '#327 (felix-canary-registry-01KX8T7B) — captures the reusable observability pattern established by #701 (bus) + #683 (trust-scan) + #327 (canary); #1063 adds §5a, who watches the watcher'
+tags: [327, 683, 701, 706, 516, 269, 707, 1063, 1069]
 ---
 
 # Observability & Alerting — the Deterministic-Scanner Pattern
@@ -103,8 +103,12 @@ deploy half:
   entrypoint `scripts/deploy/deploy-felix-canary.py`). No hand-run install.
 - **systemd `--user` timer + `OnFailure=` shim.** The `.service` is a
   `Type=oneshot` running `python3 -m scripts.<pkg>.run --once`; the `.timer` sets
-  the ~15-min cadence (`OnUnitActiveSec=15min`, `OnBootSec=5min`,
-  `Persistent=true`). The canary adds a crash detector trust-scan lacked:
+  the ~15-min cadence (`OnUnitActiveSec=15min`, `OnBootSec=5min`).
+  **Never add `Persistent=` to a monotonic timer like this one.** It only has its
+  intended effect with `OnCalendar=`, and on a monotonic timer it leaves the timer
+  permanently dormant whenever the user manager starts after `OnBootSec=` has
+  passed. That kept this canary dead for 17 days (#1062);
+  `tests/tooling/test_timer_persistent_guard.py` enforces it. The canary adds a crash detector trust-scan lacked:
   `OnFailure=felix-canary-onfailure.service` fires an **out-of-band** ERROR via
   `scripts/common/alert_bus.sh` when the runner itself exits non-zero —
   independent of the runner's own emit logic, so a runner that crashed before it
@@ -192,9 +196,72 @@ and they are for different consumers:
 This split matters: the push is for a human in the moment; the ledgers are the
 **substrate a future responder or watchdog builds on** — an agent can query "what
 was this component's health over the last day?" or "did we ever alert on X?"
-without having been subscribed at the time. This is exactly what the deferred
-out-of-band dead-timer watchdog (#269) and the alert-responder RFC (#707) stand
-on: they don't re-observe, they *read the ledger*.
+without having been subscribed at the time. This is what the alert-responder
+RFC (#707), and any future off-host whole-host-silence watchdog (#269, #1069),
+stand on: they don't re-observe, they *read the ledger*. (The dead *canary*
+timer is already caught on-host by `felix-health-check`; see §5a.)
+
+## 5a. Who watches the watcher (#1063)
+
+A scanner cannot report its own death: a timer that never fires produces no
+tick, no ledger line and no alert. From 2026-09-27 to 2026-10-14 `felix-canary`
+was dormant (#1062), every nightly backup failed, and nothing said so for 17
+days. The fix is a **mutual watch**, with one definition of health:
+
+```mermaid
+flowchart LR
+    HC[felix-health-check<br/>11:00 + 23:00 UTC] -- "coverage: canary tick" --> CT[(felix-canary last-tick.json)]
+    HC -- "coverage: backup pointer" --> BP[(last-backup.json)]
+    CN[felix-canary<br/>every 15 min] --> BP
+    CN -- "#891" --> HR[(felix-health-check last-run.json)]
+    INV[[service-inventory.json declarations]] -. evaluated by the canary's code .-> HC
+    INV -. evaluated by the canary's code .-> CN
+```
+
+- **One definition.** The health check evaluates the `felix-canary` and
+  `restic-backup` declarations by calling the canary's own
+  `scripts.canary.health.evaluate`. It holds no copied bound or good-set. It
+  observes the canary's *code*, never its *process*.
+- **"Alive" is affirmative.** The canary's tick declaration carries a
+  `key_ledger`: a `success` status, a fresh `completed_at_utc` with no fallback
+  timestamp, and at least one evaluated component.
+- **Failed backups say why.** The `restic-backup` ledger declares an optional
+  `cause` member (#1067). When a declared key makes the verdict non-ok, the
+  shared evaluator appends the declared plain-words text for the pointer's
+  `failure_reason` code (for example `; cause: backup drive /mnt/backups is
+  not mounted`). Both watchers get it from the same code path. The cause never
+  changes a verdict or its dedup, and an unknown code shows a fixed marker,
+  never the raw value. See
+  [restic-backup-ops § Failure cause in alerts](<../../runbooks/restic-backup-ops.md#failure-cause-in-alerts-failure_reason-1067>).
+- **Blind is never healthy.** An inability to evaluate (unreadable inventory or
+  pointer, missing declaration, a declaration with no freshness bound) is
+  `UNKNOWN`, and it alerts. `ALL_HEALTHY` requires every check to pass.
+- **Detection latency.** A dark canary is reported by the first health-check run
+  after its tick passes 35 min, so within about 12 h 35 min. A missed backup is
+  reported within about 12 h of the snapshot passing its 28 h bound. A run that
+  catches up after downtime may report the canary stale once; that is true, and
+  it is by design.
+- **Shared evaluator.** CI sentinels guard against a regression in the evaluator the two watchers share.
+- **Off-host dead-man (#1077, decided by RFC [#1069](https://github.com/kentonium3/kg-automation/issues/1069)).** Both watchers share one host, one
+  `claude` user manager, one checkout and one ntfy topic, so losing any of
+  them silences both. Each watcher therefore pings its own hosted
+  healthchecks.io check after every run (`scripts/common/deadman.py`). If the
+  pings stop, healthchecks.io **emails** Kent, deliberately never through ntfy.
+  - The canary's check alerts about an hour after silence (15 min period plus
+    45 min grace). The health check's check is on a Cron schedule matching its
+    11:00 and 23:00 timer. The timer uses host-local time, and office2 is
+    `Etc/UTC`.
+  - **A `success` ping means liveness plus a working channel, not component
+    health.** The watcher must have run without an execution fault and the
+    alert channel must be ok, judged freshly every run with no state: the
+    topic is configured, a read-only `ntfy /v1/health` probe answers healthy
+    (in the same transport context as real delivery), and every alert this
+    run tried to send was delivered. Anything else pings `/fail`, which emails
+    at once.
+  - Accepted residuals: a revoked or mistyped topic on a healthy ntfy server
+    is caught only when the next real alert fails to deliver, and losing both
+    attempts of a ping produces one false email. Runbook:
+    [canary-registry-ops § Off-host dead-man pings](<../../runbooks/canary-registry-ops.md#off-host-dead-man-pings-1077>).
 
 ## 6. Adding a new scanner / alert producer — the checklist
 
@@ -219,7 +286,9 @@ Follow these steps; each maps to an invariant above.
    never aborts the pass).
 5. **Register in the inventory for self-observability.** Add the scanner itself to
    `service-inventory.json` with a freshness `health_check` on its own
-   tick-signal, so the *other* scanner (and the #269 watchdog) can watch *it*.
+   tick-signal, so another watcher can watch *it* (for the canary this is
+   `felix-health-check`'s dead-man's switch, §5a; give that freshness check a
+   `key_ledger` so "alive" means success, not merely a recent file).
    A scanner that can't be watched is a blind spot.
 6. **Report coverage gaps honestly.** If your scanner can't evaluate something it
    *should*, surface that as a first-class `gap`/`unknown` outcome — never a
@@ -263,4 +332,4 @@ transition-always-emits-with-persistence-gated-unknowns.
 - **Coherence invariant**: [doctrine.md](<../coherence/doctrine.md>) `INV-003` (one canonical alert stream) / `INV-001` (no fabrication) / `INV-002` (no silent fallback).
 - **Engineering principles**: [engineering-principles.md](<../engineering-principles.md>) #8 (suspension as an operational state — the backing for status-gates-health).
 - **Data flows**: [data-flows.md](<./data-flows.md>) — the `felix-canary`, `felix-trust-scan`, and `#701-alert-bus-emit` flow entries.
-- **Program context**: Foundation 1 / Epic #516 (health & observability); deferred out-of-band watchdog #269; alert-responder RFC #707.
+- **Program context**: Foundation 1 / Epic #516 (health & observability); canary dead-man's switch shipped in #1063 (§5a); off-host dead-man pings to healthchecks.io (RFC #1069, implemented #1077; Felix-outage watchdog #269 separate); alert-responder RFC #707.

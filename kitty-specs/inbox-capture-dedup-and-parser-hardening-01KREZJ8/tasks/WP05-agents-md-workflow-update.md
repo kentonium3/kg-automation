@@ -27,14 +27,15 @@ subtasks:
 - T015
 - T016
 - T017
-agent: "claude"
-shell_pid: "45413"
+agent: claude
+shell_pid: '45413'
 history:
 - event: created
   at: '2026-05-12T20:55:30Z'
   by: 'spec-kitty.tasks (auto-drive via #185)'
 authoritative_surface: scripts/openclaw/agents/felix-admin-capture/AGENTS.md
 execution_mode: code_change
+lane: planned
 owned_files:
 - scripts/openclaw/agents/felix-admin-capture/AGENTS.md
 tags: []

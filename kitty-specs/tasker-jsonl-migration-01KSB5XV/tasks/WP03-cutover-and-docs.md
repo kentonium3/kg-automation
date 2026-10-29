@@ -20,9 +20,12 @@ subtasks:
 - T008
 - T009
 - T010
+agent: codex:gpt-5:spec-kitty-review:reviewer
+shell_pid: '25775'
 history: []
 authoritative_surface: scripts/openclaw/agents/felix-admin-tasker/
 execution_mode: code_change
+lane: planned
 mission_id: 01KSB5XVGW5WRDQFR17JSA52M5
 mission_slug: tasker-jsonl-migration-01KSB5XV
 owned_files:
@@ -35,8 +38,6 @@ owned_files:
 - docs/design/architecture/data-flows.md
 - docs/runbooks/tasker-ops.md
 tags: []
-agent: "codex:gpt-5:spec-kitty-review:reviewer"
-shell_pid: "25775"
 ---
 
 # WP03 — tasker AGENTS.md cut + cutover script + arch docs + runbook

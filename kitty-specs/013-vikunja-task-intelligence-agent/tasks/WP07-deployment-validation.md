@@ -14,6 +14,7 @@ history:
   by: spec-kitty.tasks
 authoritative_surface: scripts/deploy/
 execution_mode: code_change
+lane: planned
 owned_files: [scripts/deploy/deploy-f013.sh]
 ---
 

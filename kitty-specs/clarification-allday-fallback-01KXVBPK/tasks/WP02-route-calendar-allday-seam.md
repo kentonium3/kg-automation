@@ -4,27 +4,28 @@ title: All-day support in the calendar delegation seam
 dependencies: []
 requirement_refs:
 - FR-006
-tracker_refs: []
 planning_base_branch: feat/clarification-allday-fallback
 merge_target_branch: feat/clarification-allday-fallback
 branch_strategy: Planning artifacts for this mission were generated on feat/clarification-allday-fallback. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into feat/clarification-allday-fallback unless the human explicitly redirects the landing branch.
 subtasks:
 - T003
 - T004
-agent: "claude:opus:reviewer-renata:reviewer"
-shell_pid: "67366"
-shell_pid_created_at: "1784411824.343509"
+agent: claude:opus:reviewer-renata:reviewer
+shell_pid: '67366'
+shell_pid_created_at: '1784411824.343509'
 history:
 - '2026-07-18: authored by /spec-kitty.tasks'
 agent_profile: python-pedro
 authoritative_surface: scripts/inbox/route_calendar_event.py
 create_intent: []
 execution_mode: code_change
+lane: planned
 owned_files:
 - scripts/inbox/route_calendar_event.py
 - tests/inbox/test_route_calendar_event.py
 role: implementer
 tags: []
+tracker_refs: []
 ---
 
 ## ⚡ Do This First: Load Agent Profile

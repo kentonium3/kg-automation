@@ -34,6 +34,7 @@ create_intent:
 - tests/office2/backup_script_drift/__init__.py
 - tests/office2/backup_script_drift/test_backup_script_drift.py
 execution_mode: code_change
+lane: planned
 owned_files:
 - scripts/office2/backup_script_drift.py
 - scripts/office2/backup-script-drift.service

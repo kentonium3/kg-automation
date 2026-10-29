@@ -62,7 +62,7 @@ additive, single-section edit.
 
 **Estimated prompt size**: ~180 lines.
 
-**Prompt**: [tasks/WP01-add-exec-host-gateway-directive.md](tasks/WP01-add-exec-host-gateway-directive.md)
+**Prompt**: [tasks/WP01-add-exec-host-gateway-directive.md
 
 ## Post-merge verification (automated; not an executable WP)
 

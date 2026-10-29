@@ -14,7 +14,6 @@ requirement_refs:
 - FR-010
 - FR-011
 - FR-012
-tracker_refs: []
 planning_base_branch: kitty/mission-inbox-calendar-and-aspiration-routing-01KTHHXS
 merge_target_branch: kitty/mission-inbox-calendar-and-aspiration-routing-01KTHHXS
 branch_strategy: Planning artifacts for this mission were generated on kitty/mission-inbox-calendar-and-aspiration-routing-01KTHHXS. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into kitty/mission-inbox-calendar-and-aspiration-routing-01KTHHXS unless the human explicitly redirects the landing branch.
@@ -30,16 +29,18 @@ subtasks:
 - T012
 - T013
 - T014
-agent: "claude:opus-4-7:reviewer-renata:reviewer"
-shell_pid: "21577"
+agent: claude:opus-4-7:reviewer-renata:reviewer
+shell_pid: '21577'
 history: []
 agent_profile: generic-agent
 authoritative_surface: scripts/openclaw/agents/felix-admin-capture/
 execution_mode: code_change
+lane: planned
 owned_files:
 - scripts/openclaw/agents/felix-admin-capture/AGENTS.md
 role: implementer
 tags: []
+tracker_refs: []
 ---
 
 # WP02: Capture agent — routing rows, completeness, clarification, audit

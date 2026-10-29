@@ -38,7 +38,7 @@
 - [x] T001 `validate` surfaces resolved `start_date` on every start-time-missing result (WP01)
 - [x] T002 Unit tests: start_date emitted, tick-anchored (week-drift), missing_fields shape, complete-event unaffected (WP01)
 
-**Prompt**: [tasks/WP01-validator-resolved-date-signal.md](./tasks/WP01-validator-resolved-date-signal.md) · ~200 lines
+**Prompt**: [tasks/WP01-validator-resolved-date-signal.md
 
 ## WP02 — All-day support in the calendar delegation seam
 
@@ -47,7 +47,7 @@
 - [x] T003 `route_calendar_event` accepts + delegates all-day (`start_date`/`end_date`) payloads (WP02)
 - [x] T004 Tests: all-day acceptance (exclusive end) + timed-path regression (WP02)
 
-**Prompt**: [tasks/WP02-route-calendar-allday-seam.md](./tasks/WP02-route-calendar-allday-seam.md) · ~200 lines
+**Prompt**: [tasks/WP02-route-calendar-allday-seam.md
 
 ## WP03 — Deterministic sweep-finalize path + observability
 
@@ -59,7 +59,7 @@
 - [x] T008 Ineligible aged-out → delete-and-release; `SWEEP_MAX_AGE` 24h→8h (C-006); non-aged-out untouched (WP03)
 - [x] T009 Observability marker (`calendar_all_day_fallback`) extending the `calendar_event_clarification_timeout` vocab (C-007) (WP03)
 
-**Prompt**: [tasks/WP03-sweep-finalize-path.md](./tasks/WP03-sweep-finalize-path.md) · ~420 lines
+**Prompt**: [tasks/WP03-sweep-finalize-path.md
 
 ## WP04 — Integration/scenario tests for the fallback invariants
 
@@ -70,7 +70,7 @@
 - [x] T012 Integration: boundary + legacy (missing-title / non-timing / no-signal → zero all-day, delete-and-release) (WP04)
 - [x] T013 Integration: fail-closed (create error → retain, unprocessed) + week-drift (event date == persisted start_date) (WP04)
 
-**Prompt**: [tasks/WP04-integration-tests.md](./tasks/WP04-integration-tests.md) · ~260 lines
+**Prompt**: [tasks/WP04-integration-tests.md
 
 ## WP05 — Agent prompt edits + docs (deploy surface)
 
@@ -80,7 +80,7 @@
 - [x] T015 felix-admin-capture AGENTS.md Step 1a: invoke sweep-finalize in place of bare `sweep` (WP05)
 - [x] T016 TOOLS.md + runbook doc: the new sweep-finalize command + all-day fallback behavior (WP05)
 
-**Prompt**: [tasks/WP05-agent-prompts-and-docs.md](./tasks/WP05-agent-prompts-and-docs.md) · ~200 lines
+**Prompt**: [tasks/WP05-agent-prompts-and-docs.md
 
 ## WP06 — Calendar-clarification process-flow doc (discoverable design doc)
 
@@ -90,7 +90,7 @@
 - [x] T018 Register the flow doc for **machine + human discovery** (signal-to-doc-map.json + docs/INDEX.md) (WP06)
 - [x] T019 Cross-link the flow doc to #780/#794 and the implementing seams; establish the reusable shape for #794's back-fill (WP06)
 
-**Prompt**: [tasks/WP06-calendar-clarification-flow-doc.md](./tasks/WP06-calendar-clarification-flow-doc.md) · ~220 lines
+**Prompt**: [tasks/WP06-calendar-clarification-flow-doc.md
 
 ---
 

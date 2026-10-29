@@ -17,17 +17,18 @@ subtasks:
 - T011
 - T012
 - T013
+agent: agy:gemini-2.5-pro:spec-kitty-review:reviewer
+shell_pid: '6462'
 history: []
 authoritative_surface: scripts/doc_audit/output/
 execution_mode: code_change
+lane: planned
 mission_id: 01KS8J321F8KE7369R3DA02329
 mission_slug: drift-event-auto-resolution-01KS8J32
 owned_files:
 - scripts/doc_audit/output/drift_ledger.py
 - tests/doc_audit/output/test_drift_ledger.py
 tags: []
-agent: "agy:gemini-2.5-pro:spec-kitty-review:reviewer"
-shell_pid: "6462"
 ---
 
 # WP02 — drift_ledger module

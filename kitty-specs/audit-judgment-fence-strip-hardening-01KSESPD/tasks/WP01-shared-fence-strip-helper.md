@@ -21,14 +21,15 @@ subtasks:
 - T002
 - T003
 - T004
-shell_pid: "22374"
-agent: "codex:gpt-5:spec-kitty-review:reviewer"
+agent: codex:gpt-5:spec-kitty-review:reviewer
+shell_pid: '22374'
 history:
 - event: created
   by: spec-kitty.tasks orchestrator
   at: '2026-05-25T05:35:51Z'
 authoritative_surface: scripts/doc_audit/judgment/_llm_response.py
 execution_mode: code_change
+lane: planned
 owned_files:
 - scripts/doc_audit/judgment/_llm_response.py
 - scripts/doc_audit/judgment/drift_interpretation.py

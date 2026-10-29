@@ -49,4 +49,4 @@ it with the documented flags/exit codes.
 emit a project delete; filter ids are environment-specific (readback guards).
 **Estimated prompt size**: ~380 lines.
 
-**Prompt**: [tasks/WP01-reconcile-projects-helper.md](./tasks/WP01-reconcile-projects-helper.md)
+**Prompt**: [tasks/WP01-reconcile-projects-helper.md

@@ -194,6 +194,7 @@ component legitimately future-dates and none will false-alarm.
 
 1. `key_ledger`, when present, contains only `adjudicated`, `diagnostic_only`, and
    `reconciliation_harness`.
+   > Amended 2026-10-15: see "Amendment 2026-10-15 — optional `cause` member (rule 9)" below.
 2. `adjudicated` maps key name → predicate object. `diagnostic_only` maps key name → `{"reason": …}`
    with a non-empty reason.
 3. **No key appears in both.** A hard error, never a precedence rule — a precedence rule silently picks
@@ -296,3 +297,25 @@ The mechanism must contain no component name, no host name, and no producer-spec
 adopting a second backup requires editing the evaluator or the reconciliation helper, the contract has
 failed its purpose. That property is itself tested, by driving a fictitious producer *script* with a
 different key set through both shared helpers and asserting neither needed a change.
+
+## Amendment 2026-10-15 — optional `cause` member (rule 9)
+
+Added by mission `backup-failure-cause-in-alert-01M502K3` (kentonium3/kg-automation#1067).
+Nothing above is rewritten; this section extends it.
+
+**Rule 1, extended.** `key_ledger` may also contain an optional `cause` member. The allowed set
+is now `adjudicated`, `diagnostic_only`, `reconciliation_harness` and `cause`.
+
+**Rule 9.** `cause` names the pointer key that carries a failure-cause code, and the
+plain-words text for each code: `{"key": "<pointer key>", "codes": {"<code>": "<text>"}}`.
+The key must be declared `diagnostic_only` and never `adjudicated`, so a cause can never
+decide health. Code names match `^[a-z][a-z0-9_]{0,63}$`. Each text is 1–120 characters
+with no control characters, because it reaches alert text verbatim.
+
+**Semantics.** The cause is decoration only. A consumer may append the declared text to
+the evidence of a verdict that is already non-ok, but it must not change the verdict, the
+staleness, the evaluability or the dedup signal. An undeclared string value yields a fixed
+marker, never the raw value. A missing or malformed member is ignored at runtime.
+
+The full text is in
+`kitty-specs/backup-failure-cause-in-alert-01M502K3/contracts/key-ledger-cause-member.md`.

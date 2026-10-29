@@ -35,9 +35,12 @@ subtasks:
 - T021
 - T022
 - T023
+agent: agy:gemini-2.5-pro:spec-kitty-review:reviewer
+shell_pid: '17087'
 history: []
 authoritative_surface: scripts/doc_audit/helpers/handle_drift_events.py
 execution_mode: code_change
+lane: planned
 mission_id: 01KS8J321F8KE7369R3DA02329
 mission_slug: drift-event-auto-resolution-01KS8J32
 owned_files:
@@ -45,8 +48,6 @@ owned_files:
 - scripts/doc_audit/config.toml
 - tests/doc_audit/helpers/test_handle_drift_events.py
 tags: []
-agent: "agy:gemini-2.5-pro:spec-kitty-review:reviewer"
-shell_pid: "17087"
 ---
 
 # WP04 — handle_drift_events integration

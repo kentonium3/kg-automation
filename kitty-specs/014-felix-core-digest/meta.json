@@ -7,6 +7,7 @@
   "mission_type": "software-dev",
   "slug": "felix-core-digest",
   "source_description": "Agent log format standard (JSONL) and observation intelligence layer replacing Markdown-regex parsing",
+  "status_phase": "1",
   "target_branch": "main",
   "vcs": "git"
 }

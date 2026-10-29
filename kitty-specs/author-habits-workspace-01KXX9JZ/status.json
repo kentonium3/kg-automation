@@ -1,5 +1,5 @@
 {
-  "event_count": 7,
+  "event_count": 8,
   "last_event_id": "01KXXCKNE2YRRCKA4KW7H1YBT6",
   "materialized_at": "2026-07-19T14:31:15.650130+00:00",
   "mission_number": "108",
@@ -19,6 +19,7 @@
   "work_packages": {
     "WP01": {
       "actor": "merge",
+      "agent": "claude",
       "force_count": 0,
       "lane": "done",
       "last_event_id": "01KXXCKNE2YRRCKA4KW7H1YBT6",
@@ -27,6 +28,16 @@
         "reference": "reviewer-renata APPROVE: all 9 checks pass; 1 non-blocking pre-existing note → follow-up",
         "reviewer": "Kent Gale",
         "verdict": "approved"
+      },
+      "shell_pid": 27940,
+      "shell_pid_created_at": "1784470341.522141",
+      "subtasks": {
+        "T001": "done",
+        "T002": "done",
+        "T003": "done",
+        "T004": "done",
+        "T005": "done",
+        "T006": "done"
       }
     }
   }

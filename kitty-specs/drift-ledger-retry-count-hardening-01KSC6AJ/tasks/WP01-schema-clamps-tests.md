@@ -30,10 +30,12 @@ subtasks:
 - T004
 - T005
 - T006
-shell_pid: "1829"
+agent: codex:gpt-5:spec-kitty-review:reviewer
+shell_pid: '1829'
 history: []
 authoritative_surface: scripts/doc_audit/output/
 execution_mode: code_change
+lane: planned
 mission_id: 01KSC6AJ2JK8N2NJT4QB6AB36Z
 mission_slug: drift-ledger-retry-count-hardening-01KSC6AJ
 owned_files:
@@ -44,7 +46,6 @@ owned_files:
 - tests/doc_audit/signals/test_drift_event.py
 - tests/doc_audit/helpers/test_handle_drift_events.py
 tags: []
-agent: "codex:gpt-5:spec-kitty-review:reviewer"
 ---
 
 # WP01 — Schema + Clamps + Tests

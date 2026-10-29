@@ -33,6 +33,7 @@ history:
   action: Prompt generated via /spec-kitty.tasks
 authoritative_surface: kitty-specs/003-whisper-transcription-skill/
 execution_mode: planning_artifact
+lane: planned
 mission_id: 01KN5QX3WCFA855XAHAHZ10CB4
 owned_files:
 - kitty-specs/003-whisper-transcription-skill/**

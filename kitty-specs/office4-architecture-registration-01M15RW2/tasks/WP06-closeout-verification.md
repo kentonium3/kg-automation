@@ -30,6 +30,7 @@ authoritative_surface: kitty-specs/office4-architecture-registration-01M15RW2/
 create_intent:
 - kitty-specs/office4-architecture-registration-01M15RW2/verification-report.md
 execution_mode: planning_artifact
+lane: planned
 model: ''
 owned_files:
 - kitty-specs/office4-architecture-registration-01M15RW2/verification-report.md

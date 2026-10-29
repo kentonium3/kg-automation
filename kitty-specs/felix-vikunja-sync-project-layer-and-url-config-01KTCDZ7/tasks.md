@@ -65,7 +65,7 @@ WP03 (no deps) ─┘
 
 ## Work Package 1 — URL Config Helper (WP01)
 
-**Prompt**: [tasks/WP01-url-config-helper.md](./tasks/WP01-url-config-helper.md)
+**Prompt**: [tasks/WP01-url-config-helper.md
 
 ### Summary
 
@@ -102,7 +102,7 @@ None. Can land first.
 
 ## Work Package 2 — Deletion-Cleanup Helpers (WP02)
 
-**Prompt**: [tasks/WP02-deletion-cleanup-helpers.md](./tasks/WP02-deletion-cleanup-helpers.md)
+**Prompt**: [tasks/WP02-deletion-cleanup-helpers.md
 
 ### Summary
 
@@ -139,7 +139,7 @@ None. Can land in parallel with WP01 and WP03.
 
 ## Work Package 3 — fetch.py + diff.py Rewrite (WP03)
 
-**Prompt**: [tasks/WP03-fetch-diff-rewrite.md](./tasks/WP03-fetch-diff-rewrite.md)
+**Prompt**: [tasks/WP03-fetch-diff-rewrite.md
 
 ### Summary
 
@@ -179,7 +179,7 @@ None on other WPs of this mission. Can land in parallel with WP01 and WP02.
 
 ## Work Package 4 — state.py + cycle.py Driver Rewrite (WP04)
 
-**Prompt**: [tasks/WP04-driver-rewrite-and-phase5b.md](./tasks/WP04-driver-rewrite-and-phase5b.md)
+**Prompt**: [tasks/WP04-driver-rewrite-and-phase5b.md
 
 ### Summary
 
@@ -230,7 +230,7 @@ See `contracts/cycle-pipeline.md` for the phase-by-phase contract.
 
 ## Work Package 5 — Touchpoint URL Migration (WP05)
 
-**Prompt**: [tasks/WP05-touchpoint-url-migration.md](./tasks/WP05-touchpoint-url-migration.md)
+**Prompt**: [tasks/WP05-touchpoint-url-migration.md
 
 ### Summary
 
@@ -272,7 +272,7 @@ After all 7 migrations: run `grep -rn "office2.tail0f5f56.ts.net\|100.92.197.90:
 
 ## Work Package 6 — Architecture + Runbook Updates (WP06)
 
-**Prompt**: [tasks/WP06-architecture-and-runbook-updates.md](./tasks/WP06-architecture-and-runbook-updates.md)
+**Prompt**: [tasks/WP06-architecture-and-runbook-updates.md
 
 ### Summary
 

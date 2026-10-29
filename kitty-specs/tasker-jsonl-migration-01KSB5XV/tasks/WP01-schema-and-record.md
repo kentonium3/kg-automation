@@ -23,9 +23,13 @@ subtasks:
 - T001
 - T002
 - T003
+assignee: claude
+agent: codex:gpt-5:spec-kitty-review:reviewer
+shell_pid: '10454'
 history: []
 authoritative_surface: scripts/enrichment/
 execution_mode: code_change
+lane: planned
 mission_id: 01KSB5XVGW5WRDQFR17JSA52M5
 mission_slug: tasker-jsonl-migration-01KSB5XV
 owned_files:
@@ -36,9 +40,6 @@ owned_files:
 - tests/enrichment/test_schema.py
 - tests/enrichment/test_record_completion.py
 tags: []
-assignee: "claude"
-agent: "codex:gpt-5:spec-kitty-review:reviewer"
-shell_pid: "10454"
 ---
 
 # WP01 — enrichment schema + record_completion

@@ -20,14 +20,15 @@ subtasks:
 - T043
 phase: Phase 3 - Cleanup
 assignee: ''
-agent: "claude"
-shell_pid: "12181"
+agent: claude
+shell_pid: '12181'
 history:
 - at: '2026-04-05T01:28:56Z'
   actor: system
   action: Prompt generated via /spec-kitty.tasks
 authoritative_surface: docs/archive/
 execution_mode: code_change
+lane: planned
 owned_files:
 - docs/docs-readme.md
 - docs/archive/docs-readme.md

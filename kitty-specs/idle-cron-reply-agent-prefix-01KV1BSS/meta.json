@@ -26,6 +26,7 @@
   "purpose_tldr": "Tag every IDLE WhatsApp reply with the issuing agent's slug so observed-mode operators can attribute each ping without SSHing to office2.",
   "slug": "idle-cron-reply-agent-prefix-01KV1BSS",
   "source_description": "GitHub issue #592 — Prefix IDLE cron messages with agent identifier",
+  "status_phase": "1",
   "target_branch": "feat/idle-cron-reply-agent-prefix",
   "vcs": "git"
 }

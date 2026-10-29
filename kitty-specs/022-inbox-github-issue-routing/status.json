@@ -1,5 +1,5 @@
 {
-  "event_count": 21,
+  "event_count": 22,
   "last_event_id": "01KNT115SCJTH6SKT109K2MH4Z",
   "materialized_at": "2026-04-09T21:05:37.580537+00:00",
   "mission_number": "22",
@@ -19,11 +19,20 @@
   "work_packages": {
     "WP01": {
       "actor": "merge",
+      "agent": "claude",
       "force_count": 1,
       "lane": "done",
       "last_event_id": "01KNT115MNNXT598SWADY244T5",
       "last_transition_at": "2026-04-09T21:05:37.429732+00:00",
-      "review_result": null
+      "review_result": null,
+      "shell_pid": 23571,
+      "subtasks": {
+        "T001": "done",
+        "T002": "done",
+        "T003": "done",
+        "T004": "done",
+        "T005": "done"
+      }
     },
     "WP02": {
       "actor": "merge",
@@ -31,7 +40,13 @@
       "lane": "done",
       "last_event_id": "01KNT115RVK0DNQ1GS8GAAGC5R",
       "last_transition_at": "2026-04-09T21:05:37.563920+00:00",
-      "review_result": null
+      "review_result": null,
+      "subtasks": {
+        "T006": "done",
+        "T007": "done",
+        "T008": "done",
+        "T009": "done"
+      }
     },
     "WP03": {
       "actor": "merge",
@@ -39,7 +54,12 @@
       "lane": "done",
       "last_event_id": "01KNT115SCJTH6SKT109K2MH4Z",
       "last_transition_at": "2026-04-09T21:05:37.580537+00:00",
-      "review_result": null
+      "review_result": null,
+      "subtasks": {
+        "T010": "done",
+        "T011": "done",
+        "T012": "done"
+      }
     }
   }
 }

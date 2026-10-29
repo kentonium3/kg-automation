@@ -31,6 +31,7 @@ history:
   action: Prompt generated via /spec-kitty.tasks
 authoritative_surface: docs/handbooks/f002-acceptance-results.md/
 execution_mode: code_change
+lane: planned
 mission_id: 01KN5QX3WBC1M57EENV2JHWAT7
 owned_files:
 - docs/handbooks/f002-acceptance-results.md

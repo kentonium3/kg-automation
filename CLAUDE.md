@@ -148,10 +148,14 @@ kitty-specs/        ← spec-kitty managed (DO NOT EDIT — see below)
 
 **`kitty-specs/` and `.kittify/` are owned by spec-kitty.** These directories
 contain mission specifications, work packages, status event logs, and workflow
-configuration managed exclusively by spec-kitty commands. Agents and humans
-must **never** directly create, edit, move, or delete files in these directories.
-All changes flow through spec-kitty slash commands (`/spec-kitty.*`). Reading
-these files for context is fine; writing to them is not.
+configuration. Reading them is always fine. **Writes the spec-kitty workflow
+instructs are the normal mission path** — authoring spec/plan/tasks/WP artifacts,
+filling the matrices, adding the `meta.json` fields a runbook names, committing
+generated status files. What is prohibited is the **ad hoc workaround**: writing
+here without Kent's permission to get past a workflow fault, to hand-finish a
+command that failed, or to edit lane/review state (`status.events.jsonl`,
+`status.json`, `lanes.json`) instead of moving it through the commands. The
+canonical statement is rule 6 of "Workflow System Rules" in `~/.claude/CLAUDE.md`.
 
 ## Feature Development Workflow
 
@@ -373,12 +377,19 @@ The observe range is driven by a **persisted last-observed-head watermark**
 so the deployer detects audited-surface changes **regardless of which actor
 advanced the checkout HEAD** — including an out-of-band `git pull` that
 fast-forwards the checkout before the deployer's own tick runs (closes #685).
-One caveat: a deploy whose drift has **no repo-file signal** (e.g. a runtime
-`openclaw cron rm` that drifts a baseline without changing any tracked file)
-is not detected by the observe range; such a deploy must declare the
-baselines it will drift via the `expected_baselines` field in its manifest
-(see [deployment.md](docs/runbooks/deployment.md)) so the auto-rebaseline
-still covers it.
+One caveat: the observe range only sees files changed **in the commit range
+the tick pulled**, not files that are merely tracked. A deploy whose drift has
+no signal in its own range must declare the baselines it will drift via the
+`expected_baselines` field in its manifest so the auto-rebaseline still covers
+it. That means a runtime `openclaw cron rm`, **and also a reconcile deploy that
+installs tracked files changed in an earlier commit**. 0029 ended
+`unexpected_drift` because its author reasoned "the files are tracked, so
+observe covers it" (#1065, #1072). Ask "does *this commit* change a file on the
+drifting surface?", not "is the file tracked?" (see
+[deployment.md](docs/runbooks/deployment.md#manifest-expected_baselines-declaration)).
+Units installed through `scripts/deploy/lib/userunits.py` are now reported and
+expected automatically (#1072); every other no-signal drift still declares
+`expected_baselines`.
 
 **Out-of-band exception (manual reset still required):** changes made
 directly on office2 — not through the manifest pipeline — are invisible

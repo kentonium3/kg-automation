@@ -5,7 +5,6 @@ dependencies:
 - WP01
 requirement_refs:
 - FR-001
-tracker_refs: []
 planning_base_branch: feat/harden-inbox-capture
 merge_target_branch: feat/harden-inbox-capture
 branch_strategy: Planning artifacts for this mission were generated on feat/harden-inbox-capture. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into feat/harden-inbox-capture unless the human explicitly redirects the landing branch.
@@ -16,14 +15,15 @@ subtasks:
 - T023
 - T024
 - T025
-agent: "claude"
-shell_pid: "44826"
+agent: claude
+shell_pid: '44826'
 history:
 - 2026-07-06 authored from plan IC-02 (non-capture fleet)
 agent_profile: curator-carla
 authoritative_surface: scripts/openclaw/agents/felix-admin-escalation/
 create_intent: []
 execution_mode: code_change
+lane: planned
 model: claude-sonnet-4-6
 owned_files:
 - scripts/openclaw/agents/felix-admin-escalation/AGENTS.md
@@ -34,6 +34,7 @@ owned_files:
 - scripts/openclaw/agents/main/AGENTS.md
 role: implementer
 tags: []
+tracker_refs: []
 ---
 
 ## ⚡ Do This First: Load Agent Profile

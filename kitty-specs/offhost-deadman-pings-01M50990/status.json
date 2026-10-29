@@ -1,0 +1,146 @@
+{
+  "event_count": 32,
+  "last_event_id": "01M50BC5WV4K1PYGTZKEA2XVEW",
+  "materialized_at": "2026-10-15T17:57:17.851096+00:00",
+  "mission_number": "120",
+  "mission_slug": "offhost-deadman-pings-01M50990",
+  "mission_type": "software-dev",
+  "schema_version": 2,
+  "summary": {
+    "approved": 0,
+    "blocked": 0,
+    "canceled": 0,
+    "claimed": 0,
+    "done": 4,
+    "for_review": 0,
+    "in_progress": 0,
+    "in_review": 0,
+    "planned": 0
+  },
+  "work_packages": {
+    "WP01": {
+      "actor": "merge",
+      "agent": null,
+      "agent_profile": "__resolved_profile_absent__",
+      "agent_profile_version": "__resolved_profile_version_absent__",
+      "force_count": 1,
+      "implementer_of_record": "claude",
+      "lane": "done",
+      "last_event_id": "01M50BBDJ6WK9A7VPXFV8GAAMB",
+      "last_transition_at": "2026-10-15T17:56:52.934582+00:00",
+      "model": "__resolved_model_absent__",
+      "notes": [
+        "deadman module; 44 tests",
+        "cycle 2: canonicalisation hardened; 60 tests",
+        "reviewer-renata (claude-sonnet-5-5) APPROVE cycle 2, 2026-10-15"
+      ],
+      "provider": "__resolved_provider_absent__",
+      "review": null,
+      "review_result": {
+        "reference": "auto-approval:WP01:20261015",
+        "reviewer": "Kent Gale",
+        "verdict": "approved"
+      },
+      "role": "reviewer",
+      "shell_pid": null,
+      "shell_pid_created_at": null,
+      "subtasks": {
+        "T001": "done",
+        "T002": "done",
+        "T003": "done",
+        "T004": "done",
+        "T005": "done"
+      }
+    },
+    "WP02": {
+      "actor": "merge",
+      "agent": "claude",
+      "agent_profile": "__resolved_profile_absent__",
+      "agent_profile_version": "__resolved_profile_version_absent__",
+      "force_count": 0,
+      "implementer_of_record": "claude",
+      "lane": "done",
+      "last_event_id": "01M50BBNXJ8157VT7DC8NH290Y",
+      "last_transition_at": "2026-10-15T17:57:01.490291+00:00",
+      "model": "__resolved_model_absent__",
+      "notes": [
+        "canary hook; 355 canary tests",
+        "reviewer-renata (claude-sonnet-5-5) APPROVE, 2026-10-15; finding 5 (real deadman reachable from existing CLI tests) fixed repo-wide in WP04 via root conftest.py"
+      ],
+      "provider": "__resolved_provider_absent__",
+      "review_result": {
+        "reference": "auto-approval:WP02:20261015",
+        "reviewer": "Kent Gale",
+        "verdict": "approved"
+      },
+      "role": "reviewer",
+      "shell_pid": 967333,
+      "shell_pid_created_at": "1792086364.53",
+      "subtasks": {
+        "T006": "done",
+        "T007": "done",
+        "T008": "done"
+      }
+    },
+    "WP03": {
+      "actor": "merge",
+      "agent": "claude",
+      "agent_profile": "__resolved_profile_absent__",
+      "agent_profile_version": "__resolved_profile_version_absent__",
+      "force_count": 0,
+      "implementer_of_record": "claude",
+      "lane": "done",
+      "last_event_id": "01M50BBY0GEQ6VW6M82FPPJASN",
+      "last_transition_at": "2026-10-15T17:57:09.776207+00:00",
+      "model": "__resolved_model_absent__",
+      "notes": [
+        "health-check hook; 182 tests",
+        "reviewer-renata (claude-sonnet-5-5) APPROVE, 2026-10-15; test-isolation note handled by WP04 root conftest"
+      ],
+      "provider": "__resolved_provider_absent__",
+      "review_result": {
+        "reference": "auto-approval:WP03:20261015",
+        "reviewer": "Kent Gale",
+        "verdict": "approved"
+      },
+      "role": "reviewer",
+      "shell_pid": 967333,
+      "shell_pid_created_at": "1792086364.53",
+      "subtasks": {
+        "T009": "done",
+        "T010": "done"
+      }
+    },
+    "WP04": {
+      "actor": "merge",
+      "agent": "claude",
+      "agent_profile": "__resolved_profile_absent__",
+      "agent_profile_version": "__resolved_profile_version_absent__",
+      "force_count": 0,
+      "implementer_of_record": "claude",
+      "lane": "done",
+      "last_event_id": "01M50BC5WV4K1PYGTZKEA2XVEW",
+      "last_transition_at": "2026-10-15T17:57:17.851096+00:00",
+      "model": "__resolved_model_absent__",
+      "notes": [
+        "- 2026-10-15T17:54:30Z – claude – shell_pid=967333 – Out-of-map: repo-root conftest.py autouse guard (deadman env file to a nonexistent path, ntfy topic unset), from the WP02/WP03 review findings: existing CLI tests reach real deadman, and tests/conftest.py covers neither scripts/**/tests nor subprocess.",
+        "docs + arch data + root conftest guard",
+        "reviewer-renata (claude-sonnet-5-5) APPROVE, 2026-10-15; 4 non-blocking findings folded into post-merge fix"
+      ],
+      "provider": "__resolved_provider_absent__",
+      "review_result": {
+        "reference": "auto-approval:WP04:20261015",
+        "reviewer": "Kent Gale",
+        "verdict": "approved"
+      },
+      "role": "reviewer",
+      "shell_pid": 967333,
+      "shell_pid_created_at": "1792086364.53",
+      "subtasks": {
+        "T011": "done",
+        "T012": "done",
+        "T013": "done"
+      }
+    }
+  }
+}

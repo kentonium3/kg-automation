@@ -38,7 +38,7 @@
 
 ### WP01 — Foundation: workout lookup + tests/habits scaffolding
 
-**Prompt**: [tasks/WP01-foundation-lookup-and-test-scaffold.md](tasks/WP01-foundation-lookup-and-test-scaffold.md)
+**Prompt**: [tasks/WP01-foundation-lookup-and-test-scaffold.md
 **Goal**: Establish the `tests/habits/` package with shared fixtures, plus deliver the `identify_workout_task.py` lookup helper. This unblocks WP02-WP04 (which all consume the conftest fixtures) and gives the operator the lookup tool needed for the WP02 migration.
 **Priority**: P0 (foundation; blocks all downstream WPs)
 **Dependencies**: none
@@ -75,7 +75,7 @@ Verified by code structure + WP01 tests:
 
 ### WP02 — Migration helper: load, validate, snapshot, apply, rollback
 
-**Prompt**: [tasks/WP02-migrate-schedule-helper.md](tasks/WP02-migrate-schedule-helper.md)
+**Prompt**: [tasks/WP02-migrate-schedule-helper.md
 **Goal**: Build the config-driven migration helper that PATCHes the 7 daily habit tasks, retires the workout task, creates the 3 new MWF strength-training tasks, persists a rollback snapshot, and supports `--rollback` to reverse. Plus the `habits-schedule.yaml` itself.
 **Priority**: P0 (the Tier-2 production-state mutation tool)
 **Dependencies**: **WP01** (test fixtures + lookup output)
@@ -121,7 +121,7 @@ Mapped to:
 
 ### WP03 — Completion + reconcile helpers
 
-**Prompt**: [tasks/WP03-record-completion-and-reconcile.md](tasks/WP03-record-completion-and-reconcile.md)
+**Prompt**: [tasks/WP03-record-completion-and-reconcile.md
 **Goal**: Build the two Phase 5-consumed helpers — `record_completion.py` (three-write atomic completion) and `reconcile_completions.py` (Vikunja-UI backfill + drift detection). Both are testable standalone but won't be invoked by the cron until Phase 5 cutover.
 **Priority**: P0 (foundation for Phase 5 callers)
 **Dependencies**: **WP01** (test fixtures)
@@ -162,7 +162,7 @@ Mapped to:
 
 ### WP04 — v2 query/exclude variants + architecture documentation
 
-**Prompt**: [tasks/WP04-v2-variants-and-arch-docs.md](tasks/WP04-v2-variants-and-arch-docs.md)
+**Prompt**: [tasks/WP04-v2-variants-and-arch-docs.md
 **Goal**: Build the two parallel `_v2.py` variants (query_active_habits_v2, exclude_completed_v2) that Phase 5 cutover will swap to. Plus update `data-flows.json` and `service-inventory.json` to register the new write/read paths and scripts. This WP closes the Phase 3 functional surface.
 **Priority**: P0 (completes Phase 3 deliverables)
 **Dependencies**: **WP01** (test fixtures). Phase 2's state_log library provides everything exclude_completed_v2 needs.

@@ -14,6 +14,7 @@ history:
   by: spec-kitty.tasks
 authoritative_surface: kitty-specs/021-openclaw-agent-model-tiering/artifacts/
 execution_mode: planning_artifact
+lane: planned
 owned_files:
 - kitty-specs/021-openclaw-agent-model-tiering/artifacts/baseline.md
 ---

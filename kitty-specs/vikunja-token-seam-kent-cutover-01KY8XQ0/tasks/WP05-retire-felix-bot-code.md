@@ -6,7 +6,6 @@ dependencies:
 requirement_refs:
 - FR-004
 - FR-005
-tracker_refs: []
 planning_base_branch: feat/vikunja-token-seam-kent-cutover
 merge_target_branch: feat/vikunja-token-seam-kent-cutover
 branch_strategy: Planning artifacts for this mission were generated on feat/vikunja-token-seam-kent-cutover. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into feat/vikunja-token-seam-kent-cutover unless the human explicitly redirects the landing branch.
@@ -14,11 +13,15 @@ subtasks:
 - T012
 - T013
 phase: Phase 2 - Retire
+agent: claude
+shell_pid: '72212'
+shell_pid_created_at: '1784864197.958657'
 history: []
 agent_profile: python-pedro
 authoritative_surface: scripts/inbox/
 create_intent: []
 execution_mode: code_change
+lane: planned
 owned_files:
 - scripts/inbox/route_someday.py
 - scripts/vikunja/validate_refs.py
@@ -26,9 +29,7 @@ owned_files:
 - tests/vikunja/test_validate_refs.py
 role: implementer
 tags: []
-agent: "claude"
-shell_pid: "72212"
-shell_pid_created_at: "1784864197.958657"
+tracker_refs: []
 ---
 
 # Work Package Prompt: WP05 — Retire felix-bot code path

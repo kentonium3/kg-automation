@@ -7,7 +7,6 @@ requirement_refs:
 - FR-001
 - FR-003
 - NFR-001
-tracker_refs: []
 planning_base_branch: fix/860-retire-vikunja-felix-bot
 merge_target_branch: fix/860-retire-vikunja-felix-bot
 branch_strategy: Planning artifacts for this mission were generated on fix/860-retire-vikunja-felix-bot. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into fix/860-retire-vikunja-felix-bot unless the human explicitly redirects the landing branch.
@@ -21,18 +20,18 @@ subtasks:
 - T009
 phase: Phase 1 - Migration
 assignee: ''
-agent_profile: python-pedro
-role: implementer
-shell_pid_created_at: "1784847451.006565"
-agent: "claude:opus:reviewer-renata:reviewer"
-shell_pid: "83822"
+agent: claude:opus:reviewer-renata:reviewer
+shell_pid: '83822'
+shell_pid_created_at: '1784847451.006565'
 history:
 - at: '2026-07-23T21:04:52Z'
   actor: system
   action: Prompt generated via /spec-kitty.tasks
+agent_profile: python-pedro
 authoritative_surface: scripts/sync/
 create_intent: []
 execution_mode: code_change
+lane: planned
 owned_files:
 - scripts/sync/cycle.py
 - scripts/sync/fetch.py
@@ -40,7 +39,9 @@ owned_files:
 - tests/sync/test_cycle.py
 - tests/sync/test_fetch.py
 - tests/sync/test_http.py
+role: implementer
 tags: []
+tracker_refs: []
 ---
 
 # Work Package Prompt: WP02 — Migrate sync (cycle + fetch + http)

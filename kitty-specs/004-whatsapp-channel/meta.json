@@ -21,6 +21,7 @@
   "mission_type": "software-dev",
   "slug": "004-whatsapp-channel",
   "source_description": "Connect WhatsApp to OpenClaw via Meta Cloud API and Tailscale Funnel. Register Google Voice number, configure webhook, store credentials, verify end-to-end message flow.",
+  "status_phase": "1",
   "target_branch": "main",
   "vcs": "git"
 }

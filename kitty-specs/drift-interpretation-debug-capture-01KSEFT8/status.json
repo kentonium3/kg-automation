@@ -1,5 +1,5 @@
 {
-  "event_count": 11,
+  "event_count": 13,
   "last_event_id": "01KSEJ7WB1TEFGRYJ67ZHMMEQG",
   "materialized_at": "2026-05-25T03:18:17.185849+00:00",
   "mission_number": "53",
@@ -19,20 +19,41 @@
   "work_packages": {
     "WP01": {
       "actor": "merge",
+      "agent": "codex:gpt-5:spec-kitty-review:reviewer",
       "force_count": 1,
       "lane": "done",
       "last_event_id": "01KSEJ7WB1TEFGRYJ67ZHMMEQG",
       "last_transition_at": "2026-05-25T03:18:17.185849+00:00",
-      "review_result": null
+      "review_result": null,
+      "shell_pid": 60752,
+      "subtasks": {
+        "T001": "done",
+        "T002": "done",
+        "T003": "done",
+        "T004": "done",
+        "T005": "done",
+        "T006": "done"
+      }
     },
     "WP02": {
       "actor": "user",
+      "agent": "claude:opus:python-implementer:implementer",
       "cancellation_reason": "Mission design oversight: WP02 requires WP01 merged to main (office2 deploy pulls main), but spec-kitty merges at end-of-mission only. Splitting into a follow-up mission. Code change ships via this mission's WP01; operational capture + #404 closure ships via the next mission.",
       "force_count": 2,
       "lane": "canceled",
       "last_event_id": "01KSEJ72Q4995X3ADS4QB35ANB",
       "last_transition_at": "2026-05-25T03:17:50.948123+00:00",
-      "reason_source": "operator"
+      "reason_source": "operator",
+      "shell_pid": 65499,
+      "subtasks": {
+        "T007": "planned",
+        "T008": "planned",
+        "T009": "planned",
+        "T010": "planned",
+        "T011": "planned",
+        "T012": "planned",
+        "T013": "planned"
+      }
     }
   }
 }

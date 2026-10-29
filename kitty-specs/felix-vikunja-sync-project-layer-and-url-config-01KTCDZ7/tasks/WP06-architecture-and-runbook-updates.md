@@ -18,9 +18,12 @@ subtasks:
 - T031
 - T032
 - T033
+agent: claude:opus:reviewer:reviewer
+shell_pid: '4483'
 history: []
 authoritative_surface: docs/design/architecture/
 execution_mode: planning_artifact
+lane: planned
 owned_files:
 - docs/design/architecture/data/service-inventory.json
 - docs/design/architecture/service-inventory.md
@@ -33,8 +36,6 @@ owned_files:
 - docs/INDEX.md
 - docs/design/felix-capability-roadmap.md
 tags: []
-agent: "claude:opus:reviewer:reviewer"
-shell_pid: "4483"
 ---
 
 # WP06 — Architecture + Runbook Updates

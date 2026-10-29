@@ -1,5 +1,5 @@
 {
-  "event_count": 7,
+  "event_count": 8,
   "last_event_id": "01KXH2725XMP81SR5BK7KWCFA8",
   "materialized_at": "2026-07-14T19:38:43.773797+00:00",
   "mission_number": "102",
@@ -19,6 +19,7 @@
   "work_packages": {
     "WP01": {
       "actor": "merge",
+      "agent": "claude",
       "force_count": 0,
       "lane": "done",
       "last_event_id": "01KXH2725XMP81SR5BK7KWCFA8",
@@ -27,6 +28,18 @@
         "reference": "reviewer-renata APPROVE: all 10 checks pass, both invariants preserved, 469 tests green",
         "reviewer": "Kent Gale",
         "verdict": "approved"
+      },
+      "shell_pid": 84195,
+      "shell_pid_created_at": "1784057402.499142",
+      "subtasks": {
+        "T001": "done",
+        "T002": "done",
+        "T003": "done",
+        "T004": "done",
+        "T005": "done",
+        "T006": "done",
+        "T007": "done",
+        "T008": "done"
       }
     }
   }

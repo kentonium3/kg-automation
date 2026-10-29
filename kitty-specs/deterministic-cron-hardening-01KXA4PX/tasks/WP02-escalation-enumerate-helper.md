@@ -7,7 +7,6 @@ requirement_refs:
 - FR-001
 - FR-002
 - FR-003
-tracker_refs: []
 planning_base_branch: fix/deterministic-cron-hardening
 merge_target_branch: fix/deterministic-cron-hardening
 branch_strategy: Planning artifacts for this mission were generated on fix/deterministic-cron-hardening. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into fix/deterministic-cron-hardening unless the human explicitly redirects the landing branch.
@@ -16,8 +15,8 @@ subtasks:
 - T006
 - T007
 - T008
-agent: "claude:opus:reviewer-renata:reviewer"
-shell_pid: "2826"
+agent: claude:opus:reviewer-renata:reviewer
+shell_pid: '2826'
 history:
 - '2026-07-12: authored by /spec-kitty.tasks'
 agent_profile: python-pedro
@@ -26,6 +25,7 @@ create_intent:
 - scripts/escalation/enumerate_candidates.py
 - tests/escalation/test_enumerate_candidates.py
 execution_mode: code_change
+lane: planned
 owned_files:
 - scripts/escalation/enumerate_candidates.py
 - tests/escalation/test_enumerate_candidates.py
@@ -33,6 +33,7 @@ owned_files:
 - scripts/openclaw/skills/escalation/SKILL.md
 role: implementer
 tags: []
+tracker_refs: []
 ---
 
 ## ⚡ Do This First: Load Agent Profile

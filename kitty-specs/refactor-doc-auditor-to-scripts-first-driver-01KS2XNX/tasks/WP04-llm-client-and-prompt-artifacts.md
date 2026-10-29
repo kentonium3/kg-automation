@@ -18,14 +18,15 @@ subtasks:
 - T021
 phase: Phase 2 — Components
 assignee: ''
-agent: "codex:gpt-5:spec-kitty-review:reviewer"
-shell_pid: "71886"
+agent: codex:gpt-5:spec-kitty-review:reviewer
+shell_pid: '71886'
 history:
 - timestamp: '2026-05-20T16:25:00Z'
   agent: system
   action: Prompt generated via /spec-kitty.tasks
 authoritative_surface: scripts/doc_audit/judgment/
 execution_mode: code_change
+lane: planned
 owned_files:
 - scripts/doc_audit/judgment/**
 - scripts/doc_audit/prompts/**

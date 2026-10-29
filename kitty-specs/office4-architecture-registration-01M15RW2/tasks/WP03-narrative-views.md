@@ -21,6 +21,7 @@ agent_profile: curator-carla
 authoritative_surface: docs/design/architecture/physical-topology.md
 create_intent: []
 execution_mode: code_change
+lane: planned
 model: ''
 owned_files:
 - docs/design/architecture/physical-topology.md

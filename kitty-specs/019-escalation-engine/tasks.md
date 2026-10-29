@@ -37,7 +37,7 @@
 
 ### WP01: Escalation Skill
 
-**Prompt**: [WP01-escalation-skill.md](tasks/WP01-escalation-skill.md)
+**Prompt**: [WP01-escalation-skill.md](tasks/WP01-escalation-skill.md
 **Priority**: P0 — foundational; AGENTS.md references this skill
 **Dependencies**: none
 **Subtasks**: T001
@@ -58,7 +58,7 @@ before writing the agent instructions reduces rework risk.
 
 ### WP02: Agent Workspace Files
 
-**Prompt**: [WP02-agent-workspace.md](tasks/WP02-agent-workspace.md)
+**Prompt**: [WP02-agent-workspace.md](tasks/WP02-agent-workspace.md
 **Priority**: P0 — core agent definition
 **Dependencies**: WP01
 **Subtasks**: T002, T003, T004, T005, T006, T007
@@ -83,7 +83,7 @@ are sequential (AGENTS.md sections build on each other).
 
 ### WP03: Deployment, Cron, and Architecture
 
-**Prompt**: [WP03-deployment-cron-architecture.md](tasks/WP03-deployment-cron-architecture.md)
+**Prompt**: [WP03-deployment-cron-architecture.md](tasks/WP03-deployment-cron-architecture.md
 **Priority**: P1 — operational setup
 **Dependencies**: WP02
 **Subtasks**: T008, T009, T010, T011, T012, T013, T014
@@ -109,7 +109,7 @@ are documentation tasks independent of deployment.
 
 ### WP04: Runbook and Verification
 
-**Prompt**: [WP04-runbook-and-verification.md](tasks/WP04-runbook-and-verification.md)
+**Prompt**: [WP04-runbook-and-verification.md](tasks/WP04-runbook-and-verification.md
 **Priority**: P2 — validation and documentation
 **Dependencies**: WP03
 **Subtasks**: T015, T016, T017, T018, T019

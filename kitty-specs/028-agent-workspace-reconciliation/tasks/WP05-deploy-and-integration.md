@@ -16,14 +16,15 @@ subtasks:
 - T021
 - T022
 - T023
-agent: "codex:gpt-4o:reviewer:reviewer"
-shell_pid: "3373"
+agent: codex:gpt-4o:reviewer:reviewer
+shell_pid: '3373'
 history:
 - date: '2026-04-13'
   action: created
   agent: claude-opus-4-6
 authoritative_surface: scripts/deploy/
 execution_mode: code_change
+lane: planned
 owned_files:
 - scripts/deploy/deploy-028.sh
 tags: []

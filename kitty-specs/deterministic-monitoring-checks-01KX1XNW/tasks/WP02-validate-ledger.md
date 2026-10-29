@@ -7,7 +7,6 @@ requirement_refs:
 - C-006
 - FR-011
 - NFR-006
-tracker_refs: []
 planning_base_branch: feat/deterministic-monitoring-checks
 merge_target_branch: feat/deterministic-monitoring-checks
 branch_strategy: Planning artifacts for this mission were generated on feat/deterministic-monitoring-checks. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into feat/deterministic-monitoring-checks unless the human explicitly redirects the landing branch.
@@ -16,7 +15,8 @@ subtasks:
 - T008
 - T009
 - T010
-agent: "claude:opus:reviewer-renata:reviewer"
+agent: claude:opus:reviewer-renata:reviewer
+shell_pid: '70639'
 history: []
 agent_profile: python-pedro
 authoritative_surface: scripts/openclaw/heartbeat_gate/validate_ledger.py
@@ -25,13 +25,14 @@ create_intent:
 - scripts/openclaw/heartbeat_gate/tests/test_validate_ledger.py
 - scripts/openclaw/heartbeat_gate/tests/fixtures/gate-ledger-sample.jsonl
 execution_mode: code_change
+lane: planned
 owned_files:
 - scripts/openclaw/heartbeat_gate/validate_ledger.py
 - scripts/openclaw/heartbeat_gate/tests/test_validate_ledger.py
 - scripts/openclaw/heartbeat_gate/tests/fixtures/**
 role: implementer
 tags: []
-shell_pid: "70639"
+tracker_refs: []
 ---
 
 ## ⚡ Do This First: Load Agent Profile

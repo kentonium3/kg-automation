@@ -13,7 +13,6 @@ requirement_refs:
 - FR-007
 - FR-008
 - FR-009
-tracker_refs: []
 planning_base_branch: feat/clarification-allday-fallback
 merge_target_branch: feat/clarification-allday-fallback
 branch_strategy: Planning artifacts for this mission were generated on feat/clarification-allday-fallback. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into feat/clarification-allday-fallback unless the human explicitly redirects the landing branch.
@@ -23,9 +22,9 @@ subtasks:
 - T007
 - T008
 - T009
-shell_pid_created_at: "1784414361.70959"
-agent: "claude:opus:reviewer-renata:reviewer"
-shell_pid: "83807"
+agent: claude:opus:reviewer-renata:reviewer
+shell_pid: '83807'
+shell_pid_created_at: '1784414361.70959'
 history:
 - '2026-07-18: authored by /spec-kitty.tasks'
 agent_profile: python-pedro
@@ -33,6 +32,7 @@ authoritative_surface: scripts/inbox/clarification_sweep_finalize.py
 create_intent:
 - scripts/inbox/clarification_sweep_finalize.py
 execution_mode: code_change
+lane: planned
 owned_files:
 - scripts/inbox/clarification_sweep_finalize.py
 - scripts/inbox/handle_clarification_state.py
@@ -40,6 +40,7 @@ owned_files:
 - tests/inbox/test_handle_clarification_state.py
 role: implementer
 tags: []
+tracker_refs: []
 ---
 
 ## ⚡ Do This First: Load Agent Profile

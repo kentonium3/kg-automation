@@ -1,5 +1,5 @@
 {
-  "event_count": 30,
+  "event_count": 35,
   "last_event_id": "01KRPFJPGZB6VMP69QHD2APBF1",
   "materialized_at": "2026-05-15T18:49:59.583961+00:00",
   "mission_number": "37",
@@ -19,43 +19,82 @@
   "work_packages": {
     "WP01": {
       "actor": "user",
+      "agent": "codex:gpt-5:code-reviewer:reviewer",
       "force_count": 3,
       "lane": "approved",
       "last_event_id": "01KRPD50XW21T0GZ6JEG8J2HM7",
       "last_transition_at": "2026-05-15T18:07:34.332488+00:00",
-      "review_result": null
+      "review_result": null,
+      "shell_pid": 1712,
+      "subtasks": {
+        "T001": "done",
+        "T002": "done",
+        "T003": "done",
+        "T004": "done",
+        "T005": "done"
+      }
     },
     "WP02": {
       "actor": "user",
+      "agent": "codex:gpt-5:code-reviewer:reviewer",
       "force_count": 3,
       "lane": "approved",
       "last_event_id": "01KRPDTFRMCBCR17HJHWRCM3VF",
       "last_transition_at": "2026-05-15T18:19:17.652588+00:00",
-      "review_result": null
+      "review_result": null,
+      "shell_pid": 4914,
+      "subtasks": {
+        "T006": "done",
+        "T007": "done",
+        "T008": "done"
+      }
     },
     "WP03": {
       "actor": "user",
+      "agent": "codex:gpt-5:code-reviewer:reviewer",
       "force_count": 3,
       "lane": "approved",
       "last_event_id": "01KRPE9K2FJA421WKRCY6KVAWC",
       "last_transition_at": "2026-05-15T18:27:32.559927+00:00",
-      "review_result": null
+      "review_result": null,
+      "shell_pid": 6407,
+      "subtasks": {
+        "T009": "done",
+        "T010": "done",
+        "T011": "done"
+      }
     },
     "WP04": {
       "actor": "user",
+      "agent": "codex:gpt-5:code-reviewer:reviewer",
       "force_count": 3,
       "lane": "approved",
       "last_event_id": "01KRPEPEJXQR3AEVBE9EPCB5D4",
       "last_transition_at": "2026-05-15T18:34:33.949867+00:00",
-      "review_result": null
+      "review_result": null,
+      "shell_pid": 8174,
+      "subtasks": {
+        "T012": "done",
+        "T013": "done",
+        "T014": "done"
+      }
     },
     "WP05": {
       "actor": "user",
+      "agent": "codex:gpt-5:code-reviewer:reviewer",
       "force_count": 3,
       "lane": "approved",
       "last_event_id": "01KRPFJPGZB6VMP69QHD2APBF1",
       "last_transition_at": "2026-05-15T18:49:59.583961+00:00",
-      "review_result": null
+      "review_result": null,
+      "shell_pid": 10897,
+      "subtasks": {
+        "T015": "done",
+        "T016": "done",
+        "T017": "done",
+        "T018": "done",
+        "T019": "done"
+      }
     }
   }
 }

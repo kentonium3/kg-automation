@@ -26,6 +26,7 @@ agent_profile: curator-carla
 authoritative_surface: docs/runbooks/restic-backup-ops.md
 create_intent: []
 execution_mode: code_change
+lane: planned
 model: claude-sonnet-4-6
 owned_files:
 - docs/runbooks/restic-backup-ops.md

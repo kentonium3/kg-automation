@@ -1,5 +1,5 @@
 {
-  "event_count": 11,
+  "event_count": 12,
   "last_event_id": "01KRG30328691PQSRYE7EZT7F4",
   "materialized_at": "2026-05-13T07:14:40.328199+00:00",
   "mission_number": "35",
@@ -19,11 +19,20 @@
   "work_packages": {
     "WP01": {
       "actor": "user",
+      "agent": "codex:gpt-5:reviewer:reviewer",
       "force_count": 2,
       "lane": "approved",
       "last_event_id": "01KRG30328691PQSRYE7EZT7F4",
       "last_transition_at": "2026-05-13T07:14:40.328199+00:00",
-      "review_result": null
+      "review_result": null,
+      "shell_pid": 37054,
+      "subtasks": {
+        "T001": "done",
+        "T002": "done",
+        "T003": "done",
+        "T004": "done",
+        "T005": "done"
+      }
     }
   }
 }

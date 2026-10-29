@@ -1,5 +1,5 @@
 {
-  "event_count": 35,
+  "event_count": 40,
   "last_event_id": "01KX6TVB6Z6H7QRZQVK7T3QFCA",
   "materialized_at": "2026-07-10T20:17:35.455863+00:00",
   "mission_number": "93",
@@ -19,6 +19,7 @@
   "work_packages": {
     "WP01": {
       "actor": "merge",
+      "agent": "claude:opus:reviewer-renata:reviewer",
       "force_count": 1,
       "lane": "done",
       "last_event_id": "01KX6TV502415XNX156NGCVGYB",
@@ -27,10 +28,19 @@
         "reference": "Review passed (reviewer-renata): implementation complete, tested, integration-verified.",
         "reviewer": "Kent Gale",
         "verdict": "approved"
+      },
+      "shell_pid": 7000,
+      "subtasks": {
+        "T001": "done",
+        "T002": "done",
+        "T003": "done",
+        "T004": "done",
+        "T005": "done"
       }
     },
     "WP02": {
       "actor": "merge",
+      "agent": "claude:opus:reviewer-renata:reviewer",
       "force_count": 1,
       "lane": "done",
       "last_event_id": "01KX6TV72YR5TP9AKWKNG103R9",
@@ -39,10 +49,19 @@
         "reference": "Review passed (reviewer-renata): implementation complete, tested, integration-verified.",
         "reviewer": "Kent Gale",
         "verdict": "approved"
+      },
+      "shell_pid": 6593,
+      "subtasks": {
+        "T006": "done",
+        "T007": "done",
+        "T008": "done",
+        "T009": "done",
+        "T010": "done"
       }
     },
     "WP03": {
       "actor": "merge",
+      "agent": "claude:opus:reviewer-renata:reviewer",
       "force_count": 1,
       "lane": "done",
       "last_event_id": "01KX6TV8M9THBAPFX4YDB8RC3Y",
@@ -51,10 +70,18 @@
         "reference": "Review passed (reviewer-renata): implementation complete, tested, integration-verified.",
         "reviewer": "Kent Gale",
         "verdict": "approved"
+      },
+      "shell_pid": 6593,
+      "subtasks": {
+        "T011": "done",
+        "T012": "done",
+        "T013": "done",
+        "T014": "done"
       }
     },
     "WP04": {
       "actor": "merge",
+      "agent": "claude:opus:reviewer-renata:reviewer",
       "force_count": 1,
       "lane": "done",
       "last_event_id": "01KX6TV9YKFAXVZX1W2J7TXRVT",
@@ -63,10 +90,20 @@
         "reference": "Review passed (reviewer-renata): 136 tests/96% cov, exit-code discipline proven, fail-safe isolation, integration verified, no dead code. Commit f40b3caa.",
         "reviewer": "Kent Gale",
         "verdict": "approved"
+      },
+      "shell_pid": 14219,
+      "subtasks": {
+        "T015": "done",
+        "T016": "done",
+        "T017": "done",
+        "T018": "done",
+        "T019": "done",
+        "T020": "done"
       }
     },
     "WP05": {
       "actor": "merge",
+      "agent": "claude:opus:reviewer-renata:reviewer",
       "force_count": 1,
       "lane": "done",
       "last_event_id": "01KX6TVB6Z6H7QRZQVK7T3QFCA",
@@ -75,6 +112,13 @@
         "reference": "review-passed-observe",
         "reviewer": "Kent Gale",
         "verdict": "approved"
+      },
+      "shell_pid": 18707,
+      "subtasks": {
+        "T021": "done",
+        "T022": "done",
+        "T023": "done",
+        "T024": "done"
       }
     }
   }

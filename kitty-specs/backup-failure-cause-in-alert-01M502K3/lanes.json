@@ -1,0 +1,91 @@
+{
+  "version": 1,
+  "mission_slug": "backup-failure-cause-in-alert-01M502K3",
+  "mission_id": "01M502K3RQEMBXJCS2B480KC5Z",
+  "mission_branch": "kitty/mission-backup-failure-cause-in-alert-01M502K3",
+  "target_branch": "fix/backup-failure-cause-in-alert",
+  "lanes": [
+    {
+      "lane_id": "lane-a",
+      "wp_ids": [
+        "WP01"
+      ],
+      "write_scope": [
+        "tests/architecture/test_key_ledger_rules.py",
+        "tooling/scripts/validate_architecture_data.py"
+      ],
+      "predicted_surfaces": [
+        "api"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    },
+    {
+      "lane_id": "lane-b",
+      "wp_ids": [
+        "WP02"
+      ],
+      "write_scope": [
+        "docs/design/architecture/data/service-inventory.json",
+        "scripts/office2/restic-backup.sh",
+        "tests/office2/restic_backup/test_ledger_reconciliation.py",
+        "tests/office2/restic_backup/test_pointer_emission.py"
+      ],
+      "predicted_surfaces": [
+        "api"
+      ],
+      "depends_on_lanes": [
+        "lane-a"
+      ],
+      "parallel_group": 1
+    },
+    {
+      "lane_id": "lane-planning",
+      "wp_ids": [
+        "WP03"
+      ],
+      "write_scope": [
+        "docs/design/architecture/observability-and-alerting.md",
+        "docs/design/architecture/service-inventory.md",
+        "docs/runbooks/restic-backup-ops.md",
+        "kitty-specs/pointer-key-ledger-01M189P6/contracts/key-ledger.md"
+      ],
+      "predicted_surfaces": [
+        "planning"
+      ],
+      "depends_on_lanes": [
+        "lane-b"
+      ],
+      "parallel_group": 2
+    },
+    {
+      "lane_id": "lane-c",
+      "wp_ids": [
+        "WP04"
+      ],
+      "write_scope": [
+        "scripts/canary/ledger.py",
+        "scripts/canary/probes.py",
+        "tests/canary/test_probes_cause.py",
+        "tests/docs/test_restic_cause_codes_documented.py",
+        "tests/office2/felix_health_check/test_coverage_cause.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "artifact-rendering",
+        "legacy-cleanup"
+      ],
+      "depends_on_lanes": [
+        "lane-b",
+        "lane-planning"
+      ],
+      "parallel_group": 3
+    }
+  ],
+  "computed_at": "2026-10-15T15:36:04.884646+00:00",
+  "computed_from": "dependency_graph+ownership",
+  "planning_artifact_wps": [
+    "WP03"
+  ],
+  "planning_commit_sha": "93a980ce0ae66cbfe5f4b566e23fc8a688b0a231"
+}

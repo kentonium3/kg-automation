@@ -28,6 +28,7 @@ history:
   action: Prompt generated via /spec-kitty.tasks
 authoritative_surface: docs/
 execution_mode: code_change
+lane: planned
 mission_id: 01KN5QX3WBC1M57EENV2JHWAT7
 owned_files:
 - docs/design/architecture/**

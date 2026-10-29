@@ -18,14 +18,15 @@ subtasks:
 - T008
 - T009
 - T010
-shell_pid: "71341"
-agent: "codex:gpt-4o:python-reviewer:reviewer"
+agent: codex:gpt-4o:python-reviewer:reviewer
+shell_pid: '71341'
 history:
 - action: drafted
   agent: claude
   timestamp: '2026-05-17T05:15:00Z'
 authoritative_surface: scripts/vikunja/validate_felix_bot.py
 execution_mode: code_change
+lane: planned
 mission_slug: felix-bot-vikunja-provisioning-01KRT3N4
 owned_files:
 - scripts/vikunja/validate_felix_bot.py

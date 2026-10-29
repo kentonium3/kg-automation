@@ -25,6 +25,7 @@
   "purpose_context": "main is the front-desk / orchestrator agent that handles all direct WhatsApp conversation and delegates to specialists. Its workspace files are the least intentionally-authored of the active agents (two are still factory templates, SOUL is cross-contaminated, and both #587 shared invariants — privacy and Output Discipline — fail). This mission re-authors main's workspace as a coherent, self-contained set against the standard, and because main is what the mail EA capability will extend, also folds in two approved improvements: EA-orchestrator role framing and tighter delegation reliability. Deploys via agent-prompt-sync on merge-to-main; Tier 3.",
   "purpose_tldr": "Author Felix's main (front-desk) agent workspace to the #587 standard: fix two failed invariants, author the two factory-template files, and fold in two targeted behavior improvements.",
   "slug": "author-main-workspace-01KXE90Z",
+  "status_phase": "1",
   "target_branch": "feat/author-main-workspace",
   "topology": "lanes",
   "vcs": "git",

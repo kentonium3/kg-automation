@@ -14,14 +14,15 @@ subtasks:
 - T023
 - T024
 - T025
-agent: "claude"
-shell_pid: "93466"
+agent: claude
+shell_pid: '93466'
 history:
 - at: '2026-06-04T19:53:57Z'
   by: spec-kitty.tasks
   note: Created WP06 from plan.md + quickstart.md + change-control.md doc-update protocol
 authoritative_surface: scripts/sync/systemd/
 execution_mode: code_change
+lane: planned
 owned_files:
 - scripts/sync/systemd/felix-vikunja-sync.service
 - scripts/sync/systemd/felix-vikunja-sync.timer

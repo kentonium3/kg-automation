@@ -85,7 +85,8 @@ _LEGACY_CRON_NAMES: tuple[str, ...] = ("health-check-morning", "health-check-eve
 _SYSTEMD_USER_DIR = Path.home() / ".config/systemd/user"
 _SYSTEMD_REPO_DIR = _REPO_ROOT / "scripts/office2"
 _WRAPPER_PACKAGE = _REPO_ROOT / "scripts/office2/felix_health_check"
-_HEALTH_CHECK_SCRIPT = Path("/home/claude/helper-scripts/health-check.sh")
+# Repointed by #1063: the script ships in the repo; the host copy is retired.
+_HEALTH_CHECK_SCRIPT = _REPO_ROOT / "scripts/office2/felix_health_check/health-check.sh"
 
 
 def _print_line(prefix: str, summary: str, details: dict) -> None:
@@ -131,8 +132,7 @@ def _preflight(*, require_health_check_script: bool = False) -> tuple[bool, dict
     if not (_SYSTEMD_REPO_DIR / f"{_SERVICE_NAME}.timer").exists():
         ok = False
         details["timer_unit_missing"] = str(_SYSTEMD_REPO_DIR / f"{_SERVICE_NAME}.timer")
-    # health-check.sh is reused in place (not shipped by this repo); on
-    # office2 it must already exist. --dry-run only reports presence; --apply
+    # health-check.sh ships in this repo since #1063. --dry-run only reports presence; --apply
     # fails closed on it (see require_health_check_script above).
     script_present = _HEALTH_CHECK_SCRIPT.exists()
     details["health_check_script_present"] = script_present

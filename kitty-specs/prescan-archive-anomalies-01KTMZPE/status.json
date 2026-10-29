@@ -1,5 +1,5 @@
 {
-  "event_count": 5,
+  "event_count": 6,
   "last_event_id": "01KTN0KWN29WD1JV2EK7X1CGES",
   "materialized_at": "2026-06-09T01:40:39.202583+00:00",
   "mission_number": "",
@@ -19,10 +19,19 @@
   "work_packages": {
     "WP01": {
       "actor": "codex",
+      "agent": "codex",
       "force_count": 0,
       "lane": "in_review",
       "last_event_id": "01KTN0KWN29WD1JV2EK7X1CGES",
-      "last_transition_at": "2026-06-09T01:40:39.202583+00:00"
+      "last_transition_at": "2026-06-09T01:40:39.202583+00:00",
+      "shell_pid": 75032,
+      "subtasks": {
+        "T001": "done",
+        "T002": "done",
+        "T003": "done",
+        "T004": "done",
+        "T005": "done"
+      }
     }
   }
 }

@@ -1,27 +1,39 @@
-"""felix-health-check systemd entrypoint (WP03, #676; alert-bus migration #701).
+"""felix-health-check systemd entrypoint (WP03, #676; alert-bus migration #701;
+coverage checks #1063).
 
-Runs the existing bash health check
-(``/home/claude/helper-scripts/health-check.sh``) via ``subprocess.run``
-(never ``exec`` — an ``exec`` would replace this process and make
-classification impossible, Codex finding #1), classifies the result with
-failure-wins precedence, stamps a signal file for observability, and
-pushes an alert on any non-healthy outcome via the unified ``felix-alert``
-bus (``scripts.common.alert_bus.emit`` — no local curl/ntfy code; #701).
+Each run:
+
+1. evaluates two **coverage checks** (:mod:`.coverage`): the dead-man's
+   switch on ``felix-canary`` and an independent ``restic-backup`` check,
+   both decided by the canary's own evaluator on their inventory
+   declarations. From 2026-09-27 to 2026-10-14 the canary was dark and every
+   backup failed while this check reported ``ALL_HEALTHY`` 34 times (#1063);
+2. runs the version-controlled bash service checks, ``health-check.sh`` next
+   to this module, via ``subprocess.run`` (never ``exec``: an ``exec`` would
+   replace this process and make classification impossible, Codex finding #1);
+3. combines both into one status with precedence ``FAILURES_DETECTED`` >
+   ``SCRIPT_MISSING`` > ``UNKNOWN`` > ``ALL_HEALTHY``, so ``ALL_HEALTHY`` is
+   only issued when every check affirmatively passed;
+4. stamps a signal file and pushes one alert on any non-healthy outcome via
+   the unified ``felix-alert`` bus (``scripts.common.alert_bus.emit``; #701).
 
 Invoked by ``scripts/office2/felix-health-check.service`` via::
 
     python3 -m scripts.office2.felix_health_check.run
 
-See ``kitty-specs/deterministic-monitoring-checks-01KX1XNW/contracts/
-health-check-runner.contract.md`` for the authoritative behavior contract
-this module implements.
+Contracts: ``kitty-specs/deterministic-monitoring-checks-01KX1XNW/contracts/
+health-check-runner.contract.md`` (runner) and ``kitty-specs/
+canary-deadman-backup-coverage-01M4XVY3/contracts/health-check-run-record.md``
+(the run record the canary reads, and the alert details).
 
 Exit code
 ---------
-Always ``0`` on a completed run — a health *failure* is data, not a
-runner error (per contract). Non-zero only if the wrapper itself cannot
-run at all (an unhandled exception escapes ``main``), which surfaces via
-systemd ``status=failed``.
+Always ``0`` on a completed run — a health *failure* is data, not a runner
+error. Coverage, shell-script and alert-delivery faults are contained and
+reported in the record (the unit has no ``OnFailure=``, so an escaping
+exception would be a silent systemd failure until the canary's 13 h
+freshness probe noticed). The one fault that cannot be contained is failing
+to write the record itself; that is exactly what the canary's probe sees.
 """
 
 from __future__ import annotations
@@ -34,34 +46,35 @@ import subprocess
 import sys
 import tempfile
 from pathlib import Path
+from typing import Any, Sequence
 
+from scripts.common import deadman
 from scripts.common.alert_bus import Alert, AlertResult, Severity, emit
 
 logger = logging.getLogger("felix_health_check")
 
 # --- Constants -------------------------------------------------------------
 
-HEALTH_CHECK_SCRIPT = Path("/home/claude/helper-scripts/health-check.sh")
+# Version-controlled since #1063 (previously an untracked host-only copy at
+# /home/claude/helper-scripts/health-check.sh). Runs from the deployed checkout.
+HEALTH_CHECK_SCRIPT = Path(__file__).resolve().with_name("health-check.sh")
 SIGNAL_FILE = Path("/data/services/openclaw/felix-health-check/last-run.json")
 
 # Bash subprocess timeout. The check itself is expected to run in seconds;
 # this is a generous ceiling so a hung dependency can't wedge the timer tick.
 SUBPROCESS_TIMEOUT_SECONDS = 300
 
-# Alert delivery (via the unified felix-alert bus, #701). The bus resolves
-# the single ``FELIX_ALERT_NTFY_TOPIC`` and owns all ntfy I/O; this module
-# no longer reads ``NTFY_TOPIC`` or POSTs directly (SC-006). Priority/tags are
-# derived by the bus from ``Severity``, so they are no longer set here.
 ALERT_SOURCE = "felix-health-check/run"
 ALERT_TITLE = "Felix Health Check — office2"
 
 # Raw output is truncated before being folded into the alert (contract: ~4 KB).
-# The bus renderer additionally truncates/redacts, so this is a defensive
-# first bound that keeps the signal-file body compact.
+# The bus renderer additionally truncates every detail value to 500 chars, which
+# is why coverage findings travel as their own details ahead of the output.
 OUTPUT_TRUNCATE_BYTES = 4096
 TRUNCATION_MARKER = "\n... (truncated)"
 
-# Status classification enum (closed set).
+# Status classification enum (closed set; the canary's probe of the run record
+# allow-lists ALL_HEALTHY and FAILURES_DETECTED, so no new words, ever).
 STATUS_ALL_HEALTHY = "ALL_HEALTHY"
 STATUS_FAILURES_DETECTED = "FAILURES_DETECTED"
 STATUS_UNKNOWN = "UNKNOWN"
@@ -71,14 +84,22 @@ STATUS_SCRIPT_MISSING = "SCRIPT_MISSING"
 TOKEN_ALL_HEALTHY = "ALL_HEALTHY"
 TOKEN_FAILURES_DETECTED = "FAILURES_DETECTED"
 
-# Statuses that trigger an ntfy push (everything except a clean healthy run).
 ALERTING_STATUSES = frozenset(
     {STATUS_FAILURES_DETECTED, STATUS_UNKNOWN, STATUS_SCRIPT_MISSING}
 )
 
+# Coverage components, in report order. Duplicated from coverage.py on purpose:
+# when that module cannot even be imported, the record must still carry one
+# unknown entry per component (contract invariant 4).
+_COVERAGE_COMPONENTS: tuple[str, ...] = ("felix-canary", "restic-backup")
 
-def _utc_now_iso() -> str:
-    return _dt.datetime.now(tz=_dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+def _utc_now() -> _dt.datetime:
+    return _dt.datetime.now(tz=_dt.timezone.utc)
+
+
+def _iso(ts: _dt.datetime) -> str:
+    return ts.strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 def _truncate(text: str, limit: int = OUTPUT_TRUNCATE_BYTES) -> str:
@@ -96,7 +117,7 @@ def _truncate(text: str, limit: int = OUTPUT_TRUNCATE_BYTES) -> str:
 
 
 def classify(stdout: str, stderr: str, returncode: int) -> str:
-    """Classify a completed run with failure-wins precedence (Codex #9).
+    """Classify a completed shell run with failure-wins precedence (Codex #9).
 
     1. ``FAILURES_DETECTED`` present in stdout OR stderr wins outright,
        even if ``ALL_HEALTHY`` also appears in the combined output.
@@ -110,6 +131,23 @@ def classify(stdout: str, stderr: str, returncode: int) -> str:
     if TOKEN_ALL_HEALTHY in combined and returncode == 0:
         return STATUS_ALL_HEALTHY
     return STATUS_UNKNOWN
+
+
+def combine(script_status: str, findings: Sequence[Any]) -> str:
+    """The run's single status (data-model.md "Run verdict").
+
+    A failure anywhere wins, so a fault is never hidden behind an inability
+    to check something else. Then a missing script, then any unknown. Only
+    a shell ``ALL_HEALTHY`` with every coverage finding ``ok`` is healthy.
+    """
+    kinds = {getattr(f, "finding", "unknown") for f in findings}
+    if script_status == STATUS_FAILURES_DETECTED or "failure" in kinds:
+        return STATUS_FAILURES_DETECTED
+    if script_status == STATUS_SCRIPT_MISSING:
+        return STATUS_SCRIPT_MISSING
+    if script_status != STATUS_ALL_HEALTHY or kinds != {"ok"}:
+        return STATUS_UNKNOWN
+    return STATUS_ALL_HEALTHY
 
 
 def _atomic_write_json(target: Path, payload: dict) -> None:
@@ -164,6 +202,63 @@ def run_health_check_script(
     )
 
 
+class _Unavailable:
+    """A coverage finding for when the coverage module itself is unusable."""
+
+    def __init__(self, component: str, evidence: str) -> None:
+        self.component = component
+        self.outcome = "unavailable"
+        self.finding = "unknown"
+        self.evidence = evidence
+
+    def to_record(self) -> dict:
+        return {"component": self.component, "outcome": self.outcome,
+                "finding": self.finding, "evidence": self.evidence}
+
+
+def _evaluate_coverage_guarded(now: _dt.datetime) -> list:
+    """Coverage findings, or one unknown per component if coverage cannot
+    run at all. Never raises (research R5)."""
+    try:
+        from scripts.office2.felix_health_check import coverage
+
+        findings = list(coverage.evaluate_coverage(now))
+        if [f.component for f in findings] != list(_COVERAGE_COMPONENTS):
+            raise RuntimeError(f"unexpected coverage result {[f.component for f in findings]}")
+        return findings
+    except Exception as exc:  # noqa: BLE001 - fail closed (NFR-003)
+        evidence = f"coverage unavailable: {type(exc).__name__}: {exc}"
+        logger.error(evidence)
+        return [_Unavailable(c, evidence) for c in _COVERAGE_COMPONENTS]
+
+
+def _run_script_guarded() -> tuple[str, int | None, str, str | None]:
+    """``(script_status, exit_code, raw_output, script_note)``. Never raises.
+
+    ``script_note`` is set when the script did not produce a classifiable run
+    (missing, timed out, failed to launch or decode); it leads the alert.
+    """
+    if not HEALTH_CHECK_SCRIPT.is_file() or not os.access(HEALTH_CHECK_SCRIPT, os.X_OK):
+        note = f"Health-check script not found or not executable: {HEALTH_CHECK_SCRIPT}"
+        logger.error(note)
+        return STATUS_SCRIPT_MISSING, None, note, note
+    try:
+        completed = run_health_check_script()
+    except subprocess.TimeoutExpired as exc:
+        note = f"health-check.sh timed out after {SUBPROCESS_TIMEOUT_SECONDS}s"
+        logger.error("%s: %s", note, exc)
+        return STATUS_UNKNOWN, None, note, note
+    except Exception as exc:  # noqa: BLE001 - launch/decoding faults (Codex-6)
+        note = f"health-check.sh did not run: {type(exc).__name__}: {exc}"
+        logger.error(note)
+        return STATUS_UNKNOWN, None, note, note
+    stdout = completed.stdout or ""
+    stderr = completed.stderr or ""
+    status = classify(stdout, stderr, completed.returncode)
+    logger.info("health-check.sh classified as %s (rc=%s)", status, completed.returncode)
+    return status, completed.returncode, f"{stdout}{stderr}", None
+
+
 def _delivery_record(result: AlertResult) -> dict:
     """Adapt an ``AlertResult`` to the legacy ``last-run.json`` delivery shape.
 
@@ -186,97 +281,198 @@ def _delivery_record(result: AlertResult) -> dict:
     }
 
 
-def send_alert(status: str, body: str) -> dict:
-    """Emit an alert for a non-healthy outcome via the felix-alert bus.
+def alert_details(status: str, body: str, findings: Sequence[Any] = (),
+                  script_note: str | None = None) -> dict[str, str]:
+    """The alert's ``details``, in render order (run-record contract).
+
+    The bus truncates each value to 500 characters, so every coverage
+    finding is its own entry and all of them precede the shell output:
+    appended to the output, they were cut off (Codex post-plan finding 3).
+    A script that did not run is listed first.
+    """
+    details: dict[str, str] = {}
+    if script_note:
+        details["script"] = script_note
+    for f in findings:
+        if getattr(f, "finding", "unknown") != "ok":
+            details[f"coverage:{f.component}"] = f"{f.finding.upper()} ({f.outcome}): {f.evidence}"
+    details["status"] = status
+    details["output"] = body
+    return details
+
+
+def send_alert(status: str, body: str, *, findings: Sequence[Any] = (),
+               script_note: str | None = None) -> dict:
+    """Emit one alert for a non-healthy outcome via the felix-alert bus.
 
     Delivery I/O (topic resolution, ntfy POST, truncation/redaction) is
     owned entirely by ``scripts.common.alert_bus.emit`` — this module holds
-    no curl/ntfy code (SC-006, #701). ``emit()`` never raises (NFR-001), so
-    this function is non-fatal for all routine delivery failure modes.
+    no curl/ntfy code (SC-006, #701). ``emit()`` never raises (NFR-001).
 
     Returns the legacy delivery-record dict
-    ``{"attempted": bool, "sent": bool, "detail": str}`` (via the adapter)
-    so ``last-run.json`` stays byte-compatible with the pre-migration shape.
+    ``{"attempted": bool, "sent": bool, "detail": str}``.
     """
+    description = f"Felix health check on office2 reported: {status}."
+    bad = [f.component for f in findings if getattr(f, "finding", "unknown") != "ok"]
+    if bad:
+        description += f" Coverage: {', '.join(bad)}."
     result = emit(
         Alert(
             source=ALERT_SOURCE,
             severity=Severity.ERROR,
             title=ALERT_TITLE,
-            description=f"Felix health check on office2 reported: {status}.",
-            details={"status": status, "output": body},
+            description=description,
+            details=alert_details(status, body, findings, script_note),
         )
     )
     delivery = _delivery_record(result)
     if delivery["sent"]:
         logger.info("felix-alert delivered (status=%s)", status)
     elif delivery["attempted"]:
-        logger.error(
-            "felix-alert send failed (non-fatal): %s", delivery["detail"]
-        )
+        logger.error("felix-alert send failed (non-fatal): %s", delivery["detail"])
     else:
         logger.warning("felix-alert skipped: %s", delivery["detail"])
     return delivery
 
 
+def _coverage_records(findings: Sequence[Any]) -> tuple[list, list[dict]]:
+    """``(effective_findings, records)``. A finding that cannot serialize is
+    replaced, in BOTH lists, by an unknown one: the verdict and the record
+    must agree, or a broken finding could read ALL_HEALTHY in the status
+    while the record says unknown (post-merge Codex review)."""
+    effective: list = []
+    records: list[dict] = []
+    for component, f in zip(_COVERAGE_COMPONENTS, findings):
+        try:
+            rec = f.to_record()
+            if rec.get("finding") != getattr(f, "finding", None):
+                raise ValueError(f"record finding {rec.get('finding')!r} != {getattr(f, 'finding', None)!r}")
+        except Exception as exc:  # noqa: BLE001 - the record must still be written
+            f = _Unavailable(component, f"{type(exc).__name__}: {exc}")
+            rec = f.to_record()
+        effective.append(f)
+        records.append(rec)
+    return effective, records
+
+
+def _send_alert_guarded(status: str, body: str, findings: Sequence[Any],
+                        script_note: str | None) -> dict:
+    """``send_alert`` never raises today (the bus's ``emit`` is total), but the
+    record must be written even if that ever changes: a missing record is
+    silent for up to 13 h, until the canary's freshness probe notices."""
+    try:
+        return send_alert(status, body, findings=findings, script_note=script_note)
+    except Exception as exc:  # noqa: BLE001 - contain; record the failure
+        logger.error("felix-alert send raised (non-fatal): %s", exc)
+        return {"attempted": True, "sent": False, "detail": f"send_alert raised {type(exc).__name__}: {exc}"}
+
+
+#: Evidence prefixes marking a coverage run that could not do its own work
+#: (the run.py guard's _Unavailable, and coverage.py's _all_unknown).
+_COVERAGE_FAULT_PREFIXES = ("coverage unavailable:", "coverage could not start:")
+
+
+def _execution_fault(script_status: str, script_note: str | None, findings: Sequence[Any]) -> str | None:
+    """Why this run could not do its own watcher work, or None (#1077 FR-010).
+
+    A broken WATCHER, as opposed to unhealthy things it watches: the script
+    is missing, timed out or failed to launch/decode (``script_note`` set), or
+    coverage itself could not run. Never raises.
+    """
+    try:
+        if script_status == STATUS_SCRIPT_MISSING:
+            return "script_missing"
+        if script_note:
+            return "script_did_not_run"
+        for f in findings:
+            # Any _Unavailable finding is the coverage machinery failing
+            # (import, evaluation, or record serialisation), whatever its
+            # evidence text says (post-merge Codex review).
+            if isinstance(f, _Unavailable):
+                return "coverage_unavailable"
+            evidence = str(getattr(f, "evidence", "") or "")
+            if evidence.startswith(_COVERAGE_FAULT_PREFIXES):
+                return "coverage_unavailable"
+        return None
+    except Exception:  # noqa: BLE001 - fail closed
+        return "fault_check_error"
+
+
+def _deadman_configured() -> bool:
+    try:
+        return deadman.is_configured("healthcheck")
+    except Exception:  # noqa: BLE001 - deadman is total; belt and braces
+        return False
+
+
+def _deadman(outcome: str, reason: str | None = None) -> None:
+    """Best-effort off-host dead-man ping (#1077). Never raises."""
+    try:
+        if reason:
+            logger.warning("deadman fail reason: %s", reason)
+        deadman.ping("healthcheck", outcome)
+    except Exception:  # noqa: BLE001 - deadman is total; belt and braces
+        pass
+
+
 def main(argv: list[str] | None = None) -> int:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
-    ran_at_utc = _utc_now_iso()
+    now = _utc_now()
 
-    if not HEALTH_CHECK_SCRIPT.is_file() or not os.access(HEALTH_CHECK_SCRIPT, os.X_OK):
-        status = STATUS_SCRIPT_MISSING
-        logger.error(
-            "health-check script missing or non-executable: %s", HEALTH_CHECK_SCRIPT
-        )
-        body = _truncate(f"Health-check script not found or not executable: {HEALTH_CHECK_SCRIPT}")
-        delivery: dict = send_alert(status, body)
-        _atomic_write_json(
-            SIGNAL_FILE,
-            {
-                "status": status,
-                "ran_at_utc": ran_at_utc,
-                "exit_code": None,
-                "delivery": delivery,
-            },
-        )
-        return 0
+    # Coverage first and independently of the shell script: a missing or
+    # broken script must not also blind the dead-man's switch (research R5).
+    findings, coverage_records = _coverage_records(_evaluate_coverage_guarded(now))
+    for rec in coverage_records:
+        logger.info("coverage %s: %s (%s) %s", rec["component"], rec["finding"], rec["outcome"], rec["evidence"])
 
-    try:
-        completed = run_health_check_script()
-    except subprocess.TimeoutExpired as exc:
-        status = STATUS_UNKNOWN
-        logger.error("health-check.sh timed out: %s", exc)
-        body = _truncate(f"health-check.sh timed out after {SUBPROCESS_TIMEOUT_SECONDS}s")
-        delivery = send_alert(status, body)
-        _atomic_write_json(
-            SIGNAL_FILE,
-            {
-                "status": status,
-                "ran_at_utc": ran_at_utc,
-                "exit_code": None,
-                "delivery": delivery,
-            },
-        )
-        return 0
-
-    status = classify(completed.stdout, completed.stderr, completed.returncode)
-    logger.info("health-check classified as %s (rc=%s)", status, completed.returncode)
+    script_status, exit_code, raw_output, script_note = _run_script_guarded()
+    status = combine(script_status, findings)
+    logger.info("health-check classified as %s (script=%s, rc=%s)", status, script_status, exit_code)
 
     delivery = {"attempted": False, "sent": False, "detail": "no alert (healthy)"}
     if status in ALERTING_STATUSES:
-        raw_output = f"{completed.stdout}{completed.stderr}"
-        body = _truncate(raw_output)
-        delivery = send_alert(status, body)
+        delivery = _send_alert_guarded(status, _truncate(raw_output), findings, script_note)
 
-    _atomic_write_json(
-        SIGNAL_FILE,
-        {
-            "status": status,
-            "ran_at_utc": ran_at_utc,
-            "exit_code": completed.returncode,
-            "delivery": delivery,
-        },
-    )
+    # Key set pinned by the run-record contract: nothing here may be in the
+    # canary's explicit-error vocabulary or outrank ran_at_utc as a timestamp.
+    # A failure to write the record itself is the one fault not contained:
+    # it surfaces as a failed unit and a stale record, which the canary's
+    # freshness probe on this component reports.
+    try:
+        _atomic_write_json(
+            SIGNAL_FILE,
+            {
+                "status": status,
+                "ran_at_utc": _iso(now),
+                "exit_code": exit_code,
+                "delivery": delivery,
+                "script_status": script_status,
+                "script_path": str(HEALTH_CHECK_SCRIPT),
+                "coverage_checks": coverage_records,
+            },
+        )
+    except Exception:
+        if _deadman_configured():
+            _deadman("fail", "record_write_failed")
+        raise
+
+    # Unconfigured: no probe, no ping, no subprocess at all (FR-005).
+    if not _deadman_configured():
+        return 0
+
+    # #1077 off-host dead-man: liveness plus channel health, never the health
+    # of what is watched. A missing topic gives attempted=False, sent=False, so
+    # "alerting and not sent" -- not "attempted and not sent" -- is the test.
+    delivery_failed = status in ALERTING_STATUSES and not delivery.get("sent")
+    fault = _execution_fault(script_status, script_note, findings)
+    try:
+        ok, why = deadman.channel_ok(os.environ, not delivery_failed)
+    except Exception as exc:  # noqa: BLE001 - deadman is total; belt and braces
+        ok, why = False, f"error:{exc.__class__.__name__}"
+    if fault is None and ok:
+        _deadman("success")
+    else:
+        _deadman("fail", fault or why)
     return 0
 
 

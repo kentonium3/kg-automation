@@ -22,49 +22,101 @@
       "force_count": 3,
       "lane": "done",
       "last_event_id": "35E1H69MXTF7F4K9FSPVFMYJHE",
-      "last_transition_at": "2026-04-01T20:41:52.987379+00:00"
+      "last_transition_at": "2026-04-01T20:41:52.987379+00:00",
+      "subtasks": {
+        "T001": "done",
+        "T002": "done",
+        "T003": "done"
+      }
     },
     "WP02": {
       "actor": "manual-recovery",
       "force_count": 3,
       "lane": "done",
       "last_event_id": "74Y48GMSA80T6AV6RNGR3SRWGZ",
-      "last_transition_at": "2026-04-01T20:41:53.037379+00:00"
+      "last_transition_at": "2026-04-01T20:41:53.037379+00:00",
+      "subtasks": {
+        "T004": "done",
+        "T005": "done",
+        "T006": "done",
+        "T007": "done",
+        "T008": "done"
+      }
     },
     "WP03": {
       "actor": "manual-recovery",
       "force_count": 3,
       "lane": "done",
       "last_event_id": "4G2WCARQVASX4QN3H2VW7SS33D",
-      "last_transition_at": "2026-04-01T20:41:53.087379+00:00"
+      "last_transition_at": "2026-04-01T20:41:53.087379+00:00",
+      "subtasks": {
+        "T009": "done",
+        "T010": "done",
+        "T011": "done",
+        "T012": "done",
+        "T013": "done",
+        "T014": "done",
+        "T015": "done"
+      }
     },
     "WP04": {
       "actor": "manual-recovery",
       "force_count": 2,
       "lane": "done",
       "last_event_id": "6NVMMBSTP181DD10KYAJ7KSSH0",
-      "last_transition_at": "2026-04-01T20:41:53.137379+00:00"
+      "last_transition_at": "2026-04-01T20:41:53.137379+00:00",
+      "subtasks": {
+        "T016": "done",
+        "T017": "done",
+        "T018": "done"
+      }
     },
     "WP05": {
       "actor": "manual-recovery",
       "force_count": 2,
       "lane": "done",
       "last_event_id": "2NY9CKJH69Q78NQ3RYZA3TCP4F",
-      "last_transition_at": "2026-04-01T20:41:53.187379+00:00"
+      "last_transition_at": "2026-04-01T20:41:53.187379+00:00",
+      "subtasks": {
+        "T019": "done",
+        "T020": "done",
+        "T021": "done",
+        "T022": "done",
+        "T023": "done",
+        "T024": "done"
+      }
     },
     "WP06": {
       "actor": "manual-recovery",
       "force_count": 2,
       "lane": "done",
       "last_event_id": "4WEARJTBPTT8MBNQ8EVM34DQPW",
-      "last_transition_at": "2026-04-01T20:41:53.237379+00:00"
+      "last_transition_at": "2026-04-01T20:41:53.237379+00:00",
+      "subtasks": {
+        "T025": "done",
+        "T026": "done",
+        "T027": "done",
+        "T028": "done",
+        "T029": "done",
+        "T030": "done",
+        "T031": "done",
+        "T032": "done",
+        "T033": "done"
+      }
     },
     "WP07": {
       "actor": "merge",
       "force_count": 1,
       "lane": "done",
       "last_event_id": "01KN5ASBE3NNXSCRKSAPQ41FS5",
-      "last_transition_at": "2026-04-01T20:12:03.907658+00:00"
+      "last_transition_at": "2026-04-01T20:12:03.907658+00:00",
+      "subtasks": {
+        "T034": "done",
+        "T035": "done",
+        "T036": "done",
+        "T037": "done",
+        "T038": "done"
+      }
     }
   }
 }

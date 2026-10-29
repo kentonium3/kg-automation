@@ -25,6 +25,7 @@
   "purpose_context": "After the label taxonomy (#715) and topic-project creation (#716), the Vikunja task store still holds two structures at once. This mission runs the human-judgment migration — routing every task out of the six doomed projects into its correct topic project per Kent's locked manifest, applying the t:habit label, deleting test artifacts, and removing the emptied projects — so Felix task-intake and escalation reason over one coherent structure.",
   "purpose_tldr": "Move surviving Vikunja tasks into the new topic projects, label habits, and delete the emptied legacy projects.",
   "slug": "vikunja-migrate-tasks-01KXBZ8A",
+  "status_phase": "1",
   "target_branch": "feat/vikunja-migrate-tasks",
   "topology": "single_branch",
   "vcs": "git",

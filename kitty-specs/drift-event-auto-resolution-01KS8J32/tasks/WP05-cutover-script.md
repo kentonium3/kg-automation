@@ -17,17 +17,18 @@ subtasks:
 - T026
 - T027
 - T028
+agent: agy:gemini-2.5-pro:spec-kitty-review:reviewer
+shell_pid: '24424'
 history: []
 authoritative_surface: scripts/doc_audit/helpers/cutover_362.py
 execution_mode: code_change
+lane: planned
 mission_id: 01KS8J321F8KE7369R3DA02329
 mission_slug: drift-event-auto-resolution-01KS8J32
 owned_files:
 - scripts/doc_audit/helpers/cutover_362.py
 - tests/doc_audit/helpers/test_cutover_362.py
 tags: []
-agent: "agy:gemini-2.5-pro:spec-kitty-review:reviewer"
-shell_pid: "24424"
 ---
 
 # WP05 — Cutover script for backlog replay

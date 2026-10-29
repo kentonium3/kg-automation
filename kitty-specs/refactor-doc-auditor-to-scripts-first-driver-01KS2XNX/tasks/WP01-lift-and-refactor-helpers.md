@@ -18,14 +18,15 @@ subtasks:
 - T005
 phase: Phase 1 — Foundation
 assignee: ''
-agent: "codex:gpt-5:spec-kitty-review:reviewer"
-shell_pid: "46024"
+agent: codex:gpt-5:spec-kitty-review:reviewer
+shell_pid: '46024'
 history:
 - timestamp: '2026-05-20T16:25:00Z'
   agent: system
   action: Prompt generated via /spec-kitty.tasks
 authoritative_surface: scripts/doc_audit/helpers/
 execution_mode: code_change
+lane: planned
 owned_files:
 - scripts/doc_audit/helpers/**
 - scripts/openclaw/agents/felix-doc-auditor/handle_drift_events.py

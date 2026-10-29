@@ -36,6 +36,7 @@ create_intent:
 - tests/canary/test_ledger_reuse.py
 - tests/office2/restic_backup/test_ledger_reconciliation.py
 execution_mode: code_change
+lane: planned
 model: claude-sonnet-4-6
 owned_files:
 - tests/canary/ledger_reconcile.py

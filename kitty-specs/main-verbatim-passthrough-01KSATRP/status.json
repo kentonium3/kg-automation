@@ -1,5 +1,5 @@
 {
-  "event_count": 17,
+  "event_count": 19,
   "last_event_id": "01KSB5FVAGQG77NVMBC8TFEW9G",
   "materialized_at": "2026-05-23T19:37:43.504540+00:00",
   "mission_number": "49",
@@ -19,19 +19,35 @@
   "work_packages": {
     "WP01": {
       "actor": "user",
+      "agent": "codex:gpt-5:spec-kitty-review:reviewer",
       "force_count": 2,
       "lane": "approved",
       "last_event_id": "01KSB04MR7YE02Z67MMBSRYBYE",
       "last_transition_at": "2026-05-23T18:04:13.447819+00:00",
-      "review_result": null
+      "review_result": null,
+      "shell_pid": 86964,
+      "subtasks": {
+        "T001": "done",
+        "T002": "done",
+        "T003": "done",
+        "T004": "done"
+      }
     },
     "WP02": {
       "actor": "user",
+      "agent": "codex:gpt-5:spec-kitty-review:reviewer",
       "force_count": 1,
       "lane": "approved",
       "last_event_id": "01KSB5FVAGQG77NVMBC8TFEW9G",
       "last_transition_at": "2026-05-23T19:37:43.504540+00:00",
-      "review_result": null
+      "review_result": null,
+      "shell_pid": 291,
+      "subtasks": {
+        "T005": "done",
+        "T006": "done",
+        "T007": "done",
+        "T008": "done"
+      }
     }
   }
 }

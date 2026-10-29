@@ -35,6 +35,7 @@ create_intent:
 - tests/research/test_arms849_gates.py
 - tests/research/test_arms849_calibration.py
 execution_mode: code_change
+lane: planned
 owned_files:
 - scripts/research/arms849/preflight.py
 - scripts/research/arms849/gates.py

@@ -19,14 +19,15 @@ subtasks:
 - T019
 - T020
 - T021
-agent: "claude:opus-4-6:reviewer:reviewer"
-shell_pid: "17958"
+agent: claude:opus-4-6:reviewer:reviewer
+shell_pid: '17958'
 history:
 - date: '2026-04-11T01:15:00Z'
   action: created
   by: spec-kitty.tasks
 authoritative_surface: docs/
 execution_mode: code_change
+lane: planned
 owned_files:
 - docs/design/architecture/data/service-inventory.json
 - docs/design/architecture/data/data-flows.json

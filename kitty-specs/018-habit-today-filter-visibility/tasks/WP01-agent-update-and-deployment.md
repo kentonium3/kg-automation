@@ -17,14 +17,15 @@ base_branch: main
 base_commit: 157e6bf55db76c16ca8c50016fad3b8f2fc6e2a6
 created_at: '2026-04-06T18:42:42.938147+00:00'
 subtasks: [T001, T002, T003, T004, T005]
-shell_pid: "6204"
-agent: "claude"
+agent: claude
+shell_pid: '6204'
 history:
 - date: '2026-04-06'
   action: created
   by: spec-kitty.tasks
 authoritative_surface: scripts/openclaw/agents/felix-admin-habits/
 execution_mode: code_change
+lane: planned
 owned_files:
 - scripts/openclaw/agents/felix-admin-habits/AGENTS.md
 - docs/runbooks/habits-ops.md

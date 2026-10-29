@@ -26,7 +26,7 @@
 
 ### WP01 — Domain Map & Issue Template
 
-**Prompt**: [WP01-domain-map-and-issue-template.md](tasks/WP01-domain-map-and-issue-template.md)
+**Prompt**: [WP01-domain-map-and-issue-template.md](tasks/WP01-domain-map-and-issue-template.md
 **Priority**: P1 — must exist before WP02 (Actions reference the domain map)
 **Dependencies**: none
 **Subtasks**: T001, T002, T003
@@ -58,7 +58,7 @@ T003 depends on T001 completion.
 
 ### WP02 — Commit Convention, GitHub Actions & Index Updates
 
-**Prompt**: [WP02-actions-and-references.md](tasks/WP02-actions-and-references.md)
+**Prompt**: [WP02-actions-and-references.md](tasks/WP02-actions-and-references.md
 **Priority**: P1
 **Dependencies**: WP01 (workflows reference doc-domain-map.json)
 **Subtasks**: T004, T005, T006, T007, T008

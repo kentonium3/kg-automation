@@ -337,6 +337,11 @@ def observe(
         observed_head = post_pull_head
         alerts_emitted: list[str] = existing.get("alerts_emitted", [])
         last_check_utc = existing.get("last_check_utc", None)
+        # Fields set by fold_manifest_baselines (#1072) must survive a later
+        # observe merge: last_fold_utc keeps the grace window fresh for newly
+        # folded expectations, manifest_names keeps the contributors.
+        carried = {k: existing[k] for k in ("last_fold_utc", "folded_at_utc", "manifest_names")
+                   if k in existing}
     else:
         merged_surface_ids = sorted(new_surface_ids)
         merged_expected = sorted(new_expected)
@@ -345,6 +350,7 @@ def observe(
         observed_head = post_pull_head
         alerts_emitted = []
         last_check_utc = None
+        carried = {}
 
     token: _TokenDict = {
         "schema_version": SCHEMA_VERSION,
@@ -355,6 +361,7 @@ def observe(
         "matched_files": merged_matched,
         "last_check_utc": last_check_utc,
         "alerts_emitted": alerts_emitted,
+        **carried,
     }
     write_token(token, token_path)
 
@@ -498,6 +505,23 @@ def fold_manifest_baselines(
         )
         token = dict(existing)
         token["expected_baselines"] = merged_expected
+        # #1072: only expectations this fold ADDS get fresh time. Re-folding a
+        # baseline already expected refreshes nothing, so freshness can be
+        # extended at most once per distinct baseline (post-merge Codex HIGH).
+        # last_fold_utc drives the same-tick clear grace (_within_grace);
+        # folded_at_utc gives each new expectation its own audit-suppression
+        # window (expected_drift.py, Codex MEDIUM). Stale alerting keeps
+        # measuring from pending_since_utc.
+        new = declared_set - set(existing.get("expected_baselines", []))
+        if new:
+            token["last_fold_utc"] = now_iso
+            prior = existing.get("folded_at_utc")
+            folded = dict(prior) if isinstance(prior, dict) else {}
+            folded.update({b: now_iso for b in new})
+            token["folded_at_utc"] = folded
+        prior_names = existing.get("manifest_names")
+        prior_names = [x for x in prior_names if isinstance(x, str)] if isinstance(prior_names, list) else []
+        token["manifest_names"] = sorted(set(prior_names) | set(names))
         write_token(token, token_path)
         _log.info(
             "rebaseline.fold_manifest_baselines: merged declared=%s manifests=%s",
@@ -838,7 +862,11 @@ def reconcile(
             _log.info(
                 "rebaseline.reconcile: pending_clean (D=∅, token within grace)"
             )
-            return {"outcome": OUTCOME_PENDING_CLEAN}
+            # A fold can extend grace past pending_since_utc, so a token can now
+            # sit here while old; staleness is still measured and alerted (#1072).
+            result = {"outcome": OUTCOME_PENDING_CLEAN}
+            result.update(_maybe_stale(token, token_path, now_iso, max_age_seconds))
+            return result
         # Token older than the grace window → cleared_clean: delete token.
         clear_token(token_path)
         _log.info("rebaseline.reconcile: cleared_clean (D=∅)")
@@ -878,6 +906,89 @@ def reconcile(
     return result
 
 
+def baselines_for_installed_report(
+    report: dict[str, Any] | None,
+    repo_root: pathlib.Path | str,
+    home: pathlib.Path | str,
+    *,
+    registry: dict | None = None,
+) -> dict[str, Any]:
+    """Map a deploy's installed-file report to the baselines it will drift (#1072).
+
+    Proof of installation (C-002): an entry counts only if its resolved
+    ``source`` lies inside the resolved ``repo_root`` and matches a surface
+    (the same :func:`match_surfaces` and registry read as :func:`observe`),
+    AND its resolved ``dest`` lies inside one of that surface's ``host_paths``
+    (``~`` expanded against ``home``, then resolved). Containment is
+    component-wise (``Path.is_relative_to``).
+
+    Fail closed, wholesale: a rejected or malformed report, any source
+    outside the repository, or any destination outside the host paths of a
+    surface its source matches, contributes NOTHING. A source matching no
+    surface, or only surfaces without ``host_paths``, contributes nothing and
+    is not an error. Never raises.
+
+    Returns ``{"baselines", "rejected", "matched", "warnings"}``.
+    """
+    out: dict[str, Any] = {"baselines": [], "rejected": False, "matched": [], "warnings": []}
+    try:
+        if not isinstance(report, dict):
+            out["rejected"] = True
+            out["warnings"].append("installed report missing or not a mapping")
+            return out
+        if report.get("rejected"):
+            out["rejected"] = True
+            out["warnings"].extend(report.get("warnings") or ["installed report rejected"])
+            return out
+        entries = report.get("entries") or []
+        if not entries:
+            return out
+        if registry is None:
+            registry, reason = load_audited_surfaces_or_error()
+            if registry is None:
+                out["warnings"].append(f"audited-surfaces registry unreadable ({reason}); nothing mapped")
+                return out
+        root = pathlib.Path(repo_root).resolve()
+        home_path = pathlib.Path(home)
+        baselines: set[str] = set()
+        matched: list[str] = []
+        for entry in entries:
+            if not (os.path.isabs(entry["source"]) and os.path.isabs(entry["dest"])):
+                # read_report already enforces this; never resolve against cwd.
+                out["rejected"] = True
+                out["warnings"].append(f"non-absolute path in report: {entry!r}")
+                return {**out, "baselines": [], "matched": []}
+            src = pathlib.Path(entry["source"]).resolve()
+            dst = pathlib.Path(entry["dest"]).resolve()
+            if not src.is_relative_to(root):
+                out["rejected"] = True
+                out["warnings"].append(f"source outside the repository: {entry['source']}")
+                return {**out, "baselines": [], "matched": []}
+            rel = str(src.relative_to(root))
+            for surface in match_surfaces([rel], registry):
+                hosts = surface.get("host_paths") or []
+                if not hosts:
+                    continue
+                roots = []
+                for h in hosts:
+                    expanded = pathlib.Path(h.replace("~", str(home_path), 1) if h.startswith("~") else h)
+                    roots.append(expanded.resolve())
+                if not any(dst.is_relative_to(r) for r in roots):
+                    out["rejected"] = True
+                    out["warnings"].append(
+                        f"{rel} landed at {entry['dest']}, outside {surface.get('id')}'s host paths")
+                    return {**out, "baselines": [], "matched": []}
+                baselines.update(surface.get("affected_baselines", []))
+                if rel not in matched:
+                    matched.append(rel)
+        out["baselines"] = sorted(baselines)
+        out["matched"] = matched
+        return out
+    except Exception as exc:  # noqa: BLE001 - never raise into the tick
+        return {"baselines": [], "rejected": True, "matched": [],
+                "warnings": [f"mapping failed: {type(exc).__name__}: {exc}"]}
+
+
 def _within_grace(
     token: _TokenDict, now_iso: str, grace_seconds: int
 ) -> bool:
@@ -892,11 +1003,19 @@ def _within_grace(
         return False
     try:
         since_dt = _dt.datetime.fromisoformat(pending_since.replace("Z", "+00:00"))
+        last_fold = token.get("last_fold_utc")
+        if last_fold:
+            # #1072: a fold into an old token adds NEW expectations; give them
+            # a fresh grace window rather than the token's expired one.
+            fold_dt = _dt.datetime.fromisoformat(last_fold.replace("Z", "+00:00"))
+            since_dt = max(since_dt, fold_dt)
         now_dt = _dt.datetime.fromisoformat(now_iso.replace("Z", "+00:00"))
         age_seconds = (now_dt - since_dt).total_seconds()
     except (ValueError, TypeError, AttributeError):
         return False
-    return age_seconds < grace_seconds
+    # A future stamp is not "within grace": it would hold the token (and its
+    # expectations) until that date (#1072 post-merge Codex).
+    return 0 <= age_seconds < grace_seconds
 
 
 def _maybe_stale(
@@ -1087,6 +1206,7 @@ __all__ = [
     "observe",
     "classify_watermark",
     "fold_manifest_baselines",
+    "baselines_for_installed_report",
     "reconcile",
     "rebaseline_and_verify",
 ]

@@ -36,7 +36,7 @@ Both lanes can run in parallel.
 **Priority**: P0
 **Dependencies**: none
 **Independent test**: `wc -c scripts/openclaw/agents/main/AGENTS.md` ≤14000; grep `"Verbatim pass-through (ABSOLUTE)"` returns the new section; grep `"FORBIDDEN"` returns at least one match; grep `"--message"` shows cross-references near each delegation section.
-**Prompt**: [WP01-agents-md-harden.md](tasks/WP01-agents-md-harden.md)
+**Prompt**: [WP01-agents-md-harden.md](tasks/WP01-agents-md-harden.md
 
 Included:
 - [x] T001 Read deployed + reconcile drift (WP01)
@@ -52,7 +52,7 @@ Included:
 **Priority**: P0
 **Dependencies**: none (parallel with WP01)
 **Independent test**: `pytest tests/openclaw/helpers/test_rotate_main_session.py -v` ≥85%; `python3 scripts/openclaw/helpers/rotate_main_session.py --help` exits 0; service-inventory.json and data-flows.json parse.
-**Prompt**: [WP02-rotation-helper-and-docs.md](tasks/WP02-rotation-helper-and-docs.md)
+**Prompt**: [WP02-rotation-helper-and-docs.md](tasks/WP02-rotation-helper-and-docs.md
 
 Included:
 - [x] T005 rotate_main_session.py (WP02)

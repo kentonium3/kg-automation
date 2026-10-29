@@ -26,14 +26,15 @@ subtasks:
 - T017
 phase: Phase 3 — Synthesis + handoff
 assignee: ''
-agent: "claude:opus:reviewer:reviewer"
-shell_pid: "4219"
+agent: claude:opus:reviewer:reviewer
+shell_pid: '4219'
 history:
 - timestamp: '2026-06-03T22:59:10Z'
   agent: system
   action: Prompt generated via /spec-kitty.tasks
 authoritative_surface: docs/design/architecture/adr/
 execution_mode: planning_artifact
+lane: planned
 owned_files:
 - docs/research/felix-vikunja-sync-architecture/findings/rq-6-adr-scope.md
 - docs/research/felix-vikunja-sync-architecture/findings.md

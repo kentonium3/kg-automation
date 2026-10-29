@@ -18,7 +18,6 @@ requirement_refs:
 - NFR-002
 - NFR-003
 - NFR-004
-tracker_refs: []
 planning_base_branch: feat/vikunja-migrate-tasks
 merge_target_branch: feat/vikunja-migrate-tasks
 branch_strategy: Planning artifacts for this mission were generated on feat/vikunja-migrate-tasks. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into feat/vikunja-migrate-tasks unless the human explicitly redirects the landing branch.
@@ -32,9 +31,9 @@ subtasks:
 - T007
 - T008
 - T009
-agent: "claude"
-shell_pid: "73093"
-shell_pid_created_at: "1783891900.577683"
+agent: claude
+shell_pid: '73093'
+shell_pid_created_at: '1783891900.577683'
 history:
 - created by /spec-kitty.tasks 2026-07-12
 agent_profile: python-pedro
@@ -44,6 +43,7 @@ create_intent:
 - scripts/vikunja/task_migration_manifest.yaml
 - tests/vikunja/test_migrate_tasks.py
 execution_mode: code_change
+lane: planned
 owned_files:
 - scripts/vikunja/migrate_tasks.py
 - scripts/vikunja/task_migration_manifest.yaml
@@ -55,6 +55,7 @@ owned_files:
 - docs/design/vikunja-configuration-design.md
 role: implementer
 tags: []
+tracker_refs: []
 ---
 
 ## ⚡ Do This First: Load Agent Profile

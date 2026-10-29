@@ -9,7 +9,6 @@ requirement_refs:
 - FR-009
 - FR-010
 - FR-014
-tracker_refs: []
 planning_base_branch: kitty/mission-vikunja-client-and-habits-weekly-report-01KTKSFT
 merge_target_branch: kitty/mission-vikunja-client-and-habits-weekly-report-01KTKSFT
 branch_strategy: Planning artifacts for this mission were generated on kitty/mission-vikunja-client-and-habits-weekly-report-01KTKSFT. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into kitty/mission-vikunja-client-and-habits-weekly-report-01KTKSFT unless the human explicitly redirects the landing branch.
@@ -21,17 +20,19 @@ subtasks:
 - T015
 - T016
 - T017
-shell_pid: "35633"
+agent: codex:gpt-5:reviewer-renata:reviewer
+shell_pid: '35633'
 history: []
 authoritative_surface: scripts/openclaw/agents/felix-admin-habits/
 execution_mode: code_change
+lane: planned
 owned_files:
 - scripts/openclaw/agents/felix-admin-habits/AGENTS.md
 - scripts/openclaw/agents/felix-admin-habits/SOUL.md
 - scripts/openclaw/agents/felix-admin-escalation/AGENTS.md
 - scripts/openclaw/agents/felix-admin-tasker/AGENTS.md
 tags: []
-agent: "codex:gpt-5:reviewer-renata:reviewer"
+tracker_refs: []
 ---
 
 # WP03: AGENTS.md edits + sibling-agent audit

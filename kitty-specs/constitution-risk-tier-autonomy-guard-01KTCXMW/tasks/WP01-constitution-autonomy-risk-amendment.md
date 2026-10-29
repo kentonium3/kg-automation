@@ -19,14 +19,15 @@ subtasks:
 - T002
 - T003
 - T004
-shell_pid: "73650"
-agent: "codex:gpt-5:docs-reviewer:reviewer"
+agent: codex:gpt-5:docs-reviewer:reviewer
+shell_pid: '73650'
 history:
 - at: '2026-06-06T00:37:37Z'
   by: spec-kitty.tasks
   note: 'Created WP01 from #528 spec and plan artifacts.'
 authoritative_surface: docs/constitution/
 execution_mode: code_change
+lane: planned
 owned_files:
 - docs/constitution/FELIX-CONSTITUTION.md
 tags: []

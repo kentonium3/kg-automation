@@ -9,8 +9,6 @@ requirement_refs:
 - FR-015
 - FR-016
 - FR-017
-tracker_refs:
-- kentonium3/kg-automation#597
 planning_base_branch: main
 merge_target_branch: main
 branch_strategy: Planning artifacts for this mission were generated on main. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into main unless the human explicitly redirects the landing branch.
@@ -18,11 +16,13 @@ subtasks:
 - T014
 - T015
 - T016
-agent: "claude:sonnet:reviewer-rachel:reviewer"
+agent: claude:sonnet:reviewer-rachel:reviewer
+shell_pid: '94232'
 history: []
 agent_profile: implementer-ivan
 authoritative_surface: docs/runbooks/
 execution_mode: code_change
+lane: planned
 mission_slug: openclaw-auth-verifier-01KV0Y9E
 owned_files:
 - docs/runbooks/openclaw-ops.md
@@ -30,7 +30,8 @@ owned_files:
 - tests/security/test_runbook_anchors.py
 role: implementer
 tags: []
-shell_pid: "94232"
+tracker_refs:
+- kentonium3/kg-automation#597
 ---
 
 ## ⚡ Do This First: Load Agent Profile

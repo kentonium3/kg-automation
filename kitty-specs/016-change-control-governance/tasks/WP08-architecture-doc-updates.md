@@ -26,14 +26,15 @@ subtasks:
 - T039
 phase: Phase 3 - Documentation
 assignee: ''
-agent: "claude"
-shell_pid: "64025"
+agent: claude
+shell_pid: '64025'
 history:
 - at: '2026-04-05T23:00:03Z'
   actor: system
   action: Prompt generated via /spec-kitty.tasks
 authoritative_surface: docs/design/architecture/
 execution_mode: code_change
+lane: planned
 owned_files:
 - docs/design/architecture/README.md
 - docs/design/architecture/change-control.md

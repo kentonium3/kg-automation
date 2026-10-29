@@ -24,6 +24,7 @@ history:
   actor: claude
 authoritative_surface: kitty-specs/007-vikunja-api-skill/contracts/vikunja-api-contract.md/
 execution_mode: code_change
+lane: planned
 mission_id: 01KN5QX3WJGAVA67AVPSBGXX96
 owned_files:
 - kitty-specs/007-vikunja-api-skill/contracts/vikunja-api-contract.md

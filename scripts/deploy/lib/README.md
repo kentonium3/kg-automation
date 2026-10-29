@@ -17,10 +17,13 @@ versioning policy and non-goals.
 | `cron` | OpenClaw cron primitives — never touches the system cron table | `openclaw_cron_disable`, `openclaw_cron_enable`, `openclaw_cron_edit`, `openclaw_cron_list` |
 | `snapshot` | Restic backup-recency verification (authoritative `last-backup.json` state file; daily-log parse as fallback) | `verify_restic_recent` |
 | `verify` | File presence, stale-content, secret redaction | `verify_file_present`, `verify_no_stale_literal`, `redact_secrets` |
-| `manifest` | Manifest load + Draft 2020-12 schema validation; applied-seq math. `validate_manifest` also enforces the optional `expected_baselines` field (CLI-mutation deploys declare drifted baselines; names must be known security-monitor baselines and require `audited_surface: true`) via a non-exiting registry read — see `docs/runbooks/deploy/discipline.md`. | `load_manifest`, `validate_manifest`, `validate_manifest_file`, `next_applied_seq` |
+| `manifest` | Manifest load + Draft 2020-12 schema validation; applied-seq math. `validate_manifest` also enforces the optional `expected_baselines` field (declared by any deploy whose baseline drift has no signal in its own commit range: runtime CLI mutations, and reconcile deploys that install files changed earlier; names must be known security-monitor baselines and require `audited_surface: true`) via a non-exiting registry read — see `docs/runbooks/deploy/discipline.md`. | `load_manifest`, `validate_manifest`, `validate_manifest_file`, `next_applied_seq` |
 | `applied` | Applied-entry writer for `deploys/applied/<NNNN>-<name>.yaml` | `write_applied` |
 | `tier` | Tier-policy guard (CI + runtime modes) | `tier_guard` |
 | `apply` | Canonical apply orchestrator (composes everything above) | `dry_run_then_apply_gate` |
+| `userunits` | systemd **user**-unit install mechanism (#1066): preflight, plan, atomic install, one `daemon-reload` then an action per unit, loaded-config verification with a caller-supplied `expect`/`extra_check`, opt-in bounded next-elapse polling under a shared deadline, convergence. Policy (which properties must hold, restart vs enable-now vs none) stays with the caller; the module never prints. New unit-installing entrypoints must use it (`tests/deploy/test_unit_install_uses_userunits.py`). | `preflight_user`, `plan_install`, `install_units`, `daemon_reload`, `unit_action`, `apply_units`, `verify_unit`, `converged`, `parse_show`, `next_elapse_is_concrete` |
+| `installed_report` | The installed-file report channel (#1072): an advisory producer that installers call for each file they wrote, and a fail-closed reader. See "The installed-file report" below. | `record_installed`, `read_report` |
+| `timer_units` | Parse unit directives; the #1062 `Persistent=`-on-monotonic predicate | `directives`, `persistent_on_monotonic` |
 
 ## Return type: `LibResult`
 
@@ -58,6 +61,36 @@ composition point. Sequence (each step a library call):
 
 On full success: `LibResult(ok=True, summary='applied', details={'phase': 'complete', ...})`.
 On any failure: `ok=False` with `details['phase']` set to the stopping phase.
+
+## The installed-file report
+
+How a deploy tells felix-deployer what it put on the host (#1072; contract
+`kitty-specs/deploy-runtime-installed-report-01M4ZP8E/contracts/installed-report.md`).
+
+- **Variable**: `FELIX_DEPLOY_INSTALLED_REPORT` names a file. The apply gate sets
+  it to a fresh temporary path for `<entrypoint> --apply` only, and removes it
+  from every other command's environment (pre/post verification, `--dry-run`).
+- **Format**: JSON Lines, one `{"source": "<abs>", "dest": "<abs>"}` per changed
+  file, appended after the file landed. `userunits.install_units` writes it;
+  unchanged files are not reported.
+- **Write failure**: the producer never fails an install. It prints one
+  `FELIX_DEPLOY_INSTALLED_REPORT_WRITE_FAILED: ...` line to stderr, the only
+  output the library produces.
+- **Reader**: `read_report` never raises and rejects the whole report on any
+  irregularity (symlink, FIFO, over 1 MiB, invalid UTF-8, a bad line, a relative
+  path, NUL bytes, over 10,000 entries).
+- **Result keys**: every result returned after `--apply` ran (success, apply
+  failure, post-verification failure) carries `details["installed_report"]`
+  (`entries`, `rejected`, `missing`, `warnings`) and
+  `details["installed_report_write_failed"]`. Results returned before it never do.
+
+felix-deployer maps the entries to baselines with
+`rebaseline.baselines_for_installed_report`, which requires proof (source in
+the repository, destination under the surface's `host_paths`). Entrypoints that
+copy files themselves must import `userunits` or `installed_report`
+(`tests/deploy/test_host_copies_report.py`). That guard is a tripwire, not a
+proof: a copy in a helper module, `open(..., "w")`, `shutil.move`/`os.rename`,
+a subprocess `cp`, or an import that is never called all escape it.
 
 ## Calling the library
 

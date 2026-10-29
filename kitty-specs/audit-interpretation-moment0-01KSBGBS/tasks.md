@@ -22,7 +22,7 @@ WP01 → WP02 → WP03 (sequential, lane-a)
 
 **Goal**: Mirror drift_interpretation + drift_ledger for commit-derived audits.
 **Dependencies**: none
-**Prompt**: [WP01-judgment-module.md](tasks/WP01-judgment-module.md)
+**Prompt**: [WP01-judgment-module.md](tasks/WP01-judgment-module.md
 
 - [x] T001 audit_interpretation.py + prompt (WP01)
 - [x] T002 audit_ledger.py (WP01)
@@ -32,7 +32,7 @@ WP01 → WP02 → WP03 (sequential, lane-a)
 
 **Goal**: Wire interpret_audit into the no-proposals branch with per-verdict routing.
 **Dependencies**: WP01
-**Prompt**: [WP02-handle-audit-routing-integration.md](tasks/WP02-handle-audit-routing-integration.md)
+**Prompt**: [WP02-handle-audit-routing-integration.md](tasks/WP02-handle-audit-routing-integration.md
 
 - [x] T004 Wire interpret_audit + verdict routing (WP02)
 - [x] T005 Tests for new branch (WP02)
@@ -41,7 +41,7 @@ WP01 → WP02 → WP03 (sequential, lane-a)
 
 **Goal**: Config block + arch docs + runbook + replay for the 11 stuck audits.
 **Dependencies**: WP02
-**Prompt**: [WP03-arch-docs-and-cutover.md](tasks/WP03-arch-docs-and-cutover.md)
+**Prompt**: [WP03-arch-docs-and-cutover.md](tasks/WP03-arch-docs-and-cutover.md
 
 - [x] T006 Config + arch docs + runbook (WP03)
 - [x] T007 Cutover replay for stuck audits (WP03)

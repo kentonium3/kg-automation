@@ -7,6 +7,7 @@
   "mission_type": "software-dev",
   "slug": "audit-interpretation-size-guard-01KSEN9B",
   "source_description": "GitHub issue #402 — audit_interpretation oversized commits 400 the API. Ships Option A (upfront size guard) per the issue's recommended sequence: estimate prompt size before LLM call, short-circuit to synthetic JUDGMENT_REQUIRED if over threshold. Code-change-only mission (no office2 deploy in this mission). Unblocks felix-doc-auditor.timer re-enable when combined with the post-#411 fix.",
+  "status_phase": "1",
   "target_branch": "main",
   "vcs": "git"
 }

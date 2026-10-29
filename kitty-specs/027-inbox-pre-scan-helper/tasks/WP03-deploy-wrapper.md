@@ -17,13 +17,14 @@ subtasks:
 - T015
 - T016
 - T017
-agent: "claude:opus-4-6:shell-implementer:implementer"
-shell_pid: "56005"
+agent: claude:opus-4-6:shell-implementer:implementer
+shell_pid: '56005'
 history:
 - date: '2026-04-11'
   event: created
 authoritative_surface: scripts/deploy/
 execution_mode: code_change
+lane: planned
 mission_slug: 027-inbox-pre-scan-helper
 owned_files:
 - scripts/deploy/deploy-149.sh

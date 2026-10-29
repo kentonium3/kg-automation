@@ -8,7 +8,6 @@ requirement_refs:
 - FR-005
 - FR-007
 - FR-011
-tracker_refs: []
 planning_base_branch: kitty/mission-inbox-calendar-and-aspiration-routing-01KTHHXS
 merge_target_branch: kitty/mission-inbox-calendar-and-aspiration-routing-01KTHHXS
 branch_strategy: Planning artifacts for this mission were generated on kitty/mission-inbox-calendar-and-aspiration-routing-01KTHHXS. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into kitty/mission-inbox-calendar-and-aspiration-routing-01KTHHXS unless the human explicitly redirects the landing branch.
@@ -21,16 +20,18 @@ subtasks:
 - T017
 - T018
 - T019
-agent: "claude:opus-4-7:reviewer-renata:reviewer"
-shell_pid: "26434"
+agent: claude:opus-4-7:reviewer-renata:reviewer
+shell_pid: '26434'
 history: []
 agent_profile: generic-agent
 authoritative_surface: scripts/openclaw/agents/main/
 execution_mode: code_change
+lane: planned
 owned_files:
 - scripts/openclaw/agents/main/AGENTS.md
 role: implementer
 tags: []
+tracker_refs: []
 ---
 
 # WP03: Felix main — calendar create + clarification reply handler

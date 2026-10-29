@@ -24,6 +24,7 @@
   "purpose_context": "OpenClaw agent skills edited in the repo currently have no path to the deployed skills on office2, so a SKILL.md edit is stranded and can go months out of date with no signal. This mission builds the auto-deploy sync plus a drift check, mirroring the proven agent-prompt-sync mechanism, so deployed skills stay faithful to the repo and any divergence is surfaced.",
   "purpose_tldr": "Repo skill edits reach office2, and skill drift is detected instead of accruing silently.",
   "slug": "openclaw-skills-sync-01KXW1DQ",
+  "status_phase": "1",
   "target_branch": "feat/openclaw-skills-sync",
   "topology": "single_branch",
   "vcs": "git",

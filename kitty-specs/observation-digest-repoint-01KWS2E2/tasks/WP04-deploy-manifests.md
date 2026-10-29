@@ -7,15 +7,14 @@ dependencies:
 requirement_refs:
 - FR-008
 - FR-009
-tracker_refs: []
 planning_base_branch: fix/observation-digest-repoint
 merge_target_branch: fix/observation-digest-repoint
 branch_strategy: Planning artifacts for this mission were generated on fix/observation-digest-repoint. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into fix/observation-digest-repoint unless the human explicitly redirects the landing branch.
 subtasks:
 - T012
 - T013
-agent: "claude"
-shell_pid: "58081"
+agent: claude
+shell_pid: '58081'
 history:
 - created by /spec-kitty.tasks 2026-07-05
 agent_profile: implementer-ivan
@@ -24,11 +23,13 @@ create_intent:
 - deploys/queued/0008-migrate-observation-logs.yaml
 - deploys/staged/0009-decommission-observation-stray-tree.yaml
 execution_mode: code_change
+lane: planned
 owned_files:
 - deploys/queued/0008-migrate-observation-logs.yaml
 - deploys/staged/0009-decommission-observation-stray-tree.yaml
 role: implementer
 tags: []
+tracker_refs: []
 ---
 
 ## ⚡ Do This First: Load Agent Profile

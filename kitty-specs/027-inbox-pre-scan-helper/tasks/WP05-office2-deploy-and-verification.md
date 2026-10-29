@@ -25,13 +25,14 @@ subtasks:
 - T025
 - T026
 - T027
-agent: "claude:opus-4-6:orchestrator:implementer"
-shell_pid: "77642"
+agent: claude:opus-4-6:orchestrator:implementer
+shell_pid: '77642'
 history:
 - date: '2026-04-11'
   event: created
 authoritative_surface: kitty-specs/027-inbox-pre-scan-helper/research/
 execution_mode: planning_artifact
+lane: planned
 mission_slug: 027-inbox-pre-scan-helper
 owned_files:
 - kitty-specs/027-inbox-pre-scan-helper/research/**

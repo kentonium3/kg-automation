@@ -24,6 +24,7 @@
   "purpose_context": "Felix's runtime defaults to the felix-bot Vikunja token, which cannot see the topic-projects #717 created as kent (projects 16-20, ~30+ tasks) and never shared, so scans and the dedup precheck operate on a partial view. This mission drops the agent-attribution two-token model, switches all runtime consumers to the kent token via the single client default, collapses the registry/validator to one token, records the decision in ADR-0003, and retires the felix-bot credential from the manifest (leaving the token valid for rollback and the felix-bot user dormant), deploying with before/after connectivity verification.",
   "purpose_tldr": "Retire the Vikunja felix-bot token and route all Felix to Vikunja access through the single kent token, so Felix sees Kent's full task store.",
   "slug": "retire-vikunja-felix-bot-01KY829X",
+  "status_phase": "1",
   "target_branch": "fix/860-retire-vikunja-felix-bot",
   "topology": "single_branch"
 }

@@ -8,7 +8,6 @@ requirement_refs:
 - FR-003
 - FR-004
 - FR-006
-tracker_refs: []
 planning_base_branch: main
 merge_target_branch: main
 branch_strategy: Planning artifacts for this mission were generated on main. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into main unless the human explicitly redirects the landing branch.
@@ -21,19 +20,21 @@ subtasks:
 - T011
 - T012
 phase: Phase 2 - New Agent
-shell_pid: "42027"
+agent: claude::reviewer-renata:reviewer
+shell_pid: '42027'
 history:
 - at: '2026-06-11T03:26:12Z'
   actor: system
   action: Prompt generated via /spec-kitty.tasks
+agent_profile: implementer-ivan
 authoritative_surface: scripts/openclaw/agents/felix-admin-calendar/
 execution_mode: code_change
+lane: planned
 owned_files:
 - scripts/openclaw/agents/felix-admin-calendar/**
-tags: []
-agent_profile: implementer-ivan
 role: implementer
-agent: "claude::reviewer-renata:reviewer"
+tags: []
+tracker_refs: []
 ---
 
 # Work Package Prompt: WP02 – Create felix-admin-calendar OpenClaw subagent

@@ -13,7 +13,6 @@ requirement_refs:
 - NFR-001
 - NFR-003
 - NFR-005
-tracker_refs: []
 planning_base_branch: feat/felix-calendar-helper
 merge_target_branch: feat/felix-calendar-helper
 branch_strategy: Planning artifacts for this mission were generated on feat/felix-calendar-helper. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into feat/felix-calendar-helper unless the human explicitly redirects the landing branch.
@@ -23,7 +22,8 @@ subtasks:
 - T006
 - T007
 - T008
-agent: "claude:opus:reviewer-renata:reviewer"
+agent: claude:opus:reviewer-renata:reviewer
+shell_pid: '55355'
 history: []
 agent_profile: python-pedro
 authoritative_surface: scripts/google/calendar_helper.py
@@ -31,6 +31,7 @@ create_intent:
 - scripts/google/calendar_helper.py
 - tests/google/test_calendar_helper.py
 execution_mode: code_change
+lane: planned
 mission_id: 01KX4H3C4CZ2W0DRSHZHSNAY53
 mission_slug: felix-calendar-helper-01KX4H3C
 owned_files:
@@ -38,7 +39,7 @@ owned_files:
 - tests/google/test_calendar_helper.py
 role: implementer
 tags: []
-shell_pid: "55355"
+tracker_refs: []
 ---
 
 # WP02 — Calendar helper CLI (CRUD + self-check)

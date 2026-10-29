@@ -23,6 +23,7 @@ history:
   actor: claude
 authoritative_surface: src/
 execution_mode: code_change
+lane: planned
 mission_id: 01KN5QX3WPT8E1MP9T6H487WY6
 owned_files:
 - src/**

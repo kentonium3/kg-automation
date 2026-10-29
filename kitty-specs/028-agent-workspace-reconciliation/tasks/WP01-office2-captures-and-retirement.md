@@ -20,14 +20,15 @@ subtasks:
 - T003
 - T004
 - T005
-shell_pid: "78192"
-agent: "codex:gpt-4o:reviewer:reviewer"
+agent: codex:gpt-4o:reviewer:reviewer
+shell_pid: '78192'
 history:
 - date: '2026-04-13'
   action: created
   agent: claude-opus-4-6
 authoritative_surface: scripts/openclaw/agents/
 execution_mode: code_change
+lane: planned
 owned_files:
 - scripts/openclaw/agents/main/AGENTS.md
 - scripts/openclaw/agents/main/TOOLS.md

@@ -1,0 +1,211 @@
+{
+  "event_count": 57,
+  "last_event_id": "01M4ZSMAM1HDTFDW46RSPTC8WS",
+  "materialized_at": "2026-10-15T12:47:10.465838+00:00",
+  "mission_number": "118",
+  "mission_slug": "deploy-runtime-installed-report-01M4ZP8E",
+  "mission_type": "software-dev",
+  "schema_version": 2,
+  "summary": {
+    "approved": 0,
+    "blocked": 0,
+    "canceled": 0,
+    "claimed": 0,
+    "done": 6,
+    "for_review": 0,
+    "in_progress": 0,
+    "in_review": 0,
+    "planned": 0
+  },
+  "work_packages": {
+    "WP01": {
+      "actor": "merge",
+      "agent": "reviewer-renata",
+      "agent_profile": "__resolved_profile_absent__",
+      "agent_profile_version": "__resolved_profile_version_absent__",
+      "force_count": 1,
+      "implementer_of_record": "claude",
+      "lane": "done",
+      "last_event_id": "01M4ZSK1TCXH2BD0EPW47ZCT1F",
+      "last_transition_at": "2026-10-15T12:46:28.684360+00:00",
+      "model": "__resolved_model_absent__",
+      "notes": [
+        "Channel module + 20 tests",
+        "Cycle 1 fixed: broad parse except, NUL reject, split on newline, dedup pinned, producer O_NONBLOCK|O_NOFOLLOW",
+        "renata (claude-sonnet-5-5) cycle 2 APPROVE: all 5 cycle-1 findings fixed, 26 tests pass"
+      ],
+      "provider": "__resolved_provider_absent__",
+      "review": null,
+      "review_result": {
+        "reference": "auto-approval:WP01:20261015",
+        "reviewer": "Kent Gale",
+        "verdict": "approved"
+      },
+      "role": "reviewer",
+      "shell_pid": 534116,
+      "shell_pid_created_at": "1792066489.66",
+      "subtasks": {
+        "T001": "done",
+        "T002": "done",
+        "T003": "done",
+        "T004": "done"
+      }
+    },
+    "WP02": {
+      "actor": "merge",
+      "agent": "reviewer-renata",
+      "agent_profile": "__resolved_profile_absent__",
+      "agent_profile_version": "__resolved_profile_version_absent__",
+      "force_count": 0,
+      "implementer_of_record": "claude",
+      "lane": "done",
+      "last_event_id": "01M4ZSK9W51PMJRKMGBEHGY3ZK",
+      "last_transition_at": "2026-10-15T12:46:36.933378+00:00",
+      "model": "__resolved_model_absent__",
+      "notes": [
+        "Ready for review: record_installed after each changed-file replace; 4 tests, 2 mutations caught",
+        "renata (claude-sonnet-5-5) APPROVE; non-blocking: add unwritable-target integration check (carried to WP06), append-before-record ordering"
+      ],
+      "provider": "__resolved_provider_absent__",
+      "review_result": {
+        "reference": "auto-approval:WP02:20261015",
+        "reviewer": "Kent Gale",
+        "verdict": "approved"
+      },
+      "role": "reviewer",
+      "shell_pid": 562950,
+      "shell_pid_created_at": "1792067087.97",
+      "subtasks": {
+        "T005": "done",
+        "T006": "done"
+      }
+    },
+    "WP03": {
+      "actor": "merge",
+      "agent": "reviewer-renata",
+      "agent_profile": "__resolved_profile_absent__",
+      "agent_profile_version": "__resolved_profile_version_absent__",
+      "force_count": 0,
+      "implementer_of_record": "claude",
+      "lane": "done",
+      "last_event_id": "01M4ZSKJ2G41QK37NW6X9SXHQ7",
+      "last_transition_at": "2026-10-15T12:46:45.328495+00:00",
+      "model": "__resolved_model_absent__",
+      "notes": [
+        "Ready: env isolation, report merge on every post-apply return; 11 tests, 6 mutations caught",
+        "renata (claude-sonnet-5-5) APPROVE; non-blocking LOWs (post-cmd TypeError pre-existing, marker spoof widens only)"
+      ],
+      "provider": "__resolved_provider_absent__",
+      "review_result": {
+        "reference": "auto-approval:WP03:20261015",
+        "reviewer": "Kent Gale",
+        "verdict": "approved"
+      },
+      "role": "reviewer",
+      "shell_pid": 580945,
+      "shell_pid_created_at": "1792067336.21",
+      "subtasks": {
+        "T007": "done",
+        "T008": "done",
+        "T009": "done",
+        "T010": "done"
+      }
+    },
+    "WP04": {
+      "actor": "merge",
+      "agent": "reviewer-renata",
+      "agent_profile": "__resolved_profile_absent__",
+      "agent_profile_version": "__resolved_profile_version_absent__",
+      "force_count": 1,
+      "implementer_of_record": "claude",
+      "lane": "done",
+      "last_event_id": "01M4ZSKT9CMTB5G8H828ZYB7D9",
+      "last_transition_at": "2026-10-15T12:46:53.740712+00:00",
+      "model": "__resolved_model_absent__",
+      "notes": [
+        "Ready for review: mapper with proof, host_paths, fold freshness; 20 new tests, 6 mutations caught",
+        "Cycle 1 fixes: no-host_paths tests, relative-path reject",
+        "renata (claude-sonnet-5-5) cycle 2 APPROVE: no-host_paths invariant pinned (mutation fails 4), relative paths rejected; 97 pass"
+      ],
+      "provider": "__resolved_provider_absent__",
+      "review": null,
+      "review_result": {
+        "reference": "auto-approval:WP04:20261015",
+        "reviewer": "Kent Gale",
+        "verdict": "approved"
+      },
+      "role": "reviewer",
+      "shell_pid": 562950,
+      "shell_pid_created_at": "1792067087.97",
+      "subtasks": {
+        "T011": "done",
+        "T012": "done",
+        "T013": "done",
+        "T014": "done",
+        "T015": "done"
+      }
+    },
+    "WP05": {
+      "actor": "merge",
+      "agent": "reviewer-renata",
+      "agent_profile": "__resolved_profile_absent__",
+      "agent_profile_version": "__resolved_profile_version_absent__",
+      "force_count": 0,
+      "implementer_of_record": "claude",
+      "lane": "done",
+      "last_event_id": "01M4ZSM2A0J28WNRQ09B5Y7ZWS",
+      "last_transition_at": "2026-10-15T12:47:01.952492+00:00",
+      "model": "__resolved_model_absent__",
+      "notes": [
+        "Ready: two gates, rebaseline_reported event, real-reconcile tests incl. 0029 replay+control, NFR-001 timing; 5 mutations caught",
+        "renata (claude-sonnet-5-5) APPROVE; LOW: repeated failed-apply ticks refresh last_fold_utc (bounded, alert clock unaffected)"
+      ],
+      "provider": "__resolved_provider_absent__",
+      "review_result": {
+        "reference": "auto-approval:WP05:20261015",
+        "reviewer": "Kent Gale",
+        "verdict": "approved"
+      },
+      "role": "reviewer",
+      "shell_pid": 598991,
+      "shell_pid_created_at": "1792067643.76",
+      "subtasks": {
+        "T016": "done",
+        "T017": "done",
+        "T018": "done"
+      }
+    },
+    "WP06": {
+      "actor": "merge",
+      "agent": "reviewer-renata",
+      "agent_profile": "__resolved_profile_absent__",
+      "agent_profile_version": "__resolved_profile_version_absent__",
+      "force_count": 1,
+      "implementer_of_record": "claude",
+      "lane": "done",
+      "last_event_id": "01M4ZSMAM1HDTFDW46RSPTC8WS",
+      "last_transition_at": "2026-10-15T12:47:10.465838+00:00",
+      "model": "__resolved_model_absent__",
+      "notes": [
+        "Ready: guard (13 evidence-bound exemptions, shrink-only, non-vacuous), docs + data-flows; validators + full suite green",
+        "Cycle 1 fixes: alias/from-import detection + stated limits",
+        "renata (claude-sonnet-5-5) cycle 2 APPROVE: alias/from-import bypasses caught, limits stated, no new false positives"
+      ],
+      "provider": "__resolved_provider_absent__",
+      "review": null,
+      "review_result": {
+        "reference": "auto-approval:WP06:20261015",
+        "reviewer": "Kent Gale",
+        "verdict": "approved"
+      },
+      "role": "reviewer",
+      "shell_pid": 620606,
+      "shell_pid_created_at": "1792068272.28",
+      "subtasks": {
+        "T019": "done",
+        "T020": "done",
+        "T021": "done"
+      }
+    }
+  }
+}

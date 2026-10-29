@@ -7,6 +7,7 @@
   "mission_type": "software-dev",
   "slug": "vikunja-task-intelligence-agent",
   "source_description": "docs/func-spec/F013_vikunja_task_intelligence_agent.md",
+  "status_phase": "1",
   "target_branch": "main",
   "vcs": "git"
 }

@@ -24,6 +24,7 @@ history:
   action: Prompt generated via /spec-kitty.tasks
 authoritative_surface: ''
 execution_mode: code_change
+lane: planned
 mission_id: 01KN5QX3W9YZC8278D6BM01V28
 owned_files:
 - docs/design/standards/allowed-values.json

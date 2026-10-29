@@ -9,8 +9,6 @@ requirement_refs:
 - C-007
 - FR-008
 - NFR-003
-tracker_refs:
-- kentonium3/kg-automation#592
 planning_base_branch: feat/idle-cron-reply-agent-prefix
 merge_target_branch: feat/idle-cron-reply-agent-prefix
 branch_strategy: Planning artifacts for this mission were generated on feat/idle-cron-reply-agent-prefix. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into feat/idle-cron-reply-agent-prefix unless the human explicitly redirects the landing branch.
@@ -20,18 +18,21 @@ subtasks:
 - T008
 - T009
 - T010
+agent: claude
+shell_pid: '74785'
 history: []
 agent_profile: implementer-ivan
 authoritative_surface: docs/design/architecture/
 create_intent: []
 execution_mode: code_change
+lane: planned
 mission_slug: idle-cron-reply-agent-prefix-01KV1BSS
 owned_files:
 - docs/design/architecture/service-inventory.md
 role: implementer
 tags: []
-agent: "claude"
-shell_pid: "74785"
+tracker_refs:
+- kentonium3/kg-automation#592
 ---
 
 ## ⚡ Do This First: Load Agent Profile

@@ -17,6 +17,7 @@ history:
   actor: claude
 authoritative_surface: kitty-specs/011-second-brain-vault-cleanup/
 execution_mode: planning_artifact
+lane: planned
 mission_id: 01KN5QX3WPT8E1MP9T6H487WY6
 owned_files:
 - kitty-specs/011-second-brain-vault-cleanup/**

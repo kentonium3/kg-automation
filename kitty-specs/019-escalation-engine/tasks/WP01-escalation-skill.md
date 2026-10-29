@@ -18,6 +18,7 @@ history:
   by: spec-kitty.tasks
 authoritative_surface: scripts/openclaw/skills/escalation/
 execution_mode: code_change
+lane: planned
 owned_files:
 - scripts/openclaw/skills/escalation/SKILL.md
 ---

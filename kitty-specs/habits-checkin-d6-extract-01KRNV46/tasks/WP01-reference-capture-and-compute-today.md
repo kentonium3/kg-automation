@@ -16,8 +16,8 @@ subtasks:
 - T003
 - T004
 - T005
-shell_pid: "1712"
-agent: "codex:gpt-5:code-reviewer:reviewer"
+agent: codex:gpt-5:code-reviewer:reviewer
+shell_pid: '1712'
 history:
 - event: created
   at: '2026-05-15T17:15:12Z'
@@ -25,6 +25,7 @@ history:
   note: WP01 prompt generated
 authoritative_surface: scripts/habits/compute_today.py
 execution_mode: code_change
+lane: planned
 mission_slug: habits-checkin-d6-extract-01KRNV46
 owned_files:
 - scripts/habits/compute_today.py

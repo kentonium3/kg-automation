@@ -7,6 +7,7 @@
   "mission_type": "software-dev",
   "slug": "felix-constitution-migration-completeness-01KT5NZ7",
   "source_description": "Implements GitHub issue #514 — add Felix Constitution Directive 7 codifying that a migration is not done until all transitional artifacts are removed. Constitution-only edit; enforcement via existing charter-context loading flow.",
+  "status_phase": "1",
   "target_branch": "main",
   "vcs": "git"
 }

@@ -21,6 +21,7 @@
   "mission_type": "documentation",
   "slug": "documentation-architecture-rationalization",
   "source_description": "Classify all active docs by Divio type, create docs/INDEX.md as the master map referenced from CLAUDE.md, enforce runbook vs. reference distinction, document the canonical machine-readable artifact home, and resolve F016 path dependencies.",
+  "status_phase": "1",
   "target_branch": "main",
   "vcs": "git"
 }

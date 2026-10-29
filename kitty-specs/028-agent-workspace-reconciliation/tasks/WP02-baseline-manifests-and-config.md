@@ -13,14 +13,15 @@ subtasks:
 - T006
 - T007
 - T008
-agent: "codex:gpt-4o:reviewer:reviewer"
-shell_pid: "86459"
+agent: codex:gpt-4o:reviewer:reviewer
+shell_pid: '86459'
 history:
 - date: '2026-04-13'
   action: created
   agent: claude-opus-4-6
 authoritative_surface: scripts/openclaw/
 execution_mode: code_change
+lane: planned
 owned_files:
 - scripts/openclaw/agents/baseline-manifest.json
 - scripts/openclaw/agents/factory-baselines.json

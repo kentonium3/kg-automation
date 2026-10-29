@@ -17,7 +17,6 @@ requirement_refs:
 - NFR-001
 - NFR-002
 - NFR-003
-tracker_refs: []
 planning_base_branch: feat/vikunja-label-taxonomy
 merge_target_branch: feat/vikunja-label-taxonomy
 branch_strategy: Planning artifacts for this mission were generated on feat/vikunja-label-taxonomy. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into feat/vikunja-label-taxonomy unless the human explicitly redirects the landing branch.
@@ -30,8 +29,8 @@ subtasks:
 - T006
 - T007
 - T008
-agent: "claude"
-shell_pid: "16518"
+agent: claude
+shell_pid: '16518'
 history:
 - '2026-07-12: authored by /spec-kitty.tasks'
 agent_profile: python-pedro
@@ -40,12 +39,14 @@ create_intent:
 - scripts/vikunja/create_taxonomy_labels.py
 - tests/vikunja/test_create_taxonomy_labels.py
 execution_mode: code_change
+lane: planned
 owned_files:
 - scripts/vikunja/create_taxonomy_labels.py
 - tests/vikunja/test_create_taxonomy_labels.py
 - docs/design/vikunja-configuration-design.md
 role: implementer
 tags: []
+tracker_refs: []
 ---
 
 ## ⚡ Do This First: Load Agent Profile

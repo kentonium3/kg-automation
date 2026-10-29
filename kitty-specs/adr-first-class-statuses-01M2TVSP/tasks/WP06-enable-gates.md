@@ -27,6 +27,7 @@ agent_profile: implementer-ivan
 authoritative_surface: .githooks/
 create_intent: []
 execution_mode: code_change
+lane: planned
 owned_files:
 - .githooks/pre-commit
 - .github/workflows/docs-ci.yml

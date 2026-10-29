@@ -4,7 +4,6 @@ title: Design/architecture/runbook docs — reframe to physical exclusion
 dependencies: []
 requirement_refs:
 - FR-005
-tracker_refs: []
 planning_base_branch: feat/retire-private-folder-guards
 merge_target_branch: feat/retire-private-folder-guards
 branch_strategy: Planning artifacts for this mission were generated on feat/retire-private-folder-guards. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into feat/retire-private-folder-guards unless the human explicitly redirects the landing branch.
@@ -12,12 +11,15 @@ subtasks:
 - T020
 - T021
 - T022
-agent: "claude:sonnet:reviewer-renata:reviewer"
+agent: claude:sonnet:reviewer-renata:reviewer
+shell_pid: '40719'
+shell_pid_created_at: '1784652217.539403'
 history: []
 agent_profile: curator-carla
 authoritative_surface: docs/design/architecture/
 create_intent: []
 execution_mode: code_change
+lane: planned
 owned_files:
 - docs/design/architecture/glossary.md
 - docs/design/architecture/security-posture.md
@@ -34,8 +36,7 @@ owned_files:
 - docs/runbooks/tasker-ops.md
 role: implementer
 tags: []
-shell_pid: "40719"
-shell_pid_created_at: "1784652217.539403"
+tracker_refs: []
 ---
 
 ## ⚡ Do This First: Load Agent Profile

@@ -26,6 +26,7 @@ agent_profile: curator-carla
 authoritative_surface: docs/design/architecture/
 create_intent: []
 execution_mode: code_change
+lane: planned
 owned_files:
 - docs/design/architecture/data/service-inventory.json
 - docs/design/architecture/data/data-flows.json

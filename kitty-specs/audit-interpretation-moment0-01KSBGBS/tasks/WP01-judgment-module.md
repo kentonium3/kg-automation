@@ -25,9 +25,12 @@ subtasks:
 - T001
 - T002
 - T003
+agent: codex:gpt-5:spec-kitty-review:reviewer
+shell_pid: '68650'
 history: []
 authoritative_surface: scripts/doc_audit/judgment/
 execution_mode: code_change
+lane: planned
 mission_id: 01KSBGBS9BBDWV2Z28FESVJ9KQ
 mission_slug: audit-interpretation-moment0-01KSBGBS
 owned_files:
@@ -37,8 +40,6 @@ owned_files:
 - tests/doc_audit/judgment/test_audit_interpretation.py
 - tests/doc_audit/output/test_audit_ledger.py
 tags: []
-agent: "codex:gpt-5:spec-kitty-review:reviewer"
-shell_pid: "68650"
 ---
 
 # WP01 — audit_interpretation + audit_ledger

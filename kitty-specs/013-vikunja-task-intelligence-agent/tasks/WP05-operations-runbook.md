@@ -14,6 +14,7 @@ history:
   by: spec-kitty.tasks
 authoritative_surface: docs/handbooks/
 execution_mode: code_change
+lane: planned
 owned_files: [docs/handbooks/task-intelligence-ops.md]
 ---
 

@@ -12,8 +12,8 @@ subtasks:
 - T009
 - T010
 - T011
-agent: "codex:gpt-5:code-reviewer:reviewer"
-shell_pid: "6407"
+agent: codex:gpt-5:code-reviewer:reviewer
+shell_pid: '6407'
 history:
 - event: created
   at: '2026-05-15T17:15:12Z'
@@ -21,6 +21,7 @@ history:
   note: WP03 prompt generated
 authoritative_surface: scripts/habits/set_due_dates.py
 execution_mode: code_change
+lane: planned
 mission_slug: habits-checkin-d6-extract-01KRNV46
 owned_files:
 - scripts/habits/set_due_dates.py

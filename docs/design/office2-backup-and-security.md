@@ -104,6 +104,8 @@ The 1 TB WD USB external drive is formatted ext4 with label `backups` and auto-m
 LABEL=backups /mnt/backups ext4 defaults,nofail 0 2
 ```
 
+The drive is a bus-powered WD easystore and **must be on a USB 3 port**. On a USB 2.0 port it twice failed to spin up after a power cycle. Because of `nofail`, the boot then continued silently without it, and every backup failed for 17 days (#1064). Its kernel name (`sdX`) changes between boots; identify it by label, UUID or model. Recovery steps: [restic-backup-ops.md § Backup drive missing](../runbooks/restic-backup-ops.md#backup-drive-missing-mntbackups-not-mounted).
+
 ### Restore Procedures
 
 **Restore a file from restic:**

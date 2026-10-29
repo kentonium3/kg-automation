@@ -1,5 +1,5 @@
 {
-  "event_count": 94,
+  "event_count": 105,
   "last_event_id": "01KP45FWNNE3FSZ5ZD4NP71CZG",
   "materialized_at": "2026-04-13T19:35:58.389423+00:00",
   "mission_number": "28",
@@ -19,46 +19,127 @@
   "work_packages": {
     "WP01": {
       "actor": "merge",
+      "agent": "codex:gpt-4o:reviewer:reviewer",
       "force_count": 2,
       "lane": "done",
       "last_event_id": "01KP45FWEQ1QQYWSP7K8WVR345",
       "last_transition_at": "2026-04-13T19:35:58.167162+00:00",
-      "review_result": null
+      "review_result": null,
+      "shell_pid": 78192,
+      "subtasks": {
+        "T001": "done",
+        "T002": "done",
+        "T003": "done",
+        "T004": "done",
+        "T005": "done"
+      }
     },
     "WP02": {
       "actor": "merge",
+      "agent": "codex:gpt-4o:reviewer:reviewer",
       "force_count": 10,
       "lane": "done",
       "last_event_id": "01KP45FWJY1RBEH0BWRD6VKB49",
-      "last_transition_at": "2026-04-13T19:35:58.302873+00:00"
+      "last_transition_at": "2026-04-13T19:35:58.302873+00:00",
+      "review_result": {
+        "feedback_path": "/Users/kentgale/repos/kg-automation/kitty-specs/028-agent-workspace-reconciliation/tasks/WP02-baseline-manifests-and-config/review-cycle-11.md",
+        "reference": "review-cycle://028-agent-workspace-reconciliation/WP02-baseline-manifests-and-config/review-cycle-11.md",
+        "reviewer": "unknown",
+        "verdict": "changes_requested"
+      },
+      "shell_pid": 86459,
+      "subtasks": {
+        "T006": "done",
+        "T007": "done",
+        "T008": "done"
+      }
     },
     "WP03": {
       "actor": "merge",
+      "agent": "codex:gpt-4o:reviewer:reviewer",
       "force_count": 11,
       "lane": "done",
       "last_event_id": "01KP45FWKJAN8WNJ66WX833QKZ",
-      "last_transition_at": "2026-04-13T19:35:58.322732+00:00"
+      "last_transition_at": "2026-04-13T19:35:58.322732+00:00",
+      "review_result": {
+        "feedback_path": "/Users/kentgale/repos/kg-automation/kitty-specs/028-agent-workspace-reconciliation/tasks/WP03-enforcement-detection-engine/review-cycle-10.md",
+        "reference": "review-cycle://028-agent-workspace-reconciliation/WP03-enforcement-detection-engine/review-cycle-10.md",
+        "reviewer": "unknown",
+        "verdict": "changes_requested"
+      },
+      "shell_pid": 91215,
+      "subtasks": {
+        "T009": "done",
+        "T010": "done",
+        "T011": "done",
+        "T012": "done"
+      }
     },
     "WP04": {
       "actor": "merge",
+      "agent": "claude:opus-4-6:implementer:implementer",
       "force_count": 11,
       "lane": "done",
       "last_event_id": "01KP45FWM5Q92VXQH8YWHP32BC",
-      "last_transition_at": "2026-04-13T19:35:58.342023+00:00"
+      "last_transition_at": "2026-04-13T19:35:58.342023+00:00",
+      "review_result": {
+        "feedback_path": "/Users/kentgale/repos/kg-automation/kitty-specs/028-agent-workspace-reconciliation/tasks/WP04-enforcement-remediation-notification/review-cycle-13.md",
+        "reference": "review-cycle://028-agent-workspace-reconciliation/WP04-enforcement-remediation-notification/review-cycle-13.md",
+        "reviewer": "unknown",
+        "verdict": "changes_requested"
+      },
+      "shell_pid": 97329,
+      "subtasks": {
+        "T013": "done",
+        "T014": "done",
+        "T015": "done",
+        "T016": "done",
+        "T017": "done",
+        "T018": "done"
+      }
     },
     "WP05": {
       "actor": "merge",
+      "agent": "codex:gpt-4o:reviewer:reviewer",
       "force_count": 10,
       "lane": "done",
       "last_event_id": "01KP45FWMZXYYJW29EDXCRD6JE",
-      "last_transition_at": "2026-04-13T19:35:58.367633+00:00"
+      "last_transition_at": "2026-04-13T19:35:58.367633+00:00",
+      "review_result": {
+        "feedback_path": "/Users/kentgale/repos/kg-automation/kitty-specs/028-agent-workspace-reconciliation/tasks/WP05-deploy-and-integration/review-cycle-10.md",
+        "reference": "review-cycle://028-agent-workspace-reconciliation/WP05-deploy-and-integration/review-cycle-10.md",
+        "reviewer": "unknown",
+        "verdict": "changes_requested"
+      },
+      "shell_pid": 3373,
+      "subtasks": {
+        "T019": "done",
+        "T020": "done",
+        "T021": "done",
+        "T022": "done",
+        "T023": "done"
+      }
     },
     "WP06": {
       "actor": "merge",
+      "agent": "claude:opus-4-6:implementer:implementer",
       "force_count": 5,
       "lane": "done",
       "last_event_id": "01KP45FWNNE3FSZ5ZD4NP71CZG",
-      "last_transition_at": "2026-04-13T19:35:58.389423+00:00"
+      "last_transition_at": "2026-04-13T19:35:58.389423+00:00",
+      "review_result": {
+        "feedback_path": "/Users/kentgale/repos/kg-automation/kitty-specs/028-agent-workspace-reconciliation/tasks/WP06-runbook-and-documentation/review-cycle-4.md",
+        "reference": "review-cycle://028-agent-workspace-reconciliation/WP06-runbook-and-documentation/review-cycle-4.md",
+        "reviewer": "unknown",
+        "verdict": "changes_requested"
+      },
+      "shell_pid": 6143,
+      "subtasks": {
+        "T024": "done",
+        "T025": "done",
+        "T026": "done",
+        "T027": "done"
+      }
     }
   }
 }

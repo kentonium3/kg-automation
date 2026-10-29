@@ -20,14 +20,15 @@ subtasks:
 - T011
 - T012
 - T013
-agent: "claude:opus-4-6:reviewer:reviewer"
-shell_pid: "42489"
+agent: claude:opus-4-6:reviewer:reviewer
+shell_pid: '42489'
 history:
 - date: '2026-04-11T01:15:00Z'
   action: created
   by: spec-kitty.tasks
 authoritative_surface: scripts/openclaw/agents/
 execution_mode: code_change
+lane: planned
 owned_files:
 - scripts/openclaw/agents/felix-admin-capture/AGENTS.md.tmpl
 - scripts/openclaw/agents/felix-admin-capture/TOOLS.md

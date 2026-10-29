@@ -7,6 +7,7 @@
   "mission_type": "software-dev",
   "slug": "audit-interpretation-moment0-01KSBGBS",
   "source_description": "GitHub issue #400 (P1-feature). Apply the #362 Moment 0 architecture pattern to commit-derived Doc audit: issues. New audit_interpretation.py judgment module + cache-aware prompt; wire into handle_audit_routing.py's no-proposals branch. Per in-scope doc, LLM verdict is PROPOSED_EDIT (route through tier_classification) / JUDGMENT_REQUIRED (post specific question on issue body) / NO_CHANGE_NEEDED (auto-close if all docs clean). Closes the operator-burden gap where 11 currently-stuck audits sit open with generic 14-item checklists and no LLM-driven evaluation. Mirrors drift_interpretation 1:1 structurally — same JudgmentClient, cache-aware prompt, defense-in-depth schema validation, confidence threshold ≥0.80.",
+  "status_phase": "1",
   "target_branch": "main",
   "vcs": "git"
 }

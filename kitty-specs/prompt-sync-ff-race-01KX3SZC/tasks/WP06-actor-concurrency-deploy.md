@@ -10,7 +10,6 @@ requirement_refs:
 - C-005
 - FR-003
 - NFR-001
-tracker_refs: []
 planning_base_branch: fix/prompt-sync-ff-race
 merge_target_branch: fix/prompt-sync-ff-race
 branch_strategy: Planning artifacts for this mission were generated on fix/prompt-sync-ff-race. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into fix/prompt-sync-ff-race unless the human explicitly redirects the landing branch.
@@ -18,7 +17,8 @@ subtasks:
 - T019
 - T020
 - T021
-agent: "claude"
+agent: claude
+shell_pid: '19815'
 history: []
 agent_profile: python-pedro
 authoritative_surface: tests/deploy/
@@ -26,6 +26,7 @@ create_intent:
 - tests/deploy/test_actor_concurrency.py
 - deploys/applied/0012-prompt-sync-ff-race.yaml
 execution_mode: code_change
+lane: planned
 mission_id: 01KX3SZC2YHPWRCYD7WXQSFZQ7
 mission_slug: prompt-sync-ff-race-01KX3SZC
 owned_files:
@@ -35,7 +36,7 @@ owned_files:
 - docs/runbooks/security-baseline-ops.md
 role: implementer
 tags: []
-shell_pid: "19815"
+tracker_refs: []
 ---
 
 # WP06 — actor-level concurrency harness + bootstrap deploy + docs

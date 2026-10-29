@@ -649,3 +649,166 @@ def test_freshness_predicate_bound_by_own_max_age_is_not_flagged():
     }
     doc = _doc(_entry_without_hc_bound(ledger))
     assert "key-ledger-freshness-no-bound" not in _rules(_validate(doc))
+
+
+# --------------------------------------------------------------------------- #
+# Rule 9 — optional ``cause`` member (backup-failure-cause-in-alert-01M502K3,
+# #1067). Authority: kitty-specs/backup-failure-cause-in-alert-01M502K3/
+# contracts/key-ledger-cause-member.md. The positive control uses the exact
+# four codes and texts the restic-backup ledger declares (data-model.md), so a
+# rule that rejects the real declaration fails here first.
+# --------------------------------------------------------------------------- #
+
+import copy  # noqa: E402  (rule-9 block appended to an existing module)
+
+import pytest  # noqa: E402
+
+REAL_CAUSE_CODES = {
+    "backup_mount_missing": "backup drive /mnt/backups is not mounted",
+    "repo_inaccessible": "restic repository could not be opened",
+    "backup_failed": "restic backup command failed",
+    "unclassified": "backup script exited early for an unclassified reason",
+}
+
+
+def _ledger_with_cause(cause, *, declare_key: str | None = "failure_reason"):
+    ledger = copy.deepcopy(WELL_FORMED_LEDGER)
+    if declare_key is not None:
+        ledger["diagnostic_only"][declare_key] = {
+            "reason": "Diagnostic cause code; decorates alert text only (#1067)."
+        }
+    ledger["cause"] = cause
+    return ledger
+
+
+def _cause_findings(ledger) -> list:
+    return [f for f in _validate(_doc(_entry(ledger))) if f.rule == "key-ledger-cause"]
+
+
+def test_well_formed_cause_with_real_codes_validates_clean():
+    ledger = _ledger_with_cause({"key": "failure_reason", "codes": dict(REAL_CAUSE_CODES)})
+    assert _validate(_doc(_entry(ledger))) == []
+
+
+def test_ledger_without_cause_still_validates_clean():
+    # Ratchet: absence of the optional member is always legal.
+    assert "cause" not in WELL_FORMED_LEDGER
+    assert _validate(_doc(_entry(copy.deepcopy(WELL_FORMED_LEDGER)))) == []
+
+
+def test_unknown_member_other_than_cause_is_still_flagged():
+    # Ratchet: rule 1 is loosened for `cause` alone, not for near-misses.
+    ledger = copy.deepcopy(WELL_FORMED_LEDGER)
+    ledger["causes"] = {"key": "failure_reason", "codes": dict(REAL_CAUSE_CODES)}
+    assert "key-ledger-unknown-member" in _rules(_validate(_doc(_entry(ledger))))
+
+
+@pytest.mark.parametrize("cause", [None, "failure_reason", ["failure_reason"], 7])
+def test_cause_not_an_object_is_flagged(cause):
+    findings = _cause_findings(_ledger_with_cause(cause))
+    assert findings and "must be an object" in findings[0].detail
+
+
+def test_cause_with_extra_member_is_flagged():
+    findings = _cause_findings(_ledger_with_cause(
+        {"key": "failure_reason", "codes": dict(REAL_CAUSE_CODES), "severity": "high"}
+    ))
+    assert any("extra ['severity']" in f.detail for f in findings)
+
+
+def test_cause_missing_codes_member_is_flagged():
+    findings = _cause_findings(_ledger_with_cause({"key": "failure_reason"}))
+    details = " | ".join(f.detail for f in findings)
+    assert "missing ['codes']" in details
+    assert "codes must be a non-empty object" in details
+
+
+@pytest.mark.parametrize("key", [None, "", "   ", 3])
+def test_cause_key_not_a_non_empty_string_is_flagged(key):
+    findings = _cause_findings(_ledger_with_cause(
+        {"key": key, "codes": dict(REAL_CAUSE_CODES)}
+    ))
+    assert any("cause.key must be a non-empty string" in f.detail for f in findings)
+
+
+def test_cause_key_not_in_diagnostic_only_is_flagged():
+    findings = _cause_findings(_ledger_with_cause(
+        {"key": "failure_reason", "codes": dict(REAL_CAUSE_CODES)}, declare_key=None,
+    ))
+    assert any("must be declared in diagnostic_only" in f.detail for f in findings)
+
+
+def test_cause_key_declared_adjudicated_is_flagged_as_never_deciding_health():
+    ledger = _ledger_with_cause(
+        {"key": "restic_exit_code", "codes": dict(REAL_CAUSE_CODES)}, declare_key=None,
+    )
+    findings = _cause_findings(ledger)
+    assert any("may never decide health" in f.detail for f in findings)
+
+
+def test_cause_key_absent_when_diagnostic_only_is_malformed_is_flagged():
+    ledger = _ledger_with_cause(
+        {"key": "failure_reason", "codes": dict(REAL_CAUSE_CODES)}, declare_key=None,
+    )
+    ledger["diagnostic_only"] = ["failure_reason"]
+    findings = _cause_findings(ledger)
+    assert any("must be declared in diagnostic_only" in f.detail for f in findings)
+
+
+@pytest.mark.parametrize("codes", [{}, [], None, "backup_failed"])
+def test_cause_codes_not_a_non_empty_object_is_flagged(codes):
+    findings = _cause_findings(_ledger_with_cause({"key": "failure_reason", "codes": codes}))
+    assert any("codes must be a non-empty object" in f.detail for f in findings)
+
+
+@pytest.mark.parametrize(
+    "code",
+    ["Backup_failed", "1failed", "backup-failed", "", "a" * 65, "backup_failed\n", "ok\n", "ok\r"],
+)
+def test_malformed_code_name_is_flagged(code):
+    findings = _cause_findings(_ledger_with_cause(
+        {"key": "failure_reason", "codes": {code: "some text"}}
+    ))
+    assert any("must match" in f.detail for f in findings)
+
+
+def test_code_name_at_64_characters_is_accepted():
+    ledger = _ledger_with_cause({"key": "failure_reason", "codes": {"a" * 64: "some text"}})
+    assert _cause_findings(ledger) == []
+
+
+@pytest.mark.parametrize("text", [None, 5, "", "   "])
+def test_code_text_not_a_non_empty_string_is_flagged(text):
+    findings = _cause_findings(_ledger_with_cause(
+        {"key": "failure_reason", "codes": {"backup_failed": text}}
+    ))
+    assert any("text must be a non-empty string" in f.detail for f in findings)
+
+
+def test_code_text_at_120_characters_is_accepted():
+    ledger = _ledger_with_cause({"key": "failure_reason", "codes": {"backup_failed": "x" * 120}})
+    assert _cause_findings(ledger) == []
+
+
+def test_code_text_at_121_characters_is_flagged():
+    findings = _cause_findings(_ledger_with_cause(
+        {"key": "failure_reason", "codes": {"backup_failed": "x" * 121}}
+    ))
+    assert any("at most 120" in f.detail for f in findings)
+
+
+@pytest.mark.parametrize("text", ["drive\nmissing", "drive\tmissing", "bell\x07", "del\x7f", "\x1b[31mred"])
+def test_code_text_with_control_character_is_flagged(text):
+    findings = _cause_findings(_ledger_with_cause(
+        {"key": "failure_reason", "codes": {"backup_failed": text}}
+    ))
+    assert any("control character" in f.detail for f in findings)
+
+
+def test_non_string_code_name_is_flagged_without_raising():
+    # JSON object keys are always strings, but the validator must never raise
+    # on any in-memory shape (WP01 review, 2026-10-15).
+    findings = _cause_findings(_ledger_with_cause(
+        {"key": "failure_reason", "codes": {7: "some text"}}
+    ))
+    assert any("must match" in f.detail for f in findings)

@@ -7,6 +7,7 @@
   "mission_type": "software-dev",
   "slug": "022-inbox-github-issue-routing",
   "source_description": "GitHub issue #146 — route inbox notes to GitHub issue queue",
+  "status_phase": "1",
   "target_branch": "main",
   "vcs": "git"
 }

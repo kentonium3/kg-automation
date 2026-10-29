@@ -13,6 +13,13 @@ so felix-deployer's observe range sees the repo-file signal and auto-rebaselines
 mutations with no repo-file signal (the canonical case being ``openclaw cron
 rm``). Precedent: ``deploys/applied/0020-openclaw-ecosystem-update-check.yaml``.
 
+CORRECTION (#1065, 2026-10-14): that reasoning holds only when the deploy's
+OWN commit range changes the unit files. "Tracked in the repo" is not enough:
+the observe range sees files changed in the pulled range, nothing else. A
+deploy that installs units committed earlier must declare
+``expected_baselines`` (0029 ended ``unexpected_drift`` exactly this way). See
+docs/runbooks/deployment.md § Manifest expected_baselines declaration, and #1072.
+
 Why a timer and not a sixth crontab entry: ``Linger=yes`` is set for ``claude``
 and 15 user timers already run there, while the crontab holds only the five
 legacy jobs #890 exists to retire. A timer is repo-tracked, manifest-deployable,

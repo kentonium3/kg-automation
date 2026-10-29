@@ -1,0 +1,89 @@
+{
+  "rows": {
+    "#1062": {
+      "evidence_ref": "context only: root cause of the dark canary, fixed and deployed separately (merge 44faafa9, deploys/applied/0031)",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": "spec.md",
+      "title": "<fill at WP-implementation time>",
+      "verdict": "not-applicable",
+      "wp": null
+    },
+    "#1063": {
+      "evidence_ref": "mission canary-deadman-backup-coverage-01M4XVY3 (this mission fixes #1063)",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": "spec.md",
+      "title": "<fill at WP-implementation time>",
+      "verdict": "in-mission",
+      "wp": "WP01"
+    },
+    "#1064": {
+      "evidence_ref": "context only: backup-drive facts and inventory naming, closed separately (9f7b9e1d)",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": null,
+      "title": null,
+      "verdict": "not-applicable",
+      "wp": null
+    },
+    "#1068": {
+      "evidence_ref": "kentonium3/kg-automation#1068 (scoped out by C-005)",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": "spec.md",
+      "title": "<fill at WP-implementation time>",
+      "verdict": "deferred-with-followup",
+      "wp": null
+    },
+    "#1069": {
+      "evidence_ref": "kentonium3/kg-automation#1069 (shared-fate limit; off-host heartbeat follow-up)",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": null,
+      "title": null,
+      "verdict": "deferred-with-followup",
+      "wp": null
+    },
+    "#676": {
+      "evidence_ref": "context only: origin of felix-health-check (deterministic-monitoring-checks-01KX1XNW); its contract is preserved",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": null,
+      "title": null,
+      "verdict": "not-applicable",
+      "wp": null
+    },
+    "#891": {
+      "evidence_ref": "context only: the existing canary->health-check watch; preserved and pinned by test_run_record_contract.py (WP03)",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": "spec.md",
+      "title": "<fill at WP-implementation time>",
+      "verdict": "not-applicable",
+      "wp": null
+    }
+  },
+  "schema_version": 1
+}

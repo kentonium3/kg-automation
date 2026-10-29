@@ -10,7 +10,6 @@ requirement_refs:
 - FR-002
 - FR-004
 - FR-005
-tracker_refs: []
 planning_base_branch: fix/prompt-sync-ff-race
 merge_target_branch: fix/prompt-sync-ff-race
 branch_strategy: Planning artifacts for this mission were generated on fix/prompt-sync-ff-race. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into fix/prompt-sync-ff-race unless the human explicitly redirects the landing branch.
@@ -19,13 +18,15 @@ subtasks:
 - T012
 - T013
 - T014
-agent: "claude"
+agent: claude
+shell_pid: '81996'
 history: []
 agent_profile: python-pedro
 authoritative_surface: scripts/deploy/felix-deployer/
 create_intent:
 - tests/deploy/test_tick_ffrace.py
 execution_mode: code_change
+lane: planned
 mission_id: 01KX3SZC2YHPWRCYD7WXQSFZQ7
 mission_slug: prompt-sync-ff-race-01KX3SZC
 owned_files:
@@ -34,7 +35,7 @@ owned_files:
 - tests/deploy/test_tick_ffrace.py
 role: implementer
 tags: []
-shell_pid: "81996"
+tracker_refs: []
 ---
 
 # WP04 — felix-deployer integration

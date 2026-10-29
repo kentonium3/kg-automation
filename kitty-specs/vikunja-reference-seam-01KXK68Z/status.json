@@ -1,5 +1,5 @@
 {
-  "event_count": 59,
+  "event_count": 64,
   "last_event_id": "01KXKTWXHE6JXZCY3YTDHT1NDG",
   "materialized_at": "2026-07-15T21:28:34.606119+00:00",
   "mission_number": "103",
@@ -19,6 +19,7 @@
   "work_packages": {
     "WP01": {
       "actor": "merge",
+      "agent": "codex:gpt-5-codex:reviewer-renata:reviewer",
       "force_count": 3,
       "lane": "done",
       "last_event_id": "01KXKTVXF8RMZQYHYFAQWNWNRN",
@@ -27,10 +28,20 @@
         "reference": "Codex APPROVE of additions (VikunjaRefUnprovisioned + declared_projects/declared_labels); 52 tests",
         "reviewer": "Kent Gale",
         "verdict": "approved"
+      },
+      "shell_pid": 28463,
+      "shell_pid_created_at": "1784145974.011878",
+      "subtasks": {
+        "T001": "done",
+        "T002": "done",
+        "T003": "done",
+        "T004": "done",
+        "T005": "done"
       }
     },
     "WP02": {
       "actor": "merge",
+      "agent": "codex:gpt-5-codex:reviewer-renata:reviewer",
       "force_count": 0,
       "lane": "done",
       "last_event_id": "01KXKTW6048HF17D89DW3R6EKB",
@@ -39,10 +50,18 @@
         "reference": "Codex APPROVE: pure validate() via public accessors; ≤2 calls; unreachable distinct from clean; 17 tests",
         "reviewer": "Kent Gale",
         "verdict": "approved"
+      },
+      "shell_pid": 31245,
+      "shell_pid_created_at": "1784146350.973112",
+      "subtasks": {
+        "T006": "done",
+        "T007": "done",
+        "T008": "done"
       }
     },
     "WP03": {
       "actor": "merge",
+      "agent": "codex:gpt-5-codex:reviewer-renata:reviewer",
       "force_count": 0,
       "lane": "done",
       "last_event_id": "01KXKTWE6P3V5XQW21WSCX0MYQ",
@@ -51,10 +70,21 @@
         "reference": "Codex APPROVE: project-id consumers migrated; 757 tests; greps clean; SC-002 fail-loud confirmed",
         "reviewer": "Kent Gale",
         "verdict": "approved"
+      },
+      "shell_pid": 30656,
+      "shell_pid_created_at": "1784146294.083244",
+      "subtasks": {
+        "T009": "done",
+        "T010": "done",
+        "T011": "done",
+        "T012": "done",
+        "T013": "done",
+        "T014": "done"
       }
     },
     "WP04": {
       "actor": "merge",
+      "agent": "codex:gpt-5-codex:reviewer-renata:reviewer",
       "force_count": 0,
       "lane": "done",
       "last_event_id": "01KXKTWPC5DST6GSSAC52MKSF5",
@@ -63,10 +93,18 @@
         "reference": "Codex APPROVE: graceful degrade on unprovisioned felix:ignore (only VikunjaRefUnprovisioned caught); private-set on seam; 49+242 tests",
         "reviewer": "Kent Gale",
         "verdict": "approved"
+      },
+      "shell_pid": 33713,
+      "shell_pid_created_at": "1784146695.927691",
+      "subtasks": {
+        "T015": "done",
+        "T016": "done",
+        "T017": "done"
       }
     },
     "WP05": {
       "actor": "merge",
+      "agent": "codex:gpt-5-codex:reviewer-renata:reviewer",
       "force_count": 3,
       "lane": "done",
       "last_event_id": "01KXKTWXHE6JXZCY3YTDHT1NDG",
@@ -75,6 +113,15 @@
         "reference": "ARBITER decision after 3 review cycles (operator-confirmed). Both substantive defects fixed + Codex-verified: enrichment reconcile hardcoded id migrated to seam, orchestrator broken import repaired (216 security tests). SC-001 gate is green over the entire real runtime surface and catches all realistic regression forms (by-title, UPPERCASE/typed/container/multiline id constants, dict resolution fields, bare /projects|/labels listing). Cycle-3 residual (dict(kw=)/subscript/lowercase-annotated forms) are theoretical, absent from the codebase, diminishing-returns; the lowercase form conflicts with the legitimate param-default negative control. Acceptance criteria (zero real by-title/hardcoded-id runtime lookups) met.",
         "reviewer": "Kent Gale",
         "verdict": "approved"
+      },
+      "shell_pid": 51641,
+      "shell_pid_created_at": "1784149755.488995",
+      "subtasks": {
+        "T018": "done",
+        "T019": "done",
+        "T020": "done",
+        "T021": "done",
+        "T022": "done"
       }
     }
   }

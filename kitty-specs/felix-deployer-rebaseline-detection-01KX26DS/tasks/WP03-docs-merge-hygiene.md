@@ -7,7 +7,6 @@ dependencies:
 requirement_refs:
 - C-001
 - C-005
-tracker_refs: []
 planning_base_branch: fix/felix-deployer-rebaseline-detection
 merge_target_branch: fix/felix-deployer-rebaseline-detection
 branch_strategy: Planning artifacts for this mission were generated on fix/felix-deployer-rebaseline-detection. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into fix/felix-deployer-rebaseline-detection unless the human explicitly redirects the landing branch.
@@ -15,19 +14,21 @@ subtasks:
 - T015
 - T016
 - T017
-agent: "claude:opus:reviewer-renata:reviewer"
+agent: claude:opus:reviewer-renata:reviewer
+shell_pid: '20715'
 history: []
 agent_profile: curator-carla
 authoritative_surface: docs/runbooks/deployment.md
 create_intent: []
 execution_mode: code_change
+lane: planned
 owned_files:
 - CLAUDE.md
 - docs/runbooks/deployment.md
 - docs/runbooks/security-baseline-ops.md
 role: implementer
 tags: []
-shell_pid: "20715"
+tracker_refs: []
 ---
 
 ## ⚡ Do This First: Load Agent Profile

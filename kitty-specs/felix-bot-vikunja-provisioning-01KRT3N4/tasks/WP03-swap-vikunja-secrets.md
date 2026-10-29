@@ -23,14 +23,15 @@ subtasks:
 - T014
 - T015
 - T016
-shell_pid: "72437"
-agent: "codex:gpt-4o:python-reviewer:reviewer"
+agent: codex:gpt-4o:python-reviewer:reviewer
+shell_pid: '72437'
 history:
 - action: drafted
   agent: claude
   timestamp: '2026-05-17T05:20:00Z'
 authoritative_surface: scripts/vikunja/swap_vikunja_secrets.py
 execution_mode: code_change
+lane: planned
 mission_slug: felix-bot-vikunja-provisioning-01KRT3N4
 owned_files:
 - scripts/vikunja/swap_vikunja_secrets.py

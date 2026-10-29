@@ -31,6 +31,7 @@ agent_profile: curator-carla
 authoritative_surface: docs/design/architecture/adr/
 create_intent: []
 execution_mode: planning_artifact
+lane: planned
 owned_files:
 - docs/design/architecture/adr/**
 - docs/INDEX.md

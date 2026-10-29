@@ -38,14 +38,15 @@ subtasks:
 - T002
 - T003
 - T004
-shell_pid: "78143"
-agent: "codex:gpt-5:python-reviewer:reviewer"
+agent: codex:gpt-5:python-reviewer:reviewer
+shell_pid: '78143'
 history:
 - at: '2026-05-19T20:35:00Z'
   actor: spec-kitty.tasks
   event: created
 authoritative_surface: scripts/habits/
 execution_mode: code_change
+lane: planned
 mission_id: 01KS0Y4F60A30H8CT28Z3VMVT6
 mission_slug: backfill-habits-jsonl-from-comments-01KS0Y4F
 owned_files:

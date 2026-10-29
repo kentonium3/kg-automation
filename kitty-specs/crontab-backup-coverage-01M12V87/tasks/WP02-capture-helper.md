@@ -31,6 +31,7 @@ create_intent:
 - tests/office2/crontab_capture/__init__.py
 - tests/office2/crontab_capture/test_crontab_capture.py
 execution_mode: code_change
+lane: planned
 owned_files:
 - scripts/office2/crontab_capture.py
 - tests/office2/crontab_capture/**

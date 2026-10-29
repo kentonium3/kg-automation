@@ -40,6 +40,7 @@ history:
   action: Prompt generated via /spec-kitty.tasks
 authoritative_surface: kitty-specs/004-whatsapp-channel/
 execution_mode: planning_artifact
+lane: planned
 mission_id: 01KN5QX3WDVP7JH72J2D8NHKMX
 owned_files:
 - kitty-specs/004-whatsapp-channel/**

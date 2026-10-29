@@ -14,8 +14,6 @@ requirement_refs:
 - NFR-001
 - NFR-002
 - NFR-003
-tracker_refs:
-- kentonium3/kg-automation#592
 planning_base_branch: feat/idle-cron-reply-agent-prefix
 merge_target_branch: feat/idle-cron-reply-agent-prefix
 branch_strategy: Planning artifacts for this mission were generated on feat/idle-cron-reply-agent-prefix. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into feat/idle-cron-reply-agent-prefix unless the human explicitly redirects the landing branch.
@@ -25,11 +23,14 @@ subtasks:
 - T003
 - T004
 - T005
+agent: claude
+shell_pid: '67181'
 history: []
 agent_profile: implementer-ivan
 authoritative_surface: scripts/openclaw/agents/
 create_intent: []
 execution_mode: code_change
+lane: planned
 mission_slug: idle-cron-reply-agent-prefix-01KV1BSS
 owned_files:
 - scripts/openclaw/agents/felix-admin-capture/AGENTS.md
@@ -38,8 +39,8 @@ owned_files:
 - scripts/openclaw/agents/felix-admin-escalation/AGENTS.md
 role: implementer
 tags: []
-agent: "claude"
-shell_pid: "67181"
+tracker_refs:
+- kentonium3/kg-automation#592
 ---
 
 ## ⚡ Do This First: Load Agent Profile

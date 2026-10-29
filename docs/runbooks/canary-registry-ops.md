@@ -5,10 +5,10 @@ audience: agents_and_humans
 status: approved
 level: howto
 created: 2026-07-11
-last_validated: '2026-07-11'
-last_updated: '2026-07-11'
-updated_by: '#327 (felix-canary-registry-01KX8T7B)'
-version: v1.0
+last_validated: '2026-10-14'
+last_updated: '2026-10-14'
+updated_by: '#327 (felix-canary-registry-01KX8T7B) + #1063 (canary-deadman-backup-coverage-01M4XVY3)'
+version: v1.1
 owners: [kgale]
 ---
 
@@ -53,7 +53,7 @@ structural template and cadence as `felix-trust-scan`.
 
 | Unit | Role |
 |---|---|
-| `felix-canary.timer` | 15-minute cadence (`OnUnitActiveSec=15min`, `OnBootSec=5min`, `Persistent=true`) |
+| `felix-canary.timer` | 15-minute cadence (`OnUnitActiveSec=15min`, `OnBootSec=5min`) |
 | `felix-canary.service` | `Type=oneshot`; runs `/usr/bin/python3 -m scripts.canary.run --once` from `/home/claude/kg-automation` |
 | `felix-canary-onfailure.service` | The `OnFailure=` shim — fires an out-of-band ERROR via `scripts/common/alert_bus.sh` **only** when `felix-canary.service` exits non-zero (SC-006 crash detection, independent of the runner's own emit logic) |
 
@@ -250,14 +250,117 @@ partially in scope here — stated plainly so no one over-trusts it:
   `OnFailure=felix-canary-onfailure.service`, so a non-zero exit fires an
   out-of-band ERROR independent of the runner's own emit logic (SC-006).
   `felix-trust-scan` lacked this; the canary adds it.
-- **A dead timer / whole-host silence is NOT covered here — deferred to
-  [#269](https://github.com/kentonium3/kg-automation/issues/269).** If the timer
-  never fires, or office2 is entirely down, nothing the runner *owns* can detect
-  it (a dead process cannot report itself). The runner is registered as a Felix
-  component in the inventory (its `last-tick.json` freshness `health_check`), so
-  the deferred out-of-band watchdog (#269) will detect a stalled timer once it
-  ships. Full dead-timer and whole-host-silence detection is explicitly out of
-  scope for this mission.
+- **A dead timer is covered by felix-health-check (#1063).** A dead process
+  cannot report itself: from 2026-09-27 to 2026-10-14 this timer was dormant
+  (#1062) and nothing noticed. `felix-health-check`, an independent calendar
+  timer, now evaluates this runner's `last-tick.json` declaration twice a day
+  through the canary's own evaluator. The declaration carries a `key_ledger`
+  (#1063): `status` must be `success`, `completed_at_utc` is the anchor with no
+  fallback timestamp, and `components_evaluated` must be ≥ 1, so a runner that
+  ticks without doing anything does not read as alive. The canary in turn
+  watches the health check's `last-run.json` (#891), so each watches the other.
+- **Whole-host silence is covered off-host (#1077).** If office2 is down, or
+  the shared ntfy topic is lost, both watchers go quiet together. Each now
+  pings a hosted healthchecks.io check, which emails Kent when the pings stop;
+  see [Off-host dead-man pings](#off-host-dead-man-pings-1077). The separate
+  Felix/OpenClaw outage watchdog is [#269](https://github.com/kentonium3/kg-automation/issues/269).
+
+## Off-host dead-man pings (#1077)
+
+The canary and felix-health-check each ping their own
+[healthchecks.io](https://healthchecks.io) check after every run, via
+`scripts/common/deadman.py`. When a check misses its window, or a `/fail`
+arrives, healthchecks.io **emails** Kent, never through ntfy. Decided in RFC
+[#1069](https://github.com/kentonium3/kg-automation/issues/1069).
+
+| Check | Env variable | Schedule on healthchecks.io |
+|---|---|---|
+| `felix-canary` | `FELIX_DEADMAN_CANARY_URL` | Simple: period 15 min, grace 45 min |
+| `felix-health-check` | `FELIX_DEADMAN_HEALTHCHECK_URL` | Cron `0 11,23 * * *`, timezone UTC, grace 1 h. This matches `felix-health-check.timer`'s `OnCalendar`, which uses host-local time; office2 is `Etc/UTC`. If the host timezone ever changes, change the check's timezone too. |
+
+**What a ping means.** A run pings `success` only when the watcher did its own
+work and the felix-alert channel could deliver. It does **not** mean
+everything it watches is healthy. It pings `/fail` when any of these holds:
+- the run hit an execution fault: the canary pass errored or raised, or the
+  health-check script was missing or timed out, or coverage could not run;
+- `FELIX_ALERT_NTFY_TOPIC` is missing;
+- the read-only `ntfy /v1/health` probe failed;
+- an alert this run tried to send was not delivered.
+
+Dry runs and `--self-check` never ping.
+
+**Secret handling.** Each URL is a capability: anyone holding it can mark the
+check up or down. The URLs live only in `/home/claude/.config/felix/deadman/env`
+(claude:claude, 0600). They are never put in an environment variable, never
+passed on a command line (curl reads the URL on stdin), and never logged.
+Without that file every ping is a silent no-op (`unconfigured`). Template:
+`scripts/common/deadman.env.sample`.
+
+### Provision or rotate
+
+From your own terminal (the values are never echoed):
+
+```bash
+ssh -t office2-claude 'umask 077; mkdir -p ~/.config/felix/deadman; read -rsp "canary ping URL: " C; echo; read -rsp "health-check ping URL: " H; echo; printf "FELIX_DEADMAN_CANARY_URL=%s\nFELIX_DEADMAN_HEALTHCHECK_URL=%s\n" "$C" "$H" > ~/.config/felix/deadman/env'
+```
+
+To rotate, regenerate the ping URL in healthchecks.io and run the same
+one-liner again. The remote command relies on bash's `read -rsp`; `claude`'s
+login shell on office2 is `/bin/bash`, verified 2026-10-15.
+
+### Verify
+
+```bash
+ssh office2-claude 'journalctl --user -u felix-canary.service --since -20min | grep deadman'
+```
+
+The output should show `deadman canary success: ok`, and the check should
+read "up" on the healthchecks.io dashboard. To test the failure email
+deliberately:
+
+```bash
+ssh office2-claude 'cd ~/kg-automation && python3 -m scripts.common.deadman --label canary --outcome fail'
+```
+
+You should get an email. The next real tick returns the check to "up".
+
+### Reading a `fail` email
+
+Check the journal of the watcher whose check failed:
+
+```bash
+ssh office2-claude 'journalctl --user -u felix-canary.service --since -1h | grep deadman'
+```
+
+```bash
+ssh office2-claude 'journalctl --user -u felix-health-check.service --since -13h | grep deadman'
+```
+
+In the canary journal the reason follows `deadman channel:`. In the health-check
+journal it follows `deadman fail reason:`.
+
+Reasons:
+- `topic_missing`: fix `~/.config/felix/alert-bus/env`.
+- `ntfy_unhealthy` or `probe_error`: ntfy, or the network path to it, is down.
+- `undelivered`: an alert failed; see the felix-alert ledger under
+  `/data/services/alert-bus/ledger/`.
+- An execution fault (the canary status line shows `status=error`, or the
+  health check logs `deadman fail reason: ...`).
+
+A *missed-ping* email (no `/fail`) means the watcher did not run at all: host
+down, user manager down, timer dormant, or a broken checkout.
+
+### Planned downtime
+
+Pause both checks in healthchecks.io before planned office2 maintenance, and
+resume them afterwards.
+
+### Accepted residuals
+
+- A revoked or mistyped topic on a healthy ntfy server is caught only when
+  the next real alert fails to deliver.
+- Losing both attempts of one ping produces one false email; the next run
+  clears it.
 
 ## Cross-references
 

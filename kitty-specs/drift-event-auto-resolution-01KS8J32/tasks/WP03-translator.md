@@ -15,9 +15,12 @@ subtasks:
 - T015
 - T016
 - T017
+agent: agy:gemini-2.5-pro:spec-kitty-review:reviewer
+shell_pid: '10389'
 history: []
 authoritative_surface: scripts/doc_audit/routing/
 execution_mode: code_change
+lane: planned
 mission_id: 01KS8J321F8KE7369R3DA02329
 mission_slug: drift-event-auto-resolution-01KS8J32
 owned_files:
@@ -26,8 +29,6 @@ owned_files:
 - scripts/doc_audit/data_model.py
 - tests/doc_audit/routing/test_drift_to_proposed_edit.py
 tags: []
-agent: "agy:gemini-2.5-pro:spec-kitty-review:reviewer"
-shell_pid: "10389"
 ---
 
 # WP03 — Translator + ProposedEdit extension

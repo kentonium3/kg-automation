@@ -36,7 +36,7 @@
       "disks": [
         {"mount": "/", "device": "/dev/mapper/ubuntu--vg-ubuntu--lv", "size_gb": 98, "purpose": "OS and home directories"},
         {"mount": "/data", "device": "/dev/sda1", "size_tb": 2.7, "purpose": "Services, transcripts, application data"},
-        {"mount": "/mnt/backups", "device": "/dev/sdg1", "size_gb": 916, "purpose": "Restic backup repository"}
+        {"mount": "/mnt/backups", "device": "LABEL=backups", "device_note": "Kernel name is NOT stable — the internal Realtek card reader's four slots also enumerate as sdX. It was sdg1 before 2026-09-27 and sdc1 on 2026-10-14. fstab mounts by label; identify the drive by label/UUID/model, never by sdX. See #1064.", "fs_uuid": "752b713c-d992-45ef-9349-022acfcbd27c", "model": "WD easystore 2625 (disk WDC WD10SDRW-11A0XS0, serial WD-WXA1A79HZ5T7), 2.5in 5400rpm, USB bus-powered", "size_gb": 916, "size_note": "916 GB is the ext4 filesystem size as df reports it; the raw disk is 1.0 TB / 931.5 GiB", "connection": "Must be on a USB 3 port (5 Gb/s, 900 mA). On a USB 2.0 port (500 mA) it twice failed to spin up after a power cycle (2026-09-27, 2026-10-14): it enumerated at 0 bytes and every backup failed for 17 days (#1063, #1064).", "fstab_options": "defaults,nofail — boot continues silently if the drive is absent", "purpose": "Restic backup repository"}
       ],
       "network": {
         "local_ip": "192.168.1.158",

@@ -17,14 +17,15 @@ subtasks:
 - T015
 - T016
 - T017
-agent: "claude"
-shell_pid: "84957"
+agent: claude
+shell_pid: '84957'
 history:
 - at: '2026-06-04T19:53:57Z'
   by: spec-kitty.tasks
   note: Created WP04 from plan.md + contracts/conflict-event-schema.md + contracts/whatsapp-send.md
 authoritative_surface: scripts/sync/
 execution_mode: code_change
+lane: planned
 owned_files:
 - scripts/sync/send_whatsapp.py
 - scripts/sync/emit.py

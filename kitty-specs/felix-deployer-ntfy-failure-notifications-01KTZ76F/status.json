@@ -1,5 +1,5 @@
 {
-  "event_count": 21,
+  "event_count": 24,
   "last_event_id": "01KTZC6TFBCZ5NZM1FQQD88CS4",
   "materialized_at": "2026-06-13T02:15:38.219555+00:00",
   "mission_number": "75",
@@ -19,27 +19,39 @@
   "work_packages": {
     "WP01": {
       "actor": "merge",
+      "agent": "claude",
       "force_count": 0,
       "lane": "done",
       "last_event_id": "01KTZC6RDRK67083BQCN0Z1ZSJ",
       "last_transition_at": "2026-06-13T02:15:36.120691+00:00",
-      "review_result": null
+      "review_result": null,
+      "tracker_refs": [
+        "kentonium3/kg-automation#595"
+      ]
     },
     "WP02": {
       "actor": "merge",
+      "agent": "claude",
       "force_count": 0,
       "lane": "done",
       "last_event_id": "01KTZC6SJHFB349CH2GZ6DVYZH",
       "last_transition_at": "2026-06-13T02:15:37.298052+00:00",
-      "review_result": null
+      "review_result": null,
+      "tracker_refs": [
+        "kentonium3/kg-automation#595"
+      ]
     },
     "WP03": {
       "actor": "merge",
+      "agent": "claude",
       "force_count": 0,
       "lane": "done",
       "last_event_id": "01KTZC6TFBCZ5NZM1FQQD88CS4",
       "last_transition_at": "2026-06-13T02:15:38.219555+00:00",
-      "review_result": null
+      "review_result": null,
+      "tracker_refs": [
+        "kentonium3/kg-automation#595"
+      ]
     }
   }
 }

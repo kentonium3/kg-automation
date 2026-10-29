@@ -23,14 +23,15 @@ subtasks:
 - T031
 phase: Phase 3 — Integration
 assignee: ''
-agent: "codex:gpt-5:spec-kitty-review:reviewer"
-shell_pid: "15196"
+agent: codex:gpt-5:spec-kitty-review:reviewer
+shell_pid: '15196'
 history:
 - timestamp: '2026-05-20T16:25:00Z'
   agent: system
   action: Prompt generated via /spec-kitty.tasks
 authoritative_surface: scripts/doc_audit/run.py
 execution_mode: code_change
+lane: planned
 owned_files:
 - scripts/doc_audit/run.py
 - tests/doc_audit/test_integration_tick_outcomes.py

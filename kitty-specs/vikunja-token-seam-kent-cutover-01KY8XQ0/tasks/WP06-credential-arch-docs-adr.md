@@ -5,7 +5,6 @@ dependencies:
 - WP01
 requirement_refs:
 - FR-006
-tracker_refs: []
 planning_base_branch: feat/vikunja-token-seam-kent-cutover
 merge_target_branch: feat/vikunja-token-seam-kent-cutover
 branch_strategy: Planning artifacts for this mission were generated on feat/vikunja-token-seam-kent-cutover. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into feat/vikunja-token-seam-kent-cutover unless the human explicitly redirects the landing branch.
@@ -14,12 +13,16 @@ subtasks:
 - T015
 - T016
 phase: Phase 2 - Docs
+agent: claude
+shell_pid: '72212'
+shell_pid_created_at: '1784864197.958657'
 history: []
 agent_profile: curator-carla
 authoritative_surface: docs/design/architecture/
 create_intent:
 - docs/design/architecture/adr/0007-retire-vikunja-felix-bot.md
 execution_mode: code_change
+lane: planned
 owned_files:
 - docs/design/architecture/adr/0007-retire-vikunja-felix-bot.md
 - docs/design/architecture/adr/0002-felix-vikunja-task-model.md
@@ -35,9 +38,7 @@ owned_files:
 - docs/DEVELOPER_PORTAL.md
 role: implementer
 tags: []
-agent: "claude"
-shell_pid: "72212"
-shell_pid_created_at: "1784864197.958657"
+tracker_refs: []
 ---
 
 # Work Package Prompt: WP06 — Credential + architecture docs + ADR-0007

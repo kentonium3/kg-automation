@@ -25,7 +25,7 @@ WP01 + WP02 + WP03 are the functional core — once those three are merged, the 
 **Priority**: P1 (blocks WP03).
 **Independent test**: Run `python3 -c "from credential_health_check.manifest import load_manifest; m = load_manifest('docs/design/architecture/data/credential-manifest.json'); gog = [c for c in m if c.name == 'gog-credentials-keyring'][0]; print(gog.liveness_probe)"`. Should print a populated `LivenessProbeConfig`.
 
-**Prompt**: [tasks/WP01-manifest-schema.md](./tasks/WP01-manifest-schema.md) (~300 lines)
+**Prompt**: [tasks/WP01-manifest-schema.md
 
 **Included subtasks**:
 
@@ -53,7 +53,7 @@ WP01 + WP02 + WP03 are the functional core — once those three are merged, the 
 **Priority**: P1 (blocks WP03).
 **Independent test**: `pytest tests/security/credential_health_check/test_liveness.py --cov=scripts.security.credential_health_check.liveness --cov-branch --cov-fail-under=90 -v` passes with ≥90% line / ≥85% branch coverage. All 13 contract test cases (per `contracts/liveness-probe-function.md`) pass.
 
-**Prompt**: [tasks/WP02-liveness-probe-core.md](./tasks/WP02-liveness-probe-core.md) (~500 lines)
+**Prompt**: [tasks/WP02-liveness-probe-core.md
 
 **Included subtasks**:
 
@@ -84,7 +84,7 @@ WP01 + WP02 + WP03 are the functional core — once those three are merged, the 
 **Priority**: P1 (blocks WP04).
 **Independent test**: `pytest tests/security/credential_health_check/test_orchestrator.py tests/security/credential_health_check/test_listing.py -v` passes. `PYTHONPATH=scripts/security python3 -m credential_health_check --dry-run --liveness-only --manifest docs/design/architecture/data/credential-manifest.json` runs cleanly (logs `alert_would_file` if token is dead, `credential_alive` if alive; NO GitHub issue filed).
 
-**Prompt**: [tasks/WP03-orchestrator-integration.md](./tasks/WP03-orchestrator-integration.md) (~450 lines)
+**Prompt**: [tasks/WP03-orchestrator-integration.md
 
 **Included subtasks**:
 
@@ -114,7 +114,7 @@ WP01 + WP02 + WP03 are the functional core — once those three are merged, the 
 **Priority**: P2 (deploy-time; functional core is WP03).
 **Independent test**: From office2 as claude: `bash /home/claude/kg-automation/scripts/office2/deploy/credential-liveness-probe.sh` exits 0, the timer is active, and the smoke-test `--dry-run --liveness-only` invocation runs cleanly.
 
-**Prompt**: [tasks/WP04-systemd-units.md](./tasks/WP04-systemd-units.md) (~280 lines)
+**Prompt**: [tasks/WP04-systemd-units.md
 
 **Included subtasks**:
 
@@ -142,7 +142,7 @@ WP01 + WP02 + WP03 are the functional core — once those three are merged, the 
 **Priority**: P3 (docs; merge-time housekeeping per CLAUDE.md architecture-docs-first rule).
 **Independent test**: `python3 -c "import json; s = json.load(open('docs/design/architecture/data/service-inventory.json')); print(any('credential-liveness-probe' in str(x) for x in s.get('services', s)))"` returns `True`. Workspace runbook §Common Issues references the new auto-surface.
 
-**Prompt**: [tasks/WP05-doc-updates.md](./tasks/WP05-doc-updates.md) (~250 lines)
+**Prompt**: [tasks/WP05-doc-updates.md
 
 **Included subtasks**:
 

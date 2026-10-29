@@ -12,8 +12,8 @@ base_branch: main
 base_commit: f73d0f9e113765419412fd554796ff2723ebacb7
 created_at: '2026-04-04T15:27:49.838690+00:00'
 subtasks: [T001, T002, T003, T004]
-shell_pid: "92274"
-agent: "claude"
+agent: claude
+shell_pid: '92274'
 history:
 - date: '2026-04-04'
   action: created
@@ -21,6 +21,7 @@ history:
 authoritative_surface: docs/constitution/
 execution_mode: code_change
 feature: 014-felix-core-digest
+lane: planned
 owned_files:
 - docs/constitution/agent-registry.json
 - scripts/openclaw/observation/config.py

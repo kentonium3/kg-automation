@@ -24,9 +24,12 @@ subtasks:
 - T006
 - T007
 - T008
+agent: codex:gpt-5:spec-kitty-review:reviewer
+shell_pid: '291'
 history: []
 authoritative_surface: scripts/openclaw/helpers/
 execution_mode: code_change
+lane: planned
 mission_id: 01KSATRP0S0TDA5HV995Y558JK
 mission_slug: main-verbatim-passthrough-01KSATRP
 owned_files:
@@ -38,8 +41,6 @@ owned_files:
 - docs/design/architecture/service-inventory.md
 - docs/design/architecture/data-flows.md
 tags: []
-agent: "codex:gpt-5:spec-kitty-review:reviewer"
-shell_pid: "291"
 ---
 
 # WP02 — Session rotation helper + runbook + arch docs

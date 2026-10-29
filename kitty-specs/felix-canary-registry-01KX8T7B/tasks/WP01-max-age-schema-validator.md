@@ -4,8 +4,6 @@ title: health_check max_age_seconds schema + validator support
 dependencies: []
 requirement_refs:
 - FR-002
-tracker_refs:
-- kentonium3/kg-automation#327
 planning_base_branch: feat/felix-canary-registry
 merge_target_branch: feat/felix-canary-registry
 branch_strategy: Planning artifacts for this mission were generated on feat/felix-canary-registry. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into feat/felix-canary-registry unless the human explicitly redirects the landing branch.
@@ -13,22 +11,25 @@ subtasks:
 - T001
 - T002
 - T003
-agent: "claude"
-shell_pid: "41611"
+agent: claude
+shell_pid: '41611'
 history:
 - at: '2026-07-11T15:30:13Z'
   actor: spec-kitty agent mission tasks
   event: WP created from /spec-kitty.tasks
 agent_profile: python-pedro
-role: implementer
-execution_mode: code_change
 authoritative_surface: tooling/scripts/
+create_intent:
+- tests/tooling/test_validate_architecture_data_max_age.py
+execution_mode: code_change
+lane: planned
 owned_files:
 - tooling/scripts/validate_architecture_data.py
 - tests/tooling/test_validate_architecture_data_max_age.py
-create_intent:
-- tests/tooling/test_validate_architecture_data_max_age.py
+role: implementer
 tags: []
+tracker_refs:
+- kentonium3/kg-automation#327
 ---
 
 ## ⚡ Do This First: Load Agent Profile

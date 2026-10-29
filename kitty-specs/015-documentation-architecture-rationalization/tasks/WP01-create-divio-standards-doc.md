@@ -19,14 +19,15 @@ subtasks:
 - T004
 phase: Phase 0 - Foundation
 assignee: ''
-agent: "claude"
-shell_pid: "97432"
+agent: claude
+shell_pid: '97432'
 history:
 - at: '2026-04-05T01:28:56Z'
   actor: system
   action: Prompt generated via /spec-kitty.tasks
 authoritative_surface: docs/design/standards/divio-classification.md
 execution_mode: code_change
+lane: planned
 owned_files:
 - docs/design/standards/divio-classification.md
 ---

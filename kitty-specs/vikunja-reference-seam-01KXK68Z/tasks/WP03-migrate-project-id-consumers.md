@@ -7,7 +7,6 @@ requirement_refs:
 - FR-002
 - FR-005
 - FR-008
-tracker_refs: []
 planning_base_branch: feat/vikunja-reference-seam
 merge_target_branch: feat/vikunja-reference-seam
 branch_strategy: Planning artifacts for this mission were generated on feat/vikunja-reference-seam. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into feat/vikunja-reference-seam unless the human explicitly redirects the landing branch.
@@ -20,19 +19,19 @@ subtasks:
 - T014
 phase: Phase 2 - Migration
 assignee: ''
-agent: "codex:gpt-5-codex:reviewer-renata:reviewer"
-agent_profile: python-pedro
-role: implementer
-model: claude-sonnet-5
-shell_pid: "30656"
-shell_pid_created_at: "1784146294.083244"
+agent: codex:gpt-5-codex:reviewer-renata:reviewer
+shell_pid: '30656'
+shell_pid_created_at: '1784146294.083244'
 history:
 - at: '2026-07-15T17:18:48Z'
   actor: system
   action: Prompt generated via /spec-kitty.tasks
+agent_profile: python-pedro
 authoritative_surface: scripts/habits/
 create_intent: []
 execution_mode: code_change
+lane: planned
+model: claude-sonnet-5
 owned_files:
 - scripts/common/vikunja_scope.py
 - scripts/habits/query_active_habits_v2.py
@@ -48,7 +47,9 @@ owned_files:
 - tests/habits/test_backfill_jsonl_from_comments.py
 - tests/habits/test_query_active_habits_weekly.py
 - tests/security/test_vikunja_writer.py
+role: implementer
 tags: []
+tracker_refs: []
 ---
 
 # Work Package Prompt: WP03 – Migrate project-id resolution consumers

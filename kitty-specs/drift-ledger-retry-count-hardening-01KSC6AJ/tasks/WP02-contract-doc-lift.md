@@ -16,17 +16,18 @@ subtasks:
 - T007
 - T008
 - T009
+agent: codex:gpt-5:spec-kitty-review:reviewer
+shell_pid: '7310'
 history: []
 authoritative_surface: docs/design/architecture/contracts/
 execution_mode: code_change
+lane: planned
 mission_id: 01KSC6AJ2JK8N2NJT4QB6AB36Z
 mission_slug: drift-ledger-retry-count-hardening-01KSC6AJ
 owned_files:
 - docs/design/architecture/contracts/drift-ledger-schema.md
 - docs/design/architecture/README.md
 tags: []
-agent: "codex:gpt-5:spec-kitty-review:reviewer"
-shell_pid: "7310"
 ---
 
 # WP02 — Lift Drift Ledger Contract to Live Arch Docs
