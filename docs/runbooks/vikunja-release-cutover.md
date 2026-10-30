@@ -439,7 +439,11 @@ merge.
    (section 7).
 2. **Kent**: decide in advance who disposes of post-cutover writes. Only Kent
    does. Every write after the snapshot, including the acceptance probe task,
-   is a post-cutover write.
+   is a post-cutover write. That includes rows the server creates by itself:
+   B1's login inserts a `sessions` row (`pkg/models/sessions.go`
+   `CreateSession`), and other server-generated rows may follow. So
+   `ROLLBACK_POST_CUTOVER_WRITES` and the `--ack-post-cutover-writes <n>`
+   disposition should expect tables beyond `tasks`.
 
 ### 6b. Assemble the ACTIVATE branch (Agent)
 
@@ -653,9 +657,15 @@ for f in glob.glob("/data/services/vikunja/data/vikunja.db*"):
     shutil.copy2(f, d)
 c = sqlite3.connect(os.path.join(d, "vikunja.db"))
 print("copy", d)
+print("integrity", c.execute("pragma integrity_check").fetchone()[0])
 print("N_tasks", c.execute("select count(*) from tasks").fetchone()[0])
 PY
 ```
+
+The copy is file by file while the release runs, so a checkpoint between files
+can tear it. `integrity` must print `ok`. If it does not, or if B3 or B4 then
+mismatches, retake the copy once, removing the first copy folder, before calling
+a FAIL.
 
 **Check B4 (the live conversion, on the same pre-probe copy as B3).** The columns
 are those of the migration `pkg/migration/20261022220000.go`:
@@ -713,17 +723,22 @@ it. Deleting the probe does not make a rollback lossless.
 
 **Kent**: run the checklist's UI checks:
 
+- A4: the usual HTTPS URL loads the login page (the proxy path; A1 only probes
+  the Tailscale port);
 - B1: owner login;
 - B2: the task list and one project;
 - C1 to C3: recurrence, read-only;
-- D1 to D4: the probe.
+- D1 to D4: the probe. **Start D1 only after the agent reports the B3 copy
+  path and `N_tasks`.** The probe adds a row that its deletion keeps, so a B3
+  taken after D1 would give a false FAIL.
 
 Then decide ACCEPT or ROLLBACK in the record.
 
 **Agent**: run the checks that need the host:
 
 - A1: `/api/v1/info`;
-- A2: the running image ID, which is the `verification.post` check;
+- A2: the running image ID, which is the `verification.post` check, and exactly
+  one container under the existing unit and Compose project;
 - A3: the startup and migration log, from the private `ACTIVATE_LOGS` file.
   This build logs in logfmt (`time=… level=INFO msg="…"`). ACTIVATE already
   required a record at `level=INFO` whose `msg` is exactly
@@ -731,7 +746,8 @@ Then decide ACCEPT or ROLLBACK in the record.
   phrase, or unstructured text, does not count. ACTIVATE read the RRULE
   summary counts from the record whose `msg` is the
   `RRULE migration: … processed — …` summary;
-- B3 and B4;
+- B3 and B4. Take B3 **before** Kent starts D1, then report the copy path and
+  `N_tasks` to Kent; that report is the handoff that releases D1;
 - E1: the container log from `T0`.
 
 These are the commands for A1, A2 and E1:
@@ -739,6 +755,7 @@ These are the commands for A1, A2 and E1:
 ```bash
 ssh office2-claude 'curl -fsS --max-time 5 http://100.92.197.90:3456/api/v1/info | jq -r .version'
 ssh office2-claude "docker inspect vikunja --format '{{.Image}}'"
+ssh office2-claude "docker ps -a --filter label=com.docker.compose.project=vikunja --format '{{.Names}} {{.Image}}'"   # expect exactly one row
 ssh office2-claude 'docker logs --since <T0> vikunja 2>&1 | grep -ciE "level=(error|fatal|panic)|panic|(^|[[:space:]])status=5[0-9]{2}([[:space:]]|$)"'
 ```
 
