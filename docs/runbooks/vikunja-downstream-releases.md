@@ -6,7 +6,7 @@ level: howto
 status: approved
 owners: [kgale]
 last_updated: '2026-10-30'
-revision: v1.2
+revision: v1.3
 audience: agents_and_humans
 tags: [vikunja, releases]
 ---
@@ -210,11 +210,22 @@ commit, qualify and scan that new candidate before considering promotion.
 - Recurrence, DST, migration and API compatibility tests pass for affected paths.
   `/api/v1` stays frozen; new routes belong under `/api/v2`.
 - For this initial refreshed RRULE release, use two distinct private fixtures:
-  a retained hash-verified pre-migration snapshot (or a representative legacy
-  fixture) for conversion and per-id oracle comparison, and a fresh consistent
-  current-production snapshot for upgrade from the already-migrated deployed
-  version. Record provenance and expected assertions separately. A fresh
-  already-migrated database cannot prove legacy conversion.
+  the retained hash-verified pre-upgrade snapshot for conversion and per-id
+  oracle comparison, and a verified deployed-schema fixture for upgrade tests.
+  A retained derived Ring 4 migrated output qualifies for the latter only after
+  its migration-ID set and `sqlite_master` schema are proved equal to actual
+  post-ACTIVATE production evidence. If the retained receipts lack that proof,
+  the owning core may read the retained post-ACTIVATE B3 copy under the existing
+  own-account custody/read boundary. A classifier denial stops that read and
+  goes to Kent; never proxy it through another actor or bypass permissions.
+  Record fixture provenance and assertions separately, with the current binding
+  in [issue #45](https://github.com/kentonium3/vikunja-harness/issues/45).
+  Prove that the older subscription backfill executes, succeeds against the
+  post-RRULE schema, and leaves subscriptions/reminders correct. Keep all rows
+  private. No new live-production copy is part of this D2 integration mission;
+  a fresh production snapshot belongs to the next Office2 release acceptance
+  under its separately reviewed packet, window and go. An already-migrated
+  database cannot prove legacy conversion.
   For later releases, select replay coverage according to actual migration risk.
 - Complete the mission's required independent reviews, including post-plan and
   post-merge whole-diff review, and resolve significant findings.
