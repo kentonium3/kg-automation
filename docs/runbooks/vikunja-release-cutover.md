@@ -644,26 +644,49 @@ private packet, and never enters a repository.
    - The harness also checks the migrated copy itself: the backup table equals
      the originals, and every legacy row has the oracle's rule and flag.
 
-**Check B3 (`N_tasks` live, taken before the probe).** Copy the live data files
-into a private folder and count on the copy. Never open the live file for
-writing:
+**Check B3 (`N_tasks` live, taken before the probe).** Take a commit-consistent
+private copy of the live data files and count on the copy. Never open the live
+file for writing, never use `immutable=1` (it ignores the WAL and gives a stale
+count), and never count on the live file.
+
+Method: the **hash-stable double copy** (lead decision, bus fac65941). Copy
+`vikunja.db`, `-wal` and `-shm` into a private folder, copy them again into a
+second folder, and accept only when both rounds hash identically; otherwise
+retake. With writes closed this converges at once. The SQLite online-backup API
+from a `mode=ro` URI was the preferred method, but its read-only proof against
+the live database under `office2-claude` was not run: the permission classifier
+held it (2026-10-30). It stays unproven and is not used here.
 
 ```bash
 ssh office2-claude python3 - <<'PY'
-import glob, os, shutil, sqlite3, tempfile
+import glob, hashlib, os, shutil, sqlite3, tempfile
 os.umask(0o077)
-d = tempfile.mkdtemp(prefix="acceptance-", dir="/data/services/vikunja/failures")
-for f in glob.glob("/data/services/vikunja/data/vikunja.db*"):
-    shutil.copy2(f, d)
-c = sqlite3.connect(os.path.join(d, "vikunja.db"))
-print("copy", d)
+L = "/data/services/vikunja/data"
+def take():
+    d = tempfile.mkdtemp(prefix="acceptance-", dir="/data/services/vikunja/failures")
+    for f in sorted(glob.glob(L + "/vikunja.db*")):
+        shutil.copy2(f, d)
+    h = {os.path.basename(f): hashlib.sha256(open(f, "rb").read()).hexdigest()
+         for f in sorted(glob.glob(d + "/vikunja.db*"))}
+    return d, h
+for attempt in range(5):
+    d1, h1 = take()
+    d2, h2 = take()
+    shutil.rmtree(d2)
+    if h1 == h2:
+        break
+    shutil.rmtree(d1)
+else:
+    raise SystemExit("B3_COPY_UNSTABLE")
+c = sqlite3.connect(os.path.join(d1, "vikunja.db"))
+print("copy", d1)
 print("integrity", c.execute("pragma integrity_check").fetchone()[0])
 print("N_tasks", c.execute("select count(*) from tasks").fetchone()[0])
 PY
 ```
 
-The copy is file by file while the release runs, so a checkpoint between files
-can tear it. `integrity` must print `ok`. If it does not, or if B3 or B4 then
+`integrity` must print `ok`. `B3_COPY_UNSTABLE` after five rounds means
+something is still writing, so stop and find the writer. If B3 or B4 then
 mismatches, retake the copy once, removing the first copy folder, before calling
 a FAIL.
 
