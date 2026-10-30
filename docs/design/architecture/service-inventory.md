@@ -2,7 +2,7 @@
 title: Service Inventory
 doc_type: reference
 status: approved
-tags: [860, 775, 749, 750, 656, 588, 579, 572, 520, 519, 518, 137, 189, 80, 202, 149, 190, 374, 100, 253, 185, 254, 371, 309, 343, 306, 308, 310, 362, 391, 400, 105, 115, 562, 490, 408, 567, 563, 558, 561, 540, 542, 306/, 152, 376, 368-, 112]
+tags: [1087, 860, 775, 749, 750, 656, 588, 579, 572, 520, 519, 518, 137, 189, 80, 202, 149, 190, 374, 100, 253, 185, 254, 371, 309, 343, 306, 308, 310, 362, 391, 400, 105, 115, 562, 490, 408, 567, 563, 558, 561, 540, 542, 306/, 152, 376, 368-, 112]
 ---
 
 # Service Inventory
@@ -15,7 +15,7 @@ All services run on office2 unless otherwise noted.
 
 | Service | Type | Version/Image | Port | Bind IP | systemd Unit | Data Path |
 |---------|------|---------------|------|---------|-------------|-----------|
-| Vikunja | Docker (compose) | `vikunja/vikunja:0.24.6` | 3456 | 100.92.197.90 | `vikunja.service` (system, oneshot → `docker compose up -d`) | `/data/services/vikunja/data` |
+| Vikunja | Docker (compose) | `office2.local/vikunja:active` (release v2.7.1-670-420c7bcb75, #1087) | 3456 | 100.92.197.90 | `vikunja.service` (system, oneshot → `docker compose up -d`) | `/data/services/vikunja/data` |
 | Obsidian Sync | Native | `ob` v0.0.10 (upgraded 2026-06-06), `ob sync --continuous` | — | — | `obsidian-sync.service` (system, runs as `kgale`) | `/home/kgale/second-brain/notes` |
 | Transcribe API | Docker (GPU) | `transcribe-transcribe` | 8787 | 100.92.197.90 | `transcribe.service` | `/data/services/transcribe` |
 | OpenClaw Gateway | npm-global | `2026.6.11` | 18789 | 127.0.0.1 | `openclaw-gateway.service` (user) | `/data/services/openclaw/data` |
@@ -199,6 +199,7 @@ The helper does NOT trigger an openclaw restart.
 - **ExecStart**: `/usr/bin/docker compose -f /home/claude/kg-automation/services/vikunja/docker-compose.yml up -d`
 - **Restart policy**: `restart: unless-stopped` declared in the compose file (Docker handles container restarts, including across daemon restarts — survives the `StartLimitBurst=5` failure mode that bit the legacy pattern during the docker.io→docker-ce migration in #80)
 - **Compose source**: `services/vikunja/docker-compose.yml` (in-repo source-of-truth; deployed via `git pull` on office2)
+- **Image selection (#1087)**: `image: office2.local/vikunja:active` with `pull_policy: never`. The local indirection tag is the startup lock: untagged, `compose up -d` fails closed with "No such image" and never pulls. Release `v2.7.1-670-420c7bcb75`, built from `420c7bcb75231be9b6571fdfdf76a1a62f2aebd8`, image ID `sha256:35e1bc87…afba5`, loaded from the reviewed archive (sha256 `48008c50…1f79`) pinned in `services/vikunja/release.json` by `deploys/queued/vikunja-release-stage.yaml`; selected by `deploys/queued/vikunja-release-activate.yaml`. The rollback image `vikunja/vikunja:2.4.0` (`sha256:60fe1ee8…`) stays present.
 - **Config in repo**: `scripts/vikunja/deploy.sh` (idempotent deploy with legacy-unit backup at `/data/services/vikunja/.deploy-backups/`), `scripts/vikunja/vikunja.service`
 - **Setup script**: `scripts/vikunja/setup_vikunja.py` (projects, labels, filters)
 - **Bind IP**: `100.92.197.90` (Tailscale IP only — corrected from the stale `0.0.0.0` listing prior to #189; the actual binding has been Tailscale-only since the early port-binding fix)
