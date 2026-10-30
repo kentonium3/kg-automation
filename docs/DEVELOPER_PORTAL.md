@@ -203,6 +203,7 @@ local validation and CI.
 - [Trust Reporting Detector Operations](<./runbooks/trust-reporting-detector.md>)
 - [Vault Path Registry Migration Runbook](<./runbooks/vault-path-registry-migration.md>)
 - [Vikunja Date Handling](<./runbooks/vikunja-date-handling.md>)
+- [Vikunja Downstream Development and Releases](<./runbooks/vikunja-downstream-releases.md>)
 - [Vikunja Release Cutover (the go packet)](<./runbooks/vikunja-release-cutover.md>)
 - [WhatsApp Channel Operations Runbook](<./runbooks/whatsapp-ops.md>)
 
