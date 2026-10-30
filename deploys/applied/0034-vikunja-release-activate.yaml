@@ -1,0 +1,49 @@
+schema_version: v1
+name: vikunja-release-activate
+issue: kentonium3/kg-automation#1087
+tier: 2
+entrypoint: scripts/deploy/deploy-vikunja-release-activate.py
+audited_surface: true
+expected_baselines:
+- docker-images.txt
+verification:
+  pre:
+  - scripts/deploy/deploy-vikunja-release-activate.py --dry-run
+  post:
+  - docker inspect vikunja --format '{{.Image}}' | grep -qx sha256:35e1bc8790292deedf2addc3f3f196e38d84c2614219a95d6ef711c1f02afba5
+  - curl -fsS --max-time 5 http://100.92.197.90:3456/api/v1/info | jq -e '.version
+    == "v2.7.1-670-420c7bcb75"'
+created_at: '2026-10-30T14:00:00Z'
+created_by: claude-code-1087
+notes: '#1087 ACTIVATE, the one-shot cutover to v2.7.1-670-420c7bcb75. Merged with
+  the Compose change to office2.local/vikunja:active plus pull_policy: never, only
+  after STAGE is applied. The entrypoint holds activation.lock, writes a durable marker,
+  runs compose down, untags active (the startup lock), snapshots the DB, tags active
+  to the release, runs compose up -d and verifies the image ID, /api/v1/info and the
+  migration log within 300 s. Any failure after down leaves no container, active untagged
+  and the marker failed; it never starts 2.4.0. Replays with a marker never stop or
+  start again. The post checks are release-exact.
+
+
+  Residual risk (R-21): a host crash after active is tagged to the release (during
+  up, verification or cleanup) lets the unverified release restart at boot on its
+  migrated DB. The snapshot is already taken, so no data is lost; the marker phase
+  says whether to finish verification or roll back.
+
+
+  Cancel (R-17): after a rollback the marker says rolled_back and this manifest exits
+  1 with ACTIVATE_ROLLED_BACK_REMOVE_QUEUED_MANIFEST on every tick. Kent merges a
+  reviewed commit deleting this file and setting Compose back to the indirection with
+  active pinned to 2.4.0. The marker stays as history.
+
+
+  Retry (R-24): only after a full rollback (2.4.0 running on the restored DB, marker
+  rolled_back) and Kent''s explicit retry go: the agent archives the marker to activation/<version>.<UTC>.retired.json,
+  and the still-queued manifest re-runs on the next tick, its preconditions holding
+  again.
+
+
+  Tier 2 (the Restic gate refreshes a backup first). audited_surface: true with expected_baselines
+  docker-images.txt for the active tag move.'
+apply_mode: manifest
+applied_at: '2026-10-30T08:15:23Z'
