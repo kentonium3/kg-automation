@@ -12,7 +12,8 @@
 # all preserved exactly from the original `docker run` invocation.
 services:
   vikunja:
-    image: vikunja/vikunja:2.4.0
+    image: office2.local/vikunja:active
+    pull_policy: never
     container_name: vikunja
     restart: unless-stopped
     ports:
