@@ -650,7 +650,9 @@ file for writing, never use `immutable=1` (it ignores the WAL and gives a stale
 count), and never count on the live file.
 
 Method: the **hash-stable double copy** (lead decision, bus fac65941). Copy
-`vikunja.db`, `-wal` and `-shm` into a private folder, copy them again into a
+`vikunja.db` and `vikunja.db-wal` (never `-shm`, which readers can touch even
+with no writes; SQLite rebuilds the wal-index from the WAL when it opens the
+copy; lead 4ae6b3fd) into a private folder, copy them again into a
 second folder, and accept only when both rounds hash identically; otherwise
 retake. With writes closed this converges at once. The SQLite online-backup API
 from a `mode=ro` URI was the preferred method, but its read-only proof against
@@ -664,10 +666,10 @@ os.umask(0o077)
 L = "/data/services/vikunja/data"
 def take():
     d = tempfile.mkdtemp(prefix="acceptance-", dir="/data/services/vikunja/failures")
-    for f in sorted(glob.glob(L + "/vikunja.db*")):
-        shutil.copy2(f, d)
-    h = {os.path.basename(f): hashlib.sha256(open(f, "rb").read()).hexdigest()
-         for f in sorted(glob.glob(d + "/vikunja.db*"))}
+    names = [n for n in ("vikunja.db", "vikunja.db-wal") if os.path.exists(os.path.join(L, n))]
+    for n in names:  # never -shm: SQLite rebuilds the wal-index from the WAL
+        shutil.copy2(os.path.join(L, n), d)
+    h = {n: hashlib.sha256(open(os.path.join(d, n), "rb").read()).hexdigest() for n in names}
     return d, h
 for attempt in range(5):
     d1, h1 = take()
