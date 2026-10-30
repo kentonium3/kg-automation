@@ -1,0 +1,45 @@
+{
+  "schema_version": 1,
+  "release_version": "v2.7.1-670-420c7bcb75",
+  "source_revision": "420c7bcb75231be9b6571fdfdf76a1a62f2aebd8",
+  "archive": {
+    "path": "/data/services/vikunja/release-artifacts/48008c5067a6/image.tar",
+    "sha256": "48008c5067a6555cb880200d5416a7989df6be06246cc41bc69d1da685581f79",
+    "size": 54450688
+  },
+  "image": {
+    "config_digest": "sha256:35e1bc8790292deedf2addc3f3f196e38d84c2614219a95d6ef711c1f02afba5",
+    "index_digest": "sha256:2be2b8c20475294c74447414548437eca49b1fcf972f292813737eea6578ffb6",
+    "platform": "linux/amd64",
+    "user": "1000"
+  },
+  "tags": {
+    "release": "office2.local/vikunja:v2.7.1-670-420c7bcb75",
+    "active": "office2.local/vikunja:active"
+  },
+  "rollback": {
+    "image_id": "sha256:60fe1ee8f729c17b057ba00a49b968adb4ed1e774cea36b5f4cc81340991a7d2",
+    "ref": "vikunja/vikunja:2.4.0",
+    "archive": {
+      "path": "/data/services/vikunja/release-artifacts/48008c5067a6/vikunja-2.4.0.image.tar",
+      "sha256": "b63e5529ba35e695aec3b240f835a5ea412a2b0552f2a1b054e5d0d9a9aaa9ad",
+      "size": 115518464
+    }
+  },
+  "service": {
+    "compose_file": "/home/claude/kg-automation/services/vikunja/docker-compose.yml",
+    "project": "vikunja",
+    "container": "vikunja",
+    "info_url": "http://100.92.197.90:3456/api/v1/info",
+    "data_dir": "/data/services/vikunja/data"
+  },
+  "roots": {
+    "snapshots": "/data/services/vikunja/snapshots",
+    "activation": "/data/services/vikunja/activation",
+    "private_logs": "/data/services/vikunja/failures",
+    "office4_sources": {
+      "archive": "/home/kgale/.local/share/rrule-office2-images/420c7bcb75231be9b6571fdfdf76a1a62f2aebd8/image.tar",
+      "rollback_archive": "/home/kgale/.local/share/rrule-office2-images/rollback-v2.4.0-60fe1ee8/vikunja-2.4.0.image.tar"
+    }
+  }
+}

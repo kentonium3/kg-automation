@@ -1,0 +1,209 @@
+{
+  "mission_slug": "vikunja-image-deploy-01M65D3V",
+  "mission_number": "",
+  "mission_type": "",
+  "overall_verdict": "pass",
+  "criteria": [
+    {
+      "criterion_id": "FR-001",
+      "description": "Verify FR-001 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "WP03 tests (zero-mutation dry-run verb assertions), Codex approved 7010ab01. Live verification is the post-merge operator canary in docs/runbooks/vikunja-release-cutover.md (charter: no staging).",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator; reviews Codex gpt-6.1-sol)",
+      "verified_at": "2026-10-30T06:23:08.290746+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-002",
+      "description": "Verify FR-002 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "WP03 apply load->verify->tag tests; WP01 identity chain (R-13); Codex approved. Live verification is the post-merge operator canary in docs/runbooks/vikunja-release-cutover.md (charter: no staging).",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator; reviews Codex gpt-6.1-sol)",
+      "verified_at": "2026-10-30T06:23:10.125098+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-003",
+      "description": "Verify FR-003 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "WP03 refusal tests with same-fixture controls; WP01 sha-before-parse; Codex approved.",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator; reviews Codex gpt-6.1-sol)",
+      "verified_at": "2026-10-30T06:23:11.967599+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-004",
+      "description": "Verify FR-004 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "WP03 rollback-image check + no container/compose calls asserted; Codex approved.",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator; reviews Codex gpt-6.1-sol)",
+      "verified_at": "2026-10-30T06:23:13.762512+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-005",
+      "description": "Verify FR-005 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "WP03 already-staged no-op test; Codex approved.",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator; reviews Codex gpt-6.1-sol)",
+      "verified_at": "2026-10-30T06:23:15.583401+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-006",
+      "description": "Verify FR-006 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "WP07 ingress helper tests (create-only parent/dest, nonce part + ln -T publish, office2-claude only, no /home/codex); Codex approved 29d91a53. Real transfer is a go-packet operator step.",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator; reviews Codex gpt-6.1-sol)",
+      "verified_at": "2026-10-30T06:23:17.432825+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-007",
+      "description": "Verify FR-007 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "WP08 two-line compose diff test pinned to base sha256; Codex approved 3fd370f3.",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator; reviews Codex gpt-6.1-sol)",
+      "verified_at": "2026-10-30T06:23:19.238897+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-008",
+      "description": "Verify FR-008 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "WP04 dry-run preconditions, zero mutations; Codex approved 4b30284f. Live verification is the post-merge operator canary in docs/runbooks/vikunja-release-cutover.md (charter: no staging).",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator; reviews Codex gpt-6.1-sol)",
+      "verified_at": "2026-10-30T06:23:21.058709+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-009",
+      "description": "Verify FR-009 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "WP04 stop/lock/snapshot ordering (INV-2) + WP02 snapshot WAL/integrity tests; Codex approved.",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator; reviews Codex gpt-6.1-sol)",
+      "verified_at": "2026-10-30T06:23:22.896400+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-010",
+      "description": "Verify FR-010 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "WP04 start/verify tests (image id, readiness, migration line); Codex approved. Live verification is the post-merge operator canary in docs/runbooks/vikunja-release-cutover.md (charter: no staging).",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator; reviews Codex gpt-6.1-sol)",
+      "verified_at": "2026-10-30T06:23:24.711467+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-011",
+      "description": "Verify FR-011 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "WP04 13 injected failures: logs, down, untag, marker failed; INV-1 call-scan; Codex approved.",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator; reviews Codex gpt-6.1-sol)",
+      "verified_at": "2026-10-30T06:23:26.536920+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-012",
+      "description": "Verify FR-012 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "WP04 durable marker + read-only replay + activation.lock; crash-boundary replay tests; Codex approved.",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator; reviews Codex gpt-6.1-sol)",
+      "verified_at": "2026-10-30T06:23:28.321145+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-013",
+      "description": "Verify FR-013 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "WP06 rollback --prepare/--finish tests incl. deploylock+activation.lock; Codex approved 1eb52159.",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator; reviews Codex gpt-6.1-sol)",
+      "verified_at": "2026-10-30T06:23:30.142724+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-014",
+      "description": "Verify FR-014 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "WP02 rollback_guard (sidecars, sha, is_migrated via WAL) + WP06 guard enforcement tests; Codex approved.",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator; reviews Codex gpt-6.1-sol)",
+      "verified_at": "2026-10-30T06:23:31.988367+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-015",
+      "description": "Verify FR-015 is satisfied",
+      "proof_type": "doc_review",
+      "evidence": "WP09 go-packet runbook marks every Kent step with exact command; Codex approved 1014c04b.",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator; reviews Codex gpt-6.1-sol)",
+      "verified_at": "2026-10-30T06:23:33.801105+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-016",
+      "description": "Verify FR-016 is satisfied",
+      "proof_type": "doc_review",
+      "evidence": "WP08 service-inventory + WP09 vikunja-ops/discipline corrections; validate_docs OK, validate_architecture_data --strict 0 findings.",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator; reviews Codex gpt-6.1-sol)",
+      "verified_at": "2026-10-30T06:23:35.656826+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-017",
+      "description": "Verify FR-017 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "WP05 office2 sandbox evidence FAIL-CLOSED CONFIRMED (c74b328b) + WP04/WP06 lock tests (INV-1/INV-2); Codex approved.",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator; reviews Codex gpt-6.1-sol)",
+      "verified_at": "2026-10-30T06:23:37.457424+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-018",
+      "description": "Verify FR-018 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "WP01 Deadline/run timeouts, WP02 curl-kill readiness, WP04 aggregate-budget tests; Codex approved.",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator; reviews Codex gpt-6.1-sol)",
+      "verified_at": "2026-10-30T06:23:39.247163+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-019",
+      "description": "Verify FR-019 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "WP01 summary registry/allowlist + privacy seed tests across WP02-WP07; Codex approved.",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator; reviews Codex gpt-6.1-sol)",
+      "verified_at": "2026-10-30T06:23:41.066694+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-020",
+      "description": "Verify FR-020 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "WP04 success-replay reconcile + rolled_back refusal; WP06 rolled_back marker + recover-pre-snapshot; WP09 cancel/retry runbook; Codex approved.",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator; reviews Codex gpt-6.1-sol)",
+      "verified_at": "2026-10-30T06:23:42.892737+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    }
+  ],
+  "negative_invariants": []
+}
