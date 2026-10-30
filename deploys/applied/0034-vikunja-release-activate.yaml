@@ -47,3 +47,7 @@ notes: '#1087 ACTIVATE, the one-shot cutover to v2.7.1-670-420c7bcb75. Merged wi
   docker-images.txt for the active tag move.'
 apply_mode: manifest
 applied_at: '2026-10-30T08:15:23Z'
+rebaseline:
+  outcome: completed
+  at_utc: '2026-10-30T08:15:33Z'
+  baseline_count: 15
