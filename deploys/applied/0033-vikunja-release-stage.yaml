@@ -46,3 +46,8 @@ notes: '#1087 STAGE. Loads the reviewed Vikunja release archive (services/vikunj
   and revert the merge. Keep active and vikunja/vikunja:2.4.0.'
 apply_mode: manifest
 applied_at: '2026-10-30T07:57:20Z'
+rebaseline:
+  outcome: unexpected_drift
+  at_utc: '2026-10-30T07:57:25Z'
+  unexpected:
+  - listening-ports.txt
