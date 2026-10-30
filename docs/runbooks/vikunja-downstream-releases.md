@@ -6,7 +6,7 @@ level: howto
 status: approved
 owners: [kgale]
 last_updated: '2026-10-30'
-revision: v1.0
+revision: v1.1
 audience: agents_and_humans
 tags: [vikunja, releases]
 ---
@@ -46,6 +46,32 @@ Feature branches may be rebased with Kent-approved force-with-lease updates;
 never apply that policy to `main`. CI staging refs are test infrastructure,
 not the user-facing distribution.
 
+### Prerequisite: adapt the harness push gate
+
+Before the initial downstream-main promotion, issue #45's mission owner must
+update `harness-docs/tools/pushgate.py` and its tests. The existing `check_ref`
+policy assumes `main` is an ancestor of canonical `upstream/main` and skips its
+harness-leak scan. That policy both refuses downstream-main pushes and leaves
+GitHub-UI merges outside the local hook's protection.
+
+Required behavior and evidence:
+
+- Fork `main` gets the same harness/private-path leak scan as `feat/*`, and can
+  contain reviewed downstream commits beyond upstream.
+- The upstream-only ancestry rule remains in force for `ci-base/*`.
+- Regression tests prove that a clean downstream-main candidate passes, a main
+  candidate with harness/private content fails, and a downstream-only commit
+  on `ci-base/*` is refused. Preserve existing feature-branch scan coverage.
+- Before Kent merges a fork-main PR in GitHub, run the same leak scan against
+  the exact proposed resulting tree and retain its SHA and result. If the
+  resulting tree changes, scan again. A local pre-push hook does not run for a
+  GitHub-UI merge; that route is not a workaround for a refusal or missing scan.
+
+This is a prerequisite owned by the full #45 mission, not a gate implementation
+delivered by this documentation PR. Preserve classifier and publication gates.
+Do not claim downstream-main promotion ready until the reviewed gate change,
+tests and candidate scan evidence are available.
+
 ## 1. Establish or resume the downstream line
 
 1. Use the governed Vikunja harness and its current promotion instructions.
@@ -69,7 +95,8 @@ not the user-facing distribution.
 4. Review the complete resulting tree and prepare a PR into fork `main`.
    Confirm it includes the intended features, excludes harness/private paths,
    and has no accidental workflow, credential, production data or configuration
-   additions. Kent merges after the release gates below pass.
+   additions. Complete the push-gate prerequisite and exact-resulting-tree scan
+   above. Kent merges after the release gates below pass.
 5. Verify the fork's default branch is `main` and the repository page now shows
    the downstream source. A merge into `ci-base/*` does not satisfy this step.
 
