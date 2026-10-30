@@ -6,7 +6,7 @@ level: howto
 status: approved
 owners: [kgale]
 last_updated: '2026-10-30'
-revision: v1.1
+revision: v1.2
 audience: agents_and_humans
 tags: [vikunja, releases]
 ---
@@ -29,6 +29,12 @@ push, force-push, merge, tag and release action; upstream-facing copy also needs
 his approval. Existing classifier refusals remain held, never routed through
 another actor or account. Production cutover requires its separate explicit go.
 
+The promotion procedure below reflects Kent's resolved plan decision
+`01M676BK24HB12W941ST6NJRDA`: review a PR, then fast-forward the exact tested
+commit to fork `main`. It is the required target workflow, not a claim that the
+current harness already supports it. Issue #45 must deliver and verify the
+push-gate, integration-branch CI and fork-release guards before promotion.
+
 ## Branch and release contract
 
 | Surface | Contract |
@@ -46,7 +52,7 @@ Feature branches may be rebased with Kent-approved force-with-lease updates;
 never apply that policy to `main`. CI staging refs are test infrastructure,
 not the user-facing distribution.
 
-### Prerequisite: adapt the harness push gate
+### Prerequisite: adapt the harness push gate and fork CI
 
 Before the initial downstream-main promotion, issue #45's mission owner must
 update `harness-docs/tools/pushgate.py` and its tests. The existing `check_ref`
@@ -59,18 +65,57 @@ Required behavior and evidence:
 - Fork `main` gets the same harness/private-path leak scan as `feat/*`, and can
   contain reviewed downstream commits beyond upstream.
 - The upstream-only ancestry rule remains in force for `ci-base/*`.
+- Scanned `integrate/*` branches may be published to the fork, and `fork-ci`
+  must stage and qualify them so the exact candidate commit can obtain green
+  fork CI. The old `feat/*`-only route is insufficient. Preserve the candidate
+  SHA through qualification and verify the SHA reported by CI; a different
+  snapshot or merge commit does not qualify the intended candidate.
+- A downstream `main` goes only to the configured fork. Refuse deletion and
+  non-fast-forward updates of published `main`, and require green fork CI on
+  its exact new commit. `HARNESS_SKIP_CI_GATE` must not bypass that main check;
+  existing `feat/*` override semantics do not grant a new main bypass.
 - Regression tests prove that a clean downstream-main candidate passes, a main
   candidate with harness/private content fails, and a downstream-only commit
-  on `ci-base/*` is refused. Preserve existing feature-branch scan coverage.
-- Before Kent merges a fork-main PR in GitHub, run the same leak scan against
-  the exact proposed resulting tree and retain its SHA and result. If the
-  resulting tree changes, scan again. A local pre-push hook does not run for a
-  GitHub-UI merge; that route is not a workaround for a refusal or missing scan.
+  on `ci-base/*` is refused. Also cover main rewrite/deletion and wrong-remote
+  refusals, the no-skip main CI rule, and clean/dirty `integrate/*` qualification.
+  Preserve existing feature-branch scan coverage.
+- Before promotion, run the same leak scan against the exact CI-green
+  integration commit X and retain its full commit SHA, tree SHA and verdict.
+  Verify against fresh fork `main` that X is its descendant. If the candidate
+  or remote main moves, revalidate ancestry, scan and exact-commit CI as
+  applicable. The tested, scanned and promoted commit must all be X.
+- A PR into fork `main` provides review and visibility only. Do not use the
+  GitHub merge, squash or rebase buttons: they can create a different commit
+  from X. Kent approves the exact fast-forward push `git push fork X:main`
+  (with the packet's full SHA substituted for X). Afterward verify fork main
+  equals X, then close the review PR with the promotion evidence. No force
+  push or hook bypass is a promotion route.
 
 This is a prerequisite owned by the full #45 mission, not a gate implementation
 delivered by this documentation PR. Preserve classifier and publication gates.
 Do not claim downstream-main promotion ready until the reviewed gate change,
-tests and candidate scan evidence are available.
+tests, exact-commit CI and candidate scan evidence are available.
+
+### Prerequisite: isolate canonical publishing from fork validation
+
+The inherited upstream CI/release workflows are not a ready fork release
+pipeline. At the base inspected for #45, main and v* tag events enter `ci.yml`,
+which calls `release.yml` with canonical publication and deployment assumptions.
+Do not rely on missing upstream secrets or unavailable runners to stop them.
+
+Issue #45's integration mission must gate the canonical release caller in
+`ci.yml` and every canonical-only publish/deploy job in `release.yml` with
+`if: github.repository == 'go-vikunja/vikunja'`. Keep the fork's validation jobs,
+including SQLite/MySQL/PostgreSQL tests, active for exact-SHA qualification.
+Review every release job and workflow-call/tag path. Keep this fork-only
+divergence in its own commit and off the upstream contribution branches.
+
+Before any downstream-main push or preview tag, inspect the exact candidate X
+tree to prove these guards are present, and retain fork CI on X showing the
+canonical release jobs skipped while required validation passes. Preview
+artifacts use a separately reviewed fork-owned workflow or local build route,
+never the inherited canonical `release.yml`. This does not authorize new
+registry credentials, Actions-settings changes or workflow execution.
 
 ## 1. Establish or resume the downstream line
 
@@ -92,13 +137,16 @@ tests and candidate scan evidence are available.
    fixes against a recorded current upstream base through issue #45's full
    mission. Preserve commit/provenance mapping to the accepted Office2 build.
    The existing production acceptance is not invalidated by this source work.
-4. Review the complete resulting tree and prepare a PR into fork `main`.
+4. Review the complete resulting tree and prepare a review PR into fork `main`.
    Confirm it includes the intended features, excludes harness/private paths,
    and has no accidental workflow, credential, production data or configuration
-   additions. Complete the push-gate prerequisite and exact-resulting-tree scan
-   above. Kent merges after the release gates below pass.
+   additions. Complete both prerequisites above and the release gates below.
+   The packet binds review approval, green CI, the leak scan and release-guard
+   evidence to the same integration commit X. Kent then approves and performs
+   its exact fast-forward push to fork main; do not merge the PR in GitHub.
 5. Verify the fork's default branch is `main` and the repository page now shows
-   the downstream source. A merge into `ci-base/*` does not satisfy this step.
+   X as the downstream source, then close the review PR with the verified SHA.
+   A merge into `ci-base/*` does not satisfy this step.
 
 ## 2. Integrate upstream regularly
 
@@ -120,8 +168,10 @@ moving upstream branch does not change the candidate during review.
    schema. Never silently renumber an already-applied migration; resolve any
    collision through a reviewed compatibility plan covering both upgrade paths.
 5. Run the gates below, review the complete upstream integration diff, and open
-   the fork-main PR. Preserve evidence and stop on failed gates or unresolved
-   migration semantics. No production deployment occurs from this merge alone.
+   the fork-main review PR. Promote only by the exact-commit fast-forward route
+   above after Kent's approval. Preserve evidence and stop on failed gates or
+   unresolved migration semantics. No production deployment follows merely
+   from this source promotion.
 
 ## 3. Maintain upstream contributions separately
 
@@ -147,12 +197,16 @@ hold a tested preview waiting for maintainer availability or upstream merge.
 ## 4. Qualify a public candidate
 
 Bind evidence to the final public source SHA and artifact digest, not only to a
-private working branch or temporary CI ref. A later merge commit must be checked
-for tree equivalence; changes introduced during merge require renewed checks.
+private working branch or temporary CI ref. Freeze integration candidate X after
+any local merges, qualify and scan X, then promote X unchanged. Tree equivalence
+alone does not satisfy the exact-commit CI rule. If changes produce another
+commit, qualify and scan that new candidate before considering promotion.
 
 - Required build, lint, typecheck, frontend tests and backend tests pass.
 - Fork CI exercises SQLite, MySQL and PostgreSQL. Cancelled or skipped required
   jobs are not passes; known exceptions require explicit recorded disposition.
+- The exact X tree contains the canonical publishing guards, and CI on X proves
+  required fork validation passed while canonical release jobs were skipped.
 - Recurrence, DST, migration and API compatibility tests pass for affected paths.
   `/api/v1` stays frozen; new routes belong under `/api/v2`.
 - For this initial refreshed RRULE release, use two distinct private fixtures:
@@ -179,7 +233,9 @@ for tree equivalence; changes introduced during merge require renewed checks.
    container image or image archive using the supported build route. Include
    supported OS/architectures, SHA256 checksums and an artifact-to-source record.
    A private local image or GitHub's source-only archive is not a ready-to-run
-   public distribution. New registry setup needs separate authorization.
+   public distribution. Use the separately reviewed fork-owned/local build
+   route, not canonical `release.yml`. New registry setup needs separate
+   authorization.
 3. Stage the exact tag target, assets and release notes for Kent. Notes identify
    fork features, upstream base, compatibility limits, migration/backup warnings,
    installation commands, test procedure and issue-reporting destination.
