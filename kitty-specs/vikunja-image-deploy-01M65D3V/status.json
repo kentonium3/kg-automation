@@ -1,0 +1,165 @@
+{
+  "event_count": 133,
+  "last_event_id": "01M65QPTC0ZR0YWVQVPN1H03AW",
+  "materialized_at": "2026-10-30T06:24:43.392157+00:00",
+  "mission_number": "",
+  "mission_slug": "vikunja-image-deploy-01M65D3V",
+  "mission_type": "",
+  "summary": {
+    "approved": 0,
+    "blocked": 0,
+    "canceled": 0,
+    "claimed": 0,
+    "done": 9,
+    "for_review": 0,
+    "in_progress": 0,
+    "in_review": 0,
+    "planned": 0
+  },
+  "work_packages": {
+    "WP01": {
+      "actor": "merge",
+      "agent": "claude",
+      "force_count": 3,
+      "implementer_of_record": "claude",
+      "lane": "done",
+      "last_event_id": "01M65QPNAV4GSS25C7YSN19PPV",
+      "last_transition_at": "2026-10-30T06:24:38.235407+00:00",
+      "review_result": {
+        "reference": "auto-approval:WP01:20261030",
+        "reviewer": "codex-gpt-6.1-sol",
+        "verdict": "approved"
+      },
+      "shell_pid": 4098099,
+      "shell_pid_created_at": "1793333995.21"
+    },
+    "WP02": {
+      "actor": "merge",
+      "agent": "claude",
+      "force_count": 2,
+      "implementer_of_record": "claude",
+      "lane": "done",
+      "last_event_id": "01M65QPPK593ZRK7A6642WQ3Q9",
+      "last_transition_at": "2026-10-30T06:24:39.525232+00:00",
+      "review_result": {
+        "reference": "auto-approval:WP02:20261030",
+        "reviewer": "codex-gpt-6.1-sol",
+        "verdict": "approved"
+      },
+      "shell_pid": 78318,
+      "shell_pid_created_at": "1793335926.2"
+    },
+    "WP03": {
+      "actor": "merge",
+      "agent": "claude",
+      "force_count": 1,
+      "implementer_of_record": "claude",
+      "lane": "done",
+      "last_event_id": "01M65QPQ71JDW23RVMVNJWVV8J",
+      "last_transition_at": "2026-10-30T06:24:40.161107+00:00",
+      "review_result": {
+        "reference": "auto-approval:WP03:20261030",
+        "reviewer": "codex-gpt-6.1-sol",
+        "verdict": "approved"
+      },
+      "shell_pid": 6896,
+      "shell_pid_created_at": "1793335288.5"
+    },
+    "WP04": {
+      "actor": "merge",
+      "agent": "claude",
+      "force_count": 2,
+      "implementer_of_record": "claude",
+      "lane": "done",
+      "last_event_id": "01M65QPRF80563Z7X4NC8TGGGJ",
+      "last_transition_at": "2026-10-30T06:24:41.448993+00:00",
+      "review_result": {
+        "reference": "auto-approval:WP04:20261030",
+        "reviewer": "codex-gpt-6.1-sol",
+        "verdict": "approved"
+      },
+      "shell_pid": 192691,
+      "shell_pid_created_at": "1793337967.21"
+    },
+    "WP05": {
+      "actor": "merge",
+      "agent": "claude",
+      "force_count": 0,
+      "implementer_of_record": "claude",
+      "lane": "done",
+      "last_event_id": "01M65QPNYMBTZT5P7Z3ETKA56S",
+      "last_transition_at": "2026-10-30T06:24:38.869033+00:00",
+      "review_result": {
+        "reference": "auto-approval:WP05:20261030",
+        "reviewer": "codex-gpt-6.1-sol",
+        "verdict": "approved"
+      },
+      "shell_pid": 4005314,
+      "shell_pid_created_at": "1793331955.1"
+    },
+    "WP06": {
+      "actor": "merge",
+      "agent": "claude",
+      "force_count": 5,
+      "implementer_of_record": "claude",
+      "lane": "done",
+      "last_event_id": "01M65QPS3T0272H31HD74SH3A4",
+      "last_transition_at": "2026-10-30T06:24:42.106230+00:00",
+      "review_result": {
+        "reference": "auto-approval:WP06:20261030",
+        "reviewer": "codex-gpt-6.1-sol",
+        "verdict": "approved"
+      },
+      "shell_pid": 308862,
+      "shell_pid_created_at": "1793340700.55"
+    },
+    "WP07": {
+      "actor": "merge",
+      "agent": "claude",
+      "force_count": 3,
+      "implementer_of_record": "claude",
+      "lane": "done",
+      "last_event_id": "01M65QPQV4AG62718XJQMCZ2G3",
+      "last_transition_at": "2026-10-30T06:24:40.804999+00:00",
+      "review_result": {
+        "reference": "auto-approval:WP07:20261030",
+        "reviewer": "codex-gpt-6.1-sol",
+        "verdict": "approved"
+      },
+      "shell_pid": 64320,
+      "shell_pid_created_at": "1793335763.57"
+    },
+    "WP08": {
+      "actor": "merge",
+      "agent": "claude",
+      "force_count": 0,
+      "implementer_of_record": "claude",
+      "lane": "done",
+      "last_event_id": "01M65QPSRHT7151RNJEN7T7VZS",
+      "last_transition_at": "2026-10-30T06:24:42.769635+00:00",
+      "review_result": {
+        "reference": "auto-approval:WP08:20261030",
+        "reviewer": "codex-gpt-6.1-sol",
+        "verdict": "approved"
+      },
+      "shell_pid": 211263,
+      "shell_pid_created_at": "1793338328.55"
+    },
+    "WP09": {
+      "actor": "merge",
+      "agent": "claude",
+      "force_count": 1,
+      "implementer_of_record": "claude",
+      "lane": "done",
+      "last_event_id": "01M65QPTC0ZR0YWVQVPN1H03AW",
+      "last_transition_at": "2026-10-30T06:24:43.392157+00:00",
+      "review_result": {
+        "reference": "auto-approval:WP09:20261030",
+        "reviewer": "codex-gpt-6.1-sol",
+        "verdict": "approved"
+      },
+      "shell_pid": 326438,
+      "shell_pid_created_at": "1793341012.86"
+    }
+  }
+}

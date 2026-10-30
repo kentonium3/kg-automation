@@ -1,0 +1,54 @@
+{
+  "entries": [
+    {
+      "created_at": "2026-10-30T03:20:06.721100Z",
+      "decision_id": "01M65D4SA1BBJA34C6PK32DQ7P",
+      "final_answer": "Entrypoint runs the unit compose commands as claude",
+      "input_key": "activation_service_control",
+      "mission_id": "01M65D3V047EQFZ0RNYG5E48H7",
+      "mission_slug": "vikunja-image-deploy-01M65D3V",
+      "opened_by": "cli",
+      "options": [
+        "Entrypoint runs the unit compose commands as claude",
+        "Kent runs sudo systemctl stop/start",
+        "Other"
+      ],
+      "origin_flow": "specify",
+      "other_answer": false,
+      "question": "At cutover, who stops and starts the Vikunja service: the ACTIVATE entrypoint running the unit's own docker compose down/up commands as claude, or Kent via sudo systemctl stop/start as explicit operator steps around the merge?",
+      "rationale": null,
+      "resolved_at": "2026-10-30T03:23:17.205079Z",
+      "resolved_by": null,
+      "slot_key": "specify.activation.service-control",
+      "status": "resolved",
+      "step_id": null,
+      "summary_json": null
+    },
+    {
+      "created_at": "2026-10-30T03:25:39.952961Z",
+      "decision_id": "01M65DEYQGJ955RRYWFD7WMBZ9",
+      "final_answer": "Local indirection tag moved by the entrypoint",
+      "input_key": "image_selection_mechanism",
+      "mission_id": "01M65D3V047EQFZ0RNYG5E48H7",
+      "mission_slug": "vikunja-image-deploy-01M65D3V",
+      "opened_by": "cli",
+      "options": [
+        "Direct image line, merged as the cutover",
+        "Local indirection tag moved by the entrypoint",
+        "Other"
+      ],
+      "origin_flow": "plan",
+      "other_answer": false,
+      "question": "How should the Compose file select the image so that a merge can never start the new image before the DB snapshot: a direct image-line change merged as the cutover, or an indirection tag whose target only the ACTIVATE entrypoint moves after the snapshot?",
+      "rationale": null,
+      "resolved_at": "2026-10-30T03:27:16.511698Z",
+      "resolved_by": null,
+      "slot_key": "plan.architecture.image-selection",
+      "status": "resolved",
+      "step_id": null,
+      "summary_json": null
+    }
+  ],
+  "mission_id": "01M65D3V047EQFZ0RNYG5E48H7",
+  "version": 1
+}

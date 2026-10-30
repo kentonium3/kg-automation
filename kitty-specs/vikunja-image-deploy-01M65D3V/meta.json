@@ -1,0 +1,35 @@
+{
+  "accept_commit": "a4b747b4930e36b9711d8a0d706d6a30688d62f6",
+  "acceptance_history": [
+    {
+      "accept_commit": "a4b747b4930e36b9711d8a0d706d6a30688d62f6",
+      "acceptance_mode": "pr",
+      "accepted_at": "2026-10-30T06:23:54.375106+00:00",
+      "accepted_by": "kgale",
+      "accepted_from_commit": "1014c04b17ada4ad090e6191b82d9247aec705f9"
+    }
+  ],
+  "acceptance_mode": "pr",
+  "accepted_at": "2026-10-30T06:23:54.375106+00:00",
+  "accepted_by": "kgale",
+  "accepted_from_commit": "1014c04b17ada4ad090e6191b82d9247aec705f9",
+  "baseline_merge_commit": "8dda8b24c07983beb948eb5b88cc1bd54a6564f0",
+  "created_at": "2026-10-30T03:19:35.709147+00:00",
+  "flattened": true,
+  "friendly_name": "Vikunja image-archive staging and activation deploy route",
+  "merged_at": "2026-10-30T06:24:46.515876+00:00",
+  "merged_commit": "9579d231d0a37e0b9b888eea60d0c8d8cdd84b0b",
+  "mid8": "01M65D3V",
+  "mission_id": "01M65D3V047EQFZ0RNYG5E48H7",
+  "mission_number": 121,
+  "mission_slug": "vikunja-image-deploy-01M65D3V",
+  "mission_type": "software-dev",
+  "pr_bound": true,
+  "purpose_context": "The Vikunja RRULE release ships as a private image archive rather than a registry image, and the legacy deploy script can only pull from a registry. This mission adds an inert staging step that loads and verifies the exact archive on office2, and a separate activation step that switches the running service to it with a fresh database snapshot, post-start checks, and an executable rollback to the current 2.4.0 release. Activation is the production cutover and only proceeds on Kent's explicit go.",
+  "purpose_tldr": "Give the office2 Vikunja upgrade to the RRULE release a governed, reviewable, two-step deploy route with a proven rollback.",
+  "slug": "vikunja-image-deploy-01M65D3V",
+  "status_phase": "1",
+  "target_branch": "feat/vikunja-image-deploy",
+  "vcs": "git",
+  "vcs_locked_at": "2026-10-30T03:45:57.417146+00:00"
+}

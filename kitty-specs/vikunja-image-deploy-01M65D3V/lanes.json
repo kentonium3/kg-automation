@@ -1,0 +1,186 @@
+{
+  "version": 1,
+  "mission_slug": "vikunja-image-deploy-01M65D3V",
+  "mission_id": "01M65D3V047EQFZ0RNYG5E48H7",
+  "mission_branch": "kitty/mission-vikunja-image-deploy-01M65D3V",
+  "target_branch": "feat/vikunja-image-deploy",
+  "lanes": [
+    {
+      "lane_id": "lane-a",
+      "wp_ids": [
+        "WP01"
+      ],
+      "write_scope": [
+        "scripts/deploy/vikunja_release/__init__.py",
+        "scripts/deploy/vikunja_release/core.py",
+        "services/vikunja/release.json",
+        "tests/deploy/fixtures/vikunja_release/**",
+        "tests/deploy/test_vikunja_release_core.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "artifact-rendering",
+        "tracker-integration"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    },
+    {
+      "lane_id": "lane-e",
+      "wp_ids": [
+        "WP05"
+      ],
+      "write_scope": [
+        "docs/design/architecture/evidence/vikunja-lock-sandbox-2026-10.md"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "legacy-cleanup"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    },
+    {
+      "lane_id": "lane-b",
+      "wp_ids": [
+        "WP02"
+      ],
+      "write_scope": [
+        "scripts/deploy/vikunja_release/dbsafety.py",
+        "scripts/deploy/vikunja_release/readiness.py",
+        "tests/deploy/test_vikunja_release_db.py",
+        "tests/deploy/test_vikunja_release_readiness.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "legacy-cleanup"
+      ],
+      "depends_on_lanes": [
+        "lane-a"
+      ],
+      "parallel_group": 1
+    },
+    {
+      "lane_id": "lane-c",
+      "wp_ids": [
+        "WP03"
+      ],
+      "write_scope": [
+        "deploys/queued/vikunja-release-stage.yaml",
+        "scripts/deploy/deploy-vikunja-release-stage.py",
+        "tests/deploy/test_deploy_vikunja_release_stage.py"
+      ],
+      "predicted_surfaces": [
+        "api"
+      ],
+      "depends_on_lanes": [
+        "lane-a"
+      ],
+      "parallel_group": 1
+    },
+    {
+      "lane_id": "lane-g",
+      "wp_ids": [
+        "WP07"
+      ],
+      "write_scope": [
+        "scripts/vikunja/stage_release_archive.py",
+        "tests/deploy/test_vikunja_stage_release_archive.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "artifact-rendering"
+      ],
+      "depends_on_lanes": [
+        "lane-a"
+      ],
+      "parallel_group": 1
+    },
+    {
+      "lane_id": "lane-d",
+      "wp_ids": [
+        "WP04"
+      ],
+      "write_scope": [
+        "scripts/deploy/deploy-vikunja-release-activate.py",
+        "tests/deploy/test_deploy_vikunja_release_activate.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "legacy-cleanup"
+      ],
+      "depends_on_lanes": [
+        "lane-a",
+        "lane-b",
+        "lane-e"
+      ],
+      "parallel_group": 2
+    },
+    {
+      "lane_id": "lane-f",
+      "wp_ids": [
+        "WP06"
+      ],
+      "write_scope": [
+        "scripts/vikunja/rollback_release.py",
+        "tests/deploy/test_vikunja_rollback.py"
+      ],
+      "predicted_surfaces": [
+        "api"
+      ],
+      "depends_on_lanes": [
+        "lane-b"
+      ],
+      "parallel_group": 2
+    },
+    {
+      "lane_id": "lane-h",
+      "wp_ids": [
+        "WP08"
+      ],
+      "write_scope": [
+        "deploys/queued/vikunja-release-activate.yaml",
+        "docs/design/architecture/data/service-inventory.json",
+        "docs/design/architecture/service-inventory.md",
+        "services/vikunja/docker-compose.yml",
+        "tests/deploy/test_vikunja_cutover_change_set.py"
+      ],
+      "predicted_surfaces": [
+        "api"
+      ],
+      "depends_on_lanes": [
+        "lane-d"
+      ],
+      "parallel_group": 3
+    },
+    {
+      "lane_id": "lane-planning",
+      "wp_ids": [
+        "WP09"
+      ],
+      "write_scope": [
+        "docs/runbooks/deploy/discipline.md",
+        "docs/runbooks/vikunja-ops.md",
+        "docs/runbooks/vikunja-release-cutover.md"
+      ],
+      "predicted_surfaces": [
+        "planning"
+      ],
+      "depends_on_lanes": [
+        "lane-c",
+        "lane-d",
+        "lane-e",
+        "lane-f",
+        "lane-g",
+        "lane-h"
+      ],
+      "parallel_group": 4
+    }
+  ],
+  "computed_at": "2026-10-30T03:44:45.243020+00:00",
+  "computed_from": "dependency_graph+ownership",
+  "planning_artifact_wps": [
+    "WP09"
+  ],
+  "planning_commit_sha": "1c80c97fab9aa51dac4bb0a58e6eb0ada3b08127"
+}
