@@ -6,7 +6,7 @@ level: howto
 status: approved
 owners: [kgale]
 last_updated: '2026-10-30'
-revision: v1.2
+revision: v1.4
 audience: agents_and_humans
 tags: [vikunja, releases]
 ---
@@ -70,6 +70,12 @@ Required behavior and evidence:
   fork CI. The old `feat/*`-only route is insufficient. Preserve the candidate
   SHA through qualification and verify the SHA reported by CI; a different
   snapshot or merge commit does not qualify the intended candidate.
+- Strict qualification verifies one explicitly named evidence run. The push
+  hook takes `HARNESS_EVIDENCE_RUN=<run-id>`; `scan-candidate` takes
+  `--run-id <run-id>`; `fork-ci` passes the concrete run ID it dispatched or
+  polled. Missing or invalid evidence input refuses. Existing `feat/*` behavior
+  and `fork-ci` scheduling, discovery and polling remain unchanged. Discovery
+  is not qualification: only the verifier's PASS reports integration GREEN.
 - A downstream `main` goes only to the configured fork. Refuse deletion and
   non-fast-forward updates of published `main`, and require green fork CI on
   its exact new commit. `HARNESS_SKIP_CI_GATE` must not bypass that main check;
@@ -79,22 +85,42 @@ Required behavior and evidence:
   on `ci-base/*` is refused. Also cover main rewrite/deletion and wrong-remote
   refusals, the no-skip main CI rule, and clean/dirty `integrate/*` qualification.
   Preserve existing feature-branch scan coverage.
-- Before promotion, run the same leak scan against the exact CI-green
-  integration commit X and retain its full commit SHA, tree SHA and verdict.
-  Verify against fresh fork `main` that X is its descendant. If the candidate
-  or remote main moves, revalidate ancestry, scan and exact-commit CI as
-  applicable. The tested, scanned and promoted commit must all be X.
+- Before promotion, freeze integration commit X and name evidence run R. Scan
+  X with R and retain X's full commit SHA, tree SHA, R and the verifier's result.
+  The verifier checks only R: completed success, `pull_request` event, `ci/*`
+  head, exact head SHA X and accepted tested-tree provenance. Strict
+  qualification performs no run listing, ordering, newest-run selection or
+  fallback. Invalid or failed evidence refuses; never bypass it or silently
+  substitute another run. The command template, with full SHA X and positive
+  run ID R substituted from the packet, is:
+
+  ```bash
+  harness-docs/tools/scan-candidate X --target main --run-id R
+  ```
+
+  Verify against fresh fork `main` that X is its descendant. If X or remote
+  main moves, revalidate ancestry, scan and qualification as applicable. The
+  tested, scanned and promoted commit must all be X.
 - A PR into fork `main` provides review and visibility only. Do not use the
   GitHub merge, squash or rebase buttons: they can create a different commit
-  from X. Kent approves the exact fast-forward push `git push fork X:main`
-  (with the packet's full SHA substituted for X). Afterward verify fork main
-  equals X, then close the review PR with the promotion evidence. No force
-  push or hook bypass is a promotion route.
+  from X. Kent's final D3 packet gives one concrete command containing both
+  the full candidate SHA and the explicit evidence run ID. Its template is
+  `HARNESS_EVIDENCE_RUN=R git push fork X:main`; substitute the packet's full
+  SHA and positive run ID before presenting the exact action for approval.
+  The hook rechecks the named evidence. Afterward verify fork main equals X,
+  then close the review PR with the promotion evidence. No force push or hook
+  bypass is a promotion route.
 
 This is a prerequisite owned by the full #45 mission, not a gate implementation
 delivered by this documentation PR. Preserve classifier and publication gates.
 Do not claim downstream-main promotion ready until the reviewed gate change,
 tests, exact-commit CI and candidate scan evidence are available.
+These interfaces have passed WP01 review, but D1 closeout and delivery still
+precede operational use; this document does not claim the gate is installed.
+The supported publication path uses the configured fork and canonical remotes.
+It does not claim universal leak protection for arbitrary GitHub repositories;
+the harness's existing private-origin classification is not permission to use
+an otherwise unsupported publication destination.
 
 ### Prerequisite: isolate canonical publishing from fork validation
 
@@ -142,8 +168,9 @@ registry credentials, Actions-settings changes or workflow execution.
    and has no accidental workflow, credential, production data or configuration
    additions. Complete both prerequisites above and the release gates below.
    The packet binds review approval, green CI, the leak scan and release-guard
-   evidence to the same integration commit X. Kent then approves and performs
-   its exact fast-forward push to fork main; do not merge the PR in GitHub.
+   evidence to integration commit X and named evidence run R. Kent then approves
+   and performs the exact run-ID-bearing fast-forward push to fork main; do not
+   merge the PR in GitHub.
 5. Verify the fork's default branch is `main` and the repository page now shows
    X as the downstream source, then close the review PR with the verified SHA.
    A merge into `ci-base/*` does not satisfy this step.
@@ -202,6 +229,18 @@ any local merges, qualify and scan X, then promote X unchanged. Tree equivalence
 alone does not satisfy the exact-commit CI rule. If changes produce another
 commit, qualify and scan that new candidate before considering promotion.
 
+- Name evidence run R explicitly. Its accepted P2'' evidence includes exactly
+  one successful `harness-provenance` job and successful `Record tested tree`
+  step, the structured job `databaseId` bound to its log fetch, and the unique
+  accepted provenance marker matching X's tree. D1's named-run check does not
+  by itself prove P4: D2 must inspect the exact workflow tree and D3 must prove
+  end to end that provenance and every relied-on test job check out the same
+  `GITHUB_SHA`, without ref/repository/fetch overrides.
+- The D3 packet lists all completed fork runs on X, with IDs, links and
+  conclusions, including failures and cancellations. This informational list
+  is outside strict qualification. Identify R as the named qualifying
+  successful exact-tree run; list order or another run cannot substitute for
+  verifying R. A later failed or cancelled run does not silently replace R.
 - Required build, lint, typecheck, frontend tests and backend tests pass.
 - Fork CI exercises SQLite, MySQL and PostgreSQL. Cancelled or skipped required
   jobs are not passes; known exceptions require explicit recorded disposition.
@@ -210,11 +249,22 @@ commit, qualify and scan that new candidate before considering promotion.
 - Recurrence, DST, migration and API compatibility tests pass for affected paths.
   `/api/v1` stays frozen; new routes belong under `/api/v2`.
 - For this initial refreshed RRULE release, use two distinct private fixtures:
-  a retained hash-verified pre-migration snapshot (or a representative legacy
-  fixture) for conversion and per-id oracle comparison, and a fresh consistent
-  current-production snapshot for upgrade from the already-migrated deployed
-  version. Record provenance and expected assertions separately. A fresh
-  already-migrated database cannot prove legacy conversion.
+  the retained hash-verified pre-upgrade snapshot for conversion and per-id
+  oracle comparison, and a verified deployed-schema fixture for upgrade tests.
+  A retained derived Ring 4 migrated output qualifies for the latter only after
+  its migration-ID set and `sqlite_master` schema are proved equal to actual
+  post-ACTIVATE production evidence. If the retained receipts lack that proof,
+  the owning core may read the retained post-ACTIVATE B3 copy under the existing
+  own-account custody/read boundary. A classifier denial stops that read and
+  goes to Kent; never proxy it through another actor or bypass permissions.
+  Record fixture provenance and assertions separately, with the current binding
+  in [issue #45](https://github.com/kentonium3/vikunja-harness/issues/45).
+  Prove that the older subscription backfill executes, succeeds against the
+  post-RRULE schema, and leaves subscriptions/reminders correct. Keep all rows
+  private. No new live-production copy is part of this D2 integration mission;
+  a fresh production snapshot belongs to the next Office2 release acceptance
+  under its separately reviewed packet, window and go. An already-migrated
+  database cannot prove legacy conversion.
   For later releases, select replay coverage according to actual migration risk.
 - Complete the mission's required independent reviews, including post-plan and
   post-merge whole-diff review, and resolve significant findings.
@@ -273,7 +323,10 @@ operator decision, not an assumed expiry.
 ## Completion record and ownership
 
 The integration owner records source SHAs, conflicts, migrations and test/review
-evidence. The contribution owner records PR heads and upstream dispositions.
+evidence, including X/tree, named run R, verifier result, provenance job
+`databaseId`, P4 proof, fresh remote-main ancestry, the informational completed
+run list and the exact run-ID-bearing operator command. Strict evidence failures
+remain refusals. The contribution owner records PR heads and upstream dispositions.
 The release owner records public artifacts and a successful download/run check.
 The production owner records deployment and acceptance separately. The program
 manager coordinates dependencies and makes both public delivery and production
