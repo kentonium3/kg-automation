@@ -74,11 +74,30 @@ def _activate_compose_argv(*action: str) -> list[str]:
 
 
 def test_rollback_version_is_derived_the_same_way():
-    assert activate.rollback_version(_RELEASE) == rollback.rollback_version(_RELEASE) == "v2.4.0"
-    # And both follow the reviewed ref, not a literal: a different ref moves both.
+    tag = _RELEASE["rollback"]["ref"].rsplit(":", 1)[1]
+    expected = tag if tag.startswith("v") else "v" + tag
+    assert activate.rollback_version(_RELEASE) == expected
+    assert rollback.rollback_version(_RELEASE) == expected
+
+
+@pytest.mark.parametrize("tag,expected", [
+    ("2.4.0", "v2.4.0"),
+    ("v3.0.0-rrule.2", "v3.0.0-rrule.2"),
+    ("3.0.0-rrule.2", "v3.0.0-rrule.2"),
+    ("v3.0.0-671-0123456789", "v3.0.0-671-0123456789"),
+    ("3.0.0-671-0123456789", "v3.0.0-671-0123456789"),
+])
+def test_rollback_version_normalization(tag, expected):
     other = json.loads(json.dumps(_RELEASE))
-    other["rollback"]["ref"] = "vikunja/vikunja:2.4.1"
-    assert activate.rollback_version(other) == rollback.rollback_version(other) == "v2.4.1"
+    other["rollback"]["ref"] = "example.invalid/app:" + tag
+    assert activate.rollback_version(other) == expected
+    assert rollback.rollback_version(other) == expected
+
+
+def test_frozen_first_cutover_rollback_version():
+    historical = json.loads((_ROOT / "tests/deploy/fixtures/vikunja_first_cutover_release.json").read_text())
+    assert activate.rollback_version(historical) == "v2.4.0"
+    assert rollback.rollback_version(historical) == "v2.4.0"
 
 
 @pytest.mark.parametrize("key,action", [("ExecStart", ("up", "-d")), ("ExecStop", ("down",))])

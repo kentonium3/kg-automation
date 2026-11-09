@@ -63,10 +63,9 @@ Invariants
   untag ``active``, marker outcome ``failed`` with ``failed_phase`` and a
   stable code. It never starts anything.
 
-Output (R-16): line 1 is a fixed summary (``ACTIVATE_*`` or ``FAILED
-code=...``), then detail lines carrying only IDs, digests, versions, paths,
-counts and stable codes. Raw Docker, Compose and container output goes only
-to the private 0700 folder.
+Output: fixed summaries, release identity and stable status/error codes.
+Snapshot evidence, outage durations, conversion counts and captured logs
+remain private, including their locations.
 """
 
 from __future__ import annotations
@@ -87,7 +86,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 import yaml  # noqa: E402
 
-from scripts.deploy.vikunja_release import core, dbsafety, readiness  # noqa: E402
+from scripts.deploy.vikunja_release import baseline, core, dbsafety, readiness  # noqa: E402
 from scripts.deploy.vikunja_release.core import Fail  # noqa: E402
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -172,8 +171,10 @@ class Activate:
 
     def __init__(self, record: dict[str, Any], *, runner: Callable[..., Any], popen: Callable[..., Any],
                  clock: Callable[[], float], now: Callable[[], datetime],
-                 sleep: Callable[[float], None], disk_usage: Callable[[str], Any]) -> None:
+                 sleep: Callable[[float], None], disk_usage: Callable[[str], Any],
+                 repository_root: Path | str = core.REPO_ROOT) -> None:
         self.rec = record
+        self.repository_root = repository_root
         self.runner = runner
         self.base_runner = runner
         self.popen = popen
@@ -216,7 +217,7 @@ class Activate:
         facts = core.image_facts(self.digest, self.runner)
         if (facts is None or facts["id"] != self.digest or facts["architecture"] != arch_want
                 or facts["os"] != os_want or facts["user"] != self.rec["image"]["user"]
-                or facts["revision"] != self.rec["source_revision"]):
+                or not core.revision_matches(self.rec, facts["revision"], facts["revision_label_present"])):
             raise Fail("PRE_RELEASE_FACTS_MISMATCH")
 
     def _active_is_rollback(self) -> None:
@@ -340,7 +341,7 @@ class Activate:
             if name == "PRE_VERSION":
                 pre_version = value
             self.details.append((ACTIVATE_CHECK, {"check_code": name, "status_code": "MET"}))
-        self.details.append((ACTIVATE_MARKER, {"marker": self.marker_path, "status_code": "ABSENT"}))
+        self.details.append((ACTIVATE_MARKER, {"status_code": "ABSENT"}))
         if unmet:
             raise Fail("ACTIVATE_PRECONDITIONS_UNMET")
         assert pre_version is not None
@@ -363,7 +364,7 @@ class Activate:
     def _replay(self, marker: dict[str, Any]) -> list[Line]:
         outcome = marker.get("outcome")
         phase = marker["phase"]
-        self.details.append((ACTIVATE_MARKER, {"marker": self.marker_path, "phase": phase,
+        self.details.append((ACTIVATE_MARKER, {"phase": phase,
                                                "outcome": outcome}))
         if outcome == "rolled_back":
             raise Fail("ACTIVATE_ROLLED_BACK_REMOVE_QUEUED_MANIFEST")
@@ -405,7 +406,7 @@ class Activate:
             raise Fail("ACTIVATE_LOCK_UNAVAILABLE") from exc
         if not free:
             raise Fail("ACTIVATE_LOCK_BUSY")
-        self.details.append((ACTIVATION_LOCK_FREE, {"lock": self.lock_path}))
+        self.details.append((ACTIVATION_LOCK_FREE, {}))
 
     def release(self) -> None:
         """Called only as the process ends (``main``'s ``finally``)."""
@@ -421,7 +422,7 @@ class Activate:
         if marker is not None:
             return self.replay(marker)
         self.preconditions()
-        plan = ["MARKER_STARTED", "COMPOSE_DOWN", "UNTAG_ACTIVE", "SNAPSHOT", "TAG_ACTIVE_RELEASE",
+        plan = ["MARKER_STARTED", "COMPOSE_DOWN", "UNTAG_ACTIVE", "SNAPSHOT", "BASELINE_GATE", "TAG_ACTIVE_RELEASE",
                 "COMPOSE_UP", "VERIFY"]
         return [(ACTIVATE_DRY_RUN_READY, {"release_version": self.rec["release_version"],
                                           "config_digest": self.digest}),
@@ -452,8 +453,9 @@ class Activate:
             self._cleanup(exc.code)
             raise exc from None
         except Exception as exc:  # noqa: BLE001 - a bug after `down` still takes the lock
-            self._cleanup("ACTIVATE_INTERNAL_ERROR")
-            raise Fail("ACTIVATE_INTERNAL_ERROR", detail_private=traceback.format_exc()) from exc
+            code = "ACTIVATE_OUTAGE_DEADLINE" if outage.remaining() <= 0 else "ACTIVATE_INTERNAL_ERROR"
+            self._cleanup(code)
+            raise Fail(code, detail_private=traceback.format_exc()) from exc
 
     # -- the cutover (T019, T020) --------------------------------------------
 
@@ -519,9 +521,10 @@ class Activate:
                                                         self.clock))
         self._advance("snapshotted", snapshot_dir=snap["snapshot_dir"], snapshot_sha=snap["db_sha256"],
                       tasks_before=snap["tasks_count"])
-        self.details.append((ACTIVATE_SNAPSHOT, {"snapshot_dir": snap["snapshot_dir"],
-                                                 "db_sha256": snap["db_sha256"],
-                                                 "tasks_before": snap["tasks_count"]}))
+        self.details.append((ACTIVATE_SNAPSHOT, {"status_code": "PERSISTED"}))
+        baseline.gate(self.rec, snap, repository_root=self.repository_root,
+                      deadline=core.Deadline(cap(30.0, "ACTIVATE_OUTAGE"), self.clock))
+        outage.check("ACTIVATE_OUTAGE")
 
         # T020: select, start, verify. From here `active` is the release;
         # nothing in this file ever tags it to the rollback image (INV-1).
@@ -553,17 +556,17 @@ class Activate:
                                      timeout=log_timeout, clock=self.clock)
         if log is None:
             raise Fail("ACTIVATE_LOGS_NOT_CAPTURED")
-        migrated, counts = readiness.migration_ok(log)
+        migrated, _ = readiness.migration_ok(log)
         if not migrated:
             raise Fail("ACTIVATE_MIGRATION_LOG_MISSING")
         outage.check("ACTIVATE_OUTAGE")
         outage_s = int(OUTAGE_S - outage.remaining())
         self._advance("verified", outcome="success", verified_at=_stamp(self.now()),
                       outage_seconds=outage_s, verify_log=str(log))
-        self.details.append((ACTIVATE_LOGS, {"private_log": log}))
-        self.details.append((ACTIVATE_MIGRATION, dict(counts or {})))
+        self.details.append((ACTIVATE_LOGS, {"status_code": "CAPTURED"}))
+        self.details.append((ACTIVATE_MIGRATION, {"status_code": "VERIFIED"}))
         return [(ACTIVATE_VERIFIED, {"release_version": version, "config_digest": self.digest,
-                                     "pre_version": pre_version, "outage_seconds": outage_s}),
+                                     "pre_version": pre_version}),
                 *self.details]
 
     # -- failure handling (T021) -------------------------------------------
@@ -634,8 +637,7 @@ class Activate:
         self.details.append((ACTIVATE_FAILED_AT, {"phase": self.phase, "failed_phase": failed_phase}))
         self.details.append((ACTIVATE_CLEANUP, {
             "lock_code": state["lock_code"], "container_code": state["container_code"],
-            "cleanup_code": problems[0] if problems else None, "problems": len(problems),
-            "private_log": log}))
+            "cleanup_code": problems[0] if problems else None, "problems": len(problems)}))
 
     def _private(self, name: str, text: str) -> None:
         try:
@@ -649,7 +651,7 @@ def main(argv: list[str] | None = None, *, runner: Callable[..., Any] = subproce
          now: Callable[[], datetime] = lambda: datetime.now(timezone.utc),
          sleep: Callable[[float], None] = time.sleep, disk_usage: Callable[[str], Any] = shutil.disk_usage,
          release_path: Path | str = RELEASE_PATH, stdout: TextIO | None = None,
-         stderr: TextIO | None = None) -> int:
+         stderr: TextIO | None = None, repository_root: Path | str = core.REPO_ROOT) -> int:
     previous_umask = os.umask(dbsafety.PRIVATE_UMASK)
     try:
         args = list(sys.argv[1:] if argv is None else argv)
@@ -664,7 +666,7 @@ def main(argv: list[str] | None = None, *, runner: Callable[..., Any] = subproce
 
         def body(mode: str) -> None:
             run = Activate(core.load_release(release_path), runner=runner, popen=popen, clock=clock,
-                           now=now, sleep=sleep, disk_usage=disk_usage)
+                           now=now, sleep=sleep, disk_usage=disk_usage, repository_root=repository_root)
             holder["run"] = run
             lines = run.dry_run() if mode == "dry-run" else run.apply()
             for summary, fields in lines:

@@ -1,22 +1,9 @@
-"""The ACTIVATE merge's change set (#1087, WP08).
+"""Historical Compose contract and phase-aware repeat cutover; see #1095.
 
-These files merge together, and only after STAGE is applied; the go packet
-assembles the STAGE merge from everything else (WP09). Checks:
-
-* the Compose change is exactly two lines against the mission base
-  (``93f40d4a``, origin/main): ``image:`` now names the local indirection tag
-  and ``pull_policy: never`` is added directly under it (FR-007 as amended);
-* the ACTIVATE manifest validates, declares its baseline, and its post checks
-  are release-exact, built here from ``services/vikunja/release.json`` rather
-  than hard-coded a second time (R-12);
-* the service inventory (JSON and markdown) matches the Compose file and the
-  release record (FR-016);
-* the exact path set of this change set.
-
-CI checks out with depth 1, so the base Compose file is pinned by sha256
-(taken from ``git show 93f40d4a:services/vikunja/docker-compose.yml``); the
-test reverses the two-line change and requires that hash. Where the base
-commit is available, a second test ties the pin to ``git show``.
+History is explicitly 0033/0034 with the frozen first-cutover identities
+(see #1087). STAGE retains deployed inventory; ACTIVATE promotes it. A broken
+queued manifest cannot be masked by applied history or a valid applied release.
+The historical Compose reversal hash also works in shallow CI checkouts.
 """
 
 from __future__ import annotations
@@ -25,20 +12,24 @@ import difflib
 import hashlib
 import json
 import subprocess
+import shutil
+import sys
 from pathlib import Path
 
 import pytest
 import yaml
 
 from scripts.deploy.lib import manifest as manifest_lib
+from scripts.deploy.vikunja_release import baseline, core
 
 _ROOT = Path(__file__).resolve().parents[2]
 _COMPOSE = _ROOT / "services" / "vikunja" / "docker-compose.yml"
-_RELEASE = _ROOT / "services" / "vikunja" / "release.json"
 _INVENTORY_JSON = _ROOT / "docs" / "design" / "architecture" / "data" / "service-inventory.json"
 _INVENTORY_MD = _ROOT / "docs" / "design" / "architecture" / "service-inventory.md"
-_MANIFEST_QUEUED = _ROOT / "deploys" / "queued" / "vikunja-release-activate.yaml"
 _ENTRY_REL = "scripts/deploy/deploy-vikunja-release-activate.py"
+_HISTORICAL_ACTIVATE = "0034-vikunja-release-activate.yaml"
+_HISTORICAL_STAGE = "0033-vikunja-release-stage.yaml"
+_FROZEN = _ROOT / "tests/deploy/fixtures/vikunja_first_cutover_release.json"
 
 #: The mission base on origin/main, and the sha256 of its Compose file.
 BASE_COMMIT = "93f40d4a"
@@ -46,14 +37,18 @@ BASE_COMPOSE_SHA256 = "ae5c779b6acd8bde58c2de3f9f0377948b23511e3d6aac8504cd221c8
 OLD_LINE = "    image: vikunja/vikunja:2.4.0\n"
 NEW_LINES = "    image: office2.local/vikunja:active\n    pull_policy: never\n"
 
-#: The ACTIVATE merge: exactly these paths. The STAGE merge is everything
-#: else in the mission (WP09 documents the assembly).
-CUTOVER_PATHS = frozenset({
+#: Historical first-cutover set; repeat ACTIVATE has just the three WP07 paths.
+HISTORICAL_CUTOVER_PATHS = frozenset({
     "services/vikunja/docker-compose.yml",
     "deploys/queued/vikunja-release-activate.yaml",
     "docs/design/architecture/data/service-inventory.json",
     "docs/design/architecture/service-inventory.md",
     "tests/deploy/test_vikunja_cutover_change_set.py",
+})
+CUTOVER_PATHS = frozenset({
+    "deploys/queued/vikunja-release-activate.yaml",
+    "docs/design/architecture/data/service-inventory.json",
+    "docs/design/architecture/service-inventory.md",
 })
 #: Paths the cutover depends on that must ship EARLIER, in the STAGE merge:
 #: the inert ACTIVATE code, the release record and the STAGE manifest.
@@ -65,19 +60,24 @@ STAGE_MERGE_PREREQUISITES = frozenset({
 })
 
 
-def _release() -> dict:
-    return json.loads(_RELEASE.read_text(encoding="utf-8"))
+def _release(root: Path = _ROOT) -> dict:
+    return core.load_release(root / "services/vikunja/release.json")
 
 
-def _resolve_manifest_path() -> Path:
-    if _MANIFEST_QUEUED.exists():
-        return _MANIFEST_QUEUED
-    applied = sorted((_ROOT / "deploys" / "applied").glob("*-vikunja-release-activate.yaml"))
-    return applied[-1] if applied else _MANIFEST_QUEUED
+def _manifest(path: Path) -> dict:
+    result = manifest_lib.validate_manifest_file(path)
+    assert result.ok, result.details
+    return yaml.safe_load(path.read_text(encoding="utf-8"))
 
 
-def _manifest() -> dict:
-    return yaml.safe_load(_resolve_manifest_path().read_text(encoding="utf-8"))
+def _historical_release(root: Path) -> dict:
+    rec = json.loads(_FROZEN.read_text(encoding="utf-8"))
+    # The frozen fixture sanitizes service locations. Derive the historical
+    # public endpoint from unchanged Compose, independently of release.json.
+    service = yaml.safe_load((root / "services/vikunja/docker-compose.yml").read_text())["services"]["vikunja"]
+    rec["service"]["container"] = service["container_name"]
+    rec["service"]["info_url"] = "http://" + service["ports"][0].rsplit(":", 1)[0] + "/api/v1/info"
+    return rec
 
 
 # ---------------------------------------------------------------------------
@@ -101,7 +101,7 @@ def two_line_change_problems(text: str) -> list[str]:
     return problems
 
 
-def test_compose_is_the_base_plus_exactly_two_lines():
+def test_historical_compose_is_the_base_plus_exactly_two_lines():
     text = _COMPOSE.read_text(encoding="utf-8")
     assert two_line_change_problems(text) == []
     svc = yaml.safe_load(text)["services"]["vikunja"]
@@ -156,108 +156,386 @@ def expected_post_checks(rec: dict) -> list[str]:
     ]
 
 
-def test_manifest_fields():
-    m = _manifest()
+def _expected_stage_checks(rec: dict) -> list[str]:
+    return [
+        f"docker image inspect --format '{{{{.Id}}}}' {rec['tags']['release']} | grep -qx {rec['image']['config_digest']}",
+        f"docker image inspect --format '{{{{.Id}}}}' {rec['rollback']['ref']} | grep -qx {rec['rollback']['image_id']}",
+    ]
+
+
+def _check_manifest(root: Path, path: Path, rec: dict, kind: str, issue: str) -> dict:
+    m = _manifest(path)
+    entry = f"scripts/deploy/deploy-vikunja-release-{kind}.py"
     assert m["schema_version"] == "v1"
-    assert m["name"] == "vikunja-release-activate"
-    assert m["issue"] == "kentonium3/kg-automation#1087"
-    assert m["tier"] == 2
-    assert m["entrypoint"] == _ENTRY_REL and (_ROOT / _ENTRY_REL).is_file()
-    assert m["audited_surface"] is True
+    assert m["name"] == f"vikunja-release-{kind}"
+    assert m["issue"] == f"kentonium3/kg-automation#{issue}"
+    assert m["tier"] == 2 and m["audited_surface"] is True
+    assert m["entrypoint"] == entry and (root / entry).is_file()
     assert m["expected_baselines"] == ["docker-images.txt"]
-    assert m["created_by"] == "claude-code-1087"
-    assert m["verification"]["pre"] == [f"{_ENTRY_REL} --dry-run"]
-    notes = m["notes"]
-    assert 0 < len(notes) <= 2000
-    for needle in ("R-21", "Cancel (R-17)", "ACTIVATE_ROLLED_BACK_REMOVE_QUEUED_MANIFEST", "Retry (R-24)",
-                   "retired.json"):
-        assert needle in notes
-
-
-def test_manifest_post_checks_are_the_release_records_identities():
-    rec = _release()
-    posts = _manifest()["verification"]["post"]
-    assert posts == expected_post_checks(rec)
-    # Spot-check the pinned values once, so a record edit is visible here too.
-    assert rec["image"]["config_digest"] in posts[0] and rec["release_version"] in posts[1]
-    # Negative control: a record for another release would not match.
-    other = json.loads(json.dumps(rec))
-    other["release_version"] = "v2.7.1-671-0000000000"
-    assert posts != expected_post_checks(other)
-
-
-def test_manifest_validates_against_the_schema():
-    result = manifest_lib.validate_manifest_file(_resolve_manifest_path())
-    assert result.ok, result.details
-    assert not manifest_lib.validate_manifest(dict(_manifest(), surprise=True)).ok
-
-
-def test_manifest_expected_baselines_are_known():
-    m = _manifest()
     assert manifest_lib.validate_expected_baselines_only(m).ok
+    assert m["created_by"] and m["created_at"]
+    assert 0 < len(m["notes"]) <= 2000
+    assert m["verification"]["pre"] == [f"{entry} --dry-run"]
+    expected = expected_post_checks(rec) if kind == "activate" else _expected_stage_checks(rec)
+    assert m["verification"]["post"] == expected
+    return m
+
+
+def _resolve_manifest_path(root: Path, rec: dict, kind: str) -> Path | None:
+    """A queued manifest is authoritative even when malformed or stale."""
+    queued = root / f"deploys/queued/vikunja-release-{kind}.yaml"
+    if queued.exists():
+        _check_manifest(root, queued, rec, kind, "1095")
+        return queued
+    matches = []
+    for path in sorted((root / "deploys/applied").glob(f"*-vikunja-release-{kind}.yaml")):
+        if path.name in (_HISTORICAL_ACTIVATE, _HISTORICAL_STAGE):
+            continue
+        m = _manifest(path)
+        expected = expected_post_checks(rec) if kind == "activate" else _expected_stage_checks(rec)
+        if m["verification"]["post"] == expected:
+            _check_manifest(root, path, rec, kind, "1095")
+            matches.append(path)
+        else:
+            # An applied record naming the current version/tag with broken
+            # checks is invalid, rather than an excuse to select history.
+            identity = rec["release_version"] if kind == "activate" else rec["tags"]["release"]
+            assert identity not in "\n".join(m["verification"]["post"])
+    assert len(matches) <= 1, "ambiguous current manifests"
+    return matches[0] if matches else None
+
+
+def _check_inventory(root: Path, rec: dict, historical: dict, phase: str) -> None:
+    data = json.loads((root / _INVENTORY_JSON.relative_to(_ROOT)).read_text())
+    [entry] = [s for s in data["services"] if s.get("name") == "vikunja"]
+    compose = yaml.safe_load((root / _COMPOSE.relative_to(_ROOT)).read_text())["services"]["vikunja"]
+    assert compose["image"] == rec["tags"]["active"] == entry["image"]
+    assert compose["pull_policy"] == "never"
+    deployed = rec if phase == "ACTIVATE" else historical
+    issue = "#1095" if phase == "ACTIVATE" else "#1087"
+    assert entry["updated_by"] == issue
+    assert issue in data["updated_by"]
+    for value in (deployed["release_version"], deployed["source_revision"],
+                  deployed["archive"]["sha256"], deployed["image"]["config_digest"],
+                  deployed["rollback"]["image_id"]):
+        assert value in entry["notes"]
+    md = (root / _INVENTORY_MD.relative_to(_ROOT)).read_text()
+    rows = [line for line in md.splitlines() if line.startswith("| Vikunja |")]
+    assert len(rows) == 1
+    assert deployed["release_version"] in rows[0] and rec["tags"]["active"] in rows[0]
+    assert "`pull_policy: never`" in md
+    if phase == "STAGE":
+        assert rec["rollback"]["image_id"] == historical["image"]["config_digest"]
+        tag = rec["rollback"]["ref"].rsplit(":", 1)[1]
+        assert (tag if tag.startswith("v") else "v" + tag) == historical["release_version"]
+        assert rec["release_version"] not in entry["notes"]
+        assert rec["image"]["config_digest"] not in entry["notes"]
+        assert rec["release_version"] not in rows[0]
+
+
+def check_tree(root: Path) -> str:
+    """Validate history in every phase, then the current release and inventory."""
+    historical = _historical_release(root)
+    applied = root / "deploys/applied"
+    _check_manifest(root, applied / _HISTORICAL_STAGE, historical, "stage", "1087")
+    m = _check_manifest(root, applied / _HISTORICAL_ACTIVATE, historical, "activate", "1087")
+    assert m["created_by"] == "claude-code-1087"
+    for needle in ("R-21", "Cancel (R-17)", "ACTIVATE_ROLLED_BACK_REMOVE_QUEUED_MANIFEST",
+                   "Retry (R-24)", "retired.json"):
+        assert needle in m["notes"]
+    rec = _release(root)
+    if rec["release_version"] == historical["release_version"]:
+        # The original tree has no repeat-release manifests.
+        assert not list((root / "deploys/queued").glob("vikunja-release-*.yaml"))
+        assert rec["image"] == historical["image"]
+        phase = "historical"
+    else:
+        baseline.load_bound(rec, root)
+        assert _resolve_manifest_path(root, rec, "stage") is not None, "current STAGE missing"
+        phase = "ACTIVATE" if _resolve_manifest_path(root, rec, "activate") else "STAGE"
+    _check_inventory(root, rec, historical, phase)
+    return phase
+
+
+def test_current_tree():
+    assert check_tree(_ROOT) in {"historical", "STAGE", "ACTIVATE"}
+
+
+def test_historical_manifest_schema_controls():
+    m = _manifest(_ROOT / "deploys/applied" / _HISTORICAL_ACTIVATE)
+    assert not manifest_lib.validate_manifest(dict(m, surprise=True)).ok
     assert not manifest_lib.validate_expected_baselines_only(dict(m, expected_baselines=["nope.txt"])).ok
     assert not manifest_lib.validate_expected_baselines_only(dict(m, audited_surface=False)).ok
 
 
-# ---------------------------------------------------------------------------
-# T035 — service inventory
-# ---------------------------------------------------------------------------
-
-
-def _vikunja_entry() -> dict:
-    data = json.loads(_INVENTORY_JSON.read_text(encoding="utf-8"))
-    [entry] = [s for s in data["services"] if s.get("name") == "vikunja"]
-    return entry
-
-
-def test_inventory_json_matches_compose_and_release():
-    rec = _release()
-    entry = _vikunja_entry()
-    compose_image = yaml.safe_load(_COMPOSE.read_text(encoding="utf-8"))["services"]["vikunja"]["image"]
-    assert entry["image"] == compose_image == rec["tags"]["active"]
-    assert entry["updated_by"] == "#1087"
-    for value in (rec["release_version"], rec["source_revision"], rec["archive"]["sha256"],
-                  rec["image"]["config_digest"], rec["rollback"]["image_id"]):
-        assert value in entry["notes"]
-    top = json.loads(_INVENTORY_JSON.read_text(encoding="utf-8"))
-    assert "#1087" in top["updated_by"].split(" + ")[0]
-
-
-def test_inventory_markdown_matches():
-    md = _INVENTORY_MD.read_text(encoding="utf-8")
-    row = [l for l in md.splitlines() if l.startswith("| Vikunja |")]
-    assert len(row) == 1 and "`office2.local/vikunja:active`" in row[0]
-    assert "v2.7.1-670-420c7bcb75" in row[0]
-    assert "vikunja/vikunja:0.24.6" not in md
-    assert "**Image selection (#1087)**" in md and "`pull_policy: never`" in md
-
-
-# ---------------------------------------------------------------------------
-# T036 — the change-set path set
-# ---------------------------------------------------------------------------
-
-
-def test_cutover_path_set_is_exact_and_present():
+def test_cutover_path_sets():
     assert CUTOVER_PATHS == {
-        "services/vikunja/docker-compose.yml",
         "deploys/queued/vikunja-release-activate.yaml",
         "docs/design/architecture/data/service-inventory.json",
         "docs/design/architecture/service-inventory.md",
+    }
+    assert HISTORICAL_CUTOVER_PATHS == CUTOVER_PATHS | {
+        "services/vikunja/docker-compose.yml",
         "tests/deploy/test_vikunja_cutover_change_set.py",
     }
-    for rel in CUTOVER_PATHS:
-        if rel.startswith("deploys/queued/"):
-            assert _resolve_manifest_path().exists(), rel
-        else:
-            assert (_ROOT / rel).is_file(), rel
-    assert Path(__file__).resolve().relative_to(_ROOT).as_posix() in CUTOVER_PATHS
-
-
-def test_cutover_set_excludes_what_must_ship_first_with_stage():
-    """The ACTIVATE code, release record and STAGE manifest ship in the STAGE
-    merge, before this set; none may be in the cutover set."""
     assert CUTOVER_PATHS.isdisjoint(STAGE_MERGE_PREREQUISITES)
-    assert _manifest()["entrypoint"] in STAGE_MERGE_PREREQUISITES
-    # The ACTIVATE manifest names an entrypoint outside this set, so a STAGE
-    # merge that lacked it would fail the deployer's tier guard, not run.
-    assert _manifest()["entrypoint"] not in CUTOVER_PATHS
+    assert _ENTRY_REL in STAGE_MERGE_PREREQUISITES
+    for path in STAGE_MERGE_PREREQUISITES - {"deploys/queued/vikunja-release-stage.yaml"}:
+        assert (_ROOT / path).is_file()
+
+
+def _write(path: Path, value) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(value) if not isinstance(value, str) else value, encoding="utf-8")
+
+
+def _promote(root: Path, rec: dict, issue: str = "#1095") -> None:
+    _write(root / _INVENTORY_JSON.relative_to(_ROOT), {
+        "updated_by": issue, "services": [{
+            "name": "vikunja", "image": rec["tags"]["active"], "updated_by": issue,
+            "notes": " ".join((rec["release_version"], rec["source_revision"], rec["archive"]["sha256"],
+                               rec["image"]["config_digest"], rec["rollback"]["image_id"])),
+        }],
+    })
+    _write(root / _INVENTORY_MD.relative_to(_ROOT),
+           f"| Vikunja | `{rec['tags']['active']}` | {rec['release_version']} |\n`pull_policy: never`\n")
+
+
+@pytest.fixture
+def phase_tree(tmp_path):
+    for rel in (
+        _COMPOSE.relative_to(_ROOT), _INVENTORY_JSON.relative_to(_ROOT), _INVENTORY_MD.relative_to(_ROOT),
+        Path("deploys/applied") / _HISTORICAL_STAGE, Path("deploys/applied") / _HISTORICAL_ACTIVATE,
+        Path(_ENTRY_REL), Path("scripts/deploy/deploy-vikunja-release-stage.py"),
+    ):
+        target = tmp_path / rel
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(_ROOT / rel, target)
+    historical = _historical_release(tmp_path)
+    _promote(tmp_path, historical, "#1087")
+    _write(tmp_path / "services/vikunja/release.json", historical)
+    assert check_tree(tmp_path) == "historical"
+    rec = json.loads(json.dumps(historical))
+    rec["release_version"] = "v3.0.0-rrule.1"
+    rec["source_revision"] = "a" * 40
+    rec["image"]["config_digest"] = "sha256:" + "b" * 64
+    rec["archive"]["sha256"] = "c" * 64
+    rec["tags"]["release"] = "office2.local/vikunja:" + rec["release_version"]
+    rec["rollback"]["ref"] = historical["tags"]["release"]
+    rec["rollback"]["image_id"] = historical["image"]["config_digest"]
+    facts = {
+        "schema_version": 1, "previous_version": historical["release_version"],
+        "previous_image_config": rec["rollback"]["image_id"],
+        "pre_upgrade_migration_ids": ["10", "SCHEMA_INIT"],
+        "added_migration_ids": [str(i) for i in range(20, 30)],
+        "schema_identity": {"algorithm": "sqlite-master-sha256-v1",
+                            "pre_upgrade": "d" * 64, "target": "e" * 64},
+    }
+    rel = "services/vikunja/baselines/synthetic.json"
+    _write(tmp_path / rel, facts)
+    rec["baseline"] = {"path": rel, "sha256": hashlib.sha256((tmp_path / rel).read_bytes()).hexdigest()}
+    _write(tmp_path / "services/vikunja/release.json", rec)
+    for kind, name in (("stage", _HISTORICAL_STAGE), ("activate", _HISTORICAL_ACTIVATE)):
+        m = _manifest(tmp_path / "deploys/applied" / name)
+        for key in ("apply_mode", "applied_at", "rebaseline"):
+            m.pop(key)
+        m.update(issue="kentonium3/kg-automation#1095", created_by="synthetic-implementer",
+                 notes="Synthetic repeat cutover; see #1095.")
+        m["verification"]["post"] = _expected_stage_checks(rec) if kind == "stage" else expected_post_checks(rec)
+        _write(tmp_path / f"deploys/queued/vikunja-release-{kind}.yaml", m)
+    activate_path = tmp_path / "deploys/queued/vikunja-release-activate.yaml"
+    activate_manifest = _manifest(activate_path)
+    activate_path.unlink()
+    assert check_tree(tmp_path) == "STAGE"
+    return tmp_path, rec, activate_manifest
+
+
+@pytest.mark.parametrize("stage_applied", [False, True])
+@pytest.mark.parametrize("activate_form", ["absent", "queued", "applied"])
+def test_phase_matrix(phase_tree, stage_applied, activate_form):
+    root, rec, m = phase_tree
+    if stage_applied:
+        (root / "deploys/queued/vikunja-release-stage.yaml").rename(
+            root / "deploys/applied/0040-vikunja-release-stage.yaml")
+    if activate_form != "absent":
+        path = ("deploys/queued/vikunja-release-activate.yaml" if activate_form == "queued"
+                else "deploys/applied/0041-vikunja-release-activate.yaml")
+        _write(root / path, m)
+        _promote(root, rec)
+    assert check_tree(root) == ("STAGE" if activate_form == "absent" else "ACTIVATE")
+
+
+@pytest.mark.parametrize("fault", [
+    "yaml", "wrong-release", "missing-post", "wrong-image", "audit", "baselines",
+    "issue", "entrypoint", "pre", "tier", "creator",
+])
+@pytest.mark.parametrize("stage_applied", [False, True])
+def test_invalid_queued_activate_never_falls_back(phase_tree, fault, stage_applied):
+    root, rec, m = phase_tree
+    if stage_applied:
+        (root / "deploys/queued/vikunja-release-stage.yaml").rename(
+            root / "deploys/applied/0040-vikunja-release-stage.yaml")
+    queued = root / "deploys/queued/vikunja-release-activate.yaml"
+    # A valid applied current record and history cannot mask a broken queue.
+    _write(root / "deploys/applied/0041-vikunja-release-activate.yaml", m)
+    _write(queued, m)
+    _promote(root, rec)
+    assert check_tree(root) == "ACTIVATE"
+    if fault == "wrong-release":
+        m["verification"]["post"][1] = "echo stale-release"
+    elif fault == "missing-post":
+        m["verification"]["post"] = []
+    elif fault == "wrong-image":
+        m["verification"]["post"][0] = "echo wrong-image"
+    elif fault == "audit":
+        m["audited_surface"] = False
+    elif fault == "baselines":
+        m["expected_baselines"] = []
+    elif fault == "issue":
+        m["issue"] = "kentonium3/kg-automation#1087"
+    elif fault == "entrypoint":
+        m["entrypoint"] = "scripts/deploy/deploy-vikunja-release-stage.py"
+    elif fault == "pre":
+        m["verification"]["pre"] = []
+    elif fault == "tier":
+        m["tier"] = 1
+    elif fault == "creator":
+        m["created_by"] = ""
+    _write(queued, "[" if fault == "yaml" else m)
+    with pytest.raises(AssertionError):
+        check_tree(root)
+
+
+@pytest.mark.parametrize("fault", [
+    "binding-missing", "binding-hash", "baseline-missing", "stage-missing", "stage-stale",
+    "inventory-premature", "inventory-json", "inventory-md", "applied-post",
+])
+def test_phase_refusals(phase_tree, fault):
+    root, rec, m = phase_tree
+    assert check_tree(root) == "STAGE"
+    if fault == "binding-missing":
+        rec.pop("baseline")
+    elif fault == "binding-hash":
+        rec["baseline"]["sha256"] = "0" * 64
+    elif fault == "baseline-missing":
+        (root / rec["baseline"]["path"]).unlink()
+    elif fault.startswith("stage-"):
+        path = root / "deploys/queued/vikunja-release-stage.yaml"
+        if fault == "stage-missing":
+            path.unlink()
+        else:
+            value = _manifest(path)
+            value["verification"]["post"] = _expected_stage_checks(_historical_release(root))
+            _write(path, value)
+    elif fault == "inventory-premature":
+        _promote(root, rec)
+    else:
+        _write(root / "deploys/applied/0041-vikunja-release-activate.yaml", m)
+        _promote(root, rec)
+        assert check_tree(root) == "ACTIVATE"
+        if fault == "inventory-json":
+            path = root / _INVENTORY_JSON.relative_to(_ROOT)
+            value = json.loads(path.read_text())
+            value["services"][0]["notes"] = "stale inventory"
+            _write(path, value)
+        elif fault == "inventory-md":
+            path = root / _INVENTORY_MD.relative_to(_ROOT)
+            _write(path, path.read_text().replace(rec["release_version"], "v0.0.0"))
+        else:
+            m["verification"]["post"][0] = "echo broken-current-image"
+            _write(root / "deploys/applied/0041-vikunja-release-activate.yaml", m)
+    _write(root / "services/vikunja/release.json", rec)
+    with pytest.raises((AssertionError, core.Fail)):
+        check_tree(root)
+
+
+def test_stale_applied_activate_does_not_promote_inventory(phase_tree):
+    root, rec, m = phase_tree
+    historical = _historical_release(root)
+    m["verification"]["post"] = expected_post_checks(historical)
+    _write(root / "deploys/applied/9999-vikunja-release-activate.yaml", m)
+    assert check_tree(root) == "STAGE"
+
+
+@pytest.mark.parametrize("fault", ["issue", "post", "stage-post", "unexpected-queue"])
+def test_frozen_history_refusals(phase_tree, fault):
+    root, _, queued = phase_tree
+    historical = _historical_release(root)
+    _write(root / "services/vikunja/release.json", historical)
+    (root / "deploys/queued/vikunja-release-stage.yaml").unlink()
+    _promote(root, historical, "#1087")
+    assert check_tree(root) == "historical"
+    path = root / "deploys/applied" / (_HISTORICAL_STAGE if fault == "stage-post" else _HISTORICAL_ACTIVATE)
+    m = _manifest(path)
+    if fault == "unexpected-queue":
+        _write(root / "deploys/queued/vikunja-release-activate.yaml", queued)
+    else:
+        if fault == "issue":
+            m["issue"] = "kentonium3/kg-automation#1095"
+        else:
+            m["verification"]["post"][0] = "echo wrong historical image"
+        _write(path, m)
+    with pytest.raises(AssertionError):
+        check_tree(root)
+
+
+def test_invalid_queued_stage_is_not_masked_by_applied_current(phase_tree):
+    root, _, _ = phase_tree
+    path = root / "deploys/queued/vikunja-release-stage.yaml"
+    m = _manifest(path)
+    _write(root / "deploys/applied/0040-vikunja-release-stage.yaml", m)
+    assert check_tree(root) == "STAGE"
+    m["verification"]["post"] = _expected_stage_checks(_historical_release(root))
+    _write(path, m)
+    with pytest.raises(AssertionError):
+        check_tree(root)
+
+
+@pytest.mark.parametrize("wal", [False, True])
+def test_documented_b3_keeps_stable_db_and_wal_without_shm(tmp_path, wal):
+    text = (_ROOT / "docs/runbooks/vikunja-release-cutover.md").read_text()
+    script = text.split("python3 - <<'PY'\n", 1)[1].split("\nPY\n", 1)[0]
+    source = tmp_path / "data"
+    source.mkdir()
+    (source / "vikunja.db").write_bytes(b"synthetic database bytes")
+    (source / "vikunja.db-shm").write_bytes(b"synthetic index bytes")
+    if wal:
+        (source / "vikunja.db-wal").write_bytes(b"synthetic WAL bytes")
+    private = tmp_path / "copies"
+    private.mkdir(mode=0o700)
+    _write(tmp_path / "services/vikunja/release.json", {
+        "service": {"data_dir": str(source)}, "roots": {"private_logs": str(private)},
+    })
+    result = subprocess.run([sys.executable, "-c", script], cwd=tmp_path, capture_output=True,
+                            text=True, timeout=10, check=True)
+    copy = Path(result.stdout.strip())
+    assert copy.parent.parent == private
+    assert copy.read_bytes() == (source / "vikunja.db").read_bytes()
+    assert not copy.with_name("vikunja.db-shm").exists()
+    assert copy.with_name("vikunja.db-wal").exists() is wal
+    if wal:
+        assert copy.with_name("vikunja.db-wal").read_bytes() == (source / "vikunja.db-wal").read_bytes()
+    assert list(private.iterdir()) == [copy.parent]
+    assert copy.parent.stat().st_mode & 0o777 == 0o700
+
+
+def test_candidate_archive_includes_repeat_dependencies():
+    text = (_ROOT / "docs/runbooks/vikunja-release-cutover.md").read_text()
+    archive = text.split('git -C "$REPO" archive --format=tar "$CAND"', 1)[1].split("| ssh", 1)[0]
+    for rel in (
+        "scripts/deploy/deploy-vikunja-release-stage.py",
+        "scripts/deploy/deploy-vikunja-release-activate.py",
+        "scripts/deploy/vikunja_release", "scripts/deploy/lib",
+        "scripts/vikunja/preflight_release_baseline.py",
+        "scripts/vikunja/verify_release_upgrade.py",
+        "scripts/vikunja/build_release_baseline.py",
+        "scripts/vikunja/rollback_release.py",
+        "services/vikunja/release.json", "services/vikunja/baselines",
+    ):
+        assert rel in archive
+        if rel != "services/vikunja/baselines" or "baseline" in _release():
+            assert (_ROOT / rel).exists()
+    assert (_ROOT / "scripts/deploy/vikunja_release/baseline.py").is_file()
+    rec = _release()
+    if "baseline" in rec:
+        assert Path(rec["baseline"]["path"]).is_relative_to("services/vikunja/baselines")

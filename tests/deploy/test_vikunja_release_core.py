@@ -16,6 +16,7 @@ import os
 import stat
 import subprocess
 import tarfile
+import zlib
 from pathlib import Path
 
 import pytest
@@ -23,7 +24,7 @@ import pytest
 from scripts.deploy.vikunja_release import core
 
 _ROOT = Path(__file__).resolve().parents[2]
-_RELEASE = _ROOT / "services" / "vikunja" / "release.json"
+_RELEASE = Path(__file__).resolve().parent / "fixtures" / "vikunja_first_cutover_release.json"
 _CORE_SRC = _ROOT / "scripts" / "deploy" / "vikunja_release" / "core.py"
 _FIX = Path(__file__).resolve().parent / "fixtures" / "vikunja_release"
 
@@ -132,7 +133,7 @@ def test_release_record_loads_with_pinned_values():
     assert rec["release_version"] == "v2.7.1-670-420c7bcb75"
     assert rec["source_revision"] == "420c7bcb75231be9b6571fdfdf76a1a62f2aebd8"
     assert rec["archive"] == {
-        "path": "/data/services/vikunja/release-artifacts/48008c5067a6/image.tar",
+        "path": "/data/services/vikunja/release-artifacts/synthetic-first-cutover/image.tar",
         "sha256": "48008c5067a6555cb880200d5416a7989df6be06246cc41bc69d1da685581f79",
         "size": 54450688,
     }
@@ -143,25 +144,27 @@ def test_release_record_loads_with_pinned_values():
     assert rec["rollback"]["image_id"] == ROLLBACK_ID
     assert rec["rollback"]["ref"] == "vikunja/vikunja:2.4.0"
     assert rec["rollback"]["archive"] == {
-        "path": "/data/services/vikunja/release-artifacts/48008c5067a6/vikunja-2.4.0.image.tar",
+        "path": "/data/services/vikunja/release-artifacts/synthetic-first-cutover/vikunja-2.4.0.image.tar",
         "sha256": "b63e5529ba35e695aec3b240f835a5ea412a2b0552f2a1b054e5d0d9a9aaa9ad",
         "size": 115518464,
     }
     assert rec["service"] == {
-        "compose_file": "/home/claude/kg-automation/services/vikunja/docker-compose.yml",
+        "compose_file": "/srv/synthetic/repo/services/vikunja/docker-compose.yml",
         "project": "vikunja", "container": "vikunja",
-        "info_url": "http://100.92.197.90:3456/api/v1/info",
-        "data_dir": "/data/services/vikunja/data",
+        "info_url": "http://example.test/api/v1/info",
+        "data_dir": "/srv/synthetic/data",
     }
-    assert rec["roots"]["snapshots"] == "/data/services/vikunja/snapshots"
-    assert rec["roots"]["activation"] == "/data/services/vikunja/activation"
-    assert rec["roots"]["private_logs"] == "/data/services/vikunja/failures"
+    assert rec["roots"]["snapshots"] == "/srv/synthetic/snapshots"
+    assert rec["roots"]["activation"] == "/srv/synthetic/activation"
+    assert rec["roots"]["private_logs"] == "/srv/synthetic/failures"
     assert rec["roots"]["office4_sources"] == {
-        "archive": "/home/kgale/.local/share/rrule-office2-images/"
-                   "420c7bcb75231be9b6571fdfdf76a1a62f2aebd8/image.tar",
-        "rollback_archive": "/home/kgale/.local/share/rrule-office2-images/"
-                            "rollback-v2.4.0-60fe1ee8/vikunja-2.4.0.image.tar",
+        "archive": "/srv/synthetic/sources/image.tar",
+        "rollback_archive": "/srv/synthetic/sources/vikunja-2.4.0.image.tar",
     }
+
+
+def test_current_release_record_validates_independently_of_history():
+    assert core.load_release(_ROOT / "services/vikunja/release.json")["schema_version"] == 1
 
 
 def _mutate(path: str, value=None, delete=False):
@@ -175,6 +178,93 @@ def _mutate(path: str, value=None, delete=False):
         else:
             node[leaf] = value
     return apply
+
+
+@pytest.mark.parametrize("version", ["v3.4.5-rrule.2", "3.4.5-rrule.0", "v3.4.5",
+                                     "3.4.5", "v3.4.5-123-abcdef0"])
+def test_release_versions_and_public_emission(tmp_path, version):
+    rec = _record()
+    rec["release_version"] = version
+    rec["tags"]["release"] = "example.test/vikunja:" + version
+    assert core.load_release(_write_json(tmp_path / "release.json", rec))["release_version"] == version
+    assert core.allowed_value(version)
+    out = io.StringIO()
+    assert core.emit("STAGE_VERIFIED", out, version=version) == f"STAGE_VERIFIED version={version}"
+
+
+@pytest.mark.parametrize("suffix", ["-rrule.", "-rrule.x", "-rrule.-1", "-rrule.2.more",
+                                    "-rrule.2junk", "-rrule-2", "_rrule.2", "-rc.2",
+                                    "-rrule.2\n", "-rrule.2/extra"])
+def test_release_rejects_malformed_version_suffixes(tmp_path, suffix):
+    rec = _record()
+    rec["release_version"] = "v3.4.5-rrule.2"
+    rec["tags"]["release"] = "example.test/vikunja:" + rec["release_version"]
+    path = _write_json(tmp_path / "release.json", rec)
+    assert core.load_release(path)
+    rec["release_version"] = "v3.4.5" + suffix
+    with pytest.raises(core.ReleaseError) as exc:
+        core.load_release(_write_json(path, rec))
+    assert (exc.value.code, exc.value.key) == ("RELEASE_VALUE_INVALID", "release_version")
+    assert not core.allowed_value(rec["release_version"])
+
+
+@pytest.mark.parametrize("binding, code, key", [
+    (None, "RELEASE_TYPE_INVALID", "baseline"),
+    ([], "RELEASE_TYPE_INVALID", "baseline"),
+    ({}, "RELEASE_KEY_MISSING", "baseline.path"),
+    ({"path": 3, "sha256": "a" * 64}, "RELEASE_TYPE_INVALID", "baseline.path"),
+    ({"path": "services/vikunja/baselines/test.json", "sha256": 3}, "RELEASE_TYPE_INVALID", "baseline.sha256"),
+    ({"path": "services/vikunja/baselines/test.json", "sha256": "A" * 64}, "RELEASE_VALUE_INVALID", "baseline.sha256"),
+    ({"path": "services/vikunja/baselines/test.json", "sha256": "a" * 64, "extra": 1},
+     "RELEASE_KEY_UNKNOWN", "baseline.extra"),
+])
+def test_optional_baseline_binding_shape(tmp_path, binding, code, key):
+    rec = _record()
+    path = tmp_path / "release.json"
+    assert "baseline" not in core.load_release(_write_json(path, rec))
+    rec["baseline"] = {"path": "services/vikunja/baselines/test.json", "sha256": "a" * 64}
+    assert core.load_release(_write_json(path, rec))["baseline"] == rec["baseline"]
+    rec["baseline"] = binding
+    with pytest.raises(core.ReleaseError) as exc:
+        core.load_release(_write_json(path, rec))
+    assert (exc.value.code, exc.value.key) == (code, key)
+
+
+@pytest.mark.parametrize("value", ["/services/vikunja/baselines/test.json", "../test.json",
+                                   "services/vikunja/baselines/../test.json",
+                                   "services/vikunja/baselines/../../baselines/test.json",
+                                   "services/vikunja/baselines", "services/vikunja/other/test.json"])
+def test_baseline_path_must_be_contained(tmp_path, value):
+    rec = _record()
+    rec["baseline"] = {"path": "services/vikunja/baselines/test.json", "sha256": "a" * 64}
+    path = _write_json(tmp_path / "release.json", rec)
+    assert core.load_release(path)
+    rec["baseline"]["path"] = value
+    with pytest.raises(core.ReleaseError) as exc:
+        core.load_release(_write_json(path, rec))
+    assert (exc.value.code, exc.value.key) == ("RELEASE_VALUE_INVALID", "baseline.path")
+
+
+@pytest.mark.parametrize("whole_directory", [False, True])
+def test_baseline_path_refuses_symlink_escape(tmp_path, monkeypatch, whole_directory):
+    root = tmp_path / "repo"
+    base = root / "services/vikunja/baselines"
+    base.mkdir(parents=True)
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    monkeypatch.setattr(core, "REPO_ROOT", root)
+    rec = _record()
+    rec["baseline"] = {"path": "services/vikunja/baselines/test.json", "sha256": "a" * 64}
+    path = _write_json(tmp_path / "release.json", rec)
+    assert core.load_release(path)
+    if whole_directory:
+        base.rmdir()
+        base.symlink_to(outside, target_is_directory=True)
+    else:
+        (base / "test.json").symlink_to(outside / "test.json")
+    with pytest.raises(core.ReleaseError) as exc:
+        core.load_release(path)
+    assert (exc.value.code, exc.value.key) == ("RELEASE_VALUE_INVALID", "baseline.path")
 
 
 @pytest.mark.parametrize("mutation, code, key", [
@@ -207,6 +297,20 @@ def test_release_record_refuses_invalid(tmp_path, mutation, code, key):
         core.load_release(bad)
     assert exc.value.code == code
     assert exc.value.key == key
+
+
+@pytest.mark.parametrize("value", [False, None, 0, 1, "true", [], {}])
+def test_revision_label_absent_requires_literal_true(tmp_path, value):
+    rec = _record()
+    rec["image"]["revision_label_absent"] = True
+    path = _write_json(tmp_path / "release.json", rec)
+    assert core.load_release(path)["image"]["revision_label_absent"] is True
+    rec["image"]["revision_label_absent"] = value
+    _write_json(path, rec)
+    with pytest.raises(core.ReleaseError) as exc:
+        core.load_release(path)
+    assert exc.value.key == "image.revision_label_absent"
+    assert exc.value.code == ("RELEASE_VALUE_INVALID" if value is False else "RELEASE_TYPE_INVALID")
 
 
 def test_release_record_refuses_malformed_json_and_absence(tmp_path):
@@ -349,7 +453,7 @@ def test_run_cli_modes_and_failures(tmp_path):
     rc = core.run_cli(["--apply"], "prog", failing, private_root=root, stdout=out, stderr=err)
     assert rc == core.EXIT_FAIL == 1
     text = out.getvalue() + err.getvalue()
-    assert "FAILED code=DOCKER_INSPECT_FAILED private_log=/" in text
+    assert text == "FAILED code=DOCKER_INSPECT_FAILED\n"
     for needle in (SECRET, TITLE, USER_NAME):
         assert needle not in text
     logs = list(root.iterdir())
@@ -369,6 +473,32 @@ def test_run_cli_hides_unexpected_exception_text(tmp_path):
     assert SECRET not in text and TITLE not in text
     (log,) = root.iterdir()
     assert "RuntimeError" in log.read_text() and SECRET in log.read_text()
+
+
+@pytest.mark.parametrize("unexpected", [False, True])
+@pytest.mark.parametrize("logging", ["working", "absent", "failed"])
+def test_run_cli_failure_channels_are_codes_only(tmp_path, unexpected, logging):
+    detail = "/srv/synthetic/private-evidence 2042-03-04T05:06:07Z " + "ab" * 32 + " tasks=987654"
+    root = tmp_path / "private-evidence" if logging != "absent" else None
+    if logging == "failed":
+        root.write_text("not a directory")
+
+    def body(mode):
+        if unexpected:
+            raise RuntimeError(detail)
+        raise core.Fail("SYNTHETIC_FAILURE", detail_private=detail)
+
+    out, err = io.StringIO(), io.StringIO()
+    assert core.run_cli(["--apply"], "prog", body, private_root=root, stdout=out, stderr=err) == 1
+    code = "INTERNAL_ERROR" if unexpected else "SYNTHETIC_FAILURE"
+    assert out.getvalue() == f"FAILED code={code}\n" and err.getvalue() == ""
+    forwarded_excerpt = (out.getvalue() + err.getvalue())[:2000]
+    assert forwarded_excerpt == f"FAILED code={code}\n"
+    if logging == "working":
+        (log,) = root.iterdir()
+        assert detail in log.read_text()
+        assert stat.S_IMODE(log.stat().st_mode) == 0o600
+        assert stat.S_IMODE(root.stat().st_mode) == 0o700
 
 
 # ---------------------------------------------------------------------------
@@ -515,10 +645,11 @@ def test_image_id_errors_are_not_absence():
 def test_image_facts_for_captured_and_release_shapes():
     fake = _office2_runner()
     assert core.image_facts("vikunja/vikunja:2.4.0", runner=fake) == {
-        "id": ROLLBACK_ID, "architecture": "amd64", "os": "linux", "user": "1000", "revision": None}
+        "id": ROLLBACK_ID, "architecture": "amd64", "os": "linux", "user": "1000", "revision": None,
+        "revision_label_present": False}
     assert core.image_facts("office2.local/vikunja:v2.7.1-670-420c7bcb75", runner=fake) == {
         "id": RELEASE_ID, "architecture": "amd64", "os": "linux", "user": "1000",
-        "revision": "420c7bcb75231be9b6571fdfdf76a1a62f2aebd8"}
+        "revision": "420c7bcb75231be9b6571fdfdf76a1a62f2aebd8", "revision_label_present": True}
     assert core.image_facts("office2.local/vikunja:active", runner=fake) is None
 
 
@@ -552,7 +683,7 @@ def _add(tar: tarfile.TarFile, name: str, data: bytes) -> None:
 
 
 def _build_archive(tmp_path: Path, *, config=None, blob_override=None, index=None,
-                   manifest_config=None, name="image.tar"):
+                   manifest_config=None, name="image.tar", compression="", repo_tags=None):
     """A tiny OCI layout with the real archive's structure.
 
     Returns ``(path, record)``, the record carrying the computed size, sha
@@ -566,8 +697,9 @@ def _build_archive(tmp_path: Path, *, config=None, blob_override=None, index=Non
     manifest = _fixture("manifest.json")
     manifest[0]["Config"] = manifest_config or f"blobs/sha256/{cfg_hex}"
     manifest[0]["Layers"] = layer_names
+    manifest[0]["RepoTags"] = repo_tags
     path = tmp_path / name
-    with tarfile.open(path, "w") as tar:
+    with tarfile.open(path, "w:" + compression) as tar:
         _add(tar, "oci-layout", b'{"imageLayoutVersion":"1.0.0"}')
         _add(tar, "index.json", json.dumps(index if index is not None else _fixture("index.json")).encode())
         _add(tar, "manifest.json", json.dumps(manifest).encode())
@@ -596,8 +728,104 @@ def test_intact_archive_verifies_without_extracting(tmp_path):
     before = sorted(p.name for p in tmp_path.iterdir())
     facts = core.verify_archive(path, rec)
     assert facts == {"sha256": rec["archive"]["sha256"], "size": rec["archive"]["size"],
-                     "index_digest": INDEX_DIGEST, "config_digest": rec["image"]["config_digest"]}
+                     "index_digest": INDEX_DIGEST, "config_digest": rec["image"]["config_digest"],
+                     "repo_tags": []}
     assert sorted(p.name for p in tmp_path.iterdir()) == before == ["image.tar"]
+
+
+@pytest.mark.parametrize("exception", [False, True])
+@pytest.mark.parametrize("label", ["absent", "matching", "mismatch", "null", "empty"])
+def test_archive_revision_label_policy(tmp_path, exception, label):
+    cfg = _fixture("config.json")
+    labels = cfg["config"]["Labels"]
+    if label == "absent":
+        del labels[core.REVISION_LABEL]
+    else:
+        labels[core.REVISION_LABEL] = {
+            "matching": _record()["source_revision"], "mismatch": "0" * 40,
+            "null": None, "empty": "",
+        }[label]
+    path, rec = _build_archive(tmp_path, config=cfg)
+    if exception:
+        rec["image"]["revision_label_absent"] = True
+    if (exception and label == "absent") or (not exception and label == "matching"):
+        assert core.verify_archive(path, rec)
+    else:
+        with pytest.raises(core.Fail) as exc:
+            core.verify_archive(path, rec)
+        assert exc.value.code == "ARCHIVE_REVISION_MISMATCH"
+
+
+def test_current_release_accepts_published_config_shape(tmp_path):
+    rec = core.load_release(_ROOT / "services/vikunja/release.json")
+    assert rec["image"]["revision_label_absent"] is True
+    cfg = _fixture("config.json")
+    del cfg["config"]["Labels"]  # published image has no revision label
+    path, synthetic = _build_archive(tmp_path, config=cfg)
+    # Only synthetic byte identities replace the real pins; never read production artifacts.
+    rec["archive"] = synthetic["archive"]
+    rec["image"]["config_digest"] = synthetic["image"]["config_digest"]
+    rec["image"]["index_digest"] = synthetic["image"]["index_digest"]
+    assert core.verify_archive(path, rec)
+
+
+@pytest.mark.parametrize("repo_tags", [None, [], ["example.test/vikunja:v3.4.5-rrule.2"],
+                                       ["example.test/vikunja:test", "example.test/vikunja:keeper"]])
+@pytest.mark.parametrize("compression", ["", "gz"])
+def test_archive_transport_and_verified_tags(tmp_path, compression, repo_tags):
+    path, rec = _build_archive(tmp_path, compression=compression, repo_tags=repo_tags)
+    facts = core.verify_archive(path, rec)
+    assert facts["repo_tags"] == (repo_tags or [])
+    assert facts["sha256"] == hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+@pytest.mark.parametrize("repo_tags", ["example.test/vikunja:test", {}, [None], [3],
+                                       ["example.test/vikunja:test", "bad ref"],
+                                       ["example.test/vikunja"], ["-option:tag"],
+                                       ["example.test/vikunja:test\n"]])
+def test_archive_refuses_invalid_embedded_tags(tmp_path, repo_tags):
+    path, rec = _build_archive(tmp_path, repo_tags=["example.test/vikunja:test"])
+    assert core.verify_archive(path, rec)
+    path, rec = _build_archive(tmp_path, repo_tags=repo_tags)
+    with pytest.raises(core.Fail) as exc:
+        core.verify_archive(path, rec)
+    assert exc.value.code == "ARCHIVE_REPOTAGS_INVALID"
+
+
+@pytest.mark.parametrize("change, code", [("size", "ARCHIVE_SIZE_MISMATCH"),
+                                          ("sha", "ARCHIVE_SHA_MISMATCH"),
+                                          ("bytes", "ARCHIVE_SHA_MISMATCH"),
+                                          ("corrupt", "ARCHIVE_UNREADABLE"),
+                                          ("deflate", "ARCHIVE_UNREADABLE"),
+                                          ("truncated", "ARCHIVE_UNREADABLE")])
+def test_gzip_pins_transport_bytes_before_parsing(tmp_path, monkeypatch, change, code):
+    path, rec = _build_archive(tmp_path, compression="gz")
+    parser = _Spy(core._parse_pinned)
+    monkeypatch.setattr(core, "_parse_pinned", parser)
+    assert core.verify_archive(path, rec)
+    assert parser.calls == 1
+    if change == "size":
+        rec["archive"]["size"] += 1
+    elif change == "sha":
+        rec["archive"]["sha256"] = "0" * 64
+    elif change == "bytes":
+        data = bytearray(path.read_bytes())
+        data[4] ^= 1  # gzip mtime changes while the decompressed content stays equal
+        path.write_bytes(data)
+    else:
+        data = path.read_bytes()
+        if change == "truncated":
+            path.write_bytes(data[:20])
+        elif change == "deflate":
+            path.write_bytes(b"\x1f\x8b\x08\x00" + b"\x00" * 6 + b"\x07")
+        else:
+            path.write_bytes(b"\x1f\x8b" + b"corrupt" * 20)
+        rec["archive"]["size"] = path.stat().st_size
+        rec["archive"]["sha256"] = hashlib.sha256(path.read_bytes()).hexdigest()
+    with pytest.raises(core.Fail) as exc:
+        core.verify_archive(path, rec)
+    assert exc.value.code == code
+    assert parser.calls == (2 if change in ("corrupt", "deflate", "truncated") else 1)
 
 
 def _cfg(**changes):
@@ -746,8 +974,9 @@ def test_size_mismatch_is_refused_before_hashing_or_parsing(tmp_path, monkeypatc
     assert (hasher.calls, tar_open.calls) == (1, 1)
 
 
-def test_tarfile_parses_the_hashed_handle_never_a_path(tmp_path, monkeypatch):
-    path, rec = _build_archive(tmp_path)
+@pytest.mark.parametrize("compression", ["", "gz"])
+def test_tarfile_parses_the_hashed_handle_never_a_path(tmp_path, monkeypatch, compression):
+    path, rec = _build_archive(tmp_path, compression=compression)
     hashed = []
     opened = []
     real_hash, real_open = core._sha256_handle, tarfile.open
@@ -769,11 +998,12 @@ def test_tarfile_parses_the_hashed_handle_never_a_path(tmp_path, monkeypatch):
     assert args == ()  # no positional name
     assert "name" not in kwargs
     assert kwargs["fileobj"] is hashed[0]  # the very handle that was hashed
-    assert kwargs["mode"] == "r:"
+    assert kwargs["mode"] == "r:*"
 
 
-def test_path_swap_after_hash_does_not_reach_the_parser(tmp_path, monkeypatch):
-    path, rec = _build_archive(tmp_path)
+@pytest.mark.parametrize("compression", ["", "gz"])
+def test_path_swap_after_hash_does_not_reach_the_parser(tmp_path, monkeypatch, compression):
+    path, rec = _build_archive(tmp_path, compression=compression)
     expected = core.verify_archive(path, rec)  # positive control: the normal intact run
     hostile_dir = tmp_path / "hostile"
     hostile_dir.mkdir()
@@ -800,7 +1030,8 @@ def test_path_swap_after_hash_does_not_reach_the_parser(tmp_path, monkeypatch):
 def test_parser_failures_on_pinned_bytes_map_to_a_stable_code(tmp_path, monkeypatch):
     path, rec = _build_archive(tmp_path)
     assert core.verify_archive(path, rec)  # positive control
-    for error in (RecursionError(), MemoryError(), OverflowError(), tarfile.ReadError(), ValueError()):
+    for error in (RecursionError(), MemoryError(), OverflowError(), tarfile.ReadError(), ValueError(),
+                  EOFError(), zlib.error()):
         def broken(*a, _e=error, **kw):
             raise _e
         monkeypatch.setattr(tarfile, "open", broken)

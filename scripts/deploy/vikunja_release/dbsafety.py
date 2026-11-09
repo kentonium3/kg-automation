@@ -47,7 +47,6 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable, Mapping
 
-from scripts.deploy.lib.installed_report import record_installed
 from scripts.deploy.vikunja_release import core
 # Reused durable-write primitives of WP01's marker writer (same pattern:
 # exclusive create, write every byte, fsync the file, fsync the parent).
@@ -573,8 +572,8 @@ def snapshot(data_dir: os.PathLike | str, snap_root: os.PathLike | str,
     hash check it before every chunk (``SNAPSHOT_DEADLINE``). A single
     filesystem call that blocks in the kernel cannot be interrupted
     in-process; that overrun is the accepted residual risk (see
-    :func:`_copy_hashed`). Every written file is reported through
-    :func:`installed_report.record_installed`. Returns the recorded dict,
+    :func:`_copy_hashed`). Private evidence is never forwarded to the
+    installed-file report. Returns the recorded dict,
     plus ``snapshot_json`` (its path).
     """
     deadline = deadline if deadline is not None else core.Deadline(SQLITE_BUDGET_S)
@@ -615,7 +614,6 @@ def snapshot(data_dir: os.PathLike | str, snap_root: os.PathLike | str,
                 if name != DB_NAME and not os.path.lexists(src):
                     continue
                 sources[key] = _copy_hashed(src, name, raw_fd, raw, final_mode=0o400, deadline=deadline)
-                record_installed(src, raw / name)
             os.fsync(raw_fd)
             os.fsync(snap_fd)
         except core.Fail:
@@ -678,7 +676,6 @@ def snapshot(data_dir: os.PathLike | str, snap_root: os.PathLike | str,
 
         # 6. The durable record.
         try:
-            record_installed(raw / DB_NAME, out)
             record = {
                 "schema_version": SNAPSHOT_SCHEMA_VERSION,
                 "created_at": moment.strftime("%Y-%m-%dT%H:%M:%SZ"),
@@ -695,7 +692,6 @@ def snapshot(data_dir: os.PathLike | str, snap_root: os.PathLike | str,
             }
             _write_new_json(SNAPSHOT_JSON, record, dir_fd=snap_fd)
             target = snap / SNAPSHOT_JSON
-            record_installed(target, target)
         except core.Fail:
             raise
         except OSError as exc:
@@ -754,11 +750,12 @@ def _container_exists(runner: core.Runner, container: str) -> bool:
 
 def rollback_guard(runner: core.Runner, data_dir: os.PathLike | str,
                    snapshot_json: os.PathLike | str, *,
+                   rollback_version: str,
                    container: str = DEFAULT_CONTAINER, active_tag: str = DEFAULT_ACTIVE_TAG,
                    work_dir: os.PathLike | str | None = None,
                    deadline: core.Deadline | None = None) -> dict[str, Any]:
     """Refuse to let the rollback image start unless the restored DB is the
-    unmigrated snapshot (R-11, INV-1). Checks, in order, refusing at the
+    qualified snapshot (R-11, INV-1). Checks, in order, refusing at the
     first failure:
 
     1. no ``container`` exists (``GUARD_CONTAINER_PRESENT``);
@@ -768,7 +765,8 @@ def rollback_guard(runner: core.Runner, data_dir: os.PathLike | str,
     4. the DB's sha256 equals ``snapshot.json`` ``db_sha256``
        (``GUARD_SHA_MISMATCH``); the DB is hashed while it is copied into a
        private folder, so the bytes checked next are the bytes hashed;
-    5. ``is_migrated(copy)`` is False (``GUARD_DB_MIGRATED``).
+    5. the snapshot's ``pre_version`` equals the reviewed rollback version
+       exactly (``GUARD_PRE_VERSION_MISMATCH``), including for RRULE snapshots.
 
     Any other exception refuses with ``GUARD_INSPECTION_ERROR`` (the inner
     code or error is kept in ``detail_private``). Nothing is written to
@@ -787,7 +785,8 @@ def rollback_guard(runner: core.Runner, data_dir: os.PathLike | str,
         data = Path(data_dir)
         if os.path.lexists(data / WAL_NAME) or os.path.lexists(data / SHM_NAME):
             raise core.Fail("GUARD_SIDECAR_PRESENT")
-        expected = read_snapshot(snapshot_json)["db_sha256"]
+        record = read_snapshot(snapshot_json)
+        expected = record["db_sha256"]
         with _private_umask():
             scratch = tempfile.TemporaryDirectory(prefix="vikunja-guard-", dir=work_dir)
         with scratch as tmp:
@@ -797,11 +796,11 @@ def rollback_guard(runner: core.Runner, data_dir: os.PathLike | str,
                 copied = _copy_hashed(data / DB_NAME, DB_NAME, tmp_fd, Path(tmp), deadline=deadline)
             finally:
                 os.close(tmp_fd)
-            copy = Path(tmp) / DB_NAME
             if copied["sha256"] != expected:
                 raise core.Fail("GUARD_SHA_MISMATCH")
-            if is_migrated(copy, deadline):
-                raise core.Fail("GUARD_DB_MIGRATED")
+            if (not isinstance(rollback_version, str) or not rollback_version
+                    or record.get("pre_version") != rollback_version):
+                raise core.Fail("GUARD_PRE_VERSION_MISMATCH")
         return {"db_sha256": copied["sha256"]}
     except core.Fail as exc:
         if exc.code.startswith("GUARD_"):

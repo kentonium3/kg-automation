@@ -35,7 +35,7 @@ _spec = importlib.util.spec_from_file_location("rollback_release", _SRC)
 rb = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(rb)
 
-RELEASE = json.loads((_ROOT / "services" / "vikunja" / "release.json").read_text())
+RELEASE = json.loads((_ROOT / "tests" / "deploy" / "fixtures" / "vikunja_first_cutover_release.json").read_text())
 RELEASE_ID = RELEASE["image"]["config_digest"]
 ROLLBACK_ID = RELEASE["rollback"]["image_id"]
 RELEASE_TAG = RELEASE["tags"]["release"]
@@ -203,14 +203,14 @@ def _migrate_and_write(conn: sqlite3.Connection) -> None:
 
 class Scenario:
     def __init__(self, tmp: Path, *, marker_outcome: str | None = "failed", pre_version: str | None = PRE,
-                 writes=_migrate_and_write):
+                 writes=_migrate_and_write, base=_v24, release_record=None):
         self.tmp = tmp
         tmp.mkdir(parents=True, exist_ok=True)
         self.data = tmp / "data"
         self.data.mkdir()
         db = self.data / dbsafety.DB_NAME
         conn = sqlite3.connect(db, isolation_level=None)
-        _v24(conn)
+        base(conn)
         conn.close()
         rec = dbsafety.snapshot(self.data, tmp / "snapshots", lambda: NOW, pre_version=pre_version,
                                 running_image_id=ROLLBACK_ID)
@@ -225,19 +225,20 @@ class Scenario:
         conn.execute("PRAGMA wal_autocheckpoint=0")
         writes(conn)
         for name in (dbsafety.DB_NAME, dbsafety.WAL_NAME, dbsafety.SHM_NAME):
-            shutil.copyfile(writer / name, self.data / name)
+            if (writer / name).exists():
+                shutil.copyfile(writer / name, self.data / name)
         conn.close()
         shutil.rmtree(writer)
         # Roots as on office2: activation exists (ACTIVATE made it), failures does not.
         self.release_path = tmp / "release.json"
-        release = json.loads(json.dumps(RELEASE))
+        release = json.loads(json.dumps(RELEASE if release_record is None else release_record))
         release["service"]["data_dir"] = str(self.data)
         release["roots"]["snapshots"] = str(tmp / "snapshots")
         release["roots"]["activation"] = str(tmp / "activation")
         release["roots"]["private_logs"] = str(tmp / "failures")
         self.release_path.write_text(json.dumps(release))
         (tmp / "activation").mkdir(mode=0o700)
-        self.marker = tmp / "activation" / f"{VERSION}.json"
+        self.marker = tmp / "activation" / f"{release['release_version']}.json"
         if marker_outcome is not None:
             marker = {"phase": "started_new", "outcome": marker_outcome, "started_at": "2026-10-30T12:00:00Z",
                       "snapshot_dir": str(self.snapshot), "snapshot_sha": self.snapshot_sha}
@@ -250,6 +251,8 @@ class Scenario:
         self.repo_root = _ROOT
         self.stream = None
         self.docker = FakeDocker()
+        self.docker.tags[release["tags"]["release"]] = RELEASE_ID
+        self.docker.tags[release["rollback"]["ref"]] = ROLLBACK_ID
         self.spawn = Spawn()
         self.out = io.StringIO()
         self.err = io.StringIO()
@@ -717,17 +720,19 @@ def test_a_failed_up_also_cleans_up(tmp_path):
     assert sc.run("--finish", "--ack-post-cutover-writes", "6") == 0, sc.text
 
 
-def test_finish_without_pre_version_requires_2_4(tmp_path):
-    """U1 fallback: no recorded pre_version -> any 2.4.x passes; 2.5 does not."""
-    sc = _prepared(tmp_path, pre_version=None)
+@pytest.mark.parametrize("pre_version", [None, "v2.4.3"])
+def test_finish_requires_exact_pre_version_before_image_mutation(tmp_path, pre_version):
+    sc = _prepared(tmp_path, pre_version=pre_version)
     sc.restore()
-    sc.docker.versions[ROLLBACK_ID] = "v2.5.0"
+    sc.docker.calls.clear()
     assert sc.run("--finish", "--ack-post-cutover-writes", "6") == 1
-    assert sc.code() == "READY_WRONG_VERSION"
-    assert sc.docker.container is None and ACTIVE not in sc.docker.tags  # cleaned up by the helper
-    sc.docker.versions[ROLLBACK_ID] = "v2.4.3"
+    assert sc.code() == "GUARD_PRE_VERSION_MISMATCH"
+    assert sc.docker.mutating() == []
+    record = json.loads((sc.snapshot / dbsafety.SNAPSHOT_JSON).read_text())
+    record["pre_version"] = PRE
+    (sc.snapshot / dbsafety.SNAPSHOT_JSON).write_text(json.dumps(record))
     assert sc.run("--finish", "--ack-post-cutover-writes", "6") == 0, sc.text
-    assert "ROLLBACK_READY version=v2.4.3" in sc.out.getvalue()
+    assert f"ROLLBACK_READY version={PRE}" in sc.out.getvalue()
 
 
 def test_finish_of_a_verified_activation_is_stated(tmp_path):
@@ -875,9 +880,10 @@ def test_the_lock_is_held_for_the_whole_phase(tmp_path):
 # ---------------------------------------------------------------------------
 
 
-def _with(*sql: str):
+def _with(*sql: str, migrate: bool = True):
     def writes(conn: sqlite3.Connection) -> None:
-        _migrate(conn)
+        if migrate:
+            _migrate(conn)
         for stmt in sql:
             conn.execute(stmt)
     return writes
@@ -1008,7 +1014,8 @@ class Recover:
     migration markers sit only in the WAL)."""
 
     def __init__(self, tmp: Path, *, phase: str = "stopped", failed_phase: str = "snapshotted",
-                 outcome: str | None = "failed", wal_migrated: bool = False) -> None:
+                 outcome: str | None = "failed", wal_migrated: bool = False,
+                 release_record=None) -> None:
         self.tmp = tmp
         tmp.mkdir(parents=True, exist_ok=True)
         self.data = tmp / "data"
@@ -1028,28 +1035,32 @@ class Recover:
         conn.close()
         shutil.rmtree(writer)
         self.release_path = tmp / "release.json"
-        release = json.loads(json.dumps(RELEASE))
+        release = json.loads(json.dumps(RELEASE if release_record is None else release_record))
         release["service"]["data_dir"] = str(self.data)
         release["roots"]["snapshots"] = str(tmp / "snapshots")
         release["roots"]["activation"] = str(tmp / "activation")
         release["roots"]["private_logs"] = str(tmp / "failures")
+        self.release = release
         self.release_path.write_text(json.dumps(release))
         (tmp / "activation").mkdir(mode=0o700)
-        self.marker = tmp / "activation" / f"{VERSION}.json"
+        self.marker = tmp / "activation" / f"{release['release_version']}.json"
         self.write_marker(phase=phase, failed_phase=failed_phase, outcome=outcome)
         self.lock = tmp / "locks" / "checkout.lock"
         self.stream = None
         self.docker = FakeDocker()
         self.docker.container = None
         self.docker.tags.pop(ACTIVE)
+        self.docker.tags[release["rollback"]["ref"]] = ROLLBACK_ID
+        self.docker.versions[ROLLBACK_ID] = rb.rollback_version(release)
         self.spawn = Spawn()
         self.out = io.StringIO()
         self.err = io.StringIO()
 
     def write_marker(self, *, phase: str, failed_phase: str | None, outcome: str | None) -> None:
         data = {"phase": phase, "outcome": outcome, "started_at": "2026-10-30T12:00:00Z",
-                "release_version": VERSION, "config_digest": RELEASE_ID, "rollback_image_id": ROLLBACK_ID,
-                "pre_version": PRE, "error": "ACTIVATE_SNAPSHOT_FAILED" if outcome == "failed" else None}
+                "release_version": self.release["release_version"], "config_digest": RELEASE_ID,
+                "rollback_image_id": ROLLBACK_ID, "pre_version": rb.rollback_version(self.release),
+                "error": "ACTIVATE_SNAPSHOT_FAILED" if outcome == "failed" else None}
         if failed_phase is not None:
             data["failed_phase"] = failed_phase
         if self.marker.exists():
@@ -1081,9 +1092,239 @@ class Recover:
 RECOVER = "--recover-pre-snapshot"
 
 
+def _repeat_release(tag):
+    release = json.loads(json.dumps(RELEASE))
+    release["release_version"] = "v3.1.0-rrule.2"
+    release["tags"]["release"] = "example.test/vikunja:v3.1.0-rrule.2"
+    release["rollback"]["ref"] = f"example.test/vikunja:{tag}"
+    return release
+
+
+def _rrule_base(conn):
+    _v24(conn)
+    _migrate(conn)
+    conn.execute("UPDATE tasks SET repeats = 'FREQ=DAILY' WHERE id = 1")
+    conn.execute("CREATE TABLE subscriptions (id INTEGER PRIMARY KEY, entity_type INTEGER, "
+                 "entity_id INTEGER, user_id INTEGER)")
+
+
+@pytest.mark.parametrize("tag", ["v3.0.0-rrule.1", "3.0.0-rrule.1"])
+@pytest.mark.parametrize("bad_version", [None, "v3.0.1-rrule.1", "missing"])
+def test_repeat_cutover_finish_checks_version_before_start(tmp_path, tag, bad_version):
+    release = _repeat_release(tag)
+    expected = "v3.0.0-rrule.1"
+    sc = _prepared(tmp_path, pre_version=expected, base=_rrule_base,
+                   writes=lambda conn: None, release_record=release)
+    sc.restore()
+    record_path = sc.snapshot / dbsafety.SNAPSHOT_JSON
+    record = json.loads(record_path.read_text())
+    if bad_version == "missing":
+        record.pop("pre_version")
+    else:
+        record["pre_version"] = bad_version
+    record_path.write_text(json.dumps(record))
+    sc.docker.tags[release["rollback"]["ref"]] = ROLLBACK_ID
+    sc.docker.versions[ROLLBACK_ID] = expected
+    sc.docker.calls.clear()
+    assert sc.run("--finish", "--ack-post-cutover-writes", "0") == 1
+    assert sc.code() == "GUARD_PRE_VERSION_MISMATCH"
+    assert sc.docker.mutating() == []
+    record["pre_version"] = expected
+    record_path.write_text(json.dumps(record))
+    assert sc.run("--finish", "--ack-post-cutover-writes", "0") == 0, sc.text
+    assert sc.docker.container == ROLLBACK_ID
+    assert f"ROLLBACK_READY version={expected}" in sc.text
+
+
+def test_repeat_cutover_wrong_restore_refuses_before_start(tmp_path):
+    release = _repeat_release("v3.0.0-rrule.1")
+    sc = _prepared(tmp_path, pre_version="v3.0.0-rrule.1", base=_rrule_base,
+                   writes=lambda conn: None, release_record=release)
+    sc.restore()
+    with sqlite3.connect(sc.data / dbsafety.DB_NAME) as conn:
+        conn.execute("UPDATE tasks SET repeats = 'FREQ=MONTHLY' WHERE id = 1")
+    sc.docker.calls.clear()
+    assert sc.run("--finish", "--ack-post-cutover-writes", "0") == 1
+    assert sc.code() == "GUARD_SHA_MISMATCH"
+    assert sc.docker.mutating() == []
+    sc.restore()
+    sc.docker.versions[ROLLBACK_ID] = "v3.0.1-rrule.1"
+    assert sc.run("--finish", "--ack-post-cutover-writes", "0") == 1
+    assert sc.code() == "READY_WRONG_VERSION"
+    assert sc.docker.container is None and ACTIVE not in sc.docker.tags
+    sc.restore()
+    sc.docker.versions[ROLLBACK_ID] = "v3.0.0-rrule.1"
+    assert sc.run("--finish", "--ack-post-cutover-writes", "0") == 0, sc.text
+
+
+@pytest.mark.parametrize("sql,table", [
+    ("UPDATE tasks SET repeats = 'FREQ=WEEKLY' WHERE id = 1", "tasks"),
+    ("INSERT INTO subscriptions VALUES (1, 3, 1, 1)", "subscriptions"),
+])
+def test_existing_rules_and_subscription_backfill_count_as_writes(tmp_path, sql, table):
+    sc = _prepared(tmp_path / "changed", base=_rrule_base, writes=_with(sql, migrate=False))
+    record = json.loads((sc.snapshot / rb.PREPARE_RECORD).read_text())
+    assert record["post_cutover_writes"] == 1
+    assert record["tables"] == {table: {"added": int(table == "subscriptions"), "removed": 0,
+                                         "changed": int(table == "tasks")}}
+    assert record["subscription_backfill_included"] == 1
+    clean = _prepared(tmp_path / "clean", base=_rrule_base, writes=_with(migrate=False))
+    receipt = json.loads((clean.snapshot / rb.PREPARE_RECORD).read_text())
+    assert receipt["post_cutover_writes"] == 0 and receipt["tables"] == {}
+    assert receipt["subscription_backfill_included"] == 1
+    assert "subscription_backfill_included" not in sc.text
+
+
+@pytest.mark.parametrize("phase,active", [("started", False), ("stopped", False), ("stopped", True)])
+@pytest.mark.parametrize("tag", ["v3.0.0-rrule.1", "3.0.0-rrule.1"])
+def test_unfinished_recovery_runs_previous_rrule_image(tmp_path, phase, active, tag):
+    rc = Recover(tmp_path, phase=phase, failed_phase=None, outcome=None,
+                 wal_migrated=True, release_record=_repeat_release(tag))
+    if active:
+        rc.docker.tags[ACTIVE] = ROLLBACK_ID
+    # A partial snapshot is evidence, not recovery authorization.
+    partial = tmp_path / "snapshots" / "partial"
+    partial.mkdir(parents=True)
+    (partial / "incomplete").write_bytes(b"partial")
+    old_marker = rc.marker.parent / "v1.0.0.json"
+    old_marker.write_text('{"outcome": "success"}')
+    before = old_marker.read_bytes()
+    assert rc.run(RECOVER) == 0, rc.text
+    assert rc.docker.container == ROLLBACK_ID and rc.docker.tags[ACTIVE] == ROLLBACK_ID
+    assert "ROLLBACK_READY version=v3.0.0-rrule.1" in rc.text
+    assert core.marker_read(rc.marker)["outcome"] == "rolled_back"
+    assert old_marker.read_bytes() == before
+
+
+@pytest.mark.parametrize("window", ["during-snapshot", "before-untag"])
+def test_activation_death_recovers_through_running_previous_image(tmp_path, monkeypatch, window):
+    from scripts.deploy.lib.deploylock import deploylock
+
+    source = _ROOT / "scripts" / "deploy" / "deploy-vikunja-release-activate.py"
+    spec = importlib.util.spec_from_file_location("activation_crash_fixture", source)
+    activate = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(activate)
+    rc = Recover(tmp_path, release_record=_repeat_release("v3.0.0-rrule.1"), wal_migrated=True)
+    rc.marker.unlink()
+    rc.docker.tags[ACTIVE] = ROLLBACK_ID
+    rc.docker.container = ROLLBACK_ID
+    run = activate.Activate(rc.release, runner=rc.docker, popen=rc.spawn,
+                            clock=lambda: 0.0, now=lambda: NOW, sleep=lambda sec: None,
+                            disk_usage=shutil.disk_usage)
+    # Prerequisites are established by this synthetic fixture; exercise the
+    # real marker, stop, untag and snapshot ordering after those checks.
+    monkeypatch.setattr(run, "preconditions", lambda: "v3.0.0-rrule.1")
+
+    class ProcessDeath(BaseException):
+        pass
+
+    if window == "before-untag":
+        def die():
+            raise ProcessDeath()
+        monkeypatch.setattr(run, "_untag_active", die)
+    else:
+        real_copy = dbsafety._copy_hashed
+
+        def copy_then_die(*args, **kwargs):
+            real_copy(*args, **kwargs)
+            raise ProcessDeath()
+        monkeypatch.setattr(dbsafety, "_copy_hashed", copy_then_die)
+    with deploylock(path=rc.lock, timeout_s=1.0):
+        try:
+            with pytest.raises(ProcessDeath):
+                run.apply()
+        finally:
+            run.release()  # models OS lock release on process death
+    marker = core.marker_read(rc.marker)
+    assert marker["phase"] == "stopped" and marker["outcome"] is None
+    assert rc.docker.container is None
+    assert rc.docker.tags.get(ACTIVE) == (ROLLBACK_ID if window == "before-untag" else None)
+    if window == "during-snapshot":
+        assert list((tmp_path / "snapshots").glob("*/raw/vikunja.db"))
+        assert not list((tmp_path / "snapshots").glob("*/snapshot.json"))
+    monkeypatch.undo()
+    assert rc.run(RECOVER) == 0, rc.text
+    assert rc.docker.container == ROLLBACK_ID and rc.docker.tags[ACTIVE] == ROLLBACK_ID
+    assert "ROLLBACK_READY version=v3.0.0-rrule.1" in rc.text
+    assert core.marker_read(rc.marker)["outcome"] == "rolled_back"
+
+
+@pytest.mark.parametrize("key,value", [
+    ("release_version", "v1.0.0"), ("config_digest", "sha256:" + "a" * 64),
+    ("rollback_image_id", "sha256:" + "b" * 64), ("pre_version", "v1.0.0"),
+    ("pre_version", None), ("release_version", None),
+])
+def test_recovery_refuses_foreign_or_missing_marker_identity(tmp_path, key, value):
+    rc = Recover(tmp_path, outcome=None, failed_phase=None)
+    good = core.marker_read(rc.marker)
+    bad = {**good, key: value}
+    if value is None:
+        bad.pop(key)
+    core.marker_update(rc.marker, bad)
+    before = rc.marker.read_bytes()
+    assert rc.run(RECOVER) == 1 and rc.code() == "RECOVER_MARKER_IDENTITY_MISMATCH"
+    assert rc.docker.calls == [] and rc.marker.read_bytes() == before
+    core.marker_update(rc.marker, good)
+    assert rc.run(RECOVER) == 0, rc.text
+
+
+@pytest.mark.parametrize("bad", [{"phase": "unknown"}, {"outcome": "foreign"},
+                                 {"phase": "started", "failed_phase": "snapshotted"}])
+def test_recovery_refuses_malformed_markers(tmp_path, bad):
+    rc = Recover(tmp_path)
+    good = rc.marker.read_text()
+    rc.marker.write_text(json.dumps({**json.loads(good), **bad}))
+    assert rc.run(RECOVER) == 1
+    assert rc.docker.calls == []
+    rc.marker.write_text(good)
+    assert rc.run(RECOVER) == 0, rc.text
+
+
+@pytest.mark.parametrize("unexpected", [False, True])
+@pytest.mark.parametrize("log_failure", [False, True])
+def test_private_exception_details_never_enter_output_or_installed_reports(
+        tmp_path, monkeypatch, unexpected, log_failure):
+    from scripts.deploy.lib import installed_report
+
+    report = tmp_path / "installed.jsonl"
+    monkeypatch.setenv(installed_report.ENV_VAR, str(report))
+    sc = Scenario(tmp_path / "scenario")
+    sentinel_path = str(tmp_path / "synthetic-private-evidence")
+    sentinels = (sentinel_path, "c" * 64, "2031-02-03T04:05:06Z", "987654321")
+    detail = " ".join(sentinels)
+
+    def fail(*args, **kwargs):
+        if unexpected:
+            raise RuntimeError(detail)
+        raise core.Fail("ROLLBACK_WRITES_UNCOUNTABLE", detail_private=detail)
+
+    def cannot_log(*args, **kwargs):
+        raise OSError(detail)
+
+    monkeypatch.setattr(rb, "_count_post_cutover_writes", fail)
+    if log_failure:
+        monkeypatch.setattr(core, "write_private_log", cannot_log)
+    assert sc.run("--prepare") == 1
+    assert sc.code() == ("INTERNAL_ERROR" if unexpected else "ROLLBACK_WRITES_UNCOUNTABLE")
+    assert all(value not in sc.text for value in sentinels)
+    assert installed_report.read_report(report)["entries"] == []
+    if not log_failure:
+        assert any(detail in path.read_text() for path in (tmp_path / "scenario" / "failures").glob("*.log"))
+    assert sc.docker.container is None and ACTIVE not in sc.docker.tags
+
+
+@pytest.mark.parametrize("phase", ["snapshotted", "retagged", "started_new", "verified"])
+def test_unfinished_later_phases_never_allow_recovery(tmp_path, phase):
+    rc = Recover(tmp_path, phase=phase, failed_phase=None, outcome=None)
+    assert rc.run(RECOVER) == 1 and rc.code() == "RECOVER_MARKER_PAST_RETAG"
+    assert rc.docker.calls == []
+    rc.write_marker(phase="stopped", failed_phase=None, outcome=None)
+    assert rc.run(RECOVER) == 0, rc.text
+
+
 def test_rollback_version_is_derived_like_wp04():
     assert rb.rollback_version(RELEASE) == "v2.4.0"
-    assert rb.PRE_RETAG_FAILED_PHASES == {"started", "stopped", "snapshotted"}
+    assert rb.PRE_RETAG_FAILED_PHASES == {"stopped", "snapshotted"}
 
 
 @pytest.mark.parametrize("phase,failed_phase", [("started", "stopped"), ("stopped", "snapshotted")],
@@ -1117,10 +1358,9 @@ def test_recover_brings_2_4_back(tmp_path, phase, failed_phase):
     ({"phase": "retagged", "failed_phase": "started_new", "outcome": "failed"}, "RECOVER_MARKER_PAST_RETAG"),
     ({"phase": "started_new", "failed_phase": "verified", "outcome": "failed"}, "RECOVER_MARKER_PAST_RETAG"),
     ({"phase": "verified", "failed_phase": None, "outcome": "success"}, "RECOVER_MARKER_NOT_FAILED"),
-    ({"phase": "stopped", "failed_phase": None, "outcome": None}, "RECOVER_MARKER_NOT_FAILED"),
     ({"phase": "stopped", "failed_phase": "snapshotted", "outcome": "rolled_back"}, "RECOVER_MARKER_NOT_FAILED"),
     ({"phase": "snapshotted", "failed_phase": "snapshotted", "outcome": "failed"}, "RECOVER_MARKER_PAST_RETAG"),
-], ids=["retagged", "started-new", "verified", "success", "in-progress", "rolled-back", "phase-snapshotted"])
+], ids=["retagged", "started-new", "verified", "success", "rolled-back", "phase-snapshotted"])
 def test_recover_refuses_a_marker_past_the_retag(tmp_path, marker, code):
     rc = Recover(tmp_path)
     rc.write_marker(**marker)
@@ -1176,41 +1416,29 @@ def test_recover_refuses_on_docker_state(tmp_path, break_it, fix, code):
     assert rc.run(RECOVER) == 0, rc.text
 
 
-def test_recover_refuses_a_db_migrated_only_in_the_wal(tmp_path):
+def test_recover_accepts_preexisting_rrule_in_the_wal(tmp_path):
     rc = Recover(tmp_path, wal_migrated=True)
     # The main file alone looks unmigrated: the markers live only in the WAL.
     main_only = tmp_path / "main-only"
     main_only.mkdir()
     shutil.copyfile(rc.data / dbsafety.DB_NAME, main_only / dbsafety.DB_NAME)
     assert dbsafety.is_migrated(main_only / dbsafety.DB_NAME) is False
-    assert rc.run(RECOVER) == 1
-    assert rc.code() == "RECOVER_DB_MIGRATED"
-    rc.no_tag_no_up()
+    assert rc.run(RECOVER) == 0, rc.text
     # The private copy took the WAL along, so it shows the migration.
     copy_dir = tmp_path / "failures" / "20261030T130000Z-recover"
     assert sorted(p.name for p in copy_dir.iterdir()) == sorted(
         [dbsafety.DB_NAME, dbsafety.WAL_NAME, dbsafety.SHM_NAME])
     assert dbsafety.is_migrated(copy_dir / dbsafety.DB_NAME) is True
-    assert core.marker_read(rc.marker)["outcome"] == "failed"
-    # Control: the same fixture without the migrated WAL recovers.
-    for name in (dbsafety.WAL_NAME, dbsafety.SHM_NAME):
-        (rc.data / name).unlink()
-    shutil.rmtree(copy_dir)
-    assert rc.run(RECOVER) == 0, rc.text
+    assert core.marker_read(rc.marker)["outcome"] == "rolled_back"
 
 
-def test_recover_refuses_an_uninspectable_db(tmp_path):
+def test_recover_does_not_use_schema_inspection_for_eligibility(tmp_path, monkeypatch):
     rc = Recover(tmp_path)
-    saved = {n: (rc.data / n).read_bytes() for n in (dbsafety.DB_NAME, dbsafety.WAL_NAME, dbsafety.SHM_NAME)}
-    for n in saved:
-        (rc.data / n).unlink()
-    (rc.data / dbsafety.DB_NAME).write_bytes(b"not a database" * 200)
-    assert rc.run(RECOVER) == 1
-    assert rc.code() == "DB_INSPECT_FAILED"
-    rc.no_tag_no_up()
-    for n, b in saved.items():
-        (rc.data / n).write_bytes(b)
-    shutil.rmtree(tmp_path / "failures" / "20261030T130000Z-recover")
+
+    def forbidden(*args, **kwargs):
+        raise AssertionError("schema inspection cannot establish previous release identity")
+
+    monkeypatch.setattr(dbsafety, "is_migrated", forbidden)
     assert rc.run(RECOVER) == 0, rc.text
 
 
@@ -1250,10 +1478,11 @@ def test_recover_up_failure_cleans_up(tmp_path):
     assert rc.run(RECOVER) == 0, rc.text
 
 
-def test_recover_docker_calls_all_happen_under_both_locks(tmp_path):
+@pytest.mark.parametrize("outcome", ["failed", None])
+def test_recover_docker_calls_all_happen_under_both_locks(tmp_path, outcome):
     import fcntl
 
-    rc = Recover(tmp_path)
+    rc = Recover(tmp_path, outcome=outcome, failed_phase="snapshotted" if outcome else None)
     real = rc.docker
     unlocked: list[list[str]] = []
 

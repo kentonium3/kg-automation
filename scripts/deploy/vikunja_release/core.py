@@ -60,6 +60,7 @@ import stat
 import subprocess
 import sys
 import tarfile
+import zlib
 import tempfile
 import time
 import traceback
@@ -116,7 +117,7 @@ _PATH_RE = re.compile(r"/[A-Za-z0-9._/@+-]*")
 _TIMESTAMP_RE = re.compile(
     r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,6})?(Z|\+00:00)|\d{8}T\d{6}Z"
 )
-_VERSION_RE = re.compile(r"v?\d+\.\d+\.\d+(-[0-9]+-[0-9a-f]{7,40})?")
+_VERSION_RE = re.compile(r"v?\d+\.\d+\.\d+(-[0-9]+-[0-9a-f]{7,40}|-rrule\.[0-9]+)?")
 _FIELD_KEY_RE = re.compile(r"[a-z][a-z0-9_]{0,47}")
 _SUMMARY_ID_RE = re.compile(r"[A-Z][A-Z0-9_]{1,63}")
 
@@ -271,9 +272,8 @@ def run_cli(argv: list[str], prog: str, body: Callable[[str], None],
 
     * Any other argv: usage on stderr, exit 2.
     * *body* returns: exit 0.
-    * *body* raises :class:`Fail`: one public line with the code (and, when
-      *private_root* is set and the failure carries private detail, the
-      private log path), exit 1.
+    * *body* raises :class:`Fail`: one public line with only the stable
+      code; diagnostic detail stays in the private log, exit 1.
     * Any other exception: ``INTERNAL_ERROR``, traceback written only to the
       private log, exit 1.
     """
@@ -287,12 +287,12 @@ def run_cli(argv: list[str], prog: str, body: Callable[[str], None],
     try:
         body(mode)
     except Fail as exc:
-        log = _private_detail(private_root, "fail", exc.detail_private)
-        emit("FAILED", out, code=exc.code, private_log=log)
+        _private_detail(private_root, "fail", exc.detail_private)
+        emit("FAILED", out, code=exc.code)
         return EXIT_FAIL
     except Exception:  # noqa: BLE001 - never echo an unexpected message
-        log = _private_detail(private_root, "internal-error", traceback.format_exc())
-        emit("FAILED", out, code="INTERNAL_ERROR", private_log=log)
+        _private_detail(private_root, "internal-error", traceback.format_exc())
+        emit("FAILED", out, code="INTERNAL_ERROR")
         return EXIT_FAIL
     return EXIT_OK
 
@@ -396,8 +396,27 @@ _ARCHIVE = {"path": (str, _abs_path), "sha256": (str, _HEX64_RE.fullmatch), "siz
 _DIGEST = (str, _DIGEST_RE.fullmatch)
 _REF = (str, _REF_RE.fullmatch)
 _PATH = (str, _abs_path)
+REPO_ROOT = Path(__file__).resolve().parents[3]
+
+
+def _baseline_path(value: str) -> bool:
+    path = Path(value)
+    base = Path("services/vikunja/baselines")
+    if (path.is_absolute() or ".." in path.parts or not path.is_relative_to(base)
+            or path == base or not re.fullmatch(r"[A-Za-z0-9._/-]+", value)):
+        return False
+    try:
+        root = REPO_ROOT.resolve()
+        resolved_base = (root / base).resolve()
+        resolved = (root / path).resolve()
+        return (resolved_base.is_relative_to(root) and resolved != resolved_base
+                and resolved.is_relative_to(resolved_base))
+    except (OSError, RuntimeError):
+        return False
+
 
 RELEASE_SCHEMA: Mapping[str, Any] = {
+    "baseline": {"path": (str, _baseline_path), "sha256": (str, _HEX64_RE.fullmatch)},
     "schema_version": (int, lambda v: v == 1),
     "release_version": (str, _VERSION_RE.fullmatch),
     "source_revision": (str, _REVISION_RE.fullmatch),
@@ -407,6 +426,7 @@ RELEASE_SCHEMA: Mapping[str, Any] = {
         "index_digest": _DIGEST,
         "platform": (str, _PLATFORM_RE.fullmatch),
         "user": (str, _USER_RE.fullmatch),
+        "revision_label_absent": (bool, lambda v: v is True),
     },
     "tags": {"release": _REF, "active": _REF},
     "rollback": {"image_id": _DIGEST, "ref": _REF, "archive": _ARCHIVE},
@@ -426,7 +446,8 @@ RELEASE_SCHEMA: Mapping[str, Any] = {
 }
 
 
-def _validate(data: Any, schema: Mapping[str, Any], prefix: str) -> None:
+def _validate(data: Any, schema: Mapping[str, Any], prefix: str,
+              optional: frozenset[str] = frozenset()) -> None:
     if not isinstance(data, dict):
         raise ReleaseError("RELEASE_TYPE_INVALID", prefix.rstrip(".") or "<root>")
     for key in data:
@@ -435,10 +456,12 @@ def _validate(data: Any, schema: Mapping[str, Any], prefix: str) -> None:
     for key, rule in schema.items():
         dotted = f"{prefix}{key}"
         if key not in data:
+            if dotted in optional:
+                continue
             raise ReleaseError("RELEASE_KEY_MISSING", dotted)
         value = data[key]
         if isinstance(rule, Mapping):
-            _validate(value, rule, dotted + ".")
+            _validate(value, rule, dotted + ".", optional=optional)
             continue
         kind, check = rule
         if type(value) is not kind:  # exact: rejects bool for int
@@ -450,7 +473,9 @@ def _validate(data: Any, schema: Mapping[str, Any], prefix: str) -> None:
 def load_release(path: os.PathLike | str) -> dict[str, Any]:
     """Load and validate ``services/vikunja/release.json``.
 
-    Every key is required, unknown keys are refused, and every value is
+    Except for the baseline binding and image revision-label exception,
+    every key is required.
+    Unknown keys are refused, and every value is
     type- and format-checked. The release tag must name the release version.
     Raises :class:`ReleaseError` with a stable code.
     """
@@ -465,7 +490,8 @@ def load_release(path: os.PathLike | str) -> dict[str, Any]:
         data = json.loads(raw.decode("utf-8"))
     except (UnicodeDecodeError, json.JSONDecodeError) as exc:
         raise ReleaseError("RELEASE_UNREADABLE") from exc
-    _validate(data, RELEASE_SCHEMA, "")
+    _validate(data, RELEASE_SCHEMA, "",
+              optional=frozenset({"baseline", "image.revision_label_absent"}))
     if not data["tags"]["release"].endswith(":" + data["release_version"]):
         raise ReleaseError("RELEASE_VALUE_INVALID", "tags.release")
     return data
@@ -539,11 +565,18 @@ def image_id(ref: str, runner: Runner = subprocess.run) -> str | None:
 REVISION_LABEL = "org.opencontainers.image.revision"
 
 
+def revision_matches(record: Mapping[str, Any], revision: Any, present: bool) -> bool:
+    """Require either the pinned revision label or its declared absence."""
+    if record["image"].get("revision_label_absent") is True:
+        return not present
+    return present and revision == record["source_revision"]
+
+
 def image_facts(ref: str, runner: Runner = subprocess.run) -> dict[str, Any] | None:
     """Identity facts of a local image, or ``None`` when absent.
 
-    Returns ``{"id", "architecture", "os", "user", "revision"}``; the
-    revision is ``None`` when the image carries no revision label.
+    Returns ID, architecture, os, user, revision and revision_label_present.
+    The presence fact distinguishes a missing label from a present null value.
     """
     _check_ref(ref)
     rc, out, err = run(["docker", "image", "inspect", "--format", "{{json .}}", ref], DOCKER_TIMEOUT,
@@ -572,6 +605,7 @@ def image_facts(ref: str, runner: Runner = subprocess.run) -> dict[str, Any] | N
         "os": data.get("Os"),
         "user": config.get("User"),
         "revision": labels.get(REVISION_LABEL),
+        "revision_label_present": REVISION_LABEL in labels,
     }
     if not isinstance(facts["id"], str) or not _DIGEST_RE.fullmatch(facts["id"]):
         raise Fail("DOCKER_INSPECT_UNPARSEABLE")
@@ -691,7 +725,7 @@ def _parse_pinned(fh: BinaryIO, config_name: str) -> tuple[Any, Any, bytes | Non
     Every parser failure maps to ``ARCHIVE_UNREADABLE``."""
     try:
         fh.seek(0)
-        with tarfile.open(fileobj=fh, mode="r:") as tar:
+        with tarfile.open(fileobj=fh, mode="r:*") as tar:
             members: dict[str, list[tarfile.TarInfo]] = {}
             for info in tar.getmembers():
                 name = info.name[2:] if info.name.startswith("./") else info.name
@@ -700,7 +734,7 @@ def _parse_pinned(fh: BinaryIO, config_name: str) -> tuple[Any, Any, bytes | Non
             manifest = _json(_member_bytes(tar, members, "manifest.json"), "ARCHIVE_MANIFEST_UNPARSEABLE")
             config_raw = _member_bytes(tar, members, config_name) if config_name in members else None
     except (tarfile.TarError, OSError, ValueError, UnicodeError, RecursionError, MemoryError,
-            OverflowError) as exc:
+            OverflowError, EOFError, zlib.error) as exc:
         raise Fail("ARCHIVE_UNREADABLE") from exc
     return index, manifest, config_raw
 
@@ -721,7 +755,8 @@ def verify_archive(path: os.PathLike | str, record: Mapping[str, Any]) -> dict[s
        the config's architecture, os, ``config.User`` and revision label
        match the record.
 
-    Returns the verified identities. Raises :class:`Fail` with a stable code.
+    Returns the verified identities and validated manifest RepoTags (an empty
+    list for an untagged archive). Raises :class:`Fail` with a stable code.
     """
     archive = record["archive"]
     image = record["image"]
@@ -740,6 +775,12 @@ def verify_archive(path: os.PathLike | str, record: Mapping[str, Any]) -> dict[s
     if (not isinstance(manifest, list) or len(manifest) != 1 or not isinstance(manifest[0], dict)
             or manifest[0].get("Config") != config_name):
         raise Fail("ARCHIVE_MANIFEST_MISMATCH")
+    repo_tags = manifest[0].get("RepoTags")
+    if repo_tags is None:
+        repo_tags = []
+    if (not isinstance(repo_tags, list)
+            or any(not isinstance(ref, str) or not _REF_RE.fullmatch(ref) for ref in repo_tags)):
+        raise Fail("ARCHIVE_REPOTAGS_INVALID")
     if config_raw is None:
         raise Fail("ARCHIVE_MEMBER_MISSING")
     if hashlib.sha256(config_raw).hexdigest() != config_hex:
@@ -756,13 +797,15 @@ def verify_archive(path: os.PathLike | str, record: Mapping[str, Any]) -> dict[s
         raise Fail("ARCHIVE_OS_MISMATCH")
     if not isinstance(inner, dict) or inner.get("User") != image["user"]:
         raise Fail("ARCHIVE_USER_MISMATCH")
-    if not isinstance(labels, dict) or labels.get(REVISION_LABEL) != record["source_revision"]:
+    if not isinstance(labels, dict) or not revision_matches(
+            record, labels.get(REVISION_LABEL), REVISION_LABEL in labels):
         raise Fail("ARCHIVE_REVISION_MISMATCH")
     return {
         "sha256": archive["sha256"],
         "size": archive["size"],
         "index_digest": image["index_digest"],
         "config_digest": image["config_digest"],
+        "repo_tags": repo_tags,
     }
 
 
@@ -935,6 +978,6 @@ __all__ = [
     "Deadline", "EXIT_FAIL", "EXIT_OK", "EXIT_USAGE", "Fail", "OUTCOMES", "PHASES",
     "RELEASE_SCHEMA", "ReleaseError", "allowed_value", "register_summaries", "registered_summaries", "container_image", "docker_store_ok",
     "emit", "image_facts", "image_id", "load_release", "marker_create", "marker_read",
-    "marker_update", "run", "run_cli", "sha256_file", "verify_archive", "verify_size_and_sha",
+    "marker_update", "revision_matches", "run", "run_cli", "sha256_file", "verify_archive", "verify_size_and_sha",
     "write_private_log",
 ]

@@ -5,7 +5,7 @@ Docker/Compose/curl surface is injected as the runner; ``capture_logs`` gets
 a ``popen`` that starts a tiny local Python child printing fake container
 logs; the clock, wall clock, sleep and disk usage are injected; every root is
 under ``tmp_path``. The snapshot is the real ``dbsafety.snapshot`` on a small
-SQLite DB with the v2.4.0 ``tasks`` shape.
+SQLite DB with synthetic migration, repeat and subscription rows.
 
 Every refusal or absence assertion has a same-fixture positive control.
 Every failure after ``down`` asserts the lock-held end state and the INV-1
@@ -16,9 +16,11 @@ from __future__ import annotations
 
 import importlib.util
 import fcntl
+import hashlib
 import io
 import json
 import os
+import shutil
 import sqlite3
 import stat
 import subprocess
@@ -29,7 +31,7 @@ from pathlib import Path
 
 import pytest
 
-from scripts.deploy.vikunja_release import core
+from scripts.deploy.vikunja_release import baseline, core
 
 _ROOT = Path(__file__).resolve().parents[2]
 _ENTRY_REL = "scripts/deploy/deploy-vikunja-release-activate.py"
@@ -39,7 +41,7 @@ mod = importlib.util.module_from_spec(_spec)
 sys.modules[_spec.name] = mod
 _spec.loader.exec_module(mod)
 
-_RELEASE = _ROOT / "services" / "vikunja" / "release.json"
+_RELEASE = Path(__file__).resolve().parent / "fixtures" / "vikunja_first_cutover_release.json"
 _LIVE_COMPOSE = _ROOT / "services" / "vikunja" / "docker-compose.yml"
 _FIX = Path(__file__).resolve().parent / "fixtures" / "vikunja_release"
 
@@ -223,6 +225,8 @@ class World:
         if argv[0] == "curl":
             return self._curl(argv)
         cmd = argv[1:]
+        if cmd == ["ps", "-a", "--filter", "name=^vikunja$", "-q"]:
+            return self._r(argv, 0, "0123456789ab\n" if self.container else "")
         if cmd == ["info", "--format", "{{json .}}"]:
             return self._r(argv, 0, json.dumps(self.info) + "\n")
         if cmd[:3] == ["image", "inspect", "--format"]:
@@ -295,6 +299,17 @@ def _make_db(path: Path, rows: int = 12) -> None:
                      "repeat_after INTEGER, repeat_mode INTEGER NOT NULL DEFAULT 0)")
         conn.executemany("INSERT INTO tasks (id, title, repeat_after, repeat_mode) VALUES (?, ?, ?, ?)",
                          [(i, f"{TITLE} {SECRET} #{i}", 86400 * (i % 3), i % 2) for i in range(1, rows + 1)])
+        conn.executescript("""
+            ALTER TABLE tasks ADD COLUMN repeats TEXT;
+            ALTER TABLE tasks ADD COLUMN repeats_from_current_date INTEGER;
+            ALTER TABLE tasks ADD COLUMN created_by_id INTEGER;
+            CREATE TABLE migration (id TEXT PRIMARY KEY);
+            INSERT INTO migration VALUES ('100'),('SCHEMA_INIT');
+            CREATE TABLE users (id INTEGER PRIMARY KEY);
+            CREATE TABLE task_assignees (task_id INTEGER, user_id INTEGER);
+            CREATE TABLE subscriptions (id INTEGER PRIMARY KEY, entity_type INTEGER,
+                                        entity_id INTEGER, user_id INTEGER, muted INTEGER);
+        """)
     finally:
         conn.close()
 
@@ -315,6 +330,19 @@ class Env:
         rec["roots"]["snapshots"] = str(self.services / "snapshots")
         rec["roots"]["activation"] = str(self.services / "activation")
         rec["roots"]["private_logs"] = str(self.services / "failures")
+        with sqlite3.connect(self.data / "vikunja.db") as conn:
+            schema = baseline.schema_identity(conn)
+        facts = {"schema_version": 1, "previous_version": PRE_VERSION,
+                 "previous_image_config": ROLLBACK_ID, "pre_upgrade_migration_ids": ["100", "SCHEMA_INIT"],
+                 "added_migration_ids": [str(i) for i in range(200, 210)],
+                 "schema_identity": {"algorithm": baseline.ALGORITHM,
+                                     "pre_upgrade": schema, "target": schema}}
+        self.baseline_path = base / "services/vikunja/baselines/synthetic.json"
+        self.baseline_path.parent.mkdir(parents=True)
+        raw = json.dumps(facts).encode()
+        self.baseline_path.write_bytes(raw)
+        rec["baseline"] = {"path": "services/vikunja/baselines/synthetic.json",
+                           "sha256": hashlib.sha256(raw).hexdigest()}
         self.rec = rec
         self.release_path = base / "release.json"
         self.release_path.write_text(json.dumps(rec), encoding="utf-8")
@@ -334,7 +362,7 @@ class Env:
         out, err = io.StringIO(), io.StringIO()
         rc = mod.main(list(argv), runner=self.world, popen=self.world.popen, clock=self.clock,
                       now=lambda: T0, sleep=self.clock.sleep, disk_usage=self.disk_usage,
-                      release_path=self.release_path, stdout=out, stderr=err)
+                      release_path=self.release_path, stdout=out, stderr=err, repository_root=self.base)
         return rc, out.getvalue().splitlines(), err.getvalue()
 
     def write_marker(self, **data) -> None:
@@ -419,6 +447,215 @@ def _happy(env: Env) -> list[str]:
     return lines
 
 
+def _rewrite_baseline(env, change):
+    facts = json.loads(env.baseline_path.read_bytes())
+    change(facts)
+    raw = json.dumps(facts).encode()
+    env.baseline_path.write_bytes(raw)
+    env.rec["baseline"]["sha256"] = hashlib.sha256(raw).hexdigest()
+    env.release_path.write_text(json.dumps(env.rec))
+
+
+def _assert_no_selection(env):
+    assert not any(_verb(a) in {("tag",), ("compose", "up")} for a, _ in env.world.calls)
+
+
+@pytest.mark.parametrize("kind,code", [
+    ("unbound", "GATE_BASELINE_UNREADABLE"), ("digest", "GATE_BASELINE_UNREADABLE"),
+    ("identity", "GATE_BASELINE_UNREADABLE"), ("missing-migration", "GATE_MIGRATIONS_MISMATCH"),
+    ("extra-migration", "GATE_MIGRATIONS_MISMATCH"), ("schema", "GATE_SCHEMA_MISMATCH"),
+    ("aggregate", "GATE_AGGREGATE_FAILED"), ("receipt", "GATE_RECEIPT_WRITE_FAILED"),
+    ("deadline", "GATE_DEADLINE"), ("outage", "ACTIVATE_OUTAGE_DEADLINE"),
+])
+def test_real_gate_failure_ordering_and_replay(env, monkeypatch, kind, code):
+    if kind == "unbound":
+        env.rec.pop("baseline")
+        env.release_path.write_text(json.dumps(env.rec))
+    elif kind == "digest":
+        env.baseline_path.write_bytes(b"{}")
+    elif kind == "identity":
+        _rewrite_baseline(env, lambda f: f.update(previous_version="v1.0.0"))
+    elif kind in ("missing-migration", "extra-migration", "schema", "aggregate"):
+        with sqlite3.connect(env.data / "vikunja.db") as conn:
+            if kind == "missing-migration":
+                conn.execute("DELETE FROM migration")
+            elif kind == "extra-migration":
+                conn.execute("INSERT INTO migration VALUES ('999')")
+            elif kind == "schema":
+                conn.execute("ALTER TABLE tasks ADD COLUMN unexpected TEXT")
+            else:
+                conn.execute("ALTER TABLE subscriptions DROP COLUMN muted")
+                digest = baseline.schema_identity(conn)
+                _rewrite_baseline(env, lambda f: f["schema_identity"].update(pre_upgrade=digest))
+    elif kind == "receipt":
+        def fail(*a, **k):
+            raise core.Fail("GATE_RECEIPT_WRITE_FAILED")
+        monkeypatch.setattr(baseline, "write_receipt", fail)
+    else:
+        real = baseline.compare
+        def slow(*a, **k):
+            env.clock.t += 31 if kind == "deadline" else mod.OUTAGE_S
+            return real(*a, **k)
+        monkeypatch.setattr(baseline, "compare", slow)
+    rc, lines, err = env.run("--apply")
+    assert rc == 1 and _code(lines) == code and not err
+    marker = assert_lock_held_end_state(env, code, "retagged")
+    assert marker["phase"] == "snapshotted"
+    _assert_no_selection(env)
+    before = _fs(env)
+    env.world.calls.clear()
+    rc, lines, _ = env.run("--apply")
+    assert rc == 1 and _code(lines) == "ACTIVATE_PRIOR_ATTEMPT_SNAPSHOTTED"
+    assert _fs(env) == before and not env.world.calls
+
+
+def test_receipt_both_fsyncs_precede_tag(env, monkeypatch):
+    real_fsync = os.fsync
+    events = []
+    def fsync(fd):
+        real_fsync(fd)
+        events.append(("dir" if stat.S_ISDIR(os.fstat(fd).st_mode) else "file", fd))
+    monkeypatch.setattr(baseline.os, "fsync", fsync)
+    def before(argv):
+        if _verb(argv) == ("tag",):
+            marker = env.marker_data()
+            receipt = Path(marker["snapshot_dir"]) / "baseline.json"
+            assert json.loads(receipt.read_bytes())["snapshot_sha256"] == marker["snapshot_sha"]
+            assert [kind for kind, _ in events[-2:]] == ["file", "dir"]
+            assert marker["phase"] == "snapshotted"
+    env.world.pre_hook = before
+    _happy(env)
+
+
+class _Crash(BaseException):
+    pass
+
+
+@pytest.mark.parametrize("when", ["receipt-partial", "receipt-durable", "retagged"])
+def test_gate_crash_windows_refuse_replay(env, monkeypatch, when):
+    real_write = os.write
+    if when == "receipt-partial":
+        def crash(fd, payload):
+            # Only the receipt writer uses os.write with memoryviews.
+            if isinstance(payload, memoryview):
+                real_write(fd, payload[:1])
+                raise _Crash()
+            return real_write(fd, payload)
+        monkeypatch.setattr(baseline.os, "write", crash)
+    else:
+        def before(argv):
+            if when == "receipt-durable" and _verb(argv) == ("tag",):
+                raise _Crash()
+            if when == "retagged" and _verb(argv) == ("compose", "up"):
+                raise _Crash()
+        env.world.pre_hook = before
+    with pytest.raises(_Crash):
+        env.run("--apply")
+    marker = env.marker_data()
+    receipt = Path(marker["snapshot_dir"]) / "baseline.json"
+    assert marker["outcome"] is None
+    assert marker["phase"] == ("retagged" if when == "retagged" else "snapshotted")
+    assert receipt.exists()
+    if when == "receipt-partial":
+        assert receipt.read_bytes() == b"{"
+    else:
+        assert json.loads(receipt.read_bytes())["snapshot_sha256"] == marker["snapshot_sha"]
+    env.world.pre_hook = None
+    env.world.calls.clear()
+    before = _fs(env)
+    rc, lines, _ = env.run("--apply")
+    assert rc == 1 and _code(lines) == f"ACTIVATE_PRIOR_ATTEMPT_{marker['phase'].upper()}"
+    assert _fs(env) == before and not env.world.calls
+
+
+@pytest.mark.parametrize("failure", ["success", "gate", "exception", "cleanup", "log-write"])
+def test_all_public_channels_exclude_private_evidence(env, monkeypatch, failure):
+    from scripts.deploy.lib import installed_report
+    report = env.base / "installed-report.json"
+    monkeypatch.setenv(installed_report.ENV_VAR, str(report))
+    if failure == "gate":
+        env.baseline_path.write_bytes(b"{}")
+    elif failure == "exception":
+        def boom(*a, **k):
+            raise RuntimeError(SEEDED + str(env.snapshots))
+        monkeypatch.setattr(baseline, "compare", boom)
+    elif failure in ("cleanup", "log-write"):
+        env.world.versions[RELEASE_ID] = "v0.0.1"
+        if failure == "cleanup":
+            env.world.fail[("compose", "down")] = ["ok", "rc"]
+        else:
+            def failed_log(*a, **k):
+                raise core.Fail("PRIVATE_LOG_WRITE_FAILED", SEEDED)
+            monkeypatch.setattr(core, "write_private_log", failed_log)
+    rc, lines, err = env.run("--apply")
+    assert rc == (0 if failure == "success" else 1)
+    public = "\n".join(lines) + err
+    # Failed-command excerpts and installed reports are forwarded verbatim.
+    forwarded = public[:4096]
+    installed = report.read_text() if report.exists() else ""
+    marker = env.marker_data()
+    private = [str(env.snapshots), str(env.failures), marker["snapshot_sha"],
+               marker["snapshot_dir"], "20261030T120000Z", "tasks_before=", "outage_seconds=",
+               "processed=7", "converted=5", *LEAKS]
+    for text in (public, forwarded, installed):
+        assert all(value not in text for value in private)
+
+
+@pytest.mark.parametrize("repeat_cutover", [False, True])
+def test_gate_failure_snapshot_rollback_and_pre_snapshot_refusal(env, repeat_cutover):
+    from scripts.vikunja import rollback_release as rollback
+    expected_version = PRE_VERSION
+    if repeat_cutover:
+        env.rec["image"]["revision_label_absent"] = True
+        del env.world.images[RELEASE_ID]["Config"]["Labels"][core.REVISION_LABEL]
+        # The exception belongs to the new image; the previous release retains its label.
+        env.world.images[ROLLBACK_ID] = _facts(ROLLBACK_ID)
+        expected_version = "v3.0.0-rrule.1"
+        ref = "example.invalid/app:" + expected_version
+        env.rec["rollback"]["ref"] = ref
+        env.rec["release_version"] = "v3.1.0-rrule.1"
+        env.rec["tags"]["release"] = "example.invalid/app:" + env.rec["release_version"]
+        env.world.tags[env.rec["tags"]["release"]] = RELEASE_ID
+        env.world.tags[ref] = ROLLBACK_ID
+        env.world.versions[ROLLBACK_ID] = expected_version
+        env.world.versions[RELEASE_ID] = env.rec["release_version"]
+        env.marker = env.activation / f"{env.rec['release_version']}.json"
+        _rewrite_baseline(env, lambda f: f.update(previous_version=expected_version))
+        # The explicitly bound repeat-cutover fixture passes the real gate.
+        assert baseline.load_bound(env.rec, env.base)["previous_version"] == expected_version
+        assert baseline.compare(env.data / "vikunja.db", baseline.load_bound(env.rec, env.base)).code is None
+    env.baseline_path.write_bytes(b"{}")
+    rc, lines, _ = env.run("--apply")
+    assert rc == 1 and _code(lines) == "GATE_BASELINE_UNREADABLE", lines
+    snapshot = Path(env.marker_data()["snapshot_dir"])
+    def run(*args):
+        out = io.StringIO()
+        previous = os.umask(0o077)
+        try:
+            rc = rollback.main(list(args), runner=env.world, popen=env.world.popen,
+                               monotonic=env.clock, utcnow=lambda: T0, sleep=env.clock.sleep,
+                               release_path=env.release_path, repo_root=env.base, stdout=out,
+                               lock_path=env.base / "deployer.lock")
+        finally:
+            os.umask(previous)
+        return rc, out.getvalue()
+    env.world.calls.clear()
+    rc, text = run("--recover-pre-snapshot")
+    assert rc == 1 and "RECOVER_MARKER_PAST_RETAG" in text
+    _assert_no_selection(env)
+    rc, text = run("--snapshot", str(snapshot), "--prepare")
+    assert rc == 0, text
+    prepared = json.loads((snapshot / rollback.PREPARE_RECORD).read_bytes())
+    assert prepared["post_cutover_writes"] == 0
+    # Synthetic stand-in for the operator's privileged restore.
+    shutil.copyfile(snapshot / "vikunja.db", env.data / "vikunja.db")
+    rc, text = run("--snapshot", str(snapshot), "--finish", "--ack-post-cutover-writes", "0")
+    assert rc == 0, text
+    assert env.world.container == {"image": ROLLBACK_ID, "config": ACTIVE_TAG}
+    assert env.world.versions[env.world.container["image"]] == expected_version
+    assert env.marker_data()["outcome"] == "rolled_back"
+
+
 # ---------------------------------------------------------------------------
 # Entrypoint shape
 # ---------------------------------------------------------------------------
@@ -476,7 +713,7 @@ def test_dry_run_reports_every_precondition_and_mutates_nothing(env):
     assert lines[0] == f"ACTIVATE_DRY_RUN_READY release_version={RELEASE_VERSION} config_digest={RELEASE_ID}"
     for name in mod.CHECKS:
         assert f"ACTIVATE_CHECK check_code={name} status_code=MET" in lines
-    assert f"ACTIVATE_MARKER marker={env.marker} status_code=ABSENT" in lines
+    assert "ACTIVATE_MARKER status_code=ABSENT" in lines
     assert f"ACTIVATE_PRE_VERSION pre_version={PRE_VERSION}" in lines
     assert env.world.docker_verbs() == READ_ONLY_DOCKER
     assert env.world.mutating() == []
@@ -529,6 +766,26 @@ def _db_unreadable(env):
 
 def _db_missing(env):
     (env.data / "vikunja.db").rename(env.data / "away.db")
+
+
+@pytest.mark.parametrize("exception", [False, True])
+@pytest.mark.parametrize("label", ["absent", "matching", "mismatch", "null", "empty"])
+def test_activate_revision_label_policy(env, exception, label):
+    labels = env.world.images[RELEASE_ID]["Config"]["Labels"]
+    if label == "absent":
+        del labels[core.REVISION_LABEL]
+    elif label != "matching":
+        labels[core.REVISION_LABEL] = {"mismatch": "0" * 40, "null": None, "empty": ""}[label]
+    if exception:
+        env.rec["image"]["revision_label_absent"] = True
+    env.release_path.write_text(json.dumps(env.rec))
+    rc, lines, _ = env.run("--dry-run")
+    if (exception and label == "absent") or (not exception and label == "matching"):
+        assert rc == 0, lines
+        assert lines[0].startswith("ACTIVATE_DRY_RUN_READY")
+    else:
+        assert rc == 1 and _code(lines) == "ACTIVATE_PRECONDITIONS_UNMET", lines
+        assert _unmet(lines) == {"PRE_RELEASE_TAG": "PRE_RELEASE_FACTS_MISMATCH"}
 
 
 PRECONDITIONS = [
@@ -639,7 +896,7 @@ def test_apply_cuts_over_in_order_and_records_success(env, monkeypatch):
     lines = _happy(env)
     w = env.world
     assert lines[0] == (f"ACTIVATE_VERIFIED release_version={RELEASE_VERSION} config_digest={RELEASE_ID} "
-                        f"pre_version={PRE_VERSION} outage_seconds=0")
+                        f"pre_version={PRE_VERSION}")
     assert [a[1:] for a in w.mutating()] == [
         ["compose", "-f", str(env.compose), "down"],
         ["image", "rm", ACTIVE_TAG],
@@ -661,10 +918,9 @@ def test_apply_cuts_over_in_order_and_records_success(env, monkeypatch):
     snap = json.loads((Path(marker["snapshot_dir"]) / "snapshot.json").read_text())
     assert snap["pre_version"] == PRE_VERSION and snap["running_image_id"] == ROLLBACK_ID
     assert snap["db_sha256"] == marker["snapshot_sha"] and snap["tasks_count"] == 12
-    assert f"ACTIVATE_SNAPSHOT snapshot_dir={marker['snapshot_dir']} db_sha256={snap['db_sha256']} " \
-           f"tasks_before=12" in lines
-    assert ("ACTIVATE_MIGRATION processed=7 converted=5 already_rrule=1 unconvertible=1 server_zone=2"
-            in lines)
+    assert "ACTIVATE_SNAPSHOT status_code=PERSISTED" in lines
+    assert "ACTIVATE_MIGRATION status_code=VERIFIED" in lines
+    assert (Path(marker["snapshot_dir"]) / "baseline.json").is_file()
     for phase in ("stopped", "snapshotted", "retagged", "started_new", "verified"):
         assert f"ACTIVATE_STEP phase={phase}" in lines
     # Private folders: 0700; the verify log is kept privately.
@@ -722,7 +978,7 @@ def test_success_replay_that_does_not_reconcile_fails(env, mode, break_it):
     rc, lines, _ = env.run(mode)
     assert _fs(env) == before, "a failed replay writes nothing, not even a private log"
     assert rc == 1 and _code(lines) == "ACTIVATE_SUCCESS_NOT_RECONCILED"
-    assert lines[0] == "FAILED code=ACTIVATE_SUCCESS_NOT_RECONCILED private_log=-"
+    assert lines[0] == "FAILED code=ACTIVATE_SUCCESS_NOT_RECONCILED"
     assert env.world.mutating() == []
     assert env.world.verbs() <= {("container", "inspect"), ("curl",)}
 
@@ -886,7 +1142,7 @@ def test_cleanup_down_failing_with_a_running_rejected_release_is_reported_honest
     assert marker["failure_log"] and Path(marker["failure_log"]).exists()
     cleanup = [l for l in lines if l.startswith("ACTIVATE_CLEANUP ")]
     assert cleanup == [f"ACTIVATE_CLEANUP lock_code=HELD container_code=PRESENT "
-                       f"cleanup_code=CLEANUP_DOWN_FAILED problems=2 private_log={marker['failure_log']}"]
+                       f"cleanup_code=CLEANUP_DOWN_FAILED problems=2"]
 
 
 def test_internal_error_after_down_still_cleans_up(env, monkeypatch):
@@ -922,7 +1178,7 @@ def test_outage_deadline_crossed_mid_readiness(tmp_path):
     control.world.cost[("compose", "up")] = 60.0
     control.world.cost[("compose", "down")] = 60.0
     lines = _happy(control)
-    assert "outage_seconds=120" in lines[0]
+    assert control.marker_data()["outage_seconds"] == 120
 
     env = Env(tmp_path / "case")
     env.world.cost[("compose", "down")] = 60.0
@@ -982,8 +1238,8 @@ def test_realistic_cumulative_outage_exhaustion(tmp_path, monkeypatch):
     t_control = Timing(control, monkeypatch, after_down_cost=28.0)
     control.world.cost[("compose", "down")] = 40.0
     lines = _happy(control)
-    assert t_control.cleanup_start is None and "outage_seconds=" in lines[0]
-    assert int(lines[0].rsplit("outage_seconds=", 1)[1]) <= 300
+    assert t_control.cleanup_start is None
+    assert control.marker_data()["outage_seconds"] <= 300
 
     env = Env(tmp_path / "case")
     env.world.cost[("curl",)] = 1.0
@@ -1186,7 +1442,7 @@ def test_lock_held_by_another_process_refuses_with_no_call_and_no_write(env, mod
         tree = _fs(env)
         rc, lines, err = env.run(mode)
         assert rc == 1 and _code(lines) == "ACTIVATE_LOCK_BUSY", lines
-        assert lines[0] == "FAILED code=ACTIVATE_LOCK_BUSY private_log=-"
+        assert lines[0] == "FAILED code=ACTIVATE_LOCK_BUSY"
         assert env.world.calls == []
         assert _fs(env) == tree
         assert env.world.tags[ACTIVE_TAG] == ROLLBACK_ID
@@ -1204,7 +1460,7 @@ def test_lock_held_by_another_process_refuses_with_no_call_and_no_write(env, mod
 def test_dry_run_probes_the_lock_without_creating_it(env):
     rc, lines, _ = env.run("--dry-run")
     assert rc == 0
-    assert f"ACTIVATION_LOCK_FREE lock={env.activation / mod.ACTIVATION_LOCK_NAME}" in lines
+    assert "ACTIVATION_LOCK_FREE" in lines
     assert not env.activation.exists()
 
 
@@ -1266,7 +1522,7 @@ def test_replay_errors_write_no_private_log(env, mode, kind):
         code = "ACTIVATE_REPLAY_INTERNAL_ERROR"
     tree = _fs(env)
     rc, lines, err = env.run(mode)
-    assert rc == 1 and lines[0] == f"FAILED code={code} private_log=-"
+    assert rc == 1 and lines[0] == f"FAILED code={code}"
     assert _fs(env) == tree
     assert SECRET not in "\n".join(lines) + err
 

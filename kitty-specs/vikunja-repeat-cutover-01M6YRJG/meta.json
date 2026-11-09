@@ -1,0 +1,44 @@
+{
+  "accept_commit": "42a14a9189e954a953aff89c6bcfe30b6709566a",
+  "acceptance_history": [
+    {
+      "accept_commit": "835ed38b952fe3533643d303409e7fd365a9f0b8",
+      "acceptance_mode": "pr",
+      "accepted_at": "2026-11-09T21:50:37.162816+00:00",
+      "accepted_by": "kgale",
+      "accepted_from_commit": "cfe9ac6b773b6181616e3efe3edd042c791bd7cb"
+    },
+    {
+      "accept_commit": "42a14a9189e954a953aff89c6bcfe30b6709566a",
+      "acceptance_mode": "pr",
+      "accepted_at": "2026-11-09T21:50:48.558483+00:00",
+      "accepted_by": "kgale",
+      "accepted_from_commit": "c7852a78ffa0be9be6f09f37a13c5507e262fd75"
+    }
+  ],
+  "acceptance_mode": "pr",
+  "accepted_at": "2026-11-09T21:50:48.558483+00:00",
+  "accepted_by": "kgale",
+  "accepted_from_commit": "c7852a78ffa0be9be6f09f37a13c5507e262fd75",
+  "baseline_merge_commit": "282b8d904a6ec1b44e3307763e7ccb7c41e99ec1",
+  "coordination_branch": "kitty/mission-vikunja-repeat-cutover-01M6YRJG",
+  "created_at": "2026-11-08T23:40:51.346718+00:00",
+  "flattened": false,
+  "friendly_name": "Vikunja repeat cutover support",
+  "merged_at": "2026-11-09T21:51:28.238609+00:00",
+  "merged_commit": "3b6156e10a1e167f8ddc2ae34dbee16cfe0a40c0",
+  "mid8": "01M6YRJG",
+  "mission_id": "01M6YRJG7Q3FG3W2ZADQ73A8MW",
+  "mission_number": 122,
+  "mission_slug": "vikunja-repeat-cutover-01M6YRJG",
+  "mission_type": "software-dev",
+  "pr_bound": true,
+  "purpose_context": "The STAGE and ACTIVATE route built for the first Vikunja cutover rejects the new release's version format and archive type, and its rollback guard would refuse a valid restore. This mission repairs the route so Office2 can move to the published test release with a verified restore point, then Kent can test it.",
+  "purpose_tldr": "Let the Office2 Vikunja release route safely run a second cutover to v2.8.0-rrule.2.",
+  "slug": "vikunja-repeat-cutover-01M6YRJG",
+  "status_phase": "1",
+  "target_branch": "fix/vikunja-repeat-cutover",
+  "topology": "coord",
+  "vcs": "git",
+  "vcs_locked_at": "2026-11-09T19:33:53.170080+00:00"
+}

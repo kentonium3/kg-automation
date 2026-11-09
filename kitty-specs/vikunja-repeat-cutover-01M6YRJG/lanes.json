@@ -1,0 +1,162 @@
+{
+  "version": 1,
+  "mission_slug": "vikunja-repeat-cutover-01M6YRJG",
+  "mission_id": "01M6YRJG7Q3FG3W2ZADQ73A8MW",
+  "mission_branch": "kitty/mission-vikunja-repeat-cutover-01M6YRJG",
+  "target_branch": "fix/vikunja-repeat-cutover",
+  "lanes": [
+    {
+      "lane_id": "lane-a",
+      "wp_ids": [
+        "WP01"
+      ],
+      "write_scope": [
+        "scripts/deploy/deploy-vikunja-release-stage.py",
+        "scripts/deploy/vikunja_release/core.py",
+        "tests/deploy/fixtures/vikunja_first_cutover_release.json",
+        "tests/deploy/test_deploy_vikunja_release_stage.py",
+        "tests/deploy/test_vikunja_release_core.py",
+        "tests/deploy/test_vikunja_release_readiness.py",
+        "tests/deploy/test_vikunja_stage_release_archive.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "legacy-cleanup"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    },
+    {
+      "lane_id": "lane-b",
+      "wp_ids": [
+        "WP02"
+      ],
+      "write_scope": [
+        "scripts/deploy/vikunja_release/dbsafety.py",
+        "scripts/vikunja/rollback_release.py",
+        "tests/deploy/test_vikunja_release_db.py",
+        "tests/deploy/test_vikunja_rollback.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "legacy-cleanup",
+        "tests"
+      ],
+      "depends_on_lanes": [
+        "lane-a"
+      ],
+      "parallel_group": 1
+    },
+    {
+      "lane_id": "lane-c",
+      "wp_ids": [
+        "WP03"
+      ],
+      "write_scope": [
+        "scripts/deploy/deploy-vikunja-release-activate.py",
+        "scripts/deploy/vikunja_release/baseline.py",
+        "tests/deploy/test_deploy_vikunja_release_activate.py",
+        "tests/deploy/test_vikunja_release_baseline.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "app-shell",
+        "artifact-rendering",
+        "legacy-cleanup",
+        "tracker-integration"
+      ],
+      "depends_on_lanes": [
+        "lane-a",
+        "lane-b"
+      ],
+      "parallel_group": 2
+    },
+    {
+      "lane_id": "lane-d",
+      "wp_ids": [
+        "WP04"
+      ],
+      "write_scope": [
+        "scripts/vikunja/build_release_baseline.py",
+        "scripts/vikunja/preflight_release_baseline.py",
+        "scripts/vikunja/verify_release_upgrade.py",
+        "tests/deploy/test_vikunja_release_acceptance.py",
+        "tests/deploy/test_vikunja_release_preflight.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "artifact-rendering",
+        "legacy-cleanup"
+      ],
+      "depends_on_lanes": [
+        "lane-c"
+      ],
+      "parallel_group": 3
+    },
+    {
+      "lane_id": "lane-e",
+      "wp_ids": [
+        "WP05"
+      ],
+      "write_scope": [
+        "docs/runbooks/vikunja-release-cutover.md",
+        "tests/deploy/test_vikunja_cutover_change_set.py",
+        "tests/deploy/test_vikunja_release_consistency.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "artifact-rendering",
+        "legacy-cleanup",
+        "tracker-integration"
+      ],
+      "depends_on_lanes": [
+        "lane-d"
+      ],
+      "parallel_group": 4
+    },
+    {
+      "lane_id": "lane-f",
+      "wp_ids": [
+        "WP06"
+      ],
+      "write_scope": [
+        "deploys/queued/vikunja-release-stage.yaml",
+        "services/vikunja/baselines/v2.7.1-670-420c7bcb75.json",
+        "services/vikunja/release.json"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "artifact-rendering",
+        "legacy-cleanup"
+      ],
+      "depends_on_lanes": [
+        "lane-e"
+      ],
+      "parallel_group": 5
+    },
+    {
+      "lane_id": "lane-g",
+      "wp_ids": [
+        "WP07"
+      ],
+      "write_scope": [
+        "deploys/queued/vikunja-release-activate.yaml",
+        "docs/design/architecture/data/service-inventory.json",
+        "docs/design/architecture/service-inventory.md"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "artifact-rendering",
+        "legacy-cleanup"
+      ],
+      "depends_on_lanes": [
+        "lane-f"
+      ],
+      "parallel_group": 6
+    }
+  ],
+  "computed_at": "2026-11-09T19:29:28.601588+00:00",
+  "computed_from": "dependency_graph+ownership",
+  "planning_artifact_wps": [],
+  "planning_commit_sha": "406dc76d0acd610016fe28b39bc1c8ba9fe68f12"
+}

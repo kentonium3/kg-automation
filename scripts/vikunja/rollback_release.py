@@ -48,8 +48,8 @@ Phases:
     refuses unless *n* equals the prepared total, then
     :func:`dbsafety.rollback_guard` (any refusal: no tag, no up) -> tag
     ``active`` to the rollback image -> ``compose up -d`` -> verify the
-    running image -> readiness for the pre-cutover version (``snapshot.json``
-    ``pre_version``; without it, any ``2.4.x``) -> marker outcome
+    running image -> readiness for the exact reviewed rollback version
+    (which must match ``snapshot.json`` ``pre_version`` before tagging) -> marker outcome
     ``rolled_back`` -> print the manual-rebaseline commands and the
     queue-cancel step (hard-coded; printed only while the runbook still
     contains them verbatim).
@@ -61,18 +61,14 @@ Phases:
     check refuses (``GUARD_SHA_MISMATCH``) until it is.
 
 ``--recover-pre-snapshot`` (no ``--snapshot``: none exists)
-    For an ACTIVATE that failed before the retag (marker outcome ``failed``,
-    ``failed_phase`` in :data:`PRE_RETAG_FAILED_PHASES`, ``phase`` in
-    :data:`PRE_RETAG_PHASES`): service down, ``active`` untagged, DB
-    unmigrated, and no snapshot for ``--finish``. Under both locks, guards
-    first (marker, no container, ``active`` untagged, rollback image present,
-    a private copy of the LIVE DB with its ``-wal``/``-shm`` not migrated),
-    then tag ``active`` to the rollback image, ``compose up -d``, readiness
-    for the rollback version (``v2.4.0``, derived from ``rollback.ref`` as
-    WP04 does), marker outcome ``rolled_back`` with
-    ``recovered_pre_snapshot: 1``, and the follow-ups. INV-1 holds because
-    the DB is proven unmigrated. A failure after the tag gets the
-    ``--finish`` cleanup.
+    For an ACTIVATE failed or unfinished in ``started`` or ``stopped``.
+    Under both locks, require exact marker identity, no container, ``active``
+    absent or selecting the previous image, and the reviewed rollback image
+    present. Preserve a private DB copy, then start the previous image and
+    verify its exact version. These phases precede new-image selection;
+    schema inspection cannot distinguish an already-RRULE previous release.
+    ``snapshotted`` and later require the privileged snapshot restore route.
+    A failure after the tag gets the ``--finish`` cleanup.
 
 Output (R-16): every line is a registered summary identifier with
 allowlisted values (:func:`core.emit`), or one of the fixed command
@@ -110,7 +106,6 @@ from scripts.deploy.vikunja_release import core, dbsafety, readiness  # noqa: E4
 from scripts.deploy.vikunja_release.dbsafety import (  # noqa: E402
     _connect, _copy_hashed, _make_subdir, _write_new_json,
 )
-from scripts.deploy.vikunja_release.readiness import _probe  # noqa: E402
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 RELEASE_PATH = REPO_ROOT / "services" / "vikunja" / "release.json"
@@ -126,8 +121,6 @@ COMPOSE_TIMEOUT = 120
 DOCKER_TIMEOUT = core.DOCKER_TIMEOUT
 READY_BUDGET_S = 180.0
 SQLITE_BUDGET_S = dbsafety.SQLITE_BUDGET_S
-#: U1 fallback: without a recorded ``pre_version``, any 2.4 patch release.
-_FALLBACK_VERSION_RE = re.compile(r"v?2\.4\.\d+")
 
 USAGE = ("usage: rollback_release.py --snapshot <dir> (--prepare | --finish --ack-post-cutover-writes <n>)\n"
          "       rollback_release.py --recover-pre-snapshot\n"
@@ -334,8 +327,8 @@ def _read_prepare(snapshot_dir: Path) -> dict[str, Any] | None:
 #: ``migration`` is xormigrate's bookkeeping table (one row per migration);
 #: the other two are the RRULE migration's backup and scratch tables.
 MIGRATION_OWNED_TABLES = frozenset({"migration", "task_repeat_legacy_backup", "tasks_rrule_tmp"})
-#: Columns the RRULE migration rewrites or adds, per table: never compared.
-MIGRATION_OWNED_COLUMNS = {"tasks": frozenset({"repeat_after", "repeat_mode", "repeats"})}
+#: Legacy conversion columns; existing RRULE edits are always compared.
+MIGRATION_OWNED_COLUMNS = {"tasks": frozenset({"repeat_after", "repeat_mode"})}
 _TABLE_NAME_RE = re.compile(r"[a-z][a-z0-9_]{0,47}")
 
 
@@ -401,8 +394,9 @@ def _count_post_cutover_writes(failed_dir: Path, snapshot_db: Path) -> dict[str,
     table only in the snapshot counts all its rows as removed. Only
     :data:`MIGRATION_OWNED_TABLES` are left out. A migration that rewrites
     other data over-counts; nothing written after the snapshot is missed.
-    Returns ``{"total", "tables": {name: {"added", "removed", "changed"}}}``
-    with tables that have no difference left out. Aggregates only.
+    Returns the total and per-table net row differences, omitting unchanged
+    tables. ``subscription_backfill_included`` labels the conservative
+    estimate in private evidence; backfill additions are never subtracted.
     """
     deadline = core.Deadline(SQLITE_BUDGET_S)
     with dbsafety._private_umask():
@@ -443,7 +437,7 @@ def _count_post_cutover_writes(failed_dir: Path, snapshot_db: Path) -> dict[str,
         except sqlite3.Error as exc:
             raise core.Fail("ROLLBACK_WRITES_UNCOUNTABLE", detail_private=f"{type(exc).__name__}: {exc}") from exc
     total = sum(sum(c.values()) for c in tables.values())
-    return {"total": total, "tables": tables}
+    return {"total": total, "tables": tables, "subscription_backfill_included": 1}
 
 
 # ---------------------------------------------------------------------------
@@ -598,6 +592,7 @@ def prepare(ctx: Ctx, snapshot_dir: Path) -> None:
         "prepared_at": ctx.iso(),
         "failures_dir": str(failed_dir),
         "post_cutover_writes": writes["total"],
+        "subscription_backfill_included": writes["subscription_backfill_included"],
         "tables": recorded,
     })
     ctx.emit("ROLLBACK_PREPARED", snapshot=snapshot_dir, failures_dir=failed_dir,
@@ -610,23 +605,9 @@ def prepare(ctx: Ctx, snapshot_dir: Path) -> None:
     ctx.fixed("restore_via")
 
 
-def _wait_pre_version(ctx: Ctx, pre_version: str | None) -> str:
+def _wait_pre_version(ctx: Ctx, pre_version: str) -> str:
     deadline = core.Deadline(READY_BUDGET_S, clock=ctx.monotonic)
-    if pre_version is not None:
-        return readiness.wait_ready(ctx.info_url, pre_version, deadline, runner=ctx.runner, sleep=ctx.sleep)
-    # U1 fallback: no recorded version; require the 2.4 major.minor.
-    while True:
-        remaining = deadline.remaining()
-        if remaining < 1.0:
-            raise core.Fail("READY_TIMEOUT")
-        kind, version = _probe(ctx.info_url, max(1, min(5, int(remaining))), ctx.runner)
-        if deadline.remaining() <= 0:
-            raise core.Fail("READY_TIMEOUT")
-        if kind == "ok":
-            if version is not None and _FALLBACK_VERSION_RE.fullmatch(version):
-                return version
-            raise core.Fail("READY_WRONG_VERSION")
-        ctx.sleep(min(readiness.POLL_INTERVAL_S, deadline.remaining()))
+    return readiness.wait_ready(ctx.info_url, pre_version, deadline, runner=ctx.runner, sleep=ctx.sleep)
 
 
 def _runbook_confirms(ctx: Ctx) -> bool:
@@ -694,9 +675,9 @@ def _persist_rolled_back(ctx: Ctx, data: dict[str, Any]) -> None:
 
 
 def _start_and_record(ctx: Ctx, marker: dict[str, Any], updates: dict[str, Any], failures_dir: Path,
-                      expected: str | None) -> tuple[str, str]:
+                      expected: str) -> tuple[str, str]:
     """Tag ``active`` to the rollback image, ``compose up -d``, verify the
-    image and readiness (*expected*, or any 2.4.x when ``None``), then make
+    image and readiness for the exact reviewed version, then make
     the ``rolled_back`` marker durable. Returns ``(image id, version)``.
 
     Any failure in here gets :func:`_cleanup_after_start`, except
@@ -731,7 +712,7 @@ def _start_and_record(ctx: Ctx, marker: dict[str, Any], updates: dict[str, Any],
 
 def finish(ctx: Ctx, snapshot_dir: Path, ack: int) -> None:
     marker = _marker_gate(ctx, snapshot_dir)
-    snap = _load_snapshot(snapshot_dir)
+    _load_snapshot(snapshot_dir)
     prepared = _read_prepare(snapshot_dir)
     if prepared is None:
         raise core.Fail("ROLLBACK_NOT_PREPARED")
@@ -739,6 +720,7 @@ def finish(ctx: Ctx, snapshot_dir: Path, ack: int) -> None:
         raise core.Fail("ROLLBACK_ACK_MISMATCH")
 
     guard = dbsafety.rollback_guard(ctx.runner, ctx.data_dir, snapshot_dir / dbsafety.SNAPSHOT_JSON,
+                                    rollback_version=rollback_version(ctx.release),
                                     container=ctx.container, active_tag=ctx.active_tag)
     ctx.emit("ROLLBACK_GUARD_PASSED", db_sha256=guard["db_sha256"])
 
@@ -747,7 +729,7 @@ def finish(ctx: Ctx, snapshot_dir: Path, ack: int) -> None:
         raise core.Fail("ROLLBACK_IMAGE_MISSING")
     # Success only once the outcome is durable (see _start_and_record).
     running_id, version = _start_and_record(ctx, marker, {"rollback_snapshot": str(snapshot_dir)},
-                                            Path(prepared["failures_dir"]), snap.get("pre_version"))
+                                            Path(prepared["failures_dir"]), rollback_version(ctx.release))
     ctx.emit("ROLLBACK_FINISHED", marker=ctx.marker_path, outcome="rolled_back",
              container_image=running_id, version=version)
 
@@ -776,10 +758,9 @@ def _followups(ctx: Ctx) -> None:
 #: WP04 (``deploy-vikunja-release-activate.py``) records ``failed_phase =
 #: _NEXT[phase]``: the phase it was ENTERING when it failed, where ``_NEXT``
 #: is started->stopped->snapshotted->retagged->started_new->verified. Before
-#: ``retagged`` the release was never tagged to ``active`` and never started,
-#: so the DB is unmigrated (re-proved below on a private copy anyway).
-#: ``started`` is included defensively; WP04 itself never writes it.
-PRE_RETAG_FAILED_PHASES = frozenset({"started", "stopped", "snapshotted"})
+#: ``retagged`` the new release was never selected or started. The previous
+#: release may already use the RRULE schema.
+PRE_RETAG_FAILED_PHASES = frozenset({"stopped", "snapshotted"})
 #: The last phase such a marker may have reached (``phase``).
 PRE_RETAG_PHASES = frozenset({"started", "stopped"})
 
@@ -795,10 +776,25 @@ def rollback_version(release: dict[str, Any]) -> str:
 def _recover_marker_code(marker: dict[str, Any] | None) -> str | None:
     if marker is None:
         return "RECOVER_MARKER_MISSING"
-    if marker.get("outcome") != "failed":
+    if "outcome" not in marker or marker.get("outcome") not in (None, "failed"):
         return "RECOVER_MARKER_NOT_FAILED"
-    if marker.get("failed_phase") not in PRE_RETAG_FAILED_PHASES or marker.get("phase") not in PRE_RETAG_PHASES:
+    if marker.get("phase") not in PRE_RETAG_PHASES:
         return "RECOVER_MARKER_PAST_RETAG"
+    if marker.get("outcome") == "failed":
+        expected = {"started": "stopped", "stopped": "snapshotted"}[marker["phase"]]
+        if (marker.get("failed_phase") not in PRE_RETAG_FAILED_PHASES
+                or marker.get("failed_phase") != expected):
+            return "RECOVER_MARKER_PAST_RETAG"
+    elif marker.get("failed_phase") is not None:
+        return "RECOVER_MARKER_PAST_RETAG"
+    return None
+
+
+def _recover_identity_code(ctx: Ctx, marker: dict[str, Any]) -> str | None:
+    expected = {"release_version": ctx.release["release_version"], "config_digest": ctx.release_id,
+                "rollback_image_id": ctx.rollback_id, "pre_version": rollback_version(ctx.release)}
+    if any(marker.get(key) != value for key, value in expected.items()):
+        return "RECOVER_MARKER_IDENTITY_MISMATCH"
     return None
 
 
@@ -806,7 +802,7 @@ def _recover_state_code(ctx: Ctx) -> str | None:
     """The read-only docker guards, in order; ``None`` when all hold."""
     if _container_present(ctx):
         return "RECOVER_CONTAINER_PRESENT"
-    if core.image_id(ctx.active_tag, runner=ctx.runner) is not None:
+    if core.image_id(ctx.active_tag, runner=ctx.runner) not in (None, ctx.rollback_id):
         return "RECOVER_LOCK_NOT_HELD"
     if core.image_id(ctx.rollback_ref, runner=ctx.runner) != ctx.rollback_id:
         return "RECOVER_ROLLBACK_IMAGE_MISSING"
@@ -815,28 +811,25 @@ def _recover_state_code(ctx: Ctx) -> str | None:
 
 def recover_eligibility(ctx: Ctx) -> str | None:
     """For ``--dry-run``: the first refusal code, or ``None`` when every
-    read-only guard holds. The migration check needs a private copy, so it
-    runs only in the real mode, so a ``None`` here is a PRELIMINARY yes."""
+    read-only guard holds. Lock availability and DB presence are reported
+    separately by the dry run."""
     try:
         marker = core.marker_read(ctx.marker_path)
     except core.Fail as exc:
         return exc.code
-    return _recover_marker_code(marker) or _recover_state_code(ctx)
+    return (_recover_marker_code(marker) or _recover_identity_code(ctx, marker)
+            or _recover_state_code(ctx))
 
 
 def recover_pre_snapshot(ctx: Ctx) -> None:
-    """Bring 2.4.0 back after an ACTIVATE that failed before any retag.
+    """Recover a failed or unfinished pre-snapshot activation under both locks.
 
-    Guards, all before any mutation: the marker is ``failed`` before the
-    retag; no container; ``active`` untagged; the rollback image present;
-    a private copy of the LIVE DB (with its ``-wal``/``-shm``) is not
-    migrated. Then tag ``active`` to the rollback image, ``compose up -d``,
-    readiness for the rollback version, and marker outcome ``rolled_back``
-    with ``recovered_pre_snapshot``. A failure after the tag gets the same
-    cleanup as ``--finish``; the marker is then unchanged.
+    Marker identity and Docker state establish that no new image has run.
+    Copy the live files as private evidence, then start and verify the exact
+    previous version. Failures after tagging receive ``--finish`` cleanup.
     """
     marker = core.marker_read(ctx.marker_path)
-    code = _recover_marker_code(marker)
+    code = _recover_marker_code(marker) or _recover_identity_code(ctx, marker)
     if code is not None:
         raise core.Fail(code)
     code = _recover_state_code(ctx)
@@ -865,9 +858,7 @@ def recover_pre_snapshot(ctx: Ctx) -> None:
             raise core.Fail("RECOVER_DB_COPY_FAILED", detail_private=f"{type(exc).__name__}: {exc}") from exc
     finally:
         os.close(run_fd)
-    if dbsafety.is_migrated(run_dir / dbsafety.DB_NAME):
-        raise core.Fail("RECOVER_DB_MIGRATED")
-    ctx.emit("ROLLBACK_RECOVER_GUARDS_PASSED", marker=ctx.marker_path, failed_phase=marker["failed_phase"],
+    ctx.emit("ROLLBACK_RECOVER_GUARDS_PASSED", marker=ctx.marker_path, failed_phase=marker.get("failed_phase"),
              private_copy=run_dir)
 
     running_id, version = _start_and_record(ctx, marker, {"recovered_pre_snapshot": 1}, run_dir,
