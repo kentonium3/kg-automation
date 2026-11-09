@@ -40,3 +40,8 @@ notes: 'See #1095: repeat ACTIVATE to v2.8.0-rrule.2. Open PR2 only after STAGE 
   stays out of commands and manifest notes.'
 apply_mode: manifest
 applied_at: '2026-11-09T23:20:34Z'
+rebaseline:
+  outcome: unexpected_drift
+  at_utc: '2026-11-09T23:20:39Z'
+  unexpected:
+  - openclaw-cron.txt
