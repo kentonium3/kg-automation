@@ -40,3 +40,7 @@ notes: 'STAGE for the repeat cutover to the published v2.8.0-rrule.2 (services/v
   Keep office2.local/vikunja:active and office2.local/vikunja:v2.7.1-670-420c7bcb75.'
 apply_mode: manifest
 applied_at: '2026-11-09T23:03:21Z'
+rebaseline:
+  outcome: completed
+  at_utc: '2026-11-09T23:03:31Z'
+  baseline_count: 15
