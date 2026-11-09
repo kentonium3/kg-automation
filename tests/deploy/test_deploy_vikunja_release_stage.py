@@ -1,7 +1,7 @@
 """Tests for the STAGE entrypoint and manifest (#1087, WP03).
 
 No real Docker, network or ssh: a stateful fake Docker runner is injected,
-and the release record is a ``tmp_path`` copy of ``services/vikunja/release.json``
+and the release record is a ``tmp_path`` copy of the frozen first-cutover fixture
 pointing at a tiny synthetic OCI archive with the real archive's structure
 (``fixtures/vikunja_release/``) and at ``tmp_path`` roots. Every refusal or
 absence assertion has a same-fixture positive control.
@@ -35,9 +35,8 @@ mod = importlib.util.module_from_spec(_spec)
 sys.modules[_spec.name] = mod
 _spec.loader.exec_module(mod)
 
-_RELEASE = _ROOT / "services" / "vikunja" / "release.json"
+_RELEASE = Path(__file__).resolve().parent / "fixtures" / "vikunja_first_cutover_release.json"
 _FIX = Path(__file__).resolve().parent / "fixtures" / "vikunja_release"
-_MANIFEST_QUEUED = _ROOT / "deploys" / "queued" / "vikunja-release-stage.yaml"
 
 REAL_RELEASE_ID = "sha256:35e1bc8790292deedf2addc3f3f196e38d84c2614219a95d6ef711c1f02afba5"
 ROLLBACK_ID = "sha256:60fe1ee8f729c17b057ba00a49b968adb4ed1e774cea36b5f4cc81340991a7d2"
@@ -61,12 +60,8 @@ def _fixture(name: str):
 
 
 def _resolve_manifest_path() -> Path:
-    """felix-deployer moves the manifest to ``deploys/applied/<NNNN>-...`` once
-    applied, so it lives in exactly one of the two places."""
-    if _MANIFEST_QUEUED.exists():
-        return _MANIFEST_QUEUED
-    applied = sorted((_ROOT / "deploys" / "applied").glob("*-vikunja-release-stage.yaml"))
-    return applied[-1] if applied else _MANIFEST_QUEUED
+    """Historical assertions always describe the first applied STAGE."""
+    return _ROOT / "deploys" / "applied" / "0033-vikunja-release-stage.yaml"
 
 
 # ---------------------------------------------------------------------------
@@ -80,7 +75,7 @@ def _add(tar: tarfile.TarFile, name: str, data: bytes) -> None:
     tar.addfile(info, io.BytesIO(data))
 
 
-def _build_archive(path: Path) -> str:
+def _build_archive(path: Path, *, compression="", repo_tags=None) -> str:
     """A tiny OCI layout with the real archive's structure; returns the
     config digest."""
     cfg_bytes = json.dumps(_fixture("config.json"), sort_keys=True).encode()
@@ -90,7 +85,8 @@ def _build_archive(path: Path) -> str:
     manifest = _fixture("manifest.json")
     manifest[0]["Config"] = f"blobs/sha256/{cfg_hex}"
     manifest[0]["Layers"] = names
-    with tarfile.open(path, "w") as tar:
+    manifest[0]["RepoTags"] = repo_tags
+    with tarfile.open(path, "w:" + compression) as tar:
         _add(tar, "oci-layout", b'{"imageLayoutVersion":"1.0.0"}')
         _add(tar, "index.json", json.dumps(_fixture("index.json")).encode())
         _add(tar, "manifest.json", json.dumps(manifest).encode())
@@ -128,6 +124,8 @@ class FakeDocker:
         self.load_facts = _image_facts(release_id)
         self.load_rc = 0
         self.load_out: str | None = None
+        self.load_tags: list[str] = []
+        self.inspect_fail: dict[str, str] = {}
         self.load_raises: BaseException | None = None
         self.tag_rc = 0
         #: Make the post-load ``{{json .}}`` inspection of this ID fail:
@@ -158,6 +156,8 @@ class FakeDocker:
             return subprocess.CompletedProcess(argv, 0, json.dumps(self.info) + "\n", "")
         if cmd[:3] == ["image", "inspect", "--format"]:
             fmt, ref = cmd[3], cmd[4]
+            if ref in self.inspect_fail:
+                return subprocess.CompletedProcess(argv, 1, "", self.inspect_fail[ref])
             iid = self._resolve(ref)
             if iid is None:
                 return subprocess.CompletedProcess(argv, 1, "", f"Error response from daemon: No such image: {ref}\n")
@@ -177,6 +177,8 @@ class FakeDocker:
             if self.load_rc:
                 return subprocess.CompletedProcess(argv, self.load_rc, "", f"archive/tar: {SEEDED}\n")
             self.images[self.load_id] = self.load_facts
+            for ref in self.load_tags:
+                self.tags[ref] = self.load_id
             out = self.load_out if self.load_out is not None else f"Loaded image ID: {self.load_id}\n"
             return subprocess.CompletedProcess(argv, 0, out, "")
         if cmd[0] == "tag" and len(cmd) == 3:
@@ -405,12 +407,12 @@ def test_apply_tags_only_active_when_release_already_staged(env):
     assert _mutations(env) == [["tag", ROLLBACK_ID, ACTIVE_TAG]]
 
 
-def test_loaded_id_other_than_config_digest_is_refused_untagged(env):
+def test_loaded_id_other_than_config_digest_requires_reviewed_cleanup(env):
     env.docker.load_id = OTHER_ID
     env.docker.load_facts = _image_facts(OTHER_ID)
     rc, lines, _ = env.run("--apply")
     assert rc == 1 and _code(lines) == "STAGE_LOADED_ID_UNEXPECTED"
-    assert f"STAGE_LOADED_UNTAGGED loaded_id={OTHER_ID}" in lines
+    assert "STAGE_IMPORT_CLEANUP_REQUIRED" in lines
     assert [m[0] for m in _mutations(env)] == ["load"]
     assert RELEASE_TAG not in env.docker.tags and ACTIVE_TAG not in env.docker.tags
     # Positive control: the same fixture with the expected ID stages.
@@ -421,10 +423,136 @@ def test_loaded_id_other_than_config_digest_is_refused_untagged(env):
 
 def test_load_output_without_an_id_is_refused(env):
     _control(env)
-    env.docker.load_out = "Loaded image: something:latest\n"
+    env.docker.load_out = ""
     rc, lines, _ = env.run("--apply")
     assert rc == 1 and _code(lines) == "STAGE_LOAD_OUTPUT_UNPARSEABLE"
     assert [m[0] for m in _mutations(env)] == ["load"]
+
+
+def _tagged_archive(env, *, compression="gz"):
+    tags = ["example.test/vikunja:v3.4.5-rrule.2", "example.test/vikunja:imported"]
+    assert _build_archive(env.archive, compression=compression, repo_tags=tags) == env.release_id
+    env.rec["release_version"] = "v3.4.5-rrule.2"
+    env.rec["tags"]["release"] = "example.test/local:v3.4.5-rrule.2"
+    env.rec["archive"]["size"] = env.archive.stat().st_size
+    env.rec["archive"]["sha256"] = hashlib.sha256(env.archive.read_bytes()).hexdigest()
+    env.write_record()
+    env.docker.load_tags = tags
+    return tags
+
+
+@pytest.mark.parametrize("output", ["tagged", "id", "mixed"])
+@pytest.mark.parametrize("compression", ["", "gz"])
+def test_tagged_import_and_reapply_retain_rollback_and_keepers(env, output, compression):
+    tags = _tagged_archive(env, compression=compression)
+    keeper = "example.test/local:keeper"
+    env.docker.tags[keeper] = ROLLBACK_ID
+    env.docker.tags[ACTIVE_TAG] = ROLLBACK_ID
+    lines = [f"Loaded image: {ref}" for ref in tags] if output != "id" else []
+    if output != "tagged":
+        lines.append(f"Loaded image ID: {env.release_id}")
+    env.docker.load_out = "\n".join(lines) + "\n"
+    rc, lines, _ = env.run("--apply")
+    assert rc == 0, lines
+    assert all(env.docker.tags[ref] == env.release_id for ref in tags)
+    assert env.docker.tags[env.rec["tags"]["release"]] == env.release_id
+    assert env.docker.tags[keeper] == env.docker.tags[ROLLBACK_REF] == ROLLBACK_ID
+    assert env.docker.tags[ACTIVE_TAG] == ROLLBACK_ID
+    load_index = next(i for i, (argv, _) in enumerate(env.docker.calls) if argv[1] == "load")
+    for ref in tags:
+        assert any(argv[-1] == ref for argv, _ in env.docker.calls[:load_index])
+    env.docker.calls.clear()
+    rc, lines, _ = env.run("--apply")
+    assert rc == 0 and lines[0].startswith("STAGE_ALREADY_STAGED ")
+    assert env.docker.mutating_calls() == []
+
+
+@pytest.mark.parametrize("mode", ["--dry-run", "--apply"])
+@pytest.mark.parametrize("problem", ["conflict", "error", "unparseable"])
+def test_import_tag_preflight_refuses_before_loading(env, mode, problem):
+    tags = _tagged_archive(env)
+    assert env.run("--dry-run")[0] == 0
+    if problem == "conflict":
+        env.docker.tags[tags[-1]] = ROLLBACK_ID
+        code = "STAGE_IMPORT_TAG_CONFLICT"
+    elif problem == "error":
+        env.docker.inspect_fail[tags[-1]] = "synthetic inspection failure"
+        code = "DOCKER_INSPECT_FAILED"
+    else:
+        env.docker.tags[tags[-1]] = "malformed identity"
+        code = "DOCKER_INSPECT_UNPARSEABLE"
+    rc, lines, _ = env.run(mode)
+    assert rc == 1 and _code(lines) == code
+    assert env.docker.mutating_calls() == []
+    assert env.docker.tags[ROLLBACK_REF] == ROLLBACK_ID
+
+
+@pytest.mark.parametrize("problem", ["foreign_ref", "wrong_identity", "mixed_wrong", "malformed", "inspect_error"])
+def test_tagged_load_verifies_every_reported_identity(env, problem):
+    tags = _tagged_archive(env)
+    env.docker.load_out = f"Loaded image: {tags[0]}\n"
+    if problem == "foreign_ref":
+        env.docker.load_out = "Loaded image: example.test/foreign:tag\n"
+    elif problem == "wrong_identity":
+        env.docker.load_id = OTHER_ID
+    elif problem == "mixed_wrong":
+        env.docker.load_out += f"Loaded image ID: {OTHER_ID}\n"
+    elif problem == "malformed":
+        env.docker.load_out += "Loaded image: malformed extra words\n"
+    else:
+        real_runner = env.docker
+
+        def runner(argv, **kwargs):
+            result = real_runner(argv, **kwargs)
+            if argv[1] == "load":
+                real_runner.inspect_fail[tags[0]] = "synthetic inspection failure"
+            return result
+
+        env.docker = runner
+    rc, lines, _ = env.run("--apply")
+    assert rc == 1
+    assert _code(lines) == ("STAGE_LOAD_OUTPUT_UNPARSEABLE" if problem == "malformed" else
+                            "DOCKER_INSPECT_FAILED" if problem == "inspect_error" else
+                            "STAGE_LOADED_ID_UNEXPECTED")
+    assert "STAGE_IMPORT_CLEANUP_REQUIRED" in lines
+    docker = real_runner if problem == "inspect_error" else env.docker
+    assert [a[1] for a in docker.mutating_calls()] == ["load"]
+    assert docker.tags[ROLLBACK_REF] == ROLLBACK_ID
+    assert env.rec["tags"]["release"] not in docker.tags
+
+
+def test_tagged_verification_failure_retains_imported_refs_for_review(env):
+    tags = _tagged_archive(env)
+    env.docker.load_out = f"Loaded image: {tags[0]}\n"
+    env.docker.load_facts = _image_facts(env.release_id, user="0")
+    rc, lines, _ = env.run("--apply")
+    assert rc == 1 and _code(lines) == "STAGE_VERIFY_FAILED"
+    assert "STAGE_IMPORT_CLEANUP_REQUIRED" in lines
+    assert all(env.docker.tags[ref] == env.release_id for ref in tags)
+    assert env.docker.tags[ROLLBACK_REF] == ROLLBACK_ID
+    assert [a[1] for a in env.docker.mutating_calls()] == ["load"]
+
+
+@pytest.mark.parametrize("exception", [False, True])
+@pytest.mark.parametrize("label", ["absent", "matching", "mismatch", "null", "empty"])
+def test_loaded_revision_label_policy(env, exception, label):
+    facts = _image_facts(env.release_id)
+    labels = facts["Config"]["Labels"]
+    if label == "absent":
+        del labels[mod.core.REVISION_LABEL]
+    elif label != "matching":
+        labels[mod.core.REVISION_LABEL] = {"mismatch": "0" * 40, "null": None, "empty": ""}[label]
+    env.docker.images[env.release_id] = facts
+    if exception:
+        env.rec["image"]["revision_label_absent"] = True
+    stage = mod.Stage(env.rec, env.docker)
+    if (exception and label == "absent") or (not exception and label == "matching"):
+        stage._verify_facts(env.release_id)
+    else:
+        with pytest.raises(mod.core.Fail) as exc:
+            stage._verify_facts(env.release_id)
+        assert exc.value.code == "STAGE_VERIFY_FAILED"
+    assert env.docker.mutating_calls() == []
 
 
 @pytest.mark.parametrize("override", [
@@ -436,7 +564,7 @@ def test_verify_failure_after_load_leaves_the_image_untagged(env, override):
     assert rc == 1 and _code(lines) == "STAGE_VERIFY_FAILED"
     assert lines[0].startswith("FAILED code=STAGE_VERIFY_FAILED")
     assert f"STAGE_LOADED id={env.release_id}" in lines
-    assert f"STAGE_LOADED_UNTAGGED loaded_id={env.release_id}" in lines
+    assert "STAGE_IMPORT_CLEANUP_REQUIRED" in lines
     assert [m[0] for m in _mutations(env)] == ["load"]
     assert env.release_id in env.docker.images  # loaded ...
     assert env.docker.tags == {ROLLBACK_REF: ROLLBACK_ID}  # ... but never tagged
@@ -458,7 +586,7 @@ def test_post_load_inspection_failure_is_a_verify_failure(env, kind, private_cod
     rc, lines, err = env.run("--apply")
     assert rc == 1 and _code(lines) == "STAGE_VERIFY_FAILED"
     assert f"STAGE_LOADED id={env.release_id}" in lines
-    assert f"STAGE_LOADED_UNTAGGED loaded_id={env.release_id}" in lines
+    assert "STAGE_IMPORT_CLEANUP_REQUIRED" in lines
     assert [m[0] for m in _mutations(env)] == ["load"]
     assert env.release_id in env.docker.images
     assert env.docker.tags == {ROLLBACK_REF: ROLLBACK_ID}
@@ -466,7 +594,7 @@ def test_post_load_inspection_failure_is_a_verify_failure(env, kind, private_cod
     for leak in LEAKS:
         assert leak not in out
     logs = list(env.private.iterdir())
-    assert len(logs) == 1 and f"private_log={logs[0]}" in lines[0]
+    assert len(logs) == 1 and lines[0] == "FAILED code=STAGE_VERIFY_FAILED"
     text = logs[0].read_text()
     assert text.startswith(private_code + "\n")
     if kind != "unparseable":
@@ -490,7 +618,7 @@ def test_load_failure_is_private_and_untagged(env):
         assert leak not in out
     logs = list(env.private.iterdir())
     assert len(logs) == 1 and SECRET in logs[0].read_text()
-    assert f"private_log={logs[0]}" in lines[0]
+    assert lines[0] == "FAILED code=STAGE_LOAD_FAILED"
     assert oct(env.private.stat().st_mode & 0o777) == "0o700"
 
 

@@ -1,7 +1,7 @@
 """Tests for the Vikunja ingress helper (#1087, WP07, T030-T032).
 
 No network and no ssh: the runner is injected and the office4 sources are
-small files in ``tmp_path``. The record is the real ``release.json`` with only
+small files in ``tmp_path``. The record is the frozen first-cutover fixture with only
 the source paths, sizes and shas pointed at those files, so the destination
 paths are the real office2 ones (never touched: every remote call is faked).
 Every refusal has a same-fixture positive control (the passing run).
@@ -25,7 +25,7 @@ import pytest
 
 _ROOT = Path(__file__).resolve().parents[2]
 _PATH = _ROOT / "scripts" / "vikunja" / "stage_release_archive.py"
-_RELEASE = _ROOT / "services" / "vikunja" / "release.json"
+_RELEASE = Path(__file__).resolve().parent / "fixtures" / "vikunja_first_cutover_release.json"
 
 _spec = importlib.util.spec_from_file_location("stage_release_archive", _PATH)
 mod = importlib.util.module_from_spec(_spec)
@@ -33,7 +33,7 @@ sys.modules[_spec.name] = mod
 _spec.loader.exec_module(mod)
 
 PREFIX = ["ssh", "-o", "BatchMode=yes", "office2-claude"]
-DEST = "/data/services/vikunja/release-artifacts/48008c5067a6"
+DEST = str(Path(json.loads(_RELEASE.read_text())["archive"]["path"]).parent)
 SECRET = "password=hunter2"
 TITLE = "Buy anniversary gift for Margot"
 SEEDED = f"Permission denied {SECRET} task '{TITLE}'\n"
@@ -297,7 +297,7 @@ def test_source_sha_mismatch_refused_before_any_remote_call(env, mode):
     runner = FakeOffice2()
     rc, out, _ = _run(env, mode, runner)
     assert rc == 1
-    assert out.strip() == "FAILED code=ARCHIVE_SHA_MISMATCH private_log=-"
+    assert out.strip() == "FAILED code=ARCHIVE_SHA_MISMATCH"
     assert runner.calls == []
 
 
@@ -380,7 +380,7 @@ def test_existing_final_collision_is_never_removed(env, stage):
     runner = FakeOffice2(hooks={hook_on: plant})
     rc, out, err = _run(env, "--apply", runner)
     assert rc == 1
-    assert out.startswith("FAILED code=INGRESS_DEST_FILE_EXISTS ")
+    assert out.startswith("FAILED code=INGRESS_DEST_FILE_EXISTS\n")
     assert runner.files[RB] == b"someone else's file"
     assert RB not in runner.removed and RB_PART not in runner.removed
     if stage == "ln":
@@ -407,7 +407,7 @@ def test_folder_at_final_is_a_collision_not_a_container(env, kind):
     runner = FakeOffice2(hooks={f"ln -T -- {RB_PART} {RB}": plant})
     rc, out, err = _run(env, "--apply", runner)
     assert rc == 1
-    assert out.startswith("FAILED code=INGRESS_DEST_FILE_EXISTS ")
+    assert out.startswith("FAILED code=INGRESS_DEST_FILE_EXISTS\n")
     assert err == f"INGRESS_PART_KEPT part={RB_PART}\n"
     assert runner.files[RB_PART] == env.rollback.read_bytes()
     assert RB_PART not in runner.removed
@@ -453,7 +453,7 @@ def test_inconclusive_collision_probe_keeps_part(env, exc):
     assert rc == 1 and "code=INGRESS_PUBLISH_FAILED" in out and ok.removed[-1] == RB_PART
     runner = LnFails(hooks={probe: _raise(exc)})
     rc, out, err = _run(env, "--apply", runner)
-    assert rc == 1 and out.startswith("FAILED code=INGRESS_PUBLISH_FAILED ")
+    assert rc == 1 and out == "FAILED code=INGRESS_PUBLISH_FAILED\n"
     assert err == f"INGRESS_PART_KEPT part={RB_PART}\n"
     assert RB_PART in runner.files and RB_PART not in runner.removed
 
@@ -464,7 +464,7 @@ def test_part_removal_failure_keeps_final_published(env, exc):
     assert _run(env, "--apply", control)[0] == 0 and RB_PART not in control.files
     runner = FakeOffice2(hooks={f"rm -f -- {RB_PART}": _raise(exc)})
     rc, out, err = _run(env, "--apply", runner)
-    assert rc == 1 and out.startswith("FAILED code=INGRESS_PART_REMOVE_FAILED ")
+    assert rc == 1 and out == "FAILED code=INGRESS_PART_REMOVE_FAILED\n"
     assert err == f"INGRESS_PART_KEPT part={RB_PART}\n"
     assert runner.files[RB] == env.rollback.read_bytes() and RB_PART in runner.files
 
@@ -591,7 +591,7 @@ def test_remote_sha_mismatch_removes_only_that_part(env):
     runner = FakeOffice2(corrupt={"vikunja-2.4.0.image.tar"})
     rc, out, _ = _run(env, "--apply", runner)
     assert rc == 1
-    assert out.strip() == "FAILED code=INGRESS_SHA_MISMATCH private_log=-"
+    assert out.strip() == "FAILED code=INGRESS_SHA_MISMATCH"
     # the first archive was published (its part removed after ln); the
     # mismatched part is removed; no final is ever removed or published
     assert runner.removed == [IMG_PART, RB_PART]
@@ -634,7 +634,7 @@ def test_ssh_failure_is_private(env):
         assert leak not in out and leak not in err
     logs = list((env.tmp / "private").iterdir())
     assert len(logs) == 1 and SECRET in logs[0].read_text()
-    assert f"private_log={logs[0]}" in out
+    assert out.strip() == "FAILED code=INGRESS_SSH_FAILED"
 
 
 def test_timeout_on_remote_check(env):
@@ -659,7 +659,7 @@ def test_usage_exit_2(env, argv):
     assert rc == 2 and "usage:" in err.getvalue() and runner.calls == []
 
 
-def test_real_release_record_plans_expected_destination():
+def test_historical_release_record_plans_expected_destination():
     from scripts.deploy.vikunja_release import core
     dest, items = mod.plan(core.load_release(_RELEASE))
     assert dest == DEST

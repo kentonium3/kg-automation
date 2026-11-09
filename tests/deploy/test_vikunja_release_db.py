@@ -168,12 +168,47 @@ def test_snapshot_records_hashes_count_modes_and_pre_version(tmp_path, monkeypat
     # No task title or seeded secret is in the record.
     text = (snap / "snapshot.json").read_text()
     assert TITLE not in text and SECRET not in text
-    # Every written file is reported (#1072).
+    # Private copies and receipts never enter retained installed reports.
     result = installed_report.read_report(report)
     assert not result["rejected"]
-    dests = {e["dest"] for e in result["entries"]}
-    assert dests == {str((snap / "raw" / "vikunja.db").resolve()), str((snap / "vikunja.db").resolve()),
-                     str((snap / "snapshot.json").resolve())}
+    assert result["entries"] == []
+
+
+@pytest.mark.parametrize("failure", ["none", "copy", "sqlite", "cleanup", "unexpected"])
+def test_snapshot_never_reports_private_evidence(tmp_path, monkeypatch, capsys, failure):
+    report = tmp_path / "installed.jsonl"
+    monkeypatch.setenv(installed_report.ENV_VAR, str(report))
+    data = tmp_path / "synthetic-private-location"
+    make_db(data / dbsafety.DB_NAME, rows=37)
+    sentinels = (str(data), "synthetic-private-location", "2031-02-03T04:05:06Z", "37",
+                 _sha(data / dbsafety.DB_NAME))
+    moment = datetime(2031, 2, 3, 4, 5, 6, tzinfo=timezone.utc)
+    message = " ".join(sentinels)
+
+    def fail(*args, **kwargs):
+        if failure == "sqlite":
+            raise sqlite3.OperationalError(message)
+        if failure == "unexpected":
+            raise RuntimeError(message)
+        raise OSError(message)
+
+    if failure in ("copy", "unexpected"):
+        monkeypatch.setattr(dbsafety, "_copy_hashed", fail)
+    elif failure == "sqlite":
+        monkeypatch.setattr(dbsafety, "_connect", fail)
+    elif failure == "cleanup":
+        monkeypatch.setattr(dbsafety, "_remove_tree_fd", fail)
+    if failure == "none":
+        rec = dbsafety.snapshot(data, tmp_path / "snaps", lambda: moment)
+        assert rec["tasks_count"] == 37
+        assert Path(rec["snapshot_json"]).is_file()
+    else:
+        with pytest.raises((core.Fail, OSError, RuntimeError)):
+            dbsafety.snapshot(data, tmp_path / "snaps", lambda: moment)
+    captured = capsys.readouterr()
+    public = captured.out + captured.err + (report.read_text() if report.exists() else "")
+    assert not public
+    assert all(value not in public for value in sentinels)
 
 
 def test_snapshot_pre_version_is_optional(tmp_path):
@@ -567,7 +602,7 @@ def restored(tmp_path: Path, *, shape: str = "v24") -> tuple[Path, Path]:
     Returns ``(restored_data_dir, snapshot_json)``."""
     live = tmp_path / f"live-{shape}"
     make_db(live / dbsafety.DB_NAME, shape=shape)
-    rec = dbsafety.snapshot(live, tmp_path / f"snaps-{shape}", lambda: NOW)
+    rec = dbsafety.snapshot(live, tmp_path / f"snaps-{shape}", lambda: NOW, pre_version="v3.0.0")
     data = tmp_path / f"restored-{shape}"
     data.mkdir()
     shutil.copyfile(rec["db_path"], data / dbsafety.DB_NAME)
@@ -575,7 +610,7 @@ def restored(tmp_path: Path, *, shape: str = "v24") -> tuple[Path, Path]:
 
 
 def _guard(runner, data, snap_json, tmp_path):
-    return dbsafety.rollback_guard(runner, data, snap_json, work_dir=tmp_path)
+    return dbsafety.rollback_guard(runner, data, snap_json, rollback_version="v3.0.0", work_dir=tmp_path)
 
 
 def test_guard_passes_on_the_restored_unmigrated_snapshot(tmp_path):
@@ -633,7 +668,8 @@ def test_guard_refuses_a_residual_migrated_wal(tmp_path):
     snap = tmp_path / "snap"
     snap.mkdir()
     snap_json = snap / "snapshot.json"
-    dbsafety._write_new_json(snap_json, {"schema_version": 1, "db_sha256": _sha(data / dbsafety.DB_NAME)})
+    dbsafety._write_new_json(snap_json, {"schema_version": 1, "db_sha256": _sha(data / dbsafety.DB_NAME),
+                                       "pre_version": "v3.0.0"})
 
     with pytest.raises(core.Fail) as exc:
         _guard(FakeRunner(), data, snap_json, tmp_path)
@@ -644,8 +680,9 @@ def test_guard_refuses_a_residual_migrated_wal(tmp_path):
     assert _guard(FakeRunner(), data, snap_json, tmp_path)["db_sha256"] == _sha(data / dbsafety.DB_NAME)
 
 
-def test_guard_refuses_a_sha_mismatch(tmp_path):
-    data, snap_json = restored(tmp_path)
+@pytest.mark.parametrize("shape", ["v24", "both"])
+def test_guard_refuses_a_sha_mismatch(tmp_path, shape):
+    data, snap_json = restored(tmp_path, shape=shape)
     original = (data / dbsafety.DB_NAME).read_bytes()
     conn = sqlite3.connect(data / dbsafety.DB_NAME, isolation_level=None)
     conn.execute("DELETE FROM tasks WHERE id = 1")
@@ -657,13 +694,28 @@ def test_guard_refuses_a_sha_mismatch(tmp_path):
     assert _guard(FakeRunner(), data, snap_json, tmp_path)
 
 
-def test_guard_refuses_a_migrated_db_even_when_the_sha_matches(tmp_path):
+def test_guard_accepts_matching_rrule_restores(tmp_path):
     for shape in ("repeats", "backup"):
         data, snap_json = restored(tmp_path, shape=shape)
-        with pytest.raises(core.Fail) as exc:
-            _guard(FakeRunner(), data, snap_json, tmp_path)
-        assert _fail_code(exc) == "GUARD_DB_MIGRATED", shape
+        assert _guard(FakeRunner(), data, snap_json, tmp_path)
     data, snap_json = restored(tmp_path, shape="v24")
+    assert _guard(FakeRunner(), data, snap_json, tmp_path)
+
+
+@pytest.mark.parametrize("pre_version", [None, "v3.0.1", "missing"])
+def test_guard_requires_snapshot_exact_previous_version(tmp_path, pre_version):
+    data, snap_json = restored(tmp_path, shape="both")
+    record = json.loads(snap_json.read_text())
+    if pre_version == "missing":
+        record.pop("pre_version")
+    else:
+        record["pre_version"] = pre_version
+    snap_json.write_text(json.dumps(record))
+    with pytest.raises(core.Fail) as exc:
+        _guard(FakeRunner(), data, snap_json, tmp_path)
+    assert exc.value.code == "GUARD_PRE_VERSION_MISMATCH"
+    record["pre_version"] = "v3.0.0"
+    snap_json.write_text(json.dumps(record))
     assert _guard(FakeRunner(), data, snap_json, tmp_path)
 
 
@@ -683,10 +735,8 @@ def test_guard_checks_in_order(tmp_path):
         assert _fail_code(exc) == code
         assert len(runner.calls) == calls
     (data / dbsafety.WAL_NAME).unlink()
-    with pytest.raises(core.Fail) as exc:
-        _guard(FakeRunner(), data, snap_json, tmp_path)
-    assert _fail_code(exc) == "GUARD_DB_MIGRATED"
-    # Control: the same order of checks passes on an unmigrated restore.
+    assert _guard(FakeRunner(), data, snap_json, tmp_path)
+    # Control: the same order of checks also passes on a legacy restore.
     clean, clean_json = restored(tmp_path, shape="v24")
     assert _guard(FakeRunner(), clean, clean_json, tmp_path)
 
@@ -763,7 +813,7 @@ def test_full_snapshot_and_guard_under_a_restrictive_umask(tmp_path, mask):
     make_wal_data_dir(data, base_rows=6, wal_rows=4)
     previous = os.umask(mask)
     try:
-        rec = dbsafety.snapshot(data, tmp_path / "snapshots", lambda: NOW)
+        rec = dbsafety.snapshot(data, tmp_path / "snapshots", lambda: NOW, pre_version="v3.0.0")
         assert os.umask(mask) == mask  # restored to the caller's mask
     finally:
         os.umask(previous)
@@ -774,7 +824,7 @@ def test_full_snapshot_and_guard_under_a_restrictive_umask(tmp_path, mask):
     (restored_dir / dbsafety.DB_NAME).chmod(0o644)
     previous = os.umask(mask)
     try:
-        guard = dbsafety.rollback_guard(FakeRunner(), restored_dir, rec["snapshot_json"], work_dir=tmp_path)
+        guard = _guard(FakeRunner(), restored_dir, rec["snapshot_json"], tmp_path)
         assert os.umask(mask) == mask
     finally:
         os.umask(previous)

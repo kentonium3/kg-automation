@@ -25,8 +25,10 @@ R-16, R-18 and R-23 (R-9 to R-24 take precedence over R-1 to R-8) and
     digest, verify the image facts against the record, and only then tag the
     release. ``active`` is tagged to the rollback image only when it is
     absent AND no activation marker exists (R-23); an existing ``active`` is
-    never retagged. A verification failure after the load leaves the image
-    untagged and reports ``STAGE_VERIFY_FAILED`` with the loaded ID.
+    never retagged. Every embedded RepoTag is checked for conflicts before
+    loading. A failure during import or subsequent verification reports
+    ``STAGE_IMPORT_CLEANUP_REQUIRED`` for reviewed tag-only cleanup; imported
+    tags may already exist. No image is deleted automatically.
 
 Output (R-16): line 1 is one fixed summary (``STAGE_*`` or ``FAILED
 code=...``), then detail lines carrying only IDs, digests, paths, counts and
@@ -69,17 +71,17 @@ STAGE_LOADED = "STAGE_LOADED"
 STAGE_IMAGE_VERIFIED = "STAGE_IMAGE_VERIFIED"
 STAGE_TAGGED_RELEASE = "STAGE_TAGGED_RELEASE"
 STAGE_CREATED_ACTIVE = "STAGE_CREATED_ACTIVE"
-STAGE_LOADED_UNTAGGED = "STAGE_LOADED_UNTAGGED"
+STAGE_IMPORT_CLEANUP_REQUIRED = "STAGE_IMPORT_CLEANUP_REQUIRED"
 STAGE_ACTIVATION_LOCK_FREE = "STAGE_ACTIVATION_LOCK_FREE"
 
 core.register_summaries(
     STAGE_DRY_RUN_OK, STAGE_APPLIED, STAGE_ALREADY_STAGED, STAGE_ARCHIVE_VERIFIED, STAGE_STATE,
     STAGE_PLAN_LOAD, STAGE_PLAN_TAG_RELEASE, STAGE_PLAN_CREATE_ACTIVE, STAGE_PLAN_NOTHING,
     STAGE_LOADED, STAGE_IMAGE_VERIFIED, STAGE_TAGGED_RELEASE, STAGE_CREATED_ACTIVE,
-    STAGE_LOADED_UNTAGGED, STAGE_ACTIVATION_LOCK_FREE,
+    STAGE_IMPORT_CLEANUP_REQUIRED, STAGE_ACTIVATION_LOCK_FREE,
 )
 
-_LOADED_ID_RE = re.compile(r"^Loaded image ID: (sha256:[0-9a-f]{64})\s*$", re.MULTILINE)
+_LOADED_RE = re.compile(r"Loaded image(?: ID)?: (\S+)")
 
 Line = tuple[str, dict[str, Any]]
 
@@ -110,6 +112,10 @@ class Stage:
         """Every dry-run check; refuses with a stable code. Read-only."""
         core.docker_store_ok(self.runner)
         archive = core.verify_archive(self.archive_path, self.rec)
+        for ref in archive["repo_tags"]:
+            imported_id = core.image_id(ref, self.runner)
+            if imported_id is not None and imported_id != self.config_digest:
+                raise Fail("STAGE_IMPORT_TAG_CONFLICT")
 
         release_id = core.image_id(self.release_tag, self.runner)
         if release_id is not None and release_id != self.config_digest:
@@ -201,16 +207,20 @@ class Stage:
         facts = self.check()
         done = self.done
         if facts["release_id"] is None:
-            loaded = self._load()
-            done.append((STAGE_LOADED, {"id": loaded}))
-            self._verify_facts(loaded, loaded_untagged=True)
-            done.append((STAGE_IMAGE_VERIFIED, {"id": loaded}))
-            self._tag(self.config_digest, self.release_tag, "STAGE_TAG_RELEASE_FAILED")
-            done.append((STAGE_TAGGED_RELEASE, {"id": self.config_digest}))
+            try:
+                loaded = self._load(facts["archive"]["repo_tags"])
+                done.append((STAGE_LOADED, {"id": loaded}))
+                self._verify_facts(loaded)
+                done.append((STAGE_IMAGE_VERIFIED, {"id": loaded}))
+                self._tag(self.config_digest, self.release_tag, "STAGE_TAG_RELEASE_FAILED")
+                done.append((STAGE_TAGGED_RELEASE, {"id": self.config_digest}))
+            except Fail:
+                self.failure_details.append((STAGE_IMPORT_CLEANUP_REQUIRED, {}))
+                raise
         else:
             # Already staged: the tag resolves to the config digest; re-verify
             # its facts read-only so a no-op is still a verified success.
-            self._verify_facts(self.config_digest, loaded_untagged=False)
+            self._verify_facts(self.config_digest)
             done.append((STAGE_IMAGE_VERIFIED, {"id": self.config_digest}))
 
         if facts["active_id"] is None:
@@ -229,40 +239,43 @@ class Stage:
 
     # -- mutating steps (T013, T014) ----------------------------------------
 
-    def _load(self) -> str:
+    def _load(self, repo_tags: list[str]) -> str:
         rc, out, err = core.run(["docker", "load", "-i", str(self.archive_path)], LOAD_TIMEOUT,
                                 step="DOCKER_LOAD", runner=self.runner)
         if rc != 0:
             raise Fail("STAGE_LOAD_FAILED", detail_private=err or out)
-        ids = set(_LOADED_ID_RE.findall(out))
-        if not ids:
+        reported = []
+        for line in out.splitlines():
+            if line.startswith("Loaded image"):
+                match = _LOADED_RE.fullmatch(line.strip())
+                if match is None:
+                    raise Fail("STAGE_LOAD_OUTPUT_UNPARSEABLE", detail_private=out)
+                reported.append(match.group(1))
+        if not reported:
             raise Fail("STAGE_LOAD_OUTPUT_UNPARSEABLE", detail_private=out)
-        if ids != {self.config_digest}:
-            for loaded in sorted(ids):
-                self.failure_details.append((STAGE_LOADED_UNTAGGED, {"loaded_id": loaded}))
-            raise Fail("STAGE_LOADED_ID_UNEXPECTED", detail_private=out)
+        for ref in reported:
+            if ref != self.config_digest and ref not in repo_tags:
+                raise Fail("STAGE_LOADED_ID_UNEXPECTED", detail_private=out)
+            if core.image_id(ref, self.runner) != self.config_digest:
+                raise Fail("STAGE_LOADED_ID_UNEXPECTED", detail_private=out)
         return self.config_digest
 
-    def _verify_facts(self, image: str, *, loaded_untagged: bool) -> None:
+    def _verify_facts(self, image: str) -> None:
         """R-2/R-13: ID, architecture, os, user and revision label against
         the record. A mismatch, or an inspection that fails outright (a
-        daemon error, a timeout, unparseable output), leaves the image
-        untagged and is ``STAGE_VERIFY_FAILED`` (R-18); the inspection's own
+        daemon error, a timeout, unparseable output), is
+        ``STAGE_VERIFY_FAILED`` (R-18); the inspection's own
         code and raw detail go only to the private log."""
         os_want, arch_want = self.rec["image"]["platform"].split("/", 1)
         try:
             facts = core.image_facts(image, self.runner)
         except Fail as exc:
-            if loaded_untagged:
-                self.failure_details.append((STAGE_LOADED_UNTAGGED, {"loaded_id": image}))
             raise Fail("STAGE_VERIFY_FAILED",
                        detail_private=f"{exc.code}\n{exc.detail_private or ''}") from exc
         if (facts is None or facts["id"] != self.config_digest
                 or facts["architecture"] != arch_want or facts["os"] != os_want
                 or facts["user"] != self.rec["image"]["user"]
-                or facts["revision"] != self.rec["source_revision"]):
-            if loaded_untagged:
-                self.failure_details.append((STAGE_LOADED_UNTAGGED, {"loaded_id": image}))
+                or not core.revision_matches(self.rec, facts["revision"], facts["revision_label_present"])):
             raise Fail("STAGE_VERIFY_FAILED")
 
     def _tag(self, source_id: str, ref: str, code: str) -> None:

@@ -125,6 +125,18 @@ def test_wrong_version_refuses_and_the_right_one_passes():
     assert _wait(Curl(clock, [http(200, _info(PRE))]), clock, expect=PRE) == PRE
 
 
+@pytest.mark.parametrize("reported", ["v3.4.5-rrule.1", "v3.4.5", "v3.4.5-rrule.2junk",
+                                      "v3.4.5-rrule.2.extra", "v3.4.5-rrule."])
+def test_rrule_readiness_requires_the_exact_version(reported):
+    expected = "v3.4.5-rrule.2"
+    clock = Clock()
+    assert _wait(Curl(clock, [http(200, _info(expected))]), clock, expect=expected) == expected
+    clock = Clock()
+    with pytest.raises(core.Fail) as exc:
+        _wait(Curl(clock, [http(200, _info(reported))]), clock, expect=expected)
+    assert exc.value.code == "READY_WRONG_VERSION"
+
+
 def test_a_hung_probe_is_killed_and_the_deadline_is_a_hard_bound():
     """A probe that never finishes (a trickling or hung server) is killed by
     core.run at --max-time + 2, so the whole wait ends within deadline + 2 s."""
