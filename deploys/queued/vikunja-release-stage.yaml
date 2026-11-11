@@ -1,0 +1,41 @@
+schema_version: v1
+name: vikunja-release-stage
+issue: kentonium3/kg-automation#1100
+tier: 2
+entrypoint: scripts/deploy/deploy-vikunja-release-stage.py
+audited_surface: true
+expected_baselines:
+- docker-images.txt
+verification:
+  pre:
+  - scripts/deploy/deploy-vikunja-release-stage.py --dry-run
+  post:
+  - docker image inspect --format '{{.Id}}' office2.local/vikunja:v2.8.0-rrule.3 |
+    grep -qx sha256:046151b0cd9b5d9f0770c918189d1d49e92eb631387495b9568b40148308709c
+  - docker image inspect --format '{{.Id}}' office2.local/vikunja:v2.8.0-rrule.2
+    | grep -qx sha256:648e6f5e48b4197d5546c010c6fbed3e56daff35a3ce79270a29c7b307ddecc6
+created_at: '2026-11-11T18:40:00Z'
+created_by: claude-opus-5-5
+notes: 'STAGE for the repeat cutover to the published v2.8.0-rrule.3 (services/vikunja/release.json).
+  Verifies the exact published archive bytes, loads the image and tags it. Inert:
+  it starts no container, makes no ACTIVATE change, and the running service stays
+  on v2.8.0-rrule.2 selected by office2.local/vikunja:active.
+
+
+  Refusals exit before any load or tag: archive missing, size or sha mismatch, an
+  embedded or release tag already pointing elsewhere, rollback image absent, unsupported
+  store.
+
+
+  The published archive carries the embedded tag kentonium3/vikunja:v2.8.0-rrule.3,
+  so it appears after load. If a failure reports a loaded image, cleanup is tag-specific:
+  remove only the tag, following the cutover runbook, and never delete by image ID.
+
+
+  Tier 2 for the Docker image store. audited_surface true with expected_baselines
+  docker-images.txt, since new image tags drift that baseline. rrule.3 adds no
+  migrations; the bound baseline records an empty added set.
+
+
+  Rollback: remove the release tag and the embedded tag only, then revert the merge.
+  Keep office2.local/vikunja:active and office2.local/vikunja:v2.8.0-rrule.2.'
