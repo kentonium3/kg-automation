@@ -20,9 +20,9 @@ class _Parser(argparse.ArgumentParser):
         self.exit(2, "BUILD_BASELINE_USAGE\n")
 
 
-def build(pre_copy, post_copy, record, output) -> None:
+def build(pre_copy, post_copy, record, output, *, expected_added) -> None:
     try:
-        _build(pre_copy, post_copy, record, output)
+        _build(pre_copy, post_copy, record, output, expected_added=expected_added)
     except core.Fail as exc:
         allowed = {"BUILD_BASELINE_INVALID", "GATE_MIGRATIONS_MISMATCH", "GATE_BASELINE_UNREADABLE"}
         raise core.Fail(exc.code if exc.code in allowed else "BUILD_BASELINE_FAILED") from None
@@ -30,9 +30,9 @@ def build(pre_copy, post_copy, record, output) -> None:
         raise core.Fail("BUILD_BASELINE_FAILED") from None
 
 
-def _build(pre_copy, post_copy, record, output) -> None:
-    facts = baseline.build(pre_copy, post_copy, record)
-    if (not baseline.validate(facts) or len(facts["added_migration_ids"]) != 10
+def _build(pre_copy, post_copy, record, output, *, expected_added) -> None:
+    facts = baseline.build(pre_copy, post_copy, record, expected_added=expected_added)
+    if (not baseline.validate(facts)
             or facts["previous_version"] != baseline.previous_version(record)
             or facts["previous_image_config"] != record["rollback"]["image_id"]):
         raise core.Fail("BUILD_BASELINE_INVALID")
@@ -54,15 +54,27 @@ def _build(pre_copy, post_copy, record, output) -> None:
         os.close(parent)
 
 
+def _nonnegative_count(value):
+    count = int(value)
+    if count < 0:
+        raise ValueError("negative count")
+    return count
+
+
 def main(argv=None) -> int:
     parser = _Parser(description=__doc__)
     parser.add_argument("pre_copy")
     parser.add_argument("post_copy")
     parser.add_argument("release_record")
     parser.add_argument("new_output")
+    parser.add_argument("--expected-added-count", type=_nonnegative_count, required=True)
     args = parser.parse_args(argv)
     try:
-        build(args.pre_copy, args.post_copy, core.load_release(args.release_record), args.new_output)
+        build(args.pre_copy, args.post_copy, core.load_release(args.release_record), args.new_output,
+              expected_added=args.expected_added_count)
+    except core.Fail as exc:
+        print(exc.code)
+        return 1
     except (Exception, KeyboardInterrupt):
         print("BUILD_BASELINE_FAILED")
         return 1

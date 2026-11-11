@@ -111,14 +111,19 @@ store, lock or permission failures.
 ### Baseline preparation boundary
 
 Claude prepares the committed data-free baseline from authorized private copies
-before candidate review, using the exact positional interface:
+before candidate review, using the required expected-count input:
 
 ```bash
-python3 scripts/vikunja/build_release_baseline.py "$PRE_COPY" "$POST_COPY" "$RELEASE_RECORD" "$NEW_OUTPUT"
+python3 scripts/vikunja/build_release_baseline.py "$PRE_COPY" "$POST_COPY" "$RELEASE_RECORD" "$NEW_OUTPUT" --expected-added-count N
 ```
 
 `PRE_COPY` is consolidated through the reviewed snapshot route; `POST_COPY`
 is the qualified post-upgrade copy. The release record supplies rollback identity.
+Set `N` to the number of migration IDs added in the Vikunja source between the
+rollback and release source revisions. Record that reviewed count in the packet;
+the builder checks it against the rehearsal's observed migration-set difference.
+Zero is valid when the release adds no migrations. A count mismatch or a lost
+predecessor ID refuses the build before any output is written.
 Review the generated artifact and bind its exact bytes in the release record.
 This is preparation, never an outage step. Codex must use synthetic inputs only.
 
@@ -406,8 +411,9 @@ python3 scripts/vikunja/verify_release_upgrade.py "$SNAPSHOT" "$POST_DB"
 The verifier consolidates a present WAL in disposable private storage itself.
 Do not manually open or mutate the B3 copy beforehand. Require exit 0 and
 all per-check `ACCEPTANCE_*_PASS` codes. It checks exact preservation of
-pre-upgrade migration IDs (including `SCHEMA_INIT`), exactly the ten reviewed
-added IDs, target schema, task count, repeat count/hash, integrity `ok`,
+pre-upgrade migration IDs (including `SCHEMA_INIT`), exactly the reviewed
+baseline's added IDs (including an empty list), target schema, task count,
+repeat count/hash, integrity `ok`,
 expected task subscriptions, no missing eligible pairs, unchanged duplicate
 excess and preserved existing keys/muted choices.
 
