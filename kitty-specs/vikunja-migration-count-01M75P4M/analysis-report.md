@@ -4,87 +4,80 @@ artifact_type: spec-kitty.analysis-report
 command: /spec-kitty.analyze
 mission_slug: vikunja-migration-count-01M75P4M
 mission_id: 01M75P4M49ECBR8QHX40QCAA5Q
-generated_at: '2026-11-11T16:19:59.559219+00:00'
+generated_at: '2026-11-11T16:21:25.603782+00:00'
 analyzer_agent: unknown
 input_artifacts:
   spec.md:
     path: kitty-specs/vikunja-migration-count-01M75P4M/spec.md
-    sha256: eb4624b13f4a231ad701023e43633150485fa5671e69fdb0ea9338cba1a4579e
+    sha256: 0edbe92e3af6df98d47c0ce6c85b305aef262caba491379edd5933554679122b
   plan.md:
     path: kitty-specs/vikunja-migration-count-01M75P4M/plan.md
-    sha256: c25481b6eb22335147195db1893b9f59293c597cdbee40d03cb6d36e25aa7900
+    sha256: a570b8f247e2b42b21cdfb531167569227c7c82c5d145ad3c9541bd5741ae51e
   tasks.md:
     path: kitty-specs/vikunja-migration-count-01M75P4M/tasks.md
     sha256: 66b64020fbdd4fae5b312312c47fbd78ed09f2cae2624e379759d6ab21038772
   charter:
     path: .kittify/charter/charter.yaml
     sha256: 212313e7295e83d9a2fc22d6b35aa7460974a9c3d3af46ecee9b1673d3624a0a
-verdict: blocked
+verdict: ready
 issue_counts:
-  high: 1
-  medium: 1
-  critical: 1
+  critical: 0
+  high: 0
   low: 0
+  medium: 1
   info: 0
 findings:
-- id: A1
-  severity: critical
-  category: charter
-  summary: The specification omits the charter-mandated documentation-sync requirement beyond the runbook.
-- id: A2
-  severity: high
-  category: inconsistency
-  summary: Copying the activated release record conflicts with NFR-002's prohibition on production values and paths in git.
 - id: A3
   severity: medium
   category: coverage
-  summary: The test subtasks omit explicit zero-migration gate-compare coverage required by FR-005 and SC-001.
+  summary: Zero-migration gate coverage now includes success but still omits migration-set mismatch rejection.
 ---
 
 ## Specification Analysis Report
 
-Locations are relative to `kitty-specs/vikunja-migration-count-01M75P4M/` unless stated otherwise.
+Re-analysis of HEAD `847f6844`. Locations are relative to `kitty-specs/vikunja-migration-count-01M75P4M/`.
+
+Previous A1 is resolved: FR-007 and T005 explicitly address documentation synchronization and no-change dispositions. Previous A2 is resolved: NFR-002, D-3 and T003 consistently restrict history records to identity fields without paths. Previous A3 is partially resolved.
 
 | ID | Category | Severity | Location(s) | Summary | Recommendation |
 |----|----------|----------|-------------|---------|----------------|
-| A1 | charter | critical | spec.md:61; plan.md:57; tasks/WP01-migration-count.md:40–49,84; `.kittify/charter/charter.md:270` | Charter directive 5 requires every mission spec to explicitly address synchronization of architecture JSON, markdown views, runbooks, INDEX and roadmap status as applicable. FR-006 addresses only the runbook; the remaining surfaces have no applicability decision or task coverage. | Add the required documentation-sync requirement. Record justified no-change dispositions where appropriate and add applicable files to WP ownership and tasks. |
-| A2 | inconsistency | high | spec.md:68; plan.md:33–35; tasks/WP01-migration-count.md:75 | NFR-002 requires zero production values or paths in git, but T003 requires copying the current activated `release.json`, which contains production paths. The first-release source is instead a sanitized fixture, so the proposed records also differ in sanitization. | Explicitly distinguish permitted release metadata from private operational evidence. Define the history fields and sanitization policy; align NFR-002, D-3 and T003 with that policy. |
-| A3 | coverage | medium | spec.md:60,81; tasks/WP01-migration-count.md:76–83 | FR-005 and SC-001 require both counts through build, gate compare and acceptance. T004 lists build and acceptance cases but does not explicitly require the zero-count baseline to pass gate compare or reject a mismatching pre-upgrade snapshot. Existing ten-count tests do not establish zero-count coverage. | Require both fixture variants to exercise gate compare, with a matching snapshot passing and migration-set mismatches returning `GATE_MIGRATIONS_MISMATCH`. Retain the receipt-binding path through acceptance. |
+| A3 | coverage | medium | spec.md:60,82–83; tasks/WP01-migration-count.md:77–83 | T004 now requires a successful zero-migration gate compare and preflight, but still omits rejecting a mismatching pre-upgrade snapshot against that baseline. Builder and acceptance failures exercise different boundaries; existing gate mismatch tests use the ten-addition fixture. | Extend the zero-addition gate test with extra and missing pre-upgrade migration IDs; require `GATE_MIGRATIONS_MISMATCH`. |
 
 **Coverage Summary Table:**
 
 | Requirement Key | Has Task? | Task IDs | Notes |
 |-----------------|-----------|----------|-------|
-| FR-001 | yes | T001, T004 | Required count argument, validation and CLI tests. |
-| FR-002 | yes | T001, T004 | Count mismatch, lost IDs and no-output cases. |
-| FR-003 | yes | T002, T004 | Reviewed baseline binding retained; zero-count acceptance tested. |
-| FR-004 | yes | T003 | History records, predecessor selection and negative fixtures. |
-| FR-005 | partial | T004 | Gate-compare coverage needs explicit inclusion; A3. |
-| FR-006 | yes | T005 | Builder invocation and count provenance documented. |
+| FR-001 | yes | T001, T004 | Required count, validation and CLI cases. |
+| FR-002 | yes | T001, T004 | Count mismatch, lost IDs and no-output checks. |
+| FR-003 | yes | T002, T004 | Baseline binding retained; zero-addition acceptance covered. |
+| FR-004 | yes | T003 | History identities, predecessor selection and negative fixtures. |
+| FR-005 | partial | T004 | Both counts covered; zero-addition gate rejection remains unspecified. |
+| FR-006 | yes | T005 | Builder command and count provenance. |
+| FR-007 | yes | T005 | Documentation review, updates or recorded no-change disposition. |
 | NFR-001 | yes | T006 | Deploy tests and full suite. |
-| NFR-002 | partial | T003, T004 | Synthetic database fixtures specified; history-copy conflict remains; A2. |
-| C-001 | yes | WP01 definition of done | Applied manifests, baseline and release record remain unchanged. |
-| C-002 | yes | T001, T002, T003, T004 | Fail-closed checks and reviewer guidance. |
-| C-003 | partial | WP01 branch strategy | Landing branch specified; push/PR and Kent-only merge remain spec-level delivery obligations. |
-| C-004 | yes | WP01 reviewer guidance | Different reviewer model named; dated review evidence required by the spec. |
+| NFR-002 | yes | T003, T004 | Identity-only history and synthetic database fixtures. |
+| C-001 | yes | WP01 definition of done | Historical manifests, baseline and release record preserved. |
+| C-002 | yes | T001–T004 | Fail-closed comparisons and reviewer guidance. |
+| C-003 | yes | WP01 branch strategy | Feature-branch landing specified; push, PR and Kent-only merge remain delivery obligations. |
+| C-004 | yes | WP01 reviewer guidance | Different reviewer model specified; dated evidence remains required by the spec. |
 
 **Charter Alignment Issues:**
 
-A1 violates the explicit documentation-sync requirement in charter directive 5. Resolve before implementation. The runbook task alone does not address the other mandated surfaces.
+None identified. Previous A1 is resolved.
 
 **Unmapped Tasks:**
 
-None. T001–T006 each map to stated requirements or validation criteria. WP01 has no dependencies; its implementation files are included in `owned_files`, and both new history records appear in `create_intent`.
+None. T001–T006 map to requirements or validation criteria. WP01 frontmatter references all 13 requirements, has no dependencies, and includes the planned implementation files and history records in `owned_files`; both new records have `create_intent` entries.
 
 **Metrics:**
 
-- Total Requirements: 12 — 6 functional, 2 non-functional, 4 constraints.
+- Total Requirements: 13 — 7 functional, 2 non-functional, 4 constraints.
 - Total Tasks: 6 across 1 WP.
-- Coverage %: 100% associated coverage; partial coverage is identified above.
+- Coverage %: 100% associated coverage; FR-005 retains partial scenario coverage.
 - Ambiguity Count: 0.
 - Duplication Count: 0.
-- Critical Issues Count: 1.
+- Critical Issues Count: 0.
 
-`research.md` and `quickstart.md` are absent. All three core artifacts—`spec.md`, `plan.md` and `tasks.md`—are present; neither absent supporting file is treated as a missing-core-artifact finding.
+`research.md` and `quickstart.md` are absent; all three core artifacts are present. No additional actionable defects were identified in the requested detection passes. No files were edited.
 
 Analyst: Codex gpt-6.1-sol, 2026-11-10.
