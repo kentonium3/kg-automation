@@ -21,14 +21,17 @@
     "WP01": {
       "actor": "codex",
       "agent": "codex:gpt-6.1-sol:implementer-ivan",
-      "agent_profile": "implementer-ivan",
-      "agent_profile_version": "1.0",
+      "agent_profile": "__resolved_profile_absent__",
+      "agent_profile_version": "__resolved_profile_version_absent__",
       "force_count": 0,
       "implementer_of_record": "codex:gpt-6.1-sol:implementer-ivan",
       "lane": "for_review",
       "last_event_id": "01M75QDN50AGC44G0FACBYENN4",
       "last_transition_at": "2026-11-11T16:35:24.960767+00:00",
       "model": "__resolved_model_absent__",
+      "notes": [
+        "Ready for review"
+      ],
       "provider": "__resolved_provider_absent__",
       "role": "implementer",
       "shell_pid": 4066899,
