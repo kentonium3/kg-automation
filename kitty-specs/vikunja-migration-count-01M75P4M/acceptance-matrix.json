@@ -7,11 +7,11 @@
     {
       "criterion_id": "FR-001",
       "description": "Verify FR-001 is satisfied",
-      "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
+      "proof_type": "manual",
+      "evidence": "build_release_baseline.py --expected-added-count required and validated; CLI tests (a78b869b)",
+      "pass_fail": "pass",
+      "verified_by": "claude:claude-opus-5-5:orchestrator",
+      "verified_at": "2026-11-11T16:37:23.416196+00:00",
       "notes": "TODO: replace with a real acceptance criterion"
     },
     {
