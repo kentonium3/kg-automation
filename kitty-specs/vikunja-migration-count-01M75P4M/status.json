@@ -20,7 +20,7 @@
   "work_packages": {
     "WP01": {
       "actor": "claude",
-      "agent": "codex:gpt-6.1-sol:implementer-ivan",
+      "agent": "claude:claude-sonnet-5-5:reviewer-renata",
       "agent_profile": "__resolved_profile_absent__",
       "agent_profile_version": "__resolved_profile_version_absent__",
       "force_count": 0,
@@ -30,7 +30,8 @@
       "last_transition_at": "2026-11-11T16:37:02.680162+00:00",
       "model": "__resolved_model_absent__",
       "notes": [
-        "Ready for review"
+        "Ready for review",
+        "Approved by Claude Sonnet 5.5 (reviewer-renata), 2026-11-11; implementer Codex gpt-6.1-sol. 0 MATERIAL. EDGE: runbook note to add the history record at ACTIVATE; int() accepts '+3'; older-release refusal via inventory issue."
       ],
       "provider": "__resolved_provider_absent__",
       "review_result": {
