@@ -1,5 +1,17 @@
 {
   "rows": {
+    "#1095": {
+      "evidence_ref": "Context only; its records are read as predecessor history, not changed",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": null,
+      "title": "Earlier Vikunja cutover issue, cited for history",
+      "verdict": "not-applicable",
+      "wp": null
+    },
     "#1098": {
       "evidence_ref": "Commit a78b869b; count from reviewed inputs; tests for 10 and 0; full suite 8955 passed",
       "fr": null,
