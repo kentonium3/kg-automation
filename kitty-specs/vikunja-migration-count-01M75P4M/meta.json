@@ -26,6 +26,7 @@
   "purpose_context": "The route hard-codes exactly 10 added migrations (kentonium3/kg-automation#1098), true for v2.8.0-rrule.2 but not for v2.8.0-rrule.3, which adds none. This mission derives the expected set from the release's reviewed inputs, keeps the route fail-closed, makes the change-set tests predecessor-aware, and covers both the 10 and 0 cases. Requested by lead 24d09460 (bus 20261110T215747798808Z9dc49d3364); Kent authorized the push and PR; merge is Kent's.",
   "purpose_tldr": "Let the Vikunja release route stage, gate and verify releases that add any reviewed number of migrations, including zero.",
   "slug": "vikunja-migration-count-01M75P4M",
+  "status_phase": "1",
   "target_branch": "fix/vikunja-migration-count",
   "topology": "single_branch",
   "topology_source": "explicit"
