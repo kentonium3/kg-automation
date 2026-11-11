@@ -1,0 +1,40 @@
+schema_version: v1
+name: vikunja-release-activate
+issue: kentonium3/kg-automation#1100
+tier: 2
+entrypoint: scripts/deploy/deploy-vikunja-release-activate.py
+audited_surface: true
+expected_baselines:
+- docker-images.txt
+verification:
+  pre:
+  - scripts/deploy/deploy-vikunja-release-activate.py --dry-run
+  post:
+  - docker inspect vikunja --format '{{.Image}}' | grep -qx sha256:046151b0cd9b5d9f0770c918189d1d49e92eb631387495b9568b40148308709c
+  - curl -fsS --max-time 5 http://100.92.197.90:3456/api/v1/info | jq -e '.version
+    == "v2.8.0-rrule.3"'
+created_at: '2026-11-11T19:00:00Z'
+created_by: claude-opus-5-5
+notes: 'See #1100: repeat ACTIVATE to v2.8.0-rrule.3 (adds no migrations). Open PR2 only after STAGE applies
+  and authorized preflight passes. Merge authority: Kent, the program lead or the
+  core worker under Kent''s delegation, after independent review and CI. Confirm a
+  recent Tier-2 backup and pause automation writes before merging. Compose keeps office2.local/vikunja:active
+  with pull_policy: never.
+
+  The helper stops the service, snapshots and checks the qualified baseline, then
+  durably writes the private receipt before retagging active. The total outage bound
+  is 300 seconds, including the gate and readiness. Failure stops the cutover; no
+  blind retry. Cleanup failures are reported separately: do not assume the container
+  is absent or active untagged if cleanup fails.
+
+  An interrupted started/stopped marker uses rollback_release.py --recover-pre-snapshot.
+  From snapshotted onward, use rollback --prepare, Kent''s privileged snapshot restore
+  and acknowledged --finish as documented in docs/runbooks/vikunja-release-cutover.md.
+  Never start the previous image on an upgraded database. Preserve the old successful
+  markers for v2.7.1-670-420c7bcb75 and v2.8.0-rrule.2; the new release marker must be absent before staging.
+
+  Residual risk: a host crash after retag can restart the unverified new image at
+  boot. The snapshot already exists; preserve evidence and follow the recorded phase
+  for verification or rollback. Keep writes closed for reviewed verification and browser
+  acceptance. Kent decides ACCEPT or ROLLBACK and automation resume. Private evidence
+  stays out of commands and manifest notes.'
