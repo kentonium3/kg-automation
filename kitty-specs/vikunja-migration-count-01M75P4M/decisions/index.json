@@ -1,0 +1,29 @@
+{
+  "entries": [
+    {
+      "created_at": "2026-11-11T16:13:30.768896Z",
+      "decision_id": "01M75P5HRGS39PMDQKA0BPWNZJ",
+      "final_answer": "Confirmed as stated in the lead request",
+      "input_key": "intent_summary",
+      "mission_id": "01M75P4M49ECBR8QHX40QCAA5Q",
+      "mission_slug": "vikunja-migration-count-01M75P4M",
+      "opened_by": "cli",
+      "options": [
+        "Confirmed as stated in the lead request",
+        "Other"
+      ],
+      "origin_flow": "specify",
+      "other_answer": false,
+      "question": "Is the scope as the lead's request states it: remove the hard-coded ten-migration count from the Vikunja release route so releases adding any reviewed number (including 0) stage, gate and verify, keep it fail-closed, make the change-set tests predecessor-aware, test 10 and 0, push the branch and open a PR, and stop before merge and any Office2 step?",
+      "rationale": "Lead request 20261110T215747798808Z9dc49d3364 scopes the fix; Kent authorized the kg-automation push and PR directly on 2026-11-11; merge and Office2 stay Kent's.",
+      "resolved_at": "2026-11-11T16:13:32.001158Z",
+      "resolved_by": "Kent (direct) and lead 24d09460",
+      "slot_key": "specify.intent.summary",
+      "status": "resolved",
+      "step_id": null,
+      "summary_json": null
+    }
+  ],
+  "mission_id": "01M75P4M49ECBR8QHX40QCAA5Q",
+  "version": 1
+}
