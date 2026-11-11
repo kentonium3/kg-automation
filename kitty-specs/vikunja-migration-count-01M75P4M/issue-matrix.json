@@ -1,0 +1,17 @@
+{
+  "rows": {
+    "#1098": {
+      "evidence_ref": "Commit a78b869b; count from reviewed inputs; tests for 10 and 0; full suite 8955 passed",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": null,
+      "title": "Vikunja release route hard-codes exactly 10 added migrations",
+      "verdict": "fixed",
+      "wp": "WP01"
+    }
+  },
+  "schema_version": 1
+}
