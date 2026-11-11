@@ -15,11 +15,11 @@ verification:
     == "v2.8.0-rrule.3"'
 created_at: '2026-11-11T19:00:00Z'
 created_by: claude-opus-5-5
-notes: 'See #1100: repeat ACTIVATE to v2.8.0-rrule.3 (adds no migrations). Open PR2 only after STAGE applies
-  and authorized preflight passes. Merge authority: Kent, the program lead or the
-  core worker under Kent''s delegation, after independent review and CI. Confirm a
-  recent Tier-2 backup and pause automation writes before merging. Compose keeps office2.local/vikunja:active
-  with pull_policy: never.
+notes: 'See #1100: repeat ACTIVATE to v2.8.0-rrule.3 (adds no migrations). Open PR2
+  only after STAGE applies and authorized preflight passes. Merge authority: Kent,
+  the program lead or the core worker under Kent''s delegation, after independent
+  review and CI. Confirm a recent Tier-2 backup and pause automation writes before
+  merging. Compose keeps office2.local/vikunja:active with pull_policy: never.
 
   The helper stops the service, snapshots and checks the qualified baseline, then
   durably writes the private receipt before retagging active. The total outage bound
@@ -31,10 +31,13 @@ notes: 'See #1100: repeat ACTIVATE to v2.8.0-rrule.3 (adds no migrations). Open 
   From snapshotted onward, use rollback --prepare, Kent''s privileged snapshot restore
   and acknowledged --finish as documented in docs/runbooks/vikunja-release-cutover.md.
   Never start the previous image on an upgraded database. Preserve the old successful
-  markers for v2.7.1-670-420c7bcb75 and v2.8.0-rrule.2; the new release marker must be absent before staging.
+  markers for v2.7.1-670-420c7bcb75 and v2.8.0-rrule.2; the new release marker must
+  be absent before staging.
 
   Residual risk: a host crash after retag can restart the unverified new image at
   boot. The snapshot already exists; preserve evidence and follow the recorded phase
   for verification or rollback. Keep writes closed for reviewed verification and browser
   acceptance. Kent decides ACCEPT or ROLLBACK and automation resume. Private evidence
   stays out of commands and manifest notes.'
+apply_mode: manifest
+applied_at: '2026-11-11T19:04:43Z'
