@@ -1,6 +1,8 @@
 {
+  "accept_commit": "e6bf770c1a9aa865c8727b47c931dbcde7298503",
   "acceptance_history": [
     {
+      "accept_commit": "e6bf770c1a9aa865c8727b47c931dbcde7298503",
       "acceptance_mode": "pr",
       "accepted_at": "2026-11-11T16:37:41.485826+00:00",
       "accepted_by": "kgale",
