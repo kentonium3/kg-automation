@@ -17,11 +17,11 @@
     {
       "criterion_id": "FR-002",
       "description": "Verify FR-002 is satisfied",
-      "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
+      "proof_type": "manual",
+      "evidence": "baseline.build fails GATE_MIGRATIONS_MISMATCH on count mismatch or lost ID, writes nothing; tests",
+      "pass_fail": "pass",
+      "verified_by": "claude:claude-opus-5-5:orchestrator",
+      "verified_at": "2026-11-11T16:37:26.170701+00:00",
       "notes": "TODO: replace with a real acceptance criterion"
     },
     {
