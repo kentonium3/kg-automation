@@ -15,6 +15,7 @@ requirement_refs:
 - C-002
 - C-003
 - C-004
+- FR-007
 planning_base_branch: fix/vikunja-migration-count
 merge_target_branch: fix/vikunja-migration-count
 branch_strategy: Planning artifacts for this mission were generated on fix/vikunja-migration-count. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into fix/vikunja-migration-count unless the human explicitly redirects the landing branch.
@@ -72,16 +73,17 @@ Implement plan D-1 to D-5 (`plan.md`). Spec FR-001 to FR-006, NFR-001, NFR-002, 
 
 - **T001 Builder (D-1, D-5).** `baseline.build(pre, post, record, *, expected_added, deadline=None)`: reject a non-`int` or `bool` `expected_added`, or a negative one, as `BUILD_BASELINE_INVALID`. Raise `GATE_MIGRATIONS_MISMATCH` unless the pre set is a subset of the post set and `len(added) == expected_added`. `build_release_baseline.py` takes a required `--expected-added-count N`; a missing or bad value is `BUILD_BASELINE_USAGE` (exit 2). Remove its own `!= 10`.
 - **T002 Verifier (D-2).** Remove `len(facts["added_migration_ids"]) != 10` from `verify_release_upgrade.py`. Leave every other binding.
-- **T003 History and change-set tests (D-3).** Create `services/vikunja/releases/v2.7.1-670-420c7bcb75.json` and `v2.8.0-rrule.2.json`. Each is `{"record": <that release's release.json at activation>, "stage_issue": "#NNNN", "activate_issue": "#NNNN"}`: `#1087`/`#1087` for the first, from the frozen record the test already uses, and `#1095`/`#1095` for rrule.2, from current `release.json`. Change `test_vikunja_cutover_change_set.py` to select the predecessor from those records, failing closed on no match or more than one. Take the current change set's issue from its manifests, and keep the frozen 0033 and 0034 checks. Add the fixture-tree tests listed in D-3.
+- **T003 History and change-set tests (D-3).** Create `services/vikunja/releases/v2.7.1-670-420c7bcb75.json` and `v2.8.0-rrule.2.json`. Each holds identity fields only, with no paths: `release_version`, `source_revision`, `archive` sha256 and size, `image` config_digest and index_digest, `rollback` ref and image_id, rollback archive sha256 and size, `stage_issue` and `activate_issue`. The issues are `#1087`/`#1087` for the first, from the frozen record the test already uses, and `#1095`/`#1095` for rrule.2, from current `release.json`. Change `test_vikunja_cutover_change_set.py` to select the predecessor from those records, failing closed on no match or more than one. Take the current change set's issue from its manifests, and keep the frozen 0033 and 0034 checks. Add the fixture-tree tests listed in D-3.
 - **T004 Tests (D-1, D-2, D-4).** In `test_vikunja_release_baseline.py` and `test_vikunja_release_acceptance.py`, with synthetic SQLite fixtures:
   - build with 10 and with 0;
   - a count mismatch and a lost ID, each writing no output;
   - CLI usage errors: missing, negative, non-integer and boolean counts;
   - an equal-schema zero-addition fixture matching `.2 → .3`, whose acceptance passes, and fails on an extra ID and on a lost predecessor ID;
-  - the existing 10-ID acceptance, unchanged.
+  - the existing 10-ID acceptance, unchanged;
+  - a zero-migration gate compare: `baseline.compare` on a snapshot equal to a baseline with `added_migration_ids: []` returns no code, and preflight on it passes.
 
   Red-first: show the 0-migration build and acceptance tests failing on the unmodified code.
-- **T005 Runbook (D-4).** Update the builder command near line 112 and the text at line 409. Say how N is established: the migration IDs added in the Vikunja source between the rollback and release source revisions, recorded in the packet and checked against the rehearsal's observed difference.
+- **T005 Runbook and doc sync (D-4, FR-007).** Check the architecture JSON and its markdown view, `INDEX` and the roadmap for entries describing the Vikunja release route's migration count. Update any that are affected; otherwise record that none was, in the commit message. Update the builder command near line 112 and the text at line 409. Say how N is established: the migration IDs added in the Vikunja source between the rollback and release source revisions, recorded in the packet and checked against the rehearsal's observed difference.
 - **T006 Verify.** `.venv/bin/python -m pytest -q tests/deploy`, then the full suite `.venv/bin/python -m pytest -q --ignore=docs/archive -p no:cacheprovider`, then `.venv/bin/python tooling/scripts/validate_docs.py`.
 
 ## Definition of Done

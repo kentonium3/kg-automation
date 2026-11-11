@@ -58,6 +58,7 @@ The operator builds the qualified baseline for a release that adds 0 migrations 
 | FR-003 | Verifier uses the reviewed baseline | As Kent, I want `verify_release_upgrade.py` to drop the constant and rely on the sha-bound baseline's `added_migration_ids`, so that acceptance checks exactly the reviewed set, including an empty one. | High | Open | [build] | no |
 | FR-004 | Predecessor-aware change-set tests | As the operator, I want `test_vikunja_cutover_change_set.py` to derive the predecessor from the applied release history rather than the frozen first cutover, so that a STAGE whose rollback is `v2.8.0-rrule.2` passes while historical records stay checked. | High | Open | [build] | no |
 | FR-005 | Tests for 10 and 0 | As Kent, I want tests covering a 10-migration and a 0-migration release through build, gate compare and verification, plus mismatch cases, so that both real releases are proven. | High | Open | [build] | no |
+| FR-007 | Documentation synchronisation | As the operator, I want the architecture JSON and its markdown view, the cutover runbook, and INDEX and roadmap status kept consistent with the change, so that the docs describe the route. INDEX, roadmap and architecture need an update only if the implementer finds an entry affected; otherwise the WP records that none was. Added 2026-11-11 from analysis A1 (charter directive 5). | Medium | Open | [build] | no |
 | FR-006 | Runbook | As the operator, I want `docs/runbooks/vikunja-release-cutover.md` to describe the count as the reviewed baseline's, so that the runbook matches the route. | Medium | Open | [build] | no |
 
 ### Non-Functional Requirements
@@ -65,7 +66,7 @@ The operator builds the qualified baseline for a release that adds 0 migrations 
 | ID | Title | Requirement | Category | Priority | Status |
 |----|-------|-------------|----------|----------|--------|
 | NFR-001 | No regression | 100% of existing `tests/deploy` and Vikunja script tests keep passing. | Reliability | High | Open |
-| NFR-002 | Private evidence | 0 production rows, values or paths in git; fixtures are synthetic. | Security | High | Open |
+| NFR-002 | Private evidence | 0 production rows in git and 0 new host paths; fixtures are synthetic; release-history records carry identity fields only, no paths (analysis A2, 2026-11-11). | Security | High | Open |
 
 ### Constraints
 
