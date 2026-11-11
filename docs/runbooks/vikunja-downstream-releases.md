@@ -5,8 +5,8 @@ doc_type: runbook
 level: howto
 status: approved
 owners: [kgale]
-last_updated: '2026-10-30'
-revision: v1.4
+last_updated: '2026-11-04'
+revision: v1.5
 audience: agents_and_humans
 tags: [vikunja, releases]
 ---
@@ -34,6 +34,28 @@ The promotion procedure below reflects Kent's resolved plan decision
 commit to fork `main`. It is the required target workflow, not a claim that the
 current harness already supports it. Issue #45 must deliver and verify the
 push-gate, integration-branch CI and fork-release guards before promotion.
+
+## Default order of work
+
+Kent set this order on 2026-11-04. Work on a change, or an upstream catch-up,
+goes through these steps in sequence:
+
+1. **Develop in the harness.** Work in `vikunja-harness` on a private
+   `mission/*` branch, through a spec-kitty mission. Run the local automated
+   tests and the required reviews there.
+2. **Integrate and publish a public test release.** Integrate the change into
+   fork `main` (§2), and qualify and publish a `kentonium3/vikunja` pre-release
+   (§4–5). Before anything is public, run the local automated tests and a manual
+   smoke test of the built artifact on a disposable database.
+3. **Update Office2.** Upgrade Office2 to that exact artifact (§6), under its
+   own packet and Kent's go.
+4. **Kent tests on Office2.**
+5. **Refresh the upstream PR last.** Rebuild the upstream contribution branch
+   (§3) on the same upstream pin, reusing the integration's conflict
+   resolutions, so the PR carries only code Kent has run in production.
+
+Do not refresh an upstream PR ahead of steps 2–4. An upstream PR never holds
+a tested preview or an Office2 release.
 
 ## Branch and release contract
 
@@ -218,8 +240,9 @@ migrations explicitly, retain tests, then retire the contribution branch when
 its obligations are complete. Never discard a downstream fix merely because
 an upstream PR was marked merged.
 
-Upstream PR maintenance can proceed alongside a downstream preview. It must not
-hold a tested preview waiting for maintainer availability or upstream merge.
+Refresh an upstream PR only after the matching downstream release has been
+tested on Office2 (see *Default order of work*). It must never hold a tested
+preview waiting for maintainer availability or upstream merge.
 
 ## 4. Qualify a public candidate
 
