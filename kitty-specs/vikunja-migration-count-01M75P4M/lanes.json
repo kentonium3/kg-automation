@@ -1,0 +1,33 @@
+{
+  "version": 1,
+  "mission_slug": "vikunja-migration-count-01M75P4M",
+  "mission_id": "01M75P4M49ECBR8QHX40QCAA5Q",
+  "mission_branch": "fix/vikunja-migration-count",
+  "target_branch": "fix/vikunja-migration-count",
+  "lanes": [
+    {
+      "lane_id": "lane-planning",
+      "wp_ids": [
+        "WP01"
+      ],
+      "write_scope": [
+        "docs/runbooks/vikunja-release-cutover.md",
+        "scripts/deploy/vikunja_release/baseline.py",
+        "scripts/vikunja/build_release_baseline.py",
+        "scripts/vikunja/verify_release_upgrade.py",
+        "services/vikunja/releases/v2.7.1-670-420c7bcb75.json",
+        "services/vikunja/releases/v2.8.0-rrule.2.json",
+        "tests/deploy/test_vikunja_cutover_change_set.py",
+        "tests/deploy/test_vikunja_release_acceptance.py",
+        "tests/deploy/test_vikunja_release_baseline.py"
+      ],
+      "predicted_surfaces": [],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    }
+  ],
+  "computed_at": "2026-11-11T16:18:00.453517+00:00",
+  "computed_from": "dependency_graph+ownership",
+  "planning_artifact_wps": [],
+  "planning_commit_sha": "da8df3342f27da501dadeba996e3552e7fb5d4c6"
+}

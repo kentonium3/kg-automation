@@ -228,13 +228,15 @@ def compare(snapshot_path: Path | str, baseline: dict[str, Any], *, deadline=Non
         return Result("GATE_AGGREGATE_FAILED")
 
 
-def build(pre_path: Path | str, post_path: Path | str, record: dict[str, Any], *, deadline=None) -> dict:
+def build(pre_path: Path | str, post_path: Path | str, record: dict[str, Any], *, expected_added, deadline=None) -> dict:
     """Build only data-free qualification facts from consolidated copies."""
+    if type(expected_added) is not int or expected_added < 0:
+        raise core.Fail("BUILD_BASELINE_INVALID")
     with _connect(pre_path, deadline) as pre, _connect(post_path, deadline) as post:
         before = migration_ids(pre, deadline=deadline)
         after = migration_ids(post, deadline=deadline)
         added = sorted(set(after) - set(before))
-        if not set(before) <= set(after) or len(added) != 10:
+        if not set(before) <= set(after) or len(added) != expected_added:
             raise core.Fail("GATE_MIGRATIONS_MISMATCH")
         result = {"schema_version": 1, "previous_version": previous_version(record),
                   "previous_image_config": record["rollback"]["image_id"],

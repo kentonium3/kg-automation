@@ -133,7 +133,6 @@ def _verify(snapshot_directory, post_copy, *, release_path, repository_root) -> 
                 os.close(fd)
             before = baseline.compare(snapshot_db, facts)
             if (not baseline._receipt_valid(receipt)
-                    or len(facts["added_migration_ids"]) != 10
                     or receipt["baseline"] != facts
                     or snap.get("snapshot_dir") != str(folder)
                     or snap.get("db_path") != str(snapshot_db)

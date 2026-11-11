@@ -18,6 +18,105 @@ import pytest
 from scripts.deploy.vikunja_release import baseline, core, dbsafety
 from scripts.vikunja import build_release_baseline as builder
 from scripts.vikunja import verify_release_upgrade as verifier
+from scripts.vikunja import preflight_release_baseline as preflight
+
+
+@pytest.fixture
+def zero_upgrade(synthetic):
+    s = synthetic
+    s["record"]["release_version"] = "v2.8.0-rrule.3"
+    s["record"]["tags"]["release"] = "example.invalid/app:v2.8.0-rrule.3"
+    s["record"]["rollback"]["ref"] = "example.invalid/app:v2.8.0-rrule.2"
+    with sqlite3.connect(s["post"]) as conn:
+        conn.execute("DELETE FROM migration WHERE id NOT IN ('10','SCHEMA_INIT')")
+        conn.execute("ALTER TABLE tasks DROP COLUMN target_only")
+    s["facts"]["added_migration_ids"] = []
+    s["facts"]["previous_version"] = "v2.8.0-rrule.2"
+    s["facts"]["schema_identity"]["target"] = s["facts"]["schema_identity"]["pre_upgrade"]
+    raw = json.dumps(s["facts"]).encode()
+    s["bound"].write_bytes(raw)
+    s["record"]["baseline"]["sha256"] = hashlib.sha256(raw).hexdigest()
+    s["release"].write_text(json.dumps(s["record"]))
+    receipt_path = s["snapshot"] / "baseline.json"
+    receipt = json.loads(receipt_path.read_bytes())
+    receipt["baseline"] = s["facts"]
+    receipt["release_version"] = s["record"]["release_version"]
+    receipt["baseline_sha256"] = s["record"]["baseline"]["sha256"]
+    receipt_path.write_text(json.dumps(receipt))
+    snapshot_path = s["snapshot"] / "snapshot.json"
+    snapshot = json.loads(snapshot_path.read_bytes())
+    snapshot["pre_version"] = "v2.8.0-rrule.2"
+    snapshot_path.write_text(json.dumps(snapshot))
+    return s
+
+
+def test_zero_migration_acceptance(zero_upgrade):
+    assert all(run_verify(zero_upgrade).values())
+
+
+@pytest.mark.parametrize("count", [0, 10])
+def test_builder_cli_count(synthetic, count):
+    s = synthetic
+    output = s["root"] / "new.json"
+    post = s["pre"] if count == 0 else s["post"]
+    result = subprocess.run([sys.executable, "scripts/vikunja/build_release_baseline.py",
+        *map(str, [s["pre"], post, s["release"], output]), "--expected-added-count", str(count)],
+        capture_output=True, text=True)
+    assert (result.returncode, result.stdout, result.stderr) == (0, "BUILD_BASELINE_OK\n", "")
+    assert len(json.loads(output.read_text())["added_migration_ids"]) == count
+
+
+@pytest.mark.parametrize("args", [[], ["-1"], ["1.5"], ["True"], ["False"], ["ten"]])
+def test_builder_cli_bad_count(synthetic, args):
+    s = synthetic
+    output = s["root"] / "new.json"
+    option = ["--expected-added-count", *args] if args else []
+    result = subprocess.run([sys.executable, "scripts/vikunja/build_release_baseline.py",
+        *map(str, [s["pre"], s["post"], s["release"], output]), *option],
+        capture_output=True, text=True)
+    assert (result.returncode, result.stdout, result.stderr) == (2, "", "BUILD_BASELINE_USAGE\n")
+    assert not output.exists()
+
+
+@pytest.mark.parametrize("lost", [False, True])
+def test_builder_cli_mismatch_writes_nothing(synthetic, lost):
+    s = synthetic
+    if lost:
+        with sqlite3.connect(s["post"]) as conn:
+            conn.execute("DELETE FROM migration WHERE id='10'")
+    output = s["root"] / "new.json"
+    result = subprocess.run([sys.executable, "scripts/vikunja/build_release_baseline.py",
+        *map(str, [s["pre"], s["post"], s["release"], output]), "--expected-added-count",
+        "10" if lost else "0"], capture_output=True, text=True)
+    assert (result.returncode, result.stdout, result.stderr) == (1, "GATE_MIGRATIONS_MISMATCH\n", "")
+    assert not output.exists()
+
+
+@pytest.mark.parametrize("sql", ["INSERT INTO migration VALUES ('99')",
+                                 "DELETE FROM migration WHERE id='10'"])
+def test_zero_migration_acceptance_mismatch(zero_upgrade, sql):
+    with sqlite3.connect(zero_upgrade["post"]) as conn:
+        conn.execute(sql)
+    assert not run_verify(zero_upgrade)["MIGRATIONS"]
+
+
+@pytest.mark.parametrize("sql", [None, "INSERT INTO migration VALUES ('99')",
+                                "DELETE FROM migration WHERE id='10'"])
+def test_zero_migration_compare_and_preflight(zero_upgrade, sql):
+    s = zero_upgrade
+    snapshot = s["snapshot"] / dbsafety.DB_NAME
+    if sql:
+        for database in (s["pre"], snapshot):
+            with sqlite3.connect(database) as conn:
+                conn.execute(sql)
+    result = baseline.compare(snapshot, s["facts"])
+    if sql:
+        assert result.code == "GATE_MIGRATIONS_MISMATCH"
+        with pytest.raises(core.Fail, match="^GATE_MIGRATIONS_MISMATCH$"):
+            preflight.preflight(s["record"], repository_root=s["root"])
+    else:
+        assert result.code is None
+        assert all(value >= 0 for value in preflight.preflight(s["record"], repository_root=s["root"]))
 
 
 @pytest.fixture
@@ -63,7 +162,7 @@ def synthetic(tmp_path):
                   "private_logs": str(root / "failures"),
                   "office4_sources": {"archive": str(root / "image.tar"), "rollback_archive": str(root / "old.tar")}},
     }
-    facts = baseline.build(pre, post, record)
+    facts = baseline.build(pre, post, record, expected_added=10)
     bound = root / "services/vikunja/baselines/synthetic.json"
     bound.parent.mkdir(parents=True)
     raw = json.dumps(facts).encode()
@@ -323,12 +422,14 @@ def test_builder_deterministic_create_only_and_main(synthetic, capsys):
     s = synthetic
     outputs = [s["root"] / f"new baseline {i}.json" for i in range(2)]
     for output in outputs:
-        assert builder.main(list(map(str, [s["pre"], s["post"], s["release"], output]))) == 0
+        assert builder.main([*map(str, [s["pre"], s["post"], s["release"], output]),
+                             "--expected-added-count", "10"]) == 0
     assert outputs[0].read_bytes() == outputs[1].read_bytes()
     assert outputs[0].read_bytes().endswith(b"\n")
     assert json.loads(outputs[0].read_bytes()) == s["facts"]
     original = outputs[0].read_bytes()
-    assert builder.main(list(map(str, [s["pre"], s["post"], s["release"], outputs[0]]))) == 1
+    assert builder.main([*map(str, [s["pre"], s["post"], s["release"], outputs[0]]),
+                         "--expected-added-count", "10"]) == 1
     assert outputs[0].read_bytes() == original
     assert "sentinel" not in capsys.readouterr().out
 
@@ -340,10 +441,10 @@ def test_builder_forbidden_fields(synthetic, monkeypatch, field):
     facts = copy.deepcopy(s["facts"])
     facts[field] = {"previous_version": "v3.9.0", "previous_image_config": "sha256:" + "e" * 64,
                    "schema_version": True}.get(field, "private sentinel")
-    monkeypatch.setattr(baseline, "build", lambda *args: facts)
+    monkeypatch.setattr(baseline, "build", lambda *args, **kwargs: facts)
     output = s["root"] / "new.json"
     with pytest.raises(core.Fail, match="^BUILD_BASELINE_INVALID$"):
-        builder.build(s["pre"], s["post"], s["record"], output)
+        builder.build(s["pre"], s["post"], s["record"], output, expected_added=10)
     assert not output.exists()
 
 
@@ -354,7 +455,8 @@ def test_builder_wrong_migration_sets(synthetic, sql):
     with sqlite3.connect(s["post"]) as conn:
         conn.execute(sql)
     with pytest.raises(core.Fail, match="^GATE_MIGRATIONS_MISMATCH$"):
-        builder.build(s["pre"], s["post"], s["record"], s["root"] / "new.json")
+        builder.build(s["pre"], s["post"], s["record"], s["root"] / "new.json", expected_added=10)
+    assert not (s["root"] / "new.json").exists()
 
 
 def test_builder_symlink_destination(synthetic):
@@ -362,7 +464,7 @@ def test_builder_symlink_destination(synthetic):
     output = s["root"] / "new.json"
     output.symlink_to(s["root"] / "absent")
     with pytest.raises(core.Fail, match="^BUILD_BASELINE_FAILED$"):
-        builder.build(s["pre"], s["post"], s["record"], output)
+        builder.build(s["pre"], s["post"], s["record"], output, expected_added=10)
     assert not (s["root"] / "absent").exists()
 
 
@@ -385,7 +487,8 @@ def test_subprocess_synthetic_interfaces(synthetic, interpreter):
         pytest.skip("Python 3.12 unavailable")
     s = synthetic
     builder_result = subprocess.run([interpreter, "scripts/vikunja/build_release_baseline.py",
-        *map(str, [s["pre"], s["post"], s["release"], s["root"] / "new output.json"])],
+        *map(str, [s["pre"], s["post"], s["release"], s["root"] / "new output.json"]),
+        "--expected-added-count", "10"],
         capture_output=True, text=True)
     assert builder_result.returncode == 0, builder_result.stdout + builder_result.stderr
     # Inject repository/release defaults without changing either positional interface.

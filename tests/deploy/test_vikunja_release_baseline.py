@@ -14,6 +14,13 @@ import pytest
 from scripts.deploy.vikunja_release import baseline as b, core, dbsafety
 
 
+def test_zero_migration_build(qualified):
+    pre, _, record, _, _ = qualified
+    facts = b.build(pre, pre, record, expected_added=0)
+    assert facts["added_migration_ids"] == []
+    assert facts["schema_identity"]["pre_upgrade"] == facts["schema_identity"]["target"]
+
+
 @pytest.fixture
 def qualified(tmp_path):
     pre = tmp_path / "pre.sqlite"
@@ -39,7 +46,7 @@ def qualified(tmp_path):
         conn.execute("ALTER TABLE tasks ADD COLUMN target_only TEXT")
     record = {"rollback": {"ref": "example.invalid/app:3.0.0-rrule.1", "image_id": "sha256:" + "a" * 64},
               "release_version": "v3.1.0-rrule.1", "image": {"config_digest": "sha256:" + "b" * 64}}
-    facts = b.build(pre, post, record)
+    facts = b.build(pre, post, record, expected_added=10)
     target = tmp_path / "services/vikunja/baselines/synthetic.json"
     target.parent.mkdir(parents=True)
     raw = json.dumps(facts).encode()
@@ -170,7 +177,14 @@ def test_build_requires_retention_and_ten_additions(qualified, sql):
     with sqlite3.connect(post) as conn:
         conn.execute(sql)
     with pytest.raises(core.Fail, match="GATE_MIGRATIONS_MISMATCH"):
-        b.build(pre, post, record)
+        b.build(pre, post, record, expected_added=10)
+
+
+@pytest.mark.parametrize("count", [-1, True, False, None, "0", 0.0, 10.0])
+def test_build_rejects_invalid_expected_count(qualified, count):
+    pre, post, record, _, _ = qualified
+    with pytest.raises(core.Fail, match="^BUILD_BASELINE_INVALID$"):
+        b.build(pre, post, record, expected_added=count)
 
 
 def test_schema_survives_real_consolidation_route(tmp_path):

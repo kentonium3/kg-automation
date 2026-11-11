@@ -11,6 +11,7 @@ from __future__ import annotations
 import difflib
 import hashlib
 import json
+import re
 import subprocess
 import shutil
 import sys
@@ -181,11 +182,28 @@ def _check_manifest(root: Path, path: Path, rec: dict, kind: str, issue: str) ->
     return m
 
 
-def _resolve_manifest_path(root: Path, rec: dict, kind: str) -> Path | None:
+def _manifest_issue(path: Path) -> str:
+    issue = _manifest(path)["issue"]
+    assert re.fullmatch(r"kentonium3/kg-automation#[1-9][0-9]*", issue)
+    return issue.rsplit("#", 1)[1]
+
+
+def _predecessor(root: Path, rec: dict) -> dict:
+    version = baseline.previous_version(rec)
+    matches = [value for path in sorted((root / "services/vikunja/releases").glob("*.json"))
+               if (value := json.loads(path.read_text()))["release_version"] == version]
+    assert len(matches) == 1, "missing or ambiguous predecessor"
+    [previous] = matches
+    assert rec["rollback"]["image_id"] == previous["image"]["config_digest"]
+    assert {k: rec["rollback"]["archive"][k] for k in ("sha256", "size")} == previous["archive"]
+    return previous
+
+
+def _resolve_manifest_path(root: Path, rec: dict, kind: str, issue: str | None = None) -> Path | None:
     """A queued manifest is authoritative even when malformed or stale."""
     queued = root / f"deploys/queued/vikunja-release-{kind}.yaml"
     if queued.exists():
-        _check_manifest(root, queued, rec, kind, "1095")
+        _check_manifest(root, queued, rec, kind, issue or _manifest_issue(queued))
         return queued
     matches = []
     for path in sorted((root / "deploys/applied").glob(f"*-vikunja-release-{kind}.yaml")):
@@ -194,7 +212,7 @@ def _resolve_manifest_path(root: Path, rec: dict, kind: str) -> Path | None:
         m = _manifest(path)
         expected = expected_post_checks(rec) if kind == "activate" else _expected_stage_checks(rec)
         if m["verification"]["post"] == expected:
-            _check_manifest(root, path, rec, kind, "1095")
+            _check_manifest(root, path, rec, kind, issue or _manifest_issue(path))
             matches.append(path)
         else:
             # An applied record naming the current version/tag with broken
@@ -205,14 +223,13 @@ def _resolve_manifest_path(root: Path, rec: dict, kind: str) -> Path | None:
     return matches[0] if matches else None
 
 
-def _check_inventory(root: Path, rec: dict, historical: dict, phase: str) -> None:
+def _check_inventory(root: Path, rec: dict, historical: dict, phase: str, issue: str) -> None:
     data = json.loads((root / _INVENTORY_JSON.relative_to(_ROOT)).read_text())
     [entry] = [s for s in data["services"] if s.get("name") == "vikunja"]
     compose = yaml.safe_load((root / _COMPOSE.relative_to(_ROOT)).read_text())["services"]["vikunja"]
     assert compose["image"] == rec["tags"]["active"] == entry["image"]
     assert compose["pull_policy"] == "never"
     deployed = rec if phase == "ACTIVATE" else historical
-    issue = "#1095" if phase == "ACTIVATE" else "#1087"
     assert entry["updated_by"] == issue
     assert issue in data["updated_by"]
     for value in (deployed["release_version"], deployed["source_revision"],
@@ -251,14 +268,46 @@ def check_tree(root: Path) -> str:
         phase = "historical"
     else:
         baseline.load_bound(rec, root)
-        assert _resolve_manifest_path(root, rec, "stage") is not None, "current STAGE missing"
-        phase = "ACTIVATE" if _resolve_manifest_path(root, rec, "activate") else "STAGE"
-    _check_inventory(root, rec, historical, phase)
+        previous = _predecessor(root, rec)
+        stage = _resolve_manifest_path(root, rec, "stage")
+        assert stage is not None, "current STAGE missing"
+        issue = _manifest_issue(stage)
+        phase = "ACTIVATE" if _resolve_manifest_path(root, rec, "activate", issue) else "STAGE"
+        _check_inventory(root, rec, previous, phase,
+                         "#" + issue if phase == "ACTIVATE" else previous["activate_issue"])
+        return phase
+    _check_inventory(root, rec, historical, phase, "#1087")
     return phase
 
 
 def test_current_tree():
     assert check_tree(_ROOT) in {"historical", "STAGE", "ACTIVATE"}
+
+
+def test_release_history_matches_released_records():
+    for rec, issue in ((_historical_release(_ROOT), "#1087"), (_release(), None)):
+        if not (_ROOT / "services/vikunja/releases" / (rec["release_version"] + ".json")).exists():
+            # A newly staged release has no applied history entry yet.
+            assert issue is None
+            continue
+        history = json.loads((_ROOT / "services/vikunja/releases" / (rec["release_version"] + ".json")).read_text())
+        assert set(history) == {"release_version", "source_revision", "archive", "image", "rollback",
+                                "stage_issue", "activate_issue"}
+        for key in ("release_version", "source_revision"):
+            assert history[key] == rec[key]
+        assert history["archive"] == {k: rec["archive"][k] for k in ("sha256", "size")}
+        assert history["image"] == {k: rec["image"][k] for k in ("config_digest", "index_digest")}
+        assert history["rollback"] == {
+            "ref": rec["rollback"]["ref"], "image_id": rec["rollback"]["image_id"],
+            "archive": {k: rec["rollback"]["archive"][k] for k in ("sha256", "size")},
+        }
+        if issue is not None:
+            assert history["stage_issue"] == history["activate_issue"] == issue
+        for kind in ("stage", "activate"):
+            path = _resolve_manifest_path(_ROOT, rec, kind) if issue is None else (
+                _ROOT / "deploys/applied" / (_HISTORICAL_STAGE if kind == "stage" else _HISTORICAL_ACTIVATE))
+            assert path is not None
+            assert history[kind + "_issue"] == "#" + _manifest_issue(path)
 
 
 def test_historical_manifest_schema_controls():
@@ -303,6 +352,8 @@ def _promote(root: Path, rec: dict, issue: str = "#1095") -> None:
 
 @pytest.fixture
 def phase_tree(tmp_path):
+    for path in (_ROOT / "services/vikunja/releases").glob("*.json"):
+        _write(tmp_path / "services/vikunja/releases" / path.name, json.loads(path.read_text()))
     for rel in (
         _COMPOSE.relative_to(_ROOT), _INVENTORY_JSON.relative_to(_ROOT), _INVENTORY_MD.relative_to(_ROOT),
         Path("deploys/applied") / _HISTORICAL_STAGE, Path("deploys/applied") / _HISTORICAL_ACTIVATE,
@@ -323,6 +374,7 @@ def phase_tree(tmp_path):
     rec["tags"]["release"] = "office2.local/vikunja:" + rec["release_version"]
     rec["rollback"]["ref"] = historical["tags"]["release"]
     rec["rollback"]["image_id"] = historical["image"]["config_digest"]
+    rec["rollback"]["archive"] = historical["archive"].copy()
     facts = {
         "schema_version": 1, "previous_version": historical["release_version"],
         "previous_image_config": rec["rollback"]["image_id"],
@@ -348,6 +400,76 @@ def phase_tree(tmp_path):
     activate_path.unlink()
     assert check_tree(tmp_path) == "STAGE"
     return tmp_path, rec, activate_manifest
+
+
+@pytest.fixture
+def next_release_tree(phase_tree):
+    root, rec, activate = phase_tree
+    previous = json.loads((root / "services/vikunja/releases/v2.8.0-rrule.2.json").read_text())
+    previous["tags"] = {"release": "office2.local/vikunja:" + previous["release_version"],
+                        "active": rec["tags"]["active"]}
+    previous["archive"]["path"] = rec["archive"]["path"]
+    rec["rollback"] = {"ref": previous["tags"]["release"],
+                       "image_id": previous["image"]["config_digest"],
+                       "archive": previous["archive"].copy()}
+    path = root / rec["baseline"]["path"]
+    facts = json.loads(path.read_text())
+    facts.update(previous_version=previous["release_version"],
+                 previous_image_config=previous["image"]["config_digest"])
+    _write(path, facts)
+    rec["baseline"]["sha256"] = hashlib.sha256(path.read_bytes()).hexdigest()
+    _write(root / "services/vikunja/release.json", rec)
+    stage_path = root / "deploys/queued/vikunja-release-stage.yaml"
+    stage = _manifest(stage_path)
+    stage["issue"] = activate["issue"] = "kentonium3/kg-automation#1200"
+    stage["verification"]["post"] = _expected_stage_checks(rec)
+    activate["verification"]["post"] = expected_post_checks(rec)
+    _write(stage_path, stage)
+    _promote(root, previous)
+    return root, rec, activate
+
+
+def test_next_release_uses_applied_predecessor_and_new_issue(next_release_tree):
+    root, rec, activate = next_release_tree
+    assert check_tree(root) == "STAGE"
+    _write(root / "deploys/queued/vikunja-release-activate.yaml", activate)
+    _promote(root, rec, "#1200")
+    assert check_tree(root) == "ACTIVATE"
+
+
+@pytest.mark.parametrize("fault", ["digest", "archive-hash", "archive-size", "missing", "duplicate", "older"])
+def test_next_release_predecessor_refusals(next_release_tree, fault):
+    root, rec, _ = next_release_tree
+    assert check_tree(root) == "STAGE"
+    history = root / "services/vikunja/releases/v2.8.0-rrule.2.json"
+    if fault == "missing":
+        history.unlink()
+    elif fault == "duplicate":
+        _write(history.with_name("duplicate.json"), json.loads(history.read_text()))
+    elif fault == "digest":
+        rec["rollback"]["image_id"] = "sha256:" + "0" * 64
+    elif fault == "archive-hash":
+        rec["rollback"]["archive"]["sha256"] = "0" * 64
+    elif fault == "archive-size":
+        rec["rollback"]["archive"]["size"] += 1
+    else:
+        older = _historical_release(root)
+        rec["rollback"] = {"ref": older["tags"]["release"],
+                           "image_id": older["image"]["config_digest"], "archive": older["archive"]}
+        path = root / rec["baseline"]["path"]
+        facts = json.loads(path.read_text())
+        facts.update(previous_version=older["release_version"],
+                     previous_image_config=older["image"]["config_digest"])
+        _write(path, facts)
+        rec["baseline"]["sha256"] = hashlib.sha256(path.read_bytes()).hexdigest()
+    if fault in {"digest", "older"}:
+        path = root / "deploys/queued/vikunja-release-stage.yaml"
+        stage = _manifest(path)
+        stage["verification"]["post"] = _expected_stage_checks(rec)
+        _write(path, stage)
+    _write(root / "services/vikunja/release.json", rec)
+    with pytest.raises((AssertionError, core.Fail)):
+        check_tree(root)
 
 
 @pytest.mark.parametrize("stage_applied", [False, True])

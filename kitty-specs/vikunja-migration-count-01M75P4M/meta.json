@@ -1,0 +1,36 @@
+{
+  "accept_commit": "e6bf770c1a9aa865c8727b47c931dbcde7298503",
+  "acceptance_history": [
+    {
+      "accept_commit": "e6bf770c1a9aa865c8727b47c931dbcde7298503",
+      "acceptance_mode": "pr",
+      "accepted_at": "2026-11-11T16:37:41.485826+00:00",
+      "accepted_by": "kgale",
+      "accepted_from_commit": "2ca0af253a10fc2415ed0b8b6b20ebb86691751a",
+      "lenient": true
+    }
+  ],
+  "acceptance_mode": "pr",
+  "accepted_at": "2026-11-11T16:37:41.485826+00:00",
+  "accepted_by": "kgale",
+  "accepted_from_commit": "2ca0af253a10fc2415ed0b8b6b20ebb86691751a",
+  "baseline_merge_commit": "40a2c1a5339b4d641fdcdaf5718a522d0494a16c",
+  "created_at": "2026-11-11T16:13:00.466061+00:00",
+  "flattened": false,
+  "friendly_name": "Vikunja release route: migration count from the release, not a constant",
+  "merged_at": "2026-11-11T16:38:04.101428+00:00",
+  "merged_commit": "40a2c1a5339b4d641fdcdaf5718a522d0494a16c",
+  "mid8": "01M75P4M",
+  "mission_id": "01M75P4M49ECBR8QHX40QCAA5Q",
+  "mission_number": 123,
+  "mission_slug": "vikunja-migration-count-01M75P4M",
+  "mission_type": "software-dev",
+  "pr_bound": true,
+  "purpose_context": "The route hard-codes exactly 10 added migrations (kentonium3/kg-automation#1098), true for v2.8.0-rrule.2 but not for v2.8.0-rrule.3, which adds none. This mission derives the expected set from the release's reviewed inputs, keeps the route fail-closed, makes the change-set tests predecessor-aware, and covers both the 10 and 0 cases. Requested by lead 24d09460 (bus 20261110T215747798808Z9dc49d3364); Kent authorized the push and PR; merge is Kent's.",
+  "purpose_tldr": "Let the Vikunja release route stage, gate and verify releases that add any reviewed number of migrations, including zero.",
+  "slug": "vikunja-migration-count-01M75P4M",
+  "status_phase": "1",
+  "target_branch": "fix/vikunja-migration-count",
+  "topology": "single_branch",
+  "topology_source": "explicit"
+}
