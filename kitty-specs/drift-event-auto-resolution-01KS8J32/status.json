@@ -147,7 +147,7 @@
     },
     "WP06": {
       "actor": "kgale",
-      "agent": "agy:gemini-2.5-pro:spec-kitty-review:reviewer",
+      "agent": "kgale",
       "agent_profile": "__resolved_profile_absent__",
       "agent_profile_version": "__resolved_profile_version_absent__",
       "force_count": 2,
@@ -155,6 +155,9 @@
       "last_event_id": "01M7N493V3Y5ZYS3H7SJQDS4NC",
       "last_transition_at": "2026-11-17T16:08:44.131462+00:00",
       "model": "__resolved_model_absent__",
+      "notes": [
+        "Residue cleanup 2026-11-17 (Kent Gale's ruling): this mission's work landed on main but the mission's merge/accept was never recorded because of workflow faults; closed through the CLI. | Done override: Residue cleanup 2026-11-17 (Kent Gale's ruling): this mission's work landed on main but the mission's merge/accept was never recorded because of workflow faults; closed through the CLI."
+      ],
       "provider": "__resolved_provider_absent__",
       "review_result": null,
       "role": "reviewer",
