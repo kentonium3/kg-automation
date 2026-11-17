@@ -1,0 +1,61 @@
+{
+  "cli_version": "4.0.0rc9",
+  "command_args": [
+    "doctor",
+    "mission-state",
+    "--fix",
+    "--mission",
+    "003-whisper-transcription-skill"
+  ],
+  "generated_ids": [
+    "ab1726312cebb51a"
+  ],
+  "manifest_path": ".kittify/mission-state-audit/ab1726312cebb51a.json",
+  "missions": [
+    {
+      "file_changes": [],
+      "meta_actions": [],
+      "mission_id": "01KN5QX3WCFA855XAHAHZ10CB4",
+      "mission_slug": "003-whisper-transcription-skill",
+      "quarantine_written": false,
+      "quarantined_rows": 0,
+      "row_transformations": [],
+      "status": "error",
+      "validation_errors": [
+        "Cannot rebuild lanes.json for mission '003-whisper-transcription-skill': literal-path owned_files entries match zero files in the repository (WP03: owned_files path 'docs/handbooks/transcribe-ops.md' is a literal file path that matches zero files in the repository. If this file will be created during implementation, declare it in the WP frontmatter:\n  create_intent:\n    - docs/handbooks/transcribe-ops.md; WP03: owned_files path 'docs/handbooks/vikunja-ops.md' is a literal file path that matches zero files in the repository. If this file will be created during implementation, declare it in the WP frontmatter:\n  create_intent:\n    - docs/handbooks/vikunja-ops.md). Fix the paths in the WP frontmatter, then re-run 'spec-kitty doctor mission-state --fix'."
+      ]
+    }
+  ],
+  "policy": {
+    "ignored": [
+      "*.pyc",
+      ".git/",
+      ".worktrees/",
+      "__pycache__/"
+    ],
+    "optional": [
+      "kitty-specs/*/status.json"
+    ],
+    "tracked": [
+      ".kittify/mission-state-audit/*.json",
+      "kitty-specs/*/meta.json",
+      "kitty-specs/*/status.events.jsonl",
+      "kitty-specs/*/status.json"
+    ]
+  },
+  "quarantine_root_path": null,
+  "repo_head": "2390e53e34d6d33aab6b1547bec3c835f2a2e70c",
+  "residue_directories": [],
+  "run_id": "ab1726312cebb51a",
+  "schema_version": "1.0.0",
+  "summary": {
+    "missions_error": 1,
+    "missions_total": 1,
+    "missions_unchanged": 0,
+    "missions_updated": 0,
+    "quarantined_rows": 0
+  },
+  "target_missions": [
+    "003-whisper-transcription-skill"
+  ]
+}
