@@ -1,5 +1,17 @@
 {
   "rows": {
+    "#402": {
+      "evidence_ref": "Residue cleanup 2026-11-17 (Kent Gale's ruling): issue #402 is CLOSED on GitHub",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": null,
+      "title": null,
+      "verdict": "verified-already-fixed",
+      "wp": "WP01"
+    },
     "#404": {
       "evidence_ref": "Residue cleanup 2026-11-17 (Kent Gale's ruling): issue #404 is CLOSED on GitHub",
       "fr": null,
