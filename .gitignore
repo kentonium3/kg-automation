@@ -4,6 +4,10 @@
 # RFC #681 Workspace-auth spike — never commit minted credentials
 token.json
 
+# Machine-local SSH key pair (office3 access) found in a checkout; never commit key material
+office3-key
+office3-key.pub
+
 # Antigravity (agy) CLI machine-local project marker
 .antigravitycli/
 
