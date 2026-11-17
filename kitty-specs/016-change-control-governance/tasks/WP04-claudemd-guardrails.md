@@ -31,7 +31,7 @@ history:
   action: Prompt generated via /spec-kitty.tasks
 authoritative_surface: CLAUDE.md
 execution_mode: code_change
-lane: planned
+lane: done
 owned_files:
 - CLAUDE.md
 ---
