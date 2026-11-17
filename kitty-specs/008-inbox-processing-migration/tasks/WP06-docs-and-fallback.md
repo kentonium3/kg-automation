@@ -30,6 +30,13 @@ owned_files:
 - docs/handbooks/openclaw-ops.md
 - docs/handbooks/vikunja-ops.md
 wp_code: WP06
+# Residue cleanup 2026-11-17 (Kent Gale's ruling): these owned_files paths no longer exist on main
+# (moved or deleted after the mission). Declared here only so 'spec-kitty doctor mission-state --fix'
+# can rebuild lanes.json and the mission can be closed; no file will be created.
+create_intent:
+  - docs/handbooks/inbox-ops.md
+  - docs/handbooks/openclaw-ops.md
+  - docs/handbooks/vikunja-ops.md
 ---
 
 # WP06: Documentation and Fallback Verification
