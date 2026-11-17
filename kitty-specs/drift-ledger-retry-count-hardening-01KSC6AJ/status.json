@@ -1,16 +1,16 @@
 {
-  "event_count": 20,
-  "last_event_id": "01M7N4A37XZAVVH7M59BPGDVX4",
-  "materialized_at": "2026-11-17T16:09:16.285531+00:00",
+  "event_count": 21,
+  "last_event_id": "01M7N4A4PKQB4R5TCZV91CKTBP",
+  "materialized_at": "2026-11-17T16:09:17.779819+00:00",
   "mission_number": "52",
   "mission_slug": "drift-ledger-retry-count-hardening-01KSC6AJ",
   "mission_type": "software-dev",
   "summary": {
-    "approved": 1,
+    "approved": 0,
     "blocked": 0,
     "canceled": 0,
     "claimed": 0,
-    "done": 1,
+    "done": 2,
     "for_review": 0,
     "in_progress": 0,
     "in_review": 0,
@@ -19,7 +19,7 @@
   "work_packages": {
     "WP01": {
       "actor": "kgale",
-      "agent": "codex:gpt-5:spec-kitty-review:reviewer",
+      "agent": "kgale",
       "agent_profile": "__resolved_profile_absent__",
       "agent_profile_version": "__resolved_profile_version_absent__",
       "force_count": 3,
@@ -27,19 +27,27 @@
       "last_event_id": "01M7N4A37XZAVVH7M59BPGDVX4",
       "last_transition_at": "2026-11-17T16:09:16.285531+00:00",
       "model": "__resolved_model_absent__",
+      "notes": [
+        "Residue cleanup 2026-11-17 (Kent Gale's ruling): this mission's work landed on main but the mission's merge/accept was never recorded because of workflow faults; closed through the CLI. | Done override: Residue cleanup 2026-11-17 (Kent Gale's ruling): this mission's work landed on main but the mission's merge/accept was never recorded because of workflow faults; closed through the CLI."
+      ],
       "provider": "__resolved_provider_absent__",
       "review_result": null,
       "role": "reviewer",
       "shell_pid": 1829
     },
     "WP02": {
-      "actor": "user",
+      "actor": "kgale",
       "agent": "codex:gpt-5:spec-kitty-review:reviewer",
-      "force_count": 1,
-      "lane": "approved",
-      "last_event_id": "01KSCAJG0JY4S1FXBHQ07RNHGQ",
-      "last_transition_at": "2026-05-24T06:25:47.538619+00:00",
+      "agent_profile": "__resolved_profile_absent__",
+      "agent_profile_version": "__resolved_profile_version_absent__",
+      "force_count": 2,
+      "lane": "done",
+      "last_event_id": "01M7N4A4PKQB4R5TCZV91CKTBP",
+      "last_transition_at": "2026-11-17T16:09:17.779819+00:00",
+      "model": "__resolved_model_absent__",
+      "provider": "__resolved_provider_absent__",
       "review_result": null,
+      "role": "reviewer",
       "shell_pid": 7310
     }
   }
