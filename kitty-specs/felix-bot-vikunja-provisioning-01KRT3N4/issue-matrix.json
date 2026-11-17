@@ -1,5 +1,17 @@
 {
   "rows": {
+    "#13": {
+      "evidence_ref": "Residue cleanup 2026-11-17 (Kent Gale's ruling): issue #13 is MERGED on GitHub",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": null,
+      "title": null,
+      "verdict": "verified-already-fixed",
+      "wp": "WP01"
+    },
     "#304": {
       "evidence_ref": "Residue cleanup 2026-11-17 (Kent Gale's ruling): issue #304 is CLOSED on GitHub",
       "fr": null,
