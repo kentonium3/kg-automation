@@ -22,7 +22,7 @@
       "row_transformations": [],
       "status": "error",
       "validation_errors": [
-        "Cannot rebuild lanes.json for mission '009-daily-habit-checkin': literal-path owned_files entries match zero files in the repository (WP06: owned_files path 'docs/handbooks/habits-ops.md' is a literal file path that matches zero files in the repository. If this file will be created during implementation, declare it in the WP frontmatter:\n  create_intent:\n    - docs/handbooks/habits-ops.md; WP06: owned_files path 'docs/handbooks/inbox-ops.md' is a literal file path that matches zero files in the repository. If this file will be created during implementation, declare it in the WP frontmatter:\n  create_intent:\n    - docs/handbooks/inbox-ops.md). Fix the paths in the WP frontmatter, then re-run 'spec-kitty doctor mission-state --fix'."
+        "Execution-lane dependency cycle detected: lane-a -> lane-planning -> lane-a"
       ]
     }
   ],
@@ -44,7 +44,7 @@
     ]
   },
   "quarantine_root_path": null,
-  "repo_head": "11c67b111df4584ef70d6298bec28fc4af027173",
+  "repo_head": "9228ab1528c3c8bdf6fe2ff241977948679e4ba2",
   "residue_directories": [],
   "run_id": "23a8f5c3f0152587",
   "schema_version": "1.0.0",
