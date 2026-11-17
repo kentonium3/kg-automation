@@ -32,8 +32,17 @@ history:
   actor: system
   action: Prompt generated via /spec-kitty.tasks
 authoritative_surface: docs/runbooks/
+create_intent:
+- docs/runbooks/agent-execution-roles.md
+- docs/runbooks/agent-handbook.md
+- docs/runbooks/ci-handbook.md
+- docs/runbooks/claude-code.md
+- docs/runbooks/f001-acceptance-results.md
+- docs/runbooks/f002-acceptance-results.md
+- docs/runbooks/maintenance.md
+- docs/runbooks/spec-kitty-init-in-existing-repo.md
 execution_mode: code_change
-lane: planned
+lane: done
 owned_files:
 - docs/runbooks/agent-execution-roles.md
 - docs/runbooks/agent-handbook.md
@@ -62,15 +71,6 @@ owned_files:
 # Residue cleanup 2026-11-17 (Kent Gale's ruling): these owned_files paths no longer exist on main
 # (moved or deleted after the mission). Declared here only so 'spec-kitty doctor mission-state --fix'
 # can rebuild lanes.json and the mission can be closed; no file will be created.
-create_intent:
-  - docs/runbooks/agent-execution-roles.md
-  - docs/runbooks/agent-handbook.md
-  - docs/runbooks/ci-handbook.md
-  - docs/runbooks/claude-code.md
-  - docs/runbooks/f001-acceptance-results.md
-  - docs/runbooks/f002-acceptance-results.md
-  - docs/runbooks/maintenance.md
-  - docs/runbooks/spec-kitty-init-in-existing-repo.md
 ---
 
 # Work Package Prompt: WP03 — Fix docs/runbooks/ Frontmatter + Audience + Link Updates
