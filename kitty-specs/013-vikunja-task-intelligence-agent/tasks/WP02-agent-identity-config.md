@@ -11,16 +11,27 @@ requirement_refs:
 - NFR-007
 planning_base_branch: main
 merge_target_branch: main
-branch_strategy: Planning artifacts for this feature were generated on main. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into main unless the human explicitly redirects the landing branch.
-subtasks: [T007, T008, T009, T010]
+branch_strategy: Planning artifacts for this mission were generated on main. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into main unless the human explicitly redirects the landing branch.
+subtasks:
+- T007
+- T008
+- T009
+- T010
 history:
 - date: '2026-04-02T12:53:14Z'
   action: created
   by: spec-kitty.tasks
 authoritative_surface: scripts/openclaw/agents/felix-admin-tasker/
+create_intent: []
 execution_mode: code_change
 lane: planned
-owned_files: [scripts/openclaw/agents/felix-admin-tasker/SOUL.md, scripts/openclaw/agents/felix-admin-tasker/USER.md, scripts/openclaw/agents/felix-admin-tasker/IDENTITY.md, scripts/openclaw/agents/felix-admin-tasker/TOOLS.md]
+owned_files:
+- scripts/openclaw/agents/felix-admin-tasker/SOUL.md
+- scripts/openclaw/agents/felix-admin-tasker/USER.md
+- scripts/openclaw/agents/felix-admin-tasker/IDENTITY.md
+- scripts/openclaw/agents/felix-admin-tasker/TOOLS.md
+tags: []
+tracker_refs: []
 ---
 
 # WP02: Agent Identity & Configuration

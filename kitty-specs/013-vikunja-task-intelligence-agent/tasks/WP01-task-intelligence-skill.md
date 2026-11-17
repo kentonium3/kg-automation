@@ -15,16 +15,26 @@ requirement_refs:
 - NFR-006
 planning_base_branch: main
 merge_target_branch: main
-branch_strategy: Planning artifacts for this feature were generated on main. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into main unless the human explicitly redirects the landing branch.
-subtasks: [T001, T002, T003, T004, T005, T006]
+branch_strategy: Planning artifacts for this mission were generated on main. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into main unless the human explicitly redirects the landing branch.
+subtasks:
+- T001
+- T002
+- T003
+- T004
+- T005
+- T006
 history:
 - date: '2026-04-02T12:53:14Z'
   action: created
   by: spec-kitty.tasks
 authoritative_surface: scripts/openclaw/skills/task-intelligence/
+create_intent: []
 execution_mode: code_change
 lane: planned
-owned_files: [scripts/openclaw/skills/task-intelligence/**]
+owned_files:
+- scripts/openclaw/skills/task-intelligence/**
+tags: []
+tracker_refs: []
 ---
 
 # WP01: Task Intelligence Skill

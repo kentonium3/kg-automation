@@ -1,26 +1,32 @@
 ---
 work_package_id: WP05
 title: Operations Runbook
-dependencies: [WP03]
+dependencies:
+- WP03
 requirement_refs:
 - FR-023
 planning_base_branch: main
 merge_target_branch: main
-branch_strategy: Planning artifacts for this feature were generated on main. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into main unless the human explicitly redirects the landing branch.
-subtasks: [T023, T024, T025, T026, T027]
+branch_strategy: Planning artifacts for this mission were generated on main. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into main unless the human explicitly redirects the landing branch.
+subtasks:
+- T023
+- T024
+- T025
+- T026
+- T027
 history:
 - date: '2026-04-02T12:53:14Z'
   action: created
   by: spec-kitty.tasks
 authoritative_surface: docs/handbooks/
+create_intent:
+- docs/handbooks/task-intelligence-ops.md
 execution_mode: code_change
 lane: planned
-owned_files: [docs/handbooks/task-intelligence-ops.md]
-# Residue cleanup 2026-11-17 (Kent Gale's ruling): these owned_files paths no longer exist on main
-# (moved or deleted after the mission). Declared here only so the mission's lanes can be computed
-# and the never-started mission canceled; no file will be created.
-create_intent:
-  - docs/handbooks/task-intelligence-ops.md
+owned_files:
+- docs/handbooks/task-intelligence-ops.md
+tags: []
+tracker_refs: []
 ---
 
 # WP05: Operations Runbook
