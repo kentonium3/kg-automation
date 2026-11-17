@@ -1,0 +1,69 @@
+{
+  "cli_version": "4.0.0rc9",
+  "command_args": [
+    "doctor",
+    "mission-state",
+    "--fix",
+    "--mission",
+    "008-inbox-processing-migration"
+  ],
+  "generated_ids": [
+    "ec8ed69ecdc0cbfc"
+  ],
+  "manifest_path": ".kittify/mission-state-audit/ec8ed69ecdc0cbfc.json",
+  "missions": [
+    {
+      "file_changes": [
+        {
+          "new_sha256": "e92510e0c391472b1687e1655bc79b9ddf592d93dcaa6ca6b1f8f5e0cd917374",
+          "new_size": 1633,
+          "old_sha256": null,
+          "old_size": null,
+          "path": "kitty-specs/008-inbox-processing-migration/lanes.json"
+        }
+      ],
+      "meta_actions": [
+        "lanes_rebuilt_from_event_log"
+      ],
+      "mission_id": "01KN5QX3WJGAVA67AVPSBGXX96",
+      "mission_slug": "008-inbox-processing-migration",
+      "quarantine_written": false,
+      "quarantined_rows": 0,
+      "row_transformations": [],
+      "status": "updated",
+      "validation_errors": []
+    }
+  ],
+  "policy": {
+    "ignored": [
+      "*.pyc",
+      ".git/",
+      ".worktrees/",
+      "__pycache__/"
+    ],
+    "optional": [
+      "kitty-specs/*/status.json"
+    ],
+    "tracked": [
+      ".kittify/mission-state-audit/*.json",
+      "kitty-specs/*/meta.json",
+      "kitty-specs/*/status.events.jsonl",
+      "kitty-specs/*/status.json"
+    ]
+  },
+  "quarantine_root_path": null,
+  "repo_head": "ac4402db5b7e4c471d5a1121874c235297ee2d08",
+  "residue_directories": [],
+  "run_id": "ec8ed69ecdc0cbfc",
+  "schema_version": "1.0.0",
+  "summary": {
+    "missions_error": 0,
+    "missions_total": 1,
+    "missions_unchanged": 0,
+    "missions_updated": 1,
+    "quarantined_rows": 0
+  },
+  "target_missions": [
+    "008-inbox-processing-migration"
+  ]
+}
