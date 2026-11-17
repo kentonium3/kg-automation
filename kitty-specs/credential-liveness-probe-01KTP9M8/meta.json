@@ -3,6 +3,7 @@
   "created_at": "2026-06-09T13:37:22.654535+00:00",
   "flattened": true,
   "friendly_name": "Credential liveness probe (gog OAuth + future oauth2 surfaces)",
+  "merged_at": "2026-06-09T15:41:37.527754+00:00",
   "mission_id": "01KTP9M86VF89TQM5SX7JVA83Z",
   "mission_number": 71,
   "mission_slug": "credential-liveness-probe-01KTP9M8",

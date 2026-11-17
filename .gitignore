@@ -74,7 +74,6 @@ htmlcov/
 kitty-ops/ops-index.jsonl
 .kittify/migrations/
 .kittify/logs/
-.agents/skills/
 .claude/skills/
 .kittify/skills-manifest.json
 
@@ -99,28 +98,12 @@ kitty-ops/ops-index.jsonl
 scripts/**/state/
 build/
 
-# AI Agent directories (added by Spec Kitty CLI)
-# These contain auth tokens and should NEVER be committed
-.codex/
-.opencode/
-.windsurf/
-.gemini/
-.cursor/
-.qwen/
-.kilocode/
-.augment/
-.roo/
-.amazonq/
-.github/copilot/
 .kittify/merge-state.json
 .kittify/events/
 .kittify/dossiers/
 kitty-specs/**/.kittify/dossiers/
 .kittify/.kitty.env
 .kittify/lint-report.json
-.cursor/rules/spec-kitty.mdc
-.cursor/commands/
-.cursor/skills/
 
 # Tracked on purpose despite the spec-kitty block above (ignore rules do not
 # untrack files; NEW files under these paths need `git add -f`):
@@ -128,3 +111,86 @@ kitty-specs/**/.kittify/dossiers/
 #   .kittify/events/glossary/ - Op glossary events; spec-kitty Ops cannot commit
 #     their own records on protected main (kentonium3/kg-automation#975)
 #   kitty-specs/pointer-key-ledger-01M189P6/.kittify/dossiers/ - mission dossier snapshot
+
+# >>> Spec Kitty agent files (auto-managed; lines in this block are replaced) >>>
+.codex/auth.json
+.codex/history.jsonl
+.codex/sessions/
+.codex/log/
+.claude/settings.local.json
+.gemini/.env
+.qwen/.env
+.llxprt/.env
+.vibe/
+.pi/
+.letta/
+.github/copilot/
+.agents/skills/adversarial-squad/
+.agents/skills/spec-kitty-*/
+.agents/skills/spec-kitty.*/
+.agents/skills/spec-kitty/
+.agents/skills/spk-*/
+.claude/agents/analyst-annie.md
+.claude/agents/architect-alphonso.md
+.claude/agents/comms-cleo.md
+.claude/agents/curator-carla.md
+.claude/agents/debugger-debbie.md
+.claude/agents/designer-dagmar.md
+.claude/agents/diagram-daisy.md
+.claude/agents/generic-agent.md
+.claude/agents/implementer-ivan.md
+.claude/agents/lexical-larry.md
+.claude/agents/minutes-mahad.md
+.claude/agents/paula-patterns.md
+.claude/agents/planner-priti.md
+.claude/agents/python-pedro.md
+.claude/agents/retrospective-facilitator.md
+.claude/agents/reviewer-renata.md
+.claude/agents/scribe-sally.md
+.claude/agents/synthesizer-sam.md
+.claude/commands/spec-kitty.*
+.claude/skills/adversarial-squad/
+.claude/skills/spec-kitty-*/
+.claude/skills/spec-kitty.*/
+.claude/skills/spec-kitty/
+.claude/skills/spk-*/
+.codex/agents/analyst-annie.toml
+.codex/agents/architect-alphonso.toml
+.codex/agents/comms-cleo.toml
+.codex/agents/curator-carla.toml
+.codex/agents/debugger-debbie.toml
+.codex/agents/designer-dagmar.toml
+.codex/agents/diagram-daisy.toml
+.codex/agents/doctrine-daphne.toml
+.codex/agents/generic-agent.toml
+.codex/agents/implementer-ivan.toml
+.codex/agents/lexical-larry.toml
+.codex/agents/minutes-mahad.toml
+.codex/agents/paula-patterns.toml
+.codex/agents/planner-priti.toml
+.codex/agents/python-pedro.toml
+.codex/agents/retrospective-facilitator.toml
+.codex/agents/reviewer-renata.toml
+.codex/agents/scribe-sally.toml
+.codex/agents/synthesizer-sam.toml
+.gemini/commands/spec-kitty.*
+.github/agents/analyst-annie.agent.md
+.github/agents/architect-alphonso.agent.md
+.github/agents/comms-cleo.agent.md
+.github/agents/curator-carla.agent.md
+.github/agents/debugger-debbie.agent.md
+.github/agents/designer-dagmar.agent.md
+.github/agents/diagram-daisy.agent.md
+.github/agents/generic-agent.agent.md
+.github/agents/implementer-ivan.agent.md
+.github/agents/lexical-larry.agent.md
+.github/agents/minutes-mahad.agent.md
+.github/agents/paula-patterns.agent.md
+.github/agents/planner-priti.agent.md
+.github/agents/python-pedro.agent.md
+.github/agents/retrospective-facilitator.agent.md
+.github/agents/reviewer-renata.agent.md
+.github/agents/scribe-sally.agent.md
+.github/agents/synthesizer-sam.agent.md
+.github/prompts/spec-kitty.*
+# <<< Spec Kitty agent files <<<
