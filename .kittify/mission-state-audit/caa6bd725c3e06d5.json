@@ -13,17 +13,25 @@
   "manifest_path": ".kittify/mission-state-audit/caa6bd725c3e06d5.json",
   "missions": [
     {
-      "file_changes": [],
-      "meta_actions": [],
+      "file_changes": [
+        {
+          "new_sha256": "9f50dc22cd21ff040a99e282810ebb1e6b134b184af79f05bd14d2e265596bfc",
+          "new_size": 4198,
+          "old_sha256": null,
+          "old_size": null,
+          "path": "kitty-specs/016-change-control-governance/lanes.json"
+        }
+      ],
+      "meta_actions": [
+        "lanes_rebuilt_from_event_log"
+      ],
       "mission_id": "01KRG3V5EST5CZ4BQQK3H6JC3B",
       "mission_slug": "016-change-control-governance",
       "quarantine_written": false,
       "quarantined_rows": 0,
       "row_transformations": [],
-      "status": "error",
-      "validation_errors": [
-        "Cannot rebuild lanes.json for mission '016-change-control-governance': literal-path owned_files entries match zero files in the repository (WP05: owned_files path 'docs/issues/postmortems/2026-04-03-vikunja-ufw-outage.md' is a literal file path that matches zero files in the repository. If this file will be created during implementation, declare it in the WP frontmatter:\n  create_intent:\n    - docs/issues/postmortems/2026-04-03-vikunja-ufw-outage.md; WP06: owned_files path '.kittify/constitution/constitution.md' is a literal file path that matches zero files in the repository. If this file will be created during implementation, declare it in the WP frontmatter:\n  create_intent:\n    - .kittify/constitution/constitution.md). Fix the paths in the WP frontmatter, then re-run 'spec-kitty doctor mission-state --fix'."
-      ]
+      "status": "updated",
+      "validation_errors": []
     }
   ],
   "policy": {
@@ -44,15 +52,15 @@
     ]
   },
   "quarantine_root_path": null,
-  "repo_head": "afb82f4e8b22e8e486cc0dc5a969c077f77e57cd",
+  "repo_head": "8bbe6f4f741b530d38f04f4755e02d5ad1887be0",
   "residue_directories": [],
   "run_id": "caa6bd725c3e06d5",
   "schema_version": "1.0.0",
   "summary": {
-    "missions_error": 1,
+    "missions_error": 0,
     "missions_total": 1,
     "missions_unchanged": 0,
-    "missions_updated": 0,
+    "missions_updated": 1,
     "quarantined_rows": 0
   },
   "target_missions": [
