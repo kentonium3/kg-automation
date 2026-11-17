@@ -31,6 +31,12 @@ owned_files:
 - docs/runbooks/office2-backup-and-security.md
 - docs/design/standards/visual-docs-style.md
 - docs/design/office2-backup-and-security.md
+# Residue cleanup 2026-11-17 (Kent Gale's ruling): these owned_files paths no longer exist on main
+# (moved or deleted after the mission). Declared here only so 'spec-kitty doctor mission-state --fix'
+# can rebuild lanes.json and the mission can be closed; no file will be created.
+create_intent:
+  - docs/runbooks/visual-docs-style.md
+  - docs/runbooks/office2-backup-and-security.md
 ---
 
 # Work Package Prompt: WP02 — Move Misclassified Runbook Content

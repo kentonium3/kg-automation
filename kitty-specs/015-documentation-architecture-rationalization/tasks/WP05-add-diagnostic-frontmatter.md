@@ -32,6 +32,16 @@ owned_files:
 - docs/issues/diagnostics/spec-kitty-feedback/f014-multi-parent-dirty-worktree.md
 - docs/issues/diagnostics/spec-kitty-feedback/implement-crash-recovery-gap.md
 - docs/issues/diagnostics/spec-kitty-feedback/merge-crash-incomplete-cleanup.md
+# Residue cleanup 2026-11-17 (Kent Gale's ruling): these owned_files paths no longer exist on main
+# (moved or deleted after the mission). Declared here only so 'spec-kitty doctor mission-state --fix'
+# can rebuild lanes.json and the mission can be closed; no file will be created.
+create_intent:
+  - docs/issues/diagnostics/f012-merge-breadcrumbs.md
+  - docs/issues/diagnostics/spec-kitty-feedback/f014-accept-not-in-resolver.md
+  - docs/issues/diagnostics/spec-kitty-feedback/f014-merge-json-flag-error.md
+  - docs/issues/diagnostics/spec-kitty-feedback/f014-multi-parent-dirty-worktree.md
+  - docs/issues/diagnostics/spec-kitty-feedback/implement-crash-recovery-gap.md
+  - docs/issues/diagnostics/spec-kitty-feedback/merge-crash-incomplete-cleanup.md
 ---
 
 # Work Package Prompt: WP05 — Add Frontmatter to Diagnostic Files

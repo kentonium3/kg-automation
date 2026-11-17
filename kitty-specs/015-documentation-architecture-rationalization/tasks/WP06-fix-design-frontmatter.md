@@ -42,6 +42,19 @@ owned_files:
 - docs/design/standards/doc-standards.md
 - docs/design/standards/obsidian-linter-alignment.md
 - docs/design/standards/standards-readme.md
+# Residue cleanup 2026-11-17 (Kent Gale's ruling): these owned_files paths no longer exist on main
+# (moved or deleted after the mission). Declared here only so 'spec-kitty doctor mission-state --fix'
+# can rebuild lanes.json and the mission can be closed; no file will be created.
+create_intent:
+  - docs/design/Vikunja.md
+  - docs/design/adversarial-analysis.md
+  - docs/design/decision-log.md
+  - docs/design/personal-ai-system-spec-v03.md
+  - docs/design/personal-ai-system-spec-v1.0.md
+  - docs/design/project-charter.md
+  - docs/design/risk-register.md
+  - docs/design/strategic-acceleration-charter.md
+  - docs/design/vision-framework.md
 ---
 
 # Work Package Prompt: WP06 — Fix docs/design/ Top-Level + Standards Frontmatter
