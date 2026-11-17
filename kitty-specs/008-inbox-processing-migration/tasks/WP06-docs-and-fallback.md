@@ -20,8 +20,12 @@ history:
   event: created
   actor: claude
 authoritative_surface: docs/
+create_intent:
+- docs/handbooks/inbox-ops.md
+- docs/handbooks/openclaw-ops.md
+- docs/handbooks/vikunja-ops.md
 execution_mode: code_change
-lane: planned
+lane: done
 mission_id: 01KN5QX3WJGAVA67AVPSBGXX96
 owned_files:
 - docs/design/architecture/data/service-inventory.json

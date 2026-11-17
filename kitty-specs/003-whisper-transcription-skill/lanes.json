@@ -1,0 +1,54 @@
+{
+  "version": 1,
+  "mission_slug": "003-whisper-transcription-skill",
+  "mission_id": "01KN5QX3WCFA855XAHAHZ10CB4",
+  "mission_branch": "kitty/mission-whisper-transcription-skill-01KN5QX3",
+  "target_branch": "main",
+  "lanes": [
+    {
+      "lane_id": "lane-planning",
+      "wp_ids": [
+        "WP01",
+        "WP02"
+      ],
+      "write_scope": [
+        "kitty-specs/003-whisper-transcription-skill/**"
+      ],
+      "predicted_surfaces": [
+        "planning"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    },
+    {
+      "lane_id": "lane-a",
+      "wp_ids": [
+        "WP03"
+      ],
+      "write_scope": [
+        "docs/design/architecture/**",
+        "docs/handbooks/transcribe-ops.md",
+        "docs/handbooks/vikunja-ops.md",
+        "docs/standards/**",
+        "kitty-specs/003-whisper-transcription-skill/data-model.md",
+        "kitty-specs/003-whisper-transcription-skill/research.md"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "legacy-cleanup",
+        "tracker-integration"
+      ],
+      "depends_on_lanes": [
+        "lane-planning"
+      ],
+      "parallel_group": 1
+    }
+  ],
+  "computed_at": "2026-11-17T16:20:39.616624+00:00",
+  "computed_from": "dependency_graph+ownership",
+  "planning_artifact_wps": [
+    "WP01",
+    "WP02"
+  ],
+  "planning_commit_sha": "4b50a7a3ddcac64a408ccf161fc76fb944542dd2"
+}

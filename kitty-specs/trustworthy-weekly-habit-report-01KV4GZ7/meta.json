@@ -1,8 +1,9 @@
 {
   "baseline_merge_commit": "c70eea7ddf213c4398859782ba7b027dedcb205a",
-  "coordination_branch": "kitty/mission-trustworthy-weekly-habit-report-01KV4GZ7",
   "created_at": "2026-06-15T02:15:04.198651+00:00",
+  "flattened": true,
   "friendly_name": "Trustworthy weekly habit report",
+  "merged_at": "2026-06-16T19:31:50.332204+00:00",
   "mission_id": "01KV4GZ785Q55498XMZJM6W8ZZ",
   "mission_number": 78,
   "mission_slug": "trustworthy-weekly-habit-report-01KV4GZ7",
@@ -11,5 +12,6 @@
   "purpose_tldr": "Fix the Sunday weekly habit report so its percentages match the canonical completion history and it arrives after the week actually ends.",
   "slug": "trustworthy-weekly-habit-report-01KV4GZ7",
   "status_phase": "1",
-  "target_branch": "main"
+  "target_branch": "main",
+  "topology": "lanes"
 }

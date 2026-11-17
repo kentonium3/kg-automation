@@ -1,6 +1,7 @@
 {
   "created_at": "2026-05-23T16:30:20.360698+00:00",
   "friendly_name": "Enforce verbatim pass-through for main-agent delegations",
+  "merged_at": "2026-11-17T16:12:59.859462+00:00",
   "mission_id": "01KSATRP0S0TDA5HV995Y558JK",
   "mission_number": 49,
   "mission_slug": "main-verbatim-passthrough-01KSATRP",

@@ -1,0 +1,32 @@
+{
+  "version": 1,
+  "mission_slug": "009-daily-habit-checkin",
+  "mission_id": "01KN5QX3WMQC0B8XXG1QKT3N9E",
+  "mission_branch": "kitty/mission-daily-habit-checkin-01KN5QX3",
+  "target_branch": "main",
+  "lanes": [
+    {
+      "lane_id": "lane-a",
+      "wp_ids": [
+        "WP06"
+      ],
+      "write_scope": [
+        "docs/design/architecture/data/service-inventory.json",
+        "docs/design/architecture/service-inventory.md",
+        "docs/handbooks/habits-ops.md",
+        "docs/handbooks/inbox-ops.md"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "legacy-cleanup",
+        "workspace"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    }
+  ],
+  "computed_at": "2026-11-17T16:24:07.681420+00:00",
+  "computed_from": "dependency_graph+ownership",
+  "planning_artifact_wps": [],
+  "planning_commit_sha": "a95f6ed713dd0d31781f6c76aa6b62c75bb9b2f8"
+}

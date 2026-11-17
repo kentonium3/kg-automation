@@ -35,6 +35,15 @@ owned_files:
 - docs/func-spec/F001_vikunja_docker_deploy.md
 - docs/func-spec/F002_openclaw_install.md
 - docs/func-spec/F005_system_architecture_review.md
+# Residue cleanup 2026-11-17 (Kent Gale's ruling): these owned_files paths no longer exist on main
+# (moved or deleted after the mission). Declared here only so 'spec-kitty doctor mission-state --fix'
+# can rebuild lanes.json and the mission can be closed; no file will be created.
+create_intent:
+  - docs/docs-readme.md
+  - docs/archive/docs-readme.md
+  - docs/func-spec/F001_vikunja_docker_deploy.md
+  - docs/func-spec/F002_openclaw_install.md
+  - docs/func-spec/F005_system_architecture_review.md
 ---
 
 # Work Package Prompt: WP11 — Archive docs-readme.md + Update Historical Spec References

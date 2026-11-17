@@ -1,9 +1,9 @@
 {
   "baseline_merge_commit": "9af0e8ed7785c02e0250a9b44d41d5151578a8d8",
-  "coordination_branch": "kitty/mission-finalize-inbox-file-01KW8MSQ",
   "created_at": "2026-06-29T02:54:37.610689+00:00",
-  "flattened": false,
+  "flattened": true,
   "friendly_name": "Atomic in-place inbox finalize",
+  "merged_at": "2026-06-29T04:25:48.478933+00:00",
   "mission_id": "01KW8MSQ183M0QQWT5J2P55TRF",
   "mission_number": 81,
   "mission_slug": "finalize-inbox-file-01KW8MSQ",
@@ -14,7 +14,7 @@
   "slug": "finalize-inbox-file-01KW8MSQ",
   "status_phase": "1",
   "target_branch": "feat/finalize-inbox-file-v2",
-  "topology": "coord",
+  "topology": "lanes",
   "vcs": "git",
   "vcs_locked_at": "2026-06-29T04:01:00.021641+00:00"
 }

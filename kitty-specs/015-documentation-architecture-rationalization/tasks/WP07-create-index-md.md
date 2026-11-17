@@ -36,7 +36,7 @@ history:
   action: Prompt generated via /spec-kitty.tasks
 authoritative_surface: docs/INDEX.md
 execution_mode: code_change
-lane: planned
+lane: done
 owned_files:
 - docs/INDEX.md
 ---

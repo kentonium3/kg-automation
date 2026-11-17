@@ -21,12 +21,11 @@ history:
 - date: '2026-03-31T02:04:57Z'
   event: created
   actor: claude
-authoritative_surface: kitty-specs/008-inbox-processing-migration/
+authoritative_surface: ''
 execution_mode: planning_artifact
-lane: planned
+lane: done
 mission_id: 01KN5QX3WJGAVA67AVPSBGXX96
-owned_files:
-- kitty-specs/008-inbox-processing-migration/**
+owned_files: []
 wp_code: WP04
 ---
 

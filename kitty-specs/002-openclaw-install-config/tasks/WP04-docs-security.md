@@ -27,8 +27,12 @@ history:
   shell_pid: ''
   action: Prompt generated via /spec-kitty.tasks
 authoritative_surface: docs/
+create_intent:
+- docs/func-spec/F002_openclaw_install.md
+- docs/handbooks/openclaw-ops.md
+- docs/handbooks/vikunja-ops.md
 execution_mode: code_change
-lane: planned
+lane: done
 mission_id: 01KN5QX3WBC1M57EENV2JHWAT7
 owned_files:
 - docs/design/architecture/**

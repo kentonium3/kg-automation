@@ -1,9 +1,9 @@
 {
   "baseline_merge_commit": "b7736d3bc63e4dc673e41d188d871705184863ce",
-  "coordination_branch": "kitty/mission-prompt-sync-ff-race-01KX3SZC",
   "created_at": "2026-07-09T16:04:35.552219+00:00",
-  "flattened": false,
+  "flattened": true,
   "friendly_name": "Prompt-sync FETCH_HEAD race fix",
+  "merged_at": "2026-07-09T18:26:34.102499+00:00",
   "mission_id": "01KX3SZC2YHPWRCYD7WXQSFZQ7",
   "mission_number": 89,
   "mission_slug": "prompt-sync-ff-race-01KX3SZC",
@@ -14,5 +14,5 @@
   "slug": "prompt-sync-ff-race-01KX3SZC",
   "status_phase": "1",
   "target_branch": "fix/prompt-sync-ff-race",
-  "topology": "coord"
+  "topology": "lanes"
 }

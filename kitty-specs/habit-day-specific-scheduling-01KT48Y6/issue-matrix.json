@@ -1,0 +1,77 @@
+{
+  "rows": {
+    "#112": {
+      "evidence_ref": "Residue cleanup 2026-11-17 (Kent Gale's ruling): issue #112 is CLOSED on GitHub",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": null,
+      "title": null,
+      "verdict": "verified-already-fixed",
+      "wp": "WP01"
+    },
+    "#282": {
+      "evidence_ref": "Residue cleanup 2026-11-17 (Kent Gale's ruling): issue #282 is CLOSED on GitHub",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": null,
+      "title": null,
+      "verdict": "verified-already-fixed",
+      "wp": "WP01"
+    },
+    "#330": {
+      "evidence_ref": "Residue cleanup 2026-11-17 (Kent Gale's ruling): issue #330 is CLOSED on GitHub",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": null,
+      "title": null,
+      "verdict": "verified-already-fixed",
+      "wp": "WP01"
+    },
+    "#408": {
+      "evidence_ref": "Residue cleanup 2026-11-17 (Kent Gale's ruling): issue #408 is CLOSED on GitHub",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": null,
+      "title": null,
+      "verdict": "verified-already-fixed",
+      "wp": "WP01"
+    },
+    "#492": {
+      "evidence_ref": "Residue cleanup 2026-11-17 (Kent Gale's ruling): issue #492 is CLOSED on GitHub",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": null,
+      "title": null,
+      "verdict": "verified-already-fixed",
+      "wp": "WP01"
+    },
+    "#59": {
+      "evidence_ref": "Residue cleanup 2026-11-17 (Kent Gale's ruling): issue #59 is MERGED on GitHub",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": null,
+      "title": null,
+      "verdict": "verified-already-fixed",
+      "wp": "WP01"
+    }
+  },
+  "schema_version": 1
+}

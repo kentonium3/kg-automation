@@ -1,7 +1,7 @@
 {
-  "event_count": 6,
-  "last_event_id": "01KS1KXM7QYAK3FQ8V2XPT4WX8",
-  "materialized_at": "2026-05-20T02:37:30.743156+00:00",
+  "event_count": 7,
+  "last_event_id": "01M7N4PTGCJ54FWC4GZ1DJ4HZS",
+  "materialized_at": "2026-11-17T16:16:13.324583+00:00",
   "mission_number": "43",
   "mission_slug": "vikunja-g7-query-filter-fix-01KS1K1Y",
   "mission_type": "software-dev",
@@ -10,20 +10,29 @@
     "blocked": 0,
     "canceled": 0,
     "claimed": 0,
-    "done": 0,
+    "done": 1,
     "for_review": 0,
     "in_progress": 0,
-    "in_review": 1,
+    "in_review": 0,
     "planned": 0
   },
   "work_packages": {
     "WP01": {
-      "actor": "codex:gpt-5:spec-kitty-review:reviewer",
-      "agent": "codex:gpt-5:spec-kitty-review:reviewer",
-      "force_count": 1,
-      "lane": "in_review",
-      "last_event_id": "01KS1KXM7QYAK3FQ8V2XPT4WX8",
-      "last_transition_at": "2026-05-20T02:37:30.743156+00:00",
+      "actor": "kgale",
+      "agent": "kgale",
+      "agent_profile": "__resolved_profile_absent__",
+      "agent_profile_version": "__resolved_profile_version_absent__",
+      "force_count": 2,
+      "lane": "done",
+      "last_event_id": "01M7N4PTGCJ54FWC4GZ1DJ4HZS",
+      "last_transition_at": "2026-11-17T16:16:13.324583+00:00",
+      "model": "__resolved_model_absent__",
+      "notes": [
+        "Residue cleanup 2026-11-17 (Kent Gale's ruling): this mission's work landed on main but the mission's merge/accept was never recorded because of workflow faults; closed through the CLI. | Done override: Residue cleanup 2026-11-17 (Kent Gale's ruling): this mission's work landed on main but the mission's merge/accept was never recorded because of workflow faults; closed through the CLI."
+      ],
+      "provider": "__resolved_provider_absent__",
+      "review_result": null,
+      "role": "reviewer",
       "shell_pid": 25272,
       "subtasks": {
         "T001": "done",

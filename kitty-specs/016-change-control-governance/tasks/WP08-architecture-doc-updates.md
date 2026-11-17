@@ -34,7 +34,7 @@ history:
   action: Prompt generated via /spec-kitty.tasks
 authoritative_surface: docs/design/architecture/
 execution_mode: code_change
-lane: planned
+lane: done
 owned_files:
 - docs/design/architecture/README.md
 - docs/design/architecture/change-control.md

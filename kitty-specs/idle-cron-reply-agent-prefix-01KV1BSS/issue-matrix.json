@@ -1,0 +1,125 @@
+{
+  "rows": {
+    "#1716": {
+      "evidence_ref": "Follow-up: #602 (rc43 upgrade umbrella). Upstream spec-kitty issue referenced in plan/research as one of several rc41/rc42 quirks the mission was designed to surface on rc43. Encountered and worked around during this mission via the fast-forward dance; per CHANGELOG [Unreleased] covered by 3.2.0 stable's mission #133.",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": null,
+      "title": "upstream Priivacy-ai/spec-kitty coord/main split-authority (P0 release-blocker tracked under name-vs-authority remediation mission #133)",
+      "verdict": "deferred-with-followup",
+      "wp": null
+    },
+    "#1764": {
+      "evidence_ref": "Follow-up: #602 (rc43 upgrade umbrella). Upstream spec-kitty issue referenced in plan as a known rc41/rc42 quirk. Not hit in this mission run; analyze succeeded with verdict `ready` and persisted cleanly.",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": null,
+      "title": "upstream Priivacy-ai/spec-kitty analysis-report staleness (re-fires per WP)",
+      "verdict": "deferred-with-followup",
+      "wp": null
+    },
+    "#1784": {
+      "evidence_ref": "Upstream spec-kitty issue. Local tracker #569 documented prior reproducers + workaround. The workaround (fast-forward primary\u2194coord at each lifecycle handoff) was applied successfully twice in this mission (after specify/plan and after finalize-tasks). Upstream fix lands in 3.2.0 stable per CHANGELOG [Unreleased].",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": null,
+      "title": "upstream Priivacy-ai/spec-kitty rc40 finalize-tasks branch-model catch-22 (planning artifacts on coord vs target)",
+      "verdict": "verified-already-fixed",
+      "wp": null
+    },
+    "#1817": {
+      "evidence_ref": "Follow-up: #602 (rc43 upgrade umbrella). Upstream spec-kitty issue referenced in plan only as known-rc-quirk. Not triggered in this mission run.",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": null,
+      "title": "upstream Priivacy-ai/spec-kitty merge gate ignores `review_artifact_override` annotation",
+      "verdict": "deferred-with-followup",
+      "wp": null
+    },
+    "#557": {
+      "evidence_ref": "Residue cleanup 2026-11-17 (Kent Gale's ruling): issue #557 is CLOSED on GitHub",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": null,
+      "title": "Rebaseline obligation (audited surfaces)",
+      "verdict": "verified-already-fixed",
+      "wp": "WP01"
+    },
+    "#567": {
+      "evidence_ref": "Residue cleanup 2026-11-17 (Kent Gale's ruling): issue #567 is CLOSED on GitHub",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": null,
+      "title": null,
+      "verdict": "verified-already-fixed",
+      "wp": "WP01"
+    },
+    "#591": {
+      "evidence_ref": "Referenced in spec Overview as the 2026-06-12 trigger event that surfaced the attribution gap; #591 itself was resolved by the OpenClaw 2026.6.5 auth-store fix + #596/#597 follow-ups. Out-of-scope for this mission; cited only as context.",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": null,
+      "title": "OpenClaw 2026.6 auth-store migration + WhatsApp recovery (post-incident capture)",
+      "verdict": "verified-already-fixed",
+      "wp": null
+    },
+    "#592": {
+      "evidence_ref": "Residue cleanup 2026-11-17 (Kent Gale's ruling): issue #592 is CLOSED on GitHub",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": null,
+      "title": "Prefix IDLE cron messages with agent identifier (e.g., `[felix-admin-capture]: IDLE`)",
+      "verdict": "verified-already-fixed",
+      "wp": "WP01"
+    },
+    "#596": {
+      "evidence_ref": "Referenced in research R-05 as the same incident class that surfaced the live `inbox-5pm` auth error during plan-phase probe (2026-06-13T20:54Z). Resolved by #597 (auth-verifier mission `openclaw-auth-verifier-01KV0Y9E`). Out-of-scope for this mission.",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": null,
+      "title": "felix-admin-capture cron failures \u2014 invalid x-api-key after OpenClaw 2026.6 doctor --fix imports stale per-agent key",
+      "verdict": "verified-already-fixed",
+      "wp": null
+    },
+    "#597": {
+      "evidence_ref": "Residue cleanup 2026-11-17 (Kent Gale's ruling): issue #597 is CLOSED on GitHub",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": null,
+      "title": null,
+      "verdict": "verified-already-fixed",
+      "wp": "WP01"
+    }
+  },
+  "schema_version": 1
+}

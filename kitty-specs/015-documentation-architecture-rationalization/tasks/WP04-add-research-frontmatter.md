@@ -26,8 +26,18 @@ history:
   actor: system
   action: Prompt generated via /spec-kitty.tasks
 authoritative_surface: docs/design/research/005-system-architecture-development/
+create_intent:
+- docs/design/research/005-system-architecture-development/agent-team-architecture.md
+- docs/design/research/005-system-architecture-development/data-architecture.md
+- docs/design/research/005-system-architecture-development/data-privacy-identity.md
+- docs/design/research/005-system-architecture-development/integration-map.md
+- docs/design/research/005-system-architecture-development/integration-needs.md
+- docs/design/research/005-system-architecture-development/local-audit.md
+- docs/design/research/005-system-architecture-development/openclaw-capabilities.md
+- docs/design/research/005-system-architecture-development/roadmap.md
+- docs/design/research/005-system-architecture-development/user-story-catalog.md
 execution_mode: code_change
-lane: planned
+lane: done
 owned_files:
 - docs/design/research/005-system-architecture-development/agent-team-architecture.md
 - docs/design/research/005-system-architecture-development/data-architecture.md
@@ -38,6 +48,9 @@ owned_files:
 - docs/design/research/005-system-architecture-development/openclaw-capabilities.md
 - docs/design/research/005-system-architecture-development/roadmap.md
 - docs/design/research/005-system-architecture-development/user-story-catalog.md
+# Residue cleanup 2026-11-17 (Kent Gale's ruling): these owned_files paths no longer exist on main
+# (moved or deleted after the mission). Declared here only so 'spec-kitty doctor mission-state --fix'
+# can rebuild lanes.json and the mission can be closed; no file will be created.
 ---
 
 # Work Package Prompt: WP04 — Add Frontmatter to Research Docs + Link Updates
