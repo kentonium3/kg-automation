@@ -36,6 +36,11 @@ lane: planned
 owned_files:
 - docs/runbooks/governance/incident-postmortem-template.md
 - docs/issues/postmortems/2026-04-03-vikunja-ufw-outage.md
+# Residue cleanup 2026-11-17 (Kent Gale's ruling): these owned_files paths no longer exist on main
+# (moved or deleted after the mission). Declared here only so 'spec-kitty doctor mission-state --fix'
+# can rebuild lanes.json and the mission can be closed; no file will be created.
+create_intent:
+  - docs/issues/postmortems/2026-04-03-vikunja-ufw-outage.md
 ---
 
 # Work Package Prompt: WP05 — Postmortem Template + Origin Incident + Walkthrough
