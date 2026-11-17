@@ -1,16 +1,16 @@
 {
-  "event_count": 166,
-  "last_event_id": "01M7N4M0G54FVG5M12B3Z413TM",
-  "materialized_at": "2026-11-17T16:14:41.157546+00:00",
+  "event_count": 167,
+  "last_event_id": "01M7N4M1Z04R1E23CKDSJBY056",
+  "materialized_at": "2026-11-17T16:14:42.656396+00:00",
   "mission_number": "44",
   "mission_slug": "refactor-doc-auditor-to-scripts-first-driver-01KS2XNX",
   "mission_type": "software-dev",
   "summary": {
-    "approved": 9,
+    "approved": 8,
     "blocked": 0,
     "canceled": 0,
     "claimed": 0,
-    "done": 1,
+    "done": 2,
     "for_review": 0,
     "in_progress": 0,
     "in_review": 0,
@@ -19,7 +19,7 @@
   "work_packages": {
     "WP01": {
       "actor": "kgale",
-      "agent": "codex:gpt-5:spec-kitty-review:reviewer",
+      "agent": "kgale",
       "agent_profile": "__resolved_profile_absent__",
       "agent_profile_version": "__resolved_profile_version_absent__",
       "force_count": 4,
@@ -27,6 +27,9 @@
       "last_event_id": "01M7N4M0G54FVG5M12B3Z413TM",
       "last_transition_at": "2026-11-17T16:14:41.157546+00:00",
       "model": "__resolved_model_absent__",
+      "notes": [
+        "Residue cleanup 2026-11-17 (Kent Gale's ruling): this mission's work landed on main but the mission's merge/accept was never recorded because of workflow faults; closed through the CLI. | Done override: Residue cleanup 2026-11-17 (Kent Gale's ruling): this mission's work landed on main but the mission's merge/accept was never recorded because of workflow faults; closed through the CLI."
+      ],
       "provider": "__resolved_provider_absent__",
       "review_result": null,
       "role": "reviewer",
@@ -40,13 +43,18 @@
       }
     },
     "WP02": {
-      "actor": "user",
+      "actor": "kgale",
       "agent": "codex:gpt-5:spec-kitty-review:reviewer",
-      "force_count": 2,
-      "lane": "approved",
-      "last_event_id": "01KS390VHRHMS7BW8S44NV9Q32",
-      "last_transition_at": "2026-05-20T18:05:31.064668+00:00",
+      "agent_profile": "__resolved_profile_absent__",
+      "agent_profile_version": "__resolved_profile_version_absent__",
+      "force_count": 3,
+      "lane": "done",
+      "last_event_id": "01M7N4M1Z04R1E23CKDSJBY056",
+      "last_transition_at": "2026-11-17T16:14:42.656396+00:00",
+      "model": "__resolved_model_absent__",
+      "provider": "__resolved_provider_absent__",
       "review_result": null,
+      "role": "reviewer",
       "shell_pid": 52371,
       "subtasks": {
         "T006": "done",
