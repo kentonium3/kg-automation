@@ -27,8 +27,12 @@ history:
   shell_pid: ''
   action: Prompt generated via /spec-kitty.tasks
 authoritative_surface: docs/
+create_intent:
+- docs/func-spec/F002_openclaw_install.md
+- docs/handbooks/openclaw-ops.md
+- docs/handbooks/vikunja-ops.md
 execution_mode: code_change
-lane: planned
+lane: done
 mission_id: 01KN5QX3WBC1M57EENV2JHWAT7
 owned_files:
 - docs/design/architecture/**
@@ -36,13 +40,6 @@ owned_files:
 - docs/handbooks/openclaw-ops.md
 - docs/handbooks/vikunja-ops.md
 wp_code: WP04
-# Residue cleanup 2026-11-17 (Kent Gale's ruling): these owned_files paths no longer exist on main
-# (moved or deleted after the mission). Declared here only so 'spec-kitty doctor mission-state --fix'
-# can rebuild lanes.json and the mission can be closed; no file will be created.
-create_intent:
-  - docs/func-spec/F002_openclaw_install.md
-  - docs/handbooks/openclaw-ops.md
-  - docs/handbooks/vikunja-ops.md
 ---
 
 # Work Package Prompt: WP04 – Ops Runbook, Architecture Docs, Security Baseline
