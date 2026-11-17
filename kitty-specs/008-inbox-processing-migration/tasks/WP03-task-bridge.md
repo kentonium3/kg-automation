@@ -22,12 +22,11 @@ history:
 - date: '2026-03-31T02:04:57Z'
   event: created
   actor: claude
-authoritative_surface: kitty-specs/007-vikunja-api-skill/contracts/vikunja-api-contract.md/
+authoritative_surface: ''
 execution_mode: code_change
 lane: planned
 mission_id: 01KN5QX3WJGAVA67AVPSBGXX96
 owned_files:
-- kitty-specs/007-vikunja-api-skill/contracts/vikunja-api-contract.md
 wp_code: WP03
 ---
 
