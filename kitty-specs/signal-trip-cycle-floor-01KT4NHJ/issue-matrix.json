@@ -24,6 +24,18 @@
       "verdict": "verified-already-fixed",
       "wp": "WP01"
     },
+    "#503": {
+      "evidence_ref": "Residue cleanup 2026-11-17 (Kent's ruling): issue #503 is CLOSED on GitHub",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": null,
+      "title": null,
+      "verdict": "verified-already-fixed",
+      "wp": "WP01"
+    },
     "#512": {
       "evidence_ref": "Residue cleanup 2026-11-17 (Kent's ruling): issue #512 is CLOSED on GitHub",
       "fr": null,
