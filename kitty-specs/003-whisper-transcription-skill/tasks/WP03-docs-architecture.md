@@ -38,6 +38,12 @@ owned_files:
 - kitty-specs/003-whisper-transcription-skill/data-model.md
 - kitty-specs/003-whisper-transcription-skill/research.md
 wp_code: WP03
+# Residue cleanup 2026-11-17 (Kent Gale's ruling): these owned_files paths no longer exist on main
+# (moved or deleted after the mission). Declared here only so 'spec-kitty doctor mission-state --fix'
+# can rebuild lanes.json and the mission can be closed; no file will be created.
+create_intent:
+  - docs/handbooks/transcribe-ops.md
+  - docs/handbooks/vikunja-ops.md
 ---
 
 # Work Package Prompt: WP03 – Ops Runbook, Architecture Docs, and Final Acceptance
