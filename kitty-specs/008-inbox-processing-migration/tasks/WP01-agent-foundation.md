@@ -24,7 +24,7 @@ authoritative_surface: ''
 execution_mode: planning_artifact
 lane: planned
 mission_id: 01KN5QX3WJGAVA67AVPSBGXX96
-owned_files:
+owned_files: []
 wp_code: WP01
 ---
 
