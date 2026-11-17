@@ -20,7 +20,7 @@ history:
   actor: claude
 authoritative_surface: ''
 execution_mode: planning_artifact
-lane: planned
+lane: done
 mission_id: 01KN5QX3WMQC0B8XXG1QKT3N9E
 owned_files: []
 wp_code: WP04
