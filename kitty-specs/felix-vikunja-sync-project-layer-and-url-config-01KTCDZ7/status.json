@@ -144,7 +144,7 @@
     },
     "WP06": {
       "actor": "kgale",
-      "agent": "claude:opus:reviewer:reviewer",
+      "agent": "kgale",
       "agent_profile": "__resolved_profile_absent__",
       "agent_profile_version": "__resolved_profile_version_absent__",
       "force_count": 2,
@@ -152,6 +152,9 @@
       "last_event_id": "01M7N4BTYY5H0XVJK91JMEMH5G",
       "last_transition_at": "2026-11-17T16:10:13.342848+00:00",
       "model": "__resolved_model_absent__",
+      "notes": [
+        "Residue cleanup 2026-11-17 (Kent Gale's ruling): this mission's work landed on main but the mission's merge/accept was never recorded because of workflow faults; closed through the CLI."
+      ],
       "provider": "__resolved_provider_absent__",
       "review_result": null,
       "role": "reviewer",
