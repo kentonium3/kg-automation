@@ -60,6 +60,18 @@
       "verdict": "verified-already-fixed",
       "wp": "WP01"
     },
+    "#253": {
+      "evidence_ref": "Residue cleanup 2026-11-17 (Kent Gale's ruling): issue #253 is CLOSED on GitHub",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": null,
+      "title": null,
+      "verdict": "verified-already-fixed",
+      "wp": "WP01"
+    },
     "#259": {
       "evidence_ref": "Residue cleanup 2026-11-17 (Kent Gale's ruling): issue #259 is CLOSED on GitHub",
       "fr": null,
