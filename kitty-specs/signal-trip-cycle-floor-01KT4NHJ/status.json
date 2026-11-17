@@ -19,7 +19,7 @@
   "work_packages": {
     "WP01": {
       "actor": "kgale",
-      "agent": "codex",
+      "agent": "kgale",
       "agent_profile": "__resolved_profile_absent__",
       "agent_profile_version": "__resolved_profile_version_absent__",
       "force_count": 5,
@@ -27,6 +27,9 @@
       "last_event_id": "01M7N412QNMV12F0VRHWZBP6AE",
       "last_transition_at": "2026-11-17T16:04:20.853529+00:00",
       "model": "__resolved_model_absent__",
+      "notes": [
+        "Residue cleanup 2026-11-17 (Kent's ruling) | Done override: Residue cleanup 2026-11-17 (Kent's ruling): work landed on main; the mission merge was never recorded"
+      ],
       "provider": "__resolved_provider_absent__",
       "review_result": null,
       "role": "reviewer",
