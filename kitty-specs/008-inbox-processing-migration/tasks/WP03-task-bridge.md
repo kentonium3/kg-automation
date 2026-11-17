@@ -23,10 +23,11 @@ history:
   event: created
   actor: claude
 authoritative_surface: ''
-execution_mode: code_change
+execution_mode: planning_artifact
 lane: planned
 mission_id: 01KN5QX3WJGAVA67AVPSBGXX96
-owned_files: []
+owned_files:
+- kitty-specs/007-vikunja-api-skill/contracts/vikunja-api-contract.md
 wp_code: WP03
 ---
 

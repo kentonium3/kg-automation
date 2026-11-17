@@ -18,10 +18,11 @@ history:
   event: created
   actor: claude
 authoritative_surface: ''
-execution_mode: code_change
+execution_mode: planning_artifact
 lane: planned
 mission_id: 01KN5QX3WMQC0B8XXG1QKT3N9E
-owned_files: []
+owned_files:
+- kitty-specs/009-daily-habit-checkin/data-model.md
 wp_code: WP02
 ---
 
