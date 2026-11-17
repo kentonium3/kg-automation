@@ -1,16 +1,16 @@
 {
-  "event_count": 43,
-  "last_event_id": "01M7N4BKG7SRRR69JG08W2XV7K",
-  "materialized_at": "2026-11-17T16:10:05.703599+00:00",
+  "event_count": 44,
+  "last_event_id": "01M7N4BN0900XB3HEJ142ET8NY",
+  "materialized_at": "2026-11-17T16:10:07.241133+00:00",
   "mission_number": "67",
   "mission_slug": "felix-vikunja-sync-project-layer-and-url-config-01KTCDZ7",
   "mission_type": "software-dev",
   "summary": {
-    "approved": 5,
+    "approved": 4,
     "blocked": 0,
     "canceled": 0,
     "claimed": 0,
-    "done": 1,
+    "done": 2,
     "for_review": 0,
     "in_progress": 0,
     "in_review": 0,
@@ -19,7 +19,7 @@
   "work_packages": {
     "WP01": {
       "actor": "kgale",
-      "agent": "claude:opus:reviewer:reviewer",
+      "agent": "kgale",
       "agent_profile": "__resolved_profile_absent__",
       "agent_profile_version": "__resolved_profile_version_absent__",
       "force_count": 2,
@@ -27,6 +27,9 @@
       "last_event_id": "01M7N4BKG7SRRR69JG08W2XV7K",
       "last_transition_at": "2026-11-17T16:10:05.703599+00:00",
       "model": "__resolved_model_absent__",
+      "notes": [
+        "Residue cleanup 2026-11-17 (Kent Gale's ruling): this mission's work landed on main but the mission's merge/accept was never recorded because of workflow faults; closed through the CLI. | Done override: Residue cleanup 2026-11-17 (Kent Gale's ruling): this mission's work landed on main but the mission's merge/accept was never recorded because of workflow faults; closed through the CLI."
+      ],
       "provider": "__resolved_provider_absent__",
       "review_result": null,
       "role": "reviewer",
@@ -38,13 +41,18 @@
       }
     },
     "WP02": {
-      "actor": "user",
+      "actor": "kgale",
       "agent": "claude:opus:reviewer:reviewer",
-      "force_count": 1,
-      "lane": "approved",
-      "last_event_id": "01KTCKM3S452SMT2RHMQTNKEWF",
-      "last_transition_at": "2026-06-05T19:19:39.556540+00:00",
+      "agent_profile": "__resolved_profile_absent__",
+      "agent_profile_version": "__resolved_profile_version_absent__",
+      "force_count": 2,
+      "lane": "done",
+      "last_event_id": "01M7N4BN0900XB3HEJ142ET8NY",
+      "last_transition_at": "2026-11-17T16:10:07.241133+00:00",
+      "model": "__resolved_model_absent__",
+      "provider": "__resolved_provider_absent__",
       "review_result": null,
+      "role": "reviewer",
       "shell_pid": 80386,
       "subtasks": {
         "T004": "done",
