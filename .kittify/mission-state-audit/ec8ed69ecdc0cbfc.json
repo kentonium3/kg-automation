@@ -22,7 +22,7 @@
       "row_transformations": [],
       "status": "error",
       "validation_errors": [
-        "Cannot rebuild lanes.json for mission '008-inbox-processing-migration': literal-path owned_files entries match zero files in the repository (WP06: owned_files path 'docs/handbooks/inbox-ops.md' is a literal file path that matches zero files in the repository. If this file will be created during implementation, declare it in the WP frontmatter:\n  create_intent:\n    - docs/handbooks/inbox-ops.md; WP06: owned_files path 'docs/handbooks/openclaw-ops.md' is a literal file path that matches zero files in the repository. If this file will be created during implementation, declare it in the WP frontmatter:\n  create_intent:\n    - docs/handbooks/openclaw-ops.md; WP06: owned_files path 'docs/handbooks/vikunja-ops.md' is a literal file path that matches zero files in the repository. If this file will be created during implementation, declare it in the WP frontmatter:\n  create_intent:\n    - docs/handbooks/vikunja-ops.md). Fix the paths in the WP frontmatter, then re-run 'spec-kitty doctor mission-state --fix'."
+        "Execution-lane dependency cycle detected: lane-a -> lane-planning -> lane-b -> lane-a"
       ]
     }
   ],
@@ -44,7 +44,7 @@
     ]
   },
   "quarantine_root_path": null,
-  "repo_head": "8a5c71e3c14db28abcf3c719ffb79f5615bbd386",
+  "repo_head": "c69b3ae0e82de4f1d27e6fb4f79a432721b2728b",
   "residue_directories": [],
   "run_id": "ec8ed69ecdc0cbfc",
   "schema_version": "1.0.0",
