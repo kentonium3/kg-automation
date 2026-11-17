@@ -112,6 +112,23 @@ kitty-specs/**/.kittify/dossiers/
 #     their own records on protected main (kentonium3/kg-automation#975)
 #   kitty-specs/pointer-key-ledger-01M189P6/.kittify/dossiers/ - mission dossier snapshot
 
+# Local agent state and credentials: keep whole directories ignored.
+# Restored 2026-11-17: the spec-kitty 06af0c52e upgrade replaced these blanket
+# rules (which said "These contain auth tokens and should NEVER be committed")
+# with per-file entries. Already-tracked files stay tracked.
+.codex/
+.opencode/
+.windsurf/
+.gemini/
+.cursor/
+.qwen/
+.kilocode/
+.augment/
+.roo/
+.amazonq/
+.github/copilot/
+.agents/skills/
+
 # >>> Spec Kitty agent files (auto-managed; lines in this block are replaced) >>>
 .codex/auth.json
 .codex/history.jsonl
