@@ -13,17 +13,25 @@
   "manifest_path": ".kittify/mission-state-audit/ab1726312cebb51a.json",
   "missions": [
     {
-      "file_changes": [],
-      "meta_actions": [],
+      "file_changes": [
+        {
+          "new_sha256": "ce613393cd4da17ba8ce641f03592145a3e873b640ed551747466ce6b14d9add",
+          "new_size": 1371,
+          "old_sha256": null,
+          "old_size": null,
+          "path": "kitty-specs/003-whisper-transcription-skill/lanes.json"
+        }
+      ],
+      "meta_actions": [
+        "lanes_rebuilt_from_event_log"
+      ],
       "mission_id": "01KN5QX3WCFA855XAHAHZ10CB4",
       "mission_slug": "003-whisper-transcription-skill",
       "quarantine_written": false,
       "quarantined_rows": 0,
       "row_transformations": [],
-      "status": "error",
-      "validation_errors": [
-        "Cannot rebuild lanes.json for mission '003-whisper-transcription-skill': literal-path owned_files entries match zero files in the repository (WP03: owned_files path 'docs/handbooks/transcribe-ops.md' is a literal file path that matches zero files in the repository. If this file will be created during implementation, declare it in the WP frontmatter:\n  create_intent:\n    - docs/handbooks/transcribe-ops.md; WP03: owned_files path 'docs/handbooks/vikunja-ops.md' is a literal file path that matches zero files in the repository. If this file will be created during implementation, declare it in the WP frontmatter:\n  create_intent:\n    - docs/handbooks/vikunja-ops.md). Fix the paths in the WP frontmatter, then re-run 'spec-kitty doctor mission-state --fix'."
-      ]
+      "status": "updated",
+      "validation_errors": []
     }
   ],
   "policy": {
@@ -44,15 +52,15 @@
     ]
   },
   "quarantine_root_path": null,
-  "repo_head": "2390e53e34d6d33aab6b1547bec3c835f2a2e70c",
+  "repo_head": "5b880c64c329980e242a87e944f0b7aeb4b9d8c4",
   "residue_directories": [],
   "run_id": "ab1726312cebb51a",
   "schema_version": "1.0.0",
   "summary": {
-    "missions_error": 1,
+    "missions_error": 0,
     "missions_total": 1,
     "missions_unchanged": 0,
-    "missions_updated": 0,
+    "missions_updated": 1,
     "quarantined_rows": 0
   },
   "target_missions": [
