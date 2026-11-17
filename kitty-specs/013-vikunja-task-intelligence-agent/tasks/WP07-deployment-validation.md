@@ -16,6 +16,11 @@ authoritative_surface: scripts/deploy/
 execution_mode: code_change
 lane: planned
 owned_files: [scripts/deploy/deploy-f013.sh]
+# Residue cleanup 2026-11-17 (Kent Gale's ruling): these owned_files paths no longer exist on main
+# (moved or deleted after the mission). Declared here only so the mission's lanes can be computed
+# and the never-started mission canceled; no file will be created.
+create_intent:
+  - scripts/deploy/deploy-f013.sh
 ---
 
 # WP07: Deployment & Validation

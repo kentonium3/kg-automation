@@ -16,6 +16,11 @@ authoritative_surface: docs/handbooks/
 execution_mode: code_change
 lane: planned
 owned_files: [docs/handbooks/task-intelligence-ops.md]
+# Residue cleanup 2026-11-17 (Kent Gale's ruling): these owned_files paths no longer exist on main
+# (moved or deleted after the mission). Declared here only so the mission's lanes can be computed
+# and the never-started mission canceled; no file will be created.
+create_intent:
+  - docs/handbooks/task-intelligence-ops.md
 ---
 
 # WP05: Operations Runbook
