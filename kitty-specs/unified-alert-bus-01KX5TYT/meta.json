@@ -1,8 +1,7 @@
 {
   "baseline_merge_commit": "f91075f415393550e9c98133833c159ffb694232",
-  "coordination_branch": "kitty/mission-unified-alert-bus-01KX5TYT",
   "created_at": "2026-07-10T11:00:14.527032+00:00",
-  "flattened": false,
+  "flattened": true,
   "friendly_name": "Unified Alert Bus",
   "mission_id": "01KX5TYT1W5WFRQGG1S52RSGD1",
   "mission_number": 92,
@@ -14,5 +13,5 @@
   "slug": "unified-alert-bus-01KX5TYT",
   "status_phase": "1",
   "target_branch": "feat/unified-alert-bus",
-  "topology": "coord"
+  "topology": "lanes"
 }

@@ -1,9 +1,8 @@
 {
   "baseline_merge_commit": "6fdb708714eaf8715ab9b5a2fc1b686f61bb52fc",
   "change_mode": "bulk_edit",
-  "coordination_branch": "kitty/mission-harden-inbox-capture-01KWVGZM",
   "created_at": "2026-07-06T10:53:31.727388+00:00",
-  "flattened": false,
+  "flattened": true,
   "friendly_name": "Harden Inbox Capture on Sonnet",
   "mission_id": "01KWVGZMPBC3FQRCTMPYTF6PCM",
   "mission_number": 86,
@@ -15,7 +14,7 @@
   "slug": "harden-inbox-capture-01KWVGZM",
   "status_phase": "1",
   "target_branch": "feat/harden-inbox-capture",
-  "topology": "coord",
+  "topology": "lanes",
   "vcs": "git",
   "vcs_locked_at": "2026-07-06T12:21:41.419996+00:00"
 }

@@ -1,6 +1,6 @@
 {
-  "coordination_branch": "kitty/mission-capture-agents-md-rewrite-01KTMY86",
   "created_at": "2026-06-09T00:59:19.336974+00:00",
+  "flattened": true,
   "friendly_name": "Capture AGENTS.md Rewrite (Directive-6 half-2)",
   "mission_id": "01KTMY86X63W50FF36GWPWADH2",
   "mission_number": "",
@@ -10,5 +10,6 @@
   "purpose_tldr": "Rewrite felix-admin-capture's AGENTS.md to invoke the 6 stdlib helpers shipped in half-1; reduce ~1215 lines to ~250-400 so it fits openclaw's 12K bootstrap budget; closes #566.",
   "slug": "capture-agents-md-rewrite-01KTMY86",
   "status_phase": "1",
-  "target_branch": "main"
+  "target_branch": "main",
+  "topology": "lanes"
 }

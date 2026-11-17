@@ -1,8 +1,7 @@
 {
   "baseline_merge_commit": "68d62a2d37e5b6e7d9cfec9e15ff1564b0017a6b",
-  "coordination_branch": "kitty/mission-felix-admin-cron-path-fix-01KWQTY3",
   "created_at": "2026-07-05T00:30:29.715356+00:00",
-  "flattened": false,
+  "flattened": true,
   "friendly_name": "Felix-admin cron path robustness fix",
   "mission_id": "01KWQTY3TGBDC2MVWD93H5DK2Y",
   "mission_number": 83,
@@ -14,7 +13,7 @@
   "slug": "felix-admin-cron-path-fix-01KWQTY3",
   "status_phase": "1",
   "target_branch": "fix/felix-admin-cron-path-fix",
-  "topology": "coord",
+  "topology": "lanes",
   "vcs": "git",
   "vcs_locked_at": "2026-07-05T03:22:43.481389+00:00"
 }

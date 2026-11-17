@@ -1,7 +1,7 @@
 {
   "baseline_merge_commit": "ea52ad0e",
-  "coordination_branch": "kitty/mission-capture-d6-helpers-extraction-01KTMS5Q",
   "created_at": "2026-06-08T23:30:35.168866+00:00",
+  "flattened": true,
   "friendly_name": "Capture Directive-6 Helpers Extraction",
   "mission_id": "01KTMS5QGXFJWQYVXB03SPYB48",
   "mission_number": 70,
@@ -12,6 +12,7 @@
   "slug": "capture-d6-helpers-extraction-01KTMS5Q",
   "status_phase": "1",
   "target_branch": "main",
+  "topology": "lanes",
   "vcs": "git",
   "vcs_locked_at": "2026-06-09T00:18:56.264116+00:00"
 }

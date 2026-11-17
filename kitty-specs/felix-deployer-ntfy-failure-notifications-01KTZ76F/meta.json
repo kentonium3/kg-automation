@@ -1,7 +1,7 @@
 {
   "baseline_merge_commit": "bf400c29dd41d5020d0709dfbb23a84c0191daa8",
-  "coordination_branch": "kitty/mission-felix-deployer-ntfy-failure-notifications-01KTZ76F",
   "created_at": "2026-06-13T00:48:04.042301+00:00",
+  "flattened": true,
   "friendly_name": "Felix-deployer ntfy failure notifications",
   "mission_id": "01KTZ76FE60RPNPQKKBK4ZTF46",
   "mission_number": 75,
@@ -11,5 +11,6 @@
   "purpose_tldr": "Replace the broken openclaw-cron WhatsApp DM dispatch in felix-deployer with an ntfy.sh push so failed deploys actually notify the operator.",
   "slug": "felix-deployer-ntfy-failure-notifications-01KTZ76F",
   "status_phase": "1",
-  "target_branch": "main"
+  "target_branch": "main",
+  "topology": "lanes"
 }

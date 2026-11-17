@@ -1,8 +1,7 @@
 {
   "baseline_merge_commit": "68d70f2aaf6e88c58c44dda59407c1934eff5de6",
-  "coordination_branch": "kitty/mission-author-capture-workspace-01KWPXBB",
   "created_at": "2026-07-04T15:53:26.187820+00:00",
-  "flattened": false,
+  "flattened": true,
   "friendly_name": "Author felix-admin-capture Workspace",
   "mission_id": "01KWPXBBD9BCG4PYWQYP5GKMEV",
   "mission_number": 82,
@@ -14,5 +13,5 @@
   "slug": "author-capture-workspace-01KWPXBB",
   "status_phase": "1",
   "target_branch": "feat/author-capture-workspace",
-  "topology": "coord"
+  "topology": "lanes"
 }
