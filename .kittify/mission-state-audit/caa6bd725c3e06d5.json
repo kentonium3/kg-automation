@@ -1,0 +1,61 @@
+{
+  "cli_version": "4.0.0rc9",
+  "command_args": [
+    "doctor",
+    "mission-state",
+    "--fix",
+    "--mission",
+    "016-change-control-governance"
+  ],
+  "generated_ids": [
+    "caa6bd725c3e06d5"
+  ],
+  "manifest_path": ".kittify/mission-state-audit/caa6bd725c3e06d5.json",
+  "missions": [
+    {
+      "file_changes": [],
+      "meta_actions": [],
+      "mission_id": "01KRG3V5EST5CZ4BQQK3H6JC3B",
+      "mission_slug": "016-change-control-governance",
+      "quarantine_written": false,
+      "quarantined_rows": 0,
+      "row_transformations": [],
+      "status": "error",
+      "validation_errors": [
+        "Cannot rebuild lanes.json for mission '016-change-control-governance': literal-path owned_files entries match zero files in the repository (WP05: owned_files path 'docs/issues/postmortems/2026-04-03-vikunja-ufw-outage.md' is a literal file path that matches zero files in the repository. If this file will be created during implementation, declare it in the WP frontmatter:\n  create_intent:\n    - docs/issues/postmortems/2026-04-03-vikunja-ufw-outage.md; WP06: owned_files path '.kittify/constitution/constitution.md' is a literal file path that matches zero files in the repository. If this file will be created during implementation, declare it in the WP frontmatter:\n  create_intent:\n    - .kittify/constitution/constitution.md). Fix the paths in the WP frontmatter, then re-run 'spec-kitty doctor mission-state --fix'."
+      ]
+    }
+  ],
+  "policy": {
+    "ignored": [
+      "*.pyc",
+      ".git/",
+      ".worktrees/",
+      "__pycache__/"
+    ],
+    "optional": [
+      "kitty-specs/*/status.json"
+    ],
+    "tracked": [
+      ".kittify/mission-state-audit/*.json",
+      "kitty-specs/*/meta.json",
+      "kitty-specs/*/status.events.jsonl",
+      "kitty-specs/*/status.json"
+    ]
+  },
+  "quarantine_root_path": null,
+  "repo_head": "afb82f4e8b22e8e486cc0dc5a969c077f77e57cd",
+  "residue_directories": [],
+  "run_id": "caa6bd725c3e06d5",
+  "schema_version": "1.0.0",
+  "summary": {
+    "missions_error": 1,
+    "missions_total": 1,
+    "missions_unchanged": 0,
+    "missions_updated": 0,
+    "quarantined_rows": 0
+  },
+  "target_missions": [
+    "016-change-control-governance"
+  ]
+}
