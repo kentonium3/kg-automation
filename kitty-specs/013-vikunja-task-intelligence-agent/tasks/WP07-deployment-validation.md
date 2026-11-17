@@ -27,7 +27,7 @@ authoritative_surface: scripts/deploy/
 create_intent:
 - scripts/deploy/deploy-f013.sh
 execution_mode: code_change
-lane: planned
+lane: canceled
 owned_files:
 - scripts/deploy/deploy-f013.sh
 tags: []

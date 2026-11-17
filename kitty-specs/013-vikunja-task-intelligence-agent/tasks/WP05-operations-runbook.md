@@ -22,7 +22,7 @@ authoritative_surface: docs/handbooks/
 create_intent:
 - docs/handbooks/task-intelligence-ops.md
 execution_mode: code_change
-lane: planned
+lane: canceled
 owned_files:
 - docs/handbooks/task-intelligence-ops.md
 tags: []

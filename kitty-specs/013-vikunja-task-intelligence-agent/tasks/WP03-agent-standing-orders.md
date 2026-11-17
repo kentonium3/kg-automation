@@ -47,7 +47,7 @@ history:
 authoritative_surface: scripts/openclaw/agents/felix-admin-tasker/
 create_intent: []
 execution_mode: code_change
-lane: planned
+lane: canceled
 owned_files:
 - scripts/openclaw/agents/felix-admin-tasker/AGENTS.md
 tags: []

@@ -24,7 +24,7 @@ history:
 authoritative_surface: scripts/openclaw/agents/felix-admin-capture/
 create_intent: []
 execution_mode: code_change
-lane: planned
+lane: canceled
 owned_files:
 - scripts/openclaw/agents/felix-admin-capture/AGENTS.md
 tags: []

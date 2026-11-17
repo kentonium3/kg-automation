@@ -22,7 +22,7 @@ history:
 authoritative_surface: docs/
 create_intent: []
 execution_mode: code_change
-lane: planned
+lane: canceled
 owned_files:
 - docs/constitution/AGENT-REGISTRY.md
 - docs/design/architecture/service-inventory.md

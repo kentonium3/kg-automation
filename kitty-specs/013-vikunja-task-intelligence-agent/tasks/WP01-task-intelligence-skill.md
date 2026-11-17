@@ -30,7 +30,7 @@ history:
 authoritative_surface: scripts/openclaw/skills/task-intelligence/
 create_intent: []
 execution_mode: code_change
-lane: planned
+lane: canceled
 owned_files:
 - scripts/openclaw/skills/task-intelligence/**
 tags: []
