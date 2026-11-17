@@ -1,5 +1,17 @@
 {
   "rows": {
+    "#506": {
+      "evidence_ref": "Residue cleanup 2026-11-17 (Kent Gale's ruling): issue #506 is OPEN on GitHub; the open issue is the follow-up",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": null,
+      "title": null,
+      "verdict": "deferred-with-followup",
+      "wp": "WP01"
+    },
     "#516": {
       "evidence_ref": "Residue cleanup 2026-11-17 (Kent Gale's ruling): issue #516 is CLOSED on GitHub",
       "fr": null,
