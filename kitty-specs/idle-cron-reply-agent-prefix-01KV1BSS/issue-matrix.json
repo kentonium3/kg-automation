@@ -85,7 +85,7 @@
       "wp": null
     },
     "#592": {
-      "evidence_ref": "This mission IS the deliverable; WP01 applied the canonical Hard rule #1 byte-format block to 4 AGENTS.md files; WP02 verifies deployed behavior + rebaseline.",
+      "evidence_ref": "Residue cleanup 2026-11-17 (Kent Gale's ruling): issue #592 is CLOSED on GitHub",
       "fr": null,
       "nfr": null,
       "repo": null,
@@ -93,8 +93,8 @@
       "scope": null,
       "source_file": null,
       "title": "Prefix IDLE cron messages with agent identifier (e.g., `[felix-admin-capture]: IDLE`)",
-      "verdict": "in-mission",
-      "wp": null
+      "verdict": "verified-already-fixed",
+      "wp": "WP01"
     },
     "#596": {
       "evidence_ref": "Referenced in research R-05 as the same incident class that surfaced the live `inbox-5pm` auth error during plan-phase probe (2026-06-13T20:54Z). Resolved by #597 (auth-verifier mission `openclaw-auth-verifier-01KV0Y9E`). Out-of-scope for this mission.",
