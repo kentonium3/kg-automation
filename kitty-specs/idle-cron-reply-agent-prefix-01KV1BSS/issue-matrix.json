@@ -60,6 +60,18 @@
       "verdict": "in-mission",
       "wp": null
     },
+    "#567": {
+      "evidence_ref": "Residue cleanup 2026-11-17 (Kent Gale's ruling): issue #567 is CLOSED on GitHub",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": null,
+      "title": null,
+      "verdict": "verified-already-fixed",
+      "wp": "WP01"
+    },
     "#591": {
       "evidence_ref": "Referenced in spec Overview as the 2026-06-12 trigger event that surfaced the attribution gap; #591 itself was resolved by the OpenClaw 2026.6.5 auth-store fix + #596/#597 follow-ups. Out-of-scope for this mission; cited only as context.",
       "fr": null,
