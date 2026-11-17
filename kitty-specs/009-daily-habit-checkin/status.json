@@ -1,16 +1,16 @@
 {
-  "event_count": 35,
-  "last_event_id": "01M7N56SDCN2PNSS70E1XT51V2",
-  "materialized_at": "2026-11-17T16:24:56.492307+00:00",
+  "event_count": 36,
+  "last_event_id": "01M7N58S5GJYQBZFPV5M3GXS8C",
+  "materialized_at": "2026-11-17T16:26:01.776035+00:00",
   "mission_number": "9",
   "mission_slug": "009-daily-habit-checkin",
   "mission_type": "software-dev",
   "summary": {
-    "approved": 1,
+    "approved": 0,
     "blocked": 0,
     "canceled": 0,
     "claimed": 0,
-    "done": 5,
+    "done": 6,
     "for_review": 0,
     "in_progress": 0,
     "in_review": 0,
@@ -41,11 +41,20 @@
       }
     },
     "WP02": {
-      "actor": "user",
-      "force_count": 2,
-      "lane": "approved",
-      "last_event_id": "01KN3GVT1QJ0H4R3RC9Q25SQFN",
-      "last_transition_at": "2026-04-01T03:19:46.999589+00:00",
+      "actor": "kgale",
+      "agent": "kgale",
+      "agent_profile": "__resolved_profile_absent__",
+      "agent_profile_version": "__resolved_profile_version_absent__",
+      "force_count": 3,
+      "lane": "done",
+      "last_event_id": "01M7N58S5GJYQBZFPV5M3GXS8C",
+      "last_transition_at": "2026-11-17T16:26:01.776035+00:00",
+      "model": "__resolved_model_absent__",
+      "notes": [
+        "Residue cleanup 2026-11-17 (Kent Gale's ruling): this mission's work landed on main but the mission's merge/accept was never recorded because of workflow faults; closed through the CLI."
+      ],
+      "provider": "__resolved_provider_absent__",
+      "role": "reviewer",
       "subtasks": {
         "T006": "done",
         "T007": "done",
