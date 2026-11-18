@@ -7,7 +7,7 @@
 
 ## Context
 
-The #849 decisive test compares graph memory, vector-RAG and full-corpus baselines over Kent's scenario arcs, on local inference on office4. It is blocked behind its preconditions mission (`arms-preconditions-01M3FVRY`, #1023). That mission's merge to main is held on FR-015, the commit-bound pre-merge checker record. The checker passes 10 of 12 steps. One of the two remaining blockers (live-down) was cleared on 2026-11-03. The other is this one. The required live node `test_live_runtime_registers_g_d_r_with_one_embedder` can never pass from the host, because the live runtime knows only the compose-network service names (`falkordb:6379`, `http://llama:8080`), and those do not resolve outside the network.
+The #849 decisive test compares graph memory, vector-RAG and full-corpus baselines over Kent's scenario arcs, on local inference on office4. It is blocked behind its preconditions mission (`arms-preconditions-01M3FVRY`, #1023). That mission's merge to main is held on arms-preconditions-01M3FVRY#FR-015, the commit-bound pre-merge checker record. The checker passes 10 of 12 steps. One of the two remaining blockers (live-down) was cleared on 2026-11-03. The other is this one. The required live node `test_live_runtime_registers_g_d_r_with_one_embedder` can never pass from the host, because the live runtime knows only the compose-network service names (`falkordb:6379`, `http://llama:8080`), and those do not resolve outside the network.
 
 ```mermaid
 flowchart LR
@@ -28,9 +28,9 @@ flowchart LR
 
 ### User Story 1 - The pre-merge checker's required live nodes pass from the host (Priority: P1)
 
-Kent (or an agent on his behalf) runs the FR-015 pre-merge checker on office4 against the live `arms849` stack. The stack publishes FalkorDB and llama.cpp on 127.0.0.1. The checker's `live-required-nodes` step runs both required live nodes as host pytest, and both pass.
+Kent (or an agent on his behalf) runs the arms-preconditions-01M3FVRY#FR-015 pre-merge checker on office4 against the live `arms849` stack. The stack publishes FalkorDB and llama.cpp on 127.0.0.1. The checker's `live-required-nodes` step runs both required live nodes as host pytest, and both pass.
 
-**Why this priority**: This is the only remaining FR-015 blocker. Without it, #1023 cannot merge to main and the #849 decisive run cannot start.
+**Why this priority**: This is the only remaining arms-preconditions-01M3FVRY#FR-015 blocker. Without it, #1023 cannot merge to main and the #849 decisive run cannot start.
 
 **Independent Test**: Run the checker at the fix commit and read the `live-required-nodes` step of the record. It shows a pass with 2 of 2 nodes passing.
 
@@ -86,8 +86,8 @@ The checker's `--verify` mode accepts a record only when its `live-required-node
 | FR-001 | Live runtime accepts explicit endpoints | As the checker, I want the live runtime to accept an explicit FalkorDB endpoint and llama endpoint, and to use them for every connection the returned runtime makes (graph arm bridge, serving facade, health check), so that a host run reaches the published ports. | High | Open | [build] | no |
 | FR-002 | Defaults remain the in-network addresses | As the decisive run, I want a runtime built with no endpoints to use `falkordb:6379` and `http://llama:8080`, exactly as today, so that in-container runs are unchanged. | High | Open | [ratchet] | yes — paired with FR-001's explicit-endpoint assertion on the same runtime-construction fixture as its positive control |
 | FR-003 | Required live node reads host overrides | As the checker, I want the required live-runtime node to read `ARMS849_FALKOR_HOST`/`ARMS849_FALKOR_PORT` (the existing convention) and `ARMS849_LLAMA_HOST`/`ARMS849_LLAMA_PORT`, and pass them to the runtime, so that it runs against the stack from the host. | High | Open | [build] | no |
-| FR-004 | Checker passes and records the published ports | As the FR-015 record, I want the `live-required-nodes` step to set the overrides to the substrate's published FalkorDB and llama ports (taken from the substrate's constants, not repeated literals) and to record them in the step's evidence environment, so that the record shows what the live step targeted. | High | Open | [build] | no |
-| FR-005 | Verifier requires the overrides | As the FR-015 gate, I want `--verify` to accept a record only when its `live-required-nodes` environment carries `ARMS849_LIVE=1` and overrides equal to the published ports, and to reject it otherwise, so that a silent fallback cannot verify. | High | Open | [build] | no |
+| FR-004 | Checker passes and records the published ports | As the arms-preconditions-01M3FVRY#FR-015 record, I want the `live-required-nodes` step to set the overrides to the substrate's published FalkorDB and llama ports (taken from the substrate's constants, not repeated literals) and to record them in the step's evidence environment, so that the record shows what the live step targeted. | High | Open | [build] | no |
+| FR-005 | Verifier requires the overrides | As the arms-preconditions-01M3FVRY#FR-015 gate, I want `--verify` to accept a record only when its `live-required-nodes` environment carries `ARMS849_LIVE=1` and overrides equal to the published ports, and to reject it otherwise, so that a silent fallback cannot verify. | High | Open | [build] | no |
 | FR-006 | Red-first override demonstration | As a reviewer, I want a test showing that a host run with no override fails resolving the in-network FalkorDB name, so that the override is proven to be what makes the host run pass. | Medium | Open | [build] | no |
 
 ### Non-Functional Requirements
@@ -109,14 +109,14 @@ The checker's `--verify` mode accepts a record only when its `live-required-node
 ### Key Entities
 
 - **Endpoint pair**: the FalkorDB host and port plus the llama base URL that a live runtime connects to. There are two sources: the in-network defaults (production) and host overrides (test and checker only).
-- **Checker record**: the commit-bound FR-015 evidence file. Its `live-required-nodes` step carries the environment the live nodes ran under.
+- **Checker record**: the commit-bound arms-preconditions-01M3FVRY#FR-015 evidence file. Its `live-required-nodes` step carries the environment the live nodes ran under.
 
 ## Success Criteria *(mandatory)*
 
 ### Measurable Outcomes
 
 - **SC-001**: A checker run at the fix commit records `live-required-nodes` as passed, with 2 of 2 required nodes passing. — [build] · no-op passable: no
-- **SC-002**: The same run records `live-smoke` passed and `live-down` clean, so every checker step passes and FR-015 becomes recordable. — [build] · no-op passable: no
+- **SC-002**: The same run records `live-smoke` passed and `live-down` clean, so every checker step passes and arms-preconditions-01M3FVRY#FR-015 becomes recordable. — [build] · no-op passable: no
 - **SC-003**: `--verify` accepts the run's record and rejects both mutated copies (no `ARMS849_LIVE=1`; wrong or absent overrides). — [build] · no-op passable: no
 
 ## Assumptions
@@ -127,5 +127,5 @@ The checker's `--verify` mode accepts a record only when its `live-required-node
 
 ## Out of Scope
 
-- Recording FR-015, merging `feat/849-preconditions` to main, and the 72-cell decisive run. These follow this mission and are tracked on #1023 and #849.
+- Recording arms-preconditions-01M3FVRY#FR-015, merging `feat/849-preconditions` to main, and the 72-cell decisive run. These follow this mission and are tracked on #1023 and #849.
 - The `kga-try` project name in generated orientation banners on main. It is unrelated to this code path.
