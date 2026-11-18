@@ -1,16 +1,16 @@
 {
-  "event_count": 18,
-  "last_event_id": "01KMPHZQDPMQEZ36TT3HE49PBQ",
-  "materialized_at": "2026-03-27T02:29:16.342639+00:00",
+  "event_count": 22,
+  "last_event_id": "01M7N4ZP872XG6GC4RDGWNWX2W",
+  "materialized_at": "2026-11-17T16:21:03.879060+00:00",
   "mission_number": "2",
   "mission_slug": "002-openclaw-install-config",
   "mission_type": "software-dev",
   "summary": {
-    "approved": 4,
+    "approved": 0,
     "blocked": 0,
     "canceled": 0,
     "claimed": 0,
-    "done": 1,
+    "done": 5,
     "for_review": 0,
     "in_progress": 0,
     "in_review": 0,
@@ -18,11 +18,20 @@
   },
   "work_packages": {
     "WP01": {
-      "actor": "user",
-      "force_count": 2,
-      "lane": "approved",
-      "last_event_id": "01KMP6Q1C8XAWPEE1XWAAD49E9",
-      "last_transition_at": "2026-03-26T23:12:17.288454+00:00",
+      "actor": "kgale",
+      "agent": "kgale",
+      "agent_profile": "__resolved_profile_absent__",
+      "agent_profile_version": "__resolved_profile_version_absent__",
+      "force_count": 3,
+      "lane": "done",
+      "last_event_id": "01M7N4ZHWQ6TNK99WTAC69TEBM",
+      "last_transition_at": "2026-11-17T16:20:59.415453+00:00",
+      "model": "__resolved_model_absent__",
+      "notes": [
+        "Residue cleanup 2026-11-17 (Kent Gale's ruling): this mission's work landed on main but the mission's merge/accept was never recorded because of workflow faults; closed through the CLI. | Done override: Residue cleanup 2026-11-17 (Kent Gale's ruling): this mission's work landed on main but the mission's merge/accept was never recorded because of workflow faults; closed through the CLI."
+      ],
+      "provider": "__resolved_provider_absent__",
+      "role": "reviewer",
       "subtasks": {
         "T001": "done",
         "T002": "done",
@@ -33,11 +42,20 @@
       }
     },
     "WP02": {
-      "actor": "user",
-      "force_count": 1,
-      "lane": "approved",
-      "last_event_id": "01KMPGJWXFBQX93SPGKZK8XM5P",
-      "last_transition_at": "2026-03-27T02:04:47.407769+00:00",
+      "actor": "kgale",
+      "agent": "kgale",
+      "agent_profile": "__resolved_profile_absent__",
+      "agent_profile_version": "__resolved_profile_version_absent__",
+      "force_count": 2,
+      "lane": "done",
+      "last_event_id": "01M7N4ZKAN7QGES9TYECM7PS41",
+      "last_transition_at": "2026-11-17T16:21:00.885657+00:00",
+      "model": "__resolved_model_absent__",
+      "notes": [
+        "Residue cleanup 2026-11-17 (Kent Gale's ruling): this mission's work landed on main but the mission's merge/accept was never recorded because of workflow faults; closed through the CLI."
+      ],
+      "provider": "__resolved_provider_absent__",
+      "role": "reviewer",
       "subtasks": {
         "T007": "done",
         "T008": "done",
@@ -49,11 +67,20 @@
       }
     },
     "WP03": {
-      "actor": "user",
-      "force_count": 1,
-      "lane": "approved",
-      "last_event_id": "01KMPHAFDHM421DGNECFCQ5Q7A",
-      "last_transition_at": "2026-03-27T02:17:40.017740+00:00",
+      "actor": "kgale",
+      "agent": "kgale",
+      "agent_profile": "__resolved_profile_absent__",
+      "agent_profile_version": "__resolved_profile_version_absent__",
+      "force_count": 2,
+      "lane": "done",
+      "last_event_id": "01M7N4ZMSV9TFNTKN4NM5C4DS2",
+      "last_transition_at": "2026-11-17T16:21:02.395657+00:00",
+      "model": "__resolved_model_absent__",
+      "notes": [
+        "Residue cleanup 2026-11-17 (Kent Gale's ruling): this mission's work landed on main but the mission's merge/accept was never recorded because of workflow faults; closed through the CLI."
+      ],
+      "provider": "__resolved_provider_absent__",
+      "role": "reviewer",
       "subtasks": {
         "T014": "done",
         "T015": "done",
@@ -63,11 +90,20 @@
       }
     },
     "WP04": {
-      "actor": "user",
-      "force_count": 1,
-      "lane": "approved",
-      "last_event_id": "01KMPHMZXRH9T2NVDFPZVX3QRK",
-      "last_transition_at": "2026-03-27T02:23:24.600138+00:00",
+      "actor": "kgale",
+      "agent": "kgale",
+      "agent_profile": "__resolved_profile_absent__",
+      "agent_profile_version": "__resolved_profile_version_absent__",
+      "force_count": 2,
+      "lane": "done",
+      "last_event_id": "01M7N4ZP872XG6GC4RDGWNWX2W",
+      "last_transition_at": "2026-11-17T16:21:03.879060+00:00",
+      "model": "__resolved_model_absent__",
+      "notes": [
+        "Residue cleanup 2026-11-17 (Kent Gale's ruling): this mission's work landed on main but the mission's merge/accept was never recorded because of workflow faults; closed through the CLI. | Done override: Residue cleanup 2026-11-17 (Kent Gale's ruling): this mission's work landed on main but the mission's merge/accept was never recorded because of workflow faults; closed through the CLI."
+      ],
+      "provider": "__resolved_provider_absent__",
+      "role": "reviewer",
       "subtasks": {
         "T019": "done",
         "T020": "done",

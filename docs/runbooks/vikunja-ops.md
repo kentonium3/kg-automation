@@ -15,7 +15,7 @@ Vikunja runs as a Docker container managed by systemd.
 
 **Service name**: `vikunja`
 **Container name**: `vikunja`
-**Image**: `vikunja/vikunja:0.24.6`
+**Image**: selected by `services/vikunja/docker-compose.yml`. It is `vikunja/vikunja:2.4.0` until the #1087 cutover, then `office2.local/vikunja:active` (see [Version Updates](#version-updates))
 **Port**: `100.92.197.90:3456` (Tailscale IP only)
 
 ### Check status
@@ -28,8 +28,10 @@ docker ps | grep vikunja
 
 ### Start / Stop / Restart
 
+**Kent only** (`sudo`, as `kgale` through `ssh office2-kgale`; agents never run these):
+
 ```bash
-# Requires sudo (run as kgale, not claude):
+# Kent: requires sudo (run as kgale, not claude):
 sudo systemctl start vikunja
 sudo systemctl stop vikunja
 sudo systemctl restart vikunja
@@ -86,50 +88,65 @@ restic ls latest /data/services/vikunja/data/vikunja.db
 
 ## Version Updates
 
-### Current version
+Rewritten 2026-10-30 for #1087. The earlier procedure edited the version
+in `vikunja.service` and `deploy.sh`, pulled from Docker Hub and restarted
+the service with `sudo`. None of that matches how the service runs now.
 
-The pinned Vikunja version is recorded in two places:
+### Where the image is selected
 
-- `scripts/vikunja/vikunja.service` (the `ExecStart` line)
-- `scripts/vikunja/deploy.sh` (the `VIKUNJA_IMAGE` variable)
+- `vikunja.service` is a system oneshot (`User=claude`). Its start runs
+  `docker compose -f /home/claude/kg-automation/services/vikunja/docker-compose.yml up -d`
+  and its stop runs `... down`, with no `-p`. The unit does not name an
+  image.
+- The image is selected only by the `image:` line in
+  `services/vikunja/docker-compose.yml`. The felix-deployer pulls `main`
+  into `/home/claude/kg-automation`, so a merged Compose change is live in
+  that file at once. The next start uses it.
+- From the #1087 cutover onwards, Compose selects the local indirection tag
+  `office2.local/vikunja:active` with `pull_policy: never`. The tag is
+  moved only by the release entrypoints and the rollback helper. A missing
+  tag makes `compose up -d` fail closed and never pull. Until the ACTIVATE
+  merge, Compose still names `vikunja/vikunja:2.4.0`.
+- The release being deployed is pinned, with every identity, in
+  `services/vikunja/release.json`.
 
-### Update procedure
+`scripts/vikunja/deploy.sh` is **legacy**. It always pulls a registry
+image, cannot select an image archive, and has no dry-run/apply contract.
+Do not use it to change the version.
 
-1. **Check release notes** at the Vikunja releases page for breaking changes
-2. **Verify a recent backup exists**: `restic snapshots --latest 1`
-3. **Update the version tag** in both `deploy.sh` and `vikunja.service`
-4. **Pull the new image**:
-   ```bash
-   docker pull vikunja/vikunja:<new-version>
-   ```
-5. **Stop the service** (requires sudo — run as kgale):
-   ```bash
-   sudo systemctl stop vikunja
-   ```
-6. **Copy the updated service file** (requires sudo):
-   ```bash
-   sudo cp scripts/vikunja/vikunja.service /etc/systemd/system/vikunja.service
-   sudo systemctl daemon-reload
-   ```
-7. **Start the service** (requires sudo):
-   ```bash
-   sudo systemctl start vikunja
-   ```
-8. **Verify**:
-   ```bash
-   systemctl status vikunja
-   curl -s http://100.92.197.90:3456/api/v1/info | python3 -c "import sys,json; print(json.load(sys.stdin)['version'])"
-   ```
-9. **Check data is intact** — log in to the web UI and verify tasks are present
-10. **Commit and push the version change** to the kg-automation repo
+### Upgrade route: STAGE, ACTIVATE, rollback
 
-### Rollback
+An image change goes through the manifest pipeline in two reviewed merges.
+Each merge is Kent's.
 
-If the new version has issues:
+The agent steps on office2, and the ingress, are run only by the Claude Code
+session through its own account `ssh office2-claude`. Codex sessions only
+review locally, and `office2-kgale` is for Kent's steps only.
 
-1. Revert the version tag in `deploy.sh` and `vikunja.service` to the previous version
-2. Pull the old image: `docker pull vikunja/vikunja:<old-version>`
-3. Repeat steps 5-9 above with the old version
+1. **Ingress** (agent): `scripts/vikunja/stage_release_archive.py` copies
+   the image archive and the rollback archive from office4 into a
+   create-only, 0700 folder under `/data/services/vikunja/release-artifacts/`,
+   through `ssh office2-claude`.
+2. **STAGE** (Kent merges; the deployer applies): `deploys/queued/vikunja-release-stage.yaml`
+   runs `scripts/deploy/deploy-vikunja-release-stage.py`. It loads and
+   verifies the archive and tags the release. It also creates
+   `office2.local/vikunja:active` pointing at the running image when that tag
+   is absent. It is inert: no container or Compose change.
+3. **ACTIVATE** (Kent's explicit go; the deployer applies): the Compose
+   change plus `deploys/queued/vikunja-release-activate.yaml`. It runs
+   `scripts/deploy/deploy-vikunja-release-activate.py` once, behind a durable
+   marker. The run stops the service, takes the write-boundary DB snapshot,
+   points `active` at the release, starts it and verifies it, all within a
+   300 s outage deadline.
+4. **Rollback** (only on failure): `scripts/vikunja/rollback_release.py`
+   runs through `ssh office2-claude` in two phases, `--prepare` then
+   `--finish`. Between them Kent restores the snapshot with `sudo` through
+   `ssh office2-kgale`. The guard refuses to start the old image on a
+   migrated DB.
+
+The full procedure has every command, the expected output, the acceptance
+step, the cancel and retry paths and the error codes. It is in
+[Vikunja Release Cutover](<./vikunja-release-cutover.md>).
 
 ## Access and Connectivity
 
@@ -145,11 +162,14 @@ target must be `http://100.92.197.90:3456` (Tailscale IP), **not** `localhost:34
 because the Docker container is bound to the Tailscale IP only — it does not
 listen on localhost.
 
+**Kent only.** These commands use `sudo` through `ssh office2-kgale`. Agents
+never run them; an agent that needs the serve config changed asks Kent.
+
 ```bash
-# View current serve config:
+# Kent: view current serve config:
 ssh office2-kgale 'sudo tailscale serve status'
 
-# Set or reset the proxy target:
+# Kent: set or reset the proxy target:
 ssh office2-kgale 'sudo tailscale serve --bg https+insecure://100.92.197.90:3456'
 ```
 

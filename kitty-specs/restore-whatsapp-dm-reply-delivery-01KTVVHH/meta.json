@@ -1,8 +1,9 @@
 {
   "baseline_merge_commit": "298b79dc",
-  "coordination_branch": "kitty/mission-restore-whatsapp-dm-reply-delivery-01KTVVHH",
   "created_at": "2026-06-11T17:26:40.245437+00:00",
+  "flattened": true,
   "friendly_name": "Restore WhatsApp DM Reply Delivery",
+  "merged_at": "2026-06-12T01:56:41.990793+00:00",
   "mission_id": "01KTVVHHBJKKG3JPMGRVHSB81P",
   "mission_number": 73,
   "mission_slug": "restore-whatsapp-dm-reply-delivery-01KTVVHH",
@@ -13,5 +14,6 @@
   "source_description": "GitHub issue #588 — WhatsApp DM reply delivery silently fails; main/subagent generate replies but channel never sends",
   "status_phase": "1",
   "target_branch": "main",
+  "topology": "lanes",
   "vcs": "git"
 }

@@ -1,7 +1,8 @@
 {
-  "coordination_branch": "kitty/mission-agent-prompt-deploy-pipeline-01KTMDDD",
   "created_at": "2026-06-08T20:05:04.146162+00:00",
+  "flattened": true,
   "friendly_name": "Agent Prompt Deploy Pipeline",
+  "merged_at": "2026-11-17T16:17:51.176773+00:00",
   "mission_id": "01KTMDDDGGY00S3S3VFGK0Z6P9",
   "mission_number": "",
   "mission_slug": "agent-prompt-deploy-pipeline-01KTMDDD",
@@ -10,5 +11,6 @@
   "purpose_tldr": "Pull-based office2 pipeline that auto-syncs Felix agent prompts from repo to deployed location within 5 minutes of merge.",
   "slug": "agent-prompt-deploy-pipeline-01KTMDDD",
   "status_phase": "1",
-  "target_branch": "main"
+  "target_branch": "main",
+  "topology": "lanes"
 }

@@ -1,0 +1,86 @@
+{
+  "version": 1,
+  "mission_slug": "002-openclaw-install-config",
+  "mission_id": "01KN5QX3WBC1M57EENV2JHWAT7",
+  "mission_branch": "kitty/mission-openclaw-install-config-01KN5QX3",
+  "target_branch": "main",
+  "lanes": [
+    {
+      "lane_id": "lane-a",
+      "wp_ids": [
+        "WP01"
+      ],
+      "write_scope": [
+        "kitty-specs/002-openclaw-install-config/data-model.md",
+        "kitty-specs/002-openclaw-install-config/research.md"
+      ],
+      "predicted_surfaces": [
+        "api"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    },
+    {
+      "lane_id": "lane-planning",
+      "wp_ids": [
+        "WP02",
+        "WP03"
+      ],
+      "write_scope": [
+        "kitty-specs/002-openclaw-install-config/**"
+      ],
+      "predicted_surfaces": [
+        "planning"
+      ],
+      "depends_on_lanes": [
+        "lane-a"
+      ],
+      "parallel_group": 1
+    },
+    {
+      "lane_id": "lane-b",
+      "wp_ids": [
+        "WP04"
+      ],
+      "write_scope": [
+        "docs/design/architecture/**",
+        "docs/func-spec/F002_openclaw_install.md",
+        "docs/handbooks/openclaw-ops.md",
+        "docs/handbooks/vikunja-ops.md"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "legacy-cleanup"
+      ],
+      "depends_on_lanes": [
+        "lane-planning"
+      ],
+      "parallel_group": 2
+    },
+    {
+      "lane_id": "lane-c",
+      "wp_ids": [
+        "WP05"
+      ],
+      "write_scope": [
+        "docs/handbooks/f002-acceptance-results.md"
+      ],
+      "predicted_surfaces": [
+        "api"
+      ],
+      "depends_on_lanes": [
+        "lane-a",
+        "lane-b",
+        "lane-planning"
+      ],
+      "parallel_group": 3
+    }
+  ],
+  "computed_at": "2026-11-17T16:20:03.795472+00:00",
+  "computed_from": "dependency_graph+ownership",
+  "planning_artifact_wps": [
+    "WP02",
+    "WP03"
+  ],
+  "planning_commit_sha": "dfb01be9346a3fac999dc93f7197f3007b717d8c"
+}

@@ -1,0 +1,1 @@
+{"architecture":"amd64","os":"linux","config":{"User":"1000","Env":["PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin","VIKUNJA_DATABASE_PATH=/db/vikunja.db"],"Labels":{"org.opencontainers.image.revision":"420c7bcb75231be9b6571fdfdf76a1a62f2aebd8"}},"rootfs":{"type":"layers","diff_ids":[]}}

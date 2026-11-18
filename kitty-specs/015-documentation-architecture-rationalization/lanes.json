@@ -1,0 +1,267 @@
+{
+  "version": 1,
+  "mission_slug": "015-documentation-architecture-rationalization",
+  "mission_id": "01KRG3V5ER7MN5MV4JDKBF7BNK",
+  "mission_branch": "kitty/mission-documentation-architecture-rationalization-01KRG3V5",
+  "target_branch": "main",
+  "lanes": [
+    {
+      "lane_id": "lane-a",
+      "wp_ids": [
+        "WP01"
+      ],
+      "write_scope": [
+        "docs/design/standards/divio-classification.md"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "artifact-rendering",
+        "legacy-cleanup"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    },
+    {
+      "lane_id": "lane-b",
+      "wp_ids": [
+        "WP02"
+      ],
+      "write_scope": [
+        "docs/design/office2-backup-and-security.md",
+        "docs/design/standards/visual-docs-style.md",
+        "docs/runbooks/office2-backup-and-security.md",
+        "docs/runbooks/visual-docs-style.md"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "legacy-cleanup"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    },
+    {
+      "lane_id": "lane-e",
+      "wp_ids": [
+        "WP05"
+      ],
+      "write_scope": [
+        "docs/issues/diagnostics/f012-merge-breadcrumbs.md",
+        "docs/issues/diagnostics/spec-kitty-feedback/f014-accept-not-in-resolver.md",
+        "docs/issues/diagnostics/spec-kitty-feedback/f014-merge-json-flag-error.md",
+        "docs/issues/diagnostics/spec-kitty-feedback/f014-multi-parent-dirty-worktree.md",
+        "docs/issues/diagnostics/spec-kitty-feedback/implement-crash-recovery-gap.md",
+        "docs/issues/diagnostics/spec-kitty-feedback/merge-crash-incomplete-cleanup.md"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "legacy-cleanup"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    },
+    {
+      "lane_id": "lane-j",
+      "wp_ids": [
+        "WP10"
+      ],
+      "write_scope": [
+        "docs/func-spec/F016_change_control_governance.md"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "legacy-cleanup"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    },
+    {
+      "lane_id": "lane-c",
+      "wp_ids": [
+        "WP03"
+      ],
+      "write_scope": [
+        "docs/runbooks/agent-execution-roles.md",
+        "docs/runbooks/agent-handbook.md",
+        "docs/runbooks/ci-handbook.md",
+        "docs/runbooks/claude-code.md",
+        "docs/runbooks/deployment.md",
+        "docs/runbooks/f001-acceptance-results.md",
+        "docs/runbooks/f002-acceptance-results.md",
+        "docs/runbooks/felix-governance.md",
+        "docs/runbooks/goals-ops.md",
+        "docs/runbooks/habits-ops.md",
+        "docs/runbooks/inbox-ops.md",
+        "docs/runbooks/maintenance.md",
+        "docs/runbooks/observation-ops.md",
+        "docs/runbooks/obsidian-setup.md",
+        "docs/runbooks/obsidian-sync-ops.md",
+        "docs/runbooks/obsidian.md",
+        "docs/runbooks/openclaw-ops.md",
+        "docs/runbooks/repo-governance.md",
+        "docs/runbooks/spec-kitty-init-in-existing-repo.md",
+        "docs/runbooks/task-intelligence-ops.md",
+        "docs/runbooks/templater-commands.md",
+        "docs/runbooks/transcribe-ops.md",
+        "docs/runbooks/vikunja-ops.md",
+        "docs/runbooks/whatsapp-ops.md"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "artifact-rendering",
+        "legacy-cleanup",
+        "tracker-integration"
+      ],
+      "depends_on_lanes": [
+        "lane-a",
+        "lane-b"
+      ],
+      "parallel_group": 1
+    },
+    {
+      "lane_id": "lane-d",
+      "wp_ids": [
+        "WP04"
+      ],
+      "write_scope": [
+        "docs/design/research/005-system-architecture-development/agent-team-architecture.md",
+        "docs/design/research/005-system-architecture-development/data-architecture.md",
+        "docs/design/research/005-system-architecture-development/data-privacy-identity.md",
+        "docs/design/research/005-system-architecture-development/integration-map.md",
+        "docs/design/research/005-system-architecture-development/integration-needs.md",
+        "docs/design/research/005-system-architecture-development/local-audit.md",
+        "docs/design/research/005-system-architecture-development/openclaw-capabilities.md",
+        "docs/design/research/005-system-architecture-development/roadmap.md",
+        "docs/design/research/005-system-architecture-development/user-story-catalog.md"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "artifact-rendering"
+      ],
+      "depends_on_lanes": [
+        "lane-b"
+      ],
+      "parallel_group": 1
+    },
+    {
+      "lane_id": "lane-f",
+      "wp_ids": [
+        "WP06"
+      ],
+      "write_scope": [
+        "docs/design/Vikunja.md",
+        "docs/design/adversarial-analysis.md",
+        "docs/design/decision-log.md",
+        "docs/design/felix-capability-roadmap.md",
+        "docs/design/personal-ai-system-spec-v03.md",
+        "docs/design/personal-ai-system-spec-v1.0.md",
+        "docs/design/project-charter.md",
+        "docs/design/risk-register.md",
+        "docs/design/standards/doc-standards.md",
+        "docs/design/standards/obsidian-linter-alignment.md",
+        "docs/design/standards/standards-readme.md",
+        "docs/design/strategic-acceleration-charter.md",
+        "docs/design/vision-framework.md"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "artifact-rendering",
+        "legacy-cleanup"
+      ],
+      "depends_on_lanes": [
+        "lane-a"
+      ],
+      "parallel_group": 1
+    },
+    {
+      "lane_id": "lane-g",
+      "wp_ids": [
+        "WP07"
+      ],
+      "write_scope": [
+        "docs/INDEX.md"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "artifact-rendering",
+        "legacy-cleanup",
+        "tracker-integration"
+      ],
+      "depends_on_lanes": [
+        "lane-a",
+        "lane-b",
+        "lane-c",
+        "lane-d",
+        "lane-e",
+        "lane-f"
+      ],
+      "parallel_group": 2
+    },
+    {
+      "lane_id": "lane-h",
+      "wp_ids": [
+        "WP08"
+      ],
+      "write_scope": [
+        "CLAUDE.md",
+        "ai-agents/claude-code-instructions.md",
+        "ai-agents/claude-instructions.md"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "app-shell",
+        "artifact-rendering",
+        "legacy-cleanup"
+      ],
+      "depends_on_lanes": [
+        "lane-g"
+      ],
+      "parallel_group": 3
+    },
+    {
+      "lane_id": "lane-i",
+      "wp_ids": [
+        "WP09"
+      ],
+      "write_scope": [
+        "docs/design/architecture/README.md",
+        "docs/design/architecture/change-control.md"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "artifact-rendering",
+        "legacy-cleanup"
+      ],
+      "depends_on_lanes": [
+        "lane-g"
+      ],
+      "parallel_group": 3
+    },
+    {
+      "lane_id": "lane-k",
+      "wp_ids": [
+        "WP11"
+      ],
+      "write_scope": [
+        "docs/archive/docs-readme.md",
+        "docs/docs-readme.md",
+        "docs/func-spec/F001_vikunja_docker_deploy.md",
+        "docs/func-spec/F002_openclaw_install.md",
+        "docs/func-spec/F005_system_architecture_review.md"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "artifact-rendering",
+        "legacy-cleanup"
+      ],
+      "depends_on_lanes": [
+        "lane-b",
+        "lane-g"
+      ],
+      "parallel_group": 3
+    }
+  ],
+  "computed_at": "2026-11-17T16:20:47.068128+00:00",
+  "computed_from": "dependency_graph+ownership",
+  "planning_artifact_wps": [],
+  "planning_commit_sha": "d043ddeb66fd85184ede2c0c9654157205a93ee4"
+}

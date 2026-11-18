@@ -25,7 +25,7 @@ history:
   action: Prompt generated via /spec-kitty.tasks
 authoritative_surface: docs/design/architecture/service-dependencies.view.md
 execution_mode: code_change
-lane: planned
+lane: done
 owned_files:
 - docs/design/architecture/service-dependencies.view.md
 ---

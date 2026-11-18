@@ -1,0 +1,161 @@
+{
+  "rows": {
+    "#1039": {
+      "evidence_ref": "Residue cleanup 2026-11-17 (Kent Gale's ruling): issue #1039 is OPEN on GitHub; the open issue is the follow-up",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": null,
+      "title": null,
+      "verdict": "deferred-with-followup",
+      "wp": "WP01"
+    },
+    "#135": {
+      "evidence_ref": "Residue cleanup 2026-11-17 (Kent Gale's ruling): issue #135 is CLOSED on GitHub",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": null,
+      "title": null,
+      "verdict": "verified-already-fixed",
+      "wp": "WP01"
+    },
+    "#225": {
+      "evidence_ref": "Residue cleanup 2026-11-17 (Kent Gale's ruling): issue #225 is CLOSED on GitHub",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": null,
+      "title": null,
+      "verdict": "verified-already-fixed",
+      "wp": "WP01"
+    },
+    "#259": {
+      "evidence_ref": "Residue cleanup 2026-11-17 (Kent Gale's ruling): issue #259 is CLOSED on GitHub",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": null,
+      "title": null,
+      "verdict": "verified-already-fixed",
+      "wp": "WP01"
+    },
+    "#278": {
+      "evidence_ref": "Residue cleanup 2026-11-17 (Kent Gale's ruling): issue #278 is CLOSED on GitHub",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": null,
+      "title": null,
+      "verdict": "verified-already-fixed",
+      "wp": "WP01"
+    },
+    "#291": {
+      "evidence_ref": "Residue cleanup 2026-11-17 (Kent Gale's ruling): issue #291 is CLOSED on GitHub",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": null,
+      "title": null,
+      "verdict": "verified-already-fixed",
+      "wp": "WP01"
+    },
+    "#320": {
+      "evidence_ref": "Residue cleanup 2026-11-17 (Kent Gale's ruling): issue #320 is CLOSED on GitHub",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": null,
+      "title": null,
+      "verdict": "verified-already-fixed",
+      "wp": "WP01"
+    },
+    "#327": {
+      "evidence_ref": "Residue cleanup 2026-11-17 (Kent Gale's ruling): issue #327 is CLOSED on GitHub",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": null,
+      "title": null,
+      "verdict": "verified-already-fixed",
+      "wp": "WP01"
+    },
+    "#342": {
+      "evidence_ref": "Residue cleanup 2026-11-17 (Kent Gale's ruling): issue #342 is CLOSED on GitHub",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": null,
+      "title": null,
+      "verdict": "verified-already-fixed",
+      "wp": "WP01"
+    },
+    "#343": {
+      "evidence_ref": "Residue cleanup 2026-11-17 (Kent Gale's ruling): issue #343 is CLOSED on GitHub",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": null,
+      "title": null,
+      "verdict": "verified-already-fixed",
+      "wp": "WP01"
+    },
+    "#347": {
+      "evidence_ref": "Residue cleanup 2026-11-17 (Kent Gale's ruling): issue #347 is CLOSED on GitHub",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": null,
+      "title": null,
+      "verdict": "verified-already-fixed",
+      "wp": "WP01"
+    },
+    "#350": {
+      "evidence_ref": "Residue cleanup 2026-11-17 (Kent Gale's ruling): issue #350 is CLOSED on GitHub",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": null,
+      "title": null,
+      "verdict": "verified-already-fixed",
+      "wp": "WP01"
+    },
+    "#351": {
+      "evidence_ref": "Residue cleanup 2026-11-17 (Kent Gale's ruling): issue #351 is CLOSED on GitHub",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": null,
+      "title": null,
+      "verdict": "verified-already-fixed",
+      "wp": "WP01"
+    }
+  },
+  "schema_version": 1
+}

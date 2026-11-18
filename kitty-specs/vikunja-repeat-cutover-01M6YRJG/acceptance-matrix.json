@@ -1,0 +1,139 @@
+{
+  "mission_slug": "vikunja-repeat-cutover-01M6YRJG",
+  "mission_number": "",
+  "mission_type": "",
+  "overall_verdict": "pass",
+  "criteria": [
+    {
+      "criterion_id": "FR-001",
+      "description": "Verify FR-001 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "tests/deploy/test_vikunja_release_core.py, test_vikunja_release_readiness.py. Full suite 8885 passed on the final tree; deploy tests also passed on Python 3.12",
+      "pass_fail": "pass",
+      "verified_by": "claude-opus-5-5",
+      "verified_at": "2026-11-09T21:50:04.971231+00:00",
+      "notes": "WP01, reviewed by Claude Sonnet 5.5"
+    },
+    {
+      "criterion_id": "FR-002",
+      "description": "Verify FR-002 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "tests/deploy/test_vikunja_release_core.py gzip cases. Full suite 8885 passed on the final tree; deploy tests also passed on Python 3.12",
+      "pass_fail": "pass",
+      "verified_by": "claude-opus-5-5",
+      "verified_at": "2026-11-09T21:50:07.111127+00:00",
+      "notes": "WP01"
+    },
+    {
+      "criterion_id": "FR-003",
+      "description": "Verify FR-003 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "tests/deploy/test_deploy_vikunja_release_stage.py. Full suite 8885 passed on the final tree; deploy tests also passed on Python 3.12",
+      "pass_fail": "pass",
+      "verified_by": "claude-opus-5-5",
+      "verified_at": "2026-11-09T21:50:09.288318+00:00",
+      "notes": "WP01; imported-tag cleanup is the runbook procedure"
+    },
+    {
+      "criterion_id": "FR-004",
+      "description": "Verify FR-004 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "tests/deploy/test_vikunja_release_db.py. Full suite 8885 passed on the final tree; deploy tests also passed on Python 3.12",
+      "pass_fail": "pass",
+      "verified_by": "claude-opus-5-5",
+      "verified_at": "2026-11-09T21:50:11.433169+00:00",
+      "notes": "WP02"
+    },
+    {
+      "criterion_id": "FR-005",
+      "description": "Verify FR-005 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "tests/deploy/test_vikunja_rollback.py crash-recovery cases. Full suite 8885 passed on the final tree; deploy tests also passed on Python 3.12",
+      "pass_fail": "pass",
+      "verified_by": "claude-opus-5-5",
+      "verified_at": "2026-11-09T21:50:13.612900+00:00",
+      "notes": "WP02, plan D4a"
+    },
+    {
+      "criterion_id": "FR-006",
+      "description": "Verify FR-006 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "tests/deploy/test_vikunja_rollback.py write-count cases. Full suite 8885 passed on the final tree; deploy tests also passed on Python 3.12",
+      "pass_fail": "pass",
+      "verified_by": "claude-opus-5-5",
+      "verified_at": "2026-11-09T21:50:15.764709+00:00",
+      "notes": "WP02"
+    },
+    {
+      "criterion_id": "FR-007",
+      "description": "Verify FR-007 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "tests/deploy/test_vikunja_release_db.py and test_vikunja_rollback.py exact-version cases. Full suite 8885 passed on the final tree; deploy tests also passed on Python 3.12",
+      "pass_fail": "pass",
+      "verified_by": "claude-opus-5-5",
+      "verified_at": "2026-11-09T21:50:17.865386+00:00",
+      "notes": "WP02"
+    },
+    {
+      "criterion_id": "FR-008",
+      "description": "Verify FR-008 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "tests/deploy/test_vikunja_release_baseline.py, test_deploy_vikunja_release_activate.py; private real-shape run passed the gate. Full suite 8885 passed on the final tree; deploy tests also passed on Python 3.12",
+      "pass_fail": "pass",
+      "verified_by": "claude-opus-5-5",
+      "verified_at": "2026-11-09T21:50:19.990075+00:00",
+      "notes": "WP03; live gate runs at ACTIVATE"
+    },
+    {
+      "criterion_id": "FR-009",
+      "description": "Verify FR-009 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "tests/deploy/test_vikunja_release_acceptance.py; all nine checks passed on a private real-shape upgrade with the published image. Full suite 8885 passed on the final tree; deploy tests also passed on Python 3.12",
+      "pass_fail": "pass",
+      "verified_by": "claude-opus-5-5",
+      "verified_at": "2026-11-09T21:50:22.145274+00:00",
+      "notes": "WP04"
+    },
+    {
+      "criterion_id": "FR-010",
+      "description": "Verify FR-010 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "tests/deploy/test_vikunja_cutover_change_set.py in the STAGE state; identities reviewed by Claude Sonnet 5.5",
+      "pass_fail": "pass",
+      "verified_by": "claude-opus-5-5",
+      "verified_at": "2026-11-09T21:50:24.323269+00:00",
+      "notes": "WP04-WP06; live application follows PR1"
+    },
+    {
+      "criterion_id": "FR-011",
+      "description": "Verify FR-011 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "tests/deploy/test_vikunja_cutover_change_set.py in the ACTIVATE state",
+      "pass_fail": "pass",
+      "verified_by": "claude-opus-5-5",
+      "verified_at": "2026-11-09T21:50:26.496490+00:00",
+      "notes": "WP07; delivered by PR2 after STAGE applies and preflight passes"
+    },
+    {
+      "criterion_id": "FR-012",
+      "description": "Verify FR-012 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "tooling/scripts/validate_docs.py OK; runbook reviewed by Claude Sonnet 5.5; tests/deploy/test_vikunja_cutover_change_set.py runs the B3 snippet",
+      "pass_fail": "pass",
+      "verified_by": "claude-opus-5-5",
+      "verified_at": "2026-11-09T21:50:28.646138+00:00",
+      "notes": "WP05"
+    },
+    {
+      "criterion_id": "FR-013",
+      "description": "Verify FR-013 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "tests/deploy/test_vikunja_release_preflight.py. Full suite 8885 passed on the final tree; deploy tests also passed on Python 3.12",
+      "pass_fail": "pass",
+      "verified_by": "claude-opus-5-5",
+      "verified_at": "2026-11-09T21:50:30.813331+00:00",
+      "notes": "WP04; live run follows STAGE"
+    }
+  ],
+  "negative_invariants": []
+}

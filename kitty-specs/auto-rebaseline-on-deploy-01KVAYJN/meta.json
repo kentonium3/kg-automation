@@ -21,9 +21,10 @@
   "accepted_by": "kentgale",
   "accepted_from_commit": "2027b0bdd2b69b82e05515361d0d1e5cecb8fb9d",
   "baseline_merge_commit": "5b40aa7beaea19c6a156c2619d14c3a9d8a807e3",
-  "coordination_branch": "kitty/mission-auto-rebaseline-on-deploy-01KVAYJN",
   "created_at": "2026-06-17T14:08:19.050107+00:00",
+  "flattened": true,
   "friendly_name": "Auto-Rebaseline Security Baselines on Deploy",
+  "merged_at": "2026-06-17T16:36:49.005486+00:00",
   "mission_id": "01KVAYJN3748551VTMF2TT2KFN",
   "mission_number": 79,
   "mission_slug": "auto-rebaseline-on-deploy-01KVAYJN",
@@ -33,6 +34,7 @@
   "slug": "auto-rebaseline-on-deploy-01KVAYJN",
   "status_phase": "1",
   "target_branch": "main",
+  "topology": "lanes",
   "vcs": "git",
   "vcs_locked_at": "2026-06-17T14:42:27.497965+00:00"
 }

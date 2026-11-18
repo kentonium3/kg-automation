@@ -1,7 +1,9 @@
 ---
 work_package_id: WP03
 title: Agent Standing Orders
-dependencies: [WP01, WP02]
+dependencies:
+- WP01
+- WP02
 requirement_refs:
 - C-003
 - C-005
@@ -29,16 +31,27 @@ requirement_refs:
 - NFR-005
 planning_base_branch: main
 merge_target_branch: main
-branch_strategy: Planning artifacts for this feature were generated on main. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into main unless the human explicitly redirects the landing branch.
-subtasks: [T011, T012, T013, T014, T015, T016, T017]
+branch_strategy: Planning artifacts for this mission were generated on main. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into main unless the human explicitly redirects the landing branch.
+subtasks:
+- T011
+- T012
+- T013
+- T014
+- T015
+- T016
+- T017
 history:
 - date: '2026-04-02T12:53:14Z'
   action: created
   by: spec-kitty.tasks
 authoritative_surface: scripts/openclaw/agents/felix-admin-tasker/
+create_intent: []
 execution_mode: code_change
-lane: planned
-owned_files: [scripts/openclaw/agents/felix-admin-tasker/AGENTS.md]
+lane: canceled
+owned_files:
+- scripts/openclaw/agents/felix-admin-tasker/AGENTS.md
+tags: []
+tracker_refs: []
 ---
 
 # WP03: Agent Standing Orders

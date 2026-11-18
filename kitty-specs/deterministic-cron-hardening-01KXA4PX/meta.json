@@ -17,6 +17,7 @@
   "created_at": "2026-07-12T03:07:39.449198+00:00",
   "flattened": true,
   "friendly_name": "Deterministic escalation + weekly-report crons",
+  "merged_at": "2026-07-12T04:55:01.292387+00:00",
   "mission_id": "01KXA4PXHQAW3WWPHT7P465Z6V",
   "mission_number": 96,
   "mission_slug": "deterministic-cron-hardening-01KXA4PX",

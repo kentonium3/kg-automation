@@ -1,0 +1,29 @@
+{
+  "rows": {
+    "#1087": {
+      "evidence_ref": "<link or commit>",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": "spec.md",
+      "title": "<fill at WP-implementation time>",
+      "verdict": "not-applicable",
+      "wp": null
+    },
+    "#1095": {
+      "evidence_ref": "mission vikunja-repeat-cutover-01M6YRJG, WP01-WP07 approved",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": "spec.md",
+      "title": "<fill at WP-implementation time>",
+      "verdict": "fixed",
+      "wp": null
+    }
+  },
+  "schema_version": 1
+}

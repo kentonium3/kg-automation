@@ -1,0 +1,29 @@
+{
+  "rows": {
+    "#1087": {
+      "evidence_ref": "deploy route delivered: WP01-WP09 approved (Codex), accepted a4b747b4, squash 9579d231; production activation is Kent's go per docs/runbooks/vikunja-release-cutover.md",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": "spec.md",
+      "title": "Vikunja: image-archive staging + activation deploy route (RRULE release)",
+      "verdict": "fixed",
+      "wp": null
+    },
+    "#853": {
+      "evidence_ref": "<auto-classified: no action required>",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": "spec.md",
+      "title": "<auto-classified: pr_or_commit_ref>",
+      "verdict": "not-applicable",
+      "wp": null
+    }
+  },
+  "schema_version": 1
+}

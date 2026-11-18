@@ -30,7 +30,7 @@ history:
   action: Prompt generated via /spec-kitty.tasks
 authoritative_surface: docs/runbooks/governance/
 execution_mode: code_change
-lane: planned
+lane: done
 owned_files:
 - docs/runbooks/governance/pre-flight-checklist.md
 - docs/runbooks/governance/post-change-verification.md

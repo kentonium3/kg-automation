@@ -1,21 +1,37 @@
 ---
 work_package_id: WP07
 title: Deployment & Validation
-dependencies: [WP01, WP02, WP03, WP04, WP05, WP06]
+dependencies:
+- WP01
+- WP02
+- WP03
+- WP04
+- WP05
+- WP06
 requirement_refs:
 - FR-020
 planning_base_branch: main
 merge_target_branch: main
-branch_strategy: Planning artifacts for this feature were generated on main. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into main unless the human explicitly redirects the landing branch.
-subtasks: [T032, T033, T034, T035, T036]
+branch_strategy: Planning artifacts for this mission were generated on main. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into main unless the human explicitly redirects the landing branch.
+subtasks:
+- T032
+- T033
+- T034
+- T035
+- T036
 history:
 - date: '2026-04-02T12:53:14Z'
   action: created
   by: spec-kitty.tasks
 authoritative_surface: scripts/deploy/
+create_intent:
+- scripts/deploy/deploy-f013.sh
 execution_mode: code_change
-lane: planned
-owned_files: [scripts/deploy/deploy-f013.sh]
+lane: canceled
+owned_files:
+- scripts/deploy/deploy-f013.sh
+tags: []
+tracker_refs: []
 ---
 
 # WP07: Deployment & Validation

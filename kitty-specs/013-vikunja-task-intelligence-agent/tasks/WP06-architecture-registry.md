@@ -1,23 +1,34 @@
 ---
 work_package_id: WP06
 title: Architecture & Registry Updates
-dependencies: [WP03]
+dependencies:
+- WP03
 requirement_refs:
 - C-008
 - FR-024
 - FR-025
 planning_base_branch: main
 merge_target_branch: main
-branch_strategy: Planning artifacts for this feature were generated on main. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into main unless the human explicitly redirects the landing branch.
-subtasks: [T028, T029, T030, T031]
+branch_strategy: Planning artifacts for this mission were generated on main. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into main unless the human explicitly redirects the landing branch.
+subtasks:
+- T028
+- T029
+- T030
+- T031
 history:
 - date: '2026-04-02T12:53:14Z'
   action: created
   by: spec-kitty.tasks
 authoritative_surface: docs/
+create_intent: []
 execution_mode: code_change
-lane: planned
-owned_files: [docs/constitution/AGENT-REGISTRY.md, docs/design/architecture/service-inventory.md, docs/design/architecture/data/service-inventory.json]
+lane: canceled
+owned_files:
+- docs/constitution/AGENT-REGISTRY.md
+- docs/design/architecture/service-inventory.md
+- docs/design/architecture/data/service-inventory.json
+tags: []
+tracker_refs: []
 ---
 
 # WP06: Architecture & Registry Updates

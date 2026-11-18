@@ -26,6 +26,11 @@ execution_mode: code_change
 lane: planned
 owned_files:
 - docs/func-spec/F016_change_control_governance.md
+# Residue cleanup 2026-11-17 (Kent Gale's ruling): these owned_files paths no longer exist on main
+# (moved or deleted after the mission). Declared here only so 'spec-kitty doctor mission-state --fix'
+# can rebuild lanes.json and the mission can be closed; no file will be created.
+create_intent:
+  - docs/func-spec/F016_change_control_governance.md
 ---
 
 # Work Package Prompt: WP10 — Resolve F016 Path Dependencies

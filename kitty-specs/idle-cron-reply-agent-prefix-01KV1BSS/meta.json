@@ -14,9 +14,10 @@
   "accepted_by": "kentgale",
   "accepted_from_commit": "9863e427b9d5dcf42c9207b670526db4e3b4f806",
   "baseline_merge_commit": "9e3ec8c228c7da0f5baa84e52592c13541bb95f7",
-  "coordination_branch": "kitty/mission-idle-cron-reply-agent-prefix-01KV1BSS",
   "created_at": "2026-06-13T20:46:59.662276+00:00",
+  "flattened": true,
   "friendly_name": "Prefix IDLE Cron Replies With Agent Slug",
+  "merged_at": "2026-11-17T16:19:02.967192+00:00",
   "mission_id": "01KV1BSS2A5085M762PQ7TYNPY",
   "mission_number": 77,
   "mission_slug": "idle-cron-reply-agent-prefix-01KV1BSS",
@@ -28,5 +29,6 @@
   "source_description": "GitHub issue #592 — Prefix IDLE cron messages with agent identifier",
   "status_phase": "1",
   "target_branch": "feat/idle-cron-reply-agent-prefix",
+  "topology": "lanes",
   "vcs": "git"
 }

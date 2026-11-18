@@ -3,7 +3,7 @@ title: Deploy Discipline (canonical)
 doc_type: runbook
 audience: agents_and_humans
 status: approved
-last_updated: '2026-07-23'
+last_updated: '2026-10-30'
 ---
 
 # Deploy Discipline
@@ -468,11 +468,19 @@ The applier flow on each tick:
    `apply_mode: manifest`, `applied_at: <ts>`. Commit + push. Remove the
    manifest from `deploys/queued/`.
 5. On failure: write `deploys/failed/<slug>-<ts>.yaml` with the failure
-   phase and a redacted error summary. Commit + push. Leave the manifest
-   in `deploys/queued/`. Dispatch a WhatsApp DM to the operator via
-   openclaw. **No auto-retry on the next tick** — the failure record
-   blocks the manifest until either the script is fixed (next tick
-   re-attempts automatically) or the manifest is deleted from the queue.
+   phase and a redacted error summary, and dispatch an ntfy push
+   notification. The failure record is written to disk in the office2
+   checkout only. It is **not** committed or pushed. Leave the manifest in
+   `deploys/queued/`.
+   **A failed manifest re-runs on every tick.** The failure record does not
+   block it. Every tick, about every 5 minutes, runs the manifest again from
+   the top and writes a new failure record and alert, until it succeeds or
+   the manifest is deleted from the queue. Write entrypoints so that a
+   repeated run is safe; see
+   [One-shot (non-idempotent) manifests](#one-shot-non-idempotent-manifests).
+   (Corrected 2026-10-30, #1087: this step used to say the failure record
+   was committed and blocked auto-retry. `scripts/deploy/felix-deployer/_tick.py`
+   does neither.)
 
 The applier is itself deployed via the bootstrap script — see the
 **Bootstrap** section below.
@@ -538,21 +546,28 @@ broken deploy.
 
 When a deploy fails, the applier:
 
-1. Writes the failure record to `deploys/failed/<slug>-<ts>.yaml`. The
-   record names the manifest, tier, failure phase
-   (`tier_guard` / `verification_pre` / `dry_run` / `apply` /
-   `verification_post`), and a redacted error summary (stack-trace tail,
-   non-zero exit code, command that failed).
-2. Commits and pushes the failure record to `main`.
-3. Leaves the manifest in `deploys/queued/`.
-4. Dispatches a WhatsApp DM to the operator via openclaw, naming the
-   manifest, tier, failure phase, and a short summary.
+1. Writes the failure record to `deploys/failed/<slug>-<ts>.yaml` in the
+   office2 checkout (`/home/claude/kg-automation`). The record names the
+   manifest, failure phase (`tier_guard` / `snapshot` / `verification_pre` /
+   `entrypoint_dry_run` / `entrypoint_apply` / `verification_post`, as named in
+   `scripts/deploy/lib/apply.py`, or `manifest_parse` / `manifest_validation`
+   from the tick itself), and a redacted error summary
+   (non-zero exit code, command that failed). The record is not committed
+   or pushed, so read it on office2:
+   `ssh office2-claude 'ls -t /home/claude/kg-automation/deploys/failed/ | head'`.
+2. Leaves the manifest in `deploys/queued/`.
+3. Dispatches an ntfy push notification naming the manifest, tier, failure
+   phase, and a short summary.
+
+The next tick, about 5 minutes later, runs the manifest again. Steps 1 to 3
+repeat on every failing tick (corrected 2026-10-30, #1087).
 
 **Operator (or agent) response options:**
 
 - **Fix the deploy script in a follow-up PR.** Push the fix to `main`. The
   next applier tick automatically re-attempts the manifest. No state needs
-  to be cleared.
+  to be cleared. A one-shot entrypoint is the exception: its own durable
+  marker decides what a re-run does (see below).
 - **Cancel the deploy.** Delete the manifest from `deploys/queued/` and
   push. The next tick will skip it because there's nothing to find.
 - **Cancel the manifest but keep the script.** Useful if the script needs
@@ -563,6 +578,45 @@ There is no manual "retry" button. The pipeline is pull-based and
 deterministic: a manifest in the queue is a standing instruction to
 attempt the deploy on every applier tick until it succeeds or is
 explicitly cancelled.
+
+### One-shot (non-idempotent) manifests
+
+Most entrypoints are idempotent: running `--apply` twice leaves the host as
+one run would. Some cannot be, for example a production cutover that stops a
+service, snapshots its data and starts a new image. Because a failed manifest
+re-runs every tick, such an entrypoint must protect itself. Use this pattern,
+with the Vikunja release ACTIVATE as the reference adopter
+(`scripts/deploy/deploy-vikunja-release-activate.py`, runbook
+[Vikunja Release Cutover](<../vikunja-release-cutover.md>), #1087):
+
+1. **A durable marker.** Before the first non-repeatable action, create a
+   marker file outside the repository with an exclusive create
+   (`O_CREAT|O_EXCL`), `fsync` it and its folder, and update it at each phase
+   (write to a temp file, `fsync`, `os.replace`). Code never deletes it.
+2. **A process-held lock.** The felix-deployer deploylock belongs to the tick,
+   not to the entrypoint. A one-shot entrypoint also holds its own
+   exclusive, non-blocking `flock` for its whole run, through cleanup. Any
+   operator helper that acts on the same state (for example a rollback)
+   takes both locks and refuses if either is busy.
+3. **Read-only replay.** When the marker exists, every later run, dry run or
+   apply, only reports and exits. A recorded success exits 0, but only after
+   a read-only check that the host really is in the success state. Any other
+   outcome exits 1 with a stable code that names the next step. A replay
+   never repeats a stop or start.
+4. **A cancel path through a reviewed queue-manifest removal.** After a
+   failure, the manifest re-runs and refuses every tick until it is
+   cancelled. Cancel it with a reviewed commit that deletes it from
+   `deploys/queued/`, together with any change that keeps the tests green.
+   The marker stays as history.
+5. **Retry only after rollback.** An authorized retry is a distinct act. First
+   complete the rollback, so the host is back in the state the preconditions
+   require. Then the operator gives an explicit go, and the marker is archived
+   under a new name, never deleted. The still-queued manifest then runs again
+   on the next tick, and its preconditions must reject any host that was not
+   rolled back.
+
+Record the marker path, the replay codes and the cancel and retry steps in the
+service's runbook.
 
 ---
 
@@ -609,9 +663,22 @@ the manifest in (or the post-merge follow-up) MUST record one of:
 - `Rebaseline: not required — <one-line justification>` if the
   `audited_surface: true` flag turned out to be conservative.
 
-The operator runs the reset command on office2 — neither the applier nor
-CI runs it. Canonical command lives in
+On the happy path the applier rebaselines by itself, with deferred
+confirmation. After a pull it records the audited surfaces in the pulled
+range, plus the manifest's `expected_baselines`, as a pending rebaseline. On
+later ticks a read-only audit confirms that the drift stays within that
+expected set; only then does the applier reset the baselines, verify them,
+and stamp the outcome on the applied record's `rebaseline:` field. Drift
+beyond the expected set is never reset automatically: it raises an alert
+for a human. See
+[`security-baseline-ops.md` § Automatic rebaseline](<../security-baseline-ops.md#automatic-rebaseline-felix-deployer>)
+and [`deployment.md` § felix-deployer rebaseline behavior](<../deployment.md#felix-deployer-rebaseline-behavior-reference>).
+The operator runs the manual reset only for out-of-band changes, after a
+`rebaseline_failed` or `rebaseline_unexpected_drift` alert, or when the
+automatic flow cannot run. The canonical command is in
 [`docs/runbooks/security-baseline-ops.md`](<../security-baseline-ops.md>).
+(Corrected 2026-10-30, #1087: this paragraph used to say that neither the
+applier nor CI runs the reset.)
 
 If the manifest declared `audited_surface: false` but the deploy turned
 out to touch an audited surface, fix the manifest in a follow-up PR
