@@ -1,0 +1,30 @@
+{
+  "entries": [
+    {
+      "created_at": "2026-11-18T12:01:04.719847Z",
+      "decision_id": "01M7Q8GBPFDGP9H1CC2DAQNETZ",
+      "final_answer": "Confirmed",
+      "input_key": "intent_confirmed",
+      "mission_id": "01M7Q8F38CE7TDBVJEYGT1YA7B",
+      "mission_slug": "arms849-live-runtime-host-endpoints-01M7Q8F3",
+      "opened_by": "cli",
+      "options": [
+        "Confirmed",
+        "Confirmed with corrections",
+        "Other"
+      ],
+      "origin_flow": "specify",
+      "other_answer": false,
+      "question": "Confirm the Intent Summary and extracted FR/NFR/C set for #1083 (fix A)?",
+      "rationale": null,
+      "resolved_at": "2026-11-18T12:03:01.975205Z",
+      "resolved_by": null,
+      "slot_key": "specify.intent.confirm",
+      "status": "resolved",
+      "step_id": null,
+      "summary_json": null
+    }
+  ],
+  "mission_id": "01M7Q8F38CE7TDBVJEYGT1YA7B",
+  "version": 1
+}
