@@ -16,5 +16,7 @@
   "target_branch": "feat/849-preconditions",
   "topology": "single_branch",
   "topology_settled": false,
-  "topology_source": "default"
+  "topology_source": "default",
+  "contracts": "none",
+  "contracts_rationale": "Internal research-harness wiring fix (#1083): adds a keyword-only endpoints parameter and checker record fields; no external API, webhook, or integration interface is defined."
 }
