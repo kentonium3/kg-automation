@@ -5,6 +5,7 @@ This is the procedure for SC-001–SC-003, the charter's pre-merge live exercise
 ## Preconditions
 
 - The primary checkout is on `feat/849-preconditions` at the commit under test and is clean. Keep the untracked `.kittify/mission-state-audit/` moved aside (it is parked at `~/.local/share/kg-849-evidence/parked/`), because `checkout-clean-at-start` fails on it.
+  - *Correction (2026-11-18, found during the pre-tasks artifact audit):* since #1104 (373f32ff on main, merged into `feat/849-preconditions` at cab71a10), `.kittify/mission-state-audit/` is **tracked** in git, so it no longer dirties the checkout. Do not move it aside. Moving a tracked directory would itself fail `checkout-clean-at-start`. What still holds: `git status --porcelain --untracked-files=all` must be empty.
 - `build/849-runs/setup.json` is present (`substrate setup` from 2026-10-23), and the frozen corpus is at `build/849-corpus`.
 - No stale container pins the llama.cpp image (`docker ps -a --filter ancestor=<llama image>` is empty).
 - `ARMS849_CACHE` is **unset**. A relative value broke host-gates once.
