@@ -105,6 +105,7 @@ The checker's `--verify` mode accepts a record only when its `live-required-node
 | C-002 | Allowlist untouched | The llama host allowlist stays a constant. `ARMS849_LLAMA_HOSTS` stays unread and forbidden, as WP01 of #1023 established. | Technical | High | Open |
 | C-003 | Option B stays rejected | The required nodes are not moved into the runner container. They stay host pytest (Kent, 2026-10-26). | Business | High | Open |
 | C-004 | Lead does not implement | Code is written by an implementer agent (python-pedro). The orchestrating session designs, dispatches and decides. | Business | Medium | Open |
+| C-005 | Documentation synchronization | Charter Project Directive 5. No architecture JSON, markdown view, runbook, INDEX or roadmap entry changes: the mission alters no deployed service, credential, port, data flow or topology. No document under `docs/` or `scripts/research/` describes the checker's live step, `ARMS849_LIVE` or the override variables (searched 2026-11-18). `quickstart.md` is the only operational procedure, and it already describes the live verification. *(Added 2026-11-18 from analysis finding C1.)* | Technical | Medium | Open |
 
 ### Key Entities
 

@@ -73,6 +73,10 @@ flowchart TB
 
 **D5. Checker.** In `check_849_premerge.py`, the `live-required-nodes` env adds `ARMS849_FALKOR_HOST=127.0.0.1`, `ARMS849_FALKOR_PORT=str(substrate.FALKOR_PORT)`, `ARMS849_LLAMA_HOST=127.0.0.1` and `ARMS849_LLAMA_PORT=str(substrate.LLAMA_PORT)`. The `_step` evidence-environment allowlist (currently `PYTHONHASHSEED`, `ARMS849_CACHE`, `ARMS849_LIVE`, `PYTHONPATH`, at line ~275) adds those four keys, so the record shows them (FR-004).
 
+  *Interaction (added 2026-11-18 from analysis finding I1):* the second required live node, `test_arms849_arm_g.py::test_live_hybrid_search_returns_an_item_the_question_names`, uses the `falkor_endpoint` fixture. That fixture honours `ARMS849_FALKOR_HOST`/`ARMS849_FALKOR_PORT` when set, and otherwise runs `substrate up`/`down` itself. With D5 in place the node reuses the checker's running stack instead of cycling it inside the live step. That is the intended effect, and the checker run should show no extra up/down. The checker also strips the four keys from the office-seed and fresh-worktree CI environments wherever it strips `ARMS849_LIVE` (analysis finding A1).
+
+  *Test placement (added 2026-11-18 from analysis finding I2):* T-a to T-c live in a new `tests/research/test_arms849_endpoints.py`, and `tests/research/test_arms849_resume.py`'s `container_health` fake is adapted, so that WP01 and WP02 own disjoint files.
+
 **D6. Verifier.** In `--verify`'s `required_live` semantics, beyond `ARMS849_LIVE == "1"`, it also requires the four override keys to equal the published values derived from the same constants (FR-005). One shared constant mapping (`HOST_LIVE_ENDPOINT_ENV`) is used by both D5 and D6, so the writer and the checker cannot drift.
 
 **D7. Allowlist untouched (C-002).** `serving.ALLOWED_HOSTS` already contains `127.0.0.1`, so no change is needed. `ARMS849_LLAMA_HOSTS` stays unread. An existing test already asserts that.

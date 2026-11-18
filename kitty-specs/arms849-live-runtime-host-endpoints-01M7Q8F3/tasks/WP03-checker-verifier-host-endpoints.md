@@ -166,7 +166,7 @@ spec-kitty agent action implement WP03 --agent claude --mission arms849-live-run
 - **Steps**:
   1. In the live phase (`:798`), build `env = {**os.environ, "ARMS849_LIVE": "1", "ARMS849_CACHE": cache, **HOST_LIVE_ENDPOINT_ENV}`. The mapping goes **last**, so an operator's stray exported override cannot redirect the checker's live step.
   2. Extend the `_step` evidence allowlist with the four keys. Derive them from `HOST_LIVE_ENDPOINT_ENV`'s keys, e.g. `("PYTHONHASHSEED", "ARMS849_CACHE", "ARMS849_LIVE", "PYTHONPATH", *HOST_LIVE_ENDPOINT_ENV)`, so the two lists cannot drift.
-  3. Decide, and state in a comment, whether the office seeds and the fresh-worktree CI step should also **strip** the four keys (as they strip `ARMS849_LIVE`). Recommended: yes. Pop them in the same places `ARMS849_LIVE` is popped (`:412`, `:733`), so an operator's exported override never leaks into those suites, where WP02's red-first test deliberately runs without overrides. If you do, assert it in T-f.
+  3. **Strip** the four keys from the office-seed and fresh-worktree CI environments, in the same places `ARMS849_LIVE` is popped (`:412`, `:733`), so an operator's exported override never leaks into those suites. Assert it in T-f. *(Made definite 2026-11-18 from analysis finding A1.)*
 - **Files**: `scripts/research/check_849_premerge.py`.
 - **Notes**: the second required live node (`test_arms849_arm_g.py::falkor_endpoint`) already honours `ARMS849_FALKOR_HOST`/`PORT`. With them set, it uses the running stack and no longer runs `substrate up`/`down` itself inside the live step. That is the intended effect. Mention it in your history note so the reviewer sees it.
 
@@ -199,7 +199,7 @@ spec-kitty agent action implement WP03 --agent claude --mission arms849-live-run
      - find the live call (the pytest call containing `LIVE_NODES[0]`) and assert its env carries the four literal values;
      - assert the recorded `live-required-nodes` step's `environment` carries the same four, plus `ARMS849_LIVE == "1"`;
      - assert the literals agree with `substrate.FALKOR_PORT`/`LLAMA_PORT` (one line), so a port change shows up as a deliberate test edit;
-     - if T011 step 3 strips the keys from office and CI suites, assert no office or CI call env contains any of the four, **even with** `monkeypatch.setenv("ARMS849_FALKOR_PORT", "1")` set beforehand.
+     - assert no office or CI call env contains any of the four (T011 step 3), **even with** `monkeypatch.setenv("ARMS849_FALKOR_PORT", "1")` set beforehand.
   3. Also with an operator override exported (`monkeypatch.setenv("ARMS849_LLAMA_PORT", "9")`), assert the live call still carries `18080` (the checker's mapping wins).
 - **Files**: `tests/research/test_check_849_premerge.py`.
 

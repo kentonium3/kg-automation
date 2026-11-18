@@ -183,6 +183,7 @@ spec-kitty agent action implement WP02 --agent claude --mission arms849-live-run
      - `socket.getaddrinfo("falkordb", 6379)` **succeeds**: the precondition is false (in the container, or a hosts entry). Skip with "falkordb resolves here; the red-first precondition does not hold".
      - The model cache is absent: `cache = pathlib.Path(os.environ.get("ARMS849_CACHE", str(substrate.CACHE_DIR)))`, and `cache / "qwen-tokenizer"` or `cache / "fastembed"` missing. Skip with the research-environment reason the module already uses (`RESEARCH_ENVIRONMENT_SKIP_REASON`), which matches how the fresh-worktree CI step treats absent build state.
      - The corpus is absent (`CORPUS / "stream.jsonl"` missing): the same reason.
+     - `graphiti_core` is not importable (`importlib.util.find_spec("graphiti_core") is None`, or importing it raises, as with the checker's CI stub): the same reason. *(Added 2026-11-18 from analysis finding U1; arm G's factory imports graphiti, so without this the child would report an import error.)*
   3. Run the attempt in a **child process** with a hard bound:
 
      ```python
