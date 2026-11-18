@@ -5,7 +5,7 @@ status: approved
 ---
 
 <!-- spec-kitty:orientation -->
-**Spec Kitty v4.0.0rc9** - project: kga-try (healthy)
+**Spec Kitty v4.0.0rc9** - project: kg-automation (healthy)
 
 Two usage patterns:
 - **Full mission** (spec -> plan -> tasks -> implement -> review -> merge):
