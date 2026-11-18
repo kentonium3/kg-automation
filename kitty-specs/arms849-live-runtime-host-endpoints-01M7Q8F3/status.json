@@ -2,10 +2,9 @@
   "event_count": 21,
   "last_event_id": "01M7RG08GFV036FVW09SEHB8TS",
   "materialized_at": "2026-11-18T23:31:20.207159+00:00",
-  "mission_number": "124",
+  "mission_number": "",
   "mission_slug": "arms849-live-runtime-host-endpoints-01M7Q8F3",
-  "mission_type": "software-dev",
-  "schema_version": 2,
+  "mission_type": "",
   "summary": {
     "approved": 0,
     "blocked": 0,
@@ -20,103 +19,54 @@
   "work_packages": {
     "WP01": {
       "actor": "merge",
-      "agent": "codex",
-      "agent_profile": "__resolved_profile_absent__",
-      "agent_profile_version": "__resolved_profile_version_absent__",
+      "agent": "claude",
       "force_count": 0,
       "implementer_of_record": "claude",
       "lane": "done",
       "last_event_id": "01M7RG04Y68J5E31XRP895RDTW",
       "last_transition_at": "2026-11-18T23:31:16.551013+00:00",
-      "model": "__resolved_model_absent__",
-      "notes": [
-        "- 2026-11-18T23:07:50Z – claude – shell_pid=1053417 – Commit 483b8bbe. Suite (tests/research minus test_arms849_arm_g.py, which hung ~3h50m in an asyncio/futex wait in a combined run and was excluded per orchestrator; no ARMS849_CORPUS; timeout 600): BEFORE 1 failed/652 passed/710 skipped; AFTER 1 failed/657 passed/710 skipped; identical failed+skipped sets (the 1 failure is pre-existing test_arms849_serving::test_b2_full_block_exceeds_the_trained_context, no build/849-corpus in lane). New module 5 passed (+resume: 6 passed, 4 skipped). Graphiti-stub run (raising graphiti_core first on PYTHONPATH, no ARMS849 env): 5 passed, 0 skipped. Half-by-half: reverting bridge host/port, facade URL, health URL+falkordb, props probe URL each alone -> T-b red, T-a green (4/4 reds). T-c planted os.environ.get(ARMS849_FALKOR_HOST) in child fake -> zero-reads assertion red. py_compile OK, git diff --check OK; ruff and mypy NOT installed (venv or PATH) so lint not run. CLI caller live_runtime(config, args.corpus, gates_outcome) unchanged.",
-        "Ready for review: commit 483b8bbe. Tests: timeout 600 .venv/bin/python -m pytest tests/research --ignore=tests/research/test_arms849_arm_g.py -p no:cacheprovider --basetemp=/dev/shm/... (no ARMS849_CORPUS) before 1F/652P/710S, after 1F/657P/710S, same failed/skipped set (pre-existing serving b2 corpus-absent failure). Endpoints module 5 passed, also 5 passed under raising graphiti_core stub. Half-by-half 4/4 reds; T-c planted read red. test_arms849_arm_g.py hung (~3h50m) and was excluded; orchestrator to run it on feat after consolidate. ruff/mypy unavailable.",
-        "Review passed (cycle 1, 2026-11-18). Reviewer: OpenAI Codex CLI (codex exec -s read-only); implementer: Claude Opus 5.5 as python-pedro. No findings. Independent non-vacuity: each of 4 wirings reverted -> T-b red/T-a green; planted env read -> T-c red; graphiti stub 5 passed 0 skipped; stand-ins restored. Base-vs-tip identical outcomes. Full verdict: ~/.local/share/kg-849-evidence/1083/reviews/WP01-c1-verdict.md"
-      ],
-      "provider": "__resolved_provider_absent__",
       "review_result": {
         "feedback_path": "/home/kgale/repos/kg-automation/.worktrees/arms849-live-runtime-host-endpoints-01M7Q8F3-coord/kitty-specs/arms849-live-runtime-host-endpoints-01M7Q8F3/tasks/WP01-runtime-endpoint-wiring/review-cycle-1.md",
         "reference": "review-cycle://arms849-live-runtime-host-endpoints-01M7Q8F3/WP01-runtime-endpoint-wiring/review-cycle-1.md",
         "reviewer": "codex",
         "verdict": "approved"
       },
-      "role": "reviewer",
-      "shell_pid": 2975991,
-      "shell_pid_created_at": "1795043315.05",
-      "subtasks": {
-        "T001": "done",
-        "T002": "done",
-        "T003": "done",
-        "T004": "done",
-        "T005": "done"
-      }
+      "shell_pid": 1053417,
+      "shell_pid_created_at": "1795027757.3"
     },
     "WP02": {
       "actor": "merge",
-      "agent": "codex",
-      "agent_profile": "__resolved_profile_absent__",
-      "agent_profile_version": "__resolved_profile_version_absent__",
+      "agent": "claude",
       "force_count": 0,
       "implementer_of_record": "claude",
       "lane": "done",
       "last_event_id": "01M7RG08GFV036FVW09SEHB8TS",
       "last_transition_at": "2026-11-18T23:31:20.207159+00:00",
-      "model": "__resolved_model_absent__",
-      "notes": [
-        "dcb7a092. Env: shared .venv python, PYTHONPATH/VIRTUAL_ENV unset, TMPDIR=/dev/shm, ARMS849_CACHE=build/849-cache, timeout 600, arm_g ignored. Broad tests/research (no ARMS849_CORPUS; lane has no build so integration module skips module-wide): before 1 failed/657 passed/710 skipped; after 1 failed/657 passed/728 skipped; same failure (test_arms849_serving::test_b2_full_block_exceeds_the_trained_context, pre-existing), +18 skips are the new tests. Integration module with ARMS849_CORPUS=main build corpus: before 200 passed/1 skipped, after 218 passed/1 skipped (live node, ARMS849_LIVE unset). T-e RUNS and PASSES: chain redis ConnectionError 'Error -2 connecting to falkordb:6379. Name or service not known.' <- socket.gaierror. Non-vacuity: child temporarily given endpoints=127.0.0.1:16379/18080 with stack down -> T-e FAILED on name-resolution assertion (ConnectionRefusedError 111); reverted, byte-identical. Skip reasons exercised by mock (resolves/no cache/no corpus/no graphiti/graphiti stub). Live node NOT run live: no arms849 containers up; SC-001 live proof deferred to orchestrator. ruff/mypy not installed: py_compile + git diff --check only.",
-        "Review passed (cycle 1, 2026-11-18). Reviewer: OpenAI Codex CLI (codex exec -s read-only); implementer: Claude Opus 5.5 as python-pedro. 1 non-blocking: C-001 source scanner misses multiline/aliased reads (WP01 runtime recorder covers indirect reads). Non-vacuity: reader-default mutation red; T-e red when child honours host endpoints; timeout path fails; all 5 skip branches exercised; CI graphiti-stub sim 17p/1s (corpus) and 18s (no corpus), no errors. Full verdict: ~/.local/share/kg-849-evidence/1083/reviews/WP02-c1-verdict.md"
-      ],
-      "provider": "__resolved_provider_absent__",
       "review_result": {
         "feedback_path": "/home/kgale/repos/kg-automation/.worktrees/arms849-live-runtime-host-endpoints-01M7Q8F3-coord/kitty-specs/arms849-live-runtime-host-endpoints-01M7Q8F3/tasks/WP02-host-overrides-live-node/review-cycle-1.md",
         "reference": "review-cycle://arms849-live-runtime-host-endpoints-01M7Q8F3/WP02-host-overrides-live-node/review-cycle-1.md",
         "reviewer": "codex",
         "verdict": "approved"
       },
-      "role": "reviewer",
-      "shell_pid": 3079797,
-      "shell_pid_created_at": "1795044319.82",
-      "subtasks": {
-        "T006": "done",
-        "T007": "done",
-        "T008": "done",
-        "T009": "done"
-      }
+      "shell_pid": 3002051,
+      "shell_pid_created_at": "1795043616.52"
     },
     "WP03": {
       "actor": "merge",
-      "agent": "codex",
-      "agent_profile": "__resolved_profile_absent__",
-      "agent_profile_version": "__resolved_profile_version_absent__",
+      "agent": "claude",
       "force_count": 0,
       "implementer_of_record": "claude",
       "lane": "done",
       "last_event_id": "01M7RG06QTQ80BMG3VZVRV5PNW",
       "last_transition_at": "2026-11-18T23:31:18.394171+00:00",
-      "model": "__resolved_model_absent__",
-      "notes": [
-        "- 2026-11-18T19:10:29Z – claude – shell_pid=1053417 – Impl 8f14002a. HOST_LIVE_ENDPOINT_ENV (MappingProxyType; ports from substrate.FALKOR_PORT/LLAMA_PORT) drives the live env (applied last), EVIDENCE_ENV_KEYS allowlist, NON_LIVE_STRIPPED_ENV_KEYS (office seeds + fresh-worktree CI), and verify_record (adds reason 'live-required-nodes did not run at the published host endpoints'). REPO_ROOT sys.path bootstrap added (run_849_harness pattern) so the documented script-path entry point can import substrate. tests/research before 18F/1451P/6S, after 18F/1463P/6S (+12 new; same 18 pre-existing failures in test_arms849_gates/test_run_849_harness, caused by exporting ARMS849_CORPUS outside the worktree's build/ — preflight refuses non-default corpus). Module: 36->48 passed. Non-vacuity: R1 drop **HOST_LIVE_ENDPOINT_ENV -> 4F+11E incl. T-f and whole-checker pass; R2 drop keys from allowlist -> 9F incl. T-f; R3 drop all(...) -> 9F (T-g per-key absent/wrong + legacy); extra: drop strip -> T-f red. Fresh detached worktree + raising graphiti_core stub + no build/: import OK, script-path --help OK under -I. ruff 0.17.4 (uvx offline): only pre-existing UP017; py_compile OK; mypy unavailable. Note (I1): arm_g falkor_endpoint now honours the overrides, so the live step reuses the checker's stack and no longer runs substrate up/down itself.",
-        "Ready for review",
-        "Review passed (Codex CLI 0.170.0 / gpt-6.1-sol, read-only, 2026-11-18; implementer python-pedro on Claude Opus 5.5): no blocking findings. Codex reran the 48 checker tests, 3 mutation probes (live injection, evidence allowlist, verifier clause) each red, an operator-export poisoning probe, a fresh-archive import with a raising graphiti stub, and an AST check that valid_step/command_has are unchanged. Full-suite not rerun by Codex (sandbox blocks loopback); orchestrator ran gates+harness on feat with build/: 299 passed; the implementer's 18 lane failures came from the orchestrator's ARMS849_CORPUS export instruction, not the diff. Verdict file: ~/.local/share/kg-849-evidence/1083/reviews/WP03-c1-verdict.md"
-      ],
-      "provider": "__resolved_provider_absent__",
       "review_result": {
         "feedback_path": "/home/kgale/repos/kg-automation/.worktrees/arms849-live-runtime-host-endpoints-01M7Q8F3-coord/kitty-specs/arms849-live-runtime-host-endpoints-01M7Q8F3/tasks/WP03-checker-verifier-host-endpoints/review-cycle-1.md",
         "reference": "review-cycle://arms849-live-runtime-host-endpoints-01M7Q8F3/WP03-checker-verifier-host-endpoints/review-cycle-1.md",
         "reviewer": "codex",
         "verdict": "approved"
       },
-      "role": "reviewer",
-      "shell_pid": 1181731,
-      "shell_pid_created_at": "1795029082.52",
-      "subtasks": {
-        "T010": "done",
-        "T011": "done",
-        "T012": "done",
-        "T013": "done",
-        "T014": "done"
-      }
+      "shell_pid": 1053417,
+      "shell_pid_created_at": "1795027757.3"
     }
   }
 }
