@@ -58,9 +58,12 @@ flowchart TB
   RES0 & RES1 --> G["_factory_g → arm_g.make_bridge(host, port)"]
   RES0 & RES1 --> F["ServingFacade(base_url=llama_url)"]
   RES0 & RES1 --> HL["container_health(base_url, falkordb)"]
+  RES0 & RES1 --> PR["live_secondary_gate → _props_n_ctx(llama_url)"]
 ```
 
-**D1. `Endpoints` value.** A frozen dataclass in `run_849_harness.py` with `falkordb: tuple[str, int]` and `llama_url: str`, plus the module constant `IN_NETWORK_ENDPOINTS = Endpoints(FALKORDB_ADDR, LLAMA_URL)`. The existing `FALKORDB_ADDR`/`LLAMA_URL` constants stay, as the source of the default, so their other users (`container_health`'s defaults, `_props_n_ctx`, the gates environment) are untouched.
+**D1. `Endpoints` value.** A frozen dataclass in `run_849_harness.py` with `falkordb: tuple[str, int]` and `llama_url: str`, plus the module constant `IN_NETWORK_ENDPOINTS = Endpoints(FALKORDB_ADDR, LLAMA_URL)`. The existing `FALKORDB_ADDR`/`LLAMA_URL` constants stay, as the source of the default. Their non-runtime users (`container_health`'s signature defaults, the host-phase gates environment at `:1283`) are untouched.
+
+**D1a. The context-window probe follows the runtime (post-plan review P-1, 2026-11-18).** `_props_n_ctx` becomes `_props_n_ctx(base_url: str = LLAMA_URL)`. `Runtime` carries the `endpoints` it was built with. `live_secondary_gate(runtime, props_n_ctx=None)` resolves a `None` default to `lambda: _props_n_ctx(runtime.endpoints.llama_url)`. An explicitly injected `props_n_ctx` (existing tests) keeps working. Without this, a host runtime would send its completion to the host endpoint but probe `/props` in-network (`run_849_harness.py:1548-1550, 1677, 1695`).
 
 **D2. `Resources.endpoints`.** `Resources` gains `endpoints: Endpoints = IN_NETWORK_ENDPOINTS`. That keeps every existing `Resources(...)` construction valid, including tests and fakes. `_factory_g` passes `host=resources.endpoints.falkordb[0], port=resources.endpoints.falkordb[1]` to `arm_g.make_bridge`. `_factory_d`/`_factory_r` are untouched because they make no network connections.
 
@@ -78,15 +81,28 @@ flowchart TB
 
 | Test | Proves | Shape |
 |---|---|---|
-| T-a `live_runtime` default pair | FR-002 [ratchet] | With fakes for the tokenizer, embedder and `make_bridge` (monkeypatched factories capture the `Resources`), it asserts that the default build targets `falkordb:6379` and `http://llama:8080` in the bridge, facade and health. |
-| T-b explicit pair, same fixture | FR-001 [build], the positive control for T-a | On the same fixture with `endpoints=Endpoints(("127.0.0.1",16379),"http://127.0.0.1:18080")`, all three consumers see the host pair. |
-| T-c env is ignored by production | C-001 | It sets all four `ARMS849_*` override variables, calls `live_runtime` with no `endpoints`, and asserts the in-network pair. T-b is its same-fixture positive control. |
-| T-d override reader | FR-003, edge cases | Defaults, a partial override, and a non-integer port raising. |
-| T-e red-first | FR-006 | The real `live_runtime` with no override, from the host: arm G's bridge construction raises a connection error naming `falkordb`. It is gated `ARMS849_LIVE=1` (it needs a host where `falkordb` does not resolve, and is meaningful only alongside the live node). |
-| T-f checker env | FR-004 | The `live-required-nodes` step env and its recorded `environment` carry the four keys with the published values (fake runner). |
-| T-g verifier | FR-005, SC-003 | From one real-shaped record fixture: the well-formed record is accepted, a copy without `ARMS849_LIVE` is rejected, a copy without the overrides is rejected, and a copy with a wrong port is rejected. |
-| Live node (existing) | SC-001 | It now calls `live_runtime(..., endpoints=_host_endpoints_from_env())`. |
-| Half-by-half | FR-001 compound | The reviewer reverts the facade wiring alone, then the bridge wiring alone. T-b must go red each time, and so must the health wiring. |
+| T-a `live_runtime` default pair | FR-002 [ratchet] | Uses the **real** `ARM_FACTORIES`/`_factory_g`, patched only at the `arm_g.make_bridge` boundary (capturing `host`/`port`), with fake tokenizer and embedder. It **invokes** the returned `facade(...)` and `health()` callbacks, plus `live_secondary_gate`'s resolved props probe, against patched `urlopen`/`socket.create_connection` that capture their targets. It asserts that all four consumers target `falkordb:6379` and `http://llama:8080`. (Post-plan review P-2: faking the factories or only constructing the callbacks would bypass the wiring under test.) |
+| T-b explicit pair, same fixture | FR-001 [build], the positive control for T-a | The same fixture with `endpoints=Endpoints(("127.0.0.1",16379),"http://127.0.0.1:18080")`. The bridge, facade, health and props probe all see the host pair. |
+| T-c env is ignored by production | C-001 | **Fresh process** (P-3): a subprocess sets all four `ARMS849_*` overrides to values distinct from every default **before importing** the harness. It wraps `os.environ` with a read-recording mapping, imports the harness, builds the default runtime through the same patched boundaries as T-a, and asserts (i) the in-network pair everywhere and (ii) **zero reads** of the four keys during import and construction. T-b is its positive control. A planted read in a fake must make (ii) fail, which is checked once at review. |
+| T-d override reader | FR-003, edge cases | Defaults, a partial override (the other side stays on the host default, never the in-network name), and a non-integer port raising with the variable named. |
+| T-e red-first | FR-006 | **Not live-gated** (P-6). The real `live_runtime` with no override, from the host, asserts the failure is a **name-resolution** error naming `falkordb`, not some other setup or connection error. It skips only when `socket.getaddrinfo("falkordb", 6379)` succeeds (the precondition is false) or the model cache is absent (fresh-worktree CI). So it runs in both office seed suites of the checker. It is bounded by a hard per-test timeout, because the bridge sets `socket_connect_timeout=None` (`arm_g.py:1398`); production transport is unchanged. |
+| T-f checker env | FR-004 | Fake runner. It asserts **both** the env actually passed to the runner **and** the recorded `environment`, against an **independent oracle**: the literal `127.0.0.1` and `substrate.FALKOR_PORT`/`LLAMA_PORT`, never `HOST_LIVE_ENDPOINT_ENV` itself (P-5). |
+| T-g verifier | FR-005, SC-003 | One real-shaped record fixture: the well-formed record is accepted; without `ARMS849_LIVE` it is rejected; for **each of the four keys independently**, absent is rejected and wrong value is rejected (parametrized); and a legacy-shaped same-commit record lacking all four keys is rejected (P-5). |
+| Live node (existing, extended) | SC-001 | It calls `live_runtime(..., endpoints=_host_endpoints_from_env())` and additionally calls `runtime.health()` for real, opting out of the autouse `_block_live_http` guard the way the `live_http` fixture in `test_arms849_arm_g.py:41-44` does (P-2). So the llama side is exercised live, not only FalkorDB. |
+| Half-by-half | FR-001 compound | The reviewer reverts each of the four wirings alone (bridge, facade, health, props probe). T-b must go red each time. |
+
+### Post-plan review dispositions (Codex, `codex exec` read-only, 2026-11-18, verdict REVISE)
+
+Reviewer: Codex CLI 0.170.0, model `gpt-6.1-sol`. Implementer of this plan's code: python-pedro (Claude). Cross-vendor independence holds. Raw verdict: `~/.local/share/kg-849-evidence/1083/post-plan-codex-verdict.md`.
+
+| # | Finding | Severity | Disposition |
+|---|---|---|---|
+| P-1 | `live_secondary_gate`'s default `_props_n_ctx` hard-wires `LLAMA_URL` | MAJOR | **Adopted**: D1a, and T-a/T-b cover it |
+| P-2 | Tests could bypass the real `_factory_g`; lazy callbacks never invoked; live node never touches llama | MAJOR | **Adopted**: T-a rewritten, live node extended |
+| P-3 | T-c misses import-time env reads | MAJOR | **Adopted**: fresh-process T-c with read recording |
+| P-4 | `--verify` accepts internally contradictory records (non-zero counts, non-executing pytest command token tricks) | MAJOR (Codex) | **Not adopted in this mission; surfaced to Kent for a ruling.** Verified: `valid_step` already requires `returncode == 0`, `passed is True` and `status == "pass"` (`check_849_premerge.py:612`), and `nodes_valid` requires every required node to have passed. So a genuine failed or skipped run cannot verify. The residue is hardening against tampered or self-contradictory records, which predates #1083. |
+| P-5 | Shared map as its own oracle; per-key coverage; legacy records | MINOR | **Adopted**: T-f/T-g |
+| P-6 | Red-first test never scheduled; connect timeout is `None` | MINOR | **Adopted**: T-e de-gated, precondition-skipped, hard timeout |
 
 ## Project Structure
 
@@ -133,9 +149,9 @@ No charter violations.
 
 - **Purpose**: Make the live runtime's FalkorDB and llama targets a value with in-network defaults, consumed consistently by the bridge, facade and health.
 - **Relevant requirements**: FR-001, FR-002, FR-003, FR-006, C-001, C-002, NFR-001
-- **Affected surfaces**: `scripts/research/run_849_harness.py` (`Endpoints`, `IN_NETWORK_ENDPOINTS`, `Resources`, `_factory_g`, `live_runtime`), `tests/research/test_arms849_integration.py`
+- **Affected surfaces**: `scripts/research/run_849_harness.py` (`Endpoints`, `IN_NETWORK_ENDPOINTS`, `Resources`, `Runtime.endpoints`, `_factory_g`, `live_runtime`, `_props_n_ctx`, `live_secondary_gate`), `tests/research/test_arms849_integration.py`
 - **Sequencing/depends-on**: none
-- **Risks**: missing one of the three consumers (the half-by-half check covers it). A `Resources` default change breaks fakes that construct it positionally (keep the field last, with a default). T-e must not hang on DNS (use the existing connection timeouts).
+- **Risks**: missing one of the three consumers (the half-by-half check covers it). A `Resources` default change breaks fakes that construct it positionally (keep the field last, with a default). T-e must not hang. The bridge's connect timeout is `None` (`arm_g.py:1398`), so the test carries its own hard timeout (P-6), and production transport is not changed to suit a test.
 
 ### IC-02 — Checker records and verifier requires the host endpoints
 
