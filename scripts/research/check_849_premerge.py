@@ -21,9 +21,17 @@ import xml.etree.ElementTree as ET
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime, timezone
+from types import MappingProxyType
 from typing import Protocol
 
 REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]
+# The documented entry point is ``python scripts/research/check_849_premerge.py``, which puts
+# only scripts/research on sys.path.  Same bootstrap as run_849_harness.py.
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
+from scripts.research.arms849.substrate import FALKOR_PORT, LLAMA_PORT
+
 SUITE_TIMEOUT_S = 900.0
 COMMAND_TIMEOUT_S = 3_700.0  # substrate up itself permits a one-hour health wait
 GIT_TIMEOUT_S = 60.0
@@ -68,6 +76,22 @@ LIVE_NODES: tuple[str, ...] = (
     REQUIRED_NODES[0],
     REQUIRED_NODES[10],
 )
+#: #1083: the required live nodes run on the host, so they reach the stack through the ports
+#: the substrate publishes on loopback. The checker writes exactly these into the live step's
+#: environment, and --verify requires exactly these.
+HOST_LIVE_ENDPOINT_ENV: Mapping[str, str] = MappingProxyType({
+    "ARMS849_FALKOR_HOST": "127.0.0.1",
+    "ARMS849_FALKOR_PORT": str(FALKOR_PORT),
+    "ARMS849_LLAMA_HOST": "127.0.0.1",
+    "ARMS849_LLAMA_PORT": str(LLAMA_PORT),
+})
+LIVE_ENDPOINT_REASON = "live-required-nodes did not run at the published host endpoints"
+#: Environment keys a recorded step keeps as evidence; every other key is dropped.
+EVIDENCE_ENV_KEYS: tuple[str, ...] = (
+    "PYTHONHASHSEED", "ARMS849_CACHE", "ARMS849_LIVE", "PYTHONPATH", *HOST_LIVE_ENDPOINT_ENV,
+)
+#: Keys that must never leak from the operator's shell into the office or CI suites.
+NON_LIVE_STRIPPED_ENV_KEYS: tuple[str, ...] = ("ARMS849_LIVE", *HOST_LIVE_ENDPOINT_ENV)
 LIVE_STEP_NAMES = (
     "live-export", "live-preflight", "live-up", "live-host-gates",
     "live-smoke", "live-required-nodes", "live-down",
@@ -272,7 +296,7 @@ def _step(
     started = _now()
     command = list(argv)
     evidence_env = {
-        key: env[key] for key in ("PYTHONHASHSEED", "ARMS849_CACHE", "ARMS849_LIVE", "PYTHONPATH")
+        key: env[key] for key in EVIDENCE_ENV_KEYS
         if env is not None and key in env
     }
     try:
@@ -409,7 +433,8 @@ def run_ci_simulation(
         else:
             build_absent = True
             env = dict(os.environ)
-            env.pop("ARMS849_LIVE", None)
+            for key in NON_LIVE_STRIPPED_ENV_KEYS:
+                env.pop(key, None)
             env["ARMS849_CACHE"] = str(temp_root / "absent-cache")
             env["PYTHONPATH"] = os.pathsep.join(
                 [str(stub), str(checkout), env.get("PYTHONPATH", "")]
@@ -667,10 +692,17 @@ def verify_record(path: pathlib.Path, head: str) -> tuple[bool, list[str]]:
             "--up-ts", "--ledger",
         )
         required_live = by_name["live-required-nodes"]
+        live_env = required_live["environment"]
+        live_endpoints_ok = (
+            live_env.get("ARMS849_LIVE") == "1" and
+            all(live_env.get(key) == value for key, value in HOST_LIVE_ENDPOINT_ENV.items())
+        )
+        if not live_endpoints_ok:
+            reasons.append(LIVE_ENDPOINT_REASON)
         semantics_ok &= (
             command_has("live-required-nodes", "pytest", "junit_family=xunit1", *LIVE_NODES) and
             any(str(arg).startswith("--junitxml=") for arg in required_live["command"]) and
-            required_live["environment"].get("ARMS849_LIVE") == "1"
+            live_endpoints_ok
         )
         semantics_ok &= command_has("live-down", "scripts.research.arms849.substrate", "down")
         for name in ("checkout-clean-at-start", "commit-still-bound"):
@@ -730,7 +762,8 @@ def run_premerge(
         for seed in (0, 3):
             junit = evidence_root / f"office-seed-{seed}.xml"
             env = {**os.environ, "PYTHONHASHSEED": str(seed), "ARMS849_CACHE": cache}
-            env.pop("ARMS849_LIVE", None)
+            for key in NON_LIVE_STRIPPED_ENV_KEYS:
+                env.pop(key, None)
             step, report = _step(
                 f"office-seed-{seed}",
                 [sys.executable, "-m", "pytest", "-q", "tests/research",
@@ -795,7 +828,11 @@ def run_premerge(
                      "--ledger", str(ledger)],
                 )
                 junit = evidence_root / "live-nodes.xml"
-                env = {**os.environ, "ARMS849_LIVE": "1", "ARMS849_CACHE": cache}
+                # The mapping goes last so an operator's exported override cannot redirect it.
+                env = {
+                    **os.environ, "ARMS849_LIVE": "1", "ARMS849_CACHE": cache,
+                    **HOST_LIVE_ENDPOINT_ENV,
+                }
                 report = live_step(
                     "live-required-nodes",
                     [python, "-m", "pytest", "-q", *LIVE_NODES,

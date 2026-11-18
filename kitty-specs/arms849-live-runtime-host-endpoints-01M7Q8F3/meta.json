@@ -1,0 +1,48 @@
+{
+  "accept_commit": "8bb33fa826eb7819d2cabeabeac79bec3c5fde39",
+  "acceptance_history": [
+    {
+      "accept_commit": "8bb33fa826eb7819d2cabeabeac79bec3c5fde39",
+      "acceptance_mode": "pr",
+      "accepted_at": "2026-11-18T23:30:07.213846+00:00",
+      "accepted_by": "kgale",
+      "accepted_from_commit": "57105f402180e52020ec3f77dfe24a8aeeac58b8"
+    }
+  ],
+  "acceptance_mode": "pr",
+  "accepted_at": "2026-11-18T23:30:07.213846+00:00",
+  "accepted_by": "kgale",
+  "accepted_from_commit": "57105f402180e52020ec3f77dfe24a8aeeac58b8",
+  "contracts": "none",
+  "contracts_rationale": "Internal research-harness wiring fix (#1083): adds a keyword-only endpoints parameter and checker record fields; no external API, webhook, or integration interface is defined.",
+  "coordination_branch": "kitty/mission-arms849-live-runtime-host-endpoints-01M7Q8F3",
+  "create_return_branch": "feat/849-preconditions",
+  "created_at": "2026-11-18T12:00:23.333647+00:00",
+  "flattened": false,
+  "friendly_name": "#849 live runtime: host-reachable endpoints (#1083)",
+  "mid8": "01M7Q8F3",
+  "mission_base_sha": "cab71a10b588dc8bc2888da6937d7e7262f58361",
+  "mission_branch": "kitty/mission-arms849-live-runtime-host-endpoints-01M7Q8F3",
+  "mission_id": "01M7Q8F38CE7TDBVJEYGT1YA7B",
+  "mission_number": 124,
+  "mission_slug": "arms849-live-runtime-host-endpoints-01M7Q8F3",
+  "mission_type": "software-dev",
+  "purpose_context": "The #849 decisive test (graph memory vs vector-RAG vs full-corpus baselines over Kent's goal and outcome scenario arcs, run on office4 local inference) is blocked behind its preconditions mission, whose merge to main is held on the FR-015 pre-merge checker record. One required live check always fails because the runtime only knows the container-network service names. This mission lets the runtime accept explicit endpoints while keeping today's in-container defaults, so the checker can pass and the decisive run can start.",
+  "purpose_tldr": "Let the #849 pre-merge checker's required live test reach the FalkorDB and llama services from the host, so the decisive Life Lattice test can proceed.",
+  "slug": "arms849-live-runtime-host-endpoints-01M7Q8F3",
+  "status_phase": "1",
+  "target_branch": "feat/849-preconditions",
+  "topology": "lanes_with_coord",
+  "topology_decision": {
+    "code_lane_count": 3,
+    "from": "single_branch",
+    "rule": "lanes_with_coord",
+    "target_protected": false,
+    "to": "lanes_with_coord",
+    "wp_count": 3
+  },
+  "topology_settled": true,
+  "topology_source": "default",
+  "vcs": "git",
+  "vcs_locked_at": "2026-11-18T18:49:20.372459+00:00"
+}

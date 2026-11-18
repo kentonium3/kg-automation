@@ -169,6 +169,20 @@ DEFAULT_LEDGER = RUNS_DIR / "ledger.jsonl"
 CORPUS_DIR = pathlib.Path(os.environ.get("ARMS849_CORPUS", str(DEFAULT_CORPUS)))
 LLAMA_URL = "http://llama:8080"
 FALKORDB_ADDR = ("falkordb", 6379)
+
+
+@dataclass(frozen=True)
+class Endpoints:
+    """Where a live runtime connects. Production uses IN_NETWORK_ENDPOINTS only (C-001);
+    host pairs are built by the required live test and the FR-015 checker, never from the
+    environment here."""
+
+    falkordb: tuple[str, int]
+    llama_url: str
+
+
+IN_NETWORK_ENDPOINTS = Endpoints(FALKORDB_ADDR, LLAMA_URL)
+
 PROCESS_START = datetime.now(timezone.utc).isoformat()
 
 #: CLI exit codes. EXIT_GATES_FAILED is distinct from every other failure (design-lead rider 1).
@@ -357,6 +371,7 @@ class Resources:
     config: serving.ServingConfiguration
     tokenizer: Any
     embedder: Any
+    endpoints: Endpoints = IN_NETWORK_ENDPOINTS
 
 
 def _corpus_text(resources: Resources) -> Any:
@@ -369,7 +384,8 @@ def _factory_g(resources: Resources) -> ArmRegistration:
     # Lazy by contract: importing this harness must not import graphiti_core.
     from scripts.research.arms849 import arm_g
 
-    bridge = arm_g.make_bridge(resources.embedder, _corpus_text(resources))
+    host, port = resources.endpoints.falkordb
+    bridge = arm_g.make_bridge(resources.embedder, _corpus_text(resources), host=host, port=port)
     return ArmRegistration(
         refusal=ArmRefusal,
         answer=bridge.answer,
@@ -509,6 +525,7 @@ class Runtime:
     attempt_timeout_s: float = ATTEMPT_TIMEOUT_S
     cancel_grace_s: float = CANCEL_GRACE_S
     out: Callable[[str], None] = print
+    endpoints: Endpoints = IN_NETWORK_ENDPOINTS
 
 
 @dataclass
@@ -1531,22 +1548,29 @@ def live_config(secondary: bool, development_ledger: bool = False) -> serving.Se
     return serving.ServingConfiguration.secondary_yarn(identity) if secondary else serving.ServingConfiguration.primary(identity)
 
 
-def live_runtime(config: serving.ServingConfiguration, corpus: pathlib.Path, gates_outcome: SessionGates) -> Runtime:
+def live_runtime(config: serving.ServingConfiguration, corpus: pathlib.Path, gates_outcome: SessionGates,
+                 *, endpoints: Endpoints = IN_NETWORK_ENDPOINTS) -> Runtime:
+    """The live runtime. Arm G's bridge, the serving facade and the health check all read
+    ``endpoints``, and the runtime keeps it for the secondary gate's ``/props`` probe. The default
+    is the in-network pair (the decisive in-container run); only tests and the FR-015 checker pass
+    a host pair. No endpoint is read from the environment (C-001)."""
     from scripts.research.arms849.substrate import CACHE_DIR
     from scripts.research.arms849.embed import Embedder
 
     cache = pathlib.Path(os.environ.get("ARMS849_CACHE", str(CACHE_DIR)))
     tokenizer = serving.Tokenizer(cache / "qwen-tokenizer")
     embedder = Embedder(cache / "fastembed")
-    arms = build_arms(Resources(corpus_dir=corpus, config=config, tokenizer=tokenizer, embedder=embedder))
+    arms = build_arms(Resources(corpus_dir=corpus, config=config, tokenizer=tokenizer, embedder=embedder,
+                                endpoints=endpoints))
     return Runtime(config=config, arms=arms, corpus_dir=corpus,
                    facade=lambda deadline, cancelled, before_send: ServingFacade(
-                       config, tokenizer, LLAMA_URL, deadline, cancelled, before_send),
-                   health=lambda: container_health(config), gates=gates_outcome, embedder=embedder)
+                       config, tokenizer, endpoints.llama_url, deadline, cancelled, before_send),
+                   health=lambda: container_health(config, endpoints.llama_url, endpoints.falkordb),
+                   gates=gates_outcome, embedder=embedder, endpoints=endpoints)
 
 
-def _props_n_ctx() -> int:
-    with urllib.request.urlopen(f"{LLAMA_URL}/props", timeout=10) as r:
+def _props_n_ctx(base_url: str = LLAMA_URL) -> int:
+    with urllib.request.urlopen(f"{base_url}/props", timeout=10) as r:
         return int((json.loads(r.read().decode()).get("default_generation_settings") or {}).get("n_ctx") or 0)
 
 
@@ -1674,7 +1698,8 @@ def _probe_refusal(guard: Mapping[str, Any], when: str) -> dict[str, Any]:
             "reason": f"{what} {when}; nothing sent"}
 
 
-def live_secondary_gate(runtime: Runtime, props_n_ctx: Callable[[], int] = _props_n_ctx) -> Callable[[], dict[str, Any]]:
+def live_secondary_gate(runtime: Runtime,
+                        props_n_ctx: Callable[[], int] | None = None) -> Callable[[], dict[str, Any]]:
     """n_ctx 393216 (+ yarn, verified by the host phase) and one ~363k-token prompt — the full D view
     at the last question's ask_time — through ``serving.complete``, with peak GTT and rates.
 
@@ -1682,7 +1707,14 @@ def live_secondary_gate(runtime: Runtime, props_n_ctx: Callable[[], int] = _prop
     immediately before ``complete()`` (tokenising ~363k tokens takes long enough for GTT to move);
     unreadable, or strictly above the ceiling, at either point → REFUSED BEFORE SENDING, the gate
     fails, and the triggering reading is recorded. A window that breaches or becomes unreadable
-    during the request FAILS the gate."""
+    during the request FAILS the gate.
+
+    ``props_n_ctx`` defaults to a ``/props`` read at ``runtime.endpoints.llama_url``, so the probe
+    targets the same llama as the completion it precedes."""
+    if props_n_ctx is None:
+        llama_url = runtime.endpoints.llama_url
+        props_n_ctx = lambda: _props_n_ctx(llama_url)  # noqa: E731
+
     def probe() -> dict[str, Any]:
         from scripts.research.arms849.text import FrozenCorpusText
 

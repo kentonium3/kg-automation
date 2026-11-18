@@ -12,14 +12,18 @@ from __future__ import annotations
 
 import dataclasses
 import hashlib
+import importlib
+import importlib.util
 import json
 import os
 import pathlib
+import socket
 import subprocess
 import sys
 import threading
 import time
 import types
+import urllib.request
 from collections.abc import Callable
 from typing import Any
 
@@ -30,7 +34,7 @@ sys.path.insert(0, str(REPO_ROOT))
 
 from scripts.research import run_849_harness as h
 from scripts.research.arms849 import errors as arm_errors
-from scripts.research.arms849 import grading, serving
+from scripts.research.arms849 import grading, serving, substrate
 from scripts.research.arms849.ledger import (
     LedgerBoundToAnotherConfig,
     LedgerLocked,
@@ -66,6 +70,7 @@ from tests.research.conftest import (
 
 FakeContextExceeded = research_fakes.FakeContextExceeded
 scored = research_fakes.scored
+_REAL_URLOPEN = urllib.request.urlopen   # captured before the conftest guard patches it
 
 pytestmark = pytest.mark.skipif(not (CORPUS / "entities.json").exists(),
                                 reason=RESEARCH_ENVIRONMENT_SKIP_REASON)
@@ -1336,12 +1341,121 @@ def test_arm_factories_register_exactly_g_d_r():
     assert set(h.ARM_FACTORIES) == {"G", "D", "R"}
 
 
+# --------------------------------------------------------------------------
+# #1083 WP02 — host endpoints for the live node (D4), and the red-first proof (FR-006)
+# --------------------------------------------------------------------------
+
+_ENDPOINT_KEYS = ("ARMS849_FALKOR_HOST", "ARMS849_FALKOR_PORT", "ARMS849_LLAMA_HOST", "ARMS849_LLAMA_PORT")
+
+
+def _port_from_env(name: str, default: int) -> int:
+    value = os.environ.get(name)
+    if value is None:
+        return default
+    try:
+        port = int(value)
+    except ValueError:
+        raise ValueError(f"{name}={value!r} is not an integer port") from None
+    if not 0 < port <= 65535:
+        raise ValueError(f"{name}={value!r} is not an integer port in 1..65535")
+    return port
+
+
+def _host_endpoints_from_env() -> h.Endpoints:
+    """Host endpoints for the required live node: the published substrate ports on loopback,
+    overridable by ARMS849_FALKOR_HOST/PORT and ARMS849_LLAMA_HOST/PORT (the falkor_endpoint
+    convention). Test-only by design (C-001): production never reads these variables.
+
+    Each side resolves independently, and an unset side keeps its HOST default — never the
+    in-network ``falkordb``/``llama`` names (spec edge case: only one override set)."""
+    falkor_host = os.environ.get("ARMS849_FALKOR_HOST", "127.0.0.1")
+    falkor_port = _port_from_env("ARMS849_FALKOR_PORT", substrate.FALKOR_PORT)
+    llama_host = os.environ.get("ARMS849_LLAMA_HOST", "127.0.0.1")
+    llama_port = _port_from_env("ARMS849_LLAMA_PORT", substrate.LLAMA_PORT)
+    return h.Endpoints((falkor_host, falkor_port), f"http://{llama_host}:{llama_port}")
+
+
+@pytest.fixture
+def live_http(monkeypatch):
+    """The live node deliberately probes the local stack; lift the repo-wide no-live-HTTP guard.
+    Defined here, not imported from test_arms849_arm_g.py (no cross-module fixture coupling)."""
+    monkeypatch.setattr(urllib.request, "urlopen", _REAL_URLOPEN)
+
+
+@pytest.fixture
+def no_endpoint_env(monkeypatch):
+    for key in _ENDPOINT_KEYS:
+        monkeypatch.delenv(key, raising=False)
+    return monkeypatch
+
+
+def test_host_endpoints_default_to_the_published_ports_on_loopback(no_endpoint_env):
+    endpoints = _host_endpoints_from_env()
+    assert endpoints == h.Endpoints(("127.0.0.1", 16379), "http://127.0.0.1:18080")
+    # The literals above are the published ports; a change to the constants shows up here.
+    assert (substrate.FALKOR_PORT, substrate.LLAMA_PORT) == (16379, 18080)
+    assert endpoints != h.IN_NETWORK_ENDPOINTS
+
+
+def test_host_endpoints_falkordb_only_override_leaves_llama_on_the_host_default(no_endpoint_env):
+    no_endpoint_env.setenv("ARMS849_FALKOR_PORT", "26379")
+    endpoints = _host_endpoints_from_env()
+    assert endpoints.falkordb == ("127.0.0.1", 26379)
+    assert endpoints.llama_url == "http://127.0.0.1:18080"
+    assert "llama:8080" not in endpoints.llama_url and endpoints.falkordb[0] != "falkordb"
+
+
+def test_host_endpoints_llama_only_override_leaves_falkordb_on_the_host_default(no_endpoint_env):
+    no_endpoint_env.setenv("ARMS849_LLAMA_HOST", "localhost")
+    no_endpoint_env.setenv("ARMS849_LLAMA_PORT", "28080")
+    endpoints = _host_endpoints_from_env()
+    assert endpoints.llama_url == "http://localhost:28080"
+    assert endpoints.falkordb == ("127.0.0.1", 16379)
+    assert endpoints.falkordb[0] != "falkordb" and "falkordb" not in endpoints.llama_url
+
+
+def test_host_endpoints_full_override(no_endpoint_env):
+    no_endpoint_env.setenv("ARMS849_FALKOR_HOST", "10.0.0.5")
+    no_endpoint_env.setenv("ARMS849_FALKOR_PORT", "6390")
+    no_endpoint_env.setenv("ARMS849_LLAMA_HOST", "10.0.0.6")
+    no_endpoint_env.setenv("ARMS849_LLAMA_PORT", "8090")
+    assert _host_endpoints_from_env() == h.Endpoints(("10.0.0.5", 6390), "http://10.0.0.6:8090")
+
+
+@pytest.mark.parametrize("name", ["ARMS849_FALKOR_PORT", "ARMS849_LLAMA_PORT"])
+@pytest.mark.parametrize("value", ["eighteen", "", "18080.0", "0", "-1", "65536"])
+def test_host_endpoints_bad_port_fails_loudly_naming_the_variable(no_endpoint_env, name, value):
+    no_endpoint_env.setenv(name, value)
+    with pytest.raises(ValueError, match=name):
+        _host_endpoints_from_env()
+
+
+def test_no_production_module_reads_the_host_endpoint_variables():
+    """C-001: the reader above is the only place a host pair is built from the environment.
+    Nothing under scripts/research may read these keys (WP03's checker writes them into a child
+    environment; a write is a dict key, a read is os.environ.get/[] or getenv)."""
+    import re
+    reads = re.compile(r"(?:environ\.get|getenv|environ\[)\(?\s*[\"'](" + "|".join(_ENDPOINT_KEYS) + r")[\"']")
+    offenders = [f"{path.relative_to(REPO_ROOT)}:{n}: {line.strip()}"
+                 for path in sorted((REPO_ROOT / "scripts").rglob("*.py"))
+                 for n, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1)
+                 if reads.search(line)]
+    assert offenders == []
+
+
 @pytest.mark.skipif(os.environ.get("ARMS849_LIVE") != "1",
                     reason="live registration needs ARMS849_LIVE=1 and the research stack")
-def test_live_runtime_registers_g_d_r_with_one_embedder():
-    """C13's required live evidence, kept as a stable node for WP05's verification list."""
-    runtime = h.live_runtime(PRIMARY, CORPUS, PASSING_GATES)
+def test_live_runtime_registers_g_d_r_with_one_embedder(live_http):
+    """C13's required live evidence, kept as a stable node for WP05's verification list.
+
+    #1083: built from the host with ``endpoints=_host_endpoints_from_env()`` and a real
+    ``health()`` call, so llama is exercised live as well as FalkorDB (SC-001, P-2). This is the
+    GREEN half of FR-006; the red half is ``test_host_run_without_override_fails_resolving_falkordb``."""
+    endpoints = _host_endpoints_from_env()
+    runtime = h.live_runtime(PRIMARY, CORPUS, PASSING_GATES, endpoints=endpoints)
     try:
+        assert runtime.endpoints == endpoints
+        assert runtime.health() is True, "llama /health, /props n_ctx and FalkorDB PING at the host endpoints"
         assert set(runtime.arms) == {"G", "D", "R"}
         assert runtime.embedder is not None
         assert {registration.refusal for registration in runtime.arms.values()} == {arm_errors.ArmRefusal}
@@ -1353,6 +1467,92 @@ def test_live_runtime_registers_g_d_r_with_one_embedder():
         for registration in runtime.arms.values():
             if registration.close is not None:
                 registration.close()
+
+
+#: The red-first child: the real live_runtime from the host with NO endpoints, reporting the whole
+#: exception chain as one JSON line. Run in a subprocess so the hard timeout can bound it (P-6).
+RED_FIRST_CHILD = r"""
+import json
+from scripts.research import run_849_harness as h
+from tests.research.conftest import CORPUS, PASSING_GATES, PRIMARY
+
+def chain(exc):
+    seen, out = set(), []
+    while exc is not None and id(exc) not in seen:
+        seen.add(id(exc))
+        out.append({"type": type(exc).__name__, "module": type(exc).__module__, "message": str(exc)})
+        exc = exc.__cause__ or exc.__context__
+    return out
+
+try:
+    runtime = h.live_runtime(PRIMARY, CORPUS, PASSING_GATES)
+except BaseException as exc:
+    print(json.dumps({"raised": True, "chain": chain(exc)}))
+else:
+    for registration in runtime.arms.values():
+        if registration.close is not None:
+            registration.close()
+    print(json.dumps({"raised": False}))
+"""
+
+_RESOLUTION_MARKERS = ("Name or service not known", "nodename nor servname", "Temporary failure in name resolution",
+                       "getaddrinfo")
+_SETUP_ERROR_TYPES = {"ImportError", "ModuleNotFoundError", "FileNotFoundError"}
+_SETUP_ERROR_WORDS = ("tokenizer", "fastembed", "embedder", "corpus", "stream.jsonl", "No module named")
+
+
+def _red_first_skip_reason() -> str | None:
+    try:
+        socket.getaddrinfo("falkordb", 6379)
+    except OSError:
+        pass
+    else:
+        return "falkordb resolves here; the red-first precondition does not hold"
+    cache = pathlib.Path(os.environ.get("ARMS849_CACHE", str(substrate.CACHE_DIR)))
+    if not (cache / "qwen-tokenizer").exists() or not (cache / "fastembed").exists():
+        return RESEARCH_ENVIRONMENT_SKIP_REASON
+    if not (CORPUS / "stream.jsonl").exists():
+        return RESEARCH_ENVIRONMENT_SKIP_REASON
+    try:
+        if importlib.util.find_spec("graphiti_core") is None:
+            return RESEARCH_ENVIRONMENT_SKIP_REASON
+        importlib.import_module("graphiti_core")
+    except Exception:   # the checker's CI stub raises on import (analysis finding U1)
+        return RESEARCH_ENVIRONMENT_SKIP_REASON
+    return None
+
+
+def test_host_run_without_override_fails_resolving_falkordb():
+    """FR-006, the RED half: from the host, a default runtime (the in-network pair) fails on name
+    resolution of ``falkordb`` — so the override is what makes the host run pass. The GREEN half is
+    ``test_live_runtime_registers_g_d_r_with_one_embedder``, which passes ``endpoints=``.
+
+    Not live-gated (P-6): it skips only when the precondition is false (``falkordb`` resolves) or
+    the research environment is absent (fresh-worktree CI). The child is bounded by a hard
+    timeout, because the bridge's connect timeout is ``None`` (arm_g.py:1398)."""
+    reason = _red_first_skip_reason()
+    if reason is not None:
+        pytest.skip(reason)
+    child_env = {k: v for k, v in os.environ.items() if k not in _ENDPOINT_KEYS and k != "ARMS849_LIVE"}
+    child_env["PYTHONPATH"] = os.pathsep.join(p for p in (str(REPO_ROOT), os.environ.get("PYTHONPATH")) if p)
+    try:
+        result = subprocess.run([sys.executable, "-c", RED_FIRST_CHILD], cwd=REPO_ROOT, env=child_env,
+                                capture_output=True, text=True, timeout=180, check=False)
+    except subprocess.TimeoutExpired:
+        pytest.fail("red-first attempt hung past 180 s; production connect timeout is None (arm_g.py:1398), see P-6")
+    lines = result.stdout.strip().splitlines()
+    assert lines, f"child printed no report (rc={result.returncode})\nstderr:\n{result.stderr[-4000:]}"
+    report = json.loads(lines[-1])
+    chain = report.get("chain", [])
+    shown = json.dumps(report, indent=2)
+    assert report["raised"] is True, f"a default runtime built from the host must not succeed:\n{shown}"
+    assert any((link["type"] == "gaierror" and link["module"] == "socket")
+               or any(marker in link["message"] for marker in _RESOLUTION_MARKERS)
+               for link in chain), f"no name-resolution failure in the chain:\n{shown}"
+    assert any("falkordb" in link["message"] for link in chain), f"'falkordb' named nowhere in the chain:\n{shown}"
+    setup = [link for link in chain if link["type"] in _SETUP_ERROR_TYPES
+             or any(word in link["message"] for word in _SETUP_ERROR_WORDS)]
+    assert setup == [], f"failed for a setup reason, not the endpoint:\n{shown}"
 
 
 def test_build_arms_rolls_back_every_completed_registration_and_preserves_factory_failure(monkeypatch):

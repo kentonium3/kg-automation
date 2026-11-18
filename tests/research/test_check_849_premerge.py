@@ -10,6 +10,7 @@ from collections.abc import Mapping, Sequence
 
 import pytest
 
+from scripts.research.arms849 import substrate
 from scripts.research.check_849_premerge import (
     LIVE_NODES,
     REQUIRED_NODES,
@@ -23,6 +24,22 @@ from scripts.research.check_849_premerge import (
     run_premerge,
     verify_record,
 )
+
+#: #1083 independent oracle (P-5): the published loopback endpoints, written as literals so a
+#: change to the checker's shared mapping cannot silently become its own test.
+_EXPECTED_HOST_ENV: dict[str, str] = {
+    "ARMS849_FALKOR_HOST": "127.0.0.1",
+    "ARMS849_FALKOR_PORT": "16379",
+    "ARMS849_LLAMA_HOST": "127.0.0.1",
+    "ARMS849_LLAMA_PORT": "18080",
+}
+_IN_NETWORK_VALUES: dict[str, str] = {
+    "ARMS849_FALKOR_HOST": "falkordb",
+    "ARMS849_FALKOR_PORT": "6379",
+    "ARMS849_LLAMA_HOST": "llama",
+    "ARMS849_LLAMA_PORT": "8080",
+}
+_ENDPOINT_REASON = "live-required-nodes did not run at the published host endpoints"
 
 
 def _xml(path: pathlib.Path, cases: Sequence[tuple[str, str, str]]) -> pathlib.Path:
@@ -389,7 +406,15 @@ class _FullRunner:
                     if self.ci_collection_error else []
                 )
             elif environment.get("ARMS849_LIVE") == "1":
-                cases = [self._case(node, "passed") for node in LIVE_NODES]
+                # Models the real host: without the published-port overrides the live nodes
+                # try the in-network names and fail (#1083).
+                at_host_endpoints = all(
+                    environment.get(key) == value for key, value in _EXPECTED_HOST_ENV.items()
+                )
+                cases = [
+                    self._case(node, "passed" if at_host_endpoints else "failure")
+                    for node in LIVE_NODES
+                ]
             else:
                 cases = [
                     self._case(
@@ -530,3 +555,104 @@ def test_verify_malformed_json_shapes_return_fail_without_raising(tmp_path, payl
     ok, reasons = verify_record(path, _FullRunner.commit)
     assert not ok
     assert reasons
+
+
+def _live_call(runner: _FullRunner) -> tuple[tuple[str, ...], pathlib.Path, dict[str, str], float | None]:
+    return next(call for call in runner.calls if "pytest" in call[0] and LIVE_NODES[0] in call[0])
+
+
+def test_live_step_runs_and_records_the_published_host_endpoints(tmp_path, monkeypatch):
+    assert (_EXPECTED_HOST_ENV["ARMS849_FALKOR_PORT"], _EXPECTED_HOST_ENV["ARMS849_LLAMA_PORT"]) == (
+        str(substrate.FALKOR_PORT), str(substrate.LLAMA_PORT),
+    )
+    # Operator exports that must neither leak into the office/CI suites nor redirect the live step.
+    monkeypatch.setenv("ARMS849_FALKOR_PORT", "1")
+    monkeypatch.setenv("ARMS849_LLAMA_PORT", "9")
+    runner = _FullRunner()
+    output = tmp_path / "premerge.json"
+    record = run_premerge(tmp_path, output=output, runner=runner)
+    assert record["status"] == "PASS"
+
+    live_env = _live_call(runner)[2]
+    assert {key: live_env.get(key) for key in _EXPECTED_HOST_ENV} == _EXPECTED_HOST_ENV
+    assert live_env["ARMS849_LIVE"] == "1"
+
+    recorded = next(step for step in record["steps"] if step["name"] == "live-required-nodes")
+    assert {key: recorded["environment"].get(key) for key in _EXPECTED_HOST_ENV} == _EXPECTED_HOST_ENV
+    assert recorded["environment"]["ARMS849_LIVE"] == "1"
+
+    non_live = [
+        call for call in runner.calls
+        if "pytest" in call[0] and LIVE_NODES[0] not in call[0]
+    ]
+    assert len(non_live) == 3  # office-seed-0, office-seed-3, fresh-worktree-ci
+    assert any(call[1].name == "checkout" for call in non_live)
+    for call in non_live:
+        assert not set(_EXPECTED_HOST_ENV) & set(call[2]), call[0]
+    for name in ("office-seed-0", "office-seed-3", "fresh-worktree-ci"):
+        step = next(step for step in record["steps"] if step["name"] == name)
+        assert not set(_EXPECTED_HOST_ENV) & set(step["environment"])
+    assert verify_record(output, runner.commit) == (True, [])
+
+
+@pytest.fixture
+def passing_record(tmp_path) -> tuple[pathlib.Path, dict[str, object]]:
+    runner = _FullRunner()
+    output = tmp_path / "record.json"
+    assert run_premerge(tmp_path, output=output, runner=runner)["status"] == "PASS"
+    return output, json.loads(output.read_text(encoding="utf-8"))
+
+
+def _live_environment(record: dict[str, object]) -> dict[str, str]:
+    steps = record["steps"]
+    assert isinstance(steps, list)
+    return next(step for step in steps if step["name"] == "live-required-nodes")["environment"]
+
+
+def _verify_mutated(output: pathlib.Path, record: dict[str, object]) -> tuple[bool, list[str]]:
+    output.write_text(json.dumps(record), encoding="utf-8")
+    return verify_record(output, _FullRunner.commit)
+
+
+def test_verify_accepts_the_record_at_the_published_host_endpoints(passing_record):
+    output, record = passing_record
+    environment = _live_environment(record)
+    assert {key: environment[key] for key in _EXPECTED_HOST_ENV} == _EXPECTED_HOST_ENV
+    assert verify_record(output, _FullRunner.commit) == (True, [])
+
+
+def test_verify_rejects_a_live_step_without_arms849_live(passing_record):
+    output, record = passing_record
+    del _live_environment(record)["ARMS849_LIVE"]
+    ok, reasons = _verify_mutated(output, record)
+    assert not ok
+    assert _ENDPOINT_REASON in reasons
+
+
+@pytest.mark.parametrize("key", sorted(_EXPECTED_HOST_ENV))
+def test_verify_rejects_a_live_step_missing_one_host_endpoint(passing_record, key):
+    output, record = passing_record
+    del _live_environment(record)[key]
+    ok, reasons = _verify_mutated(output, record)
+    assert not ok
+    assert _ENDPOINT_REASON in reasons
+
+
+@pytest.mark.parametrize("key", sorted(_EXPECTED_HOST_ENV))
+def test_verify_rejects_a_live_step_at_an_in_network_endpoint(passing_record, key):
+    output, record = passing_record
+    _live_environment(record)[key] = _IN_NETWORK_VALUES[key]
+    ok, reasons = _verify_mutated(output, record)
+    assert not ok
+    assert _ENDPOINT_REASON in reasons
+
+
+def test_verify_rejects_a_legacy_record_without_any_host_endpoint(passing_record):
+    output, record = passing_record
+    environment = _live_environment(record)
+    for key in _EXPECTED_HOST_ENV:
+        del environment[key]
+    assert environment["ARMS849_LIVE"] == "1"
+    ok, reasons = _verify_mutated(output, record)
+    assert not ok
+    assert _ENDPOINT_REASON in reasons

@@ -147,7 +147,7 @@ def _live_fake_runtime(
             before_send,
         ),
     )
-    monkeypatch.setattr(h, "container_health", lambda config: True)
+    monkeypatch.setattr(h, "container_health", lambda config, *args, **kwargs: True)
     runtime = h.live_runtime(PRIMARY, environment.corpus, outcome)
     runtime.gtt_sampler = FakeGtt
     runtime.out = lambda message: None
