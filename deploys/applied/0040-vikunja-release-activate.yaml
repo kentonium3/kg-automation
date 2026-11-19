@@ -15,9 +15,9 @@ verification:
     == "v2.8.0-rrule.4"'
 created_at: '2026-11-19T13:30:00Z'
 created_by: claude-opus-5-5
-notes: 'See #1107: repeat ACTIVATE to v2.8.0-rrule.4 (adds one migration,
-  20261112082349, which zero-pads users.overdue_tasks_reminders_time; its rollback is a no-op). Open PR2
-  only after STAGE applies and authorized preflight passes. Merge authority: Kent,
+notes: 'See #1107: repeat ACTIVATE to v2.8.0-rrule.4 (adds one migration, 20261112082349,
+  which zero-pads users.overdue_tasks_reminders_time; its rollback is a no-op). Open
+  PR2 only after STAGE applies and authorized preflight passes. Merge authority: Kent,
   the program lead or the core worker under Kent''s delegation, after independent
   review and CI. Confirm a recent Tier-2 backup and pause automation writes before
   merging. Compose keeps office2.local/vikunja:active with pull_policy: never.
@@ -32,8 +32,8 @@ notes: 'See #1107: repeat ACTIVATE to v2.8.0-rrule.4 (adds one migration,
   From snapshotted onward, use rollback --prepare, Kent''s privileged snapshot restore
   and acknowledged --finish as documented in docs/runbooks/vikunja-release-cutover.md.
   Never start the previous image on an upgraded database. Preserve the old successful
-  markers for v2.7.1-670-420c7bcb75, v2.8.0-rrule.2 and v2.8.0-rrule.3; the new release marker must
-  be absent before staging.
+  markers for v2.7.1-670-420c7bcb75, v2.8.0-rrule.2 and v2.8.0-rrule.3; the new release
+  marker must be absent before staging.
 
   Residual risk: a host crash after retag can restart the unverified new image at
   boot. The snapshot already exists; preserve evidence and follow the recorded phase
@@ -41,3 +41,4 @@ notes: 'See #1107: repeat ACTIVATE to v2.8.0-rrule.4 (adds one migration,
   acceptance. Kent decides ACCEPT or ROLLBACK and automation resume. Private evidence
   stays out of commands and manifest notes.'
 apply_mode: manifest
+applied_at: '2026-11-19T16:31:23Z'
