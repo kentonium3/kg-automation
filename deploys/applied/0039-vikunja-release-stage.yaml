@@ -41,3 +41,4 @@ notes: 'STAGE for the repeat cutover to the published v2.8.0-rrule.4 (services/v
   Rollback: remove the release tag and the embedded tag only, then revert the merge.
   Keep office2.local/vikunja:active and office2.local/vikunja:v2.8.0-rrule.3.'
 apply_mode: manifest
+applied_at: '2026-11-19T13:16:21Z'
