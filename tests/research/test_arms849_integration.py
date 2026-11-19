@@ -17,12 +17,14 @@ import importlib.util
 import json
 import os
 import pathlib
+import re
 import socket
 import subprocess
 import sys
 import threading
 import time
 import types
+import urllib.parse
 import urllib.request
 from collections.abc import Callable
 from typing import Any
@@ -1361,6 +1363,32 @@ def _port_from_env(name: str, default: int) -> int:
     return port
 
 
+#: One RFC 1123 hostname label. A dotted IPv4 literal is also a run of such labels, so the same
+#: rule admits it; anything carrying ``:``, ``/``, ``@``, ``?``, ``#``, ``%``, ``[``/``]`` or
+#: whitespace cannot match.
+_HOST_LABEL = re.compile(r"[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?")
+
+
+def _host_from_env(name: str, default: str) -> str:
+    """A HOST override must be a bare host: no port, path, userinfo, query or fragment.
+
+    #1083 post-merge review: ``ARMS849_LLAMA_HOST=127.0.0.1:9/path`` once produced
+    ``http://127.0.0.1:9/path:18080``, whose port is 9 — the host value silently overrode the
+    separately validated PORT. IPv6 literals are rejected outright (bracketed or not): the llama
+    allowlist (serving.ALLOWED_HOSTS) holds no IPv6 address, and accepting them would need
+    bracket-aware URL building on one side only, which is exactly where this reader went wrong."""
+    value = os.environ.get(name)
+    if value is None:
+        return default
+    if ":" in value or value.startswith("["):
+        raise ValueError(f"{name}={value!r} is not a bare host: IPv6 literals and host:port are not supported")
+    labels = value.split(".")
+    if len(value) > 253 or not all(_HOST_LABEL.fullmatch(label) for label in labels):
+        raise ValueError(f"{name}={value!r} is not a bare host (a hostname or IPv4 address, "
+                         "with no port, path, userinfo, query, fragment or whitespace)")
+    return value
+
+
 def _host_endpoints_from_env() -> h.Endpoints:
     """Host endpoints for the required live node: the published substrate ports on loopback,
     overridable by ARMS849_FALKOR_HOST/PORT and ARMS849_LLAMA_HOST/PORT (the falkor_endpoint
@@ -1368,9 +1396,9 @@ def _host_endpoints_from_env() -> h.Endpoints:
 
     Each side resolves independently, and an unset side keeps its HOST default — never the
     in-network ``falkordb``/``llama`` names (spec edge case: only one override set)."""
-    falkor_host = os.environ.get("ARMS849_FALKOR_HOST", "127.0.0.1")
+    falkor_host = _host_from_env("ARMS849_FALKOR_HOST", "127.0.0.1")
     falkor_port = _port_from_env("ARMS849_FALKOR_PORT", substrate.FALKOR_PORT)
-    llama_host = os.environ.get("ARMS849_LLAMA_HOST", "127.0.0.1")
+    llama_host = _host_from_env("ARMS849_LLAMA_HOST", "127.0.0.1")
     llama_port = _port_from_env("ARMS849_LLAMA_PORT", substrate.LLAMA_PORT)
     return h.Endpoints((falkor_host, falkor_port), f"http://{llama_host}:{llama_port}")
 
@@ -1430,17 +1458,55 @@ def test_host_endpoints_bad_port_fails_loudly_naming_the_variable(no_endpoint_en
         _host_endpoints_from_env()
 
 
-def test_no_production_module_reads_the_host_endpoint_variables():
-    """C-001: the reader above is the only place a host pair is built from the environment.
-    Nothing under scripts/research may read these keys (WP03's checker writes them into a child
-    environment; a write is a dict key, a read is os.environ.get/[] or getenv)."""
-    import re
-    reads = re.compile(r"(?:environ\.get|getenv|environ\[)\(?\s*[\"'](" + "|".join(_ENDPOINT_KEYS) + r")[\"']")
-    offenders = [f"{path.relative_to(REPO_ROOT)}:{n}: {line.strip()}"
-                 for path in sorted((REPO_ROOT / "scripts").rglob("*.py"))
-                 for n, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1)
-                 if reads.search(line)]
-    assert offenders == []
+_MALFORMED_HOSTS = [
+    "127.0.0.1:9/path",            # the post-merge review's exact probe (port 9 won over 18080)
+    "127.0.0.1:9",                 # embedded port
+    "127.0.0.1/path",              # path
+    "user@127.0.0.1",              # userinfo
+    "user:pw@127.0.0.1",           # userinfo with password
+    "127.0.0.1?q=1",               # query
+    "127.0.0.1#frag",              # fragment
+    "http://127.0.0.1",            # a URL, not a host
+    "",                            # empty
+    " 127.0.0.1",                  # leading whitespace
+    "127.0.0.1 ",                  # trailing whitespace
+    "local host",                  # inner whitespace
+    "127.0.0.1\n",                 # newline
+    "localhost.",                  # empty trailing label
+    "-localhost",                  # label starts with a hyphen
+    "a" * 64,                      # label too long
+    "::1",                         # IPv6, unbracketed: rejected by design
+    "[::1]",                       # IPv6, bracketed: rejected by design
+    "[::1]:18080",                 # bracketed IPv6 with a port
+    "fe80::1%eth0",                # IPv6 with a zone id
+    "127.0.0.1%2F",                # percent-encoding
+]
+
+
+@pytest.mark.parametrize("name", ["ARMS849_FALKOR_HOST", "ARMS849_LLAMA_HOST"])
+@pytest.mark.parametrize("value", _MALFORMED_HOSTS)
+def test_host_endpoints_malformed_host_fails_loudly_naming_the_variable(no_endpoint_env, name, value):
+    no_endpoint_env.setenv(name, value)
+    with pytest.raises(ValueError, match=name):
+        _host_endpoints_from_env()
+
+
+def test_review_probe_embedded_port_cannot_override_the_validated_port(no_endpoint_env):
+    """The post-merge probe end to end: the host carried ``:9/path`` while PORT said 18080."""
+    no_endpoint_env.setenv("ARMS849_LLAMA_HOST", "127.0.0.1:9/path")
+    no_endpoint_env.setenv("ARMS849_LLAMA_PORT", "18080")
+    with pytest.raises(ValueError, match="ARMS849_LLAMA_HOST"):
+        _host_endpoints_from_env()
+
+
+@pytest.mark.parametrize("value", ["127.0.0.1", "localhost", "10.0.0.5", "research-host.lan", "LLAMA"])
+def test_host_endpoints_well_formed_host_is_accepted_verbatim(no_endpoint_env, value):
+    no_endpoint_env.setenv("ARMS849_FALKOR_HOST", value)
+    no_endpoint_env.setenv("ARMS849_LLAMA_HOST", value)
+    endpoints = _host_endpoints_from_env()
+    assert endpoints == h.Endpoints((value, 16379), f"http://{value}:18080")
+    assert urllib.parse.urlsplit(endpoints.llama_url).port == 18080
+    assert urllib.parse.urlsplit(endpoints.llama_url).hostname == value.lower()
 
 
 @pytest.mark.skipif(os.environ.get("ARMS849_LIVE") != "1",

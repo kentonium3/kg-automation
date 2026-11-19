@@ -19,6 +19,7 @@ modules at the import boundary, so these tests RUN (not skip) there.
 
 from __future__ import annotations
 
+import ast
 import json
 import os
 import pathlib
@@ -248,28 +249,55 @@ ENDPOINT_OVERRIDES = {
 #: The fresh-process child for T-c. It installs an environment READ RECORDER before the harness
 #: is imported, so import-time reads count; then builds the DEFAULT runtime and invokes all four
 #: consumers through the same boundary stand-ins as the in-process fixture.
-#: Recorder proof (done once locally, not committed): planting
-#: ``os.environ.get("ARMS849_FALKOR_HOST")`` inside the fake ``make_bridge`` below makes the
-#: parent's zero-reads assertion fail.
+#: Recorder proof is committed: ``test_planted_environment_read_is_recorded`` passes a PLANT
+#: (argv[3]) that the fake ``make_bridge`` executes mid-construction, and every planted read
+#: form — including the post-merge review's ``dict(os.environ.items())`` — must be recorded.
 CHILD = r'''
 import json, os, sys, threading, time, types, urllib.request
 
 WATCHED = set(json.loads(sys.argv[1]))
 reads = []
 
-class RecordingEnviron(dict):
+from collections.abc import MutableMapping
+
+def _name(key):
+    return key.decode("utf-8", "surrogateescape") if isinstance(key, bytes) else key
+
+class RecordingEnviron(MutableMapping):
+    """A NON-dict proxy over the real os._Environ. Not subclassing dict matters: dict(env),
+    {**env} and dict.update(env) take a C fast path on a dict subclass that bypasses every
+    Python-level override. As a plain Mapping, every bulk access (iteration, keys/items/values
+    views, dict(), copy(), ``**`` unpacking) is funnelled through __iter__/__getitem__ here,
+    so a key reaching caller code by ANY route is recorded (#1083 post-merge review: a planted
+    ``dict(os.environ.items())`` previously recorded nothing)."""
+    def __init__(self, real):
+        self._real = real
     def __getitem__(self, key):
-        reads.append(key)
-        return super().__getitem__(key)
-    def get(self, key, default=None):
-        reads.append(key)
-        return super().get(key, default)
+        reads.append(_name(key))
+        return self._real[key]
+    def __iter__(self):
+        for key in list(self._real):
+            reads.append(_name(key))
+            yield key
+    def __len__(self):
+        return len(self._real)
     def __contains__(self, key):
-        reads.append(key)
-        return super().__contains__(key)
+        reads.append(_name(key))
+        return key in self._real
+    def __setitem__(self, key, value):
+        self._real[key] = value
+    def __delitem__(self, key):
+        del self._real[key]
+    def copy(self):
+        return dict(self)
+    def __repr__(self):
+        return "RecordingEnviron(" + repr(dict(self)) + ")"
 
 os.environ = RecordingEnviron(os.environ)
+os.environb = RecordingEnviron(os.environb)
 os.getenv = lambda key, default=None: os.environ.get(key, default)
+os.getenvb = lambda key, default=None: os.environb.get(key, default)
+reads.clear()   # the recorder's own construction is not a read
 
 import scripts.research.arms849 as pkg
 from scripts.research import run_849_harness as h
@@ -277,8 +305,12 @@ from tests.research.conftest import PASSING_GATES, PRIMARY
 
 seen = {"bridge": [], "urls": [], "sockets": []}
 
+PLANT = sys.argv[3] if len(sys.argv) > 3 else ""
+
 def make_bridge(embedder, text, *, host, port, **kwargs):
     seen["bridge"].append([host, port])
+    if PLANT:
+        exec(PLANT, {"os": os})
     noop = lambda *a, **k: None
     return types.SimpleNamespace(answer=noop, build_graph=noop, drop_graph=noop,
                                  list_graphs=noop, close=noop)
@@ -370,17 +402,24 @@ print(json.dumps({"reads": [k for k in reads if k in WATCHED], "healthy": health
 '''
 
 
-def test_no_endpoint_override_is_read_at_import_or_construction():
-    """T-c (C-001): set every override BEFORE import, in a fresh process; assert zero reads."""
+def _run_child(plant: str = "") -> dict[str, Any]:
     env = {k: v for k, v in os.environ.items() if k != "OPENAI_API_KEY"}
     env.update(ENDPOINT_OVERRIDES)
     inherited = env.get("PYTHONPATH")
     env["PYTHONPATH"] = os.pathsep.join(p for p in (inherited, str(REPO_ROOT)) if p)
-    proc = subprocess.run(
-        [sys.executable, "-c", CHILD, json.dumps(sorted(ENDPOINT_OVERRIDES)), json.dumps(COMPLETION_RESPONSE)],
-        env=env, cwd=REPO_ROOT, timeout=120, check=False, capture_output=True, text=True)
+    argv = [sys.executable, "-c", CHILD, json.dumps(sorted(ENDPOINT_OVERRIDES)), json.dumps(COMPLETION_RESPONSE)]
+    if plant:
+        argv.append(plant)
+    proc = subprocess.run(argv, env=env, cwd=REPO_ROOT, timeout=120, check=False,
+                          capture_output=True, text=True)
     assert proc.returncode == 0, proc.stderr
-    result = json.loads(proc.stdout.strip().splitlines()[-1])
+    result: dict[str, Any] = json.loads(proc.stdout.strip().splitlines()[-1])
+    return result
+
+
+def test_no_endpoint_override_is_read_at_import_or_construction():
+    """T-c (C-001): set every override BEFORE import, in a fresh process; assert zero reads."""
+    result = _run_child()
     assert result["reads"] == []                                            # (ii) zero reads
     assert result["healthy"] is True
     assert result["bridge"] == [list(IN_NETWORK_FALKOR)]                    # (i) the in-network pair
@@ -388,3 +427,120 @@ def test_no_endpoint_override_is_read_at_import_or_construction():
     assert result["urls"] == [f"{IN_NETWORK_LLAMA}/health", f"{IN_NETWORK_LLAMA}/props",
                               f"{IN_NETWORK_LLAMA}/completion", f"{IN_NETWORK_LLAMA}/props"]
     assert result["graphiti_real"] is False
+
+
+#: Every read form the recorder must see. Each is executed inside the child's fake
+#: ``make_bridge``, i.e. during ``live_runtime`` construction, exactly where a regression would
+#: sit. The first is the post-merge review's probe, which the old dict-subclass recorder missed.
+PLANTED_READS = {
+    "review-probe-dict-items": 'captured = dict(os.environ.items())\ncaptured["ARMS849_FALKOR_HOST"]',
+    "get": 'os.environ.get("ARMS849_FALKOR_HOST")',
+    "subscript": 'os.environ["ARMS849_LLAMA_PORT"]',
+    "getenv": 'os.getenv("ARMS849_LLAMA_HOST")',
+    "contains": '"ARMS849_FALKOR_PORT" in os.environ',
+    "alias": 'env = os.environ\nenv.get("ARMS849_LLAMA_HOST")',
+    "from-import-alias": 'from os import environ as e\ne.get("ARMS849_LLAMA_HOST")',
+    "variable-key": 'k = "ARMS849_" + "FALKOR_" + "HOST"\nos.environ.get(k)',
+    "dict-copy": 'dict(os.environ)',
+    "copy-method": 'os.environ.copy()',
+    "unpack": '{**os.environ}',
+    "iterate": '[k for k in os.environ]',
+    "keys": 'list(os.environ.keys())',
+    "values": 'list(os.environ.values())',
+    "items": 'list(os.environ.items())',
+    "update-into-dict": 'd = {}\nd.update(os.environ)',
+    "environb": 'os.environb.get(b"ARMS849_FALKOR_HOST")',
+    "getenvb": 'os.getenvb(b"ARMS849_LLAMA_PORT")',
+}
+
+
+@pytest.mark.parametrize("plant", PLANTED_READS.values(), ids=PLANTED_READS.keys())
+def test_planted_environment_read_is_recorded(plant):
+    """Non-vacuity for T-c, committed: the same child with a planted read must NOT report zero
+    reads. If this goes green-for-the-wrong-reason (empty reads), T-c's zero is meaningless."""
+    result = _run_child(plant)
+    assert result["reads"] != [], f"planted read was not recorded: {plant!r}"
+    assert set(result["reads"]) <= set(ENDPOINT_OVERRIDES)
+
+
+# --------------------------------------------------------------------------
+# C-001 static guard (#1083 post-merge review: the regex line-scanner missed multiline calls,
+# variable keys and aliases). It lives here, not in test_arms849_integration.py, because that
+# module skips wholesale without the corpus; this one runs in repo CI.
+# --------------------------------------------------------------------------
+
+#: The rule, and why it is this rule. A read of these variables has to obtain the NAME from
+#: somewhere. Rather than enumerate read shapes (get/[]/getenv/aliases/multiline/variable keys
+#: — the regex lost that race), the guard bans the name itself: no string literal under scripts/
+#: may contain the ARMS849_FALKOR / ARMS849_LLAMA prefix at all. That covers every read shape
+#: at once, plus fragments ("ARMS849_LLAMA_" + "HOST") and the forbidden ARMS849_LLAMA_HOSTS
+#: (C-002). Comments are not in the AST, so prose there is free; a docstring IS a literal and
+#: is held to the rule (reword it).
+#:
+#: ONE allowlisted site: the four keys of the dict literal bound to HOST_LIVE_ENDPOINT_ENV in
+#: scripts/research/check_849_premerge.py. The checker WRITES them into the live child's
+#: environment and verifies the recorded evidence; it never reads the operator's. Each
+#: allowlisted key must appear there exactly once (the allowlist cannot rot into a blanket
+#: file exemption). Because that mapping is then a second way to obtain the names, any
+#: reference to HOST_LIVE_ENDPOINT_ENV outside its home module is also an offence.
+#:
+#: Residual, deliberately left to T-c's runtime recorder: names built from fragments that do
+#: not contain the prefix (chr(), "ARMS849_" + "FAL" + "KOR_HOST", decoding) and reads via
+#: posix.environ. T-c covers those for the production construction path.
+_C001_PREFIXES = ("ARMS849_FALKOR", "ARMS849_LLAMA")
+_C001_NAMES = frozenset(ENDPOINT_OVERRIDES)
+_C001_HOME = pathlib.Path("scripts/research/check_849_premerge.py")
+_C001_MAPPING = "HOST_LIVE_ENDPOINT_ENV"
+
+
+def _allowlisted_key_nodes(tree: ast.Module) -> list[ast.Constant]:
+    """The key Constants of ``HOST_LIVE_ENDPOINT_ENV = MappingProxyType({...})`` at module level."""
+    for node in tree.body:
+        if isinstance(node, ast.AnnAssign):
+            target, value = node.target, node.value
+        elif isinstance(node, ast.Assign) and len(node.targets) == 1:
+            target, value = node.targets[0], node.value
+        else:
+            continue
+        if not (isinstance(target, ast.Name) and target.id == _C001_MAPPING):
+            continue
+        if isinstance(value, ast.Call) and len(value.args) == 1:
+            value = value.args[0]
+        if isinstance(value, ast.Dict):
+            return [k for k in value.keys if isinstance(k, ast.Constant)]
+    return []
+
+
+def _c001_offences(root: pathlib.Path) -> tuple[list[str], list[str]]:
+    """(offences, allowlisted key names actually found at the home site)."""
+    offences: list[str] = []
+    allowlisted: list[str] = []
+    for path in sorted((root / "scripts").rglob("*.py")):
+        rel = path.relative_to(root)
+        tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(rel))
+        exempt: set[int] = set()
+        if rel == _C001_HOME:
+            for key in _allowlisted_key_nodes(tree):
+                if key.value in _C001_NAMES:
+                    exempt.add(id(key))
+                    allowlisted.append(key.value)
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Constant) and isinstance(node.value, (str, bytes)):
+                text = node.value.decode("latin-1") if isinstance(node.value, bytes) else node.value
+                if any(prefix in text for prefix in _C001_PREFIXES) and id(node) not in exempt:
+                    offences.append(f"{rel}:{node.lineno}: literal {node.value!r}")
+            elif rel != _C001_HOME:
+                ref = (node.id if isinstance(node, ast.Name) else
+                       node.attr if isinstance(node, ast.Attribute) else
+                       node.name if isinstance(node, ast.alias) else None)
+                if ref == _C001_MAPPING:
+                    offences.append(f"{rel}:{getattr(node, 'lineno', '?')}: references {_C001_MAPPING}")
+    return offences, allowlisted
+
+
+def test_no_production_module_names_the_host_endpoint_variables():
+    """C-001 (static): outside the checker's one write-side mapping, nothing under scripts/
+    contains the endpoint variable names, so nothing there can read them by any route."""
+    offences, allowlisted = _c001_offences(REPO_ROOT)
+    assert offences == []
+    assert sorted(allowlisted) == sorted(_C001_NAMES), "the allowlisted site moved or changed shape"
