@@ -1,0 +1,22 @@
+{
+  "release_version": "v2.8.0-rrule.4",
+  "source_revision": "d7e2022285b89e4a964f03f6ee8f685dc3d1fcaf",
+  "archive": {
+    "sha256": "0435cf075e7522c371386944b7f4ffe294701c52a3a77577d41c82adc04fc5c4",
+    "size": 53731214
+  },
+  "image": {
+    "config_digest": "sha256:841a8a08e309b32bb6c413f6d3cb6783510a834904e3cb1acac5fb5a5d03bc56",
+    "index_digest": "sha256:5c34aa95af6e6cef121b94ed018fc3a556792a4c9ffc10ca8bee334bb2b582cd"
+  },
+  "rollback": {
+    "ref": "office2.local/vikunja:v2.8.0-rrule.3",
+    "image_id": "sha256:046151b0cd9b5d9f0770c918189d1d49e92eb631387495b9568b40148308709c",
+    "archive": {
+      "sha256": "94fb04735eba9c9c96595aa85fb9b00714de54756228f64475845b0b87244347",
+      "size": 53697828
+    }
+  },
+  "stage_issue": "#1107",
+  "activate_issue": "#1107"
+}
