@@ -42,3 +42,8 @@ notes: 'See #1107: repeat ACTIVATE to v2.8.0-rrule.4 (adds one migration, 202611
   stays out of commands and manifest notes.'
 apply_mode: manifest
 applied_at: '2026-11-19T16:31:23Z'
+rebaseline:
+  outcome: unexpected_drift
+  at_utc: '2026-11-19T16:31:28Z'
+  unexpected:
+  - openclaw-cron.txt
