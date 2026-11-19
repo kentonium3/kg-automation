@@ -34,8 +34,12 @@ import tarfile
 import tempfile
 import time
 import urllib.request
+import uuid
 from collections.abc import Iterable, Sequence
 from dataclasses import asdict, dataclass
+from datetime import datetime, timezone
+
+from scripts.research.arms849.sampler import CgroupSeriesWriter, docker_container_id
 
 __all__ = [
     "CACHE_DIR",
@@ -44,6 +48,7 @@ __all__ = [
     "LLAMA_IMAGE",
     "PROJECT",
     "RUNS_DIR",
+    "SERIES_GENERATION_ENV",
     "SubstrateState",
     "content_manifest_sha",
     "down",
@@ -72,6 +77,12 @@ SETUP_JSON = RUNS_DIR / "setup.json"
 PROJECT = "arms849"
 NETWORK = f"{PROJECT}-net"
 VOLUME = f"{PROJECT}-falkor"
+FALKORDB_CONTAINER = f"{PROJECT}-falkordb-1"
+
+#: One JSON value preserves the descriptor's number/null types and makes the
+#: handoff atomic: WP04 either receives this complete generation or no generation.
+SERIES_GENERATION_ENV = "ARMS849_SERIES_GENERATION_JSON"
+CGROUP_INTERVAL_S = 1.0
 
 
 RUNNER_IMAGE_INPUTS = ("runner.Dockerfile", "requirements-arms849.txt")
@@ -515,10 +526,15 @@ def _runner_cmd(extra: Iterable[str], *, entrypoint: str | None = None,
     """:func:`_runner_argv` after the preconditions: mount sources exist and are ours
     (checked BEFORE anything touches docker), then the runner image exists for this
     Dockerfile."""
+    _prepare_runner()
+    return _runner_argv(extra, entrypoint=entrypoint, env_extra=env_extra)
+
+
+def _prepare_runner() -> None:
+    """Perform runner preconditions before any observational series starts."""
     RUNS_DIR.mkdir(parents=True, exist_ok=True)
     _assert_mount_sources(EXPORT_DIR, CORPUS_DIR, CACHE_DIR, RUNS_DIR)
     _ensure_runner_image()
-    return _runner_argv(extra, entrypoint=entrypoint, env_extra=env_extra)
 
 
 SELF_TEST = r"""
@@ -669,8 +685,41 @@ def self_test(host_checkout: pathlib.Path = REPO_ROOT, widen_with: Sequence[str]
             "checks": checks, "stderr": proc.stderr[-2000:]}
 
 
+def _new_series_id() -> str:
+    return uuid.uuid4().hex
+
+
+def _utc_now() -> datetime:
+    return datetime.now(timezone.utc)
+
+
+def _writer_failure(exc: Exception) -> str:
+    detail = str(exc).strip()
+    if isinstance(exc, subprocess.CalledProcessError):
+        detail = str(exc.stderr or exc.stdout or detail).strip()
+    return f"{type(exc).__name__}: {detail or 'no detail'}"[:500]
+
+
+def _stop_writer(writer: CgroupSeriesWriter | None) -> None:
+    """Best-effort cleanup: this observer must never replace the runner result."""
+    if writer is None:
+        return
+    try:
+        writer.stop()
+    except Exception as exc:  # noqa: BLE001 — failure is observable as the missing clean trailer
+        print(f"graph-store series stop failed: {_writer_failure(exc)}", file=sys.stderr)
+
+
 def run(harness_args: Sequence[str]) -> int:
-    """Execute the harness inside the runner; the export must exist and be intact."""
+    """Execute the harness with one observational graph-store series generation.
+
+    Only this harness boundary starts the host writer; ``self_test`` and the gate
+    phases do not. The runner receives one atomic JSON descriptor in
+    ``ARMS849_SERIES_GENERATION_JSON`` with ``series_id``, runner-visible
+    ``path``, ``container_id``, ``interval_s``, canonical ``started_ts``,
+    ``writer_status`` and nullable ``writer_reason``. Inspect/open/start failure
+    produces a ``failed`` descriptor and never prevents the runner from starting.
+    """
     manifest_path = EXPORT_DIR / ".export-manifest.json"
     if not manifest_path.exists():
         raise RuntimeError("no export at build/849-run-env — run `substrate export` first")
@@ -684,8 +733,59 @@ def run(harness_args: Sequence[str]) -> int:
         manifest_path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
     if actual != recorded:
         raise RuntimeError(f"export content sha {actual} != recorded {recorded}; re-export")
-    proc = subprocess.run(_runner_cmd(["scripts.research.run_849_harness", *harness_args]), check=False)
-    return proc.returncode
+
+    # Mount/image failures are runner precondition failures, not observational
+    # writer failures. Complete them before opening the generation window.
+    _prepare_runner()
+    series_id = _new_series_id()
+    path = RUNS_DIR / f"falkordb-cgroup-{series_id}.jsonl"
+    runner_path = f"/runs/{path.name}"
+    started: datetime | None = None
+    container_id: str | None = None
+    descriptor: dict[str, object]
+    candidate: CgroupSeriesWriter | None = None
+    try:
+        try:
+            container_id = docker_container_id(FALKORDB_CONTAINER)
+            # Inspection may be slow. Start the generation clock only after the
+            # immutable id resolves so inspection cannot consume its coverage budget.
+            started = _utc_now()
+            candidate = CgroupSeriesWriter(path, series_id, FALKORDB_CONTAINER, container_id=container_id,
+                                           started=started, interval_s=CGROUP_INTERVAL_S)
+            candidate.start()
+            descriptor = {
+                "series_id": series_id,
+                "path": runner_path,
+                "container_id": candidate.container_id,
+                "interval_s": candidate.interval_s,
+                "started_ts": started.isoformat(),
+                "writer_status": "running",
+                "writer_reason": None,
+            }
+        except Exception as exc:  # noqa: BLE001 — the measure is observational by contract
+            # A failed inspection still describes a generation attempt. Capture
+            # its canonical time after the failure, rather than aging it during inspect.
+            if started is None:
+                started = _utc_now()
+            descriptor = {
+                "series_id": series_id,
+                "path": runner_path,
+                "container_id": container_id,
+                "interval_s": CGROUP_INTERVAL_S,
+                "started_ts": started.isoformat(),
+                "writer_status": "failed",
+                "writer_reason": _writer_failure(exc),
+            }
+            _stop_writer(candidate)
+            candidate = None
+
+        encoded = json.dumps(descriptor, sort_keys=True, separators=(",", ":"))
+        cmd = _runner_argv(["scripts.research.run_849_harness", *harness_args],
+                           env_extra=[(SERIES_GENERATION_ENV, encoded)])
+        proc = subprocess.run(cmd, check=False)
+        return proc.returncode
+    finally:
+        _stop_writer(candidate)
 
 
 # --------------------------------------------------------------------------

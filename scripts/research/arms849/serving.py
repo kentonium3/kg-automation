@@ -36,7 +36,7 @@ import pathlib
 import urllib.error
 import urllib.parse
 import urllib.request
-from collections.abc import Iterable, Sequence
+from collections.abc import Callable, Iterable, Sequence
 from dataclasses import asdict, dataclass, field
 from typing import Any, Literal
 
@@ -398,13 +398,21 @@ def map_timings(response: dict[str, Any], client_prompt_tokens: int) -> Completi
 
 
 def complete(body: dict[str, Any], tokenizer: Tokenizer, permitted_limit: int,
-             base_url: str = "http://127.0.0.1:18080", timeout_s: float = 6000.0) -> Completion:
+             base_url: str = "http://127.0.0.1:18080", timeout_s: float = 6000.0,
+             before_send: Callable[[], None] | None = None) -> Completion:
     """POST the exact body to ``/completion`` and map its timings.
 
     The client count of ``body["prompt"]`` is taken first: above ``permitted_limit``
     the request is refused BEFORE sending (the WP04 gate is the first line, this is
     the last — the pinned build's context-shift default is never relied on), and
     afterwards it must equal the server's ``prompt_n + cache_n``.
+
+    ``before_send`` (contracts/before-send.md item 1, C11) is called after the count and the
+    permitted-limit check and IMMEDIATELY before the HTTP send, with nothing wrapped around it: an
+    exception it raises (the harness's ``CeilingBreached`` / ``CeilingUnreadable``) propagates
+    unaltered and zero bytes are sent. The ``None`` default keeps existing callers working until
+    WP04 makes ``ServingFacade`` require a callback on every live cell (before-send item 2); it is
+    not a way to send unguarded in a run.
     """
     _assert_safe(base_url)
     client = count_tokens(body, tokenizer)
@@ -413,6 +421,8 @@ def complete(body: dict[str, Any], tokenizer: Tokenizer, permitted_limit: int,
     data = json.dumps(body).encode("utf-8")
     req = urllib.request.Request(f"{base_url.rstrip('/')}/completion", data=data,
                                  headers={"Content-Type": "application/json"})
+    if before_send is not None:
+        before_send()                                                # the last point the protocol controls
     with urllib.request.urlopen(req, timeout=timeout_s) as resp:
         payload = json.loads(resp.read().decode("utf-8"))
     return map_timings(payload, client)

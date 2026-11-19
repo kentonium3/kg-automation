@@ -21,14 +21,14 @@ sys.path.insert(0, str(REPO_ROOT))
 
 from scripts.research import check_849_loader as chk  # noqa: E402
 from scripts.research import load_849_corpus as ldr  # noqa: E402
+from tests.research.conftest import CORPUS, RESEARCH_ENVIRONMENT_SKIP_REASON
 
-CORPUS = ldr.DEFAULT_CORPUS
 F1 = datetime.fromisoformat("2026-08-10T09:00:00-04:00")
 B2 = datetime.fromisoformat("2026-10-16T09:00:00-04:00")
 
 pytestmark = pytest.mark.skipif(
     not (CORPUS / "entities.json").exists(),
-    reason="rendered corpus absent; run render_849_corpus first")
+    reason=RESEARCH_ENVIRONMENT_SKIP_REASON)
 
 
 # --------------------------------------------------------------------------

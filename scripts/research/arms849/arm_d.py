@@ -19,9 +19,8 @@ the same ``body["prompt"]``.
 ``ctx.prompt`` (the registered :class:`Prompt`), ``ctx.seed`` (= 1000 + repeat),
 ``ctx.limit`` / ``ctx.limit_applied`` (``ServingConfiguration.limit_applied()``:
 the trained limit for the primary ledger, the permitted limit for the secondary
-— D-11), the :class:`ServingConfiguration` itself (``ctx.config``, or carried by
-the serving facade as ``ctx.serving.config`` — contracts/arm-interface.md lists
-it on ctx), and ``ctx.serving`` with ``serialize(request_bytes, seed) -> body``,
+— D-11), the :class:`ServingConfiguration` itself (``ctx.config`` ONLY — the
+``ctx.serving.config`` fallback was removed, C13 item 6), and ``ctx.serving`` with ``serialize(request_bytes, seed) -> body``,
 ``count_tokens(body) -> int``, ``count_text(bytes) -> int`` and
 ``complete(body) -> Completion``. The arm does not trust ``ctx.limit``: before
 counting it checks BOTH fields against what the configuration's
@@ -37,7 +36,9 @@ Refusals that are a CONFIGURATION defect, not an infrastructure failure — a vi
 loader links, a request without ``cache_prompt``, an empty view, a ctx limit that is not the
 configuration's, a request the gate admits but ``complete``'s last line refuses — raise
 :class:`ArmRefusal`; the harness records them as the cell's terminal ``error`` without the
-retry ladder (arm-interface: retries are for infrastructure).
+retry ladder (arm-interface: retries are for infrastructure). ``ArmRefusal`` is the ONE shared
+class (:mod:`arms849.errors`, C13 item 3), and the limit check is the shared
+:func:`errors.check_limit` (research D-4).
 """
 
 from __future__ import annotations
@@ -47,7 +48,7 @@ from collections.abc import Callable
 from dataclasses import asdict, dataclass
 from typing import Any
 
-from scripts.research.arms849 import serving
+from scripts.research.arms849 import errors, serving
 from scripts.research.arms849.text import Block, FrozenCorpusText, edge_key, entity_key
 from scripts.research.load_849_corpus import Loaded
 
@@ -57,12 +58,9 @@ __all__ = ["LAYOUT", "ArmRefusal", "ContextExceeded", "PlanRecord", "arm_d", "bi
 #: The only layout arm D produces; asserted on every dump and recorded on every D row.
 LAYOUT = "events_entities_edges"
 _MISSING = object()
-LIMIT_NAMES = ("trained", "permitted")
 
-
-class ArmRefusal(RuntimeError):
-    """A configuration defect (links handed to the flat arm, cache_prompt off, an empty view):
-    terminal for the cell, never retried — the retry ladder is for infrastructure failures."""
+#: The ONE shared refusal class (C13 item 3; research D-4): an alias, so ``D.ArmRefusal`` stays valid.
+ArmRefusal = errors.ArmRefusal
 
 
 class ContextExceeded(serving.ContextExceeded):
@@ -168,36 +166,6 @@ def prefix_check(text: FrozenCorpusText, view_prev: Loaded, view_next: Loaded) -
     return later.startswith(earlier)
 
 
-def _configuration(ctx: Any) -> serving.ServingConfiguration:
-    """The active :class:`ServingConfiguration`: ``ctx.config`` (arm-interface lists it on ctx) or the
-    one the serving facade serialises with (``ctx.serving.config``). Without it the limit cannot be
-    checked, and an unchecked limit is a configuration defect in itself."""
-    config = getattr(ctx, "config", None)
-    if config is None:
-        config = getattr(getattr(ctx, "serving", None), "config", None)
-    if not isinstance(config, serving.ServingConfiguration):
-        raise ArmRefusal("ctx carries no ServingConfiguration (neither ctx.config nor ctx.serving.config); "
-                         "the context limit cannot be checked against the configuration (D-11)")
-    return config
-
-
-def _check_limit(ctx: Any, config: serving.ServingConfiguration) -> None:
-    """``ctx.limit_applied`` and ``ctx.limit`` must BOTH be what ``config.limit_applied()`` says.
-
-    A well-formed pair that is not the configuration's — ``("trained", 1)`` under the primary,
-    the secondary's pair under the primary — would otherwise turn a configuration defect into a
-    measured ``exceeds_model_context`` outcome and move the registered six-of-eight split
-    (Codex c4)."""
-    if ctx.limit_applied not in LIMIT_NAMES or type(ctx.limit) is not int or ctx.limit <= 0:
-        raise ArmRefusal(f"incoherent context limit in ctx: {ctx.limit_applied!r} = {ctx.limit!r} "
-                         f"(D-11: one of {LIMIT_NAMES}, a positive int, from ServingConfiguration.limit_applied())")
-    name, limit = config.limit_applied()
-    if (ctx.limit_applied, ctx.limit) != (name, limit):
-        raise ArmRefusal(f"ctx applies the {ctx.limit_applied} limit {ctx.limit}, but the {config.kind} configuration "
-                         f"applies the {name} limit {limit} (ServingConfiguration.limit_applied(), D-11) — "
-                         f"a configuration defect, not an experimental outcome")
-
-
 def arm_d(question: Any, view: Loaded, ctx: Any, text: FrozenCorpusText) -> dict[str, Any]:
     """contracts/arm-interface.md for D: dump → render → serialize → count → gate → complete.
 
@@ -212,8 +180,7 @@ def arm_d(question: Any, view: Loaded, ctx: Any, text: FrozenCorpusText) -> dict
     body = ctx.serving.serialize(request, ctx.seed)
     if body.get("cache_prompt") is not True:
         raise ArmRefusal("arm D's requests carry cache_prompt: true (D-7: the prefix is the measurement)")
-    config = _configuration(ctx)
-    _check_limit(ctx, config)
+    config = errors.check_limit(ctx)                               # ctx.config only; before anything is counted
     prompt_tokens = ctx.serving.count_tokens(body)                 # counts body["prompt"] — the string sent
     plan = PlanRecord(
         layout=LAYOUT, events_in_dump=n_events, entities_in_dump=n_entities, edges_in_dump=n_edges,

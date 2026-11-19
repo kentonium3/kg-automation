@@ -213,3 +213,37 @@ def test_the_scan_fails_closed_on_a_budget_violation(construction):
 
 if __name__ == "__main__" and "--scan" in sys.argv:
     raise SystemExit(_scan_main())
+
+
+# ---------------------------------------------------------------------------
+# C4 / FR-010 — the isolation gate's inventory is complete (rubric §10; arms-preconditions WP01 T006)
+# ---------------------------------------------------------------------------
+
+
+def _package_modules() -> set[str]:
+    """Every module of the run package exactly as the gate enumerates it (gates.excluded_material_absent:
+    ``PKG_DIR.rglob("*.py")``, recursive, relative posix names). ``__init__.py`` is NOT excluded: the
+    gate registers it, so the inventory must carry it too."""
+    return {p.relative_to(PKG).as_posix() for p in PKG.rglob("*.py")}
+
+
+def test_every_package_module_is_registered_in_the_isolation_inventory():
+    """Correction A: a module added to the package without registering it here fails this test, so a
+    truncated REQUIRED_MODULES can never certify isolation by scanning a smaller set (SC-005)."""
+    from scripts.research.arms849 import gates
+    unregistered = sorted(_package_modules() - set(gates.REQUIRED_MODULES))
+    assert unregistered == [], f"modules missing from gates.REQUIRED_MODULES: {unregistered}"
+
+
+def test_every_registered_module_exists_in_the_package():
+    from scripts.research.arms849 import gates
+    absent = sorted(set(gates.REQUIRED_MODULES) - _package_modules())
+    assert absent == [], f"REQUIRED_MODULES names modules the package does not have: {absent}"
+    assert len(set(gates.REQUIRED_MODULES)) == len(gates.REQUIRED_MODULES), "a module is registered twice"
+    assert "__init__.py" in gates.REQUIRED_MODULES and "__init__.py" in _package_modules()
+
+
+def test_the_inventory_names_the_three_arms():
+    """Rubric §10 C4 names them explicitly: "the three arms included"."""
+    from scripts.research.arms849 import gates
+    assert {"arm_g.py", "arm_d.py", "arm_r.py"} <= set(gates.REQUIRED_MODULES)

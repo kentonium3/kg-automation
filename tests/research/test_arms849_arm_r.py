@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import ast
 import json
-import os
 import pathlib
 import shutil
 import statistics
@@ -15,11 +14,12 @@ import pytest
 
 REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT))
+from tests.research.conftest import CACHE, CORPUS, RESEARCH_ENVIRONMENT_SKIP_REASON
 
 # The research stack (graphiti_core, fastembed) lives in the runner image and the local venv, not in
 # requirements.txt; CI has no graphiti_core, so skip this module there rather than fail collection
 # (same shape as the corpus/cache skips). The real runs happen on office4.
-pytest.importorskip("graphiti_core", reason="research stack (graphiti_core) not installed — e.g. CI")
+pytest.importorskip("graphiti_core", reason=RESEARCH_ENVIRONMENT_SKIP_REASON)
 
 from scripts.research.arms849 import arm_r as R
 from scripts.research.arms849 import questions as Q
@@ -27,14 +27,14 @@ from scripts.research.arms849 import serving as S
 from scripts.research.arms849.embed import Embedder
 from scripts.research.arms849.prompt import Prompt
 from scripts.research.arms849.text import FrozenCorpusText, edge_key, entity_key
-from scripts.research.load_849_corpus import DEFAULT_CORPUS, Loaded, replay
+from scripts.research.load_849_corpus import Loaded, replay
 
 PKG = REPO_ROOT / "scripts" / "research" / "arms849"
-CORPUS = pathlib.Path(os.environ.get("ARMS849_CORPUS", str(DEFAULT_CORPUS)))
-CACHE = pathlib.Path(os.environ.get("ARMS849_CACHE", str(REPO_ROOT / "build" / "849-cache")))
-needs_corpus = pytest.mark.skipif(not (CORPUS / "stream.jsonl").exists(), reason="rendered corpus absent")
+needs_corpus = pytest.mark.skipif(
+    not (CORPUS / "stream.jsonl").exists(), reason=RESEARCH_ENVIRONMENT_SKIP_REASON
+)
 needs_cache = pytest.mark.skipif(not (CACHE / "fastembed").is_dir() or not (CACHE / "qwen-tokenizer").exists(),
-                                 reason="embedder / tokenizer cache absent")
+                                 reason=RESEARCH_ENVIRONMENT_SKIP_REASON)
 SOURCE = (PKG / "arm_r.py").read_text(encoding="utf-8")
 
 
@@ -354,12 +354,13 @@ def test_empty_view_sections_are_refused_like_arm_d(c1, text):
 
 
 class FakeLedger:
-    """Only what calibrate() reads: run_rows() and terminal() — as tests/research/test_arms849_calibration.py."""
+    """Only what calibrate() reads: grading_rows() (the guarded scored accessor) and terminal() — as
+    tests/research/test_arms849_calibration.py."""
 
     def __init__(self, g_tokens: dict[str, int]) -> None:
         self._g = g_tokens
 
-    def run_rows(self):
+    def grading_rows(self):
         return [{"arm": "G", "question": q, "repeat": 1, "outcome": "ok", "assembled_context_tokens": t}
                 for q, t in self._g.items()]
 
@@ -468,17 +469,15 @@ def identity_for(tok) -> S.ServingIdentity:
     return S.ServingIdentity("gguf", "sha256:img", "emb", "tok", tok.chat_template_sha256())
 
 
-def ctx_for(tok, embedder, calibration, config=None, limit=None, limit_applied=None, on_ctx=False):
-    """A ctx over a Facade carrying the configuration (``ctx.serving.config``); ``on_ctx=True`` puts it on
-    ``ctx.config`` (the contract name) and hands the facade out without one."""
+def ctx_for(tok, embedder, calibration, config=None, limit=None, limit_applied=None, facade_only=False):
+    """A ctx with the configuration on ``ctx.config`` (the contract name; the facade carries it too).
+    ``facade_only=True`` builds the shape WP02 T007 REMOVED: the configuration only on ``ctx.serving.config``."""
     cfg = config or S.ServingConfiguration.primary(identity_for(tok))
     name, lim = cfg.limit_applied()
     facade = Facade(tok, cfg)
-    if on_ctx:
-        facade.config = None
     return SimpleNamespace(prompt=Prompt(), seed=1001, limit=lim if limit is None else limit,
                            limit_applied=name if limit_applied is None else limit_applied, serving=facade,
-                           embedder=embedder, calibration=calibration, **({"config": cfg} if on_ctx else {}))
+                           embedder=embedder, calibration=calibration, **({} if facade_only else {"config": cfg}))
 
 
 @needs_corpus
@@ -505,7 +504,9 @@ def test_arm_r_refuses_without_a_calibration_record_and_runs_with_one(c1, c1_ind
     row3 = R.arm_r(q, c1, ctx_for(tok, embedder, {"record": "calibration", "k": 12}), text, c1_index)
     assert row3["assembled_context_sha256"] == row["assembled_context_sha256"]
     # the contract's ctx.config path, with a facade that carries no configuration of its own
-    row4 = R.arm_r(q, c1, ctx_for(tok, embedder, {"k": 12}, on_ctx=True), text, c1_index)
+    ctx4 = ctx_for(tok, embedder, {"k": 12})
+    ctx4.serving.config = None
+    row4 = R.arm_r(q, c1, ctx4, text, c1_index)
     assert row4["assembled_context_sha256"] == row["assembled_context_sha256"]
 
 
@@ -567,18 +568,18 @@ def test_incoherent_and_disagreeing_ctx_limits_are_refused_before_counting(c1, c
               (secondary, "trained", S.TRAINED_CONTEXT),            # the primary's pair under the secondary
               (secondary, "permitted", permitted_secondary + 1)]
     for config, name, limit in probes:
-        for on_ctx in (False, True):
-            ctx = ctx_for(tok, embedder, cal, config=config, limit=limit, limit_applied=name, on_ctx=on_ctx)
-            with pytest.raises(R.ArmRefusal, match="configuration") as info:
-                R.arm_r(q, c1, ctx, text, c1_index)
-            assert not isinstance(info.value, S.ContextExceeded)
-            assert ctx.serving.counted == [] and ctx.serving.sent == [], (name, limit, on_ctx)
-    # no configuration anywhere: neither ctx.config nor ctx.serving.config
-    ctx = ctx_for(tok, embedder, cal)
-    ctx.serving.config = None
-    with pytest.raises(R.ArmRefusal, match="ServingConfiguration"):
-        R.arm_r(q, c1, ctx, text, c1_index)
-    assert ctx.serving.counted == [] and ctx.serving.sent == []
+        ctx = ctx_for(tok, embedder, cal, config=config, limit=limit, limit_applied=name)
+        with pytest.raises(R.ArmRefusal, match="configuration") as info:
+            R.arm_r(q, c1, ctx, text, c1_index)
+        assert not isinstance(info.value, S.ContextExceeded)
+        assert ctx.serving.counted == [] and ctx.serving.sent == [], (name, limit)
+    # no configuration on ctx.config: refused, whatever the facade carries (WP02 T007: no fallback)
+    for facade_config in (primary, None):
+        ctx = ctx_for(tok, embedder, cal, facade_only=True)
+        ctx.serving.config = facade_config
+        with pytest.raises(R.ArmRefusal, match="ctx.config"):
+            R.arm_r(q, c1, ctx, text, c1_index)
+        assert ctx.serving.counted == [] and ctx.serving.sent == []
     # the secondary's own pair under the secondary is coherent and runs
     ctx = ctx_for(tok, embedder, cal, config=secondary)
     assert R.arm_r(q, c1, ctx, text, c1_index)["context_limit_applied"] == "permitted"
@@ -700,3 +701,43 @@ def test_a_request_in_the_window_below_the_trained_limit_is_a_configuration_erro
     assert "permitted limit 262144" not in str(exc) and "permitted limit 262144" not in str(exc.__cause__)
     assert f"permitted limit {lim.permitted}" in str(exc.__cause__)      # serving's own message agrees
     assert len(ctx.serving.counted) == 1                                 # the gate counted once
+
+
+# ---------------------------------------------------------------------------
+# WP02 (arms-preconditions-01M3FVRY) T007/T011: one refusal class, the ceiling guard
+# ---------------------------------------------------------------------------
+
+
+def test_arm_r_raises_the_one_shared_refusal_class():
+    """FR-003: R's ``ArmRefusal`` IS the shared class, D's too — one class, terminality by identity."""
+    from scripts.research.arms849 import arm_d as D
+    from scripts.research.arms849 import errors as ERR
+
+    assert R.ArmRefusal is ERR.ArmRefusal is D.ArmRefusal
+
+
+@needs_corpus
+@needs_cache
+@pytest.mark.parametrize("which", ["breach", "unreadable"])
+def test_the_ceiling_guard_reaches_the_caller_unaltered_through_r(c1, c1_index, text, tok, embedder, monkeypatch, which):
+    """FR-008 (serving side): ``before_send`` raising inside the REAL ``serving.complete`` passes through
+    arm R as the SAME object, and nothing is sent."""
+    import urllib.request
+
+    from scripts.research.arms849 import errors as ERR
+
+    def never(*a, **k):
+        raise AssertionError("a byte was sent past the ceiling guard")
+    monkeypatch.setattr(urllib.request, "urlopen", never)
+    exc = ERR.CeilingBreached(58.0, 57.5) if which == "breach" else ERR.CeilingUnreadable("GTT unreadable")
+
+    def guard():
+        raise exc
+
+    ctx = ctx_for(tok, embedder, {"record": "calibration", "k": 3})
+    facade = ctx.serving
+    ctx.serving.complete = lambda body: S.complete(body, facade.tok, facade.config.limits().permitted,
+                                                   "http://127.0.0.1:1", before_send=guard)
+    with pytest.raises(type(exc)) as info:
+        R.arm_r(Q.by_id("C1"), c1, ctx, text, c1_index)
+    assert info.value is exc

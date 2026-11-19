@@ -1,0 +1,65 @@
+{
+  "rows": {
+    "#1023": {
+      "evidence_ref": "Follow-up: arms-preconditions-01M3FVRY#FR-015 acceptance-verdict after the quickstart checker run (quickstart.md), then feat/849-preconditions to main per #1023",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": "spec.md",
+      "title": "<fill at WP-implementation time>",
+      "verdict": "deferred-with-followup",
+      "wp": null
+    },
+    "#1037": {
+      "evidence_ref": "Context only (research.md R-finding): a past checker blocker fixed separately; this mission owes it no work",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": null,
+      "title": null,
+      "verdict": "not-applicable",
+      "wp": null
+    },
+    "#1083": {
+      "evidence_ref": "Squash 670b6136 + post-merge fix 3c13e6c6 on feat/849-preconditions; checker PASS premerge-3c13e6c6 (2026-11-19T12:38Z): live-required-nodes 2/2 at ARMS849_FALKOR/LLAMA 127.0.0.1:16379/18080, live-down clean; --verify accepts it and rejects no-LIVE and no-override copies",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": "spec.md",
+      "title": "<fill at WP-implementation time>",
+      "verdict": "fixed",
+      "wp": "WP01"
+    },
+    "#1106": {
+      "evidence_ref": "Follow-up: kentonium3/kg-automation#1106 (post-plan P-4, Kent ruled option B 2026-11-18; verifier contradictory-record hardening)",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": null,
+      "title": null,
+      "verdict": "deferred-with-followup",
+      "wp": null
+    },
+    "#849": {
+      "evidence_ref": "Parent research issue (decisive Life Lattice test); this mission owes it no direct work; the 72-cell run follows as an operation after #1023",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": "spec.md",
+      "title": "<fill at WP-implementation time>",
+      "verdict": "not-applicable",
+      "wp": null
+    }
+  },
+  "schema_version": 1
+}

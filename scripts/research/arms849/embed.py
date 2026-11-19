@@ -9,8 +9,8 @@
   #974 cosine reranker: passages ranked by cosine similarity of their embedding
   to the query embedding. No learned cross-encoder, no external call.
 - :class:`TripwireLLMClient` implements Graphiti's ``LLMClient`` and RAISES on
-  every call, counting attempts; the arm records the count as ``llm_calls`` and
-  a non-zero count fails the cell (D-2).
+  every call, counting attempts; the arm records the count as ``llm_calls``. A
+  firing tripwire is a premise violation that halts the run (D-2; C13 item 5).
 
 Recorded in the serving configuration as ``embedder`` and ``reranker`` (D-3).
 """
@@ -26,6 +26,8 @@ from typing import Any
 from graphiti_core.cross_encoder.client import CrossEncoderClient
 from graphiti_core.embedder.client import EmbedderClient
 from graphiti_core.llm_client.client import LLMClient
+
+from scripts.research.arms849.errors import PremiseViolated
 
 __all__ = ["EMBEDDER_MODEL", "CosineReranker", "Embedder", "GraphitiEmbedder", "LLMCallAttempted",
            "TripwireLLMClient", "cosine"]
@@ -102,13 +104,15 @@ class CosineReranker(CrossEncoderClient):
         return sorted(scored, key=lambda t: (-t[1], t[0]))
 
 
-class LLMCallAttempted(RuntimeError):
-    """Graphiti tried to call an LLM. D-2: the arm never extracts; this is a failed cell."""
+class LLMCallAttempted(PremiseViolated):
+    """Graphiti tried to call an LLM. D-2: the arm never extracts. The no-LLM premise of the whole
+    run is broken, so this IS a ``PremiseViolated('tripwire')`` — the run halts and already-recorded
+    cells are suspect (C13 item 5; FR-002) — never a per-cell refusal or a retryable error."""
 
     def __init__(self, method: str, summary: str) -> None:
         self.method = method
         self.summary = summary
-        super().__init__(f"TRIPWIRE: Graphiti attempted an LLM call via {method}: {summary}")
+        super().__init__("tripwire", f"TRIPWIRE: Graphiti attempted an LLM call via {method}: {summary}")
 
 
 class TripwireLLMClient(LLMClient):

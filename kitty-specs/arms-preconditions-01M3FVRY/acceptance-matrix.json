@@ -1,0 +1,169 @@
+{
+  "mission_slug": "arms-preconditions-01M3FVRY",
+  "mission_number": "",
+  "mission_type": "software-dev",
+  "overall_verdict": "pass",
+  "criteria": [
+    {
+      "criterion_id": "FR-001",
+      "description": "Verify FR-001 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "origin/kitty/mission-arms-preconditions-01M3FVRY-lane-a@9db5456a:tests/research/test_arms849_integration.py::test_live_runtime_registers_g_d_r_with_one_embedder",
+      "pass_fail": "pass",
+      "verified_by": "codex-office4-d5c7b35d",
+      "verified_at": "2026-09-28T19:00:40.148261+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-002",
+      "description": "Verify FR-002 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "tests/research/test_arms849_integration.py::test_a_premise_violation_records_both_events_and_halts_before_later_work;test_an_unacknowledged_g_cancellation_records_stop_and_escapes_without_more_graph_work",
+      "pass_fail": "pass",
+      "verified_by": "codex-office4-d5c7b35d",
+      "verified_at": "2026-09-28T19:00:49.386624+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-003",
+      "description": "Verify FR-003 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "tests/research/test_arms849_arm_d.py::test_the_arms_share_one_refusal_class",
+      "pass_fail": "pass",
+      "verified_by": "codex-office4-d5c7b35d",
+      "verified_at": "2026-09-28T19:00:58.671641+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-004",
+      "description": "Verify FR-004 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "tests/research/test_run_849_harness.py::test_an_unregistered_arm_is_recorded_not_silently_skipped;tests/research/test_arms849_grading.py::test_export_refuses_not_implemented_cells",
+      "pass_fail": "pass",
+      "verified_by": "codex-office4-d5c7b35d",
+      "verified_at": "2026-09-28T19:01:08.130649+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-005",
+      "description": "Verify FR-005 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "tests/research/test_arms849_sampler.py::test_real_cgroup_writer_emits_bound_header_records_and_a_clean_trailer;tests/research/test_arms849_integration.py::test_graph_store_generation_and_boundaries_are_run_level_and_ordered",
+      "pass_fail": "pass",
+      "verified_by": "codex-office4-d5c7b35d",
+      "verified_at": "2026-09-28T19:01:17.475574+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-006",
+      "description": "Verify FR-006 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "tests/research/test_arms849_sampler.py::test_graph_store_report_round_trips_the_real_writer_against_a_fake_cgroup",
+      "pass_fail": "pass",
+      "verified_by": "codex-office4-d5c7b35d",
+      "verified_at": "2026-09-28T19:01:26.897251+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-007",
+      "description": "Verify FR-007 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "tests/research/test_arms849_sampler.py::test_report_unavailable_conditions_are_honest_and_never_raise",
+      "pass_fail": "pass",
+      "verified_by": "codex-office4-d5c7b35d",
+      "verified_at": "2026-09-28T19:01:36.108385+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-008",
+      "description": "Verify FR-008 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "tests/research/test_arms849_integration.py::test_send_time_ceiling_breach_is_terminal_stops_and_sends_zero_bytes",
+      "pass_fail": "pass",
+      "verified_by": "codex-office4-d5c7b35d",
+      "verified_at": "2026-09-28T19:01:45.201072+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-009",
+      "description": "Verify FR-009 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "origin/kitty/mission-arms-preconditions-01M3FVRY-lane-a@9db5456a:tests/research/test_arms849_resume.py::test_live_style_resume_with_fresh_timestamped_gates_preserves_prior_rows;test_live_style_resume_stops_and_records_a_failing_fresh_gate;test_live_style_resume_cannot_write_after_skipped_gates",
+      "pass_fail": "pass",
+      "verified_by": "codex-office4-d5c7b35d",
+      "verified_at": "2026-09-28T19:01:54.577269+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-010",
+      "description": "Verify FR-010 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "tests/research/test_arms849_isolation.py::test_every_package_module_is_registered_in_the_isolation_inventory;test_every_registered_module_exists_in_the_package",
+      "pass_fail": "pass",
+      "verified_by": "codex-office4-d5c7b35d",
+      "verified_at": "2026-09-28T19:02:03.778440+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-011",
+      "description": "Verify FR-011 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "tests/research/test_arms849_ledger.py::test_attempt_start_carries_the_session_id_of_its_own_session",
+      "pass_fail": "pass",
+      "verified_by": "codex-office4-d5c7b35d",
+      "verified_at": "2026-09-28T19:02:12.948744+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-012",
+      "description": "Verify FR-012 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "tests/research/test_arms849_sampler.py::test_c19_only_the_canonical_isoformat_form_is_accepted",
+      "pass_fail": "pass",
+      "verified_by": "codex-office4-d5c7b35d",
+      "verified_at": "2026-09-28T19:02:22.143941+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-013",
+      "description": "Verify FR-013 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "tests/research/test_run_849_harness.py::test_measurement_is_ordered_exact_and_bound_to_commit_and_preflight",
+      "pass_fail": "pass",
+      "verified_by": "codex-office4-d5c7b35d",
+      "verified_at": "2026-09-28T19:02:31.502231+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-014",
+      "description": "Verify FR-014 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "origin/kitty/mission-arms-preconditions-01M3FVRY-lane-a@9db5456a:tests/research/test_arms849_resume.py::test_missing_research_environment_has_one_named_counted_skip_reason",
+      "pass_fail": "pass",
+      "verified_by": "codex-office4-d5c7b35d",
+      "verified_at": "2026-09-28T19:02:40.971383+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-015",
+      "description": "Verify FR-015 is satisfied",
+      "proof_type": "post_merge_audit",
+      "evidence": "build/849-runs/premerge-3c13e6c6.json (copy of ~/.local/share/kg-849-evidence/premerge-3c13e6c6-run2.json, sha256 f09ac3e8\u2026ea67): status PASS, complete, commit 3c13e6c6 on feat/849-preconditions; office-seed-0/3 and fresh-worktree-ci pass; live-required-nodes 2/2",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-11-19T12:39:27.769371+00:00",
+      "notes": "Unblocked by #1037 (Arm G deadlock) and #1083 (host endpoints, mission arms849-live-runtime-host-endpoints-01M7Q8F3). --verify accepts the record; mutated copies without ARMS849_LIVE or without the four overrides are rejected (exit 1). Checked 2026-11-19 by Claude Opus 5.5."
+    },
+    {
+      "criterion_id": "FR-016",
+      "description": "Verify FR-016 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "tests/research/test_arms849_arm_g.py::test_live_hybrid_search_returns_an_item_the_question_names",
+      "pass_fail": "pass",
+      "verified_by": "codex-office4-d5c7b35d",
+      "verified_at": "2026-09-28T19:02:59.445960+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    }
+  ],
+  "negative_invariants": []
+}

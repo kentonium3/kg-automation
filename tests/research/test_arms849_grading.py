@@ -22,17 +22,29 @@ from scripts.research import run_849_harness as h
 from scripts.research.arms849 import grading
 from scripts.research.arms849 import ledger as ledger_mod
 from scripts.research.arms849.questions import QUESTIONS
-from tests.research.test_arms849_integration import (
+from tests.research.conftest import (
     BLINDING_SEED,
+    CORPUS,
+    RESEARCH_ENVIRONMENT_SKIP_REASON,
     fake_arms,
     full_run,
     make_runtime,
     open_fake,
 )
+from tests.research.test_arms849_ledger import (
+    SID,
+    binding,
+    breach_row,
+    calibrated,
+    fresh,
+    ok_row,
+    premise,
+    rec,
+    unreadable_row,
+)
 
-CORPUS = h.DEFAULT_CORPUS
 pytestmark = pytest.mark.skipif(not (CORPUS / "entities.json").exists(),
-                                reason="rendered corpus absent; run render_849_corpus first")
+                                reason=RESEARCH_ENVIRONMENT_SKIP_REASON)
 
 ID_RE = re.compile(r"q[A-Z0-9]+-[0-9a-f]{6}")
 #: Keys that must never appear anywhere in the view (grading-view.md "Forbidden in the view").
@@ -216,3 +228,117 @@ def test_harness_and_exporter_share_the_one_predicate():
     assert not hasattr(h, "_binds_skip_gates")
     src = pathlib.Path(h.__file__).read_text(encoding="utf-8") + pathlib.Path(grading.__file__).read_text(encoding="utf-8")
     assert src.count("SKIP_GATES_SHA in (") == 1
+
+
+# ==========================================================================
+# arms-preconditions-01M3FVRY WP01 — completeness and export refusals (ledger-deltas items 1, 5;
+# data-model § Smoke ledger identity). NFR-005: no path records a refused, breached, unmeasurable
+# or premise-tainted cell as complete.
+# ==========================================================================
+
+
+def _scored(led, key):
+    led.begin_attempt(key, SID); rec(led, key, "ok", ok_row(arm=key.arm))
+
+
+def _complete_but(led, special=None):
+    """Score every planned primary cell except ``special`` (key → callable(led, key))."""
+    special = special or {}
+    calibrated(led)
+    for key in ledger_mod.plan_keys():
+        if led.terminal(key) is not None:
+            continue
+        special.get(key, _scored)(led, key)
+
+
+D_CELL = ledger_mod.RunKey("D", "E1", 3)
+
+
+def test_a_fully_scored_ledger_is_complete(tmp_path):
+    with fresh(tmp_path) as led:
+        _complete_but(led)
+        assert grading.is_complete(led)[0] is True
+
+
+def test_a_breached_cell_bars_primary_completeness_and_export(tmp_path):
+    def breach(led, key):
+        led.begin_attempt(key, SID); rec(led, key, "exceeds_memory_ceiling", breach_row(key.arm))
+    with fresh(tmp_path) as led:
+        _complete_but(led, {D_CELL: breach})
+        assert led.pending_keys(ledger_mod.plan_keys()) == []          # every cell terminal ...
+        ok, detail = grading.is_complete(led)
+        assert not ok and "exceeds_memory_ceiling" in detail           # ... and still not complete
+        with pytest.raises(grading.ExportRefused, match="exceeds_memory_ceiling"):
+            grading.export(led, 7, tmp_path / "runs")
+        assert not (tmp_path / "runs").exists()
+
+
+def test_an_unreadable_at_send_cell_bars_primary_completeness_and_export(tmp_path):
+    """Cell-terminal (interim, design lead 20260927T034310853223Za953d8513e; a three-way liveness classification is pending Kent's §5 ruling) and never scored: the ledger is never primary-complete while it stands."""
+    def unreadable(led, key):
+        led.begin_attempt(key, SID); rec(led, key, "sampler_unreadable_at_send", unreadable_row(key.arm))
+    with fresh(tmp_path) as led:
+        _complete_but(led, {D_CELL: unreadable})
+        assert led.pending_keys(ledger_mod.plan_keys()) == []
+        assert led.terminal(D_CELL) == "sampler_unreadable_at_send"
+        ok, detail = grading.is_complete(led)
+        assert not ok and "sampler_unreadable_at_send" in detail
+        with pytest.raises(grading.ExportRefused, match="sampler_unreadable_at_send"):
+            grading.export(led, 7, tmp_path / "runs")
+
+
+def test_a_premise_violation_bars_completeness_and_export_even_on_a_scored_ledger(tmp_path):
+    """Correction C: the rows are untouched and every cell is scored, but the ledger is unusable."""
+    with fresh(tmp_path) as led:
+        _complete_but(led)
+        led.event("premise_violated", premise())
+    with fresh(tmp_path, gated=False) as led:                           # after replay too
+        ok, detail = grading.is_complete(led)
+        assert not ok and "premise_violated" in detail
+        with pytest.raises(grading.ExportRefused, match="premise_violated"):
+            grading.export(led, 7, tmp_path / "runs")
+        with pytest.raises(h.PrimaryIncomplete, match="premise_violated"):
+            h.require_complete_primary(led)
+
+
+def test_a_smoke_ledger_is_never_complete_primary_or_exportable(tmp_path):
+    """Injected defect: a smoke ledger passed to export."""
+    with ledger_mod.open_ledger(tmp_path / "smoke.jsonl", binding(), blinding_seed=7,
+                                plan=ledger_mod.SMOKE_PLAN) as led:
+        ok, detail = grading.is_complete(led)
+        assert not ok and "smoke" in detail
+        with pytest.raises(grading.ExportRefused, match="smoke"):
+            grading.export(led, 7, tmp_path / "runs")
+        with pytest.raises(h.PrimaryIncomplete):
+            h.require_complete_primary(led)
+    assert not (tmp_path / "runs").exists()
+
+
+def test_seal_map_refuses_a_premise_violated_ledger(tmp_path):
+    """Codex WP01 c1: seal_map consumed premise-tainted rows through grading_rows()."""
+    with fresh(tmp_path) as led:
+        _scored(led, ledger_mod.RunKey("G", "C1", 1))
+        led.event("premise_violated", premise())
+        with pytest.raises(ledger_mod.LedgerUnusable):
+            grading.seal_map(led, 7)
+    with fresh(tmp_path, gated=False) as led, pytest.raises(ledger_mod.LedgerUnusable):
+        grading.seal_map(led, 7)
+
+
+def test_the_harness_cannot_reuse_a_calibration_after_a_premise_violation(tmp_path):
+    """Codex WP01 c2 (P12): Session.ensure_calibration() and Session._calibration_obj() read the persisted
+    calibration; on a premise-violated ledger both refuse, immediately and after replay."""
+    with fresh(tmp_path) as led:
+        calibrated(led)
+        led.event("premise_violated", premise())
+        session = h.Session(led, make_runtime(fake_arms()))
+        with pytest.raises(ledger_mod.LedgerUnusable):
+            session.ensure_calibration()
+        with pytest.raises(ledger_mod.LedgerUnusable):
+            session._calibration_obj()
+    with fresh(tmp_path, gated=False) as led:
+        session = h.Session(led, make_runtime(fake_arms()))
+        with pytest.raises(ledger_mod.LedgerUnusable):
+            session.ensure_calibration()
+        with pytest.raises(ledger_mod.LedgerUnusable):
+            session._calibration_obj()

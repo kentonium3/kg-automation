@@ -1,0 +1,54 @@
+{
+  "entries": [
+    {
+      "created_at": "2026-11-18T12:01:04.719847Z",
+      "decision_id": "01M7Q8GBPFDGP9H1CC2DAQNETZ",
+      "final_answer": "Confirmed",
+      "input_key": "intent_confirmed",
+      "mission_id": "01M7Q8F38CE7TDBVJEYGT1YA7B",
+      "mission_slug": "arms849-live-runtime-host-endpoints-01M7Q8F3",
+      "opened_by": "cli",
+      "options": [
+        "Confirmed",
+        "Confirmed with corrections",
+        "Other"
+      ],
+      "origin_flow": "specify",
+      "other_answer": false,
+      "question": "Confirm the Intent Summary and extracted FR/NFR/C set for #1083 (fix A)?",
+      "rationale": null,
+      "resolved_at": "2026-11-18T12:03:01.975205Z",
+      "resolved_by": null,
+      "slot_key": "specify.intent.confirm",
+      "status": "resolved",
+      "step_id": null,
+      "summary_json": null
+    },
+    {
+      "created_at": "2026-11-18T12:05:32.042933Z",
+      "decision_id": "01M7Q8RGRANSNEQX84JP7JEAEB",
+      "final_answer": "A: endpoint pair on Resources; Engineering Alignment confirmed by Kent 2026-11-18",
+      "input_key": "endpoint_carrier",
+      "mission_id": "01M7Q8F38CE7TDBVJEYGT1YA7B",
+      "mission_slug": "arms849-live-runtime-host-endpoints-01M7Q8F3",
+      "opened_by": "cli",
+      "options": [
+        "A: endpoint pair on Resources",
+        "B: per-call keyword arguments",
+        "Other"
+      ],
+      "origin_flow": "plan",
+      "other_answer": false,
+      "question": "How should live endpoints reach the runtime's connections: (A) an endpoint pair carried on the existing Resources record with in-network defaults, threaded to arm G's bridge, the serving facade and the health check; or (B) separate keyword arguments added to each factory/facade/health call?",
+      "rationale": null,
+      "resolved_at": "2026-11-18T12:07:01.092194Z",
+      "resolved_by": null,
+      "slot_key": "plan.architecture.endpoint-carrier",
+      "status": "resolved",
+      "step_id": null,
+      "summary_json": null
+    }
+  ],
+  "mission_id": "01M7Q8F38CE7TDBVJEYGT1YA7B",
+  "version": 1
+}

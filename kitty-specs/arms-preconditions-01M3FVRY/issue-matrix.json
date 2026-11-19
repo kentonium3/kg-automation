@@ -1,0 +1,89 @@
+{
+  "rows": {
+    "#1018": {
+      "evidence_ref": "Cited only as the reason for C-005 (one sequential lane). This mission neither fixes nor changes the spec-kitty lane-propagation behaviour; kentonium3/kg-automation#1018 remains the open tracker.",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": "spec.md",
+      "title": "<fill at WP-implementation time>",
+      "verdict": "deferred-with-followup",
+      "wp": null
+    },
+    "#1021": {
+      "evidence_ref": "The merge --abort retrospective anomaly is cited as prior-mission context. It is not fixed here; kentonium3/kg-automation#1021 remains open, and an upstream check against a post-#4789 build is still owed.",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": "spec.md",
+      "title": "<fill at WP-implementation time>",
+      "verdict": "deferred-with-followup",
+      "wp": null
+    },
+    "#1023": {
+      "evidence_ref": "Mission implementation is present in squash 72eb7d8c, but #1023 remains open because FR-015/NFR-001 requires a commit-bound full-checker PASS before feat\u2192main. The deterministic Arm G deadlock tracked by live follow-up #1037 blocks that record; repair #1037, rerun the checker at final HEAD, then land feat\u2192main.",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": null,
+      "title": null,
+      "verdict": "deferred-with-followup",
+      "wp": null
+    },
+    "#1037": {
+      "evidence_ref": "Pre-existing WP02 fresh-clone/full-suite deadlock remains open and tracked at #1037; it is outside WP04 scope and was not repaired under the operator direction.",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": null,
+      "title": null,
+      "verdict": "deferred-with-followup",
+      "wp": "WP02"
+    },
+    "#1038": {
+      "evidence_ref": "Reviewer-profile packet identity defect reproduced during WP04 review cycle 2: the generated packet rendered python-pedro/implementer while the actual independent reviewer was explicitly Reviewer Renata/reviewer. Follow-up remains open at #1038.",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": null,
+      "title": null,
+      "verdict": "deferred-with-followup",
+      "wp": "WP04"
+    },
+    "#1040": {
+      "evidence_ref": "Accepted known consequence under Kent Option A ruling: the WP04+ runtime lifecycle chain is deliberately absent by operator direction dated 2026-09-28 and recorded in #1040; decision reference 20260928T161732836312Zb3c5d14a93. Any later missing-lifecycle gate refusal is the same tracked defect.",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": null,
+      "title": null,
+      "verdict": "deferred-with-followup",
+      "wp": "WP04"
+    },
+    "#849": {
+      "evidence_ref": "This mission delivers the rubric \u00a710 pre-run preconditions (C4, C8, C9, C11, C12, C13, T039 tool). The 72-cell decisive run and grading are out of scope (C-007) and follow as an operation under #849.",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": "spec.md",
+      "title": "<fill at WP-implementation time>",
+      "verdict": "deferred-with-followup",
+      "wp": null
+    }
+  },
+  "schema_version": 1
+}

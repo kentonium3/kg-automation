@@ -12,6 +12,7 @@ import json
 import pathlib
 import shutil
 import sys
+import types
 from datetime import datetime
 
 import pytest
@@ -24,12 +25,16 @@ from scripts.research.arms849 import preflight
 from scripts.research.arms849.ledger import (
     Binding,
     LedgerBoundToAnotherConfig,
+    SMOKE_PLAN,
+    is_smoke,
     open_ledger,
 )
 from scripts.research.arms849.questions import QUESTIONS
-from tests.research.test_arms849_integration import (
+from tests.research.conftest import (
     BLINDING_SEED,
+    CORPUS,
     PRIMARY,
+    RESEARCH_ENVIRONMENT_SKIP_REASON,
     ArmRefusal,
     FakeContextExceeded,
     FakeG,
@@ -41,11 +46,9 @@ from tests.research.test_arms849_integration import (
     runs,
 )
 
-CORPUS = h.DEFAULT_CORPUS
-
 pytestmark = pytest.mark.skipif(
     not (CORPUS / "entities.json").exists(),
-    reason="rendered corpus absent; run render_849_corpus first")
+    reason=RESEARCH_ENVIRONMENT_SKIP_REASON)
 
 
 # --------------------------------------------------------------------------
@@ -57,6 +60,48 @@ def test_the_plan_is_seventy_two_runs():
     assert len(h.plan()) == 72
     assert len(set(h.plan())) == 72, "a duplicated cell would be silently overwritten"
     assert len(h.plan("secondary")) == 24 and {k.arm for k in h.plan("secondary")} == {"D"}
+
+
+def test_the_smoke_plan_is_the_ten_registered_cells_in_protocol_order():
+    expected = [h.RunKey("G", q.id, 1) for q in QUESTIONS]
+    expected += [h.RunKey("D", "C1", 1), h.RunKey("R", "C1", 1)]
+    assert h.plan("smoke") == expected
+    assert len(set(h.plan("smoke"))) == SMOKE_PLAN == 10
+
+
+def test_smoke_identity_survives_run_status_and_reopen_with_calibration_before_d(tmp_path):
+    """The live smoke is ten cells under the primary serving binding, never a disguised secondary.
+
+    Calibration is part of the smoke protocol boundary: all eight G repeat-1 rows precede it,
+    and it precedes both the D and R C1 rows.  Reopening and status derive ``smoke`` from the
+    immutable header identity rather than from a CLI flag.
+    """
+    path = tmp_path / "smoke.jsonl"
+    with h.open_run_ledger(path, make_binding(), kind="smoke") as ledger:
+        assert ledger.header.plan == SMOKE_PLAN and is_smoke(ledger.header)
+        assert ledger.header.binding.serving["kind"] == "primary"
+        report = h.run_session(ledger, make_runtime(fake_arms()), kind="smoke")
+        assert report.stopped is None
+        assert h.status_line(ledger) == \
+            "arms849 status: smoke.jsonl [smoke] 10/10 terminal — ok 10"
+
+    rows = rows_of(path)
+    g_rows = [i for i, row in enumerate(rows)
+              if row.get("record") == "run" and row.get("arm") == "G"]
+    calibration = next(i for i, row in enumerate(rows) if row.get("record") == "calibration")
+    d_row = next(i for i, row in enumerate(rows)
+                 if row.get("record") == "run" and row.get("arm") == "D")
+    r_row = next(i for i, row in enumerate(rows)
+                 if row.get("record") == "run" and row.get("arm") == "R")
+    assert len(g_rows) == 8 and max(g_rows) < calibration < d_row < r_row
+    assert [(row["arm"], row["question"], row["repeat"]) for row in rows
+            if row.get("record") == "run"] == [
+                *(('G', q.id, 1) for q in QUESTIONS), ('D', 'C1', 1), ('R', 'C1', 1),
+            ]
+
+    with h.open_existing(path) as reopened:
+        assert reopened.header.plan == SMOKE_PLAN and is_smoke(reopened.header)
+        assert h.status_line(reopened).startswith("arms849 status: smoke.jsonl [smoke] 10/10 terminal")
 
 
 def test_questions_run_in_ask_time_ascending_order_within_each_pass():
@@ -272,7 +317,7 @@ def test_summarise_would_fail_if_exceeds_cells_leaked_into_the_mean(tmp_path):
     """Guards the guard: a zero-token ok cell is what a leaked exceeds cell would look like — it
     is distinguishable by outcome, and it is."""
     def zero_d(question, view, ctx):
-        from tests.research.test_arms849_integration import scored
+        from tests.research.conftest import scored
         return scored("answer zero", 0, context_limit_applied=ctx.limit_applied)
 
     ledger_path = tmp_path / "ledger.jsonl"
@@ -289,3 +334,171 @@ def test_status_line_is_one_line_the_operator_relays(tmp_path):
         line = h.status_line(ledger)
     assert "\n" not in line and line.startswith("arms849 status: ledger.jsonl [primary] 3/72 terminal")
     assert [r.get("record") for r in rows_of(ledger_path)].count("header") == 1
+
+
+# --------------------------------------------------------------------------
+# Freeze-time token measurement (T039)
+# --------------------------------------------------------------------------
+
+
+class _MeasurementTokenizer:
+    """Small deterministic tokenizer for the T039 tool's accounting and prefix tests."""
+
+    def __init__(self, lengths: dict[str, int] | None = None) -> None:
+        self.lengths = lengths or {
+            "C1": 80, "A": 90, "F1": 110, "B1": 111,
+            "E2": 112, "E1": 113, "F2": 114, "B2": 115,
+        }
+        targets = {"C1": None, "A": 20, "F1": 30, "B1": 40,
+                   "E2": 50, "E1": 60, "F2": 70, "B2": 80}
+        self.ids: dict[str, list[int]] = {}
+        previous: list[int] = []
+        for index, question in enumerate(QUESTIONS, start=1):
+            target = targets[question.id]
+            ids = ([index] * self.lengths[question.id] if target is None
+                   else previous[:target] + [index] * (self.lengths[question.id] - target))
+            self.ids[question.id] = ids
+            previous = ids
+
+    def chat_template_sha256(self) -> str:
+        return "e" * 64
+
+    def apply_chat_template(self, user_turn: str) -> str:
+        for question in QUESTIONS:
+            if user_turn.endswith(f"Question: {question.text}\n"):
+                return f"measurement:{question.id}"
+        raise AssertionError("the measurement did not serialize a registered question")
+
+    def encode(self, text: str) -> list[int]:
+        return list(self.ids[text.removeprefix("measurement:")])
+
+    def count(self, text: str | bytes) -> int:
+        if isinstance(text, bytes):
+            return len(text.splitlines())
+        return len(self.encode(text))
+
+
+def test_measurement_is_ordered_exact_and_bound_to_commit_and_preflight(monkeypatch):
+    monkeypatch.setattr(h.serving, "TRAINED_CONTEXT", 100)
+    tokenizer = _MeasurementTokenizer()
+    record = h.measure_requests(
+        PRIMARY, tokenizer, CORPUS, commit_sha="a" * 40, preflight_sha="b" * 64,
+    )
+
+    assert record["commit_sha"] == "a" * 40
+    assert record["preflight_sha"] == "b" * 64
+    assert record["trained_context_tokens"] == 100
+    rows = record["questions"]
+    assert [row["question"] for row in rows] == [q.id for q in QUESTIONS]
+    assert [row["request_tokens"] for row in rows] == [80, 90, 110, 111, 112, 113, 114, 115]
+    assert all(type(row["block_tokens"]) is int and row["block_tokens"] > 0 for row in rows)
+    assert [row["prefix_tokens"] for row in rows] == [None, 20, 30, 40, 50, 60, 70, 80]
+    assert rows[0]["prefix_fraction"] is None
+    for row in rows[1:]:
+        assert row["prefix_fraction"] == pytest.approx(row["prefix_tokens"] / row["request_tokens"])
+    assert {row["question"] for row in rows if row["request_tokens"] > record["trained_context_tokens"]} == \
+        {"F1", "B1", "E2", "E1", "F2", "B2"}
+
+
+def test_measurement_mismatch_is_named_and_produces_no_table(monkeypatch, capsys):
+    monkeypatch.setattr(h.serving, "TRAINED_CONTEXT", 100)
+    lengths = {"C1": 80, "A": 90, "F1": 99, "B1": 111,
+               "E2": 112, "E1": 113, "F2": 114, "B2": 115}
+    with pytest.raises(h.TokenMeasurementMismatch, match="F1|registered"):
+        h.measure_requests(
+            PRIMARY, _MeasurementTokenizer(lengths), CORPUS,
+            commit_sha="a" * 40, preflight_sha="b" * 64,
+        )
+    assert capsys.readouterr().out == ""
+
+
+def test_measurement_provenance_refuses_dirty_commit_and_foreign_corpus(tmp_path, monkeypatch):
+    from scripts.research.load_849_corpus import REGISTRATION, fingerprint
+
+    sha = "a" * 40
+
+    def dirty_run(command, **kwargs):
+        return types.SimpleNamespace(stdout=" M scripts/research/run_849_harness.py\n")
+
+    monkeypatch.setattr(h.subprocess, "run", dirty_run)
+    with pytest.raises(h.TokenMeasurementMismatch, match="clean working tree"):
+        h._clean_measurement_head(REPO_ROOT)
+
+    calls: list[list[str]] = []
+
+    def clean_run(command, **kwargs):
+        calls.append(command)
+        return types.SimpleNamespace(stdout="" if command[1] == "status" else sha + "\n")
+
+    monkeypatch.setattr(h.subprocess, "run", clean_run)
+    assert h._clean_measurement_head(REPO_ROOT) == sha
+    assert [command[1] for command in calls] == ["status", "rev-parse"]
+
+    corpus = _copy_corpus(tmp_path / "measurement-corpus")
+    record = {
+        "source_commit": sha,
+        "corpus": {name: fingerprint(corpus / name) for name in REGISTRATION["files"]},
+    }
+    h._require_measurement_binding(sha, corpus, record)
+    with pytest.raises(h.TokenMeasurementMismatch, match="source_commit"):
+        h._require_measurement_binding("b" * 40, corpus, record)
+    with (corpus / "stream.jsonl").open("a", encoding="utf-8") as stream:
+        stream.write("{}\n")
+    with pytest.raises(h.TokenMeasurementMismatch, match="stream.jsonl"):
+        h._require_measurement_binding(sha, corpus, record)
+
+
+def test_preflight_generation_refuses_dirty_or_changed_code_and_writes_nothing(tmp_path, monkeypatch):
+    def dirty_status(command, **kwargs):
+        assert command[-3:] == ["status", "--porcelain", "--untracked-files=all"]
+        return types.SimpleNamespace(stdout=" M scripts/research/run_849_harness.py\n")
+
+    monkeypatch.setattr(preflight.subprocess, "run", dirty_status)
+    out = tmp_path / "preflight.json"
+    with pytest.raises(preflight.PreflightRefused, match="clean working tree"):
+        preflight.run_preflight(REPO_ROOT, CORPUS, tmp_path / "manifest.json", out)
+    assert not out.exists()
+
+    from scripts.research.arms849 import serving
+
+    manifest = tmp_path / "manifest.json"
+    manifest.write_text(json.dumps({"source_commit": "export", "content_sha": "d" * 64}))
+    monkeypatch.setattr(preflight, "assert_reference_present", lambda repo_root: repo_root)
+    monkeypatch.setattr(preflight, "checkers", lambda: ())
+    monkeypatch.setattr(
+        serving, "Tokenizer",
+        lambda path: types.SimpleNamespace(chat_template_sha256=lambda: "e" * 64),
+    )
+    heads = iter(("a" * 40, "b" * 40))
+    monkeypatch.setattr(preflight, "_clean_git_head", lambda repo_root: next(heads))
+    changed_out = tmp_path / "changed-preflight.json"
+    with pytest.raises(preflight.PreflightRefused, match="HEAD changed during preflight"):
+        preflight.run_preflight(REPO_ROOT, CORPUS, manifest, changed_out)
+    assert not changed_out.exists()
+
+
+def test_process_start_is_injectable_and_propagated_to_the_gate_path(tmp_path, monkeypatch):
+    process_start = "2026-09-28T12:34:56+00:00"
+    env = h._gate_env(CORPUS, PRIMARY, "2026-09-28T12:30:00+00:00", process_start=process_start)
+    assert env.container_start_ts == process_start
+
+    seen: dict[str, str] = {}
+
+    def fake_live_gates(ledger_path, corpus, config, up_ts, skip_gates, container_phase=None, *, process_start):
+        seen["process_start"] = process_start
+        return h.SessionGates(passed=False, up_ts=up_ts, container_start_ts=process_start,
+                              error="injected stop")
+
+    monkeypatch.setattr(h, "live_config", lambda secondary, development_ledger=False: PRIMARY)
+    monkeypatch.setattr(h, "live_gates", fake_live_gates)
+    result = h.main(["run_849_harness", "--ledger", str(tmp_path / "ledger.jsonl")],
+                    process_start=process_start)
+    assert result == h.EXIT_GATES_FAILED and seen == {"process_start": process_start}
+
+
+@pytest.mark.parametrize("other", ["--dry-run", "--status", "--preflight", "--host-gates",
+                                    "--gates", "--grading-view"])
+def test_measurement_refuses_conflicting_action_modes(other):
+    with pytest.raises(SystemExit) as caught:
+        h.main(["run_849_harness", "--measure", other])
+    assert caught.value.code == 2

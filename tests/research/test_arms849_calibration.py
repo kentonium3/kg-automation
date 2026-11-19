@@ -16,13 +16,13 @@ QUESTIONS = ["C1", "A", "F1", "B1", "E2", "E1", "F2", "B2"]
 
 
 class FakeLedger:
-    """Only what calibrate() reads: run_rows() and terminal()."""
+    """Only what calibrate() reads: grading_rows() (the guarded scored accessor) and terminal()."""
 
     def __init__(self, g_tokens: dict[str, int], terminal: dict[str, str | None] | None = None) -> None:
         self._g = g_tokens
         self._terminal = terminal or {}
 
-    def run_rows(self):
+    def grading_rows(self):
         return [{"arm": "G", "question": q, "repeat": 1, "outcome": "ok", "assembled_context_tokens": t}
                 for q, t in self._g.items()]
 

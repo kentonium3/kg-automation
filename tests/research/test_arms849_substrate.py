@@ -8,6 +8,7 @@ import pathlib
 import subprocess
 import sys
 import urllib.request
+from datetime import datetime, timedelta, timezone
 
 import pytest
 import yaml
@@ -211,6 +212,179 @@ def test_runner_refuses_a_missing_mount_source(tmp_path, monkeypatch):
     monkeypatch.setattr(SUB, "_ensure_runner_image", no_docker)
     with pytest.raises(RuntimeError, match="mount source"):
         SUB._runner_cmd(["-c", "pass"], entrypoint="python3")
+
+
+def _run_dirs(tmp_path: pathlib.Path, monkeypatch) -> None:
+    """A valid exported runner envelope, without reaching Docker."""
+    export = tmp_path / "export"
+    export.mkdir()
+    (export / "payload.txt").write_text("the exported payload\n")
+    manifest = {"content_sha": SUB.content_manifest_sha(export)}
+    (export / ".export-manifest.json").write_text(json.dumps(manifest) + "\n")
+    for name in ("corpus", "cache", "runs"):
+        (tmp_path / name).mkdir()
+    monkeypatch.setattr(SUB, "EXPORT_DIR", export)
+    monkeypatch.setattr(SUB, "CORPUS_DIR", tmp_path / "corpus")
+    monkeypatch.setattr(SUB, "CACHE_DIR", tmp_path / "cache")
+    monkeypatch.setattr(SUB, "RUNS_DIR", tmp_path / "runs")
+    monkeypatch.setattr(SUB, "_ensure_runner_image", lambda: None)
+
+
+def _runner_env(argv: list[str]) -> dict[str, str]:
+    return dict(argv[i + 1].split("=", 1) for i, arg in enumerate(argv) if arg == "-e")
+
+
+def test_run_wraps_only_the_runner_with_one_generation_writer(tmp_path, monkeypatch):
+    """T014: inspect may be slow; the generation starts only after it resolves."""
+    _run_dirs(tmp_path, monkeypatch)
+    started = datetime(2026, 9, 27, 15, 0, 0, 123456, tzinfo=timezone.utc)
+    now = [started - timedelta(seconds=30)]
+    container_id = "a" * 64
+    events: list[str] = []
+    runner_argv: list[str] = []
+
+    monkeypatch.setattr(SUB, "_new_series_id", lambda: "generation-1")
+
+    def clock() -> datetime:
+        events.append("clock")
+        return now[0]
+
+    monkeypatch.setattr(SUB, "_utc_now", clock)
+
+    def resolve(container: str) -> str:
+        assert container == "arms849-falkordb-1"
+        events.append("inspect")
+        now[0] = started
+        return container_id
+
+    monkeypatch.setattr(SUB, "docker_container_id", resolve)
+
+    class Writer:
+        def __init__(self, path, series_id, container, *, container_id, started, interval_s):
+            assert pathlib.Path(path) == SUB.RUNS_DIR / "falkordb-cgroup-generation-1.jsonl"
+            assert (series_id, container, container_id) == ("generation-1", "arms849-falkordb-1", "a" * 64)
+            assert started == datetime(2026, 9, 27, 15, 0, 0, 123456, tzinfo=timezone.utc)
+            self.path, self.series_id, self.container = pathlib.Path(path), series_id, container
+            self.container_id, self.started, self.interval_s = container_id, started, interval_s
+
+        def start(self):
+            events.append("start")
+
+        def stop(self):
+            events.append("stop")
+
+    monkeypatch.setattr(SUB, "CgroupSeriesWriter", Writer)
+
+    def fake_run(argv, *, check):
+        assert check is False
+        events.append("runner")
+        runner_argv.extend(argv)
+        return type("P", (), {"returncode": 7})()
+
+    monkeypatch.setattr(SUB.subprocess, "run", fake_run)
+    assert SUB.run(["--ledger", "/runs/l.jsonl"]) == 7
+    assert events == ["inspect", "clock", "start", "runner", "stop"]
+
+    descriptor = json.loads(_runner_env(runner_argv)[SUB.SERIES_GENERATION_ENV])
+    assert descriptor == {
+        "container_id": container_id,
+        "interval_s": 1.0,
+        "path": "/runs/falkordb-cgroup-generation-1.jsonl",
+        "series_id": "generation-1",
+        "started_ts": "2026-09-27T15:00:00.123456+00:00",
+        "writer_reason": None,
+        "writer_status": "running",
+    }
+
+
+def test_run_launches_runner_when_container_id_cannot_be_resolved(tmp_path, monkeypatch):
+    """The run-level measure is observational: failed inspect becomes evidence, not a refusal."""
+    _run_dirs(tmp_path, monkeypatch)
+    started = datetime(2026, 9, 27, 15, 0, tzinfo=timezone.utc)
+    monkeypatch.setattr(SUB, "_new_series_id", lambda: "inspect-failed")
+    events: list[str] = []
+
+    def clock() -> datetime:
+        events.append("clock")
+        return started
+
+    monkeypatch.setattr(SUB, "_utc_now", clock)
+
+    def failed_inspect(_container):
+        events.append("inspect")
+        raise subprocess.CalledProcessError(1, ["docker", "inspect"], stderr="no such container")
+
+    monkeypatch.setattr(SUB, "docker_container_id", failed_inspect)
+    monkeypatch.setattr(SUB, "CgroupSeriesWriter", lambda *a, **k: pytest.fail("writer must not be constructed"))
+    seen: list[list[str]] = []
+
+    def fake_run(argv, *, check):
+        seen.append(argv)
+        return type("P", (), {"returncode": 9})()
+
+    monkeypatch.setattr(SUB.subprocess, "run", fake_run)
+    assert SUB.run([]) == 9
+    assert events == ["inspect", "clock"]
+    assert len(seen) == 1 and seen[0][:2] == ["docker", "run"]
+    descriptor = json.loads(_runner_env(seen[0])[SUB.SERIES_GENERATION_ENV])
+    assert descriptor["writer_status"] == "failed"
+    assert descriptor["container_id"] is None
+    assert descriptor["path"] == "/runs/falkordb-cgroup-inspect-failed.jsonl"
+    assert descriptor["interval_s"] == 1.0
+    assert descriptor["started_ts"] == "2026-09-27T15:00:00+00:00"
+    assert descriptor["writer_reason"] and "CalledProcessError" in descriptor["writer_reason"]
+
+
+def test_preexisting_series_is_not_truncated_and_does_not_block_runner(tmp_path, monkeypatch):
+    """The real exclusive writer turns a collision into failed evidence and preserves the file."""
+    _run_dirs(tmp_path, monkeypatch)
+    monkeypatch.setattr(SUB, "_new_series_id", lambda: "already-there")
+    monkeypatch.setattr(SUB, "_utc_now", lambda: datetime(2026, 9, 27, 15, 0, tzinfo=timezone.utc))
+    series = SUB.RUNS_DIR / "falkordb-cgroup-already-there.jsonl"
+    original = b"pre-existing evidence must survive\n"
+    series.write_bytes(original)
+    calls: list[list[str]] = []
+
+    def fake_docker(argv, **kwargs):
+        calls.append(argv)
+        if argv[:2] == ["docker", "inspect"]:
+            return type("P", (), {"stdout": "b" * 64 + "\n", "returncode": 0})()
+        assert argv[:2] == ["docker", "run"]
+        return type("P", (), {"stdout": "", "returncode": 4})()
+
+    monkeypatch.setattr(SUB.subprocess, "run", fake_docker)
+    assert SUB.run([]) == 4
+    assert series.read_bytes() == original
+    assert sum(argv[:2] == ["docker", "inspect"] for argv in calls) == 1
+    run_argv = next(argv for argv in calls if argv[:2] == ["docker", "run"])
+    descriptor = json.loads(_runner_env(run_argv)[SUB.SERIES_GENERATION_ENV])
+    assert descriptor["writer_status"] == "failed"
+    assert descriptor["container_id"] == "b" * 64
+    assert descriptor["path"] == "/runs/falkordb-cgroup-already-there.jsonl"
+    assert "FileExistsError" in descriptor["writer_reason"]
+
+
+def test_writer_stop_failure_does_not_replace_the_runner_result(tmp_path, monkeypatch):
+    """Stopping observational measurement cannot turn a completed harness into a failure."""
+    _run_dirs(tmp_path, monkeypatch)
+    monkeypatch.setattr(SUB, "_new_series_id", lambda: "stop-failed")
+    monkeypatch.setattr(SUB, "_utc_now", lambda: datetime(2026, 9, 27, 15, 0, tzinfo=timezone.utc))
+    monkeypatch.setattr(SUB, "docker_container_id", lambda _container: "c" * 64)
+
+    class Writer:
+        def __init__(self, path, series_id, container, *, container_id, started, interval_s):
+            self.path, self.series_id, self.container = pathlib.Path(path), series_id, container
+            self.container_id, self.started, self.interval_s = container_id, started, interval_s
+
+        def start(self):
+            pass
+
+        def stop(self):
+            raise OSError("trailer write failed")
+
+    monkeypatch.setattr(SUB, "CgroupSeriesWriter", Writer)
+    monkeypatch.setattr(SUB.subprocess, "run", lambda argv, *, check: type("P", (), {"returncode": 3})())
+    assert SUB.run([]) == 3
 
 
 def test_runner_image_installs_every_light_dep_and_no_openai():

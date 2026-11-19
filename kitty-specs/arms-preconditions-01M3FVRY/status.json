@@ -1,0 +1,192 @@
+{
+  "event_count": 80,
+  "last_event_id": "01M3MQF9FKMZTNEC37P90MXQE5",
+  "materialized_at": "2026-09-28T19:22:07.731675+00:00",
+  "mission_number": "",
+  "mission_slug": "arms-preconditions-01M3FVRY",
+  "mission_type": "software-dev",
+  "summary": {
+    "approved": 0,
+    "blocked": 0,
+    "canceled": 0,
+    "claimed": 0,
+    "done": 5,
+    "for_review": 0,
+    "in_progress": 0,
+    "in_review": 0,
+    "planned": 0
+  },
+  "work_packages": {
+    "WP01": {
+      "actor": "merge",
+      "agent": "claude",
+      "agent_profile": "__resolved_profile_absent__",
+      "agent_profile_version": "__resolved_profile_version_absent__",
+      "force_count": 3,
+      "lane": "done",
+      "last_event_id": "01M3MQEABMJZBEZPHFTKXNGX9S",
+      "last_transition_at": "2026-09-28T19:21:35.860296+00:00",
+      "model": "__resolved_model_absent__",
+      "notes": [
+        "Implemented by python-pedro (Claude Opus 5.5). Commits 409ccf0f..c25bcd82. Red-first evidence and mutation kills recorded in the implementer notes. Coupled edits: harness begin_attempt session_id, harness G-row rss detach, and one integration-test assertion negated (a6062f60; the file belongs to WP04/05). Suite: research 1282 passed, full 7984 passed + 3 environmental failures (stray /tmp/dis.py), both seeds; CI simulation 0 collection errors.",
+        "Review cycle 1 REVISE (Codex read-only): 2 MAJOR (post-premise scored writes accepted; grading_rows exposes tainted rows) + 1 MINOR (retry semantics). Returned to the implementer.",
+        "Cycle 2: abf3d8fe fixes both c1 MAJORs red-first (7 red on c25bcd82). Full suite 7996 passed / 0 failed on both seeds; CI simulation 0 failed / 0 collection errors.",
+        "Cycle 3: f96b6e9f/a027ef65/5dc9f553. Calibration compute and reuse refuse a premise-violated ledger; unreadable-at-send is cell-terminal (design-lead interim 20260927T034310853223Za953d8513e). Full suite 7998/0 on both seeds; CI simulation 0/0.",
+        "Approved: Codex c3 APPROVE @5dc9f553"
+      ],
+      "provider": "__resolved_provider_absent__",
+      "review": null,
+      "review_result": {
+        "reference": "Codex read-only review cycle 3 (gpt-6-astra, 2026-09-27): VERDICT APPROVE @5dc9f553, P1–P13 hold, 0 findings. Cycles 1–2 found 3 genuine MAJORs (post-violation scoring; tainted grading_rows; calibration compute/reuse), all fixed red-first. Implementer Claude Opus 5.5; reviewer is a different vendor.",
+        "reviewer": "codex-gpt-6-astra",
+        "verdict": "approved"
+      },
+      "role": "reviewer",
+      "shell_pid": 2613293,
+      "shell_pid_created_at": "1790484221.58",
+      "subtasks": {
+        "T001": "done",
+        "T002": "done",
+        "T003": "done",
+        "T004": "done",
+        "T005": "done",
+        "T006": "done"
+      }
+    },
+    "WP02": {
+      "actor": "merge",
+      "agent": "codex-astra-cycle7",
+      "agent_profile": "__resolved_profile_absent__",
+      "agent_profile_version": "__resolved_profile_version_absent__",
+      "force_count": 6,
+      "lane": "done",
+      "last_event_id": "01M3MQEJCXB9GC0CGFA3J3MFN1",
+      "last_transition_at": "2026-09-28T19:21:44.093979+00:00",
+      "model": "__resolved_model_absent__",
+      "notes": [
+        "Implemented by python-pedro (Claude Opus 5.5), 2d585b81..b20243c2. FR-016 red on a real FalkorDB (sandbox, torn down); 12/12 mutants killed. Full suite 8038/0 on both seeds; CI simulation 0/0.",
+        "Cycle 2: 17c6c9fe fixes all 6 c1 findings red-first; 17/17 mutants killed; live re-run 3 passed on a fresh sandbox (torn down). Full suite 8046/0 on both seeds; CI simulation 0/0.",
+        "Cycle 3: c75085c5 and 31366e1b. Invariants A (one transport gate), B (acknowledgement on every exit), C (append-only ownership); tests derived from the code; 26/26 mutants killed; 6 self-attack probes; live re-run clean. Full suite 8068/0 on both seeds; CI simulation 0/0.",
+        "Cycle 4 design correction: 99c92bfe..c429a9f4. Socket-level pool-scoped gate, frame-level single exit, reserve-before-write; pool args pinned behaviourally; 38/38 mutants killed. Full suite 8082/0 on both seeds; CI simulation 0/0.",
+        "Cycle 5: 08f92821 and 45edc774. Atomic gate check + enqueue under a per-pool threading.Lock; opens across the poison are aborted before any handshake; submission inside the guard; deterministic seams occupy every window Codex probed; 45/45 mutants killed. Full suite 8091/0 on both seeds; CI simulation 0/0.",
+        "Cycle 6: 39516405 and c6f4d2eb. The gate owns its sockets (shut down from the poisoning thread); unremovable writer property; registry lifecycle; derived write-site premise; retrieval bound to its view with per-item validation; 54/54 mutants killed. Full suite 8102/0 on both seeds; CI simulation 0/0.",
+        "Codex Astra cycle-6 review reproduced two blockers at c6f4d2eb; see attached feedback.",
+        "Cycle 7: 6cc741ee fixes foreign-gated writer poisoning bypass and binds retrieval to full ordered graph-view content. New regressions pass; Arm G 109/3; cross-arm 136/0; full suite 8104/0 on PYTHONHASHSEED 0 and 1.",
+        "Cycle 7 APPROVE at 6cc741ee. Resolver evidence: reviewer-renata / role reviewer / source builtin; model gpt-6-astra; date 2026-09-28; known generated-prompt identity defect #1027 ignored. Independent probes reproduced cycle-6 14-byte PONG bypass, then confirmed cycle-7 zero bytes across public send/write/writelines including in-flight assignment; 11 content/order/time fingerprint mutations refused and hashes deterministic across seeds 0/1/3. Focused review 244 passed/3 skipped; full repository 8104 passed/51 skipped/1 xfailed on NFR seeds 0 and 3. Nonblocking: retain exact public-send regression in a future cycle; known async cleanup warnings remain."
+      ],
+      "provider": "__resolved_provider_absent__",
+      "review": null,
+      "review_result": {
+        "reference": "Cycle 7 APPROVE at 6cc741ee. Resolver evidence: reviewer-renata / role reviewer / source builtin; model gpt-6-astra; date 2026-09-28; known generated-prompt identity defect #1027 ignored. Independent probes reproduced cycle-6 14-byte PONG bypass, then confirmed cycle-7 zero bytes across public send/write/writelines including in-flight assignment; 11 content/order/time fingerprint mutations refused and hashes deterministic across seeds 0/1/3. Focused review 244 passed/3 skipped; full repository 8104 passed/51 skipped/1 xfailed on NFR seeds 0 and 3. Nonblocking: retain exact public-send regression in a future cycle; known async cleanup warnings remain.",
+        "reviewer": "Kent Gale",
+        "verdict": "approved"
+      },
+      "role": "reviewer",
+      "shell_pid": 15300,
+      "shell_pid_created_at": "1790539192.74",
+      "subtasks": {
+        "T007": "done",
+        "T008": "done",
+        "T009": "done",
+        "T010": "done",
+        "T011": "done",
+        "T012": "done"
+      }
+    },
+    "WP03": {
+      "actor": "merge",
+      "agent": "codex-astra-wp03-review",
+      "agent_profile": "__resolved_profile_absent__",
+      "agent_profile_version": "__resolved_profile_version_absent__",
+      "force_count": 1,
+      "lane": "done",
+      "last_event_id": "01M3MQET9VHC83KFSRP8R29WS1",
+      "last_transition_at": "2026-09-28T19:21:52.187090+00:00",
+      "model": "__resolved_model_absent__",
+      "notes": [
+        "APPROVE at lane c1c13766 after independent charter-aware review. Registered task rubric: tasks/WP03-series-writer-report.md at primary 2bbe5ece01d7f0b3bce66c71c5d4cea3a428bdd8, blob 67707e8c05d386f54a05ff8e2ddbac59cea8b7f7. Additive selector authority: contracts/memory-series.md at planning f7fd482de0738ffea60e9dac3063c30dbdc1e7cb, blob a17e76331614cac1fc186095eab414d640b8cea0; source_series_ids and resumed-generation selection exceed the finalized task rubric additively under the dated contract and team-lead ruling. Applied charter-context Directive IDs 001,003,010,018,024,025,028,029,030-040 plus the eight built-in anti-pattern checks; all pass after DIRECTIVE_037 docstring correction. Seeds 0 and 3: 510 passed, 2 skipped each; py_compile passed; 8,192 tests collected. #1037 remains a mission-level WP02 full-suite blocker excluded from this WP gate. Canonical workaround registry row 107 applied: five reviewed artifacts were byte-verified and committed by the orchestrator on the planning branch; no force or destructive restore."
+      ],
+      "provider": "__resolved_provider_absent__",
+      "review_result": {
+        "reference": "APPROVE at lane c1c13766 after independent charter-aware review. Registered task rubric: tasks/WP03-series-writer-report.md at primary 2bbe5ece01d7f0b3bce66c71c5d4cea3a428bdd8, blob 67707e8c05d386f54a05ff8e2ddbac59cea8b7f7. Additive selector authority: contracts/memory-series.md at planning f7fd482de0738ffea60e9dac3063c30dbdc1e7cb, blob a17e76331614cac1fc186095eab414d640b8cea0; source_series_ids and resumed-generation selection exceed the finalized task rubric additively under the dated contract and team-lead ruling. Applied charter-context Directive IDs 001,003,010,018,024,025,028,029,030-040 plus the eight built-in anti-pattern checks; all pass after DIRECTIVE_037 docstring correction. Seeds 0 and 3: 510 passed, 2 skipped each; py_compile passed; 8,192 tests collected. #1037 remains a mission-level WP02 full-suite blocker excluded from this WP gate. Canonical workaround registry row 107 applied: five reviewed artifacts were byte-verified and committed by the orchestrator on the planning branch; no force or destructive restore.",
+        "reviewer": "Kent Gale",
+        "verdict": "approved"
+      },
+      "role": "reviewer",
+      "shell_pid": 295933,
+      "shell_pid_created_at": "1790560904.51",
+      "subtasks": {
+        "T013": "done",
+        "T014": "done",
+        "T015": "done",
+        "T016": "done"
+      }
+    },
+    "WP04": {
+      "actor": "merge",
+      "agent": "codex-office4-wp04-rereview",
+      "agent_profile": "__resolved_profile_absent__",
+      "agent_profile_version": "__resolved_profile_version_absent__",
+      "force_count": 1,
+      "lane": "done",
+      "last_event_id": "01M3MQF1Z0EE1248M9NNQ1B4EK",
+      "last_transition_at": "2026-09-28T19:22:00.032720+00:00",
+      "model": "__resolved_model_absent__",
+      "notes": [
+        "Implementation commit 23aea5fb; related suite 934 passed, 1 skipped; independent and structural reviews report no remaining findings; durable preflight follow-up #1043.",
+        "Cycle-1 issue resolved without code change by additive contract authority: finalized WP04 rubric plus contracts/arm-registration.md at planning commit 99486937, blob a9130f96cdb7400c571c2fc45f71872b2d5cc710. Implementation remains 23aea5fb; re-review required.",
+        "APPROVE after independent cycle-2 Reviewer Renata/reviewer reassessment. Reviewed exact lane commit 23aea5fb0d399e957426ba262c8fb607b849102a against finalized WP04 task/rubric commit 6d634173b4410e796fc984b979510ac38cd7bf59 blob ed506b447e59cfc71b4292b2e9036cba5efdd881 and additive arm-registration clarification commit 994869378eaa594a415c5751dbbb167e1352555f blob a9130f96cdb7400c571c2fc45f71872b2d5cc710. The generated cycle-2 packet incorrectly rendered python-pedro/implementer; actual reviewer identity was explicitly Reviewer Renata/reviewer, preserving kg-automation#1038 evidence. Sole cycle-1 live-worker teardown finding is resolved: repeated controller interrupt during bounded grace re-raises the marked original interrupt and skips close hooks only while the attempt worker remains live; ordinary interrupts and all other exits close registrations. All eight anti-pattern checks PASS; focused lifecycle checks 8 passed; recorded exact-commit related suite 934 passed, 1 live-only skip. Full-suite/fresh-clone limitation remains confined to known WP02 deadlock kg-automation#1037 and was not repaired per operator direction."
+      ],
+      "provider": "__resolved_provider_absent__",
+      "review": null,
+      "review_result": {
+        "reference": "APPROVE after independent cycle-2 Reviewer Renata/reviewer reassessment. Reviewed exact lane commit 23aea5fb0d399e957426ba262c8fb607b849102a against finalized WP04 task/rubric commit 6d634173b4410e796fc984b979510ac38cd7bf59 blob ed506b447e59cfc71b4292b2e9036cba5efdd881 and additive arm-registration clarification commit 994869378eaa594a415c5751dbbb167e1352555f blob a9130f96cdb7400c571c2fc45f71872b2d5cc710. The generated cycle-2 packet incorrectly rendered python-pedro/implementer; actual reviewer identity was explicitly Reviewer Renata/reviewer, preserving kg-automation#1038 evidence. Sole cycle-1 live-worker teardown finding is resolved: repeated controller interrupt during bounded grace re-raises the marked original interrupt and skips close hooks only while the attempt worker remains live; ordinary interrupts and all other exits close registrations. All eight anti-pattern checks PASS; focused lifecycle checks 8 passed; recorded exact-commit related suite 934 passed, 1 live-only skip. Full-suite/fresh-clone limitation remains confined to known WP02 deadlock kg-automation#1037 and was not repaired per operator direction.",
+        "reviewer": "Kent Gale",
+        "verdict": "approved"
+      },
+      "role": "reviewer",
+      "shell_pid": 295933,
+      "shell_pid_created_at": "1790560904.51",
+      "subtasks": {
+        "T017": "done",
+        "T018": "done",
+        "T019": "done",
+        "T020": "done",
+        "T021": "done",
+        "T022": "done",
+        "T023": "done",
+        "T024": "done"
+      }
+    },
+    "WP05": {
+      "actor": "merge",
+      "agent": "codex-office4-wp05-review",
+      "agent_profile": "__resolved_profile_absent__",
+      "agent_profile_version": "__resolved_profile_version_absent__",
+      "force_count": 0,
+      "lane": "done",
+      "last_event_id": "01M3MQF9FKMZTNEC37P90MXQE5",
+      "last_transition_at": "2026-09-28T19:22:07.731675+00:00",
+      "model": "__resolved_model_absent__",
+      "notes": [
+        "Implementation 9db5456a reviewed by Reviewer Renata and Paula Patterns; validation and row 107 evidence placement recorded in WP05 history.",
+        "Review passed: Reviewer Renata APPROVE after final T026 delta; Paula Patterns structural APPROVE. Anti-patterns: dead code PASS; production-path tests PASS; silent empty returns PASS; FR coverage PASS; frozen surfaces PASS; locked decisions PASS; shared-file ownership PASS with row 107 record; production fragility PASS. Focused 41 passed; mutation caught 73/72 silent upgrade; known #1037 limitation remains deferred by ruling."
+      ],
+      "provider": "__resolved_provider_absent__",
+      "review_result": {
+        "reference": "9db5456a68cc41ecf4315e46585e79493120ab9c",
+        "reviewer": "reviewer-renata",
+        "verdict": "approved"
+      },
+      "role": "reviewer",
+      "shell_pid": 295933,
+      "shell_pid_created_at": "1790560904.51",
+      "subtasks": {
+        "T025": "done",
+        "T026": "done",
+        "T027": "done",
+        "T028": "done"
+      }
+    }
+  }
+}

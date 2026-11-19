@@ -1,0 +1,72 @@
+{
+  "event_count": 21,
+  "last_event_id": "01M7RG08GFV036FVW09SEHB8TS",
+  "materialized_at": "2026-11-18T23:31:20.207159+00:00",
+  "mission_number": "",
+  "mission_slug": "arms849-live-runtime-host-endpoints-01M7Q8F3",
+  "mission_type": "",
+  "summary": {
+    "approved": 0,
+    "blocked": 0,
+    "canceled": 0,
+    "claimed": 0,
+    "done": 3,
+    "for_review": 0,
+    "in_progress": 0,
+    "in_review": 0,
+    "planned": 0
+  },
+  "work_packages": {
+    "WP01": {
+      "actor": "merge",
+      "agent": "claude",
+      "force_count": 0,
+      "implementer_of_record": "claude",
+      "lane": "done",
+      "last_event_id": "01M7RG04Y68J5E31XRP895RDTW",
+      "last_transition_at": "2026-11-18T23:31:16.551013+00:00",
+      "review_result": {
+        "feedback_path": "/home/kgale/repos/kg-automation/.worktrees/arms849-live-runtime-host-endpoints-01M7Q8F3-coord/kitty-specs/arms849-live-runtime-host-endpoints-01M7Q8F3/tasks/WP01-runtime-endpoint-wiring/review-cycle-1.md",
+        "reference": "review-cycle://arms849-live-runtime-host-endpoints-01M7Q8F3/WP01-runtime-endpoint-wiring/review-cycle-1.md",
+        "reviewer": "codex",
+        "verdict": "approved"
+      },
+      "shell_pid": 1053417,
+      "shell_pid_created_at": "1795027757.3"
+    },
+    "WP02": {
+      "actor": "merge",
+      "agent": "claude",
+      "force_count": 0,
+      "implementer_of_record": "claude",
+      "lane": "done",
+      "last_event_id": "01M7RG08GFV036FVW09SEHB8TS",
+      "last_transition_at": "2026-11-18T23:31:20.207159+00:00",
+      "review_result": {
+        "feedback_path": "/home/kgale/repos/kg-automation/.worktrees/arms849-live-runtime-host-endpoints-01M7Q8F3-coord/kitty-specs/arms849-live-runtime-host-endpoints-01M7Q8F3/tasks/WP02-host-overrides-live-node/review-cycle-1.md",
+        "reference": "review-cycle://arms849-live-runtime-host-endpoints-01M7Q8F3/WP02-host-overrides-live-node/review-cycle-1.md",
+        "reviewer": "codex",
+        "verdict": "approved"
+      },
+      "shell_pid": 3002051,
+      "shell_pid_created_at": "1795043616.52"
+    },
+    "WP03": {
+      "actor": "merge",
+      "agent": "claude",
+      "force_count": 0,
+      "implementer_of_record": "claude",
+      "lane": "done",
+      "last_event_id": "01M7RG06QTQ80BMG3VZVRV5PNW",
+      "last_transition_at": "2026-11-18T23:31:18.394171+00:00",
+      "review_result": {
+        "feedback_path": "/home/kgale/repos/kg-automation/.worktrees/arms849-live-runtime-host-endpoints-01M7Q8F3-coord/kitty-specs/arms849-live-runtime-host-endpoints-01M7Q8F3/tasks/WP03-checker-verifier-host-endpoints/review-cycle-1.md",
+        "reference": "review-cycle://arms849-live-runtime-host-endpoints-01M7Q8F3/WP03-checker-verifier-host-endpoints/review-cycle-1.md",
+        "reviewer": "codex",
+        "verdict": "approved"
+      },
+      "shell_pid": 1053417,
+      "shell_pid_created_at": "1795027757.3"
+    }
+  }
+}

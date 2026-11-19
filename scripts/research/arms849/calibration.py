@@ -63,7 +63,9 @@ def _g_repeat1(ledger: Any, questions: Sequence[str]) -> dict[str, int]:
     from scripts.research.arms849.ledger import RunKey
 
     missing, terminal_error, out = [], [], {}
-    rows = {(r["question"]): r for r in ledger.run_rows()
+    # The GUARDED scored accessor: k is a derived score, never computed from a premise-violated ledger
+    # (grading_rows raises LedgerUnusable; arms-preconditions WP01, Codex c2 P12).
+    rows = {(r["question"]): r for r in ledger.grading_rows()
             if r["arm"] == "G" and r["repeat"] == 1 and r["outcome"] == SCORED}
     for q in questions:
         term = ledger.terminal(RunKey("G", q, 1))
