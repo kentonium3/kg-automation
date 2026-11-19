@@ -25,7 +25,7 @@
       "wp": null
     },
     "#1083": {
-      "evidence_ref": "WP01 runtime endpoints, WP02 live node + red-first, WP03 checker/verifier; terminal verdict at consolidate after the quickstart checker run",
+      "evidence_ref": "Squash 670b6136 + post-merge fix 3c13e6c6 on feat/849-preconditions; checker PASS premerge-3c13e6c6 (2026-11-19T12:38Z): live-required-nodes 2/2 at ARMS849_FALKOR/LLAMA 127.0.0.1:16379/18080, live-down clean; --verify accepts it and rejects no-LIVE and no-override copies",
       "fr": null,
       "nfr": null,
       "repo": null,
@@ -33,7 +33,7 @@
       "scope": null,
       "source_file": "spec.md",
       "title": "<fill at WP-implementation time>",
-      "verdict": "in-mission",
+      "verdict": "fixed",
       "wp": "WP01"
     },
     "#1106": {
