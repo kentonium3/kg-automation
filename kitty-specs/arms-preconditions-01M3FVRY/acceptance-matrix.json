@@ -2,7 +2,7 @@
   "mission_slug": "arms-preconditions-01M3FVRY",
   "mission_number": "",
   "mission_type": "software-dev",
-  "overall_verdict": "fail",
+  "overall_verdict": "pass",
   "criteria": [
     {
       "criterion_id": "FR-001",
@@ -148,11 +148,11 @@
       "criterion_id": "FR-015",
       "description": "Verify FR-015 is satisfied",
       "proof_type": "post_merge_audit",
-      "evidence": "No commit-bound build/849-runs/premerge-<HEAD>.json PASS record exists at audit HEAD 2b4d136c; the required full checker is blocked by deterministic Arm G deadlock #1037.",
-      "pass_fail": "fail",
-      "verified_by": "codex-office4-d5c7b35d",
-      "verified_at": "2026-09-28T19:39:45.941781+00:00",
-      "notes": "TODO: replace with a real acceptance criterion"
+      "evidence": "build/849-runs/premerge-3c13e6c6.json (copy of ~/.local/share/kg-849-evidence/premerge-3c13e6c6-run2.json, sha256 f09ac3e8\u2026ea67): status PASS, complete, commit 3c13e6c6 on feat/849-preconditions; office-seed-0/3 and fresh-worktree-ci pass; live-required-nodes 2/2",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-11-19T12:39:27.769371+00:00",
+      "notes": "Unblocked by #1037 (Arm G deadlock) and #1083 (host endpoints, mission arms849-live-runtime-host-endpoints-01M7Q8F3). --verify accepts the record; mutated copies without ARMS849_LIVE or without the four overrides are rejected (exit 1). Checked 2026-11-19 by Claude Opus 5.5."
     },
     {
       "criterion_id": "FR-016",
