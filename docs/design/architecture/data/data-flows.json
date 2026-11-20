@@ -2123,7 +2123,7 @@
           "from": "/data/services/openclaw/state/sync/seed-ledger.jsonl",
           "to": "scripts/vikunja/rule_inventory.py --seed-ledger",
           "protocol": "file read",
-          "description": "Seed rows explain a rule seen as absent at first observation (status removed rather than lost)."
+          "description": "Seed rows feed one cross-check in rule_inventory.classify, applied after the normal-end check and only to a FINITE baseline rule (one with COUNT or UNTIL): a task the sync seeded with no rule whose baseline rule was finite is ended (when the normal end is confirmed) or removed, never lost. The seed ledger does NOT change the outcome for an unbounded baseline rule (no COUNT, no UNTIL): with the rule absent now, that task is lost when a successful, non-dry-run Felix write after 2026-10-30 lies within 120 s of the task's live updated (attribution), and removed without attribution, whether or not it was seeded. lost is the only status rule_repair --apply acts on by default."
         }
       ]
     },
@@ -2140,7 +2140,7 @@
           "from": "Operator (Kent / Claude Code via ssh office2-claude)",
           "to": "scripts/vikunja/rule_inventory.py",
           "protocol": "CLI (python3 -m scripts.vikunja.rule_inventory --baseline-db <copy> --out <file> [--schedule-path] [--felix-logs ...] [--seed-ledger ...])",
-          "description": "Read-only. Refuses /data/services/vikunja/data and /data/services/vikunja/snapshots paths. Writes the plan file (mode 600, schema vikunja-rule-inventory/v1); statuses ok, progressed, ended, removed, lost, changed, deleted, unresolved."
+          "description": "Read-only. Refuses /data/services/vikunja/data and /data/services/vikunja/snapshots paths. Writes the plan file (mode 600, schema vikunja-rule-inventory/v1); statuses, decided in this order (scripts/vikunja/rule_inventory.classify): deleted = live GET 404; unresolved = the baseline rule text does not parse (no restore source, e.g. a date-only or floating UNTIL); ok = same rule and same repeats_from_current_date; progressed = same rule except a lower COUNT; changed = same rule (or lower COUNT) but a different repeats_from_current_date; ended = done and a COUNT baseline rule now gone (exhausted), or done and an UNTIL baseline rule kept; then, with the rule absent now: removed if the sync seeded no rule and the baseline was finite (seed-ledger cross-check), removed if the baseline was finite (COUNT/UNTIL) and no normal end was confirmed (the finite-rule exception), lost if the baseline was unbounded and a successful non-dry-run Felix write after 2026-10-30 (sweeper-ledger.jsonl day-specific due-date writes, habits-history.jsonl and *-escalation-history.jsonl write records, intake-apply-*.jsonl executed done writes; any other file is not attribution) lies within 120 s of the live updated (attribution, a timestamp-proximity heuristic and a documented residual risk), else removed; any other different live rule is changed. Only lost is repaired by rule_repair --apply by default; removed, changed, ended and unresolved go to Kent."
         },
         {
           "from": "scripts/vikunja/rule_inventory.py",
