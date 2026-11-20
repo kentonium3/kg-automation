@@ -1,30 +1,30 @@
 {
   "schema_version": 1,
-  "release_version": "v2.8.0-rrule.4",
-  "source_revision": "d7e2022285b89e4a964f03f6ee8f685dc3d1fcaf",
+  "release_version": "v2.8.0-rrule.5",
+  "source_revision": "92181123d9ee363e7085cdc5993fd65ba98d561c",
   "archive": {
-    "path": "/data/services/vikunja/release-artifacts/0435cf075e75/vikunja-v2.8.0-rrule.4-docker-linux-amd64.tar.gz",
-    "sha256": "0435cf075e7522c371386944b7f4ffe294701c52a3a77577d41c82adc04fc5c4",
-    "size": 53731214
+    "path": "/data/services/vikunja/release-artifacts/2a1ede0259b6/vikunja-v2.8.0-rrule.5-docker-linux-amd64.tar.gz",
+    "sha256": "2a1ede0259b67129cbefda7d4aa1360df0e29d0b2877deb37b4f7b1d61dad8ad",
+    "size": 53733447
   },
   "image": {
-    "config_digest": "sha256:841a8a08e309b32bb6c413f6d3cb6783510a834904e3cb1acac5fb5a5d03bc56",
-    "index_digest": "sha256:5c34aa95af6e6cef121b94ed018fc3a556792a4c9ffc10ca8bee334bb2b582cd",
+    "config_digest": "sha256:9f0ca3d3c214337f39e2f9d9a7fe30132727ac5caadcd6a5714f11dc5928326f",
+    "index_digest": "sha256:7111fdca59bd78c24f13c04ade39d8919ba5916aa649a65a7de47473f732e55e",
     "platform": "linux/amd64",
     "user": "1000",
     "revision_label_absent": true
   },
   "tags": {
-    "release": "office2.local/vikunja:v2.8.0-rrule.4",
+    "release": "office2.local/vikunja:v2.8.0-rrule.5",
     "active": "office2.local/vikunja:active"
   },
   "rollback": {
-    "image_id": "sha256:046151b0cd9b5d9f0770c918189d1d49e92eb631387495b9568b40148308709c",
-    "ref": "office2.local/vikunja:v2.8.0-rrule.3",
+    "image_id": "sha256:841a8a08e309b32bb6c413f6d3cb6783510a834904e3cb1acac5fb5a5d03bc56",
+    "ref": "office2.local/vikunja:v2.8.0-rrule.4",
     "archive": {
-      "path": "/data/services/vikunja/release-artifacts/0435cf075e75/vikunja-v2.8.0-rrule.3-docker-linux-amd64.tar.gz",
-      "sha256": "94fb04735eba9c9c96595aa85fb9b00714de54756228f64475845b0b87244347",
-      "size": 53697828
+      "path": "/data/services/vikunja/release-artifacts/2a1ede0259b6/vikunja-v2.8.0-rrule.4-docker-linux-amd64.tar.gz",
+      "sha256": "0435cf075e7522c371386944b7f4ffe294701c52a3a77577d41c82adc04fc5c4",
+      "size": 53731214
     }
   },
   "service": {
@@ -39,12 +39,12 @@
     "activation": "/data/services/vikunja/activation",
     "private_logs": "/data/services/vikunja/failures",
     "office4_sources": {
-      "archive": "/home/kgale/.local/state/vikunja-acceptance-31YVSX/i5/artifacts/download.dbkm/vikunja-v2.8.0-rrule.4-docker-linux-amd64.tar.gz",
-      "rollback_archive": "/home/kgale/.local/state/vikunja-acceptance-31YVSX/i4/artifacts/download.6w10/vikunja-v2.8.0-rrule.3-docker-linux-amd64.tar.gz"
+      "archive": "/home/kgale/.local/state/vikunja-acceptance-31YVSX/r7172/release/artifacts/download.APEa/vikunja-v2.8.0-rrule.5-docker-linux-amd64.tar.gz",
+      "rollback_archive": "/home/kgale/.local/state/vikunja-acceptance-31YVSX/i5/artifacts/download.dbkm/vikunja-v2.8.0-rrule.4-docker-linux-amd64.tar.gz"
     }
   },
   "baseline": {
-    "path": "services/vikunja/baselines/v2.8.0-rrule.3.json",
-    "sha256": "df246f6385de1141b48b2e6e17eda99a76955f007a3b58a3b7d5a994518d6e78"
+    "path": "services/vikunja/baselines/v2.8.0-rrule.4.json",
+    "sha256": "405ffbfeadd0b7c0b77228ba6c61d07abd871e385d530508ed7806112ebc88c3"
   }
 }
