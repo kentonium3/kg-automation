@@ -5,7 +5,7 @@ doc_type: runbook
 level: howto
 status: approved
 owners: [kgale]
-last_updated: '2026-11-04'
+last_updated: '2026-11-20'
 revision: v1.5
 audience: agents_and_humans
 tags: [vikunja, releases]
@@ -27,7 +27,8 @@ create registry credentials, publish artifacts, change branch settings or deploy
 production. Inspect actual tooling before each use. Kent approves the exact
 push, force-push, merge, tag and release action; upstream-facing copy also needs
 his approval. Existing classifier refusals remain held, never routed through
-another actor or account. Production cutover requires its separate explicit go.
+another actor or account. Production cutover requires Kent's single deploy go
+([the one-go rule](vikunja-release-cutover.md#deploy-authority)).
 
 The promotion procedure below reflects Kent's resolved plan decision
 `01M676BK24HB12W941ST6NJRDA`: review a PR, then fast-forward the exact tested
@@ -48,11 +49,15 @@ goes through these steps in sequence:
    (§4–5). Before anything is public, run the local automated tests and a manual
    smoke test of the built artifact on a disposable database.
 3. **Update Office2.** Upgrade Office2 to that exact artifact (§6), under its
-   own packet and Kent's go.
-4. **Kent tests on Office2.**
+   own packet and Kent's single deploy go, which covers every step through
+   ACCEPT ([the one-go rule](vikunja-release-cutover.md#deploy-authority)).
+4. **Production use is the test.** Kent's pre-release manual testing qualifies
+   the release; there is no separate test gate on Office2.
 5. **Refresh the upstream PR last.** Rebuild the upstream contribution branch
    (§3) on the same upstream pin, reusing the integration's conflict
-   resolutions, so the PR carries only code Kent has run in production.
+   resolutions, so the PR carries only code Kent has run in production. The
+   refresh can follow an agent-recorded ACCEPT; the exact copy pushed or
+   posted upstream still needs Kent's sign-off.
 
 Do not refresh an upstream PR ahead of steps 2–4. An upstream PR never holds
 a tested preview or an Office2 release.
@@ -336,7 +341,9 @@ STAGE/ACTIVATE/acceptance/rollback mechanics, with a newly reviewed packet bound
 to the new from/to versions. Its 2026-10-30 values are historical and must not be
 reused as live facts.
 
-Kent approves the production go separately. Use the same artifact bytes tested
+Kent gives the production deploy go separately, after his pre-release manual
+testing passes; it authorizes every cutover step through ACCEPT
+([the one-go rule](vikunja-release-cutover.md#deploy-authority)). Use the same artifact bytes tested
 for promotion; verify image digest and embedded version after deployment.
 Never run an older image on a database migrated by a newer release. Rollback
 restores the matching pre-upgrade database and follows the packet's write
