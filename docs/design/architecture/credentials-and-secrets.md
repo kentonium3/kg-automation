@@ -2,10 +2,10 @@
 title: Credentials and Secrets
 doc_type: reference
 status: approved
-last_updated: '2026-09-08'
-last_validated: '2026-09-08'
-updated_by: 'qa-pipeline-decommission-01M219TT (#970 — qa-webhook-env registered-at-retirement in the Deprecated Credentials table: /etc/qa-webhook.env archived into the decommission bundle by the operator script, then removed) + vikunja-token-seam-kent-cutover-01KY8XQ0 (#860 phase 2, ADR-0007 — vikunja-api/felix-bot retired to dormant/non-runtime; vikunja-api-kent is the sole runtime Vikunja credential) + #715-vikunja-api-kent-config-token + #699-felix-calendar-helper-personal-google-oauth (RFC #681 calendar phase) + #520-felix-vikunja-sync-project-layer-and-url-config + #523-kg-felix-bot-project-sync-pat-added + #345-audit-confirms-sync (silent-removal policy per change-control.md) + #304-felix-bot-rotation + #267-openclaw-gateway-env-narrative + #100-google-workspace-foundation + #227 + #115 + #115-narrative-sync + rename-kentonium3-pat-to-gh-oauth'
-tags: [304, 343, 490, 115, 520, 860]
+last_updated: '2026-11-20'
+last_validated: '2026-11-20'
+updated_by: 'felix-rrule-adaptation-01M7TKNX (#1111 — vikunja-api-kent required permissions incl. tasks.occurrences + tasks.occurrences_preview; re-issue pending Kent) + qa-pipeline-decommission-01M219TT (#970 — qa-webhook-env registered-at-retirement in the Deprecated Credentials table: /etc/qa-webhook.env archived into the decommission bundle by the operator script, then removed) + vikunja-token-seam-kent-cutover-01KY8XQ0 (#860 phase 2, ADR-0007 — vikunja-api/felix-bot retired to dormant/non-runtime; vikunja-api-kent is the sole runtime Vikunja credential) + #715-vikunja-api-kent-config-token + #699-felix-calendar-helper-personal-google-oauth (RFC #681 calendar phase) + #520-felix-vikunja-sync-project-layer-and-url-config + #523-kg-felix-bot-project-sync-pat-added + #345-audit-confirms-sync (silent-removal policy per change-control.md) + #304-felix-bot-rotation + #267-openclaw-gateway-env-narrative + #100-google-workspace-foundation + #227 + #115 + #115-narrative-sync + rename-kentonium3-pat-to-gh-oauth'
+tags: [304, 343, 490, 115, 520, 860, 1111]
 ---
 
 # Credentials and Secrets
@@ -96,6 +96,32 @@ shared `VikunjaClient` default). It lives in the §3 scoped-plaintext slot at
 `/data/services/openclaw/secrets/vikunja-api-kent` (mode 600, claude:claude).
 See [`identity-model.md` §Agent Service Accounts](<./identity-model.md#agent-service-accounts>)
 for the identity model.
+
+**Required permissions (#1111).** Since `felix-rrule-adaptation-01M7TKNX` Felix
+writes tasks over the fork's v2 API, so the token must carry these permissions
+on top of the v1 ones it already has (names as the shared client reports them
+on a 401):
+
+| Permission | Call | Used by |
+|---|---|---|
+| `tasks.read_one` | `GET /api/v2/tasks/{id}` | every v2 write's pre-read and readback; sweeper pause check; `schedule_loader --check-live`; `rule_inventory` |
+| `tasks.update` | `PATCH /api/v2/tasks/{id}` | habits/escalation `record_completion`, `set_due_dates`, sweeper, `manage_habit`, `intake.apply_reply`, `vikunja.update_task`, `rule_repair`, bulk migrators |
+| `tasks.create` | `POST /api/v2/projects/{id}/tasks` | `vikunja.create_task` |
+| `tasks.occurrences` | `GET /api/v2/tasks/{id}/occurrences` | sweeper day-specific advance |
+| `tasks.occurrences_preview` | `POST /api/v2/tasks/occurrences/preview` | `vikunja.preview_rule`; `record_completion` series-end check for UNTIL rules |
+
+**Re-issue status: pending Kent** ([#1111](https://github.com/kentonium3/kg-automation/issues/1111)).
+The current token predates the occurrences endpoints and gets `401` on both
+`tasks.occurrences` and `tasks.occurrences_preview`. Vikunja tokens cannot be
+edited, so Kent re-issues it before the merge to `main`: create a new token in
+the Vikunja UI (Settings → API Tokens) with the current permissions plus those
+two, write it to the storage path with `read -rs` (never echo it), verify both
+endpoints return `200` with the read-only probe (the mission's `research.md`
+R-004 "Pre-merge permission probe", called from its `quickstart.md`; it prints
+status codes only), and only then delete the old token. If either
+probe fails, put the old token back and stop. Until the re-issue, the sweeper's
+day-specific advance and `preview_rule` fail closed with the missing permission
+named in the error. The manifest's `reissue_status` field records the outcome.
 
 **Why the consolidation.** Vikunja scopes objects (projects, labels, saved
 filters, label attachment) **per user**. The former `felix-bot` runtime token
@@ -249,6 +275,8 @@ subject to this document's access-control rules:
   Raises `VikunjaConfigError` if neither is present.
   Consumers: `felix-vikunja-sync-driver` (Phase 0 preamble) and the six scripts migrated by
   #519 (TP-02, TP-03, TP-04, TP-07, TP-10, TP-12).
+  Since #1111 the file still holds the `/api/v1` base: `VikunjaClient` derives the v2 root
+  (`/api/v2`) from it, so no second URL is configured.
 
 ---
 
@@ -329,7 +357,7 @@ graph TD
 | `restic-password` | password file | Standalone — `/etc/restic/password` | `backup.sh` |
 | `tailscale-auth` | system-managed | Managed by `tailscaled` | Tailscale daemon |
 | `anthropic` | API key | OpenClaw native auth store (`/home/claude/.openclaw/agents/main/agent/auth-profiles.json`) + scoped plaintext (`/data/services/openclaw/secrets/anthropic`, 0600) | `openclaw-gateway` (proxies API calls for all openclaw-launched agents), `felix-doc-auditor-driver` (reads the plaintext file directly each systemd tick and calls `api.anthropic.com` via the `anthropic` Python SDK — bypasses openclaw-gateway; #343), `felix-heartbeat-gate` (same file-read pattern as the doc-auditor driver — reads the key each 30-min systemd tick and calls `api.anthropic.com` directly with `claude-haiku-4-5`; #490) |
-| `vikunja-api-kent` | API token, all-permissions (owner: `kent` Vikunja user, #715; **sole runtime credential** per ADR-0007) | Scoped plaintext — `/data/services/openclaw/secrets/vikunja-api-kent` (mode 600, claude:claude) | **All runtime Felix→Vikunja access** via `scripts/common/vikunja_config.get_vikunja_token_path()` (directly or via the shared `VikunjaClient` default) — habits, escalation, enrichment, sync, inbox scan/apply, credential-health writer, `vikunja/create_task`, `trust/assertion_verifier`, config/label tooling (`create_taxonomy_labels`), and the #748 `validate_refs` validator. Runtime attributes to `kent` (see §3). |
+| `vikunja-api-kent` | API token, all-permissions (owner: `kent` Vikunja user, #715; **sole runtime credential** per ADR-0007) | Scoped plaintext — `/data/services/openclaw/secrets/vikunja-api-kent` (mode 600, claude:claude) | **All runtime Felix→Vikunja access** via `scripts/common/vikunja_config.get_vikunja_token_path()` (directly or via the shared `VikunjaClient` default) — habits, escalation, enrichment, sync, inbox scan/apply, credential-health writer, `vikunja/create_task`, `trust/assertion_verifier`, config/label tooling (`create_taxonomy_labels`), and the #748 `validate_refs` validator. Runtime attributes to `kent` (see §3). Needs the v2 task permissions incl. `tasks.occurrences` + `tasks.occurrences_preview` (#1111; re-issue pending Kent — see §3 *Required permissions*). |
 | `vikunja-api` | API token (owner: `felix-bot` Vikunja user, #304) — **RETIRED / dormant (non-runtime)** per ADR-0007 | Scoped plaintext — `/data/services/openclaw/secrets/vikunja-api` (retained on office2 for the dormant user) | **None at runtime** — the felix-bot Vikunja user is dormant (not deprovisioned; owns Inbox 14, history preserved). Admin/one-shot felix-bot scripts only (`provision_felix_bot`, `validate_felix_bot`, `swap_vikunja_secrets`). See §3 + credential-manifest. |
 | `whatsapp-session` | session | OpenClaw native (Baileys) | `openclaw-gateway` |
 | `google-workspace-client` | OAuth Desktop `client_secret` | Scoped plaintext — `/data/services/openclaw/secrets/google-workspace-client.json` | `gog auth credentials` (one-time ingest) |

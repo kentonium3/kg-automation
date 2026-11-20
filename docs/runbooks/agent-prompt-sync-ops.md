@@ -5,8 +5,8 @@ title: Agent prompt sync — operator runbook
 status: active
 level: howto
 owners: ["kgale"]
-last_validated: 2026-06-11
-version: 1.1
+last_validated: 2026-11-20
+version: 1.2
 ---
 
 # Agent prompt sync — operator runbook
@@ -153,6 +153,17 @@ pick up the new prompt:
 The helper does NOT force-restart openclaw (per spec FR-017). If you need an
 agent to pick up a prompt change immediately, trigger that agent's cron entry
 manually.
+
+### Helper/doc skew: helpers go live before agent docs
+
+Helper scripts under `scripts/**` go live as soon as the `git pull` advances the
+checkout; the agent doc that calls them is copied afterwards by this pipeline and
+reaches a running agent only at its next session-init. A change to both is
+therefore briefly **new helper + old doc**. When that order is unsafe, follow a
+rollout window. The #1111 window (pause `N done`; checkout HEAD = merge SHA;
+MD5 of the deployed escalation `AGENTS.md`, `TOOLS.md` and skill `SKILL.md`
+against the repo; a fresh isolated session's `systemPromptReport`) is written out
+in [`deploy/office2-deploy-paths.md`](<./deploy/office2-deploy-paths.md#rollout-window-helpers-ahead-of-agent-docs-1111>).
 
 ### Symptom: HEARTBEAT.md disappeared from a deploy dir
 

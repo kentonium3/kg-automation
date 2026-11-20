@@ -6,11 +6,11 @@ level: concept
 audience: agents_and_humans
 owners: [kgale]
 created: 2026-07-19
-last_updated: '2026-07-19'
-last_validated: '2026-07-19'
-version: v1.0
-updated_by: 'process-flow-docs-home (#794) — back-fills the habits flow to the calendar-clarification exemplar shape'
-tags: [794, 524, 112, 733, 761, 608, 515, 409, 605, 723]
+last_updated: '2026-11-20'
+last_validated: '2026-11-20'
+version: v1.1
+updated_by: 'felix-rrule-adaptation-01M7TKNX (#1111) — rule-driven completion and auto-skip on the RRULE fork, v2 writes, pause/resume/remove, sweeper statuses + process-flow-docs-home (#794)'
+tags: [1111, 794, 524, 112, 733, 761, 608, 515, 409, 605, 723]
 ---
 
 # Habits Process Flow
@@ -23,7 +23,7 @@ tags: [794, 524, 112, 733, 761, 608, 515, 409, 605, 723]
 ## Why this document exists
 
 The habits lifecycle spans several missions and a subtle split between what Vikunja
-owns (native `repeat_after` scheduling and "done today") and what Felix owns
+owns (native recurrence-rule scheduling — an RFC 5545 RRULE since #1111 — and "done today") and what Felix owns
 (per-occurrence completion **history**, because Vikunja discards repeating-task
 occurrence history — context for [#729](https://github.com/kentonium3/kg-automation/issues/729)).
 This is the single canonical explanation, crediting the missions that built it.
@@ -39,6 +39,7 @@ This is the single canonical explanation, crediting the missions that built it.
 | JSONL is canonical history; comment is a UI mirror; weekly report reads the JSONL not `done_at` | ADR-0002 Phase 2; `trustworthy-weekly-habit-report-01KV4GZ7` ([#605](https://github.com/kentonium3/kg-automation/issues/605)) |
 | Deterministic weekly cron driver with truthful delivery confirmation | `deterministic-cron-hardening-01KXA4PX` ([#723](https://github.com/kentonium3/kg-automation/issues/723)) |
 | Weekly-report ownership: deterministic `felix-habits-weekly` timer owns it; habits out-of-scope (dedicated LLM agent declined) | [#409](https://github.com/kentonium3/kg-automation/issues/409) / [#796](https://github.com/kentonium3/kg-automation/issues/796) |
+| RRULE adaptation: completion as a v2 merge patch `{done:true}` (the v1 POST echo of `repeat_after` is gone); sweeper advances day-specific habits to the rule's next occurrence; schedule declares `rrule` + read-only drift check; weekly report classifies from the rule; pause/resume/remove helper; `migrate_schedule` and `--reconcile-schedule` retired | `felix-rrule-adaptation-01M7TKNX` ([#1111](https://github.com/kentonium3/kg-automation/issues/1111); FR-003, FR-004, FR-012, FR-013, FR-018, FR-026) |
 
 ## Actors & trigger
 
@@ -48,13 +49,18 @@ This is the single canonical explanation, crediting the missions that built it.
   either the literal `[felix-admin-habits]: IDLE` token or a message behind the
   identity line `Sent by felix-admin-habits:<model>`.
 - **Kent** — receives the WhatsApp check-in, replies with completion/skip text,
-  and issues out-of-band add/pause/resume/remove commands.
+  and issues out-of-band add/pause/resume/remove commands, which the agent
+  carries out through `scripts/habits/manage_habit.py` (#1111).
 - **`felix-habit-sweeper`** — stateless Python oneshot (`scripts/habits/sweeper.py`),
   fired by a systemd user timer daily ~07:30 ET; zero LLM. Closes the 48h response
-  window with `auto_skipped` events.
-- **Vikunja** (v0.24.6, project 13 "Habits") — source of truth for *when a habit
-  is due* (native `repeat_after`/`repeat_mode`) and *done today* (`done=true` →
-  auto-advance). It **discards** repeating-task occurrence history.
+  window with `auto_skipped` events. (Timer stopped and disabled 2026-11-19 as
+  #1111 containment; it is re-enabled on Kent's go — habits-ops.md.)
+- **Vikunja** (the v2.8.0-rrule fork, project 13 "Habits") — source of truth for
+  *when a habit is due* (each habit's RRULE, e.g. `FREQ=DAILY;INTERVAL=1` or
+  `FREQ=WEEKLY;BYDAY=MO`) and *done today* (`done=true` → Vikunja advances the
+  series by its rule). It **discards** repeating-task occurrence history. Felix
+  writes it only through `PATCH /api/v2/tasks/{id}` merge patches with a readback,
+  because a v1 `POST /tasks/{id}` replaces the task and strips the rule.
 - **`habits-history.jsonl`** (`/data/services/openclaw/state/habits-history.jsonl`)
   — canonical append-only completion history (ADR-0002 `state_log`, domain
   `"habits"`).
@@ -70,7 +76,8 @@ This is the single canonical explanation, crediting the missions that built it.
 ```
 MORNING CRON (felix-admin-habits tick)
   │  python3 -m scripts.habits.morning_checkin_list --date <ET today>
-  ▼  morning-checkin-<date>.json  ── habits due<=today AND done=false, minus already-in-history-today
+  ▼  morning-checkin-<date>.json  ── from the sync cache: habits due<=today AND done=false AND not (PAUSED),
+  │                                    minus already-in-history-today
   ▼  WhatsApp list sent                                              [state: AWAITING_REPLY]
   │
   ├── Kent replies (any time) ─► parse_morning_reply --reply … --date <ET today>
@@ -78,8 +85,9 @@ MORNING CRON (felix-admin-habits tick)
   │       │
   │       ▼ per tuple, exactly once
   │     record_completion (idempotent on task_id,date,state)
-  │       validate → idempotency read → GET task → POST done=true ECHOING repeat_after/repeat_mode (#524)
-  │         └─ Vikunja NATIVE auto-advance moves due_date by repeat_after
+  │       validate → idempotency read → GET /api/v2/tasks/{id} → PATCH /api/v2 {done:true} (#1111)
+  │         └─ Vikunja advances due_date to the rule's next occurrence
+  │            → outcome advanced | series_ended | unexpected (unexpected: still writes, exit 1)
   │       → PUT /comments  "[Felix] <date> | <state>"  → state_log.append → habits-history.jsonl
   │       ▼                                     [state: RESOLVED_COMPLETE / RESOLVED_SKIPPED]  (terminal)
   │
@@ -87,12 +95,22 @@ MORNING CRON (felix-admin-habits tick)
           find_expired_checkins: delivered >48h ago, <7d
           evaluate_habit_resolution(history, task, checkin_date):
             ├─ prior auto_skipped exists → already_auto_skipped (no-op, FR-005)
-            ├─ history has complete/skipped → resolved-in-window (no-op)
+            ├─ history has complete/skipped → completed_in_window / skipped_in_window (no-op)
             └─ else UNRESOLVED → auto-skip:
-                 day-specific? ─ yes ─► compute_next_eod_et_for_weekdays → validate_iso_eod_et (#112)
-                 │                       → POST /tasks/{id} {due_date: EOD-ET}
-                 │  daily habits: NO PUT (native repeat_after cadence)
+                 live pause check, once per habit per tick, before its first write (#1111):
+                 │   GET /api/v2/tasks/{id} → description starts (PAUSED) → status paused (no write)
+                 │   read fails / 404 / no description → paused_state_unavailable (no write, tick partial)
+                 day-specific? ─ yes ─► stored due already in the future? → keep it (idempotent retry)
+                 │                       else GET /api/v2/tasks/{id}/occurrences?count=1 (#1111)
+                 │                       → PATCH /api/v2 {due_date: next occurrence, ET offset} → readback: rule kept
+                 │  daily habits: no Vikunja write (Vikunja advances them by their rule on completion)
                  └─► append auto_skipped event → habits-history.jsonl   [state: AUTO_SKIPPED]  (terminal)
+                     (a failed write leaves status unresolved + errors[]; no history event; next tick retries)
+
+HABIT MANAGEMENT (Kent asks; agent runs manage_habit after confirming, #1111 FR-026)
+  pause  → PATCH /api/v2 description "(PAUSED) …" (rule kept, readback)  [state: PAUSED]
+  resume → PATCH /api/v2 description without the prefix                   [state: AWAITING next check-in]
+  remove → end_series: PATCH {repeat:null} → readback → PATCH {done:true} → readback; never DELETE
 
 RECONCILE (reconcile_completions.py, cache-driven)
   backfill: cache done=true but no JSONL complete → append source="vikunja-ui" (Kent ticked in UI)
@@ -107,7 +125,9 @@ RECONCILE (reconcile_completions.py, cache-driven)
 | **RESOLVED_COMPLETE** | Kent replied done; `record_completion` wrote `done=true` + `[Felix]` comment + JSONL `complete`. | Yes |
 | **RESOLVED_SKIPPED** | Kent replied skip; JSONL `skipped`. | Yes |
 | **JUDGMENT_REQUIRED** | Parser could not deterministically match a token; narrow LLM disambiguation pending. | No — resolves to complete/skip or a clarify question |
-| **AUTO_SKIPPED** | No resolution within 48h; sweeper appended `auto_skipped`; day-specific habits also got an EOD-ET `due_date` PUT. | Yes |
+| **AUTO_SKIPPED** | No resolution within 48h; sweeper appended `auto_skipped`; day-specific habits were also moved to the rule's next occurrence (v2 PATCH, #1111). | Yes |
+| **PAUSED** | Description starts with `(PAUSED) ` (#1111, FR-026). Not listed in the morning check-in (sync cache; may still show for ~5 min after a pause) and skipped by the sweeper (live v2 check; status `paused`). Rule and history kept. | No — `manage_habit resume` |
+| **ENDED (removed)** | `manage_habit remove`: rule cleared, then done; the task is never deleted, so history stays. | Yes |
 | **BACKFILLED (vikunja-ui)** | Kent ticked the task done in the Vikunja UI; reconcile appended a `complete` record with `source="vikunja-ui"`. | Yes |
 | **DRIFT** | JSONL says complete today but cache says not-done; reported, never auto-resolved (a conflict signal). | No — operator triage |
 | **IDEMPOTENT_NOOP** | Re-invocation for an already-recorded `(task_id, date, state)`; no writes. | Yes |
@@ -122,17 +142,20 @@ RECONCILE (reconcile_completions.py, cache-driven)
    partial state next tick.
 2. **Idempotent on `(task_id, date, state)` (FR-007).** Step 1 reads the state log;
    a match returns **before** any Vikunja call.
-3. **`done=true` POST must echo `repeat_after`/`repeat_mode` ([#524](https://github.com/kentonium3/kg-automation/issues/524)).**
-   Vikunja v0.24.6 treats `POST /tasks/<id>` as a *replacement*; posting
-   `{done:true}` alone zeros `repeat_after`, silently stripping recurrence (the
-   2026-06-04 incident where 4 of 7 daily habits vanished). The helper GETs the
-   task first and echoes `repeat_after`/`repeat_mode` back.
-4. **Native `repeat_after` is canonical for "when due"; `done=true` triggers
-   Vikunja's auto-advance (ADR-0002).** The habits `record_completion` does **not**
-   PUT a `due_date` — Vikunja advances the repeating occurrence itself. The
-   explicit **EOD-ET `due_date` write** lives elsewhere: `set_due_dates.py`
-   (morning) and `sweeper.py` (day-specific auto-skip); do not attribute the
-   reschedule to `record_completion`.
+3. **Completion is a v2 merge patch of exactly `{done: true}` ([#1111](https://github.com/kentonium3/kg-automation/issues/1111), superseding [#524](https://github.com/kentonium3/kg-automation/issues/524)).**
+   A v1 `POST /tasks/<id>` is a *replacement*: on the RRULE fork it strips the
+   rule (the 2026-06-04 incident class, where `repeat_after` was zeroed, recurred
+   with RRULEs). `record_completion` reads the task over v2, decides whether this
+   completion should end the series (`exhaustion_expected`; a COUNT=1 rule ends,
+   an UNTIL rule is asked of the server preview), sends `PATCH /api/v2/tasks/{id}`
+   `{done:true}` and classifies the readback: `advanced` (next occurrence, rule
+   kept or COUNT one lower), `series_ended` (marker in note and comment) or
+   `unexpected` (comment and JSONL still written, then exit 1).
+4. **The Vikunja rule is canonical for "when due"; `done=true` triggers
+   Vikunja's advance (ADR-0002).** The habits `record_completion` does **not**
+   write a `due_date`. The explicit `due_date` writes live elsewhere:
+   `set_due_dates.py` (v2 PATCH with a rule readback) and `sweeper.py`
+   (day-specific auto-skip, to the rule's next occurrence).
 5. **EOD-ET `due_date`, never UTC `Z` — the [#112](https://github.com/kentonium3/kg-automation/issues/112) regression guard.**
    Any `due_date` written must be `YYYY-MM-DDT23:59:59±HH:MM` (explicit EDT
    `-04:00` / EST `-05:00`), enforced by `ISO_EOD_PATTERN` / `validate_iso_eod_et`.
@@ -145,19 +168,23 @@ RECONCILE (reconcile_completions.py, cache-driven)
    — the sweeper and `set_due_dates.py` still carry their own inline
    `ET_ZONE`/`ISO_EOD_PATTERN` copies (a latent #733-class risk until migrated;
    the escalation domain *has* adopted `et_datetime.et_end_of_day`).
-7. **Day-specific habits must re-arm at least weekly — the #607/#608 no-rearm
-   ratchet.** `schedule_loader._validate_entry` rejects at load time any entry with
-   `designated_weekdays` set but `repeat_after_seconds < 604800` — the load-time
-   guard against the [#607](https://github.com/kentonium3/kg-automation/issues/607)
-   class (a completed one-shot with `repeat_after=0` that never re-armed). This
-   ratchet lives in `schedule_loader`, not `record_completion`.
+7. **The schedule declares each habit's rule; drift is checked, not auto-fixed
+   ([#1111](https://github.com/kentonium3/kg-automation/issues/1111) FR-013).**
+   Each `habits:` entry in `phase3-schedule.yaml` carries an RFC 5545 `rrule`;
+   `repeat_after_seconds` is refused at load (it replaces the #607/#608
+   sub-week no-rearm ratchet, whose `repeat_after` field no longer exists).
+   `schedule_loader --check-live` is the read-only drift check (`match | inactive |
+   missing | differs | unreadable`).
 8. **48h window, idempotent auto-skip (FR-003 / FR-005,
    `habit-day-specific-scheduling-01KT48Y6`).** Only check-ins delivered >48h ago
    (and <7d) are candidates. `evaluate_habit_resolution` short-circuits on any prior
    `auto_skipped` event for `(task_id, original_checkin_date_et)`, so re-running the
-   sweeper is a no-op. On day-specific auto-skip the sweeper PUTs the next
-   designated-weekday EOD-ET; a failed PUT means **no** history event is appended,
-   so the next tick retries both.
+   sweeper is a no-op. On day-specific auto-skip the sweeper moves the due date to
+   the rule's next occurrence (`GET …/occurrences?count=1`, then a v2 PATCH with a
+   rule readback; since #1111); a failed write means **no** history event is
+   appended (status `unresolved`, an `errors[]` entry), so the next tick retries
+   both. A stored due date already in the future is kept, so a retry after a
+   committed PATCH does not skip a real occurrence.
 9. **`correlated_checkin_date_et` pins the resolution date ([#515](https://github.com/kentonium3/kg-automation/issues/515)).**
    `parse_morning_reply` stamps `correlated_checkin_date_et` so
    `record_completion --date` resolves the correct check-in's habits (not merely
@@ -172,6 +199,14 @@ RECONCILE (reconcile_completions.py, cache-driven)
     (FR-008 / FR-009).** Cache `done=true` with no JSONL `complete` → append
     `source="vikunja-ui"`; JSONL `complete` today with cache `done=false` → drift
     reported on stdout only.
+12. **Paused habits are skipped (FR-026, [#1111](https://github.com/kentonium3/kg-automation/issues/1111)).**
+    `manage_habit.is_paused` is the single predicate: the description starts with
+    `(PAUSED) ` (after optional whitespace or `<p>`; case-sensitive; the title does
+    not count). The morning list reads it from the sync cache (which caches
+    `description` since #1111, so a pause shows within ~5 minutes, and only after the
+    first sync cycle following deploy). The sweeper reads each habit live once per
+    tick before its first write; a failed read is `paused_state_unavailable` and
+    nothing is written. Remove is `end_series`, never a delete.
 
 ## Weekly reporting — owned by the deterministic timer ([#409](https://github.com/kentonium3/kg-automation/issues/409) / [#723](https://github.com/kentonium3/kg-automation/issues/723))
 
@@ -190,19 +225,48 @@ deterministic timer already produces a trustworthy report, and an LLM layer woul
 reintroduce exactly the fabrication risk the #605 ratchet exists to prevent. The
 deterministic timer is the permanent owner.
 
+## Sweeper tick statuses
+
+`habits_evaluated[].status` in `sweeper-tick-<date>.json`; the canonical list is
+`sweeper.HABIT_STATUSES` (the 2026-06 `habit-day-specific-scheduling-01KT48Y6`
+contract predates the last three rows and is not edited):
+
+| Status | Meaning |
+|---|---|
+| `completed_in_window` / `skipped_in_window` | Kent resolved it within 48h; nothing to do. |
+| `already_auto_skipped` | An earlier tick already auto-skipped it (FR-005 no-op). |
+| `auto_skipped_this_tick` | This tick appended `auto_skipped` (and advanced a day-specific habit). |
+| `unresolved` | A write step failed; nothing was written; an `errors[]` entry says why. (Pre-existing, previously undocumented.) |
+| `paused` | The live v2 read before the first write shows the `(PAUSED) ` prefix. No write, no history event, not an error. |
+| `paused_state_unavailable` | That read failed (including 404 or a missing token file) or had no description. No write; one `errors[]` entry with `error_type: "paused_state_unavailable"`; tick `partial`; retried next tick. |
+
+`deferred_outside_48hr` appears in the 2026-06 contract but is never emitted.
+Dry runs make no Vikunja call and so cannot see pauses.
+
+## Weekly report classification (#1111, FR-012)
+
+`query_active_habits_weekly` classifies each habit from its Vikunja `repeat` rule
+(never `repeat_after` or weekday words in the title). Plain daily
+(`FREQ=DAILY;INTERVAL=1`) and plain weekly-by-day (`FREQ=WEEKLY;INTERVAL=1;BYDAY=…`)
+rules have their scheduled days counted locally; any other rule renders
+`scheduled: unknown (rule preview unavailable)` and is left out of the totals. The
+server preview is not used: it steps from `max(now, due_date)` and so cannot
+evaluate past windows.
+
 ## Implementing seams
 
 | Seam | File | Role |
 |---|---|---|
 | `build_morning_list` | `scripts/habits/morning_checkin_list.py` | Builds today's due-and-not-done list; writes `morning-checkin-<date>.json`; emits WhatsApp text. |
 | `parse_reply`, `correlated_checkin_date_et` stamping | `scripts/habits/parse_morning_reply.py` | Deterministic reply → `tuples[]/judgment_required[]/errors[]`; pins the correlated check-in date (#515). |
-| `record`, `_format_comment`, `main` | `scripts/habits/record_completion.py` | Three-write atomic completion; idempotency read; `done=true` POST echoing `repeat_after`/`repeat_mode` (#524); comment PUT; `state_log.append`. |
+| `record`, `_format_comment`, `main` | `scripts/habits/record_completion.py` | Three-write atomic completion; idempotency read; v2 PATCH `{done:true}` + `completion_outcome` (#1111); comment PUT; `state_log.append`. |
+| `pause` / `resume` / `remove`, `is_paused`, `PAUSED_PREFIX` | `scripts/habits/manage_habit.py` | FR-026 habit management (#1111): description prefix via `update_task`; remove = `VikunjaClient.end_series`; Habits-project guard. |
 | `disambiguate` | `scripts/habits/judgment/disambiguate_reply.py` | Narrow LLM resolution for `judgment_required` items. |
-| `run_sweep`, `evaluate_habit_resolution`, `find_expired_checkins`, `_vikunja_put_due_date`, `_append_history_event` | `scripts/habits/sweeper.py` | 48h auto-skip: candidate discovery, resolution eval (FR-005), EOD-ET PUT for day-specific, `auto_skipped` append, tick artifact + ledger. |
-| `ISO_EOD_PATTERN`, `validate_iso_eod_et`, `compute_next_eod_et_for_weekdays` | `scripts/habits/set_due_dates.py` | The #112 EOD-ET format guard and next-weekday EOD-ET computation reused by the sweeper. |
-| `_validate_entry` (#608 ratchet), `is_day_specific`, `load_schedule` | `scripts/habits/schedule_loader.py` | Parse of `migrations/phase3-schedule.yaml`; rejects day-specific-but-sub-week `repeat_after` at load. |
+| `run_sweep`, `evaluate_habit_resolution`, `find_expired_checkins`, `_advance_to_next_occurrence`, `_confirm_not_paused`, `_append_history_event`, `HABIT_STATUSES` | `scripts/habits/sweeper.py` | 48h auto-skip: candidate discovery, resolution eval (FR-005), live pause check, rule-driven advance for day-specific (occurrences + v2 PATCH, #1111), `auto_skipped` append, tick artifact + ledger. |
+| `ISO_EOD_PATTERN`, `validate_iso_eod_et`, `_set_due_date` | `scripts/habits/set_due_dates.py` | The #112 EOD-ET format guard; due-date setter over v2 with a rule readback. `--reconcile-schedule` retired by #1111. |
+| `_validate_entry`, `is_day_specific`, `load_schedule`, `check_live` | `scripts/habits/schedule_loader.py` | Parse of `migrations/phase3-schedule.yaml` (each habit declares `rrule`; `repeat_after_seconds` refused) and the read-only `--check-live` drift check (#1111). |
 | `reconcile` | `scripts/habits/reconcile_completions.py` | Cache↔JSONL backfill of UI completions + drift reporting. |
-| `query_completion_events`, `build_report` | `scripts/habits/query_active_habits_weekly.py` | Weekly report — reads `habits-history.jsonl` (not `done_at`, #605). |
+| `query_completion_events`, `build_report`, `classify_habit` | `scripts/habits/query_active_habits_weekly.py` | Weekly report — reads `habits-history.jsonl` (not `done_at`, #605); classifies from the rule (#1111). |
 | `run`, `confirm_delivery` | `scripts/habits/weekly_report_driver.py` | Deterministic weekly cron driver; in-process helper call + truthful delivery confirmation (#723). |
 | ET boundary helpers | `scripts/common/et_datetime.py` | `et_end_of_day` / `today_et` / `et_calendar_date` (#761). **Habits not yet migrated.** |
 | Agent standing orders | `scripts/openclaw/agents/felix-admin-habits/{AGENTS,SOUL,TOOLS}.md` | Tick wiring: morning, reply, habit management, output discipline. (Weekly-report ownership being removed per #409.) |
@@ -211,7 +275,8 @@ deterministic timer is the permanent owner.
 **State stores.** `/data/services/openclaw/state/habits-history.jsonl` (canonical
 history); `…/state/habits/morning-checkin-<date>.json`, `sweeper-tick-<date>.json`,
 `sweeper-tick-latest.json`, `sweeper-ledger.jsonl`; `…/state/sync/task-cache.json`
-(reconcile read source); `/data/services/felix-habits-weekly/state/last-tick.json`.
+(reconcile and morning-list read source; carries `description` for the pause check
+since #1111); `/data/services/felix-habits-weekly/state/last-tick.json`.
 
 ## State diagram
 
@@ -224,6 +289,10 @@ stateDiagram-v2
     AwaitingReply --> ResolvedSkipped: reply "skip" — record_completion
     AwaitingReply --> AutoSkipped: no reply >=48h — sweeper unresolved (FR-005)
     AwaitingReply --> BackfilledUI: Kent ticks task in Vikunja UI — reconcile (source=vikunja-ui)
+    AwaitingReply --> Paused: manage_habit pause — (PAUSED) prefix (FR-026)
+    Paused --> AwaitingReply: manage_habit resume — next check-in
+    AwaitingReply --> Ended: manage_habit remove — end_series, never delete
+    Paused --> Paused: sweeper live check — status paused, no write
 
     JudgmentRequired --> ResolvedComplete: disambiguate chosen -> record_completion
     JudgmentRequired --> ResolvedSkipped: disambiguate chosen -> record_completion
@@ -239,6 +308,7 @@ stateDiagram-v2
     AutoSkipped --> [*]
     BackfilledUI --> [*]
     Drift --> [*]
+    Ended --> [*]
 ```
 
 ## Cross-references

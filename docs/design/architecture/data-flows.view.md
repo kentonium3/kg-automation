@@ -5,10 +5,10 @@ doc_type: guide
 level: reference
 status: approved
 owners: ["@kentonium3"]
-last_updated: '2026-10-14'
-revision: v2.0
+last_updated: '2026-11-20'
+revision: v2.1
 audience: agents_and_humans
-updated_by: 'canary-deadman-backup-coverage-01M4XVY3 (#1063: +felix-health-check mutual watch in the observability subgraph; the canary tick is no longer annotated as waiting on #269) + crontab-backup-coverage-01M12V87 (#895: +crontab-capture — claude crontab captured hourly into /data/services/host-state/, which the existing Restic run already covers; replaces the accidental dependency on the security-monitor crontabs.txt baseline) + felix-canary-registry-01KX8T7B (#327: +observability subgraph — felix-canary + felix-trust-scan deterministic scanners sharing the #701 alert bus + #706 ledger) + restore-whatsapp-dm-reply-delivery-01KTVVHH (#588: +whatsapp_dm subgraph, +phone_wa input node) + #520 (felix-vikunja-sync-project-layer-and-url-config: +sync_driver subgraph, +url_config node)'
+updated_by: 'felix-rrule-adaptation-01M7TKNX (#1111: Felix task writes on Vikunja v2 PATCH; +rrule subgraph — sweeper occurrences, manage_habit, task helpers, rule inventory/repair, sync seed ledger; morning-list and escalation-reconcile edges corrected to the sync cache) + canary-deadman-backup-coverage-01M4XVY3 (#1063: +felix-health-check mutual watch in the observability subgraph; the canary tick is no longer annotated as waiting on #269) + crontab-backup-coverage-01M12V87 (#895: +crontab-capture — claude crontab captured hourly into /data/services/host-state/, which the existing Restic run already covers; replaces the accidental dependency on the security-monitor crontabs.txt baseline) + felix-canary-registry-01KX8T7B (#327: +observability subgraph — felix-canary + felix-trust-scan deterministic scanners sharing the #701 alert bus + #706 ledger) + restore-whatsapp-dm-reply-delivery-01KTVVHH (#588: +whatsapp_dm subgraph, +phone_wa input node) + #520 (felix-vikunja-sync-project-layer-and-url-config: +sync_driver subgraph, +url_config node)'
 ---
 
 # data-flows.view
@@ -109,6 +109,16 @@ graph LR
             fvs_project_cache[("project-cache.json<br/>/data/services/openclaw/<br/>state/sync/<br/>(atomic write #520, Phase 6)")]
             fvs_conflict[("conflict-events.jsonl<br/>/data/services/openclaw/<br/>state/sync/<br/>(append, Phase 4 — task events only)")]
             fvs_tick[("last-tick.json<br/>/data/services/openclaw/<br/>state/sync/<br/>(atomic write, Phase 6)")]
+            fvs_seed_ledger[("seed-ledger.jsonl<br/>/data/services/openclaw/<br/>state/sync/<br/>(#1111 baseline seeds)")]
+        end
+
+        subgraph rrule["RRULE v2 writes (#1111)"]
+            hab_sweeper["scripts/habits/<br/>sweeper.py<br/>(felix-habit-sweeper)"]
+            hab_manage["scripts/habits/<br/>manage_habit.py<br/>(pause / resume / remove)"]
+            hab_drift["scripts/habits/<br/>schedule_loader.py<br/>--check-live"]
+            vk_task_helpers["scripts/vikunja/<br/>create_task / update_task /<br/>preview_rule"]
+            vk_rule_tools["scripts/vikunja/<br/>rule_inventory / rule_repair<br/>(operator-only)"]
+            vk_repair_state[("vikunja-repair/&lt;run_id&gt;/<br/>/data/services/openclaw/state/<br/>(journal + before-images)")]
         end
 
         subgraph sdm["Signal-Driven Monitoring (#490 — felix-core-digest signal extraction + felix-heartbeat-gate)"]
@@ -252,10 +262,10 @@ graph LR
     esc_agent -->|"event: invoke"| esc_record
     esc_agent -->|"tick start: invoke"| esc_reconcile
     esc_agent -->|"per-task: invoke"| esc_derive
-    esc_record -->|"Vikunja side-effect FIRST<br/>(PUT comment, PATCH done/due_date)"| vikunja_api
+    esc_record -->|"Vikunja side-effect FIRST<br/>(PATCH /api/v2 done/due_date + readback, #1111)"| vikunja_api
     esc_record -->|"state_log.append LAST<br/>(canonical write)"| esc_jsonl
     esc_record -.->|"validate_event_params<br/>(EscalationSchemaError)"| esc_schema
-    esc_reconcile -->|"GET tasks (read-only)"| vikunja_api
+    esc_reconcile -->|"read cache (no Vikunja call)"| fvs_task_cache
     esc_reconcile -->|"synthetic record<br/>(--no-vikunja, source=reconcile)"| esc_record
     esc_reconcile -->|"Q10 hard-fail<br/>(malformed/phantom/derive_state)"| esc_hard_fail
     esc_derive -->|"state_log.read"| esc_jsonl
@@ -270,7 +280,7 @@ graph LR
     hab_agent -->|"reply tick: invoke"| hab_parse
     hab_morning -->|"python-import"| hab_query
     hab_morning -->|"python-import"| hab_exclude
-    hab_query -->|"GET /projects/13/tasks<br/>(due_date<=now/d AND done=false)"| vikunja_api
+    hab_query -->|"read cache: Habits, due<=EOD-ET,<br/>done=false, not (PAUSED)"| fvs_task_cache
     hab_exclude -->|"state_log.read (habits)"| hab_history
     hab_morning -->|"atomic write<br/>(canonical ordering)"| hab_artifact
     hab_parse -->|"read (per-date)"| hab_artifact
@@ -278,7 +288,7 @@ graph LR
     hab_parse -.->|"on judgment_required only"| hab_disambig
     hab_disambig -->|"read (0600)"| anthropic_key_habits
     hab_disambig -->|"HTTPS (anthropic-python SDK,<br/>claude-haiku-4-5)"| anthropic_api
-    hab_record -->|"three-write (Phase 3 #306)<br/>POST done=true + PUT comment"| vikunja_api
+    hab_record -->|"three-write (Phase 3 #306)<br/>PATCH /api/v2 done=true (#1111) + PUT comment"| vikunja_api
     hab_record -->|"state_log.append (habits)"| hab_history
 
     hab_backfill -->|"GET comments (read-only)"| vikunja_api
@@ -286,6 +296,18 @@ graph LR
     hab_backfill -->|"state_log.append<br/>(source=historical-backfill)"| hab_history
 
     tasker_agent -->|"per state transition: invoke"| tasker_record
+    tasker_agent -->|"create / edit / preview (#1111)"| vk_task_helpers
+    hab_agent -->|"add (preview + create)"| vk_task_helpers
+    hab_agent -->|"pause / resume / remove"| hab_manage
+    hab_manage -->|"PATCH /api/v2 description<br/>or end_series (never delete)"| vikunja_api
+    vk_task_helpers -->|"POST /api/v2/projects/{id}/tasks,<br/>PATCH /api/v2, occurrences/preview"| vikunja_api
+    hab_sweeper -->|"GET /api/v2 pause check,<br/>occurrences?count=1, PATCH due_date"| vikunja_api
+    hab_sweeper -->|"append auto_skipped"| hab_history
+    hab_drift -->|"GET /api/v2/tasks/{id}<br/>(read-only)"| vikunja_api
+    fvs_driver -->|"atomic replace (baseline seeds)"| fvs_seed_ledger
+    vk_rule_tools -->|"read --seed-ledger"| fvs_seed_ledger
+    vk_rule_tools -->|"GET /api/v2, PATCH /api/v2<br/>(repair --apply only)"| vikunja_api
+    vk_rule_tools -->|"journal + before-images"| vk_repair_state
     tasker_record -->|"Vikunja side-effect FIRST<br/>(PUT [Felix] enrichment comment)"| vikunja_api
     tasker_record -->|"state_log.append SECOND<br/>(fcntl-locked; FR-013 soft-fail)"| tasker_jsonl
     tasker_reconcile -->|"GET tasks + comments (read-only)"| vikunja_api

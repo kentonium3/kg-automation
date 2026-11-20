@@ -68,6 +68,13 @@ few hops as possible.
    — mandatory assessment for Tier 0/1/2 changes
 5. [Post-Change Verification](<./runbooks/governance/post-change-verification.md>)
    — health-check protocol once the runbook completes
+6. When a change touches Vikunja recurring tasks (#1111): the
+   Vikunja Recurrence-Rule Inventory and Repair runbook
+   (`docs/runbooks/vikunja-task-repair.md`, *runbook / how-to*, operator-only;
+   listed in the filter below once mission `felix-rrule-adaptation-01M7TKNX` is
+   consolidated) inventories and repairs lost rules, and the
+   [helper/doc skew](<./runbooks/deploy/office2-deploy-paths.md#helperdoc-skew>)
+   note explains why helpers go live before the agent docs that call them
 
 ### Bug Fix
 

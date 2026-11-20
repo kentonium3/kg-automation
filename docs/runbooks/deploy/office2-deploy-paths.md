@@ -3,7 +3,8 @@ title: office2 Deploy Paths — Surface Partition (reference)
 doc_type: reference
 audience: agents_and_humans
 status: approved
-last_updated: '2026-07-19'
+last_updated: '2026-11-20'
+updated_by: 'felix-rrule-adaptation-01M7TKNX (#1111 — helper/doc skew note + rollout-window procedure)'
 ---
 
 # office2 Deploy Paths — Surface Partition
@@ -94,6 +95,70 @@ deploy. (This is why many helper-only missions correctly ship with **no**
 **Boundary in one line:** felix-deployer owns anything needing a *tier-guarded,
 recorded, rebaseline-aware* apply; agent-prompt-sync (+ agent-skill-sync) owns
 agent prompt/skill **content**; helper scripts ride **self-pull**.
+
+## Helper/doc skew
+
+A change that edits both a helper and the agent doc that calls it does **not**
+land atomically. The helper goes live the moment either 5-minute timer's `git
+pull` advances the shared checkout (self-pull). The agent doc goes live in two
+later steps: agent-prompt-sync / agent-skill-sync copy the file (up to ~5 minutes
+after the pull, recorded in their JSONL audit logs), and then each OpenClaw
+session keeps the prompt it loaded at session-init until it is rotated or a new
+isolated session starts. For a window, **new helpers run under old agent docs**.
+
+Plan a mission's rollout around that ordering. If "new helper + old doc" is
+unsafe, the mission must name a rollout window (below is the #1111 example); if
+only "new doc + old helper" is unsafe, the order already protects it.
+
+### Rollout window: helpers ahead of agent docs (#1111)
+
+For `felix-rrule-adaptation-01M7TKNX`
+([#1111](https://github.com/kentonium3/kg-automation/issues/1111)) the unsafe
+interleaving is **new helper + old escalation doc**: the old doc tells the agent
+to `POST /api/v1/tasks/{id} {"done": true}` itself, which strips the rule on the
+RRULE server, and then the new `record_completion` (which now also marks done)
+closes the task. The reverse (new doc + old helper) is safe, because the old
+helper's v1 PATCH answers 405 and writes nothing. Steps, from the merge to
+`main`:
+
+1. **Pause `N done`.** From the merge until step 4, Kent does not reply `N done`
+   or reschedule to the escalation digest. If Kent prefers a mechanical pause,
+   the `escalation-daily` cron can be disabled for the window instead; that is a
+   cron change and needs Kent's go.
+2. **Checkout at the merge.** The office2 checkout HEAD must equal the merge SHA:
+
+   ```bash
+   ssh office2-claude 'git -C /home/claude/kg-automation rev-parse HEAD'
+   ```
+
+3. **Synced copies match the repo.** Compare MD5s of the deployed escalation docs
+   with the repo files on office2:
+
+   ```bash
+   ssh office2-claude 'md5sum /data/services/openclaw/escalation-agent/AGENTS.md /home/claude/kg-automation/scripts/openclaw/agents/felix-admin-escalation/AGENTS.md'
+   ```
+
+   ```bash
+   ssh office2-claude 'md5sum /data/services/openclaw/escalation-agent/TOOLS.md /home/claude/kg-automation/scripts/openclaw/agents/felix-admin-escalation/TOOLS.md'
+   ```
+
+   ```bash
+   ssh office2-claude 'md5sum /home/claude/.openclaw/skills/escalation/SKILL.md /home/claude/kg-automation/scripts/openclaw/skills/escalation/SKILL.md'
+   ```
+
+   Each pair must match. The copy is also recorded in
+   `/data/services/openclaw/deploy/agent-prompt-sync.jsonl` (and the skill sync's
+   log). The same mission changed the habits and tasker `AGENTS.md` and the
+   `task-intelligence` and `vikunja-api` skills; check those pairs the same way
+   before relying on the new habit and tasker flows.
+4. **No session holds the old prompt.** Agents read prompts at session-init and
+   cache them (see the OpenClaw gotchas: `systemPromptReport` is cached at
+   session-init). The next `escalation-daily` run is an isolated session, so
+   verify the new prompt in that run's `systemPromptReport`. Then lift the pause.
+
+After the window, continue with the post-merge canary in
+[`habits-ops.md`](<../habits-ops.md>) (schedule drift check, then sweeper
+re-enable on Kent's go) and the repair runbook `docs/runbooks/vikunja-task-repair.md`.
 
 ## Not a deploy path: drift-check enforcement
 

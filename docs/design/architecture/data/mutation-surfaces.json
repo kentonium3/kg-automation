@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
-  "last_updated": "2026-06-12",
-  "updated_by": "pull-based-deploy-pipeline-01KTYQQS (#136) + #289-mutation-surfaces-enumeration",
+  "last_updated": "2026-11-20",
+  "updated_by": "felix-rrule-adaptation-01M7TKNX (kentonium3/kg-automation#1111 — vikunja-api-mutate covers PATCH and /api/v2/; v2 write helpers listed) + pull-based-deploy-pipeline-01KTYQQS (#136) + #289-mutation-surfaces-enumeration",
   "description": "Catalog of mutation surfaces accessible to actors that can change office2 (and Kent-owned external service) state, classified by tier per docs/design/architecture/data/change-risk-taxonomy.json. Layer 1.5 of epic #270. Consumed by Layer 2 (felix-change.py wrapper) to know which surfaces need gating, and by Layer 3 (drift auditor) to know what mutation paths exist. MVP scope: surfaces with documented incident history or clear governance classification. Catalog grows as Layer 2 implementation and ongoing operations discover new surfaces.",
   "actors": {
     "claude-code": {
@@ -174,12 +174,12 @@
     {
       "id": "vikunja-api-mutate",
       "category": "api",
-      "command_pattern": "curl -X (POST|PUT|DELETE) <vikunja-base>/api/v1/<path> ... (or urllib via Python helpers)",
+      "command_pattern": "curl -X (POST|PUT|PATCH|DELETE) <vikunja-base>/api/(v1|v2)/<path> ... (or urllib via Python helpers)",
       "tier": 2,
       "scope": "Vikunja write operations (task create/update/delete, comments, project changes, labels)",
       "available_to": ["main", "felix-admin-capture", "felix-admin-habits", "felix-admin-escalation", "felix-admin-tasker", "claude-code"],
       "gating_treatment": "allow",
-      "notes": "Tier 2 application state, but most invocations are legitimate domain work (habits agent marking habits complete, capture agent creating tasks). Layer 2 wrapper may eventually intercept; for now, per-agent Output Discipline + tier-governance awareness (main's AGENTS.md summary) is the discipline. Watch for Vikunja schema-affecting writes (label creation, project creation) which warrant Tier 2 protocol."
+      "notes": "Tier 2 application state, but most invocations are legitimate domain work (habits agent marking habits complete, capture agent creating tasks). Layer 2 wrapper may eventually intercept; for now, per-agent Output Discipline + tier-governance awareness (main's AGENTS.md summary) is the discipline. Watch for Vikunja schema-affecting writes (label creation, project creation) which warrant Tier 2 protocol. Since felix-rrule-adaptation-01M7TKNX (kentonium3/kg-automation#1111, 2026-11-20) the Felix task-field write path is PATCH /api/v2/tasks/{id} (RFC 7396 merge patch, scripts/common/vikunja_client.VikunjaClient.patch_task / end_series) and task create is POST /api/v2/projects/{id}/tasks (create_task_v2); a v1 POST /tasks/{id} replaces the task and strips its RRULE, so agents no longer write task fields directly. The deterministic v2 write surfaces are: scripts/habits/record_completion.py, scripts/habits/sweeper.py, scripts/habits/set_due_dates.py, scripts/habits/manage_habit.py (pause/resume/remove; remove = end_series, never delete), scripts/escalation/record_completion.py (done/rescheduled), scripts/intake/apply_reply.py, scripts/vikunja/create_task.py, scripts/vikunja/update_task.py (existing-task title/description/due_date/priority/project, readback-verified) and the operator-only scripts/vikunja/rule_repair.py, migrate_tasks.py (project move) and migrate_date_only_due_dates.py. Each of these writes is read back over GET /api/v2/tasks/{id} and checked before the helper reports success. Comments (PUT /api/v1/tasks/{id}/comments) and label attach stay on v1."
     },
     {
       "id": "vikunja-token-rotation",

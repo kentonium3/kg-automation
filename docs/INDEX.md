@@ -4,8 +4,8 @@ doc_type: reference
 status: approved
 owners: [kgale]
 version: "2.0"
-last_validated: 2026-05-26
-tags: [152, 126, 119, 103, 114, 115, 116, 490, 518/, 507, 572]
+last_validated: 2026-11-20
+tags: [1111, 152, 126, 119, 103, 114, 115, 116, 490, 518/, 507, 572]
 ---
 
 # kg-automation Documentation Index
@@ -139,9 +139,10 @@ All three runbooks are also listed under *Agent-executable* below.
 - [Inbox Processing](<./runbooks/inbox-ops.md>)
 - [Task-Intake Validation Loop Operations](<./runbooks/intake-ops.md>) — the Tier-1 task-intake loop that rides each inbox tick (#749): `scan_inbox.py` flags Inbox tasks missing a working project / `f:` / `q:`, sends one batched WhatsApp digest, and `apply_reply.py` applies Kent's compact-shorthand reply through the **kent** Vikunja token (closes #750). State-dir layout, shorthand grammar, per-line statuses, 30-second health check.
 - [Goals Operations](<./runbooks/goals-ops.md>)
-- [Habits Operations](<./runbooks/habits-ops.md>)
+- [Habits Operations](<./runbooks/habits-ops.md>) — morning check-in, reply, 48h sweeper; since #1111 also pause/resume/remove via `manage_habit`, sweeper tick statuses, re-enabling the sweeper, and the read-only schedule drift check (`schedule_loader --check-live`; `--reconcile-schedule` retired)
 - [Task Intelligence Operations](<./runbooks/task-intelligence-ops.md>)
-- [Escalation Engine Operations](<./runbooks/escalation-ops.md>)
+- [Escalation Engine Operations](<./runbooks/escalation-ops.md>) — since #1111 the agent never writes Vikunja: `N done` and reschedules go through `record_completion` over v2 PATCH, with done outcomes `advanced` / `series_ended` / `done_one_off` / `unexpected`
+- Vikunja Recurrence-Rule Inventory and Repair, `docs/runbooks/vikunja-task-repair.md` — *runbook / how-to* — operator-only post-deploy inventory (`rule_inventory`, read-only against a snapshot copy) and reversible, journalled repair (`rule_repair` dry-run / apply / resume / restore / emit) of recurrence rules lost before #1111. (Named as a path, not a link, until mission `felix-rrule-adaptation-01M7TKNX` is consolidated and the file lands on this branch.)
 - [OpenClaw Agent Setup](<./runbooks/openclaw-agent-setup.md>) — agent deployment + verification; now includes DM-reply lifecycle troubleshooting (#588)
 - [Google Workspace Operations](<./runbooks/google-workspace-ops.md>) — `gog` CLI setup, OAuth flow, pitfalls, common commands, second-account expansion, credential liveness probe auto-detection (#100, ADR-0001, #572). *(Calendar surface migrated off gog to the Felix calendar helper by #699 — see below.)*
 - [Calendar Helper Operations](<./runbooks/calendar-helper-ops.md>) — Felix-owned Google Calendar helper (RFC #681 calendar phase, #699): how to invoke (`python -m scripts.google.calendar_helper`), per-account OAuth creds at `~/.config/felix/google/<account>/`, `--self-check`, re-mint on scope/auth failure, dedicated venv location, exit-code (0/1/2/3) troubleshooting. Replaces `gog calendar create`; closes #679.
@@ -153,7 +154,7 @@ All three runbooks are also listed under *Agent-executable* below.
 
 - [Restic Backup Operations](<./runbooks/restic-backup-ops.md>) — office2 nightly GFS backup: pointer schema (`schema_version: 2`, fourteen keys) and the `health_check.key_ledger` that adjudicates it (pointer-key-ledger-01M189P6, #934), the drift caveat binding the ledger to the repo copy rather than the deployed producer, operator handoff for installing the schema-v2 producer, manual restore/verification procedures, and retention policy.
 - [Agent Workspace Reconciliation](<./runbooks/agent-workspace-reconciliation.md>) — drift enforcement, factory-default lifecycle, last-author-wins strategy
-- [office2 Deploy Paths — Surface Partition](<./runbooks/deploy/office2-deploy-paths.md>) — *Reference* — which of office2's deploy mechanisms delivers which change: the felix-deployer manifest pipeline (crons/units/config/lib), agent-prompt-sync + agent-skill-sync (prompt/skill content), and self-pull (helper scripts). Surface-partition table, slug→deploy-dir map, the drift-check-is-not-a-deploy-path clarification (#766), and the open audit-parity recommendation. Reconciles the two paths (#636)
+- [office2 Deploy Paths — Surface Partition](<./runbooks/deploy/office2-deploy-paths.md>) — *Reference* — which of office2's deploy mechanisms delivers which change: the felix-deployer manifest pipeline (crons/units/config/lib), agent-prompt-sync + agent-skill-sync (prompt/skill content), and self-pull (helper scripts). Helper/doc skew note and the #1111 rollout window (helpers go live before agent docs). Surface-partition table, slug→deploy-dir map, the drift-check-is-not-a-deploy-path clarification (#766), and the open audit-parity recommendation. Reconciles the two paths (#636)
 - [Deploy Discipline (canonical)](<./runbooks/deploy/discipline.md>) — manifest-driven deploys to office2 via the felix-deployer applier; entrypoint shape, tier policy, verification commands, failure handling, rebaseline obligation
 - [Deployment Runbook](<./runbooks/deployment.md>) — historical stub; redirects to the discipline runbook above. Preserved as a stable URL for older docs / ADRs / issues that link here
 - [Vikunja Release Cutover (the go packet)](<./runbooks/vikunja-release-cutover.md>) — *runbook / how-to* — repeat cutovers through separate STAGE and ACTIVATE PRs (see #1095; history: see #1087): complete candidate packaging, baseline preflight and outage gate, acceptance verifier with writes closed, snapshot rollback with Kent's privileged restore, pre-snapshot crash recovery, and safe tagged-import cleanup.
@@ -208,7 +209,7 @@ All three runbooks are also listed under *Agent-executable* below.
 - [Calendar Clarification Process Flow](<./design/process-flows/calendar-clarification.md>) — *Explanation/Reference* — current-state behavior when a captured note resolves to an appointment with a date but no time: actors + trigger, the full flow & states (ask-first → 8h window → answered-timed / eligible→all-day fallback / ineligible→delete-and-release), the operating rules & invariants (with FR/INV IDs), the implementing seams, and a Mermaid state diagram. Consolidates #739 + FR-007 (routing mission) + #746 + #786 + #780. The exemplar shape #794 generalized to the sibling flows.
 - [Someday Routing Process Flow](<./design/process-flows/someday.md>) — *Explanation/Reference* — captures classified "someday" → a `q:schedule` + no-due-date Vikunja task landed in Inbox, with fail-soft label attach (felix-bot #715 403 boundary) and the anti-silent-loss guarantee that retired the old "Someday project" (#743). Consolidates #745 + #743 + #715 + #524.
 - [Journal Process Flow](<./design/process-flows/journal.md>) — *Explanation/Reference* — captures classified "journal" → a single-shot, dated, atomic append into the `08-Journal/` vault tree (no ask/pending/sweep). Sentinel + verify-before-append idempotency. Consolidates the D6 helper-extraction and atomic-finalize missions.
-- [Habits Process Flow](<./design/process-flows/habits.md>) — *Explanation/Reference* — the habit completion lifecycle: morning check-in → `record_completion` (done=true POST echoing repeat_after #524; JSONL history) → 48h auto-skip sweeper → reconcile, plus the EOD-ET write (#112) and the #409 weekly-report ownership relocation. Consolidates the native-repeat/JSONL-state, day-specific-scheduling, and trustworthy-weekly-report missions.
+- [Habits Process Flow](<./design/process-flows/habits.md>) — *Explanation/Reference* — the habit completion lifecycle: morning check-in → `record_completion` (v2 PATCH `{done:true}` keeping the RRULE since #1111, superseding the #524 repeat_after echo; JSONL history) → 48h auto-skip sweeper (rule-driven advance, pause check, tick statuses) → reconcile, plus pause/resume/remove, plus the EOD-ET write (#112) and the #409 weekly-report ownership relocation. Consolidates the native-repeat/JSONL-state, day-specific-scheduling, and trustworthy-weekly-report missions.
 
 ### docs/design/coherence/ — Coherence doctrine (Foundation 3)
 

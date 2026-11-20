@@ -6,9 +6,9 @@ status: approved
 level: 2
 owners: [kent]
 audience: agents_and_humans
-last_validated: '2026-05-21'
-updated_by: '#309'
-version: '2.0.0'
+last_validated: '2026-11-20'
+updated_by: 'felix-rrule-adaptation-01M7TKNX (kentonium3/kg-automation#1111 — Vikunja writes moved into record_completion over v2 PATCH; done outcomes) + #309'
+version: '2.1.0'
 ---
 
 # Escalation Operations
@@ -25,6 +25,13 @@ Escalation state is **canonical in per-project JSONL files** under
 ADR-0002 Phase 6). The agent reads state via
 `scripts/escalation/derive_state.py` and writes events via
 `scripts/escalation/record_completion.py`. JSONL is the sole substrate.
+
+**The agent never writes a Vikunja task (#1111).** Since
+`felix-rrule-adaptation-01M7TKNX`, `N done` and reschedules go through
+`record_completion`, which does the Vikunja write itself over
+`PATCH /api/v2/tasks/{id}` and keeps a repeating task's rule. The agent's
+`AGENTS.md`, `TOOLS.md` and the escalation `SKILL.md` forbid a direct POST,
+PUT or PATCH. See [Done and reschedule writes](<#done-and-reschedule-writes-1111>).
 
 **What it escalates**: tasks where `done=false`, `due_date < today` (or
 due today with high+ priority), and `priority >= 2`. Habits project
@@ -55,6 +62,53 @@ escalations arrive.
   remain on Vikunja tasks that received them before the cleanup; no new
   comments are written and no code path reads them
 - **Pre-cutover snapshot**: `/data/services/openclaw/state/escalation/pre-phase6-snapshot.json`
+
+### Done and reschedule writes (#1111)
+
+Only two event states touch Vikunja, and only through
+`scripts/escalation/record_completion.py` (Vikunja first, JSONL second):
+
+- **`done`** (Kent's `N done`, `--source kent_reply`): the helper reads the
+  task over v2 (`GET /api/v2/tasks/{id}`). For a repeating task it first
+  decides whether this completion should end the series
+  (`exhaustion_expected`: a COUNT=1 rule ends; an UNTIL rule is checked with
+  `POST /api/v2/tasks/occurrences/preview`; no COUNT and no UNTIL never ends;
+  anything undecidable is `unknown`). It then sends `PATCH {"done": true}`,
+  re-reading on a 304, and classifies the result. The outcome is recorded in
+  the JSONL record's `vikunja_actions` as `outcome:<value>`:
+
+  | Outcome | Meaning |
+  |---|---|
+  | `advanced` | Repeating task: Vikunja moved it to the next occurrence. It reads `done=false` with a later `due_date`, and the rule is unchanged (or only its COUNT dropped by one). The normal case for a recurring task. |
+  | `series_ended` | Repeating task whose last occurrence this was (exhaustion expected = `yes`). It reads `done=true`; a COUNT end has no rule left, an UNTIL end keeps the rule. |
+  | `done_one_off` | The task had no rule and now reads `done=true`. The normal case for a one-off task. |
+  | `unexpected` | Anything else: for example `done=true` on a series that should not have ended, a stripped rule, or a failed readback after a 304. The JSONL `done` record **is still written** (Kent did say done), with `note="vikunja outcome unexpected: ..."`, and the CLI then exits **4**. The agent reports the helper's message to Kent verbatim. |
+
+- **`rescheduled`**: the helper reads the task, sends
+  `PATCH {"due_date": <end-of-day ET>}`, and reads it back. If the rule or
+  reminders changed, it fails (exit 1) **before** the JSONL write, so no
+  record claims a reschedule that left the task wrong.
+
+`level_sent`, `snoozed` and `dismissed` have no Vikunja side effect. The agent
+now passes `--due-date "<due_date>"` with `level_sent`, which is stored as
+`due_date_at_alert`. Reconcile uses it as the baseline: when a cached
+recurring task is not done and its due date is later than the baseline, the
+series advanced because Kent completed it in the Vikunja UI, so reconcile
+emits a synthetic `done` record instead of treating it as a reschedule.
+Records written before #1111 have no baseline and keep the old path.
+
+`record_completion` exit codes: `0` success or idempotent no-op; `1` Vikunja
+step failed or a reschedule changed the rule (no JSONL write); `2` JSONL
+append failed after the Vikunja write (operator triage); `3` validation or
+usage error; `4` `done` recorded but the Vikunja outcome was `unexpected`.
+
+The preview call is made only for a rule with UNTIL (and
+`repeats_from_current_date` false). A `401` there means the
+`vikunja-api-kent` token lacks `tasks.occurrences_preview`. The helper does
+not fail on it: exhaustion becomes `unknown`, so if Vikunja then reports the
+task `done=true` the outcome is `unexpected`. See
+[credentials-and-secrets.md](<../design/architecture/credentials-and-secrets.md>)
+for the required token permissions.
 
 ### Query current escalation state for a task
 
@@ -333,6 +387,8 @@ ssh office2-claude 'grep -c "JSONL\|derive_state" /data/services/openclaw/escala
 | Agent not responding | `ssh office2-claude 'openclaw agents list'` | Restart gateway: `ssh office2-claude 'systemctl --user restart openclaw-gateway'` |
 | `derive_state` exit code 3 | Read the structured error JSON on stderr | Triage per [Hard-fail triage](<#hard-fail-triage>) |
 | `derive_state` exit code 4 | Task has no JSONL records | Task is new (expected) — first escalation event will seed the JSONL file |
+| `record_completion` exit code 4 on `N done` | The JSONL `done` record's `note` (`vikunja outcome unexpected: ...`) and `vikunja_actions` | The `done` is recorded. Read the task over v2 (`GET /api/v2/tasks/{id}`) and compare its rule with the note. A stripped rule is repaired with `docs/runbooks/vikunja-task-repair.md` (a path, not a link, until the mission is consolidated onto this branch) |
+| Agent wrote a task directly (`POST /api/v1/tasks/{id}`) | Session transcript; the task's rule over v2 | A regression of the #1111 rule: no agent doc may instruct a direct task write (`tests/architectural/test_agent_docs_no_direct_task_writes.py`). Repair the rule and fix the doc |
 
 ## Privacy boundary
 
@@ -356,3 +412,4 @@ before filing, so no vault path leaks into an alert.
 - **Pre-flight checklist**: [`docs/runbooks/governance/pre-flight-checklist.md`](<./governance/pre-flight-checklist.md>)
 - **Habits ops (sibling Phase 5 precedent)**: [`docs/runbooks/habits-ops.md`](<./habits-ops.md>)
 - **ADR**: `docs/design/architecture/adr/0002-felix-vikunja-task-model.md`
+- **RRULE adaptation**: [#1111](https://github.com/kentonium3/kg-automation/issues/1111) — v2 PATCH writes, completion outcomes, `due_date_at_alert` baseline; rollout window in [`deploy/office2-deploy-paths.md`](<./deploy/office2-deploy-paths.md>)
