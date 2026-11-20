@@ -41,3 +41,10 @@ notes: 'See #1113: repeat ACTIVATE to v2.8.0-rrule.5 (adds no migrations). Open 
   stays out of commands and manifest notes.'
 apply_mode: manifest
 applied_at: '2026-11-20T17:41:29Z'
+rebaseline:
+  outcome: unexpected_drift
+  at_utc: '2026-11-20T17:41:33Z'
+  unexpected:
+  - openclaw-cron.txt
+  - systemd-user-dropins.txt
+  - systemd-user-units.txt
