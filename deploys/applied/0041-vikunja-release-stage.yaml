@@ -41,3 +41,9 @@ notes: 'STAGE for the repeat cutover to the published v2.8.0-rrule.5 (services/v
   Keep office2.local/vikunja:active and office2.local/vikunja:v2.8.0-rrule.4.'
 apply_mode: manifest
 applied_at: '2026-11-20T17:17:20Z'
+rebaseline:
+  outcome: unexpected_drift
+  at_utc: '2026-11-20T17:17:25Z'
+  unexpected:
+  - systemd-user-dropins.txt
+  - systemd-user-units.txt
