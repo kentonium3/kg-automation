@@ -5,7 +5,7 @@ audience: agents_and_humans
 status: approved
 tags: [1087, 1095]
 created: 2026-10-30
-last_updated: '2026-11-09'
+last_updated: '2026-11-20'
 ---
 
 # Vikunja Release Cutover (the go packet)
@@ -16,12 +16,37 @@ see #1087. The release record supplies every public release, image, archive,
 rollback and service identity. Do not substitute historical values.
 The published image carries no revision label, as declared in the release record; identity rests on the pinned archive SHA256 and config digest.
 
-**Authority.** Agent host steps and ingress are executed by the Claude session,
-through `ssh office2-claude`. Codex implements and tests with synthetic data
-locally; it does not read private copies or execute host steps. Kent performs
-the privileged restore, browser acceptance and ACCEPT or ROLLBACK decision.
-Kent or the program lead may merge the reviewed PRs once review and CI pass,
-under the delegated merge authority. Public PR copy still needs Kent's sign-off.
+<a id="deploy-authority"></a>
+**Authority: one deploy go per release** (Kent, 2026-11-20; #1115). Agent host
+steps and ingress are executed by the Claude session, through
+`ssh office2-claude`. Codex implements and tests with synthetic data locally;
+it does not read private copies or execute host steps.
+
+Kent's go to deploy comes after his pre-release manual testing (vikunja-harness
+Ring 3) passes. That single go authorizes every step from here through ACCEPT,
+and the Claude session runs them without asking again:
+
+- check (i), ingress and the STAGE PR merge;
+- the backup check, the writer pause, the ACTIVATE dry run and the preflight;
+- the ACTIVATE PR merge and the outage;
+- the post-checks, A1–A3, B3 and B4, and recording ACCEPT;
+- reopening writes, except anything paused for another reason (for example
+  `felix-habit-sweeper.timer` under #1111), which stays paused until Kent
+  re-enables it;
+- the history-record PR merge and the security-baseline reset.
+
+PRs are merged by the Claude session once review and CI are green. These stay
+with Kent under the go:
+
+- **Public copy:** the exact release notes, and anything about the release
+  aimed at upstream.
+- **Privileged steps:** every `sudo` or `ssh office2-kgale` step, mainly the
+  snapshot restore in section 9. Agents cannot run these.
+- **Rollback:** the decision to roll back, or to retry after one.
+
+Stop conditions are unchanged. A red CI run, a fingerprint mismatch, a failed
+check, any `*_FAIL` or `*_MISMATCH` code, or any unexpected condition stops the
+run with writes closed and is reported to Kent.
 
 **Evidence custody.** Production rows, task identities, aggregate values,
 snapshot locations and times stay in the private operator packet. Never paste
@@ -198,9 +223,10 @@ After the assembly commit, repeat these checks against
 alone do not prove PR contents. Run the focused phase tests, full non-live
 suite and doc validator in the actual PR1 tree before pushing/opening its PR.
 
-### 4b. Apply and verify STAGE (Agent / merge authority)
+### 4b. Apply and verify STAGE (Agent)
 
-Merge PR1 after review and green CI. The deployer runs the tier-2 backup gate,
+The Claude session merges PR1 once review and CI are green, under the
+release's deploy go. The deployer runs the tier-2 backup gate,
 STAGE pre-verification, dry run, apply and image postchecks. It then moves the
 manifest to an applied record and rebaselines `docker-images.txt`
 (deferred-confirm). Record the actual rebaseline outcome.
@@ -265,9 +291,9 @@ git diff --cached --exit-code -- services/vikunja/docker-compose.yml
 
 Review content, commit through the approved workflow and repeat the exact path
 comparison against `git diff origin/main HEAD`. Run the phase tests and full
-suite on this ACTIVATE tree. Only then open the PR with approved copy.
-The merge authority records the explicit go for the agreed window after CI
-and independent review pass. The merge is the production decision.
+suite on this ACTIVATE tree. Only then open the PR. The Claude session
+merges it once CI and independent review pass, under the release's deploy go;
+no second go is needed. The merge starts the outage.
 
 ### 6b. Gate and output
 
@@ -396,7 +422,7 @@ else:
 PY
 ```
 
-Retain the accepted copy until verification and Kent's decision. If a check
+Retain the accepted copy until verification and the ACCEPT decision. If a check
 fails, keep the first evidence; do not erase it to manufacture a passing retry.
 
 **B4: reviewed acceptance verifier.** On Office2 from the reviewed candidate
@@ -423,13 +449,16 @@ snapshot fails with `ACCEPTANCE_EVIDENCE_WRITE_FAILED`. Read the first evidence
 or take a newly reviewed approach; **do not delete the evidence** to retry.
 The durable gate receipt also remains untouched. A failure keeps writes closed.
 
-Only after A1–A3, B3 and B4 and this verifier pass may **Kent** perform the
-disposable write probe, plus browser/login/task-list and read-only recurrence
-checks. Login can create session rows. The probe is soft-deleted, so deleting
-it does not undo the post-snapshot write or make rollback lossless.
+**Who runs what.** The agent runs A1–A3, B3 and B4, including this verifier.
+There is no manual acceptance step: the disposable write probe and the
+browser, login, task-list and recurrence checks are dropped, because Kent's
+pre-release manual testing covers them and production use is the test.
 
-Kent records **ACCEPT** or **ROLLBACK**. Keep crons and the sync timer paused
-until ACCEPT; only then reopen writes and resume them. Preserve snapshots and
+**Agent** records **ACCEPT** when A1–A3, B3, B4 and the verifier all pass. Any
+failure stops with writes closed and goes to Kent, who decides on
+**ROLLBACK** (section 9). Keep crons and the sync timer paused until ACCEPT;
+only then reopen writes and resume them, except anything paused for another
+reason, which stays paused. Preserve snapshots and
 receipts per the private packet's retention decision. Remove only the reviewed
 candidate/disposable-copy destinations when authorized.
 

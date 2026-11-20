@@ -117,7 +117,8 @@ Do not use it to change the version.
 ### Upgrade route: STAGE, ACTIVATE, rollback
 
 An image change goes through the manifest pipeline in two reviewed merges.
-Each merge is Kent's.
+The Claude session merges each one once CI and review are green, under the
+release's single deploy go: see [the one-go rule](<./vikunja-release-cutover.md#deploy-authority>).
 
 The agent steps on office2, and the ingress, are run only by the Claude Code
 session through its own account `ssh office2-claude`. Codex sessions only
@@ -127,18 +128,18 @@ review locally, and `office2-kgale` is for Kent's steps only.
    the image archive and the rollback archive from office4 into a
    create-only, 0700 folder under `/data/services/vikunja/release-artifacts/`,
    through `ssh office2-claude`.
-2. **STAGE** (Kent merges; the deployer applies): `deploys/queued/vikunja-release-stage.yaml`
+2. **STAGE** (merged under the deploy go; the deployer applies): `deploys/queued/vikunja-release-stage.yaml`
    runs `scripts/deploy/deploy-vikunja-release-stage.py`. It loads and
    verifies the archive and tags the release. It also creates
    `office2.local/vikunja:active` pointing at the running image when that tag
    is absent. It is inert: no container or Compose change.
-3. **ACTIVATE** (Kent's explicit go; the deployer applies): the Compose
+3. **ACTIVATE** (merged under the same deploy go; the deployer applies): the Compose
    change plus `deploys/queued/vikunja-release-activate.yaml`. It runs
    `scripts/deploy/deploy-vikunja-release-activate.py` once, behind a durable
    marker. The run stops the service, takes the write-boundary DB snapshot,
    points `active` at the release, starts it and verifies it, all within a
    300 s outage deadline.
-4. **Rollback** (only on failure): `scripts/vikunja/rollback_release.py`
+4. **Rollback** (only on failure, and only on Kent's decision): `scripts/vikunja/rollback_release.py`
    runs through `ssh office2-claude` in two phases, `--prepare` then
    `--finish`. Between them Kent restores the snapshot with `sudo` through
    `ssh office2-kgale`. The guard refuses to start the old image on a
