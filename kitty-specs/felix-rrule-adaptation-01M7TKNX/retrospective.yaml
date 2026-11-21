@@ -1,0 +1,324 @@
+schema_version: 1
+mission_id: 01M7TKNXHEY62ZESGYBPGQWXKA
+mission_slug: felix-rrule-adaptation-01M7TKNX
+mission_number: 125
+friendly_name: Felix RRULE recurrence adaptation
+mission_type: software-dev
+target_branch: fix/felix-rrule-adaptation
+created_at: '2026-11-21T12:16:33.577545+00:00'
+created_by:
+  kind: runtime
+  id: spec-kitty-generator
+  display: Spec Kitty Generator
+provenance:
+  kind: runtime_post_completion
+  invoked_at: '2026-11-21T12:16:33.577545+00:00'
+  policy_resolved_from:
+    enabled: <default>
+    timing: <default>
+    failure_policy: <default>
+    write_record: <default>
+    generate_proposals: <default>
+    apply_proposals: <default>
+    permissions.write_record: <default>
+    permissions.inspect_mission_artifacts: <default>
+    permissions.propose_glossary_changes: <default>
+    permissions.propose_drg_changes: <default>
+    permissions.propose_doctrine_changes: <default>
+    permissions.apply_low_risk_changes: <default>
+    permissions.apply_structural_changes: <default>
+    precedence: <default>
+    generator: <default>
+policy_source:
+  enabled: <default>
+  timing: <default>
+  failure_policy: <default>
+  write_record: <default>
+  generate_proposals: <default>
+  apply_proposals: <default>
+  permissions.write_record: <default>
+  permissions.inspect_mission_artifacts: <default>
+  permissions.propose_glossary_changes: <default>
+  permissions.propose_drg_changes: <default>
+  permissions.propose_doctrine_changes: <default>
+  permissions.apply_low_risk_changes: <default>
+  permissions.apply_structural_changes: <default>
+  precedence: <default>
+  generator: <default>
+findings_status: has_findings
+helped: []
+not_helpful:
+- id: n-017
+  category: doc
+  summary: analysis-report.md records 7 finding(s)
+  evidence_refs:
+  - e-038
+  details: The analysis-report.md artifact for this mission records 7 finding(s) in its structured frontmatter. Review
+    them to understand documented issues and decisions.
+- id: n-013
+  category: process
+  summary: WP02 required 2 --force override(s) during workflow
+  evidence_refs:
+  - e-030
+  details: WP WP02 required 2 operator-driven --force lane transition(s). Force overrides typically indicate the runtime
+    guard failed or the operator routed around it; investigate the underlying cause.
+- id: n-014
+  category: process
+  summary: WP03 required 2 --force override(s) during workflow
+  evidence_refs:
+  - e-031
+  details: WP WP03 required 2 operator-driven --force lane transition(s). Force overrides typically indicate the runtime
+    guard failed or the operator routed around it; investigate the underlying cause.
+- id: n-015
+  category: process
+  summary: WP04 required 2 --force override(s) during workflow
+  evidence_refs:
+  - e-032
+  details: WP WP04 required 2 operator-driven --force lane transition(s). Force overrides typically indicate the runtime
+    guard failed or the operator routed around it; investigate the underlying cause.
+- id: n-016
+  category: process
+  summary: WP10 required 1 --force override(s) during workflow
+  evidence_refs:
+  - e-033
+  details: WP WP10 required 1 operator-driven --force lane transition(s). Force overrides typically indicate the runtime
+    guard failed or the operator routed around it; investigate the underlying cause.
+- id: n-001
+  category: review_loop
+  summary: WP01 required 1 rejection cycle(s) before approval
+  evidence_refs:
+  - e-018
+  details: WP WP01 was sent back to an earlier lane with documented review feedback 1 time(s).
+- id: n-002
+  category: review_loop
+  summary: WP02 required 3 rejection cycle(s) before approval
+  evidence_refs:
+  - e-019
+  details: WP WP02 was sent back to an earlier lane with documented review feedback 3 time(s).
+- id: n-003
+  category: review_loop
+  summary: WP03 required 3 rejection cycle(s) before approval
+  evidence_refs:
+  - e-020
+  details: WP WP03 was sent back to an earlier lane with documented review feedback 3 time(s).
+- id: n-004
+  category: review_loop
+  summary: WP04 required 3 rejection cycle(s) before approval
+  evidence_refs:
+  - e-021
+  details: WP WP04 was sent back to an earlier lane with documented review feedback 3 time(s).
+- id: n-005
+  category: review_loop
+  summary: WP05 required 1 rejection cycle(s) before approval
+  evidence_refs:
+  - e-022
+  details: WP WP05 was sent back to an earlier lane with documented review feedback 1 time(s).
+- id: n-006
+  category: review_loop
+  summary: WP06 required 1 rejection cycle(s) before approval
+  evidence_refs:
+  - e-023
+  details: WP WP06 was sent back to an earlier lane with documented review feedback 1 time(s).
+- id: n-007
+  category: review_loop
+  summary: WP07 required 3 rejection cycle(s) before approval
+  evidence_refs:
+  - e-024
+  details: WP WP07 was sent back to an earlier lane with documented review feedback 3 time(s).
+- id: n-008
+  category: review_loop
+  summary: WP08 required 1 rejection cycle(s) before approval
+  evidence_refs:
+  - e-025
+  details: WP WP08 was sent back to an earlier lane with documented review feedback 1 time(s).
+- id: n-009
+  category: review_loop
+  summary: WP09 required 3 rejection cycle(s) before approval
+  evidence_refs:
+  - e-026
+  details: WP WP09 was sent back to an earlier lane with documented review feedback 3 time(s).
+- id: n-010
+  category: review_loop
+  summary: WP10 required 5 rejection cycle(s) before approval
+  evidence_refs:
+  - e-027
+  details: WP WP10 was sent back to an earlier lane with documented review feedback 5 time(s).
+- id: n-011
+  category: review_loop
+  summary: WP11 required 1 rejection cycle(s) before approval
+  evidence_refs:
+  - e-028
+  details: WP WP11 was sent back to an earlier lane with documented review feedback 1 time(s).
+- id: n-012
+  category: review_loop
+  summary: WP12 required 2 rejection cycle(s) before approval
+  evidence_refs:
+  - e-029
+  details: WP WP12 was sent back to an earlier lane with documented review feedback 2 time(s).
+gaps:
+- id: g-001
+  category: process
+  summary: Arbiter override needed for WP02 (3x)
+  evidence_refs:
+  - e-034
+  details: WP WP02 required 3 arbiter override(s). Arbiter overrides are an escape hatch. Recurring use suggests the
+    normal review path is blocked and the underlying policy/guard may need adjustment.
+- id: g-002
+  category: process
+  summary: Arbiter override needed for WP03 (3x)
+  evidence_refs:
+  - e-035
+  details: WP WP03 required 3 arbiter override(s). Arbiter overrides are an escape hatch. Recurring use suggests the
+    normal review path is blocked and the underlying policy/guard may need adjustment.
+- id: g-003
+  category: process
+  summary: Arbiter override needed for WP04 (3x)
+  evidence_refs:
+  - e-036
+  details: WP WP04 required 3 arbiter override(s). Arbiter overrides are an escape hatch. Recurring use suggests the
+    normal review path is blocked and the underlying policy/guard may need adjustment.
+- id: g-004
+  category: process
+  summary: Arbiter override needed for WP10 (2x)
+  evidence_refs:
+  - e-037
+  details: WP WP10 required 2 arbiter override(s). Arbiter overrides are an escape hatch. Recurring use suggests the
+    normal review path is blocked and the underlying policy/guard may need adjustment.
+proposals: []
+evidence_refs:
+- id: e-001
+  kind: file
+  path: kitty-specs/felix-rrule-adaptation-01M7TKNX/meta.json
+- id: e-002
+  kind: file
+  path: kitty-specs/felix-rrule-adaptation-01M7TKNX/spec.md
+- id: e-003
+  kind: file
+  path: kitty-specs/felix-rrule-adaptation-01M7TKNX/plan.md
+- id: e-004
+  kind: file
+  path: kitty-specs/felix-rrule-adaptation-01M7TKNX/tasks.md
+- id: e-005
+  kind: file
+  path: kitty-specs/felix-rrule-adaptation-01M7TKNX/tasks/WP01-rule-library-and-fixtures.md
+- id: e-006
+  kind: file
+  path: kitty-specs/felix-rrule-adaptation-01M7TKNX/tasks/WP02-client-seam-v2.md
+- id: e-007
+  kind: file
+  path: kitty-specs/felix-rrule-adaptation-01M7TKNX/tasks/WP03-habits-writes.md
+- id: e-008
+  kind: file
+  path: kitty-specs/felix-rrule-adaptation-01M7TKNX/tasks/WP04-escalation.md
+- id: e-009
+  kind: file
+  path: kitty-specs/felix-rrule-adaptation-01M7TKNX/tasks/WP05-intake-and-bulk-tools.md
+- id: e-010
+  kind: file
+  path: kitty-specs/felix-rrule-adaptation-01M7TKNX/tasks/WP06-sync-tracks-rule.md
+- id: e-011
+  kind: file
+  path: kitty-specs/felix-rrule-adaptation-01M7TKNX/tasks/WP07-habits-reads-schedule-report.md
+- id: e-012
+  kind: file
+  path: kitty-specs/felix-rrule-adaptation-01M7TKNX/tasks/WP08-create-retire-cleanup.md
+- id: e-013
+  kind: file
+  path: kitty-specs/felix-rrule-adaptation-01M7TKNX/tasks/WP09-agent-guidance.md
+- id: e-014
+  kind: file
+  path: kitty-specs/felix-rrule-adaptation-01M7TKNX/tasks/WP10-inventory-and-repair.md
+- id: e-015
+  kind: file
+  path: kitty-specs/felix-rrule-adaptation-01M7TKNX/tasks/WP11-architecture-docs-and-rollout.md
+- id: e-016
+  kind: file
+  path: kitty-specs/felix-rrule-adaptation-01M7TKNX/tasks/WP12-existing-task-and-habit-helpers.md
+- id: e-017
+  kind: file
+  path: kitty-specs/felix-rrule-adaptation-01M7TKNX/status.events.jsonl
+- id: e-018
+  kind: event_range
+  path: kitty-specs/felix-rrule-adaptation-01M7TKNX/status.events.jsonl
+  range: 01M7TXGBY6ZPJ4NAKXTSPZN2RF
+- id: e-019
+  kind: event_range
+  path: kitty-specs/felix-rrule-adaptation-01M7TKNX/status.events.jsonl
+  range: 01M7TZW07PQB2N04RTASYYBE5M..01M7V1P1CX249V0Z1Z5JYX6XA8
+- id: e-020
+  kind: event_range
+  path: kitty-specs/felix-rrule-adaptation-01M7TKNX/status.events.jsonl
+  range: 01M7V3GG4WS1668A7WY5BAQBSE..01M7V5XEBEGP4AKM0RX8YA9Z2M
+- id: e-021
+  kind: event_range
+  path: kitty-specs/felix-rrule-adaptation-01M7TKNX/status.events.jsonl
+  range: 01M7V37C7RKYZBBTVE90JJK08Z..01M7V5MPPZRFN0MXFNRJVJPT9T
+- id: e-022
+  kind: event_range
+  path: kitty-specs/felix-rrule-adaptation-01M7TKNX/status.events.jsonl
+  range: 01M7V305QY103W6Z0QATK90R8M
+- id: e-023
+  kind: event_range
+  path: kitty-specs/felix-rrule-adaptation-01M7TKNX/status.events.jsonl
+  range: 01M7TZWEADJH1Y4FWKDQAHYSR5
+- id: e-024
+  kind: event_range
+  path: kitty-specs/felix-rrule-adaptation-01M7TKNX/status.events.jsonl
+  range: 01M7V3MJMEJHYXS8FDC8DJF638..01M7YZGHG3P0JKWC33D2H5D78X
+- id: e-025
+  kind: event_range
+  path: kitty-specs/felix-rrule-adaptation-01M7TKNX/status.events.jsonl
+  range: 01M7X35784DSCFXFBSZPH5AC1D
+- id: e-026
+  kind: event_range
+  path: kitty-specs/felix-rrule-adaptation-01M7TKNX/status.events.jsonl
+  range: 01M7X5W145VNKBQWFGA1RSEEK5..01M7X7W8D4G90TG8M6Y96J72PW
+- id: e-027
+  kind: event_range
+  path: kitty-specs/felix-rrule-adaptation-01M7TKNX/status.events.jsonl
+  range: 01M7V47N66ANRWSVZGSX1ZZJN0..01M7XJSZQT65P2MZMC833XG1HZ
+- id: e-028
+  kind: event_range
+  path: kitty-specs/felix-rrule-adaptation-01M7TKNX/status.events.jsonl
+  range: 01M7XG6F4CRWVDA6DHHRC5QX3V
+- id: e-029
+  kind: event_range
+  path: kitty-specs/felix-rrule-adaptation-01M7TKNX/status.events.jsonl
+  range: 01M7XB9ZE65AC8CMYEX32SMDKW..01M7XCN60ZCVGN8GQS3642DQJJ
+- id: e-030
+  kind: event_range
+  path: kitty-specs/felix-rrule-adaptation-01M7TKNX/status.events.jsonl
+  range: 01M7V1P7KJW2E3YB2E9S67JSX3..01M7XHCKGW7QXHTY7MRPZW29B5
+- id: e-031
+  kind: event_range
+  path: kitty-specs/felix-rrule-adaptation-01M7TKNX/status.events.jsonl
+  range: 01M7V5XMMD8TXPE0WYPV47EKDS..01M7XHCWYWWJRX6QCS0VY96XKT
+- id: e-032
+  kind: event_range
+  path: kitty-specs/felix-rrule-adaptation-01M7TKNX/status.events.jsonl
+  range: 01M7V5MWSG5VBJERMK3C6NCEXG..01M7XHD697RAB6PPSY8YZJ0Q6Q
+- id: e-033
+  kind: event_range
+  path: kitty-specs/felix-rrule-adaptation-01M7TKNX/status.events.jsonl
+  range: 01M7V6HEZ2GQ2Y343ADW4ZK8HQ
+- id: e-034
+  kind: event_range
+  path: kitty-specs/felix-rrule-adaptation-01M7TKNX/status.events.jsonl
+  range: 01M7V1P7KJW2E3YB2E9S67JSX3..01M7XHSB9P8S651AEGJ9ZVXEW4
+- id: e-035
+  kind: event_range
+  path: kitty-specs/felix-rrule-adaptation-01M7TKNX/status.events.jsonl
+  range: 01M7V5XMMD8TXPE0WYPV47EKDS..01M7XHSKG5T0RYAH6YGD78PQH7
+- id: e-036
+  kind: event_range
+  path: kitty-specs/felix-rrule-adaptation-01M7TKNX/status.events.jsonl
+  range: 01M7V5MWSG5VBJERMK3C6NCEXG..01M7XHSVWZ0DV1PJAEDQB3BQFB
+- id: e-037
+  kind: event_range
+  path: kitty-specs/felix-rrule-adaptation-01M7TKNX/status.events.jsonl
+  range: 01M7V6HEZ2GQ2Y343ADW4ZK8HQ..01M7XKJA4J9JXJC4QJND28A1RS
+- id: e-038
+  kind: file
+  path: kitty-specs/felix-rrule-adaptation-01M7TKNX/analysis-report.md
+generator_version: '1.0'
+provenance_history: []
