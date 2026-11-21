@@ -2,10 +2,9 @@
   "event_count": 214,
   "last_event_id": "01M7Z0HV5PY0QD0WY401XB72P8",
   "materialized_at": "2026-11-21T12:16:00.182542+00:00",
-  "mission_number": "125",
+  "mission_number": "",
   "mission_slug": "felix-rrule-adaptation-01M7TKNX",
-  "mission_type": "software-dev",
-  "schema_version": 2,
+  "mission_type": "",
   "summary": {
     "approved": 0,
     "blocked": 0,
@@ -20,486 +19,207 @@
   "work_packages": {
     "WP01": {
       "actor": "merge",
-      "agent": "codex::reviewer-renata",
-      "agent_profile": "reviewer-renata",
-      "agent_profile_version": "1.0",
+      "agent": "claude",
       "force_count": 1,
       "implementer_of_record": "claude",
       "lane": "done",
       "last_event_id": "01M7Z0H49DCBBYSE91DK01TWBM",
       "last_transition_at": "2026-11-21T12:15:36.749162+00:00",
-      "model": "__resolved_model_absent__",
-      "notes": [
-        "- 2026-11-19T21:58:14Z – claude – shell_pid=2801622 – Impl 8b90d2dd. Tests (py3.12.3 via 'uv run --offline --no-project --python 3.12 --with pytest --with-requirements requirements.txt', since no system python has pytest): pytest tests/common/test_vikunja_rule.py tests/common/test_vikunja_v2_factory.py -> 66 passed, exit 0; make test PY=python -> 9203 passed, 832 skipped, 1 xfailed, exit 0. Lint: repo has no configured linter; ruff check (default rules, UP017 ignored to match repo timezone.utc convention) on the 4 changed files -> exit 0 after sorting __all__; py_compile exit 0. Note: UNTIL-ended series_ended does not require has_rule(after) (data-model text only requires exhaustion==yes); COUNT path requires rule absent.",
-        "Ready for review: vikunja_rule.py pure library + v2 task factory; 66 unit tests; make test green",
-        "- 2026-11-19T22:15:50Z – unknown – Cycle-1 fixes in 8804d7a9. (1) completion_outcome: UNTIL ending now requires same_rule(before.repeat, after.repeat); tests for stripped and replaced (yearly) rules -> unexpected. (2) normalise drops wkst 'mo' so omitted/''/'mo'/'MO' are identical; other weekdays stay distinct. Server evidence, vikunja-harness d7e202228 pkg/models/task_repeat.go: L60 (wkst doc: 'mo (the default, omitted in responses)'), L444-446 (response omits wkst when weekday==0/MO), L524-526 (comparison maps '' to 'mo'). (3) with_reminder computes reminder = referenced date + relative_period in UTC Z (server tasks.go updateRelativeReminderDates L2575-2590); unset sentinel only when the date is absent. (4) rrule_text_to_parts raises ValueError on date-only and floating UNTIL. Note: d7e202228 task_rule_parse.go:150-158 parseRuleTime ACCEPTS date-only and floating UNTIL, so the reviewer's premise is inaccurate; Felix-side rejection kept as the conservative choice, and WP10 must handle ValueError for stored rule text that carries such an UNTIL. Red/green: the 11 new assertions fail on pre-fix code and pass after. Commands: .venv/bin/python -m pytest -q tests/common/test_vikunja_rule.py tests/common/test_vikunja_v2_factory.py -> 84 passed, exit 0; make test PY=/home/kgale/repos/kg-automation/.venv/bin/python -> 9221 passed, 832 skipped, 1 xfailed, exit 0; ruff check --ignore UP017 on the 4 files -> exit 0.",
-        "Cycle 1 fixes: UNTIL same-rule, default WKST, reminder instant, strict UNTIL; 84 unit tests, make test green",
-        "Review passed, cycle 2 (reviewer: Codex CLI 0.170.0 / gpt-6.1-sol, read-only advisory; verdict recorded by orchestrator Claude Opus 5.5). All 4 cycle-1 findings verified fixed. Residual MINOR: INTERVAL<=0 normalises to 1 (vikunja_rule.py:143) — accepted, not a rule-strip risk; downstream callers validate rules via server preview/readback."
-      ],
-      "provider": "__resolved_provider_absent__",
-      "review": null,
       "review_result": {
         "feedback_path": "/home/kgale/repos/kg-automation/.worktrees/felix-rrule-adaptation-01M7TKNX-coord/kitty-specs/felix-rrule-adaptation-01M7TKNX/tasks/WP01-rule-library-and-fixtures/review-cycle-2.md",
         "reference": "review-cycle://felix-rrule-adaptation-01M7TKNX/WP01-rule-library-and-fixtures/review-cycle-2.md",
         "reviewer": "codex::reviewer-renata",
         "verdict": "approved"
       },
-      "role": "reviewer",
-      "shell_pid": 2975263,
-      "shell_pid_created_at": "1795126582.39",
-      "subtasks": {
-        "T001": "done",
-        "T002": "done",
-        "T003": "done",
-        "T004": "done",
-        "T005": "done"
-      }
+      "shell_pid": 2927620,
+      "shell_pid_created_at": "1795125954.42"
     },
     "WP02": {
       "actor": "merge",
-      "agent": "codex::reviewer-renata",
-      "agent_profile": "reviewer-renata",
-      "agent_profile_version": "1.0",
+      "agent": "claude",
       "force_count": 5,
       "implementer_of_record": "claude",
       "lane": "done",
       "last_event_id": "01M7Z0H6BSP2DX3G7TV3BN0RNT",
       "last_transition_at": "2026-11-21T12:15:38.873840+00:00",
-      "model": "__resolved_model_absent__",
-      "notes": [
-        "- 2026-11-19T22:38:53Z – claude – shell_pid=3014492 – WP02 implemented in adba000a (lane-b). RED: pytest tests/common/test_vikunja_client_v2.py -> ImportError WRITABLE_TASK_FIELDS before impl. GREEN: venv pytest -q tests/common/test_vikunja_client.py tests/common/test_vikunja_client_v2.py -> 151 passed, exit 0; make test PY=.venv/bin/python -> 9298 passed 832 skipped 1 xfailed, exit 0. ruff (uv tool run --offline ruff check --ignore UP017): both test files clean; client keeps 2 findings already in base (UP041 socket.timeout L~979, BLE001 L~991, untouched lines), RUF022 fixed. mypy not installed in venv (not run). pytest-cov not installed (coverage not measured). SERVER CITATIONS (vikunja-harness d7e202228, huma v2.40.0): autopatch.go:345 merge-patch+json/application/json accepted as RFC7396; autopatch.go:408-410 no-op -> 304 empty body; pkg/models/tasks.go:1740-1760 completedFrom keeps old rule so repeat:null+done:true in one call reopens; tasks.go:1518-1533 update column list (WRITABLE_TASK_FIELDS basis); pkg/routes/api/v2/tasks.go:66-113 GET/PUT /tasks/{task}, POST /projects/{project}/tasks; pkg/routes/api/v2/task_occurrences.go:38-81 GET /tasks/{task}/occurrences (count 1..100), POST /tasks/occurrences/preview, preview body fields L216-226; pkg/routes/api/v2/errors.go:116-121 v2 error body carries numeric code; pkg/models/error.go:96 ErrCodeInvalidData=2002, :176 ErrCodeInvalidTimezone=2003. JUDGMENT CALLS: (1) patch_task/create_task_v2 refuse None recursively (nested merge-patch null also deletes); _allow_null only exempts top-level None. (2) patch_task also refuses {repeat:None}+done in one body even via _allow_null. (3) non-Mapping changes/fields raise TypeError (empty still ValueError). (4) end_series: a timed-out write whose re-read shows nothing changed re-raises VikunjaTimeoutError (no partial progress) instead of SeriesEndIncomplete; readback failure after step-2 PATCH -> unknown; readback failure after step-1 -> rule_cleared_not_done; done-with-rule whose rule will not clear -> rule_reappeared. (5) VikunjaError gains optional detail/code kwargs; v1 str(exc) byte-identical (detail only set on v2 paths); every v2 401 names a permission (tasks.update/read_one/create/occurrences/occurrences_preview), never the token. (6) 304 honoured only on PATCH; 304 elsewhere stays an error. (7) end_series scripted multi-step tests use a local scripted_urlopen fixture since mock_vikunja_urlopen serves one canned scenario. replace_task_fields kept with Deprecated line; _BASE_URL_PATTERN and vikunja_config.py untouched.",
-        "Ready for review",
-        "- 2026-11-19T22:56:50Z – unknown – Review cycle 1 finding 1 (MAJOR, Codex gpt-6.1-sol) fixed in 0ce65cf6. end_series now treats any uncertain write outcome like a timeout: re-read once, resume from verified state, or raise SeriesEndIncomplete (unknown if the re-read fails; rule_cleared_not_done / rule_reappeared as before; the original error is re-raised when the re-read shows nothing changed). Uncertain = timeout, 5xx, status=None transport failure, or invalid 2xx body (VikunjaServerError status=200). A definite 4xx refusal propagates at step 1 and gives rule_cleared_not_done at step 2, without a re-read. _request on v2 paths now maps http.client.HTTPException/OSError (IncompleteRead, ConnectionResetError) to VikunjaServerError(status=None); v1 still raises the raw exception (pinned by test_v1_transport_failure_behaviour_unchanged). Tests: commit-then-fail parametrized over non-JSON 200, non-object 200, IncompleteRead, ConnectionResetError and 502, for step 1 (resume; re-read fails -> unknown), step 2 (verified end; still open -> rule_cleared_not_done; re-read fails -> unknown), open-no-rule and done-with-rule. Also 4xx at both steps without a re-read, and 5xx at step 1 with the re-read unchanged -> original re-raised. Two cycle-0 tests that assumed a 5xx propagates without a re-read were updated to match. RED: pre-fix client + new tests -> 36 failed, 82 passed. GREEN: pytest -q tests/common/test_vikunja_client_v2.py tests/common/test_vikunja_client.py -> 192 passed, exit 0. make test PY=/home/kgale/repos/kg-automation/.venv/bin/python (lane env) -> 9339 passed, 832 skipped, 1 xfailed, exit 0 (outside the sandbox). ruff --ignore UP017: test files clean; the client keeps only the 2 base-file findings (UP041, BLE001).",
-        "Ready for review: cycle-1 finding 1 fixed (uncertain-write recovery in end_series) in 0ce65cf6",
-        "- 2026-11-19T23:12:04Z – unknown – Review cycle 2 finding 1 (MAJOR, Codex gpt-6.1-sol) fixed in acd80109. FIX: on v2 paths (1) the success-body parse maps any exception from json.loads to VikunjaServerError(status=None, detail 'v2; undecodable body'): UnicodeDecodeError, JSONDecodeError, LookupError, RecursionError; (2) the send/read phase, after the timeout/HTTPError/URLError clauses, maps any Exception to VikunjaServerError(status=None). This replaces the cycle-1 (HTTPException, OSError) tuple, so a ValueError on a closed file is covered too. (3) _error_code catches any exception, so a pathological error body can never mask the mapped HTTP error. (4) every end_series read (initial, readback, recovery, final) goes through _end_series_read, which runs has_rule inside a guard, so a malformed repeat (str or list -> AttributeError, mixed list -> TypeError) becomes VikunjaServerError inside the recovery handling. v1 is unchanged: it still maps only JSONDecodeError and re-raises raw transport exceptions, pinned by test_v1_invalid_utf8_behaviour_unchanged and test_v1_transport_failure_behaviour_unchanged. AUDIT of the v2 response path, every point where an exception can arise: urlopen send (pre-send faults such as a bad URL or header encoding are identical for the initial read, which fails first, before any write); response.read (IncompleteRead, OSError/ConnectionResetError/SSLError, ValueError on closed file -> all mapped); context-manager exit/close (inside the same try -> mapped); HTTPError branch (exc.read under an existing except Exception; _error_code now total; _map_http_error total); 304 sentinel (no parsing); json.loads success body (mapped, all types); _expect_dict (non-object -> VikunjaServerError status=200, classed uncertain); end_series state checks has_rule/_series_ended (guarded via _end_series_read; .get on a dict is total). Remaining non-VikunjaError raises in end_series: only patch_task's local ValueError/TypeError validation, which is pre-send and unreachable with its fixed bodies. TESTS: invalid UTF-8, bad UTF-16 BOM, 100k-deep nesting and a closed-file read, at both writes (commit-then-fail matrix), at the step-1 and step-2 recovery reads (-> unknown), at the step-1 readback (-> rule_cleared_not_done), at the final readback (-> unknown) and at the initial read (-> plain VikunjaServerError); malformed repeat (str, list) at every read; a deep error body still gives VikunjaBadRequestError with code None. The fake server now uses pytest.fail (a BaseException) for unexpected requests, so the broad handler cannot swallow it. RED: cycle-1 client + final tests -> 63 failed, 129 passed. GREEN: pytest -q tests/common/test_vikunja_client_v2.py tests/common/test_vikunja_client.py -> 266 passed, exit 0. make test PY=/home/kgale/repos/kg-automation/.venv/bin/python (lane env, outside the sandbox) -> 9413 passed, 832 skipped, 1 xfailed, exit 0. ruff --ignore UP017: test files clean; the client keeps only the 2 base-file findings (UP041, BLE001 on untouched lines).",
-        "Ready for review: cycle-2 finding fixed in acd80109 (v2 decode/transport/shape escape class closed)",
-        "Arbiter decision (orchestrator Claude Opus 5.5) after 3 Codex gpt-6.1-sol rejections: APPROVED with notes. Cycle-1 and cycle-2 MAJORs (end_series recovery escapes) verified fixed by the reviewer. Cycle-3 MAJOR requires a server response with repeat=[]/false/0/'' plus non-empty repeats_rrule; vikunja-harness d7e202228 pkg/models/tasks.go:97 declares Repeat *TaskRepeat json:repeat,omitempty (object or absent) and pkg/routes/api/v2/tasks.go:156 says repeats_rrule is absent when the task does not repeat, so the input cannot come from the production server. Defensive hardening (strict repeat type/consistency validation in _end_series_read, regression cases at every readback) is carried into WP08's dispatch, which already edits vikunja_client.py, and WP08's reviewer will verify it. Implementer: Claude Opus 5.5 (python-pedro). Reviewer: Codex gpt-6.1-sol.",
-        "Re-review for an independent approval: the earlier arbiter approval is not a confirmable independent review (accept REVIEW_NOT_INDEPENDENT). Kent approved option A, 2026-11-20.",
-        "Independent re-review passed, cycle 4 (reviewer: Codex gpt-6.1-sol, 2026-11-20), judged with the downstream WP08 fix (c3e49498, 69245497). Replaces the earlier arbiter approval for the independence gate."
-      ],
-      "provider": "__resolved_provider_absent__",
-      "review": {
-        "actor": "operator",
-        "at": "2026-11-19T23:18:53Z",
-        "reason": "[custom] Arbiter decision (orchestrator Claude Opus 5.5) after 3 Codex gpt-6.1-sol rejections: APPROVED with notes. Cycle-1 and cycle-2 MAJORs (end_series recovery escapes) verified fixed by the reviewer. Cycle-3 MAJOR requires a server response with repeat=[]/false/0/'' plus non-empty repeats_rrule; vikunja-harness d7e202228 pkg/models/tasks.go:97 declares Repeat *TaskRepeat json:repeat,omitempty (object or absent) and pkg/routes/api/v2/tasks.go:156 says repeats_rrule is absent when the task does not repeat, so the input cannot come from the production server. Defensive hardening (strict repeat type/consistency validation in _end_series_read, regression cases at every readback) is carried into WP08's dispatch, which already edits vikunja_client.py, and WP08's reviewer will verify it. Implementer: Claude Opus 5.5 (python-pedro). Reviewer: Codex gpt-6.1-sol.",
-        "wp_id": "WP02"
-      },
       "review_result": {
         "feedback_path": "/home/kgale/repos/kg-automation/.worktrees/felix-rrule-adaptation-01M7TKNX-coord/kitty-specs/felix-rrule-adaptation-01M7TKNX/tasks/WP02-client-seam-v2/review-cycle-4.md",
         "reference": "review-cycle://felix-rrule-adaptation-01M7TKNX/WP02-client-seam-v2/review-cycle-4.md",
         "reviewer": "codex::reviewer-renata",
         "verdict": "approved"
       },
-      "role": "reviewer",
-      "shell_pid": 3655987,
-      "shell_pid_created_at": "1795213958.09",
-      "subtasks": {
-        "T006": "done",
-        "T007": "done",
-        "T008": "done",
-        "T009": "done",
-        "T010": "done",
-        "T011": "done"
-      }
+      "shell_pid": 3286309,
+      "shell_pid_created_at": "1795129310.3"
     },
     "WP03": {
       "actor": "merge",
-      "agent": "codex::reviewer-renata",
-      "agent_profile": "reviewer-renata",
-      "agent_profile_version": "1.0",
+      "agent": "claude",
       "force_count": 5,
       "implementer_of_record": "claude",
       "lane": "done",
       "last_event_id": "01M7Z0HAH65DBHDXCGQWEQQWQ7",
       "last_transition_at": "2026-11-21T12:15:43.142832+00:00",
-      "model": "__resolved_model_absent__",
-      "notes": [
-        "- 2026-11-19T23:39:54Z – claude – shell_pid=3367897 – Commit 00c203ae on lane-c. RED on cc4f2154 (throwaway worktree /dev/shm/wp03-red, removed): ported tests/habits/test_habits_rule_roundtrip.py plus its support-only deps (tests/common/vikunja_v2_factory.py, scripts/common/vikunja_rule.py from WP01; neither exists at cc4f2154) -> 11 failed, 1 passed, all assertion failures (v1 POST /api/v1/tasks/N seen where one v2 PATCH expected; no_rule/occurrences_unauthorized/rule_changed errors absent; unexpected completion exit 0). Failing: TestCompletion::{advanced_keeps_rule_and_sends_only_done, count_two_to_one_is_advanced, count_one_is_series_ended, unexpected_done_exits_nonzero_after_recording[no-count-no-until], [until-from-current-date-unknown]}, TestSweeper::{dayspecific_takes_next_date_from_rule, no_rule_is_error_and_no_write, occurrences_401_is_error_and_no_write, positive_control_rule_stripped_by_due_patch}, TestBulkSetDueDates::{bulk_patch_sends_only_due_date_and_keeps_rule, positive_control_rule_stripped_by_due_patch}. Passing on both: TestSweeper::daily_habit_makes_no_http_call (daily never wrote, before or after). GREEN on WP branch: roundtrip 12 passed; tests/habits 749 passed; tests/habits+architectural+common 1552 passed; make test PY=.venv/bin/python exit 0 (9407 passed, 832 skipped, 1 xfailed). ruff (--ignore UP017) on changed files: only base-file findings remain (EXE001, TRY004, BLE001, unused dataclasses/shutil, C408 VALID_KWARGS, RUF100 E402); mypy -m on the 3 scripts clean (annotated a base-file 'result' var). JUDGMENT CALLS: (1) A SweeperError makes the tick 'partial' (exit 1), which trips the sweeper_tick signal ('raised per-habit errors'). Not 'failure', so the other habits still complete (R-006). (2) occurrences_unauthorized only for a 401 on /occurrences; a 401 on GET/PATCH goes to vikunja_put (its message still names the permission). (3) Extra error types: rule_changed (written but the read-back rule differs, no history event), iso_eod_validation (the occurrence is not 23:59:59 ET: refused, not written). (4) Dry-run day-specific makes no Vikunja call, so new_due_date_et=None, never a locally computed date. (5) Completion of a habit with no rule is 'unexpected', so it exits 1 after the comment and state log are written. (6) series_ended marker: comment '[Felix] D | S | series_ended' (or '<note>; series_ended'), and the state-log note is the same. (7) Sweeper tests stub sweeper.load_schedule (conftest stub_schedule with *.stub.json) instead of inline YAML with repeat_after_seconds, because WP07 makes schedule_loader reject that key and lane-c's loader cannot parse rrule yet. (8) KEPT scripts.habits.migrate_schedule in the conftest base-URL patch loop, against the prompt: removing it breaks 12 test_migrate_schedule.py tests while the module exists. It becomes a no-op once WP08 deletes the module. (9) Removed compute_next_eod_et_for_weekdays, _format_et_offset, the weekday maps and the sync_cache/schedule_loader imports (now unused) from set_due_dates. Kept validate_iso_eod_et and ISO_EOD_PATTERN because the sweeper imports them. Deleted test_set_due_dates_reconcile.py. Its --iso-eod-et regression tests and invocation-form tests moved to test_set_due_dates.py, which now asserts --reconcile-schedule is gone. (10) record_completion reads back via get_task_v2 only after a 304; the sweeper and bulk mode always read back. FOR WP08: scripts/habits/migrate_schedule.py still calls replace_task_fields (it retires the module). FOR WP11: docs/runbooks/habits-ops.md:617-635 documents set_due_dates --reconcile-schedule (retired). Also stale: scripts/habits/migrations/phase3-schedule.yaml:156 and schedule_loader.py:8 (WP07 files), docs/design/process-flows/habits.md:92,202, service-inventory.json:2991-3011 and service-inventory.md:786 (sweeper now uses occurrences, not compute_next_eod_et_for_weekdays), data-flows.json:1963/2004 (set_due_dates no longer reads the sync cache), and research/rq-2 TP-04/TP-05 (historical).",
-        "Ready for review",
-        "- 2026-11-20T00:01:25Z – unknown – Review cycle 1 fixes, commit 2cd5686e on lane-c. F1 (MAJOR): sweeper._occurrence_to_iso_et keeps the server's time of day, rendered as explicit-offset ET. The EOD refusal is gone. A new _EXPLICIT_OFFSET_PATTERN is the #112 'no Z' guard (error_type due_date_format, was iso_eod_validation). The sweeper no longer imports validate_iso_eod_et/ISO_EOD_PATTERN; set_due_dates still uses them to validate its own --iso-eod-et input. The unit rejection test is replaced by 08:00 ET success cases (EDT and EST), plus a round-trip non-EOD sweeper case. F2 (MAJOR): new set_due_dates.recurrence_drift(before, after) is shared by the sweeper read-back and the bulk-mode read-back. It returns the drifted names among repeat (same_rule), repeats_from_current_date, and reminders. Relative reminders (relative_to set) are keyed by (relative_to, relative_period) only, because the server recomputes their instant on every save in the saver's zone (vikunja-harness d7e202228 pkg/models/tasks.go:2575 updateRelativeReminderDates). Absolute reminders are keyed strictly by instant. Round-trip: _dayspec now seeds repeats_from_current_date=True, one relative reminder (-3600, due_date) and one absolute reminder. The fake server recomputes relative reminders on every v2 PATCH (as the server does). Success tests assert the flag, the relative keys plus the recomputed instant (new due minus 1 h), and the absolute reminder unchanged. Corruption controls (rule stripped, reminders removed, flag flipped, absolute reminder moved) run for both sweeper and bulk and must report rule_changed naming the field. Unit tests in test_set_due_dates.py include a DST case (2027-03-15T00:00Z due, -86400 relative, 00:00Z -> 01:00Z is not drift). Mutation check: with recurrence_drift cut to rule-only, 6 controls fail (reminders-removed, flag-flipped, absolute-reminder-moved x sweeper/bulk). Restored, all pass. F3 (MINOR): TestCompletion::test_until_passed_is_series_ended_with_rule_kept. Preview answers reason until_passed (one preview call, repeats_from_current_date=false), the server leaves the task Done with the rule kept, and series_ended is in the comment and the state-log note. Results: roundtrip 20 passed; tests/habits passed; make test PY=.venv/bin/python exit 0 (9418 passed, 832 skipped, 1 xfailed). ruff: base-file findings only. mypy -m on 3 scripts clean. Note for the reviewer: recurrence_drift sits in set_due_dates (the sweeper already imports from it). WP05 has a parallel reminder comparison; with this one that is a candidate for a vikunja_rule helper (a WP01-owned file, so not moved here). record_completion is unchanged: its outcome comes from completion_outcome (WP01), and a completion legitimately moves reminders.",
-        "Ready for review (cycle 1 fixes: 2cd5686e)",
-        "- 2026-11-20T00:22:08Z – unknown – Review cycle 2 fix, commit 0114fe06 on lane-c. sweeper._advance_to_next_occurrence now takes now_utc. After the no-rule check, if the stored due_date is already after now it returns that date as explicit-offset ET with no occurrences call and no write. This makes a retry after a committed PATCH idempotent and covers a habit completed since the missed check-in. run_sweep keeps advanced_this_tick: dict[task_id -> verified ET date], so a backlog of N expired check-ins for one habit advances it once and every check-in reuses that date (each still gets its own auto_skipped event). Failures are not cached, so a later check-in in the same tick retries; with the future-due rule that cannot double-advance. Tests: the round-trip fake gained stateful occurrences (callable, the first weekly occurrence strictly after the stored due and after now) and fail_after_commit (the PATCH commits, then answers 500). New TestSweeperBacklogAndRetry: (a) check-ins 05-27 and 05-29 -> exactly one PATCH to 2026-06-03T23:59:59-04:00, both skips report June 3, two history events, recurrence preserved; (b) PATCH commits then 500 -> vikunja_put error, no event; the rerun makes no second write and records the skip with June 3; (c) stored due already 06-04T03:59:59Z -> no write, no occurrences call. Mutation: on the cycle-1 sweeper (HEAD before this fix) all 3 fail; with the fix they pass. Unit test_dayspecific_write_uses_vikunja_client_patch_task now uses a past due date and expects one patch_task and one occurrences call for two check-ins. Results: roundtrip 23 passed; tests/habits 760 passed; make test PY=.venv/bin/python exit 0 (9421 passed, 832 skipped, 1 xfailed). ruff: base-file findings only. mypy sweeper clean.",
-        "Ready for review (cycle 2 fix: 0114fe06)",
-        "Arbiter decision (orchestrator Claude Opus 5.5) after 3 Codex gpt-6.1-sol rejections: APPROVED with a REQUIRED carry-over. Cycle-1 (non-EOD occurrences rejected; companion fields untested; UNTIL case) and cycle-2 (backlog double-advance; retry after committed write) MAJORs verified fixed by the reviewer. Cycle-3 MAJOR (habit completion does not verify repeats_from_current_date/reminders) is valid and same-class but not a live strip risk: the v2 PATCH sends only {done:true} and the server echoes all other fields (huma AutoPatch GET-merge-PUT). Its fix is assigned to WP08, which extracts the shared rule/flag/reminder drift helper and must add habits record_completion as a caller with corruption controls; WP08's reviewer verifies. Implementer: Claude Opus 5.5 (python-pedro). Reviewer: Codex gpt-6.1-sol.",
-        "Re-review for an independent approval: the earlier arbiter approval is not a confirmable independent review (accept REVIEW_NOT_INDEPENDENT). Kent approved option A, 2026-11-20.",
-        "Independent re-review passed, cycle 4 (reviewer: Codex gpt-6.1-sol, 2026-11-20), judged with the downstream WP08 fix (c3e49498, 69245497). Replaces the earlier arbiter approval for the independence gate."
-      ],
-      "provider": "__resolved_provider_absent__",
-      "review": {
-        "actor": "operator",
-        "at": "2026-11-20T00:32:50Z",
-        "reason": "[custom] Arbiter decision (orchestrator Claude Opus 5.5) after 3 Codex gpt-6.1-sol rejections: APPROVED with a REQUIRED carry-over. Cycle-1 (non-EOD occurrences rejected; companion fields untested; UNTIL case) and cycle-2 (backlog double-advance; retry after committed write) MAJORs verified fixed by the reviewer. Cycle-3 MAJOR (habit completion does not verify repeats_from_current_date/reminders) is valid and same-class but not a live strip risk: the v2 PATCH sends only {done:true} and the server echoes all other fields (huma AutoPatch GET-merge-PUT). Its fix is assigned to WP08, which extracts the shared rule/flag/reminder drift helper and must add habits record_completion as a caller with corruption controls; WP08's reviewer verifies. Implementer: Claude Opus 5.5 (python-pedro). Reviewer: Codex gpt-6.1-sol.",
-        "wp_id": "WP03"
-      },
       "review_result": {
         "feedback_path": "/home/kgale/repos/kg-automation/.worktrees/felix-rrule-adaptation-01M7TKNX-coord/kitty-specs/felix-rrule-adaptation-01M7TKNX/tasks/WP03-habits-writes/review-cycle-4.md",
         "reference": "review-cycle://felix-rrule-adaptation-01M7TKNX/WP03-habits-writes/review-cycle-4.md",
         "reviewer": "codex::reviewer-renata",
         "verdict": "approved"
       },
-      "role": "reviewer",
-      "shell_pid": 3655990,
-      "shell_pid_created_at": "1795213958.09",
-      "subtasks": {
-        "T012": "done",
-        "T013": "done",
-        "T014": "done",
-        "T015": "done",
-        "T016": "done"
-      }
+      "shell_pid": 3986388,
+      "shell_pid_created_at": "1795133553.68"
     },
     "WP04": {
       "actor": "merge",
-      "agent": "codex::reviewer-renata",
-      "agent_profile": "reviewer-renata",
-      "agent_profile_version": "1.0",
+      "agent": "claude",
       "force_count": 5,
       "implementer_of_record": "claude",
       "lane": "done",
       "last_event_id": "01M7Z0HCKQ45HAEPJENXMSM8V0",
       "last_transition_at": "2026-11-21T12:15:45.271653+00:00",
-      "model": "__resolved_model_absent__",
-      "notes": [
-        "- 2026-11-19T23:37:21Z – claude – shell_pid=3367897 – Commit 057bc6c4 on lane-d. RED on cc4f2154 scratch worktree (/dev/shm/wp04-red, WP01 factory+vikunja_rule copied in; removed after): roundtrip 9/9 failed (v1 PATCH /api/v1/tasks/14 -> HTTP 405, EXIT_OUTCOME_UNEXPECTED missing), doc guard 3 failed (escalation AGENTS.md L203, TOOLS.md L29, SKILL.md L218); 12 failed/55 passed. New reconcile tests red on pre-change reconcile: 2 failed (recurring advanced, dry-run). GREEN: pytest tests/escalation tests/architectural scripts/openclaw/agents/tests tests/openclaw -> 666 passed 2 skipped exit 0; make test PY=.venv -> 9528 passed 834 skipped 1 xfailed exit 0. Ruff (--ignore UP017) vs base: no new findings in changed files; new files clean. mypy not installed in .venv (not run). Sizes wc -c before->after: AGENTS.md 15126->15283 (escalation not under the 12k test cap, which covers main+calendar only), TOOLS.md 2199->2244, SKILL.md 10715->10779. Judgment calls: (1) new CLI exit 4 = done recorded but Vikunja outcome unexpected (JSONL written with note first, then stderr step=vikunja_outcome); (2) a failed readback after a 304 on done is recorded as unexpected (record kept) rather than dropped; (3) JSONL schema unchanged - outcome is in vikunja_actions/result only, note only on unexpected; (4) reconcile emits recurring done only when a prior reschedule_to exists and the cached due is later; no prior reschedule, earlier due, or old cache without repeat key keep today's rescheduled path; (5) doc guard joins backslash-continued curl lines and targets the task resource only (not /comments,/labels,/relations); negation must precede the verb; allowlist holds skills/task-intelligence and skills/vikunja-api SKILL.md pending WP09 (WP09 owns them and must delete the entries); (6) TOOLS.md stale /tasks/all caveat replaced (R-011). Reviewer: deploy skew (old docs still doing the direct POST while the new helper is live) is not code-solvable - confirm quickstart's rollout window covers N done pause.",
-        "Ready for review",
-        "- 2026-11-19T23:59:01Z – unknown – Review cycle 1 fixes, commit a85c949d. F1: level_sent records now carry due_date_at_alert via a new optional record_completion --due-date flag (stored only when a usable Vikunja instant; dropped otherwise so the level_sent record is never lost); AGENTS.md step 6 passes the pre-candidate due_date from enumerate_candidates; SKILL.md flag table updated. Chose agent-passed flag over a sync-cache read inside record_completion because the latter adds a new cache-read touchpoint (data-flows.json, out of map) and level_sent must make no Vikunja call; trade-off: relies on the agent passing it - absent flag falls back to the cycle-0 behaviour. No out-of-map edit needed (the agent, not a Python module, writes level_sent). Reconcile baseline = newest of due_date_at_alert / reschedule_to in the window; recurring+baseline: equal = no drift, later & not done = synthetic done, earlier = rescheduled; no rule or no baseline = today's path. F2: _current_window = records newer than the newest done/dismissed; done-drift, terminal check, last_reschedule and baseline all use it. F3: record_completion checks repeats_from_current_date and reminders (order-free signature; moved instants allowed, removal/re-anchoring not): done -> unexpected+note (record kept, exit 4); reschedule -> VikunjaError before JSONL. Tests: roundtrip +9 (flag+reminder preserved on done/reschedule, 4 corruption controls proven red with the check stubbed out, COUNT 2->1 advanced, UNTIL-ended series_ended via preview until_passed, UNTIL without preview evidence unexpected); reconcile +5 (first completion before any reschedule, equal baseline no drift, sentinel baseline fallback, multi-cycle complete->re-escalate->complete, done-drift after resubscription) - 4 red on 057bc6c4 reconcile; record_completion +5 (flag stored/dropped/ignored). Also corrected SKILL.md exit-code table (was wrong pre-existing; now 0-4 per helper). make test exit 0: 9547 passed 834 skipped 1 xfailed. Ruff vs cc4f2154: no new findings. Sizes: AGENTS.md 15283->15450, SKILL.md 10779->10943. FLAG for coordinator: derive_state returns done (next_eligible_level=None) forever once the newest record is done, so through the agent a recurring task is never re-escalated after its first completion; the multi-cycle path is tested at reconcile level with a manually appended level_sent. Re-escalation of recurring tasks is outside WP04's owned files. Also: two completions on the same ET day fold into one JSONL done via the pre-existing (task_id,date,state) idempotency key.",
-        "Ready for review: cycle 1 findings addressed",
-        "- 2026-11-20T00:17:48Z – unknown – Review cycle 2 fixes, commit ebd9ce78. F1 (absolute reminders): new _absolute_reminders_damaged. Absolute reminder instants are compared sorted by instant (the read path sorts reminders, tasks.go:2670); an unset sentinel or unparseable value reads as None and never matches. No advance (reschedule, one-off done, series end; server moves no date, tasks.go:2342-2352): instants must be identical. Advancing completion: each must equal _server_moved_reminder, which mirrors vikunja-harness d7e202228: setTaskDatesRRule hands only absolute reminders to the engine (tasks.go:2318-2327, 2339-2361) and applyNextOccurrence writes them back (2402-2413); withDueDate moves them as due-date companions in both repeat modes, with no move when next == stored due (task_next_occurrence_engine.go:429-456); moveCompanion (576-592): unset stays unset; SECONDLY/MINUTELY/HOURLY = elapsed due delta (familyOf 58-68, shiftTime tasks.go:2512-2524); other rules without BYHOUR/BYMINUTE/BYSECOND keep the wall clock and move by calendar days (daysBetween 2289-2295); rules naming a time shift the wall clock by the wall-clock due delta, clamped to the new due. Assumption: completion zone = America/New_York (Felix completes as Kent); a DST-gap reminder could false-alarm (never a silent pass). Tests: 3 positive literal-instant cases (daily EST, daily across the 2026-11-01 DST end, hourly), done controls (unset sentinel / not moved / moved by the wrong amount -> unexpected, record kept), reschedule positive + controls (unset / changed -> raise, no JSONL); 5 controls red on a85c949d. F2 (same-day): _due_baseline returns a typed _Baseline: a level_sent due_date_at_alert is an aware instant, compared against the cached due instant; reschedule_to stays a legacy ET-date baseline compared as before. Notes show instants for instant baselines. New tests: hourly 15:00Z->16:00Z gives a synthetic done (red on a85c949d); a newer date-only reschedule_to keeps the calendar comparison (no drift). Type check uses isinstance(value, str), so a test that patches the module's datetime cannot mislead it. make test exit 0: 9558 passed 834 skipped 1 xfailed. Ruff vs cc4f2154: no new findings. No doc changes this cycle. Open flags from cycle 1 still stand (derive_state never re-escalates after done; same-day done records fold via the (task,date,state) idempotency key).",
-        "Ready for review: cycle 2 findings addressed",
-        "Arbiter decision (orchestrator Claude Opus 5.5) after 3 Codex gpt-6.1-sol rejections: APPROVED with notes. Cycle-1 (first recurring completion mislabelled, history blocking completions, weak preservation tests) and cycle-2 (absolute reminders collapsed, same-day advances missed) MAJORs verified fixed by the reviewer. Cycle-3 MAJOR needs a relative reminder whose trigger instant is corrupted while relative_to/relative_period survive; vikunja-harness d7e202228 pkg/models/tasks.go:2575-2590 (updateRelativeReminderDates) recomputes every relative trigger from anchor+period on each save, so intact anchor+period imply a correct trigger from the production server. A cheap consistency check (non-sentinel trigger when its base date is set) and the MINOR predictor-isolation/parity-fixture work are carried into WP08's shared drift helper. Pre-existing limitation outside WP04 (derive_state terminal done, no re-escalation) is an open scope question for Kent on #1111. Implementer: Claude Opus 5.5 (python-pedro). Reviewer: Codex gpt-6.1-sol.",
-        "Re-review for an independent approval: the earlier arbiter approval is not a confirmable independent review (accept REVIEW_NOT_INDEPENDENT). Kent approved option A, 2026-11-20.",
-        "Independent re-review passed, cycle 4 (reviewer: Codex gpt-6.1-sol, 2026-11-20), judged with the downstream WP08 fix (c3e49498, 69245497). Replaces the earlier arbiter approval for the independence gate."
-      ],
-      "provider": "__resolved_provider_absent__",
-      "review": {
-        "actor": "operator",
-        "at": "2026-11-20T00:28:04Z",
-        "reason": "[custom] Arbiter decision (orchestrator Claude Opus 5.5) after 3 Codex gpt-6.1-sol rejections: APPROVED with notes. Cycle-1 (first recurring completion mislabelled, history blocking completions, weak preservation tests) and cycle-2 (absolute reminders collapsed, same-day advances missed) MAJORs verified fixed by the reviewer. Cycle-3 MAJOR needs a relative reminder whose trigger instant is corrupted while relative_to/relative_period survive; vikunja-harness d7e202228 pkg/models/tasks.go:2575-2590 (updateRelativeReminderDates) recomputes every relative trigger from anchor+period on each save, so intact anchor+period imply a correct trigger from the production server. A cheap consistency check (non-sentinel trigger when its base date is set) and the MINOR predictor-isolation/parity-fixture work are carried into WP08's shared drift helper. Pre-existing limitation outside WP04 (derive_state terminal done, no re-escalation) is an open scope question for Kent on #1111. Implementer: Claude Opus 5.5 (python-pedro). Reviewer: Codex gpt-6.1-sol.",
-        "wp_id": "WP04"
-      },
       "review_result": {
         "feedback_path": "/home/kgale/repos/kg-automation/.worktrees/felix-rrule-adaptation-01M7TKNX-coord/kitty-specs/felix-rrule-adaptation-01M7TKNX/tasks/WP04-escalation/review-cycle-4.md",
         "reference": "review-cycle://felix-rrule-adaptation-01M7TKNX/WP04-escalation/review-cycle-4.md",
         "reviewer": "codex::reviewer-renata",
         "verdict": "approved"
       },
-      "role": "reviewer",
-      "shell_pid": 3655992,
-      "shell_pid_created_at": "1795213958.1",
-      "subtasks": {
-        "T017": "done",
-        "T018": "done",
-        "T019": "done",
-        "T020": "done",
-        "T021": "done"
-      }
+      "shell_pid": 3932450,
+      "shell_pid_created_at": "1795133162.75"
     },
     "WP05": {
       "actor": "merge",
-      "agent": "codex::reviewer-renata",
-      "agent_profile": "reviewer-renata",
-      "agent_profile_version": "1.0",
+      "agent": "claude",
       "force_count": 1,
       "implementer_of_record": "claude",
       "lane": "done",
       "last_event_id": "01M7Z0HES5TTC383M0VQMSN7W4",
       "last_transition_at": "2026-11-21T12:15:47.493112+00:00",
-      "model": "__resolved_model_absent__",
-      "notes": [
-        "- 2026-11-19T23:35:19Z – claude – shell_pid=3367897 – WP05 impl commit 2070a77c. RED on cc4f2154 scratch worktree (/dev/shm/wp05-red, removed; WP01/WP02 modules + new tests copied in): pytest tests/intake/test_apply_reply_rule_roundtrip.py tests/vikunja/test_migrate_tasks.py tests/vikunja/test_migrate_date_only_due_dates.py -> 34 failed, 82 passed (exit 1). GREEN on lane: same files + tests/intake tests/vikunja tests/common -> 1337 passed; make test PY=.venv/bin/python -> 9430 passed, 832 skipped, 1 xfailed, exit 0. ruff --ignore UP017 on changed files: 12 findings vs 15 at base, none new. mypy --explicit-package-bases: 8 errors at base, 8 after (pre-existing migrate_tasks manifest validation L280-307). Judgment calls: (1) one shared readback check rule_state_drift() in migrate_tasks.py (rule of three, owned file; apply_reply already imports token constants from there); relative reminders skip the instant comparison only when relative_to==due_date and due_date changed. (2) apply_reply initial read and label-verify read stay v1 client.get; field readbacks in all three sites use get_task_v2. (3) Execution order unified to labels -> field patch -> end_series for every line, not only eliminate. (4) SeriesEndIncomplete -> per-line failed, note 'series end incomplete: <state>'. (5) mock_vikunja_urlopen is scenario-static and lives in tests/common, so the roundtrip test carries its own stateful fake urlopen driving a real VikunjaClient. (6) Date-only migration title-drift test replaced by stripped-rule, removed-reminder and moved-relative-reminder tests, since merge-patch cannot clobber title. Project move via PATCH project_id is pinned only against the fake server's request shape; live verification happens in the post-merge canary. No out-of-map edits; no other importers of _WRITABLE_FIELDS/_writable_payload found.",
-        "Ready for review: both allowlists deleted, patch_task-only writes, rule/flag/reminder readbacks, eliminate via end_series, _is_recurring via has_rule",
-        "- 2026-11-19T23:52:14Z – unknown – Review cycle 1 fix, commit 133f39a6. MAJOR verified in vikunja-harness d7e202228: pkg/models/tasks.go:1813 calls updateReminders on every update; updateRelativeReminderDates (tasks.go:2575) clears and recomputes every relative reminder (relative_to != '') in the saver's zone; relativeReminderTime (task_next_occurrence.go:283) applies whole days as calendar days. So a project-only move across DST shifts a -86400 reminder from due 2027-03-15T00:00Z by an hour (00:00Z -> 01:00Z). Fix: rule_state_drift/_reminder_keys compare relative reminders by (relative_to, relative_period) on every write, absolute reminders strictly by instant; the due_changed parameter was removed from all 3 callers. Tests: DST regression for intake move and migrate_tasks move; the roundtrip fake server now recomputes relative reminders on every PATCH with calendar-day semantics in America/New_York; every write path (intake move, intake due, migrate move, date migration) runs with repeats_from_current_date=true plus a whole-day relative reminder, with flip and remove controls; relative_period-change and absolute-shift controls fail. RED: new tests on bf7725d8 (the cycle-0 code) -> 3 failed (the DST false failures), 129 passed; /dev/shm/wp05-red2 removed. GREEN: tests/intake tests/vikunja tests/common -> 1353 passed; make test PY=.venv/bin/python -> 9446 passed, 832 skipped, 1 xfailed, exit 0. ruff unchanged at 12 (all pre-existing); mypy unchanged at 8 (pre-existing migrate_tasks L280-307).",
-        "Cycle 1 fixes: relative reminders compared by anchor+period on every write (server recomputes on every save, cited); DST regression; flag+reminder fixtures with flip/remove controls on all write paths",
-        "Review passed, cycle 2 (reviewer: Codex CLI 0.170.0 / gpt-6.1-sol, read-only advisory; verdict recorded by orchestrator Claude Opus 5.5). No findings; both cycle-1 findings verified fixed. Reviewer full-suite run stalls in the Codex sandbox; implementer's make test (9446 passed) is the full-suite evidence."
-      ],
-      "provider": "__resolved_provider_absent__",
-      "review": null,
       "review_result": {
         "feedback_path": "/home/kgale/repos/kg-automation/.worktrees/felix-rrule-adaptation-01M7TKNX-coord/kitty-specs/felix-rrule-adaptation-01M7TKNX/tasks/WP05-intake-and-bulk-tools/review-cycle-2.md",
         "reference": "review-cycle://felix-rrule-adaptation-01M7TKNX/WP05-intake-and-bulk-tools/review-cycle-2.md",
         "reviewer": "codex::reviewer-renata",
         "verdict": "approved"
       },
-      "role": "reviewer",
-      "shell_pid": 3750434,
-      "shell_pid_created_at": "1795132393.86",
-      "subtasks": {
-        "T022": "done",
-        "T023": "done",
-        "T024": "done",
-        "T025": "done"
-      }
+      "shell_pid": 3613426,
+      "shell_pid_created_at": "1795131704.33"
     },
     "WP06": {
       "actor": "merge",
-      "agent": "codex::reviewer-renata",
-      "agent_profile": "reviewer-renata",
-      "agent_profile_version": "1.0",
+      "agent": "claude",
       "force_count": 1,
       "implementer_of_record": "claude",
       "lane": "done",
       "last_event_id": "01M7Z0H8FS0AMXPSV4PPEK6DXH",
       "last_transition_at": "2026-11-21T12:15:41.049605+00:00",
-      "model": "__resolved_model_absent__",
-      "notes": [
-        "- 2026-11-19T22:38:38Z – claude – shell_pid=3014492 – Commit 9ed960af. Tests: pytest -q tests/sync tests/common -> 877 passed 1 skipped (exit 0); make test PY=.venv/bin/python -> 9259 passed 832 skipped 1 xfailed (exit 0); ruff check --ignore UP017 on 10 changed files -> exit 1 but zero NEW findings vs HEAD (all pre-existing I001/RUF059/etc). Mutation check: disabling seed branch fails all new seed tests. Judgment calls: (1) compute_divergences returns a 6-tuple (seeds: list[BaselineSeed] last); test_diff _run keeps 5-tuple via slice. (2) seed-ledger appended BEFORE write_task_cache (at-least-once evidence; a failed cache write re-seeds next cycle with a dup row under a new cycle_id) rather than after as the prompt worded it; ledger OSError -> phase complete exit 2, cache not advanced. (3) repeat divergences carry normalised values; other fields raw as before. Non-mapping repeat compared verbatim. (4) baseline_seeded added to CycleResult and last-tick.json (additive; HEALTH_SCHEMA_VERSION and SCHEMA_VERSION unchanged); stderr log line only when N>0; dry-run reports would_seed. (5) conftest now imports TRACKED_TASK_FIELDS from scripts.sync.diff instead of a copy; mock_vikunja_urlopen untouched. (6) Seeding applies to ANY absent tracked key, so a task moving out of a private project (cached fields={}) now seeds instead of diverging. Out of scope, flagged: scripts/habits/query_active_habits_v2.py:279-280 still reads repeat_after/repeat_mode from cache (now always None).",
-        "Ready for review",
-        "- 2026-11-19T22:56:29Z – unknown – Fix cycle 1 (finding 1, MAJOR partial ledger write). Commit ce348366. append_seed_ledger now rewrites the whole ledger atomically: existing bytes + new rows -> seed-ledger.jsonl.tmp, fsync file, os.replace, fsync dir; tmp unlinked on failure, so a partial write leaves the committed ledger byte-identical. Ledger is <=1 row per task per field, so the rewrite stays small. Tests added: test_state TestSeedLedgerAtomicity (injected partial write -> OSError, ledger unchanged, retry appends, every line parses, no tmp left; fsync order file then dir), test_cycle partial-ledger-write-then-retry-cycle (cycle 1 exit 2 with cache not advanced; cycle 2 exit 0, 4 seeds, every ledger line parses). Both were red before the fix. Commands: pytest -q tests/sync tests/common -> 880 passed 1 skipped (exit 0); make test PY=.venv/bin/python -> 9262 passed 832 skipped 1 xfailed (exit 0); ruff --ignore UP017 on the 3 changed files -> no new findings vs HEAD (pre-existing I001s only).",
-        "Ready for review: cycle-1 finding 1 fixed (atomic ledger replace + partial-write retry tests)",
-        "Review passed, cycle 2 (reviewer: Codex CLI 0.170.0 / gpt-6.1-sol, read-only advisory; verdict recorded by orchestrator Claude Opus 5.5). Cycle-1 MAJOR (non-atomic seed-ledger append) verified fixed. Residual MINOR: state.py:503 docstring overstates guarantees (dir-fsync failure after replace; retry after cache-write failure can duplicate task/field rows) — accepted; WP10 inventory must tolerate duplicate seed rows."
-      ],
-      "provider": "__resolved_provider_absent__",
-      "review": null,
       "review_result": {
         "feedback_path": "/home/kgale/repos/kg-automation/.worktrees/felix-rrule-adaptation-01M7TKNX-coord/kitty-specs/felix-rrule-adaptation-01M7TKNX/tasks/WP06-sync-tracks-rule/review-cycle-2.md",
         "reference": "review-cycle://felix-rrule-adaptation-01M7TKNX/WP06-sync-tracks-rule/review-cycle-2.md",
         "reviewer": "codex::reviewer-renata",
         "verdict": "approved"
       },
-      "role": "reviewer",
-      "shell_pid": 3240826,
-      "shell_pid_created_at": "1795129018.3",
-      "subtasks": {
-        "T026": "done",
-        "T027": "done",
-        "T028": "done",
-        "T029": "done"
-      }
+      "shell_pid": 3168651,
+      "shell_pid_created_at": "1795128436.09"
     },
     "WP07": {
       "actor": "merge",
-      "agent": "codex::reviewer-renata",
-      "agent_profile": "reviewer-renata",
-      "agent_profile_version": "1.0",
+      "agent": "claude",
       "force_count": 3,
       "implementer_of_record": "claude",
       "lane": "done",
       "last_event_id": "01M7Z0HGTS3ATSVAPY3V9W31QF",
       "last_transition_at": "2026-11-21T12:15:49.593368+00:00",
-      "model": "__resolved_model_absent__",
-      "notes": [
-        "- 2026-11-19T23:44:38Z – claude – shell_pid=3367897 – Commit 16b5fafd on lane-g. GREEN: make test exit 0 (9458 passed, 831 skipped, 1 xfailed); targeted tests/habits tests/sync/test_cleanup.py tests/architectural 823 passed. RED on cc4f2154 (throwaway /dev/shm/wp07-red, removed): new weekly tests 6 failed (classify_daily_rule, classify_daily_rule_server_noise_normalised, weekly_mo_we_is_two_per_standard_week, production_catalog_lists_every_active_daily_habit, rule_habit_scheduled_days_from_fake_preview, preview_401_renders_unknown_never_zero); old classify_habit on the converted production catalog (10 tasks) returns only 'other' (empty report). Red run needed vikunja_rule.py + vikunja_v2_factory.py copied in and code=2002 dropped from one parametrize (old client lacks code kwarg). C-005: operations block SHA-256 f72b586d...abaa0 identical to cc4f2154, pinned by test_real_schedule_operations_block_is_frozen; prune round-trip test also asserts byte identity. Ruff (--ignore UP017) vs base: no new findings in changed files (one pre-existing SIM117 in test_morning_checkin_list_day_of_week). mypy: only pre-existing arg-type at weekly report prior_window_*_iso. JUDGMENT CALLS: (1) OUT-OF-MAP edits: tests/architectural/test_habits_history_canonical_read.py allowlists schedule_loader.py (the --check-live drift check imports VikunjaClient; the ratchet otherwise fails); WP03-owned test_sweeper_unit.py, test_sweeper_idempotent.py, test_set_due_dates_reconcile.py had schedule YAML literals with repeat_after_seconds, converted line-for-line to rrule (no other change) because the loader now refuses that key; expect a trivial merge conflict if WP03 rewrites/deletes those YAML lines (reconcile retirement). (2) Preview anchor is window_start minus 1s, not window_start: the server lists occurrences strictly after due_date, so anchoring at window_start would drop day 1. (3) Unknown scheduled days give completed/percent None too, and the habit is left out of overall totals. A full 100-occurrence page inside the window is also unknown. Any VikunjaError from preview means unknown. (4) A daily entry must normalise to exactly FREQ=DAILY;INTERVAL=1. A day-specific entry must be WEEKLY/MONTHLY/YEARLY with BYDAY equal to designated weekdays as a set. (5) prune_schedule_yaml now edits text (deletes only the item's lines, then verifies by parse-back); library round-trip only for a non-block habits key. Reason: office2 has no ruamel, and the PyYAML fallback destroyed comments and the operations formatting. (6) parse_weekday_in_title and its constants were deleted as dead code with their tests. habit_kind values are now daily, weekly-by-day and rule (was weekday-in-title). (7) query_active_habits_v2 test asserts only that 'repeat' is present: the cache keeps repeat once WP06's TRACKED_TASK_FIELDS change merges. (8) schedule_with_day_specific.yaml fixture converted but referenced by no test. FOR WP11: the habits-ops runbook and the service-inventory .md/.json still describe weekly-report classification by repeat_after. PROCESS NOTE: I ran git stash twice while make test was in flight (popped immediately, nothing lost). That run was discarded and re-run clean.",
-        "Ready for review: schedule rrule + ratchet, read-only --check-live, text-preserving prune, weekly report from rule with preview/unknown, reporters emit repeat",
-        "- 2026-11-20T00:04:10Z – unknown – Fix cycle 1, commit 45d28903 on lane-g. make test (venv) exit 0: 9483 passed, 831 skipped, 1 xfailed. Focused: test_query_active_habits_weekly 119 passed, test_cleanup 29 passed. Ruff vs HEAD: no new findings. mypy: only the pre-existing prior_window_*_iso arg-type. F1 server semantics verified in vikunja-harness d7e202228. task_occurrences.go:176 (PreviewOccurrences runs stepOccurrences from forecastFirstCompletion) and L189-202 (the first completion is simulated at now unless from-current with a future due). task_next_occurrence_engine.go:205-212 (next = first occurrence strictly after from) and L429-440 (withDueDate: from = max(now, due)). F1 fix: daily, and weekly-by-day with interval 1 and plain BYDAY and no COUNT/UNTIL/other parts, count locally. Any other rule is None when anchor (window_start-1s) < now, i.e. a past or straddling window, and the preview is not called. Preview is used only for wholly-future windows. now is injectable on scheduled_days_for_window and query_completion_events, defaulting to the current UTC time. Tests use _ServerFaithfulPreview, which returns only occurrences strictly after max(now, anchor). They cover past (unknown, no call, plus a positive control that the faithful fake returns only future dates), straddling, future (counted), and main (preview passed but not called for the past window, renders unknown). F2: any reason except count_exhausted/until_passed is None (parametrised over evaluation_failed, anchor_beyond_horizon, invalid_rule, no_occurrence, interval_beyond_horizon, outside_storable_range, policy_rejected). A short list without a reason is None; a non-string reason is None; a series-end reason counts the list. F3: the text path accepts bare or quoted habits keys. If the text path cannot edit the file and operations is present, it raises ValueError and writes nothing. The library fallback remains only for files with no operations key. Tests cover quoted keys (operations bytes preserved) and flow / inline-flow / complex-key layouts with operations (refused, file unchanged). F4: pruning the last item rewrites the key line to 'habits: []', keeping its comment. Tests cover a synthetic file and pruning every habit from a production copy (operations byte-identical, loader returns []). No git stash used.",
-        "Ready for review (fix cycle 1): past-window preview -> unknown, reason honoured, operations never re-serialised, last-habit prune -> habits: []",
-        "- 2026-11-20T00:21:20Z – unknown – Fix cycle 2, commit 30a72957 on lane-g, per the orchestrator ruling. DEVIATION FROM PLAN IC-05 / O4 and the T033 guidance: the weekly report no longer uses preview_occurrences at all. Plan O4 said other rules go through preview. Reason: report windows are always past, and the d7e202228 preview steps from max(now, due_date) (task_next_occurrence_engine.go:205-212, 429-440; task_occurrences.go:176, 189-202), so it cannot evaluate them. Re-anchoring for a future window shifts an interval rule's phase (review cycle 2 finding 1). Behaviour now: plain daily (FREQ=DAILY;INTERVAL=1) and plain weekly-by-day (INTERVAL=1, plain BYDAY, no COUNT/UNTIL/other parts) are counted locally. Every other rule has scheduled days None (completed/percent None, left out of overall totals), rendered as 'scheduled: unknown (rule preview unavailable)', never 0. That text is the one specified in T033 and is kept unchanged. Removed: the preview and now arguments on scheduled_days_for_window and query_completion_events, _preview_count, _SERIES_END_REASONS, _PREVIEW_COUNT, the Preview alias, main's and weekly_report_driver's preview=client.preview_occurrences, the server-faithful fake, and the future-window, reason and preview-error tests. Finding 2 (falsy non-string reason) is moot. weekly_report_driver.py and its test are now identical to the mission base. Kept or added: local count tests, a parametrised unknown-rule test (8 non-plain rules, both windows), a signature test (no preview or now parameter), the e2e unknown-rule rendering and overall-total test, and main rendering unknown without calling preview or post. Tests: make test (venv) exit 0, 9461 passed, 831 skipped, 1 xfailed; test_query_active_habits_weekly 98 passed. Ruff vs HEAD: findings only decreased. FOR WP11 or a follow-up: if Felix ever needs schedules for non-plain rules, it needs a historical occurrence API. Today's preview cannot provide one.",
-        "Ready for review (fix cycle 2): preview removed from weekly report per ruling; plain rules local, others unknown",
-        "Review passed, cycle 3 (reviewer: Codex CLI 0.170.0 / gpt-6.1-sol, read-only advisory; verdict recorded by orchestrator Claude Opus 5.5). No findings. Cycles 1-2 findings (preview can't count past windows, refusal->0, frozen operations rewrite, last-habit prune, phase shift) resolved; preview removed from the weekly report per orchestrator ruling (deviation from plan O4 recorded on #1111). Implementer make test 9461 passed is the full-suite evidence.",
-        "Reopened: consolidate stale-lane refusal on lane-g (overlap with lane-c/WP03); remedy per spec-kitty#7780",
-        "Merge of sibling lane-c resolved toward WP03 (matches 76c29de1); full suite 9469 passed, 831 skipped, 1 xfailed, 0 failed",
-        "Codex (gpt-6.1-sol, read-only) re-review after lane-c merge 4b8a5c72: no findings, APPROVE; verdict file review-WP07-verdict-4.md"
-      ],
-      "provider": "__resolved_provider_absent__",
-      "review": null,
       "review_result": {
         "feedback_path": "/home/kgale/repos/kg-automation/.worktrees/felix-rrule-adaptation-01M7TKNX-coord/kitty-specs/felix-rrule-adaptation-01M7TKNX/tasks/WP07-habits-reads-schedule-report/review-cycle-3.md",
         "reference": "review-cycle://felix-rrule-adaptation-01M7TKNX/WP07-habits-reads-schedule-report/review-cycle-3.md",
         "reviewer": "codex::reviewer-renata",
         "verdict": "approved"
       },
-      "role": "reviewer",
-      "shell_pid": 1285882,
-      "shell_pid_created_at": "1795262790.19",
-      "subtasks": {
-        "T030": "done",
-        "T031": "done",
-        "T032": "done",
-        "T033": "done",
-        "T034": "done",
-        "T035": "done"
-      }
+      "shell_pid": 1242152,
+      "shell_pid_created_at": "1795262274.28"
     },
     "WP08": {
       "actor": "merge",
-      "agent": "codex::reviewer-renata",
-      "agent_profile": "reviewer-renata",
-      "agent_profile_version": "1.0",
+      "agent": "claude",
       "force_count": 1,
       "implementer_of_record": "claude",
       "lane": "done",
       "last_event_id": "01M7Z0HN0CV9C7VJA12V1MBK6Z",
       "last_transition_at": "2026-11-21T12:15:53.868513+00:00",
-      "model": "__resolved_model_absent__",
-      "notes": [
-        "- 2026-11-20T18:13:39Z – claude – shell_pid=2169321 – WP08 out-of-map edits, with the reason for each:\n- scripts/common/vikunja_client.py (WP02): removed replace_task_fields (IC-01, the planned edit) and reworded the docstrings that cited migrate_schedule. Item 1 (WP02 arbiter): _end_series_read now runs a strict _recurrence_shape_error check, so a falsy or non-mapping repeat, or a repeat/repeats_rrule mismatch, raises VikunjaServerError.\n- tests/common/test_vikunja_client.py and test_vikunja_client_v2.py (WP02): removed the replace_task_fields tests and added a retired-method test. Item 1: 10 malformed-shape cases added to _BROKEN_READS, so they run at all 6 end_series readback positions, plus a consistent-shape control.\n- scripts/common/vikunja_rule.py and tests/common/test_vikunja_rule.py (WP01): items 3 and 4. New shared helpers recurrence_drift and moved_absolute_reminder, the relative-trigger sentinel check, and parity tests against server-engine fixtures.\n- scripts/habits/set_due_dates.py (WP03), scripts/vikunja/migrate_tasks.py (WP05), scripts/escalation/record_completion.py (WP04): item 3, rule of three. Each local drift duplicate was deleted and the module now calls vikunja_rule.recurrence_drift.\n- scripts/habits/record_completion.py and tests/habits/test_habits_rule_roundtrip.py (WP03): item 5. A completion-aware drift check that gives 'unexpected' and exit 1 after the comment and state-log writes. Includes corruption controls.\n- tests/habits/conftest.py (WP03): item 2. Removed scripts.habits.migrate_schedule from the base-URL patch loop.\n- tests/habits/test_sweeper_unit.py (WP03): replaced the dead replace_task_fields assertion with post.assert_not_called().\n- tests/common/fixtures/reminder_move_parity.json and its generator .go.txt (new): item 4 parity fixtures, produced by the d7e202228 engine itself.\n- Note for WP11: docs/design/architecture/data/service-inventory.json:1110-1117 and credential-manifest.json:411 still name migrate_schedule. They were NOT edited here, because WP11 owns them.\n- Item 6 (WP10 arbiter) is BLOCKED. scripts/vikunja/rule_repair.py and its tests exist only on lane-j, which is not merged into lane-h.\n- tests/trust/test_assertion_verifier.py (not WP08-owned): moved _FakeCreateClient to the v2 create+readback seam create_task now uses; behaviour assertions unchanged.",
-        "- 2026-11-20T18:13:41Z – claude – shell_pid=2169321 – red on cc4f2154 (new test_create_task.py ported plus the pure vikunja_rule.py it imports; 5 failed): test_create_task_rule_not_stored_raises_with_task_id[rule-missing], [rule-different], test_main_rule_missing_on_readback_exits_1, test_http_create_body_carries_repeats_rrule, test_http_one_off_readback_exits_1. All green on lane-h at c3e49498.",
-        "- 2026-11-20T18:13:43Z – claude – shell_pid=2169321 – T040 at c3e49498: full suite 9674 passed, 833 skipped, 1 xfailed, 0 failed; validate_architecture_data --strict OK (0 findings); grep repeat_after|repeat_mode in scripts (release tooling excluded) = 45 lines: 24 in the frozen phase3-schedule.yaml block and 21 others. Those 21 are retirement comments, the schedule_loader refusal guard, and 11 lines in two SKILL.md files pending WP09, all pinned by exact counts in the ALLOWED_HITS of the NFR-001 ratchet.",
-        "- 2026-11-20T18:13:54Z – claude – shell_pid=2169321 – NOT moved to for_review: required item 6 (WP10 arbiter: rule_repair torn-tail + duplicate --task-id) is blocked because scripts/vikunja/rule_repair.py exists only on lane-j, which is not merged into lane-h. Waiting for the orchestrator's decision.",
-        "Ready for review. Items 1-5 and T036-T040 done (c3e49498). Item 6 (rule_repair, lane-j only) moved to the post-consolidation fix pass; orchestrator decision, recorded on #1111.",
-        "Ready for review: cycle-1 fixes at 69245497 (ordinal BYDAY canonicalisation; read_only projection accepted); full suite 9697 passed",
-        "Review passed, cycle 2 (reviewer: Codex gpt-6.1-sol, 2026-11-20). Both cycle-1 MAJORs fixed; required items 1-5 verified. One MINOR (count-only ratchet allowances) carried to the post-consolidation pass."
-      ],
-      "provider": "__resolved_provider_absent__",
-      "review": null,
       "review_result": {
         "feedback_path": "/home/kgale/repos/kg-automation/.worktrees/felix-rrule-adaptation-01M7TKNX-coord/kitty-specs/felix-rrule-adaptation-01M7TKNX/tasks/WP08-create-retire-cleanup/review-cycle-2.md",
         "reference": "review-cycle://felix-rrule-adaptation-01M7TKNX/WP08-create-retire-cleanup/review-cycle-2.md",
         "reviewer": "codex::reviewer-renata",
         "verdict": "approved"
       },
-      "role": "reviewer",
-      "shell_pid": 2530238,
-      "shell_pid_created_at": "1795199585.52",
-      "subtasks": {
-        "T036": "done",
-        "T037": "done",
-        "T038": "done",
-        "T039": "done",
-        "T040": "done"
-      }
+      "shell_pid": 2456286,
+      "shell_pid_created_at": "1795198986.06"
     },
     "WP09": {
       "actor": "merge",
-      "agent": "codex::reviewer-renata",
-      "agent_profile": "reviewer-renata",
-      "agent_profile_version": "1.0",
+      "agent": "claude",
       "force_count": 3,
       "implementer_of_record": "claude",
       "lane": "done",
       "last_event_id": "01M7Z0HQ2R5D3Y8KJ0CEY2PN9W",
       "last_transition_at": "2026-11-21T12:15:55.992801+00:00",
-      "model": "__resolved_model_absent__",
-      "notes": [
-        "Ready for review: preview_rule helper + RRULE agent guidance; WP04/WP08 allowances removed",
-        "Cycle 2: anchor due_date shown first, count 1..100 + argparse via JSON summary, malformed answers exit 3",
-        "Cycle 3: preview bypasses closed, strict preview answers, AGENTS.md within 14000; existing-task/habit pause writes flagged",
-        "Cycle 4: create uses the previewed --due (create_args); create_task verifies stored due; delayed-confirmation tests",
-        "Review passed, cycle 4 (reviewer: Codex gpt-6.1-sol, 2026-11-20; Kent approved the extra cycle). Recurring creates now pin the previewed anchor. One MINOR (empty-token JSON contract) carried to the post-consolidation pass."
-      ],
-      "provider": "__resolved_provider_absent__",
-      "review": null,
       "review_result": {
         "feedback_path": "/home/kgale/repos/kg-automation/.worktrees/felix-rrule-adaptation-01M7TKNX-coord/kitty-specs/felix-rrule-adaptation-01M7TKNX/tasks/WP09-agent-guidance/review-cycle-4.md",
         "reference": "review-cycle://felix-rrule-adaptation-01M7TKNX/WP09-agent-guidance/review-cycle-4.md",
         "reviewer": "codex::reviewer-renata",
         "verdict": "approved"
       },
-      "role": "reviewer",
-      "shell_pid": 2938129,
-      "shell_pid_created_at": "1795204567.59",
-      "subtasks": {
-        "T041": "done",
-        "T042": "done",
-        "T043": "done",
-        "T044": "done",
-        "T045": "done"
-      }
+      "shell_pid": 2886704,
+      "shell_pid_created_at": "1795203935.05"
     },
     "WP10": {
       "actor": "merge",
-      "agent": "codex::reviewer-renata",
-      "agent_profile": "reviewer-renata",
-      "agent_profile_version": "1.0",
+      "agent": "claude",
       "force_count": 6,
       "implementer_of_record": "claude",
       "lane": "done",
       "last_event_id": "01M7Z0HJXWK6TEAA8QZ5NZNG4E",
       "last_transition_at": "2026-11-21T12:15:51.740813+00:00",
-      "model": "__resolved_model_absent__",
-      "notes": [
-        "- 2026-11-19T23:39:46Z – claude – shell_pid=3367897 – Blocked (partial): helpers+tests committed 113d4051 (61 WP10 tests pass; ruff clean; mypy clean on new modules). Runbook docs/runbooks/vikunja-task-repair.md written but UNCOMMITTED: adding any runbook makes the generated runbook-filter block in docs/DEVELOPER_PORTAL.md stale, so validate_docs and the pre-commit gate fail (and so does tests/docs_standards/test_adr_corpus.py::test_whole_corpus_passes_the_validator_with_the_check_promoted in make test: 1 failed / 9473 passed). DEVELOPER_PORTAL.md is not a WP10 owned file (WP11). Needs an orchestrator ruling: allow regenerating the portal block (tooling/scripts/build_runbook_filter.py --write) in WP10, or move the runbook commit to WP11. No --no-verify used.",
-        "- 2026-11-19T23:56:06Z – claude – shell_pid=3367897 – out-of-map: docs/DEVELOPER_PORTAL.md (WP11-owned) — generated runbook-filter block only, required by the pre-commit doc gate for the new runbook; WP11 still owns the INDEX/portal link prose.",
-        "- 2026-11-19T23:56:08Z – claude – shell_pid=3367897 – Commits: 113d4051 (helpers+tests), 6b7448e5 (runbook + regenerated portal block, coordinator decision A). WP10 pytest: 61 passed. ruff --ignore UP017: clean. mypy on new modules: clean. validate_docs: OK (exit 0). make test run 2: 1 failed = tests/research/test_arms849_arm_g.py::test_idle_pooled_connections_are_shut_down_at_the_poison_and_another_bridge_is_untouched (asyncio deadline TimeoutError under load; WP10 does not touch it; passed 5/5 in isolation and in run 1). make test run 3: exit 0, 9474 passed, 832 skipped, 1 xfailed. Judgment calls in handback: shared _write_rule uses _allow_null on apply clear-first; legacy schema refused (operator must check the real 20261030 snapshot columns); original snapshot dir refused; repair exit codes 0/2/3/4/5.",
-        "Ready for review",
-        "- 2026-11-20T00:16:03Z – unknown – Review cycle 1 fixes, commit 600cb918. (1) Each Felix log source has its own parser, and only successful non-dry-run writes that changed the task count. Sweeper: dry_run=false, habits_auto_skipped entries with new_due_date_et, minus tasks in errors. habits-history: domain=habits rows with state complete/incomplete/skipped; event_type rows excluded. Escalation: state done/rescheduled. Intake: status=applied with done/project/due_date. Unrecognised files and records are not attribution. (2) run.json saves the apply-time entries and the plan's sha256; resume uses the saved entries, refuses (exit 2, before any Vikunja call) if the plan digest changed, and re-checks consent. (3) Before each append, a torn journal tail is truncated to the last complete line (fsynced) and the fragment is kept in journal.jsonl.torn. (4) Apply readback also checks reminders (relative by relation and period, absolute by exact instant), due_date and done against the pre-write snapshot. (5) A seeded_value that is not null or a rule object is skipped and counted. Every fix has a test that was red on the old code (14 inventory, 7 repair); one extra drift-guard test passes on both. The runbook's --felix-logs paths are corrected: habits-history.jsonl is in the state root. WP10 tests: 86 passed. ruff: clean. mypy (new modules): clean. validate_docs: OK. make test: exit 0, 9499 passed, 832 skipped, 1 xfailed.",
-        "Ready for review (cycle 1 fixes)",
-        "- 2026-11-20T00:34:03Z – unknown – Review cycle 2 fixes, commit 3e818675. Attribution now requires positive write provenance. Escalation: state done/rescheduled AND source agent/kent_reply; reconcile (synthesized with record_event skip_vikunja=True), backfill, operator_repair and rows with no source are excluded. Habits: source whatsapp only (the source Felix's record_completion uses); vikunja-ui (reconcile UI tick), historical-backfill, reconcile and rows with no source are excluded. Intake: only status=applied with applied.done true. applied.project/due_date are requested values, set even when unchanged; field_changes is not logged, so those rows are ambiguous and not attribution. Regression tests use the real writer shapes (escalation reconcile_completions L895-915/1004-1014/1064-1078, habits reconcile_completions L202-210, intake label-only apply with unchanged project/due) plus the reviewer's end-to-end probe (UI removal next to reconcile rows -> removed). 4 tests red on 600cb918, now green. Existing positive fixtures gained source=whatsapp/kent_reply. Runbook attribution and residual-risk text updated; documented residual: escalation --no-vikunja is not marked in the row. WP10 tests: 89 passed. ruff: clean. validate_docs: OK. make test: exit 0, 9502 passed, 832 skipped, 1 xfailed. Note: mid-task the harness moved this session's primary working directory to the lane-h worktree; all WP10 work stayed in lane-j by absolute path.",
-        "Ready for review (cycle 2 fixes)",
-        "Arbiter decision (orchestrator Claude Opus 5.5) after 3 Codex gpt-6.1-sol rejections: APPROVED with a REQUIRED carry-over. Cycle-1 (attribution too loose, resume trusting a replaced inventory, torn journal, readback ignoring reminders/due/done, seed crash) and cycle-2 (reconcile/UI rows and unchanged intake values as attribution) MAJORs verified fixed by the reviewer. Cycle-3 MAJORs are real reporting defects: (1) an unterminated but complete journal record is truncated by the next append, so a successful repair is reported pending; (2) a repeated --task-id makes a later skipped_drift overwrite a completed ok outcome. Neither can cause a wrong live write; live repair runs only after the deploy, behind Kent's gate. Both fixes, with regression tests, are assigned to WP08 (out-of-map) and verified by WP08's reviewer before the mission consolidates. Implementer: Claude Opus 5.5 (python-pedro). Reviewer: Codex gpt-6.1-sol.",
-        "Ready for independent review",
-        "Ready for independent review",
-        "Independent review passed, cycle 5 (reviewer: Codex gpt-6.1-sol, 2026-11-20). The deferred cycle-3 findings and the exit-3 partial-run guidance are fixed on lane-j (f34bb2b6, a81116c7). Replaces the earlier arbiter approval for the independence gate."
-      ],
-      "provider": "__resolved_provider_absent__",
-      "review": null,
       "review_result": {
         "feedback_path": "/home/kgale/repos/kg-automation/.worktrees/felix-rrule-adaptation-01M7TKNX-coord/kitty-specs/felix-rrule-adaptation-01M7TKNX/tasks/WP10-inventory-and-repair/review-cycle-6.md",
         "reference": "review-cycle://felix-rrule-adaptation-01M7TKNX/WP10-inventory-and-repair/review-cycle-6.md",
         "reviewer": "codex::reviewer-renata",
         "verdict": "approved"
       },
-      "role": "reviewer",
-      "shell_pid": 3849072,
-      "shell_pid_created_at": "1795215886.9",
-      "subtasks": {
-        "T046": "done",
-        "T047": "done",
-        "T048": "done",
-        "T049": "done",
-        "T050": "done"
-      }
+      "shell_pid": 3804591,
+      "shell_pid_created_at": "1795215387.45"
     },
     "WP11": {
       "actor": "merge",
-      "agent": "codex::reviewer-renata",
-      "agent_profile": "reviewer-renata",
-      "agent_profile_version": "1.0",
+      "agent": "claude",
       "force_count": 1,
       "implementer_of_record": "claude",
       "lane": "done",
       "last_event_id": "01M7Z0HV5PY0QD0WY401XB72P8",
       "last_transition_at": "2026-11-21T12:16:00.182542+00:00",
-      "model": "__resolved_model_absent__",
-      "notes": [
-        "- 2026-11-20T22:01:14Z – claude – shell_pid=3347251 – Validation 84f04aa2: validate_architecture_data --strict OK (0 findings); validate_docs OK; check_doc_links OK (0 broken); full pytest 9917 passed, 52 skipped, 1 xfailed. Signal-map targets reviewed-unchanged: openclaw-agent-setup.md, service-dependencies.view.md, felix-capability-roadmap.md, identity-model.md, audited-surfaces.json, deploy/discipline.md (no manifest). Token re-issue recorded as pending Kent.",
-        "Ready for review",
-        "Cycle 1 fixes (68d66c05): exact rule_inventory classification incl. finite-rule exception and attribution; weekly-report JSON classifies from the rule",
-        "Review passed, cycle 2 (reviewer: Codex gpt-6.1-sol, 2026-11-20). One MINOR (unresolved-status wording) carried to the post-consolidation pass."
-      ],
-      "provider": "__resolved_provider_absent__",
-      "review": null,
       "review_result": {
         "feedback_path": "/home/kgale/repos/kg-automation/.worktrees/felix-rrule-adaptation-01M7TKNX-coord/kitty-specs/felix-rrule-adaptation-01M7TKNX/tasks/WP11-architecture-docs-and-rollout/review-cycle-2.md",
         "reference": "review-cycle://felix-rrule-adaptation-01M7TKNX/WP11-architecture-docs-and-rollout/review-cycle-2.md",
         "reviewer": "codex::reviewer-renata",
         "verdict": "approved"
       },
-      "role": "reviewer",
-      "shell_pid": 3606592,
-      "shell_pid_created_at": "1795213268.44",
-      "subtasks": {
-        "T051": "done",
-        "T052": "done",
-        "T053": "done",
-        "T054": "done",
-        "T055": "done"
-      }
+      "shell_pid": 3556793,
+      "shell_pid_created_at": "1795212658.23"
     },
     "WP12": {
       "actor": "merge",
-      "agent": "codex::reviewer-renata",
-      "agent_profile": "reviewer-renata",
-      "agent_profile_version": "1.0",
+      "agent": "claude",
       "force_count": 2,
       "implementer_of_record": "claude",
       "lane": "done",
       "last_event_id": "01M7Z0HS3SGA38SRVS5X5P71S7",
       "last_transition_at": "2026-11-21T12:15:58.073104+00:00",
-      "model": "__resolved_model_absent__",
-      "notes": [
-        "Ready for review: update_task + manage_habit helpers, paused habits skipped by morning list and sweeper (commit 77073b6d). Out-of-map: query_active_habits_v2 (paused filter), sweeper (paused skip, fail closed), sync/cycle (description cached, not diffed), sync_cache docstring, tests/sync/test_cycle (cached field set), tests/habits/conftest (default no-paused stub), test_habits_history_canonical_read (manage_habit allowlist), tasker/habits AGENTS.md + vikunja-api SKILL (re-enabled paths).",
-        "Cycle 1 fixes (cb3873d6): live v2 pause check before every sweeper write; sweeper no longer uses the cache (a missing or stale cache cannot disable protection); HABIT_STATUSES enum in code; morning-list lag documented in habits AGENTS.md; contract text handed to WP11 via notes.",
-        "Cycle 2 fixes, scoped by Kent: one live pause check per habit per tick covers both sweeper write sites on all paths, backlog included.",
-        "Review passed, cycle 3, no findings (reviewer: Codex gpt-6.1-sol, 2026-11-20). Both sweeper write sites are covered by the habit's live pause check; Kent's practicality ruling applied."
-      ],
-      "provider": "__resolved_provider_absent__",
-      "review": null,
       "review_result": {
         "feedback_path": "/home/kgale/repos/kg-automation/.worktrees/felix-rrule-adaptation-01M7TKNX-coord/kitty-specs/felix-rrule-adaptation-01M7TKNX/tasks/WP12-existing-task-and-habit-helpers/review-cycle-3.md",
         "reference": "review-cycle://felix-rrule-adaptation-01M7TKNX/WP12-existing-task-and-habit-helpers/review-cycle-3.md",
         "reviewer": "codex::reviewer-renata",
         "verdict": "approved"
       },
-      "role": "reviewer",
-      "shell_pid": 3318011,
-      "shell_pid_created_at": "1795209545.26",
-      "subtasks": {
-        "T056": "done",
-        "T057": "done",
-        "T058": "done",
-        "T059": "done",
-        "T060": "done"
-      }
+      "shell_pid": 3270588,
+      "shell_pid_created_at": "1795208946.18"
     }
   }
 }
