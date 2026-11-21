@@ -9,8 +9,10 @@ global state, no caching. Driven by the committed routing manifest
 
 - **moves** 29 surviving tasks out of the task-bearing legacy projects into
   their correct topic project (Personal 20, Felix / kg-automation 16,
-  Intentional LLC 9), preserving each task's writable fields via an allowlisted
-  read-modify-write with a post-move readback diff (NFR-001, #524);
+  Intentional LLC 9) with a v2 merge-patch that sends only ``project_id``,
+  then a readback that asserts the move took and the recurrence rule, the
+  from-current flag, the reminders and the labels all survived (NFR-001, #524,
+  #1111);
 - **labels** 11 Habits tasks with ``t:habit`` (they stay in Habits 13, FR-002);
 - **deletes** two test-artifact tasks (#89, #44) — BEFORE the project
   empty-check so a doomed project holding a test task does not self-block (H-5);
@@ -43,11 +45,13 @@ import argparse
 import json
 import os
 import sys
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
 from scripts.common.vikunja_client import VikunjaError
+from scripts.common.vikunja_rule import recurrence_drift
 
 __all__ = [
     "DEFAULT_KENT_TOKEN_FILE",
@@ -66,6 +70,7 @@ __all__ = [
     "preflight",
     "build_plan",
     "move_task",
+    "rule_state_drift",
     "apply_habit_label",
     "reconcile",
     "main",
@@ -135,25 +140,6 @@ PROJECT_PARENTS: dict[int, int] = {
     11: 0,
     12: 0,
 }
-
-# The writable-field allowlist for a task move (NFR-001). Every one of these is
-# echoed back on the POST so Vikunja's partial-replace does not zero it (#524);
-# a post-move readback asserts none of them changed. ``project_id`` is added
-# separately as the one intended mutation.
-_WRITABLE_FIELDS: tuple[str, ...] = (
-    "title",
-    "description",
-    "due_date",
-    "repeat_after",
-    "repeat_mode",
-    "priority",
-    "done",
-    "done_at",
-    "hex_color",
-    "percent_done",
-    "start_date",
-    "end_date",
-)
 
 # Complex-state fields that a plain move cannot safely preserve; any present →
 # the task is preflight-blocked, not migrated (FR-011).
@@ -771,18 +757,34 @@ def build_plan(
 
 
 # ---------------------------------------------------------------------------
-# Execute — move (allowlisted RMW + readback), label attach, deletes
+# Execute — move (merge-patch + readback), label attach, deletes
 # ---------------------------------------------------------------------------
 
 
-def _writable_payload(task: dict) -> dict[str, Any]:
-    """Copy the writable-field allowlist from a task (NFR-001).
+def rule_state_drift(
+    before: Mapping[str, Any], after: Mapping[str, Any]
+) -> str | None:
+    """Describe how a non-completion write damaged the rule-bearing state.
 
-    Only fields present on the task are copied — an absent field is left out so
-    the server keeps its default rather than being sent an explicit ``None``.
-    ``project_id`` is added by :func:`move_task`, not here.
+    data-model.md Invariant 2 (#1111): after a due-date change, project move or
+    other non-completion write, the rule, ``repeats_from_current_date`` and the
+    reminder set are unchanged. The comparison itself is the shared
+    :func:`scripts.common.vikunja_rule.recurrence_drift`; this wrapper only
+    renders the first drifted field with both values. Returns ``None`` when all
+    hold. Callers raise their own error type (``ReconcileError`` here,
+    ``MigrationError`` in ``migrate_date_only_due_dates``, ``ApplyError`` in
+    ``intake.apply_reply``).
     """
-    return {name: task[name] for name in _WRITABLE_FIELDS if name in task}
+    drift = recurrence_drift(before, after)
+    if not drift:
+        return None
+    name = drift[0]
+    if name == "repeats_from_current_date":
+        return (
+            f"'repeats_from_current_date' changed from "
+            f"{bool(before.get(name))!r} to {bool(after.get(name))!r}"
+        )
+    return f"{name!r} changed from {before.get(name)!r} to {after.get(name)!r}"
 
 
 def _label_id_set(task: dict) -> set[int]:
@@ -802,15 +804,16 @@ def _label_id_set(task: dict) -> set[int]:
 
 
 def move_task(client: Any, task: dict, to_pid: int) -> None:
-    """Move ``task`` to project ``to_pid`` via an allowlisted RMW + readback.
+    """Move ``task`` to project ``to_pid`` via a merge-patch + readback (#1111).
 
-    Builds the payload from :func:`_writable_payload` plus ``project_id`` (never
-    a blind echo of GET output — Vikunja POST is partial-replace, #524), POSTs
-    to ``/tasks/{id}``, then GETs the task back and asserts ``project_id`` is the
-    new target, every allowlisted field is unchanged, AND the task's labels
-    survived the move (a silent label drop must fail loud, not pass). Any
-    mismatch raises :class:`ReconcileError` (a readback mismatch is a hard
-    failure, not a warn).
+    Sends exactly ``{"project_id": to_pid}`` through
+    :meth:`VikunjaClient.patch_task` (``project_id`` is in the fork's update
+    column list, vikunja-harness d7e202228 ``pkg/models/tasks.go:1518-1533``),
+    so no other field is re-sent and none can be zeroed (#524). Then reads the
+    task back over v2 and asserts ``project_id`` is the new target, the rule,
+    from-current flag and reminders are unchanged (:func:`rule_state_drift`),
+    AND the labels survived the move (a silent label drop must fail loud). Any
+    mismatch raises :class:`ReconcileError` (a hard failure, not a warn).
     """
     task_id = task.get("id")
     if not isinstance(task_id, int) or isinstance(task_id, bool):
@@ -820,12 +823,9 @@ def move_task(client: Any, task: dict, to_pid: int) -> None:
     # survived the readback (a move that silently dropped labels must fail loud).
     source_label_ids = _label_id_set(task)
 
-    payload = _writable_payload(task)
-    payload["project_id"] = to_pid
+    client.patch_task(task_id, {"project_id": to_pid})
 
-    client.post(f"/tasks/{task_id}", json=payload)
-
-    readback = client.get(f"/tasks/{task_id}")
+    readback = client.get_task_v2(task_id)
     if not isinstance(readback, dict):
         raise ReconcileError(
             f"move readback for task {task_id} returned a non-object; refusing "
@@ -836,15 +836,14 @@ def move_task(client: Any, task: dict, to_pid: int) -> None:
             f"move readback for task {task_id}: project_id is "
             f"{readback.get('project_id')!r}, expected {to_pid}. Aborting."
         )
-    for name in _WRITABLE_FIELDS:
-        if name in payload and readback.get(name) != payload[name]:
-            raise ReconcileError(
-                f"move readback for task {task_id}: field {name!r} changed from "
-                f"{payload[name]!r} to {readback.get(name)!r}. Vikunja may have "
-                f"zeroed an unstated field — aborting fail-loud (#524)."
-            )
+    drift = rule_state_drift(task, readback)
+    if drift is not None:
+        raise ReconcileError(
+            f"move readback for task {task_id}: {drift}. The move damaged the "
+            f"recurrence state — aborting fail-loud (#524, #1111)."
+        )
 
-    # Labels are NOT in the writable payload (they are a separate association),
+    # Labels are NOT in the patch body (they are a separate association),
     # so a move must not perturb them. If the source had labels, the readback
     # must present a well-shaped ``labels`` list whose id set matches; a missing
     # ``labels`` key, a non-list, or non-dict entries when the source had labels

@@ -21,8 +21,12 @@ Output (stdout):
 
     Single match — one JSON object describing the workout task:
         {"task_id": 17, "title": "Workout", "project_id": 1,
-         "labels": ["personal"], "repeat_after": 0,
+         "labels": ["personal"], "repeat": null,
          "due_date": "2026-05-19T08:00:00Z"}
+
+    ``repeat`` is the task's recurrence rule object (``null`` for none);
+    ``repeats_rrule`` (RFC 5545 text) is added when the body carries it
+    (#1111, FR-017).
 
     No match — the literal token ``null``:
         null
@@ -134,8 +138,9 @@ def find_workout_task(
             Default: ``[14, 15, 16, 17, 18, 19, 20, 65]``.
 
     Returns:
-        Dict with keys ``{task_id, title, project_id, labels, repeat_after,
-        due_date}`` for the matching task. ``None`` if no candidate's title
+        Dict with keys ``{task_id, title, project_id, labels, repeat,
+        due_date}`` (plus ``repeats_rrule`` when the body has it) for the
+        matching task. ``None`` if no candidate's title
         matches the workout regex.
 
     Raises:
@@ -163,16 +168,17 @@ def find_workout_task(
             # Defensive: Vikunja should always return a string title.
             continue
         if WORKOUT_TITLE_REGEX.search(title):
-            matches.append(
-                {
-                    "task_id": task_id,
-                    "title": title,
-                    "project_id": payload.get("project_id"),
-                    "labels": payload.get("labels") or [],
-                    "repeat_after": payload.get("repeat_after"),
-                    "due_date": payload.get("due_date"),
-                }
-            )
+            match = {
+                "task_id": task_id,
+                "title": title,
+                "project_id": payload.get("project_id"),
+                "labels": payload.get("labels") or [],
+                "repeat": payload.get("repeat"),
+                "due_date": payload.get("due_date"),
+            }
+            if payload.get("repeats_rrule"):
+                match["repeats_rrule"] = payload["repeats_rrule"]
+            matches.append(match)
 
     if len(matches) == 0:
         return None

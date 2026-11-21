@@ -1,0 +1,111 @@
+{
+  "_provenance": "Outputs of the Vikunja server's own completion engine, not hand-derived. Generated 2026-11-20 by running nextOccurrence() from vikunja-harness d7e202228 (pkg/models/task_next_occurrence.go) in zone America/New_York, FromCompletion=false, via tests/common/fixtures/reminder_move_parity_generator.go.txt dropped into pkg/models of a 'git archive d7e202228' export (go test -run TestFelixParityDump). 'reminders' are the input absolute reminders in input order; 'moved' is the engine's result in the same order. Regenerate with the generator when the server engine changes.",
+  "zone": "America/New_York",
+  "server_commit": "d7e202228",
+  "cases": [
+    {
+      "due": "2027-03-13T08:00:00Z",
+      "moved": [
+        "2027-03-14T07:00:00Z"
+      ],
+      "name": "named_time_gap_clamp",
+      "new_due": "2027-03-14T07:00:00Z",
+      "now": "2027-03-13T09:00:00Z",
+      "reason": "",
+      "reminders": [
+        "2027-03-13T07:30:00Z"
+      ],
+      "rule": "FREQ=DAILY;BYHOUR=3;BYMINUTE=0"
+    },
+    {
+      "due": "2026-11-20T14:00:00Z",
+      "moved": [
+        "2026-11-21T13:00:00Z",
+        "2026-11-21T15:30:00Z"
+      ],
+      "name": "named_time_plain",
+      "new_due": "2026-11-21T14:00:00Z",
+      "now": "2026-11-20T15:00:00Z",
+      "reason": "",
+      "reminders": [
+        "2026-11-20T13:00:00Z",
+        "2026-11-20T15:30:00Z"
+      ],
+      "rule": "FREQ=DAILY;BYHOUR=9;BYMINUTE=0"
+    },
+    {
+      "due": "2027-03-13T15:00:00Z",
+      "moved": [
+        "2027-03-14T07:30:00Z",
+        "2027-03-14T07:15:00Z"
+      ],
+      "name": "daily_gap_forward",
+      "new_due": "2027-03-14T14:00:00Z",
+      "now": "2027-03-13T16:00:00Z",
+      "reason": "",
+      "reminders": [
+        "2027-03-13T07:30:00Z",
+        "2027-03-13T08:15:00Z"
+      ],
+      "rule": "FREQ=DAILY"
+    },
+    {
+      "due": "2026-10-31T14:00:00Z",
+      "moved": [
+        "2026-11-01T05:30:00Z"
+      ],
+      "name": "daily_overlap_earlier",
+      "new_due": "2026-11-01T15:00:00Z",
+      "now": "2026-10-31T15:00:00Z",
+      "reason": "",
+      "reminders": [
+        "2026-10-31T05:30:00Z"
+      ],
+      "rule": "FREQ=DAILY"
+    },
+    {
+      "due": "2026-10-28T13:00:00Z",
+      "moved": [
+        "2026-11-04T13:00:00Z",
+        "2026-11-03T23:00:00Z"
+      ],
+      "name": "weekly_across_fallback",
+      "new_due": "2026-11-04T14:00:00Z",
+      "now": "2026-10-28T14:00:00Z",
+      "reason": "",
+      "reminders": [
+        "2026-10-28T12:00:00Z",
+        "2026-10-27T22:00:00Z"
+      ],
+      "rule": "FREQ=WEEKLY"
+    },
+    {
+      "due": "2027-03-14T05:00:00Z",
+      "moved": [
+        "2027-03-14T10:30:00Z"
+      ],
+      "name": "hourly_elapsed",
+      "new_due": "2027-03-14T11:00:00Z",
+      "now": "2027-03-14T05:10:00Z",
+      "reason": "",
+      "reminders": [
+        "2027-03-14T04:30:00Z"
+      ],
+      "rule": "FREQ=HOURLY;INTERVAL=6"
+    },
+    {
+      "due": "2026-10-31T05:30:00Z",
+      "moved": [
+        "2026-11-01T07:00:00Z"
+      ],
+      "name": "named_time_clamp_after",
+      "new_due": "2026-11-01T05:30:00Z",
+      "now": "2026-10-31T06:10:00Z",
+      "reason": "",
+      "reminders": [
+        "2026-10-31T06:00:00Z"
+      ],
+      "rule": "FREQ=DAILY;BYHOUR=1;BYMINUTE=30"
+    }
+  ]
+}

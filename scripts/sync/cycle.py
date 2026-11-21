@@ -26,6 +26,7 @@ from scripts.sync.cleanup import append_task_deleted_event, prune_schedule_yaml
 from scripts.sync.diff import (
     PRIVATE_PROJECT_IDS,
     TRACKED_TASK_FIELDS,
+    BaselineSeed,
     compute_divergences,
 )
 from scripts.sync.emit import (
@@ -50,6 +51,7 @@ from scripts.sync.state import (
     TaskCacheEntry,
     TaskCacheRecord,
     append_per_tick_error,
+    append_seed_ledger,
     read_guard_state,
     read_project_cache,
     read_task_cache,
@@ -103,6 +105,8 @@ class CycleResult:
     cycle_error: str | None
     events_emitted: dict[str, int] = field(default_factory=dict)
     duration_ms: int = 0
+    # (task, field) baseline seeds adopted this cycle (#1111, R-008).
+    baseline_seeded: int = 0
 
 
 # ---------------------------------------------------------------------------
@@ -214,6 +218,7 @@ def run_cycle(
         deleted_task_ids,
         project_events,
         layer_summary,
+        seeds,
     ) = compute_divergences(
         snapshot=snapshot,
         task_cache=task_cache,
@@ -359,7 +364,7 @@ def run_cycle(
         # Dry-run: skip ALL state writes.
         sys.stderr.write(
             f"[sync DRY-RUN] tick={tick_id} would_emit={events_count} "
-            f"new_pointer={started_at_utc}\n"
+            f"would_seed={len(seeds)} new_pointer={started_at_utc}\n"
         )
         return CycleResult(
             success=True,
@@ -368,9 +373,18 @@ def run_cycle(
             cycle_error=None,
             events_emitted=events_count,
             duration_ms=_ms_since(start_perf),
+            baseline_seeded=len(seeds),
         )
 
     try:
+        # Seed ledger FIRST (post-plan finding 9): a seed must never be
+        # adopted without a durable record. Written before the cache, so a
+        # failed cache write re-seeds next cycle (a duplicate ledger row under
+        # a new cycle_id) rather than persisting an unrecorded seed.
+        append_seed_ledger(
+            config.state_dir,
+            _seed_ledger_rows(seeds, cycle_id=tick_id, at=started_at_utc),
+        )
         write_task_cache(config.state_dir, new_task_cache)
         write_project_cache(config.state_dir, new_project_cache)
         write_guard_state(config.state_dir, updated_guard_state)
@@ -410,8 +424,13 @@ def run_cycle(
             events_emitted=events_count,
             cycle_error=None,
             vikunja_version_seen=snapshot.vikunja_version,
+            baseline_seeded=len(seeds),
         ),
     )
+    if seeds:
+        sys.stderr.write(
+            f"[sync] tick={tick_id} status=ok baseline_seeded={len(seeds)}\n"
+        )
 
     return CycleResult(
         success=True,
@@ -420,6 +439,7 @@ def run_cycle(
         cycle_error=None,
         events_emitted=events_count,
         duration_ms=duration_ms,
+        baseline_seeded=len(seeds),
     )
 
 
@@ -606,9 +626,31 @@ def _read_token(path: Path) -> str:
     return content
 
 
+def _seed_ledger_rows(
+    seeds: list[BaselineSeed], *, cycle_id: str, at: str
+) -> list[dict[str, Any]]:
+    """Render baseline seeds as ``seed-ledger.jsonl`` rows (one per seed)."""
+    return [
+        {
+            "cycle_id": cycle_id,
+            "task_id": seed.vikunja_entity_id,
+            "field": seed.field,
+            "seeded_value": seed.seeded_value,
+            "at": at,
+        }
+        for seed in seeds
+    ]
+
+
 def _read_or_fail_freshness(state_dir: Path) -> None:
     from scripts.sync.state import read_freshness
     read_freshness(state_dir)
+
+
+#: Fields cached for readers but never diffed (#1111 WP12, FR-026): the habits
+#: readers test the ``(PAUSED)`` description prefix. Not tracked, so a
+#: description edit raises no divergence and needs no baseline seed.
+CACHED_ONLY_TASK_FIELDS: frozenset[str] = frozenset({"description"})
 
 
 def _apply_cache_updates(
@@ -654,7 +696,7 @@ def _apply_cache_updates(
             continue
 
         fields_subset: dict[str, Any] = {}
-        for f_name in TRACKED_TASK_FIELDS:
+        for f_name in TRACKED_TASK_FIELDS | CACHED_ONLY_TASK_FIELDS:
             fields_subset[f_name] = task.get(f_name)
 
         new_tasks[str(task_id)] = TaskCacheEntry(

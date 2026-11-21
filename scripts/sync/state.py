@@ -43,6 +43,8 @@ GUARD_STATE_FILENAME = "guard-state.json"
 CONFLICT_EVENTS_FILENAME = "conflict-events.jsonl"
 LAST_TICK_FILENAME = "last-tick.json"
 LAST_TICK_ERRORS_FILENAME = "last-tick.errors.jsonl"
+# Append-only record of every baseline seed (#1111, R-008 / post-plan finding 9).
+SEED_LEDGER_FILENAME = "seed-ledger.jsonl"
 
 
 # ---------------------------------------------------------------------------
@@ -152,6 +154,9 @@ class PerTickHealthRecord:
     cycle_error: str | None
     vikunja_version_seen: str | None
     schema_version: int = HEALTH_SCHEMA_VERSION
+    # Count of (task, field) baseline seeds this cycle (#1111). Additive key in
+    # last-tick.json; HEALTH_SCHEMA_VERSION is deliberately unchanged.
+    baseline_seeded: int = 0
 
 
 @dataclass(frozen=True)
@@ -460,6 +465,7 @@ def write_per_tick_health(state_dir: Path, record: PerTickHealthRecord) -> None:
         "events_emitted": dict(record.events_emitted),
         "cycle_error": record.cycle_error,
         "vikunja_version_seen": record.vikunja_version_seen,
+        "baseline_seeded": record.baseline_seeded,
     }
     atomic_write_json(path, data)
 
@@ -477,3 +483,56 @@ def append_per_tick_error(state_dir: Path, record: PerTickErrorRecord) -> None:
         "layer_pointers_unchanged": record.layer_pointers_unchanged,
     }
     append_jsonl(path, data)
+
+
+# ---------------------------------------------------------------------------
+# Seed ledger (#1111 / R-008, post-plan review finding 9)
+# ---------------------------------------------------------------------------
+
+
+def append_seed_ledger(state_dir: Path, records: list[dict]) -> None:
+    """Atomically append baseline-seed rows to ``seed-ledger.jsonl``.
+
+    One JSON line per seed (``cycle_id``, ``task_id``, ``field``,
+    ``seeded_value``, ``at``). A ``None`` ``seeded_value`` is written as JSON
+    ``null`` -- that row is the evidence the post-deploy inventory cross-checks.
+
+    The append is a whole-file atomic replace, not an ``open(..., "a")``: the
+    current ledger plus the new rows are written to ``<path>.tmp``, the temp
+    file is ``fsync``ed, ``os.replace``d onto the ledger, and the directory is
+    ``fsync``ed. A failure at any point (e.g. a partial write on a full disk)
+    leaves the committed ledger byte-for-byte unchanged, so no fragment can
+    ever precede a later row (WP06 review cycle 1, finding 1). The ledger
+    holds at most one row per task per field, so the rewrite stays small.
+
+    No-op for an empty ``records`` list (the file is not created). Raises
+    ``OSError`` on failure (the temp file is removed best-effort); the caller
+    treats that as a phase-6 failure and does not advance the cache.
+    """
+    if not records:
+        return
+    path = state_dir / SEED_LEDGER_FILENAME
+    path.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        existing = path.read_bytes()
+    except FileNotFoundError:
+        existing = b""
+    payload = "".join(json.dumps(r, sort_keys=True) + "\n" for r in records)
+    tmp = path.with_suffix(path.suffix + ".tmp")
+    try:
+        with open(tmp, "wb") as f:
+            f.write(existing + payload.encode("utf-8"))
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(tmp, path)
+    except BaseException:
+        try:
+            tmp.unlink()
+        except FileNotFoundError:
+            pass
+        raise
+    dir_fd = os.open(path.parent, os.O_RDONLY)
+    try:
+        os.fsync(dir_fd)
+    finally:
+        os.close(dir_fd)

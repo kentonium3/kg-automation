@@ -37,8 +37,24 @@ Token resolution: the default token path is **not** a constant here — it is
     default-constructed ``VikunjaClient()`` with it.
 Exceptions: ``VikunjaError``, ``VikunjaHttpError``, ``VikunjaAuthError``,
     ``VikunjaNotFoundError``, ``VikunjaBadRequestError``,
-    ``VikunjaServerError``, ``VikunjaTimeoutError``
+    ``VikunjaServerError``, ``VikunjaTimeoutError``, ``SeriesEndIncomplete``
+Constants (v2 seam): ``WRITABLE_TASK_FIELDS``
 Class: ``VikunjaClient``
+
+v2 seam (mission felix-rrule-adaptation-01M7TKNX, WP02, #1111)
+--------------------------------------------------------------
+Contract: ``kitty-specs/felix-rrule-adaptation-01M7TKNX/contracts/vikunja-client-v2.md``.
+The configured base URL stays the ``/api/v1`` URL (R-002); the client derives
+``v2_base_url`` from it. :meth:`VikunjaClient.patch_task` is the main write
+path: ``PATCH /api/v2/tasks/{id}`` with ``application/merge-patch+json`` and
+only the changed keys. Server facts (vikunja-harness ``d7e202228`` + huma
+autopatch v2.40.0): a merge patch ``null`` deletes a key, so ``None`` values
+are refused; a no-op patch answers **304 with an empty body**
+(autopatch.go:408-410), returned as ``None``; ``{"repeat": null, "done":
+true}`` in one call reopens the task (``pkg/models/tasks.go:1740-1760``), so
+:meth:`VikunjaClient.end_series` uses two calls. v2 error bodies carry
+Vikunja's numeric ``code`` (``pkg/routes/api/v2/errors.go:116-121``), exposed
+as ``exc.code``.
 
 Redaction policy (FR-011, FR-012)
 ---------------------------------
@@ -93,23 +109,62 @@ import socket
 import urllib.error
 import urllib.parse
 import urllib.request
+from collections.abc import Mapping
 from typing import Any
+
+from scripts.common.vikunja_rule import has_rule, rrule_text_to_parts, same_rule
 
 __all__ = [
     "DEFAULT_TIMEOUT",
+    "WRITABLE_TASK_FIELDS",
+    "SeriesEndIncomplete",
+    "VikunjaAuthError",
+    "VikunjaBadRequestError",
+    "VikunjaClient",
     "VikunjaError",
     "VikunjaHttpError",
-    "VikunjaAuthError",
     "VikunjaNotFoundError",
-    "VikunjaBadRequestError",
     "VikunjaServerError",
     "VikunjaTimeoutError",
-    "VikunjaClient",
 ]
 
 DEFAULT_TIMEOUT = 30.0
 
 _BASE_URL_PATTERN = re.compile(r"^https?://[^/]+/api/v1$")
+
+#: Task keys :meth:`VikunjaClient.patch_task` may send. The fork's update
+#: column list (vikunja-harness d7e202228 ``pkg/models/tasks.go:1518-1533``)
+#: plus the rule text and reminders, minus ``bucket_id`` and
+#: ``cover_image_attachment_id``, which Felix does not use.
+WRITABLE_TASK_FIELDS: frozenset[str] = frozenset(
+    {
+        "title",
+        "description",
+        "done",
+        "due_date",
+        "repeat",
+        "repeats_rrule",
+        "repeats_from_current_date",
+        "priority",
+        "start_date",
+        "end_date",
+        "hex_color",
+        "percent_done",
+        "project_id",
+        "reminders",
+        "is_favorite",
+    }
+)
+
+_MERGE_PATCH_CONTENT_TYPE = "application/merge-patch+json"
+_JSON_CONTENT_TYPE = "application/json"
+
+#: Returned by ``_request`` when the server answers 304 Not Modified and the
+#: caller opted in (only :meth:`VikunjaClient.patch_task` does).
+_NOT_MODIFIED = object()
+
+_OCCURRENCES_COUNT_MIN = 1
+_OCCURRENCES_COUNT_MAX = 100  # server bound, task_occurrences.go taskOccurrencesInput
 
 
 # ---------------------------------------------------------------------------
@@ -130,17 +185,31 @@ class VikunjaError(Exception):
     """
 
     def __init__(
-        self, path: str, status: int | None = None, *, body: str | None = None
+        self,
+        path: str,
+        status: int | None = None,
+        *,
+        body: str | None = None,
+        detail: str | None = None,
+        code: int | None = None,
     ) -> None:
         self.path = path
         self.status = status
+        #: Vikunja's numeric error code from a v2 error body, when present
+        #: (e.g. 2002 invalid rule, 2003 invalid time zone, 11 permission).
+        self.code = code
         #: Raw response body text, when captured (adapter path — see the
         #: module-level "Return/error semantics" note). Never included in
         #: ``str(exc)`` or :meth:`verbose_message`; a WP migrating a raw
         #: consumer reads this directly when it must reconstruct raw-style
         #: error detail.
         self.body = body
-        super().__init__(f"{type(self).__name__}: {path}")
+        #: Short, client-authored hint (never server text, never the token).
+        self.detail = detail
+        message = f"{type(self).__name__}: {path}"
+        if detail:
+            message = f"{message} ({detail})"
+        super().__init__(message)
 
     def verbose_message(self) -> str:
         """Detailed representation for ad-hoc operator debugging.
@@ -172,6 +241,35 @@ class VikunjaServerError(VikunjaHttpError):
 
 class VikunjaTimeoutError(VikunjaError):
     """Request exceeded the timeout budget (socket.timeout or URLError(timeout))."""
+
+
+class SeriesEndIncomplete(VikunjaError):
+    """:meth:`VikunjaClient.end_series` could not verify the series ended.
+
+    ``state`` is one of :attr:`STATES`:
+
+    - ``rule_cleared_not_done``: the rule was cleared but the task is not
+      (verifiably) done. Running ``end_series`` again resumes.
+    - ``rule_reappeared``: a rule was present again after it was cleared.
+    - ``not_ended``: the final readback is not ``done`` with no rule.
+    - ``unknown``: a write timed out and the re-read failed too.
+
+    Callers record it as a partial outcome and alert (data-model.md
+    "End-series recovery contract").
+    """
+
+    STATES = frozenset(
+        {"rule_cleared_not_done", "rule_reappeared", "not_ended", "unknown"}
+    )
+
+    def __init__(self, task_id: int, state: str) -> None:
+        if state not in self.STATES:
+            raise ValueError(f"unknown SeriesEndIncomplete state {state!r}")
+        self.task_id = task_id
+        self.state = state
+        super().__init__(
+            path=f"/tasks/{task_id}", status=None, detail=f"series end {state}"
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -217,6 +315,8 @@ class VikunjaClient:
             raise ValueError(f"Vikunja timeout must be positive, got {timeout!r}")
 
         self.base_url = normalized_base_url
+        #: Derived v2 root (R-002); the configured URL stays the v1 one.
+        self.v2_base_url = normalized_base_url[: -len("/api/v1")] + "/api/v2"
         self.token = token
         self.timeout = float(timeout)
 
@@ -412,39 +512,34 @@ class VikunjaClient:
         """
         return self.get(f"/tasks/{task_id}", timeout=timeout)
 
-    def replace_task_fields(
-        self, task_id: int, body: dict, *, timeout: float | None = None
-    ) -> Any:
-        """POST ``body`` to ``/tasks/{task_id}`` verbatim — a raw **replace**.
-
-        Vikunja v0.24.6 uses POST (not PATCH) for partial task field
-        updates, and **zeroes any field not present in ``body``**
-        server-side (the POST-partial-replace quirk — see
-        ``habits/record_completion.py`` #524 for the reproducer). Use this
-        method only when the caller deliberately wants replace semantics
-        (e.g. ``habits/migrate_schedule.py`` narrow patch/retire/rollback
-        bodies). Callers that need to preserve unspecified fields (like
-        ``repeat_after``/``repeat_mode``) MUST use
-        :meth:`update_task_fields` instead — the two are kept intentionally
-        distinct (see module docstring "Risks": do not collapse into one
-        generic partial-update method).
-        """
-        return self.post(f"/tasks/{task_id}", json=body, timeout=timeout)
-
     def update_task_fields(
-        self, task_id: int, changes: dict, *, timeout: float | None = None
+        self,
+        task_id: int,
+        changes: dict,
+        *,
+        allow_rule_change: bool = False,
+        timeout: float | None = None,
     ) -> Any:
-        """Safe read-modify-write update: GET the task, merge ``changes``, POST.
+        """Guarded v1 read-modify-write: GET the task, merge ``changes``, POST.
 
-        Defeats the POST-partial-replace zeroing quirk (see
-        :meth:`replace_task_fields`) by echoing every current field back
-        alongside ``changes`` — so ``repeat_after``, ``repeat_mode``, and
-        any other unspecified field survive the write. Mirrors
-        ``habits/record_completion.py``'s GET-then-POST pattern.
+        Kept only as the v1 full-echo fallback; :meth:`patch_task` is the
+        write path. Defeats the v1 POST-partial-replace zeroing quirk (a v1
+        ``POST /tasks/{id}`` zeroes any field the body omits, #524) by
+        echoing every current field back
+        alongside ``changes``, so ``repeat``, ``repeats_from_current_date``,
+        ``reminders`` and any other unspecified field survive the write.
+
+        **Guard** (post-plan review finding 10): when the current task has a
+        rule, ``repeats_from_current_date=True`` or non-empty reminders, and
+        the merged body would drop or alter any of them (``same_rule`` false,
+        a changed ``repeats_rrule`` text, a changed flag, or different
+        reminders), it raises ``ValueError`` before the POST unless
+        ``allow_rule_change=True``.
 
         Args:
             task_id: Vikunja task id.
             changes: Fields to override on top of the current task state.
+            allow_rule_change: Explicit override of the guard.
             timeout: Optional per-call timeout override (applied to both
                 the GET and the POST).
 
@@ -452,6 +547,7 @@ class VikunjaClient:
             The parsed POST response body.
 
         Raises:
+            ValueError: The guard refused a destructive change.
             VikunjaError: If the GET response body is not a JSON object
                 (contract violation — nothing to merge onto).
         """
@@ -460,17 +556,24 @@ class VikunjaClient:
             raise VikunjaError(path=f"/tasks/{task_id}", status=200)
         merged = dict(current)
         merged.update(changes)
-        return self.replace_task_fields(task_id, merged, timeout=timeout)
+        if not allow_rule_change:
+            altered = _altered_rule_fields(current, merged, changes)
+            if altered:
+                raise ValueError(
+                    f"update_task_fields would drop or alter {', '.join(altered)} "
+                    f"on task {task_id}; pass allow_rule_change=True to override"
+                )
+        return self.post(f"/tasks/{task_id}", json=merged, timeout=timeout)
 
     def create_task_in_project(
         self, project_id: int, body: dict, *, timeout: float | None = None
     ) -> Any:
         """PUT ``body`` to ``/projects/{project_id}/tasks`` — create a task.
 
-        Shared by ``habits/migrate_schedule.py`` and
-        ``security/credential_health_check/vikunja_writer.py``, both of
-        which create tasks via ``PUT /projects/{id}/tasks`` (Vikunja's
-        task-create verb — PUT, not POST).
+        Used by ``security/credential_health_check/vikunja_writer.py``, which
+        creates tasks via ``PUT /projects/{id}/tasks`` (Vikunja's v1
+        task-create verb — PUT, not POST). A recurring task is created with
+        :meth:`create_task_v2` instead (``vikunja/create_task.py``).
         """
         return self.put(f"/projects/{project_id}/tasks", json=body, timeout=timeout)
 
@@ -502,6 +605,334 @@ class VikunjaClient:
         return self.get(f"/tasks/{task_id}/comments", timeout=timeout)
 
     # ------------------------------------------------------------------
+    # v2 seam (mission felix-rrule-adaptation-01M7TKNX, WP02)
+    # ------------------------------------------------------------------
+
+    def _request_v2(
+        self,
+        method: str,
+        path: str,
+        *,
+        permission: str,
+        params: dict[str, str] | None = None,
+        json_body: dict | None = None,
+        content_type: str = _JSON_CONTENT_TYPE,
+        allow_not_modified: bool = False,
+        timeout: float | None = None,
+    ) -> Any:
+        return self._request(
+            method,
+            path,
+            params=params,
+            json_body=json_body,
+            timeout=timeout,
+            api_root=self.v2_base_url,
+            content_type=content_type,
+            allow_not_modified=allow_not_modified,
+            permission=permission,
+        )
+
+    @staticmethod
+    def _expect_dict(result: Any, path: str) -> dict:
+        if not isinstance(result, dict):
+            raise VikunjaServerError(path=path, status=200, detail="v2; not an object")
+        return result
+
+    def patch_task(
+        self,
+        task_id: int,
+        changes: Mapping[str, Any],
+        *,
+        timeout: float | None = None,
+        _allow_null: frozenset[str] = frozenset(),
+    ) -> dict | None:
+        """PATCH ``/api/v2/tasks/{id}`` with an RFC 7396 merge patch.
+
+        Sends exactly ``changes`` with ``Content-Type:
+        application/merge-patch+json`` (huma autopatch v2.40.0
+        autopatch.go:345). Omitted fields survive.
+
+        Raises ``ValueError`` before any network call when ``changes`` is
+        empty, has a key outside :data:`WRITABLE_TASK_FIELDS`, or holds a
+        ``None`` anywhere (a merge-patch ``null`` deletes the key, nested
+        ones included).
+
+        ``_allow_null`` is **internal**: only :meth:`end_series` and the WP10
+        restore path pass it, naming top-level keys whose ``None`` value is a
+        sanctioned delete. Even then ``{"repeat": None}`` may not share a
+        body with ``done`` (that combination reopens the task, R-001 hazard 3).
+
+        Returns:
+            The task dict on 200, or ``None`` on 304 (no change; the server
+            answers 304 with an empty body, autopatch.go:408-410).
+        """
+        _check_task_id(task_id)
+        if not isinstance(changes, Mapping):
+            raise TypeError("patch_task: changes must be a mapping")
+        if not changes:
+            raise ValueError("patch_task: changes must be non-empty")
+        unknown = sorted(set(changes) - WRITABLE_TASK_FIELDS)
+        if unknown:
+            raise ValueError(f"patch_task: keys not writable: {unknown}")
+        for key, value in changes.items():
+            if value is None and key in _allow_null:
+                continue
+            found = _find_null(value, key)
+            if found:
+                raise ValueError(
+                    f"patch_task: refusing null at {found} (a merge-patch null deletes it)"
+                )
+        if changes.get("repeat", ...) is None and "done" in changes:
+            raise ValueError(
+                "patch_task: clearing repeat and setting done in one body reopens the task"
+            )
+        path = f"/tasks/{task_id}"
+        result = self._request_v2(
+            "PATCH",
+            path,
+            permission="tasks.update",
+            json_body=dict(changes),
+            content_type=_MERGE_PATCH_CONTENT_TYPE,
+            allow_not_modified=True,
+            timeout=timeout,
+        )
+        if result is _NOT_MODIFIED:
+            return None
+        return self._expect_dict(result, path)
+
+    def get_task_v2(self, task_id: int, *, timeout: float | None = None) -> dict:
+        """GET ``/api/v2/tasks/{id}``; the body includes ``repeats_rrule``."""
+        _check_task_id(task_id)
+        path = f"/tasks/{task_id}"
+        result = self._request_v2(
+            "GET", path, permission="tasks.read_one", timeout=timeout
+        )
+        return self._expect_dict(result, path)
+
+    def create_task_v2(
+        self,
+        project_id: int,
+        fields: Mapping[str, Any],
+        *,
+        rrule: str | None = None,
+        initial_due_time: str | None = None,
+        timeout: float | None = None,
+    ) -> dict:
+        """POST ``/api/v2/projects/{id}/tasks``.
+
+        Merges ``repeats_rrule`` and ``initial_due_time`` into the body when
+        given. Refuses ``None`` values and a key given both in ``fields`` and
+        as a keyword. Does **not** verify the stored rule; the caller asserts
+        ``same_rule(created, expected)``.
+        """
+        _check_task_id(project_id, "project_id")
+        if not isinstance(fields, Mapping):
+            raise TypeError("create_task_v2: fields must be a mapping")
+        body = dict(fields)
+        for key, value in (("repeats_rrule", rrule), ("initial_due_time", initial_due_time)):
+            if value is None:
+                continue
+            if key in body:
+                raise ValueError(f"create_task_v2: {key} given twice")
+            body[key] = value
+        for key, value in body.items():
+            found = _find_null(value, key)
+            if found:
+                raise ValueError(f"create_task_v2: refusing null at {found}")
+        path = f"/projects/{project_id}/tasks"
+        result = self._request_v2(
+            "POST", path, permission="tasks.create", json_body=body, timeout=timeout
+        )
+        return self._expect_dict(result, path)
+
+    def occurrences(
+        self, task_id: int, *, count: int = 1, timeout: float | None = None
+    ) -> dict:
+        """GET ``/api/v2/tasks/{id}/occurrences?count=N`` (N in 1..100).
+
+        Returns ``{"occurrences": [...], "reason"?: str}``. A 401 raises
+        :class:`VikunjaAuthError` naming the ``tasks.occurrences``
+        permission (R-004).
+        """
+        _check_task_id(task_id)
+        _check_count(count)
+        path = f"/tasks/{task_id}/occurrences"
+        result = self._request_v2(
+            "GET",
+            path,
+            permission="tasks.occurrences",
+            params={"count": str(count)},
+            timeout=timeout,
+        )
+        return self._expect_dict(result, path)
+
+    def preview_occurrences(
+        self,
+        *,
+        rrule: str | None = None,
+        repeat: Mapping[str, Any] | None = None,
+        due_date: str | None = None,
+        initial_due_time: str | None = None,
+        timezone: str = "America/New_York",
+        repeats_from_current_date: bool = False,
+        count: int = 3,
+        timeout: float | None = None,
+    ) -> dict:
+        """POST ``/api/v2/tasks/occurrences/preview`` for an unsaved rule.
+
+        Exactly one of ``rrule``/``repeat`` and exactly one of
+        ``due_date``/``initial_due_time``, else ``ValueError`` before any
+        call. A 400 raises :class:`VikunjaBadRequestError` with ``exc.code``
+        2002 (invalid rule) or 2003 (invalid time zone); a 401 names the
+        ``tasks.occurrences_preview`` permission.
+        """
+        if (rrule is None) == (repeat is None):
+            raise ValueError("preview_occurrences: give exactly one of rrule, repeat")
+        if (due_date is None) == (initial_due_time is None):
+            raise ValueError(
+                "preview_occurrences: give exactly one of due_date, initial_due_time"
+            )
+        _check_count(count)
+        body: dict[str, Any] = {}
+        if rrule is not None:
+            body["repeats_rrule"] = rrule
+        else:
+            body["repeat"] = dict(repeat)  # type: ignore[arg-type]
+        if due_date is not None:
+            body["due_date"] = due_date
+        else:
+            body["initial_due_time"] = initial_due_time
+        body["timezone"] = timezone
+        body["repeats_from_current_date"] = bool(repeats_from_current_date)
+        body["count"] = count
+        path = "/tasks/occurrences/preview"
+        result = self._request_v2(
+            "POST",
+            path,
+            permission="tasks.occurrences_preview",
+            json_body=body,
+            timeout=timeout,
+        )
+        return self._expect_dict(result, path)
+
+    def end_series(self, task_id: int, *, timeout: float | None = None) -> dict:
+        """End a series: final state ``done=True`` with no rule, verified.
+
+        Implements data-model.md "End-series recovery contract" from a fresh
+        read, so it is resumable and idempotent:
+
+        - open, rule: PATCH ``{"repeat": null}``, read back (a rule still
+          present -> ``rule_reappeared``), then continue as open, no rule;
+        - open, no rule: PATCH ``{"done": true}``, read back;
+        - done, rule: PATCH ``{"repeat": null}`` (done unchanged, so it does
+          not reopen), read back;
+        - done, no rule: no-op.
+
+        ``repeat`` and ``done`` never share a body: together they reopen the
+        task (vikunja-harness d7e202228 ``pkg/models/tasks.go:1740-1760``).
+        The final readback must show ``done is True`` and no rule, else
+        ``not_ended``.
+
+        Errors: a write whose outcome is **uncertain** (timeout, 5xx,
+        transport failure, or an invalid 2xx response body, any of which can
+        follow a write the server committed) re-reads once and decides from
+        the fresh state; if that read fails too, ``unknown``. An uncertain
+        write whose re-read shows nothing changed re-raises the original
+        error (no partial progress). A definite refusal (4xx) of the first
+        write propagates unchanged; any failure after the rule was cleared
+        raises ``rule_cleared_not_done`` (chained).
+
+        Raises:
+            SeriesEndIncomplete: with ``state`` as above.
+        """
+        task = self._end_series_read(task_id, timeout)
+        if _series_ended(task):
+            return task
+
+        rule_cleared = False
+        if has_rule(task):
+            try:
+                self.patch_task(
+                    task_id,
+                    {"repeat": None},
+                    timeout=timeout,
+                    _allow_null=frozenset({"repeat"}),
+                )
+            except VikunjaError as exc:
+                if not _write_outcome_uncertain(exc):
+                    raise
+                task = self._end_series_reread(task_id, timeout)
+                if has_rule(task):
+                    raise
+            else:
+                try:
+                    task = self._end_series_read(task_id, timeout)
+                except VikunjaError as exc:
+                    raise SeriesEndIncomplete(task_id, "rule_cleared_not_done") from exc
+                if has_rule(task):
+                    raise SeriesEndIncomplete(task_id, "rule_reappeared")
+            rule_cleared = True
+
+        if task.get("done") is not True:
+            try:
+                self.patch_task(task_id, {"done": True}, timeout=timeout)
+            except VikunjaError as exc:
+                if not _write_outcome_uncertain(exc):
+                    if rule_cleared:
+                        raise SeriesEndIncomplete(
+                            task_id, "rule_cleared_not_done"
+                        ) from exc
+                    raise
+                task = self._end_series_reread(task_id, timeout)
+                if not _series_ended(task):
+                    if has_rule(task):
+                        raise SeriesEndIncomplete(task_id, "rule_reappeared") from exc
+                    if rule_cleared:
+                        raise SeriesEndIncomplete(
+                            task_id, "rule_cleared_not_done"
+                        ) from exc
+                    raise
+            else:
+                try:
+                    task = self._end_series_read(task_id, timeout)
+                except VikunjaError as exc:
+                    raise SeriesEndIncomplete(task_id, "unknown") from exc
+
+        if not _series_ended(task):
+            if has_rule(task) and rule_cleared:
+                raise SeriesEndIncomplete(task_id, "rule_reappeared")
+            raise SeriesEndIncomplete(task_id, "not_ended")
+        return task
+
+    def _end_series_reread(self, task_id: int, timeout: float | None) -> dict:
+        """Re-read once after an uncertain write; ``unknown`` if that fails."""
+        try:
+            return self._end_series_read(task_id, timeout)
+        except VikunjaError as exc:
+            raise SeriesEndIncomplete(task_id, "unknown") from exc
+
+    def _end_series_read(self, task_id: int, timeout: float | None) -> dict:
+        """``get_task_v2`` plus a strict shape check, so state reads cannot escape.
+
+        A read whose recurrence shape is malformed or self-contradictory
+        (:func:`_recurrence_shape_error`) raises :class:`VikunjaServerError`
+        here, still inside ``end_series``'s recovery handling (review cycle 2;
+        WP02 arbiter, tightened in WP08). Interpreting such a read would be a
+        guess: ``repeat=[]`` beside ``repeats_rrule="FREQ=DAILY"`` would
+        otherwise read as "no rule" and let a live series look ended. Later
+        ``has_rule`` calls on the same dict are then safe.
+        """
+        task = self.get_task_v2(task_id, timeout=timeout)
+        problem = _recurrence_shape_error(task)
+        if problem is not None:
+            raise VikunjaServerError(
+                path=f"/tasks/{task_id}",
+                status=None,
+                detail=f"v2; malformed task ({problem})",
+            )
+        return task
+
+    # ------------------------------------------------------------------
     # Private request execution + error mapping
     # ------------------------------------------------------------------
 
@@ -513,8 +944,22 @@ class VikunjaClient:
         params: dict[str, str] | None,
         json_body: dict | None,
         timeout: float | None,
+        api_root: str | None = None,
+        content_type: str = _JSON_CONTENT_TYPE,
+        allow_not_modified: bool = False,
+        permission: str | None = None,
     ) -> Any:
-        url = self._compose_url(path, params)
+        """Execute one request.
+
+        The keyword-only extras are for the v2 seam and default to the v1
+        behaviour: ``api_root`` (default ``base_url``), ``content_type`` for
+        POST/PUT/PATCH, ``allow_not_modified`` (a 304 returns
+        ``_NOT_MODIFIED`` instead of raising; urllib raises ``HTTPError`` for
+        304) and ``permission`` (named in the message of a 401, and v2 error
+        bodies are parsed for Vikunja's numeric ``code``).
+        """
+        is_v2 = api_root is not None
+        url = self._compose_url(path, params, root=api_root)
 
         headers = {"Authorization": f"Bearer {self.token}"}
         data: bytes | None = None
@@ -526,7 +971,7 @@ class VikunjaClient:
         # query parameters), so the server's content negotiation is
         # unambiguous.
         if method in ("POST", "PUT", "PATCH"):
-            headers["Content-Type"] = "application/json"
+            headers["Content-Type"] = content_type
 
         effective_timeout = timeout if timeout is not None else self.timeout
         req = urllib.request.Request(url, data=data, headers=headers, method=method)
@@ -534,9 +979,12 @@ class VikunjaClient:
         try:
             with urllib.request.urlopen(req, timeout=effective_timeout) as response:
                 body = response.read()
+                status = getattr(response, "status", None)
         except socket.timeout:
             raise VikunjaTimeoutError(path=path, status=None) from None
         except urllib.error.HTTPError as exc:
+            if allow_not_modified and exc.code == 304:
+                return _NOT_MODIFIED
             # Capture the raw error body for the adapter path (module
             # docstring "Return/error semantics") — never surfaced via
             # str(exc)/verbose_message(), only via exc.body.
@@ -546,17 +994,59 @@ class VikunjaClient:
                 )
             except Exception:  # pragma: no cover — purely defensive
                 raw_error_body = None
-            raise self._map_http_error(path, exc.code, body=raw_error_body) from None
+            if not is_v2:
+                raise self._map_http_error(path, exc.code, body=raw_error_body) from None
+            detail = "v2"
+            if exc.code == 401 and permission:
+                detail = f"v2; token may lack permission {permission}"
+            raise self._map_http_error(
+                path,
+                exc.code,
+                body=raw_error_body,
+                detail=detail,
+                code=_error_code(raw_error_body),
+            ) from None
         except urllib.error.URLError as exc:
             if isinstance(exc.reason, socket.timeout):
                 raise VikunjaTimeoutError(path=path, status=None) from None
             raise VikunjaServerError(path=path, status=None) from None
+        except Exception as exc:  # v2 closes the class; v1 re-raises
+            # Any other failure while sending or reading: a truncated body
+            # (http.client.IncompleteRead), a reset connection or TLS error
+            # (OSError), a read on a closed file (ValueError), and so on.
+            # v1 keeps its historical behaviour (the raw exception). v2 maps
+            # every one to VikunjaServerError(status=None), so callers such
+            # as end_series always see an uncertain write as a VikunjaError
+            # (WP02 review cycles 1 and 2). A pre-send fault (bad URL or
+            # header) would also land here, but the initial read in
+            # end_series hits the same fault before any write is attempted.
+            if not is_v2:
+                raise
+            raise VikunjaServerError(
+                path=path, status=None, detail="v2; transport error"
+            ) from exc
 
+        if allow_not_modified and status == 304:
+            return _NOT_MODIFIED
         # Per contract + data-model: empty-body successes (DELETE 204, etc.)
         # parse to an empty dict, not None. Callers that key into the result
         # then get a uniform mapping type.
         if not body:
             return {}
+        if is_v2:
+            try:
+                return json.loads(body)
+            except Exception as exc:  # every decoding failure
+                # JSONDecodeError and UnicodeDecodeError (both ValueError),
+                # LookupError, RecursionError on deep nesting, and anything
+                # else json may raise: an undecodable body is a server fault
+                # whose write may still have committed (review cycle 2).
+                raise VikunjaServerError(
+                    path=path,
+                    status=None,
+                    body=body.decode("utf-8", errors="replace"),
+                    detail="v2; undecodable body",
+                ) from exc
         try:
             return json.loads(body)
         except json.JSONDecodeError:
@@ -565,7 +1055,11 @@ class VikunjaClient:
             ) from None
 
     def _compose_url(
-        self, path: str, params: dict[str, str] | None
+        self,
+        path: str,
+        params: dict[str, str] | None,
+        *,
+        root: str | None = None,
     ) -> str:
         """Compose the request URL, merging ``params`` with any embedded query string in ``path``.
 
@@ -576,9 +1070,9 @@ class VikunjaClient:
         existing query, merge the caller's ``params`` dict, and re-encode.
 
         ``params`` provided to this method override any same-keyed value
-        embedded in ``path``.
+        embedded in ``path``. ``root`` defaults to ``base_url`` (v1).
         """
-        url = f"{self.base_url}{path}"
+        url = f"{root if root is not None else self.base_url}{path}"
         if not params:
             return url
         parsed = urllib.parse.urlparse(url)
@@ -595,14 +1089,166 @@ class VikunjaClient:
 
     @staticmethod
     def _map_http_error(
-        path: str, status: int, *, body: str | None = None
+        path: str,
+        status: int,
+        *,
+        body: str | None = None,
+        detail: str | None = None,
+        code: int | None = None,
     ) -> VikunjaHttpError:
+        extra: dict[str, Any] = {"body": body, "detail": detail, "code": code}
         if status == 401:
-            return VikunjaAuthError(path=path, status=status, body=body)
+            return VikunjaAuthError(path=path, status=status, **extra)
         if status == 404:
-            return VikunjaNotFoundError(path=path, status=status, body=body)
+            return VikunjaNotFoundError(path=path, status=status, **extra)
         if status == 400:
-            return VikunjaBadRequestError(path=path, status=status, body=body)
+            return VikunjaBadRequestError(path=path, status=status, **extra)
         if 500 <= status < 600:
-            return VikunjaServerError(path=path, status=status, body=body)
-        return VikunjaHttpError(path=path, status=status, body=body)
+            return VikunjaServerError(path=path, status=status, **extra)
+        return VikunjaHttpError(path=path, status=status, **extra)
+
+
+def _error_code(raw_body: str | None) -> int | None:
+    """Vikunja's numeric ``code`` from a v2 error body, or None.
+
+    v2 errors are RFC 9457 bodies extended with ``code``
+    (vikunja-harness d7e202228 ``pkg/routes/api/v2/errors.go:116-121``).
+    """
+    if not raw_body:
+        return None
+    try:
+        parsed = json.loads(raw_body)
+    except Exception:  # noqa: BLE001 — the code is optional; never mask the HTTP error
+        return None
+    if not isinstance(parsed, dict):
+        return None
+    code = parsed.get("code")
+    if isinstance(code, int) and not isinstance(code, bool):
+        return code
+    return None
+
+
+def _find_null(value: Any, where: str) -> str | None:
+    """Return the location of the first ``None`` inside *value*, or None."""
+    if value is None:
+        return where
+    if isinstance(value, Mapping):
+        for key, item in value.items():
+            found = _find_null(item, f"{where}.{key}")
+            if found:
+                return found
+    elif isinstance(value, (list, tuple)):
+        for index, item in enumerate(value):
+            found = _find_null(item, f"{where}[{index}]")
+            if found:
+                return found
+    return None
+
+
+def _check_count(count: Any) -> None:
+    if (
+        not isinstance(count, int)
+        or isinstance(count, bool)
+        or not _OCCURRENCES_COUNT_MIN <= count <= _OCCURRENCES_COUNT_MAX
+    ):
+        raise ValueError(
+            f"count must be an int in {_OCCURRENCES_COUNT_MIN}..{_OCCURRENCES_COUNT_MAX}, "
+            f"got {count!r}"
+        )
+
+
+def _write_outcome_uncertain(exc: VikunjaError) -> bool:
+    """True unless *exc* is a definite refusal (an HTTP 4xx status).
+
+    Timeouts, 5xx, transport failures (``status=None``) and invalid 2xx
+    bodies (``status=200``) can all follow a write the server committed.
+    """
+    status = exc.status
+    return not (isinstance(exc, VikunjaHttpError) and status is not None and 400 <= status < 500)
+
+
+def _recurrence_shape_error(task: Mapping[str, Any]) -> str | None:
+    """Why a single-task v2 read's recurrence fields cannot be trusted, or None.
+
+    The server's single-task read carries ``repeats_rrule`` as "the stored
+    rule exactly; absent when the task does not repeat" (vikunja-harness
+    d7e202228 pkg/routes/api/v2/tasks.go:156), beside the structured
+    ``repeat`` (``omitempty``, tasks.go:97). So, strictly:
+
+    - ``repeat`` is absent/``None`` or a mapping (never ``[]``, ``False``,
+      ``0``, ``""`` or a string);
+    - ``repeats_rrule`` is absent/``None`` or a string;
+    - a non-empty ``repeats_rrule`` needs a ``repeat`` that is a rule, and
+      the two must denote the same rule (:func:`same_rule`), unless the server
+      marks the projection ``read_only`` (it cannot represent the stored
+      rule, so only shape and presence are checked);
+    - a ``repeat`` that is a rule needs a non-empty ``repeats_rrule``.
+    """
+    repeat = task.get("repeat")
+    if repeat is not None and not isinstance(repeat, Mapping):
+        return f"repeat is {type(repeat).__name__}, not an object"
+    rrule = task.get("repeats_rrule")
+    if rrule is not None and not isinstance(rrule, str):
+        return f"repeats_rrule is {type(rrule).__name__}, not a string"
+    try:
+        rule_present = has_rule(task)
+    except Exception as exc:  # noqa: BLE001 - any malformed part
+        return f"repeat unreadable ({type(exc).__name__})"
+    if rrule:
+        if not rule_present:
+            return "repeats_rrule set but repeat is not a rule"
+        if repeat.get("read_only") is True:  # type: ignore[union-attr]
+            # The server marks a projection that cannot hold the stored rule
+            # (BYEASTER, a CalDAV DTSTART): "Such a rule cannot be edited
+            # through the structured form; it can be replaced or cleared
+            # through repeats_rrule on v2, or removed with repeat: null"
+            # (d7e202228 pkg/models/task_repeat.go:63, set by projectionLoses
+            # at :449). Text and projection legitimately differ, and the text
+            # may hold parts the local parser does not know: shape and
+            # presence are checked above, equality is not.
+            return None
+        try:
+            parts = rrule_text_to_parts(rrule)
+        except ValueError as exc:
+            return f"repeats_rrule unparseable ({exc})"
+        if not same_rule(parts, repeat):
+            return "repeats_rrule and repeat disagree"
+    elif rule_present:
+        return "repeat is a rule but repeats_rrule is missing"
+    return None
+
+
+def _series_ended(task: Mapping[str, Any]) -> bool:
+    return task.get("done") is True and not has_rule(task)
+
+
+def _altered_rule_fields(
+    current: Mapping[str, Any], merged: Mapping[str, Any], changes: Mapping[str, Any]
+) -> list[str]:
+    """Rule-bearing fields a full-echo write would drop or alter (guard)."""
+    protected = (
+        has_rule(current)
+        or current.get("repeats_from_current_date") is True
+        or bool(current.get("reminders"))
+    )
+    if not protected:
+        return []
+    altered: list[str] = []
+    if not same_rule(current.get("repeat"), merged.get("repeat")):
+        altered.append("repeat")
+    if "repeats_rrule" in changes and changes["repeats_rrule"] != current.get(
+        "repeats_rrule"
+    ):
+        altered.append("repeats_rrule")
+    if bool(current.get("repeats_from_current_date")) != bool(
+        merged.get("repeats_from_current_date")
+    ):
+        altered.append("repeats_from_current_date")
+    if (current.get("reminders") or []) != (merged.get("reminders") or []):
+        altered.append("reminders")
+    return altered
+
+
+def _check_task_id(task_id: Any, name: str = "task_id") -> None:
+    if not isinstance(task_id, int) or isinstance(task_id, bool) or task_id <= 0:
+        raise ValueError(f"{name} must be a positive int, got {task_id!r}")

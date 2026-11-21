@@ -11,9 +11,29 @@ through the two-step path below (post-parity-cleanup; see
             failure, BEFORE any side-effects.
 
     Step 1 (Vikunja side-effect, FIRST — only for two states):
-        - For ``state="done"``: ``PATCH /tasks/{task_id}`` with ``{"done": true}``.
-        - For ``state="rescheduled"``: ``PATCH /tasks/{task_id}`` with the new
-          ``due_date``.
+        All writes go through :meth:`VikunjaClient.patch_task`, i.e.
+        ``PATCH /api/v2/tasks/{task_id}`` as an RFC 7396 merge patch carrying
+        only the changed key (mission felix-rrule-adaptation, WP04, #1111).
+        The old v1 ``PATCH /api/v1/tasks/{id}`` answered **405** on the RRULE
+        server, and a v1 narrow write strips the recurrence rule (R-005).
+
+        - For ``state="done"``: read the task (v2), decide whether this
+          completion should end the series (``exhaustion_expected``), send
+          ``{"done": true}``, re-read on a 304, then classify the result:
+          ``advanced`` / ``series_ended`` (``completion_outcome``) for a
+          repeating task, ``done_one_off`` for a task without a rule, else
+          ``unexpected``. ``vikunja_actions`` gets ``task_PATCH_done`` and
+          ``outcome:<x>``.
+          **Unexpected ordering:** Kent did say done, so the JSONL done record
+          is STILL written, with ``note="vikunja outcome unexpected: ..."``;
+          only *after* that write does the CLI exit non-zero
+          (:data:`EXIT_OUTCOME_UNEXPECTED`) so the agent reports the anomaly.
+        - For ``state="rescheduled"``: read the task, send ``{"due_date":
+          <end-of-day ET>}``, read back (the PATCH response, or a GET after a
+          304). If the rule changed (``not same_rule``), raise
+          :class:`VikunjaError` ("rule changed by reschedule") **before** the
+          JSONL write: the task is in a wrong state, so no record may claim
+          success.
         - For ``state="level_sent" | "snoozed" | "dismissed"``: NO Vikunja
           side-effect. JSONL append (Step 2) is the sole record.
         - All requests authenticate as ``felix-bot`` (FR-010) using the token
@@ -42,6 +62,8 @@ CLI surface — see ``contracts/cli.md``. Exit codes:
     1 — Vikunja step failure (no JSONL write)
     2 — JSONL step failure (Vikunja already committed)
     3 — validation / usage error
+    4 — ``done`` written to Vikunja and JSONL, but the Vikunja outcome was
+        ``unexpected`` (the JSONL note says why); report it to Kent verbatim
 
 Design references:
     - kitty-specs/migrate-escalation-to-jsonl-state-model-01KS5R4D/spec.md
@@ -81,6 +103,13 @@ from scripts.common.vikunja_config import (
     get_vikunja_base_url,
     get_vikunja_token_path,
 )
+from scripts.common.vikunja_rule import (
+    completion_outcome,
+    exhaustion_expected,
+    has_rule,
+    normalise,
+    recurrence_drift,
+)
 from scripts.escalation.schema import (
     EVENT_TYPE_PARAMETERS,
     EscalationSchemaError,
@@ -91,6 +120,7 @@ from scripts.escalation.schema import (
 __all__ = [
     "DEFAULT_BASE_URL",
     "DEFAULT_TOKEN_PATH",
+    "EXIT_OUTCOME_UNEXPECTED",
     "HTTP_TIMEOUT_SECONDS",
     "JSONL_STATE_DIR",
     "LOCAL_TZ",
@@ -128,6 +158,10 @@ JSONL_STATE_DIR = Path("/data/services/openclaw/state/escalation")
 #: write-time ``date`` resolution happen in this TZ. Sourced from the canonical
 #: ET utility (#761) so there is one ``America/New_York`` definition repo-wide.
 LOCAL_TZ = et_datetime.ET_ZONE
+
+#: CLI exit code for a ``done`` whose Vikunja outcome was ``unexpected``.
+#: The JSONL record HAS been written (with the anomaly in ``note``).
+EXIT_OUTCOME_UNEXPECTED = 4
 
 #: File mode for per-project JSONL files (rw-rw-r--).
 _STATE_FILE_MODE: int = 0o664
@@ -189,43 +223,70 @@ def _read_token(token_path: Path) -> str:
 # ---------------------------------------------------------------------------
 
 
+def _translate(verb: str, url: str, exc: _ClientVikunjaError) -> VikunjaError:
+    """Map a client exception to this module's :class:`VikunjaError`.
+
+    Keeps the pre-migration message substrings (``HTTP <status>`` /
+    ``network failure``) that callers and tests rely on.
+    """
+    if exc.status is not None:
+        return VikunjaError(f"{verb} {url} failed with HTTP {exc.status}: {exc.body!r}")
+    return VikunjaError(f"{verb} {url} network failure: {exc.verbose_message()}")
+
+
+def _client(base_url: str, token: str) -> VikunjaClient:
+    return VikunjaClient(base_url=base_url, token=token, timeout=HTTP_TIMEOUT_SECONDS)
+
+
+def _get_task(client: VikunjaClient, task_id: int) -> dict:
+    """GET ``/api/v2/tasks/{task_id}``, errors mapped to :class:`VikunjaError`."""
+    url = f"{client.v2_base_url}/tasks/{task_id}"
+    try:
+        return client.get_task_v2(task_id)
+    except _ClientVikunjaError as exc:
+        raise _translate("GET", url, exc) from exc
+
+
 def _patch_task(
     task_id: int,
     body: dict,
     *,
     base_url: str,
     token: str,
-) -> None:
-    """PATCH ``/tasks/{task_id}`` via :class:`VikunjaClient`, adapted to this
-    module's pre-migration error contract.
+    client: VikunjaClient | None = None,
+) -> dict | None:
+    """PATCH ``/api/v2/tasks/{task_id}`` via :meth:`VikunjaClient.patch_task`.
 
-    The parsed response body is discarded (the pre-migration ``_http_request``
-    caller never consumed it either — only success/failure mattered), so the
-    only adaptation needed is translating the client's typed exceptions back
-    into this module's :class:`VikunjaError` with an equivalent message, per
-    the WP01 "Return/error semantics" adapter note in
-    ``scripts/common/vikunja_client.py``.
+    Sends exactly ``body`` as a merge patch (WP02 seam). Returns the task the
+    server answered with, or ``None`` on 304 (no change; the caller re-reads).
 
     Raises:
         VikunjaError: On HTTP-status-error, network failure, or timeout.
-            Message includes ``PATCH <url>`` + status + server error body
-            when available (mirrors the retired ``_http_request`` message
-            shape; substrings ``HTTP <status>`` / ``network failure`` are
-            preserved for existing callers/tests).
+            Message is ``PATCH <v2 url> failed with HTTP <status>: <body>`` or
+            ``PATCH <v2 url> network failure: ...`` (substrings preserved for
+            existing callers/tests).
     """
-    client = VikunjaClient(base_url=base_url, token=token, timeout=HTTP_TIMEOUT_SECONDS)
-    path = f"/tasks/{task_id}"
-    url = f"{client.base_url}{path}"
+    if client is None:
+        client = _client(base_url, token)
+    url = f"{client.v2_base_url}/tasks/{task_id}"
     try:
-        client.patch(path, json=body)
+        return client.patch_task(task_id, body)
     except _ClientVikunjaError as exc:
-        if exc.status is not None:
-            raise VikunjaError(
-                f"PATCH {url} failed with HTTP {exc.status}: {exc.body!r}"
-            ) from exc
-        raise VikunjaError(
-            f"PATCH {url} network failure: {exc.verbose_message()}"
-        ) from exc
+        raise _translate("PATCH", url, exc) from exc
+
+
+def _rule_summary(task: dict) -> str:
+    rule = normalise(task.get("repeat"))
+    return "none" if rule is None else json.dumps(rule, sort_keys=True)
+
+
+def _task_summary(task: dict) -> str:
+    return (
+        f"done={task.get('done')!r} due_date={task.get('due_date')!r} "
+        f"rule={_rule_summary(task)} "
+        f"repeats_from_current_date={task.get('repeats_from_current_date')!r} "
+        f"reminders={len(task.get('reminders') or [])}"
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -391,48 +452,137 @@ def _append_jsonl(record: dict) -> Path:
 # ---------------------------------------------------------------------------
 
 
+def _done_side_effect(
+    client: VikunjaClient, task_id: int
+) -> tuple[str, str | None]:
+    """Mark ``task_id`` done on v2 and classify the outcome.
+
+    Returns ``(outcome, anomaly)``. ``outcome`` is ``advanced`` /
+    ``series_ended`` (repeating task, :func:`completion_outcome`),
+    ``done_one_off`` (no rule, now done) or ``unexpected``; ``anomaly`` is a
+    before/after summary when the outcome is ``unexpected``, else ``None``.
+    """
+    before = _get_task(client, task_id)
+    recurring = has_rule(before)
+    exhaustion = (
+        exhaustion_expected(before, preview=client.preview_occurrences)
+        if recurring
+        else "no"
+    )
+    after = _patch_task(
+        task_id, {"done": True}, base_url=client.base_url, token=client.token, client=client
+    )
+    if after is None:
+        try:
+            after = _get_task(client, task_id)
+        except VikunjaError as exc:
+            # The write went out; only the classification failed. Kent did
+            # say done, so keep the record and report the anomaly.
+            return "unexpected", (
+                f"vikunja outcome unexpected: readback after 304 failed ({exc}); "
+                f"before {_task_summary(before)}"
+            )
+    outcome: str
+    if recurring:
+        outcome = completion_outcome(before, after, exhaustion=exhaustion)
+    else:
+        # A one-off task has no series to advance or end. completion_outcome
+        # would call its done=true "unexpected" (exhaustion "no"), so it is
+        # special-cased here (WP04 T017 step 3).
+        outcome = "done_one_off" if after.get("done") is True else "unexpected"
+    # The rule itself was judged by completion_outcome; this checks the flag
+    # and the reminders, letting absolute reminders move only as the server
+    # moves them on an advance (shared helper, vikunja_rule.recurrence_drift).
+    losses = recurrence_drift(
+        before, after, compare_rule=False, advanced=outcome == "advanced"
+    )
+    if losses:
+        # The rule may have advanced correctly, but a lost reminder or a reset
+        # repeat-from-completion flag is damage, never a normal completion.
+        outcome = "unexpected"
+    anomaly = None
+    if outcome == "unexpected":
+        anomaly = (
+            "vikunja outcome unexpected: "
+            f"before {_task_summary(before)}; after {_task_summary(after)}; "
+            f"exhaustion_expected={exhaustion}"
+        )
+        if losses:
+            anomaly += f"; companion fields changed: {', '.join(losses)}"
+    return outcome, anomaly
+
+
+def _reschedule_side_effect(
+    client: VikunjaClient, task_id: int, reschedule_to: str
+) -> None:
+    """PATCH the due date on v2; assert the rule and companion fields survived."""
+    before = _get_task(client, task_id)
+    after = _patch_task(
+        task_id,
+        {"due_date": et_datetime.et_end_of_day(reschedule_to)},
+        base_url=client.base_url,
+        token=client.token,
+        client=client,
+    )
+    if after is None:
+        after = _get_task(client, task_id)
+    drift = recurrence_drift(before, after)
+    if "repeat" in drift:
+        raise VikunjaError(
+            f"rule changed by reschedule of task {task_id}: "
+            f"before rule={_rule_summary(before)}, after rule={_rule_summary(after)}"
+        )
+    losses = drift
+    if losses:
+        raise VikunjaError(
+            f"companion fields changed by reschedule of task {task_id}: "
+            f"{', '.join(losses)}; before {_task_summary(before)}; "
+            f"after {_task_summary(after)}"
+        )
+
+
 def _vikunja_side_effects(
     record: dict, *, base_url: str, token: str
-) -> list[str]:
+) -> tuple[list[str], str | None, str | None]:
     """Perform the Vikunja side-effects required by ``record["state"]``.
 
     Only ``done`` and ``rescheduled`` events produce a Vikunja side-effect
-    (a task PATCH). The other states (``level_sent``, ``snoozed``,
-    ``dismissed``) have JSONL append as their sole side-effect — see
-    ``contracts/escalation-side-effects.contract.md`` in mission
-    ``remove-escalation-v1-parity-01KT4VTD``.
+    (a v2 task PATCH, see the module docstring). The other states
+    (``level_sent``, ``snoozed``, ``dismissed``) have JSONL append as their
+    sole side-effect — see ``contracts/escalation-side-effects.contract.md``
+    in mission ``remove-escalation-v1-parity-01KT4VTD``.
 
     Args:
         record: Validated escalation JSONL record dict.
-        base_url: Vikunja API base URL.
-        token: felix-bot bearer token.
+        base_url: Vikunja API base URL (the configured ``/api/v1`` URL; the
+            client derives the v2 root from it).
+        token: Vikunja bearer token.
 
     Returns:
-        List of action names performed, in order. Example:
-        ``["task_PATCH_done"]`` for ``done``; ``[]`` for ``level_sent``.
+        ``(actions, outcome, anomaly)``. ``actions`` lists what was done, in
+        order, e.g. ``["task_PATCH_done", "outcome:advanced"]`` for ``done``,
+        ``["task_PATCH_due_date"]`` for ``rescheduled``, ``[]`` otherwise.
+        ``outcome`` is the done outcome (else ``None``); ``anomaly`` is the
+        ``unexpected`` summary (else ``None``).
 
     Raises:
-        VikunjaError: On HTTP / network failure. The JSONL write does NOT
-            happen if this step raises.
+        VikunjaError: On HTTP / network failure, or a reschedule that changed
+            the rule. The JSONL write does NOT happen if this step raises.
     """
     state = record["state"]
     task_id = record["task_id"]
     actions: list[str] = []
+    outcome: str | None = None
+    anomaly: str | None = None
 
     if state == "done":
-        _patch_task(task_id, {"done": True}, base_url=base_url, token=token)
-        actions.append("task_PATCH_done")
+        outcome, anomaly = _done_side_effect(_client(base_url, token), task_id)
+        actions.extend(["task_PATCH_done", f"outcome:{outcome}"])
     elif state == "rescheduled":
-        reschedule_to = record["reschedule_to"]
-        _patch_task(
-            task_id,
-            {"due_date": et_datetime.et_end_of_day(reschedule_to)},
-            base_url=base_url,
-            token=token,
-        )
+        _reschedule_side_effect(_client(base_url, token), task_id, record["reschedule_to"])
         actions.append("task_PATCH_due_date")
 
-    return actions
+    return actions, outcome, anomaly
 
 
 # ---------------------------------------------------------------------------
@@ -467,7 +617,10 @@ def record_event(
 
     Returns:
         Dict ``{"ok": True, "jsonl_path": "<path>",
-        "vikunja_actions": [...], "deduped": False}``.
+        "vikunja_actions": [...], "deduped": False}``, plus ``"outcome"``
+        for a Vikunja ``done`` and ``"anomaly"`` when that outcome was
+        ``unexpected`` (the JSONL record was still written, see the module
+        docstring; the CLI then exits :data:`EXIT_OUTCOME_UNEXPECTED`).
 
     Raises:
         EscalationSchemaError: On validation failure (no writes attempted).
@@ -488,24 +641,37 @@ def record_event(
 
     # Step 1: Vikunja side-effect (FIRST per research D6).
     vikunja_actions: list[str] = []
+    outcome: str | None = None
+    anomaly: str | None = None
     if not skip_vikunja:
         if token_path is None:
             token_path = get_vikunja_token_path()
         token = _read_token(token_path)
-        vikunja_actions = _vikunja_side_effects(
+        vikunja_actions, outcome, anomaly = _vikunja_side_effects(
             record, base_url=base_url, token=token
         )
+
+    if anomaly is not None:
+        # Kent did say done: keep the record, and carry the anomaly in it.
+        record = dict(record)
+        existing = record.get("note")
+        record["note"] = f"{anomaly}; {existing}" if existing else anomaly
 
     # Step 2: JSONL append (SECOND). On failure, raise StateLogError —
     # Vikunja already committed.
     path = _append_jsonl(record)
 
-    return {
+    result: dict[str, Any] = {
         "ok": True,
         "jsonl_path": str(path),
         "vikunja_actions": vikunja_actions,
         "deduped": False,
     }
+    if outcome is not None:
+        result["outcome"] = outcome
+    if anomaly is not None:
+        result["anomaly"] = anomaly
+    return result
 
 
 def idempotent_record_event(
@@ -607,8 +773,9 @@ def _build_parser() -> argparse.ArgumentParser:
         prog="python3 -m scripts.escalation.record_completion",
         description=(
             "Phase 6 escalation per-event side-effect dispatcher. "
-            "Validate -> Vikunja PATCH (only for done/rescheduled) -> "
-            "JSONL append. Exits 0/1/2/3 per contracts/cli.md."
+            "Validate -> Vikunja v2 PATCH (only for done/rescheduled) -> "
+            "JSONL append. Exits 0/1/2/3 per contracts/cli.md, 4 when a done "
+            "had an unexpected Vikunja outcome (JSONL still written)."
         ),
     )
     parser.add_argument(
@@ -651,6 +818,16 @@ def _build_parser() -> argparse.ArgumentParser:
         "--snooze-days",
         type=int,
         help="Snooze duration in days when --state snoozed.",
+    )
+    parser.add_argument(
+        "--due-date",
+        default=None,
+        help=(
+            "With --state level_sent: the task's current due_date as "
+            "enumerate_candidates printed it. Stored as due_date_at_alert, the "
+            "baseline reconcile uses to tell a recurring completion from a "
+            "reschedule (FR-015). Optional; ignored for other states."
+        ),
     )
     parser.add_argument(
         "--reschedule-to",
@@ -755,6 +932,9 @@ def _build_record_from_flags(args: argparse.Namespace) -> dict:
                 "--level is required when --state level_sent"
             )
         record["level"] = args.level
+        due_at_alert = _due_date_at_alert(args.due_date)
+        if due_at_alert is not None:
+            record["due_date_at_alert"] = due_at_alert
     elif state == "snoozed":
         if args.snooze_days is None:
             raise ValueError(
@@ -775,6 +955,19 @@ def _build_record_from_flags(args: argparse.Namespace) -> dict:
         record["reason"] = args.reason
 
     return record
+
+
+def _due_date_at_alert(value: str | None) -> str | None:
+    """Return *value* when it is a usable Vikunja instant, else ``None``.
+
+    The baseline is optional: an absent or unusable value (``None``, the
+    year-1 "unset" sentinel, a naive or unparseable string) is dropped rather
+    than failing the ``level_sent`` record, which matters more than the
+    baseline. Reconcile then falls back to its pre-baseline behaviour.
+    """
+    if value is None or et_datetime.parse_vikunja_instant(value) is None:
+        return None
+    return value
 
 
 def _augment_stdin_record(record: dict) -> dict:
@@ -893,6 +1086,16 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     print(json.dumps(result))
+    if result.get("anomaly"):
+        # Written AFTER the JSONL append on purpose: the record is kept and
+        # the agent still has to report the anomaly to Kent.
+        print(
+            json.dumps(
+                {"ok": False, "step": "vikunja_outcome", "error": result["anomaly"]}
+            ),
+            file=sys.stderr,
+        )
+        return EXIT_OUTCOME_UNEXPECTED
     return 0
 
 

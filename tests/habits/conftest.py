@@ -21,8 +21,8 @@ Available fixtures
 placeholder token (mode 0600). Returns the ``Path``.
 
 ``sample_habit_task_response`` — callable factory that returns a dict shaped
-like the Vikunja ``GET /tasks/<id>`` response payload. Override any field
-via kwargs.
+like the Vikunja v2 ``GET /api/v2/tasks/<id>`` response payload (via
+``tests/common/vikunja_v2_factory.make_task``). Override any field via kwargs.
 
 ``mock_urlopen(monkeypatch)`` — monkey-patches ``urllib.request.urlopen`` to
 a ``MagicMock``. Tests configure ``mock_urlopen.return_value`` (or
@@ -33,6 +33,11 @@ a ``MagicMock``. Tests configure ``mock_urlopen.return_value`` (or
 ``FELIX_STATE_LOG_DIR`` env var (so subprocess tests in later WPs see the
 same sandbox). Returns the ``Path``.
 
+``stub_schedule(monkeypatch)`` — stubs ``sweeper.load_schedule`` so a
+``*.stub.json`` schedule (rows of ``[task_id, title, [weekdays]]``) loads
+without the YAML format, keeping sweeper tests independent of it. ``v2_advance_responses`` — urlopen responses for
+one successful rule-driven sweeper advance (#1111).
+
 ``mock_sync_cache_fixture`` — re-exported from ``tests/common/conftest.py``
 (mission #519 / WP01). Builder that synthesizes sync cache state for one
 test invocation. Made available here so habits tests can use it after the
@@ -40,8 +45,10 @@ TP-03/TP-04/TP-07 cache migration (WP02).
 """
 from __future__ import annotations
 
+import json
 import os
 import sys
+from dataclasses import dataclass
 from pathlib import Path
 from unittest.mock import MagicMock
 
@@ -52,6 +59,7 @@ import pytest
 # fixtures from conftest files but only from the current directory upward, not
 # from sibling directories).  Mission #519 / WP02 migration.
 from tests.common.conftest import mock_sync_cache_fixture  # noqa: F401
+from tests.common.vikunja_v2_factory import make_task
 
 # ---------------------------------------------------------------------------
 # Legacy sys.path setup (mission 282 — tests use bare ``import <module>``)
@@ -89,36 +97,41 @@ def tmp_token_file(tmp_path: Path, fake_vikunja_token: str) -> Path:
 
 @pytest.fixture
 def sample_habit_task_response():
-    """Return a factory that builds a Vikunja ``GET /tasks/<id>`` response dict.
+    """Return a factory that builds a Vikunja task response dict.
 
-    Default fields are sensible for a non-workout daily habit; override via
-    kwargs in the test body.
+    Delegates to :func:`tests.common.vikunja_v2_factory.make_task`, so the
+    body has the real v2 key set (``repeat`` / ``repeats_rrule`` /
+    ``repeats_from_current_date``; the dead ``repeat_after`` /
+    ``repeat_mode`` shape is gone, #1111). The default is a daily habit
+    (``FREQ=DAILY;INTERVAL=1``). Any other task field can be overridden via
+    keyword; ``is_archived`` is added only when given.
     """
 
     def _make(
         task_id: int,
         title: str = "Habit",
-        repeat_after: int = 0,
-        repeat_mode: int = 0,
+        *,
         done: bool = False,
         due_date: str = "2026-05-20T08:00:00Z",
         project_id: int = 1,
         labels: list | None = None,
-        is_archived: bool = False,
-        done_at: str | None = None,
+        is_archived: bool | None = None,
+        **overrides,
     ) -> dict:
-        return {
-            "id": task_id,
-            "title": title,
-            "repeat_after": repeat_after,
-            "repeat_mode": repeat_mode,
-            "done": done,
-            "due_date": due_date,
-            "project_id": project_id,
-            "labels": labels or [],
-            "is_archived": is_archived,
-            "done_at": done_at,
-        }
+        task = make_task(
+            id=task_id,
+            identifier=f"#{task_id}",
+            index=task_id,
+            title=title,
+            done=done,
+            due_date=due_date,
+            project_id=project_id,
+            labels=labels or [],
+            **overrides,
+        )
+        if is_archived is not None:
+            task["is_archived"] = is_archived
+        return task
 
     return _make
 
@@ -188,7 +201,6 @@ def mock_vikunja_base_url(monkeypatch):
     _TEST_URL = "https://vikunja.test/api/v1/"
     for _mod_path in (
         "scripts.habits.set_due_dates",
-        "scripts.habits.migrate_schedule",
         "scripts.habits.sweeper",
         "scripts.habits.identify_workout_task",
         "scripts.habits.exclude_completed",
@@ -200,3 +212,85 @@ def mock_vikunja_base_url(monkeypatch):
             monkeypatch.setattr(_mod, "get_vikunja_base_url", lambda: _TEST_URL)
         except (ImportError, AttributeError):
             pass
+
+
+# ---------------------------------------------------------------------------
+# Sweeper fixtures (mission felix-rrule-adaptation-01M7TKNX, WP03 / #1111)
+# ---------------------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class StubScheduleEntry:
+    """The fields of ``schedule_loader.ScheduleEntry`` the sweeper reads."""
+
+    task_id: int
+    title: str
+    designated_weekdays: tuple[str, ...] = ()
+
+
+#: Suffix of a stub schedule file: a JSON list of
+#: ``[task_id, title, [designated_weekdays...]]`` rows.
+STUB_SCHEDULE_SUFFIX = ".stub.json"
+
+
+@pytest.fixture
+def stub_schedule(monkeypatch):
+    """Stub ``sweeper.load_schedule`` so sweeper tests do not depend on the
+    schedule YAML format (owned by ``schedule_loader``).
+
+    A path ending in ``.stub.json`` holds a JSON list of
+    ``[task_id, title, [weekday, ...]]`` rows and loads as
+    :class:`StubScheduleEntry` objects; any other path goes to the real
+    loader, so invalid-schedule tests still exercise it.
+    """
+    from scripts.habits import sweeper
+
+    real = sweeper.load_schedule
+
+    def _fake(path):
+        path = Path(path)
+        if not path.name.endswith(STUB_SCHEDULE_SUFFIX):
+            return real(path)
+        rows = json.loads(path.read_text(encoding="utf-8"))
+        return [
+            StubScheduleEntry(task_id, title, tuple(weekdays))
+            for task_id, title, weekdays in rows
+        ]
+
+    monkeypatch.setattr(sweeper, "load_schedule", _fake)
+
+
+def _json_cm(payload) -> MagicMock:
+    body = json.dumps(payload).encode("utf-8")
+    resp = MagicMock(name="response", status=200)
+    resp.read = MagicMock(return_value=body)
+    cm = MagicMock(name="cm")
+    cm.__enter__ = MagicMock(return_value=resp)
+    cm.__exit__ = MagicMock(return_value=False)
+    return cm
+
+
+@pytest.fixture
+def v2_advance_responses():
+    """Factory for the urlopen responses of one successful sweeper advance.
+
+    ``make(task_id, occurrence)`` returns four context-manager mocks, in the
+    order the sweeper calls them: GET v2 task (weekly Wednesday rule), GET
+    occurrences (``[occurrence]``), PATCH ``due_date``, GET read-back.
+    """
+
+    def make(task_id: int = 76, occurrence: str = "2026-06-04T03:59:59Z") -> list:
+        task = make_task(
+            id=task_id,
+            repeat={"freq": "weekly", "interval": 1, "by_day": ["we"]},
+            due_date="2026-05-28T03:59:59Z",
+        )
+        moved = {**task, "due_date": occurrence}
+        return [
+            _json_cm(task),
+            _json_cm({"occurrences": [occurrence]}),
+            _json_cm(moved),
+            _json_cm(moved),
+        ]
+
+    return make

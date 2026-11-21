@@ -78,16 +78,17 @@ def test_single_workout_match(mock_urlopen, sample_habit_task_response, fake_vik
         {17: "Workout — strength training"},
     )
     # Add specific fields the result dict needs to round-trip.
-    responses[3] = _resp(
-        sample_habit_task_response(
-            task_id=17,
-            title="Workout — strength training",
-            project_id=1,
-            labels=[{"id": 9, "title": "personal"}],
-            repeat_after=86400,
-            due_date="2026-05-19T08:00:00Z",
-        )
+    body = sample_habit_task_response(
+        task_id=17,
+        title="Workout — strength training",
+        project_id=1,
+        labels=[{"id": 9, "title": "personal"}],
+        due_date="2026-05-19T08:00:00Z",
     )
+    # RRULE-server body (#1111): the factory already omits the dead interval fields.
+    body["repeat"] = {"freq": "daily", "interval": 1}
+    body["repeats_rrule"] = "FREQ=DAILY;INTERVAL=1"
+    responses[3] = _resp(body)
     mock_urlopen.side_effect = responses
 
     result = iwt.find_workout_task("https://vikunja.test/api/v1/", fake_vikunja_token)
@@ -96,7 +97,9 @@ def test_single_workout_match(mock_urlopen, sample_habit_task_response, fake_vik
     assert result["title"] == "Workout — strength training"
     assert result["project_id"] == 1
     assert result["labels"] == [{"id": 9, "title": "personal"}]
-    assert result["repeat_after"] == 86400
+    assert result["repeat"] == {"freq": "daily", "interval": 1}
+    assert result["repeats_rrule"] == "FREQ=DAILY;INTERVAL=1"
+    assert "repeat_after" not in result
     assert result["due_date"] == "2026-05-19T08:00:00Z"
 
 
@@ -249,16 +252,15 @@ def test_cli_happy_path(
         sample_habit_task_response,
         {17: "Workout"},
     )
-    responses[3] = _resp(
-        sample_habit_task_response(
-            task_id=17,
-            title="Workout",
-            project_id=2,
-            labels=[],
-            repeat_after=0,
-            due_date="2026-05-20T08:00:00Z",
-        )
+    body = sample_habit_task_response(
+        task_id=17,
+        title="Workout",
+        project_id=2,
+        labels=[],
+        due_date="2026-05-20T08:00:00Z",
+        repeat=None,  # no rule: the factory drops repeats_rrule, as the server does
     )
+    responses[3] = _resp(body)
     mock_urlopen.side_effect = responses
 
     exit_code = iwt.main(
@@ -274,6 +276,9 @@ def test_cli_happy_path(
     assert payload["task_id"] == 17
     assert payload["title"] == "Workout"
     assert payload["project_id"] == 2
+    assert payload["repeat"] is None
+    assert "repeats_rrule" not in payload
+    assert "repeat_after" not in payload
 
 
 def test_cli_no_match_prints_null_exit_zero(

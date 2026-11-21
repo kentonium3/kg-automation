@@ -1,14 +1,13 @@
 ---
 name: task_intelligence
-description: Transform raw task descriptions into fully structured Vikunja tasks. Use when an agent needs to infer attributes, place tasks in projects, link goals, set repeat intervals, or handle enrichment errors.
+description: Transform raw task descriptions into fully structured Vikunja tasks. Use when an agent needs to infer attributes, place tasks in projects, link goals, set recurrence rules, or handle enrichment errors.
 version: 1.0.0
 ---
 
 # Task Intelligence Skill
 
-This skill encodes the rules for transforming raw task descriptions into fully
-structured Vikunja tasks. It is the knowledge base that felix-admin-tasker reads
-to structure any task without additional guidance.
+The rules for turning raw task descriptions into structured Vikunja tasks; the
+knowledge base felix-admin-tasker reads to structure any task.
 
 **Scope — what this skill covers**:
 - Attribute inference from natural language
@@ -16,7 +15,7 @@ to structure any task without additional guidance.
 - Project placement mapping from content signals
 - Identity label inference
 - Goal relationship detection and linking
-- Repeat interval conversion and detection
+- Recurrence rules (RRULE), their preview, and detection
 - Error handling and Vikunja unavailability procedures
 
 **Scope — what this skill does NOT cover**:
@@ -51,7 +50,7 @@ them unless the signals are contradictory.
 | Attribute | Question | When to Include |
 |---|---|---|
 | Start date | When should work begin? | Only if lead time or dependencies |
-| Repeating interval | Does this recur? | Only if task sounds recurring |
+| Recurrence rule | Does this recur? | Only if task sounds recurring |
 | Goal relationship | Does this serve a declared goal? | Check against active goals |
 | Subtask/parent | Is this part of a larger task? | If task sounds like a component |
 | Blocking/blocked | Does anything depend on this? | If clear dependencies exist |
@@ -185,8 +184,8 @@ Before structuring any task, check whether it relates to an active goal.
 ### Procedure
 
 1. Resolve the Goals project by name via `GET /projects` (never hardcode the ID).
-2. Fetch all active goals (project-scoped — `/tasks/all` returns HTTP 400 on
-   Vikunja 2.4.0+, #853; put the project id in the PATH, not the filter):
+2. Fetch all active goals (project-scoped: the project id goes in the PATH,
+   not the filter):
    ```
    GET /projects/{GOALS_PROJECT_ID}/tasks?filter=done%20%3D%20false&sort_by=due_date&order_by=asc
    ```
@@ -252,59 +251,63 @@ the other task (the goal).
 
 ---
 
-## Repeat Intervals
+## Recurrence Rules
 
-### Conversion Table
+Vikunja stores recurrence as an RFC 5545 rule (`RRULE`). Draft the rule text
+from Kent's words with this table:
 
-Translate natural language repeat requests into Vikunja's seconds-based
-`repeat_after` field.
-
-| Human Expression | repeat_after (seconds) | repeat_mode |
+| Human expression | `--rrule` | Flags |
 |---|---|---|
-| "daily", "every day" | 86400 | 0 |
-| "every other day", "every 2 days" | 172800 | 0 |
-| "weekly", "every week" | 604800 | 0 |
-| "bi-weekly", "every 2 weeks", "fortnightly" | 1209600 | 0 |
-| "monthly", "every month" | 0 | 1 |
-| "quarterly", "every 3 months" | 7776000 | 0 |
-| "every 6 months", "twice a year" | 15552000 | 0 |
-| "yearly", "annually", "every year" | 31536000 | 0 |
-| "every N days" | N x 86400 | 0 |
-| "N days after completion" | N x 86400 | 2 |
+| every day | `FREQ=DAILY` | |
+| weekdays | `FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR` | |
+| every 2 weeks | `FREQ=WEEKLY;INTERVAL=2` | |
+| monthly on the 15th | `FREQ=MONTHLY;BYMONTHDAY=15` | |
+| every 10 days after I finish | `FREQ=DAILY;INTERVAL=10` | `--from-completion` |
+| 6 times, weekly | `FREQ=WEEKLY;COUNT=6` | |
+| weekly until 2027-03-01 | `FREQ=WEEKLY;UNTIL=20270301T000000Z` | |
 
-### repeat_mode Explanation
+`UNTIL` is UTC and ends in `Z`. "After I finish" counts from completion.
 
-- **0 (Default)**: Adds `repeat_after` seconds to existing dates. If the task is
-  overdue, skips forward past missed intervals to the next future occurrence.
-- **1 (Month)**: Adds one calendar month. **Ignores the `repeat_after` value
-  entirely.** Set `repeat_after` to 0 when using this mode.
-- **2 (FromCurrentDate)**: Adds `repeat_after` seconds to the current time (not
-  the old date). Use this for tasks like "N days after I finish this."
+### Procedure (mandatory for every recurring task)
 
-### CRITICAL API CAVEAT
+1. Draft the rule and its anchor: the first due date (`--due`), or a time of
+   day (`--initial-due-time HH:MM`) when the server should pick the first date.
+2. Preview it (read-only):
+   ```
+   cd /home/claude/kg-automation && python3 -m scripts.vikunja.preview_rule \
+     --rrule "FREQ=WEEKLY;BYDAY=MO" --initial-due-time 07:30 [--from-completion]
+   ```
+   The last stdout line is JSON. Show Kent `dates_et` in the proposal: the
+   first due date (`due_date_et`, e.g. `Mon 2026-11-23 07:30 ET`), then the
+   next ones. Add any `reason_text` (e.g. "series ends after 2 occurrences").
+3. If it exits 2 with `missing_permission`, tell Kent exactly: "I can't preview
+   the dates: the Vikunja token lacks the tasks.occurrences_preview
+   permission." Do not guess dates and do not create the task until he says
+   how to proceed. `invalid_input`/`invalid_rule`: fix the rule and preview
+   again. Exit 3 (`vikunja_error`, `malformed_response`): report it; no dates.
+   Empty `dates_et`: tell Kent the rule gives no date (`reason_text`); do not
+   create the task.
+4. If Kent changes the rule, the anchor/due date or "after I finish", go back
+   to step 2: preview again, show the revised `dates_et`, and wait for a new
+   confirmation. Other changes (priority, project, label) need no re-preview.
+5. On Kent's confirmation, create exactly what he saw: pass the summary's
+   `create_args` (`--rrule`, `--due` = the previewed `due_date`, and
+   `--from-completion` if set) to
+   `python3 -m scripts.vikunja.create_task --title ... --project ...`.
+   Never create with `--initial-due-time`: the server would pick the first
+   date again from its clock, possibly not the one Kent saw. To change the
+   date, go back to step 2.
 
-> When marking a repeating task as done via the API, **always include
-> `repeat_after` and `repeat_mode` in the payload**. Go's zero-value semantics
-> can clear these fields to 0 if omitted, destroying the repeat configuration.
-
-Example — marking a weekly repeating task done:
-
-```json
-POST /tasks/{TASK_ID}
-{
-  "done": true,
-  "repeat_after": 604800,
-  "repeat_mode": 0
-}
-```
+Completing a recurring task advances it to its next date; it does not close
+it. The last occurrence of a `COUNT` or `UNTIL` series stays Done.
 
 ### Repeat Detection Rules
 
 - **High confidence** (include in proposal): explicit repeat language — "every",
   "recurring", "repeating", "weekly", "daily", "monthly", "each week".
 - **Low confidence** (do not assume): implied repetition — "oil change" might be
-  recurring but was not stated as such. Do not infer repeat intervals from task
-  type alone.
+  recurring but was not stated as such. Do not infer a rule from task type
+  alone.
 - **When unsure**: ask Kent "Is this a repeating task?" Do not guess.
 
 ---

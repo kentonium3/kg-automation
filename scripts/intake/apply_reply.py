@@ -19,8 +19,11 @@ the fields the digest reported missing. This module:
    free-form values are rejected there — the LLM can never inject an id).
 3. **Applies** project + labels + applicable Tier-2 through the **kent token**
    only (``vikunja-api-kent``; the felix-bot path is refused — this is the #750
-   fix, SC-008) with **read-modify-write** and a **readback diff** (Vikunja POST
-   ``/tasks/<id>`` is partial-replace), enforcing **family-replace** (a new
+   fix, SC-008) as a v2 **merge-patch of only the changed fields** plus a
+   **readback diff** that also asserts the recurrence rule, from-current flag
+   and reminders survived (#1111). ``q:eliminate`` on a recurring task ends the
+   series (rule cleared, then done) instead of patching ``done``. It enforces
+   **family-replace** (a new
    ``q:``/``f:`` removes the prior same-family label; all non-family labels are
    preserved; a task never ends with two quadrants — NFR-003).
 4. Returns a precise **per-line status** in ``{applied, echoed_back,
@@ -69,11 +72,13 @@ from typing import Any
 
 from scripts.common import et_datetime, vikunja_refs
 from scripts.common.vikunja_client import (
+    SeriesEndIncomplete,
     VikunjaAuthError,
     VikunjaError,
     VikunjaHttpError,
     VikunjaNotFoundError,
 )
+from scripts.common.vikunja_rule import has_rule
 from scripts.intake.shorthand import (
     FallbackItemError,
     ParsedLine,
@@ -87,6 +92,7 @@ from scripts.intake.shorthand import (
 from scripts.vikunja.migrate_tasks import (
     DEFAULT_KENT_TOKEN_FILE,
     FELIX_BOT_TOKEN_FILE,
+    rule_state_drift,
 )
 
 __all__ = [
@@ -159,25 +165,6 @@ STATUSES = (
     "moved_conflict",
     "access_denied",
     "failed",
-)
-
-#: The writable-field allowlist echoed back on a task POST so Vikunja's
-#: partial-replace does not zero an unstated field (#524, mirrors
-#: ``migrate_tasks._WRITABLE_FIELDS``). Labels are a *separate* association
-#: (PUT/DELETE endpoints) and are intentionally NOT in this list.
-_WRITABLE_FIELDS: tuple[str, ...] = (
-    "title",
-    "description",
-    "due_date",
-    "repeat_after",
-    "repeat_mode",
-    "priority",
-    "done",
-    "done_at",
-    "hex_color",
-    "percent_done",
-    "start_date",
-    "end_date",
 )
 
 #: Vikunja's "unset" due-date sentinel — the zero instant. A due_date at or
@@ -417,9 +404,12 @@ def _has_due(task: dict[str, Any]) -> bool:
 
 
 def _is_recurring(task: dict[str, Any]) -> bool:
-    """True iff the task already carries native recurrence (``repeat_after``)."""
-    repeat = task.get("repeat_after")
-    return isinstance(repeat, int) and not isinstance(repeat, bool) and repeat > 0
+    """True iff the task carries a recurrence rule (``repeat``, FR-009).
+
+    Delegates to :func:`scripts.common.vikunja_rule.has_rule`; the fork dropped
+    ``repeat_after``/``repeat_mode`` (#1111).
+    """
+    return has_rule(task)
 
 
 def _resolve_project_id(name: str) -> int:
@@ -431,33 +421,29 @@ def _resolve_label_id(name: str) -> int:
 
 
 # ---------------------------------------------------------------------------
-# Write primitives (kent token; RMW + readback)
+# Write primitives (kent token; merge-patch + readback)
 # ---------------------------------------------------------------------------
 
 
-def _writable_payload(task: dict[str, Any]) -> dict[str, Any]:
-    """Copy the writable-field allowlist from a task (non-clobber; #524)."""
-    return {name: task[name] for name in _WRITABLE_FIELDS if name in task}
-
-
-def _post_task_fields(
+def _patch_task_fields(
     client: Any, task: dict[str, Any], changes: dict[str, Any]
 ) -> None:
-    """Apply task-field ``changes`` (project_id / due_date / done) via an
-    allowlisted RMW POST + readback diff.
+    """Apply task-field ``changes`` (project_id / due_date / done) via a v2
+    merge-patch + readback diff (#1111).
 
-    Echoes the writable allowlist so Vikunja's partial-replace does not zero an
-    unstated field, POSTs ``/tasks/<id>``, then GETs the task back and asserts
-    every intended change took and no allowlisted field drifted. A readback
-    mismatch raises :class:`ApplyError` (caller maps it to a per-line
-    ``failed``).
+    Sends exactly ``changes`` through :meth:`VikunjaClient.patch_task`, so no
+    unstated field is re-sent and none can be zeroed (#524). Reads the task
+    back with ``get_task_v2`` and asserts every intended change took AND the
+    recurrence rule, ``repeats_from_current_date`` and the reminder set are
+    unchanged (data-model.md Invariant 2; relative reminders are compared by
+    anchor and period, since the server recomputes their instants on every
+    save). A mismatch raises :class:`ApplyError` naming the
+    field and both values (caller maps it to a per-line ``failed``).
     """
     task_id = task["id"]
-    payload = _writable_payload(task)
-    payload.update(changes)
-    client.post(f"/tasks/{task_id}", json=payload, timeout=_HTTP_TIMEOUT)
+    client.patch_task(task_id, changes, timeout=_HTTP_TIMEOUT)
 
-    readback = client.get(f"/tasks/{task_id}", timeout=_HTTP_TIMEOUT)
+    readback = client.get_task_v2(task_id, timeout=_HTTP_TIMEOUT)
     if not isinstance(readback, dict):
         raise ApplyError(
             f"field readback for task {task_id} returned a non-object; refusing "
@@ -482,6 +468,12 @@ def _post_task_fields(
                 f"field readback for task {task_id}: {name!r} is "
                 f"{got!r}, expected {value!r} (partial-replace drift, #524)."
             )
+    drift = rule_state_drift(task, readback)
+    if drift is not None:
+        raise ApplyError(
+            f"field readback for task {task_id}: {drift} (recurrence state "
+            f"damaged by the write, #1111)."
+        )
 
 
 def _attach_label(client: Any, task_id: int, label_id: int) -> None:
@@ -511,9 +503,17 @@ class _LinePlan:
     applied: dict[str, Any] = field(default_factory=dict)
     notes: list[str] = field(default_factory=list)
     is_overload: bool = False
+    #: ``q:eliminate`` on a recurring task: end the series via
+    #: :meth:`VikunjaClient.end_series` instead of patching ``done`` (FR-008).
+    end_series: bool = False
 
     def has_work(self) -> bool:
-        return bool(self.field_changes or self.labels_add or self.labels_remove)
+        return bool(
+            self.field_changes
+            or self.labels_add
+            or self.labels_remove
+            or self.end_series
+        )
 
 
 def _plan_family_label(
@@ -586,9 +586,20 @@ def _plan_line(
         except vikunja_refs.VikunjaRefError as exc:
             plan.notes.append(f"could not resolve {line.quadrant}: {exc}")
         if line.quadrant == ELIMINATE_QUADRANT and not task.get("done"):
-            plan.field_changes["done"] = True
             plan.applied["done"] = True
-            plan.notes.append("marked done (eliminated) — resolves intake (FR-008)")
+            if has_rule(task):
+                # A bare done=True on a recurring task advances it instead of
+                # finishing it; ending the series keeps it Done (FR-008, #1111).
+                plan.end_series = True
+                plan.applied["series_ended"] = True
+                plan.notes.append(
+                    "eliminated — recurring series ended (rule cleared, done)"
+                )
+            else:
+                plan.field_changes["done"] = True
+                plan.notes.append(
+                    "marked done (eliminated) — resolves intake (FR-008)"
+                )
 
     # --- Project reassignment (skip for eliminate: no working project needed) -
     if line.project is not None and line.quadrant != ELIMINATE_QUADRANT:
@@ -860,13 +871,17 @@ def apply_line(
         return result
 
     # --- Execute (kent token). One bad line → failed, never blocks the rest. --
+    # Order: labels, then field changes, then end_series (T023) — the series end
+    # is last so a failure before it never leaves a half-ended series behind.
     try:
-        if plan.field_changes:
-            _post_task_fields(client, task, plan.field_changes)
         for _title, lid in plan.labels_remove:
             _remove_label(client, task_id, lid)
         for _title, lid in plan.labels_add:
             _attach_label(client, task_id, lid)
+        if plan.field_changes:
+            _patch_task_fields(client, task, plan.field_changes)
+        if plan.end_series:
+            client.end_series(task_id, timeout=_HTTP_TIMEOUT)
 
         preserved = {
             label["title"]
@@ -880,6 +895,16 @@ def apply_line(
             expected_present={t for t, _ in plan.labels_add},
             expected_absent={t for t, _ in plan.labels_remove},
             preserved=preserved,
+        )
+    except SeriesEndIncomplete as exc:
+        # A partial end is never success: report the exact recovery state
+        # (e.g. rule_cleared_not_done) so the operator can resume (data-model.md
+        # "End-series recovery contract").
+        return ApplyResult(
+            line=line.n, task_id=task_id, status="failed",
+            applied=dict(plan.applied),
+            notes=[*plan.notes, f"series end incomplete: {exc.state}"],
+            failed=echoed,
         )
     except (VikunjaError, ApplyError) as exc:
         return ApplyResult(

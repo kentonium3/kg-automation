@@ -146,7 +146,7 @@ emit this directly), `backfill` and `operator_repair` (operator use).
 
 | `--state` | Required additional flag |
 |-----------|--------------------------|
-| `level_sent` | `--level N` (1 or 2) |
+| `level_sent` | `--level N` (1 or 2) and `--due-date "<task due_date>"` |
 | `snoozed` | `--snooze-days N` |
 | `rescheduled` | `--reschedule-to YYYY-MM-DD` |
 | `dismissed` | (optional `--reason "..."`) |
@@ -157,9 +157,10 @@ emit this directly), `backfill` and `operator_repair` (operator use).
 | Code | Meaning |
 |------|---------|
 | 0 | Success (Vikunja + JSONL write OK) |
-| 1 | Validation error (bad flags / state transition rejected) |
-| 2 | Vikunja side-effect failed (no JSONL write performed) |
-| 3 | Hard-fail; P2-bug filed; agent should skip this task |
+| 1 | Vikunja step failed, or a reschedule changed the rule/reminders (no JSONL write) |
+| 2 | JSONL append failed after the Vikunja write (operator triage) |
+| 3 | Validation / usage error (bad flags, bad record, token file) |
+| 4 | `done` recorded, but Vikunja's result was unexpected; report it to Kent verbatim |
 
 ### Idempotency
 
@@ -215,12 +216,12 @@ state into Vikunja comments directly.
 
 | Pattern | Action |
 |---------|--------|
-| `N done` | Mark task #N complete: `POST /api/v1/tasks/{id}` with `{"done": true}`. Then `record_completion --state done --source kent_reply`. |
+| `N done` | `record_completion --state done --source kent_reply` — the helper marks the task done in Vikunja itself (rule kept); never write the task directly. Non-zero exit: report the error to Kent verbatim. |
 | `N snooze` | `record_completion --state snoozed --snooze-days 1 --source kent_reply` (default N=1). |
 | `N snooze Nd` | `record_completion --state snoozed --snooze-days N --source kent_reply`. |
 | `N dismiss` | `record_completion --state dismissed --source kent_reply`. Leave task open. |
 | `move N to <date>` or `N move to <date>` | Parse the date. Confirm with Kent. Then `record_completion --state rescheduled --reschedule-to YYYY-MM-DD --source kent_reply` — the helper performs the Vikunja `due_date` PATCH (end-of-day ET) itself; do NOT write `due_date` separately. |
-| `N and M done` | Mark multiple tasks complete. Process each independently — one `record_completion` invocation per task. |
+| `N and M done` | One `record_completion --state done` invocation per task, each independent. No direct Vikunja write. |
 | `all snooze Nd` | Apply snooze to every task in the message — one `record_completion` invocation per task. |
 | `got it` or vague acknowledgment | No task mutation. No per-task `record_completion`. If a Level 2 task exists, it stays at Level 2 but won't re-alert today (daily dedup per §7). |
 | Ambiguous or unrecognized | Ask ONE clarifying question. Do not guess. |

@@ -39,7 +39,7 @@ from scripts.common.vikunja_client import (
     VikunjaTimeoutError,
 )
 from scripts.common.vikunja_config import VikunjaConfigError
-
+from tests.common.vikunja_v2_factory import make_task, with_reminder
 
 # Test-time base URL — never touches a real server because the global
 # ``_block_live_http`` guard in ``tests/conftest.py`` raises on any
@@ -331,37 +331,28 @@ def test_get_task_issues_get_to_tasks_path(mock_vikunja_urlopen) -> None:
     assert calls[0].full_url == f"{TEST_BASE_URL}/tasks/7"
 
 
-def test_replace_task_fields_posts_body_verbatim(mock_vikunja_urlopen) -> None:
-    # T002 — raw POST-replace. The body goes out exactly as given; no
-    # merge, no GET. Vikunja v0.24.6 zeroes any field not included here.
-    calls = mock_vikunja_urlopen("mock_response_200_object")
-    body = {"done": True}
-    _client().replace_task_fields(42, body)
-    req = calls[0]
-    assert req.get_method() == "POST"
-    assert req.full_url == f"{TEST_BASE_URL}/tasks/42"
-    assert req.get_header("Content-type") == "application/json"
-    assert json.loads(req.data.decode("utf-8")) == {"done": True}
+def test_raw_replace_method_is_retired() -> None:
+    # felix-rrule-adaptation WP08 (plan IC-01): the raw v1 POST-replace
+    # method is gone; patch_task is the write path.
+    assert not hasattr(VikunjaClient, "replace" + "_task_fields")
 
 
-def test_update_task_fields_preserves_repeat_after_via_read_modify_write() -> None:
-    # T003 — the core proof: a read-modify-write update on a task with
-    # repeat_after set must NOT zero it out, unlike a raw POST-replace.
+def test_update_task_fields_preserves_repeat_via_read_modify_write() -> None:
+    # T003, converted to the v2 task shape by felix-rrule-adaptation WP02:
+    # a read-modify-write update on a repeating task must NOT drop the rule,
+    # repeats_from_current_date or reminders, unlike a raw POST-replace.
     client = _client()
-    current_task = {
-        "id": 42,
-        "title": "Daily habit",
-        "done": False,
-        "repeat_after": 86400,
-        "repeat_mode": 0,
-    }
+    current_task = with_reminder(
+        make_task(id=42, repeat={"freq": "weekly", "by_day": ["mo"]},
+                  repeats_from_current_date=True)
+    )
     get_calls: list[str] = []
     post_calls: list[tuple[str, dict]] = []
 
     def fake_get(path, *, params=None, timeout=None):
         get_calls.append(path)
         assert path == "/tasks/42"
-        return dict(current_task)
+        return json.loads(json.dumps(current_task))
 
     def fake_post(path, *, json=None, params=None, timeout=None):
         post_calls.append((path, json))
@@ -370,19 +361,20 @@ def test_update_task_fields_preserves_repeat_after_via_read_modify_write() -> No
     client.get = fake_get  # type: ignore[assignment]
     client.post = fake_post  # type: ignore[assignment]
 
-    result = client.update_task_fields(42, {"done": True})
+    result = client.update_task_fields(42, {"title": "Renamed"})
 
     assert get_calls == ["/tasks/42"]
     assert len(post_calls) == 1
     posted_path, posted_body = post_calls[0]
     assert posted_path == "/tasks/42"
     # The requested change is applied...
-    assert posted_body["done"] is True
-    # ...but repeat_after/repeat_mode — NOT part of `changes` — survive.
+    assert posted_body["title"] == "Renamed"
+    # ...but the rule fields — NOT part of `changes` — survive.
     # This is the zeroing quirk being defeated.
-    assert posted_body["repeat_after"] == 86400
-    assert posted_body["repeat_mode"] == 0
-    assert result["repeat_after"] == 86400
+    assert posted_body["repeat"] == {"freq": "weekly", "by_day": ["mo"]}
+    assert posted_body["repeats_from_current_date"] is True
+    assert posted_body["reminders"] == current_task["reminders"]
+    assert result["repeat"] == current_task["repeat"]
 
 
 def test_update_task_fields_changes_override_current_values() -> None:

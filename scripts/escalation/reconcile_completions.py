@@ -14,6 +14,12 @@ log, and:
 * Emit a synthetic ``rescheduled`` record when the cache's ``due_date`` no
   longer matches the JSONL's last-known ``reschedule_to`` (or the initial
   due_date if no prior reschedule) — per research D3.
+* **Except** for a recurring task (mission felix-rrule-adaptation, WP04,
+  FR-015): when the cached task carries a rule (``has_rule``), is not done,
+  and its due date is *later* than the JSONL's last ``reschedule_to``, the
+  series advanced because Kent completed it in the UI, so a synthetic
+  ``done`` record is emitted instead. A finished series reads ``done=true``
+  and takes the done-drift path (FR-014).
 * Route any task whose records cannot be reduced by ``derive_state`` to the
   Q10 hard-fail surface (file_hard_fail_bug with reason
   ``derive_state_inconsistency``) — per research D8.
@@ -73,6 +79,7 @@ from pathlib import Path
 from typing import Any, Iterable, Literal, Optional
 
 from scripts.common import state_log
+from scripts.common.et_datetime import parse_vikunja_instant
 from scripts.common.sync_cache import (
     SLA_NORMAL,
     SLATier,
@@ -83,6 +90,7 @@ from scripts.common.vikunja_config import (
     get_vikunja_base_url,
     get_vikunja_token_path,
 )
+from scripts.common.vikunja_rule import has_rule
 from scripts.escalation.derive_state import (
     EscalationStateError,
     derive_state,
@@ -846,6 +854,181 @@ def _render_malformed_detail(
 # ---------------------------------------------------------------------------
 
 
+def _ts_of(record: dict) -> str:
+    ts = record.get("timestamp")
+    return ts if isinstance(ts, str) else ""
+
+
+def _current_window(records: list[dict]) -> list[dict]:
+    """Records of the current subscription: those newer than the newest terminal.
+
+    A ``done``/``dismissed`` record closes a subscription; a later
+    ``level_sent`` opens the next one (a recurring task's next occurrence).
+    Terminal checks and due-date baselines must not reach back past that
+    boundary, or an old ``done`` suppresses every later completion. With no
+    terminal record the window is the whole history (today's behaviour).
+    Timestamps sort as ISO-8601 strings, as elsewhere in this module.
+    """
+    terminal_ts = [
+        _ts_of(r) for r in records if r.get("state") in ("done", "dismissed")
+    ]
+    if not terminal_ts:
+        return list(records)
+    boundary = max(terminal_ts)
+    return [r for r in records if _ts_of(r) > boundary]
+
+
+@dataclass(frozen=True)
+class _Baseline:
+    """A due-date baseline: a UTC instant (new records) or an ET date (legacy)."""
+
+    value: datetime | str
+    display: str
+
+
+def _instant_display(instant: datetime) -> str:
+    return instant.strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def _due_baseline(window: list[dict]) -> _Baseline | None:
+    """Newest known due date within the current window, newest timestamp wins.
+
+    Sources:
+
+    - a ``level_sent`` record's ``due_date_at_alert``: the task's due date
+      when Kent was alerted, kept as a timezone-aware **instant**, so a
+      same-day advance (an hourly rule, 15:00Z -> 16:00Z) is still seen
+      (review cycle 2, finding 2);
+    - a ``rescheduled`` record's ``reschedule_to``: only an ET calendar date
+      exists there, so it stays a **date** baseline (the legacy comparison).
+
+    Records written before the baseline existed carry neither on
+    ``level_sent``; then only reschedules count, and with none the result is
+    ``None`` (caller keeps today's path).
+    """
+    candidates: list[tuple[str, int, _Baseline]] = []
+    for index, r in enumerate(window):
+        state = r.get("state")
+        baseline: _Baseline | None = None
+        if state == "level_sent":
+            instant = parse_vikunja_instant(r.get("due_date_at_alert"))
+            if instant is not None:
+                baseline = _Baseline(instant, _instant_display(instant))
+        elif state == "rescheduled":
+            value = r.get("reschedule_to")
+            if isinstance(value, str) and value:
+                baseline = _Baseline(value, value)
+        if baseline is not None:
+            candidates.append((_ts_of(r), index, baseline))
+    if not candidates:
+        return None
+    return max(candidates, key=lambda c: (c[0], c[1]))[2]
+
+
+def _current_due(fields: dict, baseline: _Baseline) -> tuple[datetime | str | None, str | None]:
+    """The cached due date in the baseline's kind (instant or ET date), with display."""
+    if isinstance(baseline.value, str):
+        due = _cache_due_date(fields)
+        return due, due
+    instant = parse_vikunja_instant(fields.get("due_date"))
+    return instant, (_instant_display(instant) if instant is not None else None)
+
+
+def _recurring_advanced(
+    fields: dict, baseline: _Baseline | None, current: datetime | str | None
+) -> bool:
+    """True when a cached task looks like a recurring task Kent completed (FR-015).
+
+    All of: the cached task carries a rule (``has_rule(fields)``), it is not
+    done, a due-date baseline exists for the current subscription
+    (:func:`_due_baseline`), and the cached due date (*current*, from
+    :func:`_current_due`, the same kind as the baseline) is later than it.
+    An instant baseline compares aware instants; a legacy date baseline
+    compares ET ``YYYY-MM-DD`` strings, whose string order is date order.
+
+    Fallbacks, never guesses:
+
+    - an old cache without a ``repeat`` key (pre-WP06 sync) has no rule as
+      far as this check can tell, so the task keeps today's ``rescheduled``
+      path;
+    - no baseline (old ``level_sent`` records without ``due_date_at_alert``
+      and no reschedule) means nothing to call "advanced", so today's path
+      runs (the record it writes becomes the baseline for the next tick).
+
+    Known ambiguity: Kent moving a recurring task's due date *forward* in
+    the UI without completing it is also labelled done. The rule plus an
+    advanced due date is the best signal the cache offers; the record is
+    synthetic and its note keeps both dates.
+    """
+    if not has_rule(fields) or bool(fields.get("done")):
+        return False
+    if baseline is None or current is None:
+        return False
+    # A str value is a legacy ET date; anything else is an aware instant.
+    if isinstance(baseline.value, str):
+        return isinstance(current, str) and current > baseline.value
+    return not isinstance(current, str) and current > baseline.value
+
+
+def _emit_recurring_done(
+    *,
+    task_id: int,
+    project_id: int,
+    task_title: str,
+    old_due: str | None,
+    new_due: str | None,
+    base_url: str,
+    jsonl_path: Path,
+    dry_run: bool,
+    vikunja_state_for_body: dict,
+    filed_this_tick: set[tuple[int, str]],
+    report: dict[str, int],
+    report_hard_fails: list[HardFailEvent],
+) -> None:
+    """Write the synthetic ``done`` for a recurring task that advanced (FR-015)."""
+    if not dry_run:
+        synthetic = {
+            "domain": "escalation",
+            "task_id": task_id,
+            "project_id": project_id,
+            "title": task_title,
+            "date": datetime.now(rc.LOCAL_TZ).date().isoformat(),
+            "state": "done",
+            "source": "reconcile",
+            "timestamp": rc._now_utc_iso(),
+            "note": (
+                "Synthesized by reconcile: recurring task advanced "
+                f"(completed in UI); due_date {old_due}\u2192{new_due}"
+            ),
+        }
+        try:
+            rc.record_event(
+                synthetic,
+                base_url=base_url,
+                token_path=DEFAULT_TOKEN_PATH,
+                skip_vikunja=True,
+            )
+        except (
+            EscalationSchemaError,
+            rc.StateLogError,
+            rc.VikunjaError,
+        ) as exc:
+            _emit_hard_fail(
+                task_id=task_id,
+                task_title=task_title,
+                project_id=project_id,
+                reason="derive_state_inconsistency",
+                detail=f"synthetic recurring done record failed: {exc}",
+                jsonl_path=jsonl_path,
+                vikunja_state=vikunja_state_for_body,
+                derive_state_error_message=None,
+                filed_this_tick=filed_this_tick,
+                report_hard_fails=report_hard_fails,
+            )
+            return
+    report["synthetic_done_emitted"] += 1
+
+
 def _reconcile_one_task(
     *,
     task_id: int,
@@ -866,7 +1049,9 @@ def _reconcile_one_task(
          ``derive_state_inconsistency`` hard-fail and return.
       3. Compute cache-vs-JSONL drift:
            - Done-drift: emit synthetic ``done`` record.
-           - Rescheduled-drift: emit synthetic ``rescheduled`` record.
+           - Rescheduled-drift: emit synthetic ``rescheduled`` record, or a
+             synthetic ``done`` when a recurring task's due date advanced
+             (:func:`_recurring_advanced`, FR-015).
       4. On any non-recoverable cache error, propagate ``OSError`` to the
          caller (one bad task should not abort the whole sweep, but the
          per-project sweep handles the abort).
@@ -998,7 +1183,10 @@ def _reconcile_one_task(
     # Per research D3 + spec FR-005 / SC-002: Kent ticked the task done in
     # the UI between ticks. Vikunja says done=true; JSONL has no terminal
     # ``done`` record. Emit synthetic done record with source="reconcile".
-    if vikunja_done and not _has_done_record(records):
+    # Scoped to the current subscription window: a done that closed an
+    # earlier occurrence must not hide this one (review cycle 1, finding 2).
+    window = _current_window(records)
+    if vikunja_done and not _has_done_record(window):
         if not dry_run:
             today_iso = datetime.now(rc.LOCAL_TZ).date().isoformat()
             synthetic = {
@@ -1049,8 +1237,20 @@ def _reconcile_one_task(
     # a due_date), emit a synthetic ``rescheduled`` record. Skip when the
     # task already has a terminal record (subscription check should already
     # exclude these, but defend in depth).
-    if not _has_terminal_record(records) and vikunja_due is not None:
-        last_reschedule = _last_reschedule_to(records)
+    if not _has_terminal_record(window) and vikunja_due is not None:
+        last_reschedule = _last_reschedule_to(window)
+        # Recurring tasks (FR-015) compare against the newest due-date
+        # baseline of this subscription, which also covers a completion
+        # before any reschedule. Without a rule or a baseline, today's rule.
+        baseline = _due_baseline(window) if has_rule(view.fields) else None
+        current, current_display = (
+            _current_due(view.fields, baseline) if baseline is not None else (None, None)
+        )
+        drift = (
+            current != baseline.value
+            if baseline is not None
+            else last_reschedule != vikunja_due
+        )
         # If we have a prior reschedule and it matches Vikunja, no drift.
         # If we have no prior reschedule, we emit only when Vikunja's date
         # disagrees with our best inference. Per the WP05 prompt's "best-
@@ -1058,7 +1258,23 @@ def _reconcile_one_task(
         # vikunja_due is not None guard above); when last_reschedule is
         # None and we have a Vikunja date, emit (Kent edited the due_date
         # post-subscription).
-        if last_reschedule != vikunja_due:
+        if drift:
+            if baseline is not None and _recurring_advanced(view.fields, baseline, current):
+                _emit_recurring_done(
+                    task_id=task_id,
+                    project_id=project_id,
+                    task_title=task_title,
+                    old_due=baseline.display,
+                    new_due=current_display,
+                    base_url=base_url,
+                    jsonl_path=jsonl_path,
+                    dry_run=dry_run,
+                    vikunja_state_for_body=vikunja_state_for_body,
+                    filed_this_tick=filed_this_tick,
+                    report=report,
+                    report_hard_fails=report_hard_fails,
+                )
+                return
             if not dry_run:
                 today_iso = datetime.now(rc.LOCAL_TZ).date().isoformat()
                 synthetic = {

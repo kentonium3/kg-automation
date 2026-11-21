@@ -60,8 +60,7 @@ def _task_fields(
         "done": done,
         "project_id": project_id,
         "due_date": due_date,
-        "repeat_after": 0,
-        "repeat_mode": "default",
+        "repeat": None,
         "labels": [],
     }
 
@@ -474,8 +473,7 @@ class TestPrivateTask:
                 "title": "Private habit",
                 "done": True,
                 "project_id": private_project_id,
-                "repeat_after": 0,
-                "repeat_mode": "default",
+                "repeat": None,
                 "labels": [],
             }},
             private_project_ids=frozenset({private_project_id}),

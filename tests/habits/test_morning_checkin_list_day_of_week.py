@@ -43,8 +43,7 @@ def _task_fields(
         "title": title,
         "due_date": due_date,
         "done": done,
-        "repeat_after": 86400,
-        "repeat_mode": "default",
+        "repeat": {"freq": "daily", "interval": 1},
         "project_id": project_id,
         "labels": [],
     }
@@ -60,11 +59,11 @@ SCHEDULE_TEMPLATE = """
 habits:
   - task_id: 14
     title: "Wake"
-    repeat_after_seconds: 86400
+    rrule: "FREQ=DAILY;INTERVAL=1"
   - task_id: 77
     title: "Friday strength"
     designated_weekdays: ["Fri"]
-    repeat_after_seconds: 604800
+    rrule: "FREQ=WEEKLY;BYDAY=FR"
 """
 
 
@@ -195,7 +194,7 @@ class TestScheduleInvariantViolation:
             "_query_habits",
             return_value=[{"id": 77, "title": "Friday strength",
                            "due_date": "2026-05-15T08:00:00Z", "done": False,
-                           "repeat_after": 86400, "project_id": HABITS_PROJECT_ID,
+                           "repeat": {"freq": "daily", "interval": 1}, "project_id": HABITS_PROJECT_ID,
                            "labels": []}],
         ):
             with pytest.raises(mcl.ScheduleInvariantError, match="day-specific"):
@@ -215,7 +214,7 @@ class TestScheduleInvariantViolation:
             "_query_habits",
             return_value=[{"id": 77, "title": "Friday strength",
                            "due_date": "2026-05-15T08:00:00Z", "done": False,
-                           "repeat_after": 86400, "project_id": HABITS_PROJECT_ID,
+                           "repeat": {"freq": "daily", "interval": 1}, "project_id": HABITS_PROJECT_ID,
                            "labels": []}],
         ):
             state_dir = tmp_path / "state"
@@ -267,7 +266,7 @@ habits:
   - task_id: 1
     title: "Bad"
     designated_weekdays: ["Xyz"]
-    repeat_after_seconds: 86400
+    rrule: "FREQ=DAILY;INTERVAL=1"
 """,
         )
         # Schedule load error fires before cache read; still need a valid

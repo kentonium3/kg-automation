@@ -10,8 +10,9 @@ Vikunja is the task management system running on office2. It stores tasks, goals
 projects, labels, and saved filters. This skill teaches you how to interact with
 the Vikunja REST API (v2.4.0) using curl via the `exec` tool.
 
-**Supported operations**: Create, read, update, complete, and delete tasks.
-Query projects and labels by name. Execute filters (Today, Upcoming, Overdue,
+**Supported operations**: Read and delete tasks; create, update and complete
+them **only through the Felix helpers** (see Updating Tasks). Query projects and
+labels by name. Execute filters (Today, Upcoming, Overdue,
 Goals). Add and read task comments.
 
 **API Base URL**:
@@ -158,21 +159,21 @@ business rule.
 
 Creating a task is a two-step process: create the task, then add an identity label.
 
-**Step 1 — Create the task in a project:**
+**Step 1 — Create the task with the helper** (v2 create, read back):
 
 ```bash
-curl -s -X PUT \
-  -H "Authorization: Bearer $(cat /data/services/openclaw/secrets/vikunja-api-kent)" \
-  -H "Content-Type: application/json" \
-  -d '{"title": "TASK_TITLE", "description": "DESCRIPTION", "due_date": "2026-04-15T00:00:00Z", "priority": 1}' \
-  https://office2.tail0f5f56.ts.net/api/v1/projects/PROJECT_ID/tasks
+cd /home/claude/kg-automation && python3 -m scripts.vikunja.create_task \
+  --title "TASK_TITLE" --project PROJECT_ID --due 2026-04-15T00:00:00Z \
+  [--description "DESCRIPTION"] [--priority 1] [--rrule "FREQ=WEEKLY"]
 ```
 
-- Replace `PROJECT_ID` with the ID obtained from project resolution (never hardcode)
-- `title` is required. `description`, `due_date`, and `priority` are optional.
-- `due_date` must be ISO 8601 format (e.g., `2026-04-15T00:00:00Z`)
-- `priority` is an integer (higher = more important)
-- The response includes the new task's `id` — save it for the next step
+- `--project` takes the ID from project resolution (never hardcode) or a name
+- `--due` is ISO 8601 (e.g., `2026-04-15T00:00:00Z`); `--priority` is an integer
+- Recurring tasks: follow the task-intelligence skill. Preview first, then
+  create with the preview's `create_args` (`--rrule` and `--due` = the
+  previewed `due_date`, never `--initial-due-time`). Never create one and add
+  the rule afterwards
+- The output names the new task's `id` (and its UI `identifier`) — save the `id`
 
 **Step 2 — Add an identity label:**
 
@@ -234,35 +235,28 @@ Returns the full task object including:
 - `labels` — array of assigned labels (read-only here, populated automatically)
 - `created`, `updated` — timestamps
 
-### Update Task
+### Updating Tasks
 
-```bash
-curl -s -X POST \
-  -H "Authorization: Bearer $(cat /data/services/openclaw/secrets/vikunja-api-kent)" \
-  -H "Content-Type: application/json" \
-  -d '{"description": "Updated description"}' \
-  https://office2.tail0f5f56.ts.net/api/v1/tasks/TASK_ID
-```
+**Never write a task with curl** — no update, no "complete", no due-date
+change. Never `POST /tasks/{id}`: on v1 it replaces the **whole** task, so every
+field you omit is cleared, including the recurrence rule (`repeat`),
+`repeats_from_current_date` and `reminders`. A bare `{"done": true}` turns a
+repeating task into a one-off.
 
-- Uses **POST** (not PUT) — this is the Vikunja convention for updates
-- Send only the fields you want to change (partial update)
-- Updatable fields: `title`, `description`, `due_date`, `priority`, `done`,
-  `hex_color`, `percent_done`, `start_date`, `end_date`, `repeat_after`
+All task writes go through the Felix helpers, which use a v2 partial update
+(PATCH) and check the rule afterwards:
 
-### Complete Task
+- create: `scripts.vikunja.create_task` (above)
+- complete or reschedule an escalated task: `scripts.escalation.record_completion`
+- record a habit completion: `scripts.habits.record_completion`
+- apply an intake reply: `scripts.intake.apply_reply`
+- change an existing task's title, description, due date, priority or
+  project: `scripts.vikunja.update_task` (refuses rule changes, and due-date
+  changes on a recurring task: those stay in Vikunja)
+- pause, resume or remove a habit: `scripts.habits.manage_habit` (remove ends
+  the series and never deletes the task)
 
-Mark a task as done:
-
-```bash
-curl -s -X POST \
-  -H "Authorization: Bearer $(cat /data/services/openclaw/secrets/vikunja-api-kent)" \
-  -H "Content-Type: application/json" \
-  -d '{"done": true}' \
-  https://office2.tail0f5f56.ts.net/api/v1/tasks/TASK_ID
-```
-
-This is a convenience alias — it's just an update that sets `done: true`.
-Vikunja will auto-populate `done_at` with the current timestamp.
+If none of them covers the change, ask Kent; do not improvise a write.
 
 ### Delete Task
 
@@ -276,7 +270,7 @@ curl -s -X DELETE \
 endpoint. Once deleted, a task cannot be recovered.
 
 - Only use for test cleanup or when explicitly requested by Kent
-- Prefer marking tasks as complete (`done: true`) rather than deleting
+- Prefer completing tasks (through a helper) rather than deleting
 - Always confirm with the caller before deleting a task
 
 ## Filters and Queries
@@ -308,10 +302,7 @@ Do not query a "Goals" project by name or id.
 
 ### Ad-Hoc Queries
 
-**Do NOT use `GET /tasks/all`** — it returns HTTP 400 (code 2004, "Invalid
-model provided") on Vikunja 2.4.0+ for every param shape (a v1-layer
-regression, #853). Query **per-project** instead — the project id goes in the
-PATH, not the filter:
+Query **per-project** — the project id goes in the PATH, not the filter:
 
 ```bash
 curl -s -H "Authorization: Bearer $(cat /data/services/openclaw/secrets/vikunja-api-kent)" \
@@ -441,7 +432,7 @@ error explaining what is needed. Do not attempt partial execution.
 2. Resolve Goals project ID: list projects, find "Goals", get its `id`
 3. Resolve metalcasework label ID: list labels, find "metalcasework", get its `id`
 4. Check for duplicates: search tasks in Goals project for the same title
-5. Create task: `PUT /projects/{goals_id}/tasks` with title, description, due date
+5. Create task: `create_task --project {goals_id}` with title, description, due date
 6. Add label: `PUT /tasks/{task_id}/labels` with metalcasework label ID
 7. Confirm to the caller: "Created goal declaration '{title}' in Goals project with metalcasework label, due {date}"
 
@@ -462,5 +453,5 @@ error explaining what is needed. Do not attempt partial execution.
 
 1. Check health
 2. Resolve Goals project ID by name
-3. Query (project-scoped — `/tasks/all` is broken on Vikunja 2.4.0+, #853): `GET /projects/{goals_id}/tasks?filter=done = false&sort_by=due_date&order_by=asc`
+3. Query (project-scoped): `GET /projects/{goals_id}/tasks?filter=done = false&sort_by=due_date&order_by=asc`
 4. Present results sorted by due date with title, deadline, and labels

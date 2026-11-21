@@ -9,28 +9,29 @@ from __future__ import annotations
 import json
 from datetime import datetime, timezone
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
 from scripts.habits import sweeper
+from tests.habits.conftest import _json_cm
+
+#: (task_id, title, designated_weekdays), loaded through the conftest
+#: ``stub_schedule`` so this file does not depend on the YAML format.
+SCHEDULE_ENTRIES = [
+    (14, "Wake at 5:00 AM", []),
+    (76, "Strength training — Wednesday", ["Wed"]),
+]
 
 
-SCHEDULE_YAML = """\
-habits:
-  - task_id: 14
-    title: "Wake at 5:00 AM"
-    repeat_after_seconds: 86400
-  - task_id: 76
-    title: "Strength training — Wednesday"
-    designated_weekdays: ["Wed"]
-    repeat_after_seconds: 604800
-"""
+@pytest.fixture(autouse=True)
+def _stub_schedule(stub_schedule):
+    """Activate the conftest schedule stub for every test in this module."""
 
 
 def _write_schedule(tmp_path: Path) -> Path:
-    p = tmp_path / "schedule.yaml"
-    p.write_text(SCHEDULE_YAML, encoding="utf-8")
+    p = tmp_path / "schedule.stub.json"
+    p.write_text(json.dumps(SCHEDULE_ENTRIES), encoding="utf-8")
     return p
 
 
@@ -50,18 +51,6 @@ def _write_checkin(state_dir: Path, date: str, delivered: str, habits):
         encoding="utf-8",
     )
     return p
-
-
-def _ok_response():
-    mock = MagicMock(name="response")
-    mock.__enter__ = MagicMock(
-        return_value=MagicMock(
-            read=MagicMock(return_value=b"{}"),
-            status=200,
-        )
-    )
-    mock.__exit__ = MagicMock(return_value=False)
-    return mock
 
 
 def _read_history_events(history_path: Path) -> list[dict]:
@@ -93,7 +82,7 @@ class TestSweeperIdempotency:
         }
 
     def test_second_run_against_same_fixture_emits_no_new_events(
-        self, tmp_path
+        self, tmp_path, v2_advance_responses
     ):
         """Run the sweeper twice with the same inputs; second run finds the
         first run's ``auto_skipped`` event and treats both habits as
@@ -112,7 +101,13 @@ class TestSweeperIdempotency:
                 },
             ],
         )
-        with patch("urllib.request.urlopen", return_value=_ok_response()) as mock_urlopen:
+        # WP12 (FR-026): the daily habit (14) gets one live read (pause
+        # check) before its history append; it comes first in the check-in.
+        daily_read = _json_cm({"id": 14, "description": "", "project_id": 13})
+        with patch(
+            "urllib.request.urlopen",
+            side_effect=[daily_read, *v2_advance_responses()],
+        ) as mock_urlopen:
             tick1 = sweeper.run_sweep(**args)
         assert tick1.exit_status == "success"
         events_after_run1 = _read_history_events(args["history_path"])
@@ -121,11 +116,14 @@ class TestSweeperIdempotency:
         ]
         assert len(auto_skips_run1) == 2
         run1_vikunja_calls = mock_urlopen.call_count
-        # 76 is day-specific -> 1 Vikunja PUT. 14 is daily -> 0 PUTs.
-        assert run1_vikunja_calls == 1
+        # 76 is day-specific -> GET, occurrences, PATCH, read-back (one
+        # write). 14 is daily -> one read (pause check), no write.
+        assert run1_vikunja_calls == 5
+        methods = [c[0][0].get_method() for c in mock_urlopen.call_args_list]
+        assert methods.count("PATCH") == 1
 
         # ---- Second run ---------------------------------------------------
-        with patch("urllib.request.urlopen", return_value=_ok_response()) as mock_urlopen2:
+        with patch("urllib.request.urlopen") as mock_urlopen2:
             tick2 = sweeper.run_sweep(**args)
         events_after_run2 = _read_history_events(args["history_path"])
         auto_skips_run2 = [
@@ -137,7 +135,7 @@ class TestSweeperIdempotency:
         assert tick2.habits_auto_skipped == []
         statuses = sorted(h.status for h in tick2.habits_evaluated)
         assert statuses == ["already_auto_skipped", "already_auto_skipped"]
-        # NO Vikunja PUT on the second pass (no double-advance).
+        # NO Vikunja call on the second pass (no double-advance).
         assert mock_urlopen2.call_count == 0
 
     def test_pre_existing_auto_skipped_event_skipped_cleanly(self, tmp_path):

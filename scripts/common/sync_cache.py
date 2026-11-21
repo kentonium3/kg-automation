@@ -83,7 +83,8 @@ SLA_LOOSE = SLATier("LOOSE", 86400)
 class TaskCacheView:
     """Read-only view of a single Vikunja task from the sync cache.
 
-    ``fields`` contains the 7 TRACKED_TASK_FIELDS when ``is_private`` is False;
+    ``fields`` contains the TRACKED_TASK_FIELDS plus ``description`` (cached,
+    not diffed; ``sync.cycle.CACHED_ONLY_TASK_FIELDS``) when ``is_private`` is False;
     ``fields`` is an empty dict when ``is_private`` is True (the privacy
     boundary — never log or surface field content for private tasks).
     """

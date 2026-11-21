@@ -1,7 +1,8 @@
 """Tests for scripts/habits/record_completion.py (WP03 / T011).
 
 Covers the ``record()`` Python API and the ``__main__`` CLI surface.
-All Vikunja HTTP traffic is mocked via ``urllib.request.urlopen``; state_log
+All Vikunja HTTP traffic is mocked via ``urllib.request.urlopen`` with v2 task
+bodies from ``tests/common/vikunja_v2_factory`` (#1111); state_log
 I/O is sandboxed via the ``mock_state_log_dir`` fixture from conftest.
 
 Test groups:
@@ -29,7 +30,7 @@ import pytest
 
 from scripts.common import state_log
 from scripts.habits import record_completion as rc
-
+from tests.common.vikunja_v2_factory import make_task
 
 # ---------------------------------------------------------------------------
 # Local mocking helpers
@@ -58,6 +59,16 @@ def _http_error(code: int = 500, body: bytes = b'{"message":"boom"}'):
     )
 
 
+def _before(task_id: int = 14, **overrides) -> dict:
+    """The v2 task before completion: a daily habit, open."""
+    return make_task(**{"id": task_id, "due_date": "2026-05-21T03:59:59Z", **overrides})
+
+
+def _after(task_id: int = 14, **overrides) -> dict:
+    """The v2 task the server returns after a normal completion: +1 day, open."""
+    return make_task(**{"id": task_id, "due_date": "2026-05-22T03:59:59Z", **overrides})
+
+
 VALID_KWARGS = dict(
     task_id=14,
     title="Wake at 5:00 AM",
@@ -78,38 +89,35 @@ class TestHappyPath:
     def test_three_writes_in_correct_order(
         self, mock_urlopen, mock_state_log_dir
     ):
-        """Pre-flight state_log.read empty -> GET task -> POST done -> PUT comment -> append.
+        """Pre-flight state_log.read empty -> GET v2 task -> PATCH done -> PUT comment -> append.
 
-        The GET before POST preserves repeat_after/repeat_mode against Vikunja
-        v0.24.6's destructive partial-update semantics (#524).
+        The GET reads the rule for the completion-outcome classifier; the
+        PATCH body is exactly ``{"done": true}`` because a v2 merge patch
+        leaves omitted fields (the rule) as stored (#1111).
         """
         mock_urlopen.side_effect = [
-            _resp({"id": 14, "repeat_after": 86400, "repeat_mode": 0}),  # step 2a: GET pre-done
-            _resp({"id": 14, "done": True}),  # step 2b: POST done=true
+            _resp(_before()),  # step 2a: GET v2 pre-done
+            _resp(_after()),  # step 2b: PATCH done=true
             _resp({"id": 999, "comment": "[Felix] ..."}),  # step 3: PUT comment
         ]
 
         rc.record(**VALID_KWARGS)
 
-        # urlopen called three times (GET + POST + PUT).
+        # urlopen called three times (GET + PATCH + PUT).
         assert mock_urlopen.call_count == 3
 
-        # First call is GET /tasks/14 (preserve-recurrence read).
+        # First call is GET /api/v2/tasks/14 (rule read).
         get_req = mock_urlopen.call_args_list[0][0][0]
         assert get_req.get_method() == "GET"
-        assert get_req.full_url == "http://test/api/v1/tasks/14"
+        assert get_req.full_url == "http://test/api/v2/tasks/14"
         assert get_req.data is None
 
-        # Second call is POST /tasks/14 with recurrence config echoed back.
-        post_req = mock_urlopen.call_args_list[1][0][0]
-        assert post_req.get_method() == "POST"
-        assert post_req.full_url == "http://test/api/v1/tasks/14"
-        post_body = json.loads(post_req.data.decode("utf-8"))
-        assert post_body == {
-            "done": True,
-            "repeat_after": 86400,
-            "repeat_mode": 0,
-        }
+        # Second call is PATCH /api/v2/tasks/14 with ONLY done (no echo).
+        patch_req = mock_urlopen.call_args_list[1][0][0]
+        assert patch_req.get_method() == "PATCH"
+        assert patch_req.full_url == "http://test/api/v2/tasks/14"
+        assert patch_req.headers.get("Content-type") == "application/merge-patch+json"
+        assert json.loads(patch_req.data.decode("utf-8")) == {"done": True}
 
         # Third call is PUT /tasks/14/comments (G4 verified).
         third_req = mock_urlopen.call_args_list[2][0][0]
@@ -148,8 +156,8 @@ class TestHappyPath:
         raw_cm.__exit__ = MagicMock(return_value=False)
 
         mock_urlopen.side_effect = [
-            _resp({"id": 14, "repeat_after": 86400, "repeat_mode": 0}),  # GET pre-done
-            _resp({"id": 14, "done": True}),  # POST done=true
+            _resp(_before()),  # GET v2 pre-done
+            _resp(_after()),  # PATCH done=true
             raw_cm,  # step 3: PUT comment -> non-JSON 2xx body (tolerated)
         ]
 
@@ -165,8 +173,8 @@ class TestHappyPath:
         self, mock_urlopen, mock_state_log_dir
     ):
         mock_urlopen.side_effect = [
-            _resp({"id": 14, "repeat_after": 86400, "repeat_mode": 0}),
-            _resp({"id": 14, "done": True}),
+            _resp(_before()),
+            _resp(_after()),
             _resp({"id": 999}),
         ]
         rc.record(**VALID_KWARGS)
@@ -261,16 +269,16 @@ class TestStep2Failure:
     def test_done_post_failure_propagates_with_step2_prefix(
         self, mock_urlopen, mock_state_log_dir
     ):
-        # GET pre-done succeeds; POST done=true fails.
+        # GET pre-done succeeds; PATCH done=true fails.
         mock_urlopen.side_effect = [
-            _resp({"id": 14, "repeat_after": 86400, "repeat_mode": 0}),
+            _resp(_before()),
             _http_error(503, b'{"message":"down"}'),
         ]
 
         with pytest.raises(OSError, match=r"step 2 \(Vikunja done=true\)"):
             rc.record(**VALID_KWARGS)
 
-        # GET landed, POST attempted. State_log NOT written.
+        # GET landed, PATCH attempted. State_log NOT written.
         assert mock_urlopen.call_count == 2
         records = state_log.read("habits", task_id=14)
         assert records == []
@@ -278,13 +286,13 @@ class TestStep2Failure:
     def test_get_pre_done_failure_propagates_with_step2_prefix(
         self, mock_urlopen, mock_state_log_dir
     ):
-        # GET pre-done fails before the POST is ever attempted.
+        # GET pre-done fails before the PATCH is ever attempted.
         mock_urlopen.side_effect = _http_error(503, b'{"message":"down"}')
 
         with pytest.raises(OSError, match=r"step 2 \(Vikunja GET pre-done\)"):
             rc.record(**VALID_KWARGS)
 
-        # Only the GET was attempted; POST never fires.
+        # Only the GET was attempted; PATCH never fires.
         assert mock_urlopen.call_count == 1
         records = state_log.read("habits", task_id=14)
         assert records == []
@@ -293,55 +301,62 @@ class TestStep2Failure:
         self, mock_urlopen, mock_state_log_dir
     ):
         # Defensive: if Vikunja returns a non-dict body (list / null), bail
-        # before the POST. Without this guard we'd attribute-error on .get().
+        # before the PATCH (the v2 client refuses a non-object body).
         mock_urlopen.side_effect = [
             _resp([1, 2, 3]),  # list -- not a task dict
         ]
 
-        with pytest.raises(OSError, match=r"step 2 \(Vikunja GET pre-done\) returned non-dict"):
+        with pytest.raises(OSError, match=r"step 2 \(Vikunja GET pre-done\)"):
             rc.record(**VALID_KWARGS)
 
         assert mock_urlopen.call_count == 1
 
-    def test_post_done_body_echoes_repeat_after_and_repeat_mode_from_get(
+    def test_patch_body_is_exactly_done_for_weekly_rule(
         self, mock_urlopen, mock_state_log_dir
     ):
-        # Regression guard for #524: POST body MUST include the recurrence
-        # config returned from GET, so Vikunja's auto-advance trigger keeps
-        # firing on subsequent completions.
+        # Inverted #524 guard: the old v1 POST had to echo the recurrence
+        # config; the v2 merge patch must NOT carry any rule field at all.
+        weekly = {"freq": "weekly", "interval": 1, "by_day": ["we"]}
         mock_urlopen.side_effect = [
-            _resp({"id": 14, "repeat_after": 604800, "repeat_mode": 1}),  # weekly
-            _resp({"id": 14, "done": True}),
+            _resp(_before(repeat=weekly)),
+            _resp(_after(repeat=weekly, due_date="2026-05-28T03:59:59Z")),
             _resp({"id": 999}),
         ]
         rc.record(**VALID_KWARGS)
-        post_req = mock_urlopen.call_args_list[1][0][0]
-        post_body = json.loads(post_req.data.decode("utf-8"))
-        assert post_body == {
-            "done": True,
-            "repeat_after": 604800,
-            "repeat_mode": 1,
-        }
+        patch_req = mock_urlopen.call_args_list[1][0][0]
+        assert json.loads(patch_req.data.decode("utf-8")) == {"done": True}
 
-    def test_post_done_body_defaults_repeat_fields_when_get_omits_them(
+    def test_not_modified_patch_rereads_task(
         self, mock_urlopen, mock_state_log_dir
     ):
-        # If the GET response omits repeat_after / repeat_mode (e.g. a
-        # non-recurring one-off task), default both to 0 -- matches Vikunja's
-        # own zero value for non-recurring tasks.
+        # A 304 (no change) makes the client return None; record() re-reads
+        # the task for the classifier instead of guessing.
         mock_urlopen.side_effect = [
-            _resp({"id": 14}),  # no repeat_* fields
-            _resp({"id": 14, "done": True}),
+            _resp(_before()),
+            _http_error(304, b""),
+            _resp(_after()),  # re-read after 304
             _resp({"id": 999}),
         ]
         rc.record(**VALID_KWARGS)
-        post_req = mock_urlopen.call_args_list[1][0][0]
-        post_body = json.loads(post_req.data.decode("utf-8"))
-        assert post_body == {
-            "done": True,
-            "repeat_after": 0,
-            "repeat_mode": 0,
-        }
+        reread = mock_urlopen.call_args_list[2][0][0]
+        assert reread.get_method() == "GET"
+        assert reread.full_url == "http://test/api/v2/tasks/14"
+        assert mock_urlopen.call_count == 4
+
+    def test_task_without_rule_is_unexpected_after_recording(
+        self, mock_urlopen, mock_state_log_dir
+    ):
+        # A habit with no rule that stays done is not a normal series end:
+        # comment + state log are written, then step 2 reports unexpected.
+        mock_urlopen.side_effect = [
+            _resp(_before(repeat=None)),
+            _resp(_before(repeat=None, done=True)),
+            _resp({"id": 999}),
+        ]
+        with pytest.raises(OSError, match=r"step 2: unexpected completion outcome"):
+            rc.record(**VALID_KWARGS)
+        assert mock_urlopen.call_count == 3
+        assert len(state_log.read("habits", task_id=14)) == 1
 
 
 # ===========================================================================
@@ -354,8 +369,8 @@ class TestStep3Failure:
         self, mock_urlopen, mock_state_log_dir
     ):
         mock_urlopen.side_effect = [
-            _resp({"id": 14, "repeat_after": 86400, "repeat_mode": 0}),  # step 2a: GET
-            _resp({"id": 14, "done": True}),  # step 2b: POST succeeds
+            _resp(_before()),  # step 2a: GET
+            _resp(_after()),  # step 2b: PATCH succeeds
             _http_error(500, b'{"message":"comment endpoint down"}'),  # step 3
         ]
 
@@ -379,8 +394,8 @@ class TestStep4Failure:
         self, mock_urlopen, mock_state_log_dir, monkeypatch
     ):
         mock_urlopen.side_effect = [
-            _resp({"id": 14, "repeat_after": 86400, "repeat_mode": 0}),
-            _resp({"id": 14, "done": True}),
+            _resp(_before()),
+            _resp(_after()),
             _resp({"id": 999}),
         ]
 
@@ -392,7 +407,7 @@ class TestStep4Failure:
         with pytest.raises(OSError, match=r"step 4 \(state_log append\)"):
             rc.record(**VALID_KWARGS)
 
-        # GET + POST + PUT all attempted (already committed at this point).
+        # GET + PATCH + PUT all attempted (already committed at this point).
         assert mock_urlopen.call_count == 3
 
 
@@ -411,8 +426,8 @@ class TestG4PutVerification:
         pattern from elsewhere.
         """
         mock_urlopen.side_effect = [
-            _resp({"id": 14, "repeat_after": 86400, "repeat_mode": 0}),
-            _resp({"id": 14, "done": True}),
+            _resp(_before()),
+            _resp(_after()),
             _resp({"id": 999, "comment": "stub"}),
         ]
 
@@ -437,8 +452,8 @@ class TestCommentBodyFormat:
         self, mock_urlopen, mock_state_log_dir
     ):
         mock_urlopen.side_effect = [
-            _resp({"id": 14, "repeat_after": 86400, "repeat_mode": 0}),
-            _resp({"id": 14, "done": True}),
+            _resp(_before()),
+            _resp(_after()),
             _resp({"id": 999}),
         ]
         rc.record(**VALID_KWARGS)
@@ -450,8 +465,8 @@ class TestCommentBodyFormat:
         self, mock_urlopen, mock_state_log_dir
     ):
         mock_urlopen.side_effect = [
-            _resp({"id": 17, "repeat_after": 0, "repeat_mode": 0}),
-            _resp({"id": 17, "done": True}),
+            _resp(_before(17)),
+            _resp(_after(17)),
             _resp({"id": 999}),
         ]
         kwargs = dict(VALID_KWARGS)
@@ -472,8 +487,8 @@ class TestCommentBodyFormat:
         self, mock_urlopen, mock_state_log_dir
     ):
         mock_urlopen.side_effect = [
-            _resp({"id": 14, "repeat_after": 86400, "repeat_mode": 0}),
-            _resp({"id": 14, "done": True}),
+            _resp(_before()),
+            _resp(_after()),
             _resp({"id": 999}),
         ]
         kwargs = dict(VALID_KWARGS)
@@ -553,8 +568,8 @@ class TestCli:
         monkeypatch,
     ):
         mock_urlopen.side_effect = [
-            _resp({"id": 14, "repeat_after": 86400, "repeat_mode": 0}),
-            _resp({"id": 14, "done": True}),
+            _resp(_before()),
+            _resp(_after()),
             _resp({"id": 999}),
         ]
         payload = json.dumps({
@@ -584,8 +599,8 @@ class TestCli:
         monkeypatch,
     ):
         mock_urlopen.side_effect = [
-            _resp({"id": 14, "repeat_after": 86400, "repeat_mode": 0}),
-            _resp({"id": 14, "done": True}),
+            _resp(_before()),
+            _resp(_after()),
             _resp({"id": 999}),
         ]
         _patch_stdin(monkeypatch, None)  # no stdin
@@ -634,8 +649,8 @@ class TestCli:
         capsys,
     ):
         mock_urlopen.side_effect = [
-            _resp({"id": 14, "repeat_after": 86400, "repeat_mode": 0}),
-            _resp({"id": 14, "done": True}),
+            _resp(_before()),
+            _resp(_after()),
             _http_error(500, b'{"message":"comment-down"}'),
         ]
         payload = json.dumps({
@@ -663,8 +678,8 @@ class TestCli:
         capsys,
     ):
         mock_urlopen.side_effect = [
-            _resp({"id": 14, "repeat_after": 86400, "repeat_mode": 0}),
-            _resp({"id": 14, "done": True}),
+            _resp(_before()),
+            _resp(_after()),
             _resp({"id": 999}),
         ]
 
@@ -788,8 +803,8 @@ class TestCorrelatedCheckinDateEt:
 
     def _three_ok(self, mock_urlopen):
         mock_urlopen.side_effect = [
-            _resp({"id": 14, "repeat_after": 86400, "repeat_mode": 0}),
-            _resp({"id": 14, "done": True}),
+            _resp(_before()),
+            _resp(_after()),
             _resp({"id": 999}),
         ]
 

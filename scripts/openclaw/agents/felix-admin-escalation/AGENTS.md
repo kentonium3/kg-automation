@@ -167,9 +167,12 @@ briefings (felix-core-digest), or goal-level commitment assessment
 
        cd /home/claude/kg-automation && python3 -m scripts.escalation.record_completion \
          --task-id <id> --project-id <pid> --title "<title>" \
-         --date <today-local> --state level_sent --level <N> --source agent
+         --date <today-local> --state level_sent --level <N> --source agent \
+         --due-date "<due_date>"
 
-   Pass `--idempotent` if you are retrying after a transient error.
+   `<due_date>` is the pre-candidate's `due_date` from Step 2, verbatim (the
+   baseline reconcile uses to recognise a completion). Pass `--idempotent` if
+   you are retrying after a transient error.
 
    **Critical**: do NOT call `record_completion` if WhatsApp delivery failed.
    The record represents that Kent received the alert — if he didn't, the
@@ -180,8 +183,8 @@ briefings (felix-core-digest), or goal-level commitment assessment
    appropriate `--state` (`done`, `snoozed`, `dismissed`, `rescheduled`) and
    `--source kent_reply`. For `rescheduled`, do NOT issue a separate Vikunja
    due-date write — `record_completion` performs the `due_date` PATCH itself
-   (see the Reschedule steps below). For `done`, mark the task done via the
-   API, then invoke `record_completion`.
+   (see the Reschedule steps below). For `done`, too, `record_completion`
+   marks the task done in Vikunja itself — invoke it and nothing else.
 
 ---
 
@@ -199,15 +202,17 @@ task positions in the most recent escalation message.
 
 For each recognized action:
 
+**Never POST, PUT or PATCH a Vikunja task directly. The helper does the write.**
+
 **Done** (`N done`):
-1. Mark task complete: `POST /api/v1/tasks/{id}` with `{"done": true}`
-2. Record event:
+1. Record the event (the only step that changes Vikunja):
 
        cd /home/claude/kg-automation && python3 -m scripts.escalation.record_completion \
          --task-id <id> --project-id <pid> --title "<title>" \
          --date <today-local> --state done --source kent_reply
 
-3. Confirm to Kent: "Marked #N done."
+2. Confirm to Kent: "Marked #N done." On a non-zero exit, report the
+   helper's error to Kent verbatim instead.
 
 **Snooze** (`N snooze` or `N snooze Nd`):
 1. Record event (default N=1 if duration not specified):

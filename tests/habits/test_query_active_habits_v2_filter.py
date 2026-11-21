@@ -36,8 +36,7 @@ def _task_fields(
         "done": done,
         "due_date": due_date,
         "project_id": project_id,
-        "repeat_after": 86400,
-        "repeat_mode": "default",
+        "repeat": {"freq": "daily", "interval": 1},
         "labels": [],
     }
 

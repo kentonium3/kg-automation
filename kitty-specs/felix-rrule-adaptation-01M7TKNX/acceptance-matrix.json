@@ -1,0 +1,257 @@
+{
+  "mission_slug": "felix-rrule-adaptation-01M7TKNX",
+  "mission_number": "",
+  "mission_type": "software-dev",
+  "overall_verdict": "pass",
+  "criteria": [
+    {
+      "criterion_id": "FR-001",
+      "description": "Verify FR-001 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": ".worktrees/felix-rrule-adaptation-01M7TKNX-lane-k/scripts/common/vikunja_client.py:641; tests/common/test_vikunja_client_v2.py::test_patch_task_sends_exact_body_as_merge_patch_to_v2",
+      "pass_fail": "pass",
+      "verified_by": "codex::reviewer-renata",
+      "verified_at": "2026-11-20T23:13:43.492322+00:00",
+      "notes": "Passing test confirms v2 merge PATCH sends only the requested fields. (Codex gpt-6.1-sol acceptance check, 2026-11-20)"
+    },
+    {
+      "criterion_id": "FR-002",
+      "description": "Verify FR-002 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": ".worktrees/felix-rrule-adaptation-01M7TKNX-lane-k/scripts/common/vikunja_client.py:515; tests/common/test_vikunja_client_v2.py::test_update_task_fields_full_echo_keeps_new_shape_rule",
+      "pass_fail": "pass",
+      "verified_by": "codex::reviewer-renata",
+      "verified_at": "2026-11-20T23:13:46.390349+00:00",
+      "notes": "The fallback echoes the fetched task and refuses destructive recurrence changes, with no planned callers remaining. (Codex gpt-6.1-sol acceptance check, 2026-11-20)"
+    },
+    {
+      "criterion_id": "FR-003",
+      "description": "Verify FR-003 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": ".worktrees/felix-rrule-adaptation-01M7TKNX-lane-k/scripts/habits/record_completion.py:268; tests/habits/test_habits_rule_roundtrip.py::TestCompletion::test_advanced_keeps_rule_and_sends_only_done",
+      "pass_fail": "pass",
+      "verified_by": "codex::reviewer-renata",
+      "verified_at": "2026-11-20T23:13:49.278939+00:00",
+      "notes": "Habit completion patches done alone and verifies the recurring task advances with its recurrence state preserved. (Codex gpt-6.1-sol acceptance check, 2026-11-20)"
+    },
+    {
+      "criterion_id": "FR-004",
+      "description": "Verify FR-004 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": ".worktrees/felix-rrule-adaptation-01M7TKNX-lane-k/scripts/habits/sweeper.py:727; tests/habits/test_habits_rule_roundtrip.py::TestSweeper::test_dayspecific_takes_next_date_from_rule; tests/habits/test_habits_rule_roundtrip.py::TestSweeper::test_no_rule_is_error_and_no_write",
+      "pass_fail": "pass",
+      "verified_by": "codex::reviewer-renata",
+      "verified_at": "2026-11-20T23:13:52.311273+00:00",
+      "notes": "Auto-skip uses server occurrences, checks preservation, and reports a missing rule without writing. (Codex gpt-6.1-sol acceptance check, 2026-11-20)"
+    },
+    {
+      "criterion_id": "FR-005",
+      "description": "Verify FR-005 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": ".worktrees/felix-rrule-adaptation-01M7TKNX-lane-k/scripts/habits/set_due_dates.py:151; tests/habits/test_habits_rule_roundtrip.py::TestBulkSetDueDates::test_bulk_patch_sends_only_due_date_and_keeps_rule",
+      "pass_fail": "pass",
+      "verified_by": "codex::reviewer-renata",
+      "verified_at": "2026-11-20T23:13:55.241391+00:00",
+      "notes": "Bulk date updates preserve recurrence state and the redundant reconcile mode is retired. (Codex gpt-6.1-sol acceptance check, 2026-11-20)"
+    },
+    {
+      "criterion_id": "FR-006",
+      "description": "Verify FR-006 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": ".worktrees/felix-rrule-adaptation-01M7TKNX-lane-k/scripts/escalation/record_completion.py:455; .worktrees/felix-rrule-adaptation-01M7TKNX-lane-k/scripts/openclaw/skills/escalation/SKILL.md:219; tests/escalation/test_escalation_rule_roundtrip.py::test_done_on_recurring_patches_v2_and_records_advanced; tests/escalation/test_escalation_rule_roundtrip.py::test_reschedule_patches_only_due_date_and_keeps_rule",
+      "pass_fail": "pass",
+      "verified_by": "codex::reviewer-renata",
+      "verified_at": "2026-11-20T23:13:58.119616+00:00",
+      "notes": "Done and reschedule replies route through the tested v2 helper and guidance prohibits separate task writes. (Codex gpt-6.1-sol acceptance check, 2026-11-20)"
+    },
+    {
+      "criterion_id": "FR-007",
+      "description": "Verify FR-007 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": ".worktrees/felix-rrule-adaptation-01M7TKNX-lane-k/scripts/intake/apply_reply.py:428; tests/intake/test_apply_reply_rule_roundtrip.py::test_project_move_of_recurring_task_patches_only_project_id; tests/intake/test_apply_reply_rule_roundtrip.py::test_readback_with_stripped_rule_raises_apply_error",
+      "pass_fail": "pass",
+      "verified_by": "codex::reviewer-renata",
+      "verified_at": "2026-11-20T23:14:01.107394+00:00",
+      "notes": "Intake moves and date changes use partial updates with recurrence preservation checked on readback. (Codex gpt-6.1-sol acceptance check, 2026-11-20)"
+    },
+    {
+      "criterion_id": "FR-008",
+      "description": "Verify FR-008 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": ".worktrees/felix-rrule-adaptation-01M7TKNX-lane-k/scripts/common/vikunja_client.py:818; tests/intake/test_apply_reply_rule_roundtrip.py::test_eliminate_recurring_task_ends_series_in_two_separate_writes",
+      "pass_fail": "pass",
+      "verified_by": "codex::reviewer-renata",
+      "verified_at": "2026-11-20T23:14:04.158461+00:00",
+      "notes": "Eliminate clears recurrence before marking done and verifies the series remains ended. (Codex gpt-6.1-sol acceptance check, 2026-11-20)"
+    },
+    {
+      "criterion_id": "FR-009",
+      "description": "Verify FR-009 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": ".worktrees/felix-rrule-adaptation-01M7TKNX-lane-k/scripts/intake/apply_reply.py:406; tests/intake/test_apply_reply_rule_roundtrip.py::test_habit_note_fires_on_recurring_task",
+      "pass_fail": "pass",
+      "verified_by": "codex::reviewer-renata",
+      "verified_at": "2026-11-20T23:14:07.200883+00:00",
+      "notes": "Intake recognises the repeat object and emits the recurring-task note. (Codex gpt-6.1-sol acceptance check, 2026-11-20)"
+    },
+    {
+      "criterion_id": "FR-010",
+      "description": "Verify FR-010 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": ".worktrees/felix-rrule-adaptation-01M7TKNX-lane-k/scripts/vikunja/migrate_tasks.py:826; .worktrees/felix-rrule-adaptation-01M7TKNX-lane-k/scripts/vikunja/migrate_date_only_due_dates.py:117; tests/vikunja/test_migrate_tasks.py::test_move_task_readback_stripped_rule_raises; tests/vikunja/test_migrate_date_only_due_dates.py::test_apply_readback_stripped_rule_raises",
+      "pass_fail": "pass",
+      "verified_by": "codex::reviewer-renata",
+      "verified_at": "2026-11-20T23:14:10.165902+00:00",
+      "notes": "Both bulk tools preserve recurrence through PATCH and fail when readback detects stripping. (Codex gpt-6.1-sol acceptance check, 2026-11-20)"
+    },
+    {
+      "criterion_id": "FR-011",
+      "description": "Verify FR-011 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": ".worktrees/felix-rrule-adaptation-01M7TKNX-lane-k/scripts/vikunja/create_task.py:164; tests/vikunja/test_create_task.py::test_create_task_passes_rule_and_accepts_stored_rule; tests/vikunja/test_create_task.py::test_create_task_from_completion_flag_must_stick; tests/vikunja/test_create_task.py::test_main_rule_missing_on_readback_exits_1",
+      "pass_fail": "pass",
+      "verified_by": "codex::reviewer-renata",
+      "verified_at": "2026-11-20T23:14:13.079422+00:00",
+      "notes": "Creation accepts rule text and repeat-from-completion, reads back the task, and fails when requested recurrence is absent. (Codex gpt-6.1-sol acceptance check, 2026-11-20)"
+    },
+    {
+      "criterion_id": "FR-012",
+      "description": "Verify FR-012 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": ".worktrees/felix-rrule-adaptation-01M7TKNX-lane-k/scripts/habits/query_active_habits_weekly.py:145; tests/habits/test_query_active_habits_weekly.py::test_production_catalog_lists_every_active_daily_habit; tests/habits/test_query_active_habits_weekly.py::test_golden_week_day_specific_habit_reports_one_of_one",
+      "pass_fail": "pass",
+      "verified_by": "codex::reviewer-renata",
+      "verified_at": "2026-11-20T23:14:15.917420+00:00",
+      "notes": "Reports include active rule-bearing habits and derive supported window counts from their rules. (Codex gpt-6.1-sol acceptance check, 2026-11-20)"
+    },
+    {
+      "criterion_id": "FR-013",
+      "description": "Verify FR-013 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": ".worktrees/felix-rrule-adaptation-01M7TKNX-lane-k/scripts/habits/schedule_loader.py:393; .worktrees/felix-rrule-adaptation-01M7TKNX-lane-k/scripts/habits/migrations/phase3-schedule.yaml:152; tests/habits/test_schedule_check_live.py::test_check_live_rows; tests/habits/test_schedule_check_live.py::test_only_get_requests_reach_the_wire",
+      "pass_fail": "pass",
+      "verified_by": "codex::reviewer-renata",
+      "verified_at": "2026-11-20T23:14:18.853067+00:00",
+      "notes": "The schedule declares rules and its read-only check reports missing or differing live rules. (Codex gpt-6.1-sol acceptance check, 2026-11-20)"
+    },
+    {
+      "criterion_id": "FR-014",
+      "description": "Verify FR-014 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": ".worktrees/felix-rrule-adaptation-01M7TKNX-lane-k/scripts/habits/record_completion.py:293; .worktrees/felix-rrule-adaptation-01M7TKNX-lane-k/scripts/escalation/record_completion.py:455; tests/habits/test_habits_rule_roundtrip.py::TestCompletion::test_count_one_is_series_ended; tests/habits/test_habits_rule_roundtrip.py::TestCompletion::test_until_passed_is_series_ended_with_rule_kept; tests/escalation/test_escalation_rule_roundtrip.py::test_done_on_count_one_records_series_ended",
+      "pass_fail": "pass",
+      "verified_by": "codex::reviewer-renata",
+      "verified_at": "2026-11-20T23:14:21.734947+00:00",
+      "notes": "Completion classifiers recognise exhausted series and record series_ended instead of advancement. (Codex gpt-6.1-sol acceptance check, 2026-11-20)"
+    },
+    {
+      "criterion_id": "FR-015",
+      "description": "Verify FR-015 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": ".worktrees/felix-rrule-adaptation-01M7TKNX-lane-k/scripts/escalation/reconcile_completions.py:937; tests/escalation/test_reconcile_completions.py::test_recurring_due_advanced_emits_synthetic_done_not_rescheduled",
+      "pass_fail": "pass",
+      "verified_by": "codex::reviewer-renata",
+      "verified_at": "2026-11-20T23:14:24.627099+00:00",
+      "notes": "Reconcile records an advanced recurring task as a completion. (Codex gpt-6.1-sol acceptance check, 2026-11-20)"
+    },
+    {
+      "criterion_id": "FR-016",
+      "description": "Verify FR-016 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": ".worktrees/felix-rrule-adaptation-01M7TKNX-lane-k/scripts/sync/diff.py:51; tests/sync/test_cycle.py::TestRuleTrackingAndSeeding::test_first_cycle_over_pre_upgrade_cache_seeds_without_divergence; tests/sync/test_cycle.py::TestRuleTrackingAndSeeding::test_second_cycle_with_one_rule_removed_is_one_unsafe_divergence",
+      "pass_fail": "pass",
+      "verified_by": "codex::reviewer-renata",
+      "verified_at": "2026-11-20T23:14:27.659959+00:00",
+      "notes": "Sync baselines new recurrence fields without conflicts and detects subsequent rule loss. (Codex gpt-6.1-sol acceptance check, 2026-11-20)"
+    },
+    {
+      "criterion_id": "FR-017",
+      "description": "Verify FR-017 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": ".worktrees/felix-rrule-adaptation-01M7TKNX-lane-k/scripts/habits/query_active_habits_v2.py:285; .worktrees/felix-rrule-adaptation-01M7TKNX-lane-k/scripts/habits/identify_workout_task.py:176; tests/habits/test_identify_workout_task.py::test_single_workout_match; tests/architectural/test_no_retired_repeat_fields.py::test_no_retired_repeat_fields_in_active_code_and_agent_docs",
+      "pass_fail": "pass",
+      "verified_by": "codex::reviewer-renata",
+      "verified_at": "2026-11-20T23:14:30.690493+00:00",
+      "notes": "Read-only habit outputs carry recurrence rules and active code no longer uses interval fields. (Codex gpt-6.1-sol acceptance check, 2026-11-20)"
+    },
+    {
+      "criterion_id": "FR-018",
+      "description": "Verify FR-018 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": ".worktrees/felix-rrule-adaptation-01M7TKNX-lane-k/scripts/habits/migrations/phase3-schedule.yaml:4; tests/architectural/test_habits_history_canonical_read.py::test_allowlist_contains_no_stale_entries; tests/architectural/test_no_retired_repeat_fields.py::test_live_habits_schedule_has_no_retired_keys",
+      "pass_fail": "pass",
+      "verified_by": "codex::reviewer-renata",
+      "verified_at": "2026-11-20T23:14:33.610206+00:00",
+      "notes": "Git evidence confirms the migration tool and tests are deleted while frozen operations remain explicitly historical. (Codex gpt-6.1-sol acceptance check, 2026-11-20)"
+    },
+    {
+      "criterion_id": "FR-019",
+      "description": "Verify FR-019 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": ".worktrees/felix-rrule-adaptation-01M7TKNX-lane-k/scripts/openclaw/skills/task-intelligence/SKILL.md:257; tests/vikunja/test_preview_rule.py::test_happy_path_shows_anchor_first_then_three_later_dates; tests/architectural/test_agent_docs_no_direct_task_writes.py::test_docs_are_scanned",
+      "pass_fail": "pass",
+      "verified_by": "codex::reviewer-renata",
+      "verified_at": "2026-11-20T23:14:36.457536+00:00",
+      "notes": "The requested guidance surfaces teach rule-based recurrence, helper writes, finite series, and preview-backed date proposals. (Codex gpt-6.1-sol acceptance check, 2026-11-20)"
+    },
+    {
+      "criterion_id": "FR-020",
+      "description": "Verify FR-020 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": ".worktrees/felix-rrule-adaptation-01M7TKNX-lane-k/tests/common/vikunja_v2_factory.py:101; tests/common/test_vikunja_v2_factory.py::test_default_key_set_matches_live_v2_capture; tests/habits/test_habits_rule_roundtrip.py::TestCompletionCompanions::test_from_completion_with_relative_and_absolute_reminders_advances",
+      "pass_fail": "pass",
+      "verified_by": "codex::reviewer-renata",
+      "verified_at": "2026-11-20T23:14:39.352299+00:00",
+      "notes": "The shared server-shaped factory and passing focused write-path regressions cover rule, flag, and reminder preservation. (Codex gpt-6.1-sol acceptance check, 2026-11-20)"
+    },
+    {
+      "criterion_id": "FR-021",
+      "description": "Verify FR-021 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": ".worktrees/felix-rrule-adaptation-01M7TKNX-lane-j/scripts/vikunja/rule_inventory.py:684; tests/vikunja/test_rule_inventory.py::TestCli::test_end_to_end_statuses_get_only_private_out",
+      "pass_fail": "deferred",
+      "verified_by": "codex::reviewer-renata",
+      "verified_at": "2026-11-20T23:14:42.200779+00:00",
+      "notes": "Read-only inventory classification and restore-source reporting pass tests; the post-deploy live inventory and recorded result remain operator steps. (Codex gpt-6.1-sol acceptance check, 2026-11-20)",
+      "deferral_reason": "Operator step after the merge to main (quickstart post-merge canary); the code side is implemented and tested.",
+      "deferral_follow_up": "kentonium3/kg-automation#1111"
+    },
+    {
+      "criterion_id": "FR-022",
+      "description": "Verify FR-022 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": ".worktrees/felix-rrule-adaptation-01M7TKNX-lane-j/scripts/vikunja/rule_repair.py:442; tests/vikunja/test_rule_repair.py::TestApply::test_apply_order_snapshot_intent_clear_write_get_outcome; tests/vikunja/test_rule_repair.py::TestEmit::test_markdown_ids_rules_allowed_titles_only_no_at",
+      "pass_fail": "deferred",
+      "verified_by": "codex::reviewer-renata",
+      "verified_at": "2026-11-20T23:14:45.068882+00:00",
+      "notes": "Tested selection, snapshots, restoration, readback, and issue-report generation are implemented; live repairs and posting their results await deployment. (Codex gpt-6.1-sol acceptance check, 2026-11-20)",
+      "deferral_reason": "Operator step after the merge to main (quickstart post-merge canary); the code side is implemented and tested.",
+      "deferral_follow_up": "kentonium3/kg-automation#1111"
+    },
+    {
+      "criterion_id": "FR-023",
+      "description": "Verify FR-023 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "docs/design/architecture/data-flows.md:846; docs/design/architecture/data/mutation-surfaces.json:182; docs/runbooks/deploy/office2-deploy-paths.md:113",
+      "pass_fail": "deferred",
+      "verified_by": "codex::reviewer-renata",
+      "verified_at": "2026-11-20T23:14:47.985173+00:00",
+      "notes": "Architecture and rollout documentation match the v2 code, while the actual self-pull deployment and prompt/skill synchronization remain unverified operator steps. (Codex gpt-6.1-sol acceptance check, 2026-11-20)",
+      "deferral_reason": "Operator step after the merge to main (quickstart post-merge canary); the code side is implemented and tested.",
+      "deferral_follow_up": "kentonium3/kg-automation#1111"
+    },
+    {
+      "criterion_id": "FR-024",
+      "description": "Verify FR-024 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "docs/runbooks/habits-ops.md:648; tests/habits/test_habits_rule_roundtrip.py::TestSweeper::test_dayspecific_takes_next_date_from_rule",
+      "pass_fail": "deferred",
+      "verified_by": "codex::reviewer-renata",
+      "verified_at": "2026-11-20T23:14:50.968533+00:00",
+      "notes": "The sweeper fix is tested and gated re-enable instructions exist; Kent\u2019s go, timer activation, and next-live-tick verification remain outstanding. (Codex gpt-6.1-sol acceptance check, 2026-11-20)",
+      "deferral_reason": "Operator step after the merge to main (quickstart post-merge canary); the code side is implemented and tested.",
+      "deferral_follow_up": "kentonium3/kg-automation#1111"
+    }
+  ],
+  "negative_invariants": []
+}

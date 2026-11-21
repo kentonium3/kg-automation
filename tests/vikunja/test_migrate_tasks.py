@@ -1,7 +1,7 @@
 """Tests for scripts.vikunja.migrate_tasks (#717).
 
 All tests inject a fake client mirroring the real ``VikunjaClient`` surface —
-``.get/.post/.put/.delete`` with leading-slash paths, list-shaped ``GET
+``.get/.get_task_v2/.patch_task/.put/.delete`` with leading-slash paths, list-shaped ``GET
 /tasks/all`` / ``GET /projects`` / ``GET /labels``, per-task readback, empty-dict
 delete result, typed exceptions for failure modes. No real network (the global
 conftest urlopen guard fails loud otherwise — tests never construct a real
@@ -11,7 +11,8 @@ The mission's load-bearing invariants under test:
 - manifest fidelity vs the locked #717 sets + all static invariants;
 - ``list_all_tasks`` pagination (>50 page + null body), done-inclusive;
 - idempotency (empty plan over post-migration state → 0 mutations);
-- move RMW payload includes the allowlist + a readback mismatch RAISES (#524);
+- a move PATCHes exactly ``{"project_id": N}`` and a readback mismatch RAISES,
+  including a stripped rule / flag / reminders (#524, #1111);
 - label attach skip-if-present;
 - empty-check blocks a done-only task and a >50-task project;
 - ordering: test-task deletes precede the project empty-check (H-5);
@@ -20,12 +21,14 @@ The mission's load-bearing invariants under test:
 """
 from __future__ import annotations
 
+import copy
 import json
 
 import pytest
 
 from scripts.common.vikunja_client import VikunjaError
 from scripts.vikunja import migrate_tasks as mt
+from tests.common.vikunja_v2_factory import make_task, strip_rule, with_reminder
 
 MANIFEST_PATH = mt.DEFAULT_MANIFEST_PATH
 
@@ -72,7 +75,7 @@ class _FakeClient:
     ``task_pages`` / ``project_pages`` / ``label_pages`` are lists of list-pages
     served in order to successive ``GET /tasks/all`` / ``GET /projects`` /
     ``GET /labels`` calls; when exhausted each yields ``[]``. ``readbacks`` maps
-    ``/tasks/{id}`` → a readback dict for post-move GETs. ``post_raises`` etc.
+    ``/tasks/{id}`` → a readback dict for post-move GETs. ``patch_raises`` etc.
     inject typed exceptions.
     """
 
@@ -84,7 +87,7 @@ class _FakeClient:
         label_pages=None,
         readbacks=None,
         get_raises=None,
-        post_raises=None,
+        patch_raises=None,
         put_raises=None,
         delete_raises=None,
     ):
@@ -98,11 +101,11 @@ class _FakeClient:
         self._label_get_calls = 0
         self._readbacks = dict(readbacks or {})
         self._get_raises = get_raises
-        self._post_raises = post_raises
+        self._patch_raises = patch_raises
         self._put_raises = put_raises
         self._delete_raises = delete_raises
         self.get_calls: list[tuple[str, dict]] = []
-        self.post_calls: list[tuple[str, dict]] = []
+        self.patch_calls: list[tuple[str, dict]] = []
         self.put_calls: list[tuple[str, dict]] = []
         self.delete_calls: list[str] = []
 
@@ -159,10 +162,13 @@ class _FakeClient:
             return self._readbacks.get(path)
         raise AssertionError(f"unexpected GET path {path!r}")
 
-    def post(self, path, *, json=None, **_kwargs):  # noqa: A002
-        self.post_calls.append((path, json))
-        if self._post_raises is not None:
-            raise self._post_raises
+    def get_task_v2(self, task_id, **_kwargs):
+        return self.get(f"/tasks/{task_id}")
+
+    def patch_task(self, task_id, changes, **_kwargs):
+        self.patch_calls.append((f"/tasks/{task_id}", dict(changes)))
+        if self._patch_raises is not None:
+            raise self._patch_raises
         return {}
 
     def put(self, path, *, json=None, **_kwargs):  # noqa: A002
@@ -690,42 +696,130 @@ def test_build_plan_absent_survivor_with_all_doomed_gone_skips():
 
 
 # ---------------------------------------------------------------------------
-# move_task — allowlisted RMW payload + readback
+# move_task — merge-patch of project_id + readback (#1111)
 # ---------------------------------------------------------------------------
 
+_DAILY = {"freq": "daily", "interval": 1}
 
-def test_move_task_payload_has_allowlist_and_project_id():
-    task = _task(
-        42, 2, title="Return lawn contract", description="desc",
-        due_date="2026-01-01T00:00:00Z", repeat_after=86400, repeat_mode=1,
-        priority=3, done=False, done_at=None, hex_color="ffaa00",
-        percent_done=0.0, start_date="2026-01-01T00:00:00Z",
-        end_date="2026-02-01T00:00:00Z",
+
+def _recurring_task(tid=42, project_id=2, **extra):
+    """A recurring task in the real v2 shape (WP01 factory)."""
+    return make_task(id=tid, project_id=project_id, **extra)
+
+
+def test_move_task_patch_body_is_exactly_project_id():
+    task = _recurring_task(
+        description="desc", due_date="2026-01-01T00:00:00Z", priority=3,
+        hex_color="ffaa00", repeats_from_current_date=True,
     )
-    readback = dict(task)
-    readback["project_id"] = 20
+    readback = {**task, "project_id": 20}
     client = _FakeClient(readbacks={"/tasks/42": readback})
     mt.move_task(client, task, 20)
-    path, payload = client.post_calls[0]
-    assert path == "/tasks/42"
-    assert payload["project_id"] == 20
-    for f in (
-        "title", "description", "due_date", "repeat_after", "repeat_mode",
-        "priority", "done", "done_at", "hex_color", "percent_done",
-        "start_date", "end_date",
-    ):
-        assert payload[f] == task[f]
+    # Only the one change is sent: nothing echoed back, nothing to zero (#524).
+    assert client.patch_calls == [("/tasks/42", {"project_id": 20})]
 
 
-def test_move_task_omits_absent_fields():
-    task = _task(42, 2)  # only title + labels beyond id/project_id
-    readback = dict(task)
-    readback["project_id"] = 20
+def test_move_task_recurring_readback_rule_check_passes():
+    task = _recurring_task(repeat={"freq": "weekly", "interval": 1, "by_day": ["mo", "we"]})
+    # The server echoes the rule back in a different but equal shape.
+    readback = {
+        **task,
+        "project_id": 20,
+        "repeat": {"freq": "WEEKLY", "by_day": ["WE", "MO"], "interval": 1, "read_only": True},
+    }
     client = _FakeClient(readbacks={"/tasks/42": readback})
-    mt.move_task(client, task, 20)
-    _path, payload = client.post_calls[0]
-    assert "repeat_after" not in payload  # absent on source → not sent
-    assert payload["project_id"] == 20
+    mt.move_task(client, task, 20)  # must not raise
+
+
+def test_move_task_readback_stripped_rule_raises():
+    # Positive control (#1111): the readback lost the rule → fail loud.
+    task = _recurring_task()
+    readback = {**strip_rule(task), "project_id": 20}
+    client = _FakeClient(readbacks={"/tasks/42": readback})
+    with pytest.raises(mt.ReconcileError, match="'repeat' changed"):
+        mt.move_task(client, task, 20)
+
+
+def test_move_task_readback_flipped_from_current_flag_raises():
+    task = _recurring_task(repeats_from_current_date=True)
+    readback = {**task, "project_id": 20, "repeats_from_current_date": False}
+    client = _FakeClient(readbacks={"/tasks/42": readback})
+    with pytest.raises(mt.ReconcileError, match="repeats_from_current_date"):
+        mt.move_task(client, task, 20)
+
+
+def test_move_task_readback_dropped_reminder_raises():
+    task = with_reminder(_recurring_task())
+    readback = {**task, "project_id": 20, "reminders": None}
+    client = _FakeClient(readbacks={"/tasks/42": readback})
+    with pytest.raises(mt.ReconcileError, match="'reminders' changed"):
+        mt.move_task(client, task, 20)
+
+
+# Review cycle 1: the server recomputes relative reminders on EVERY save, in the
+# saver's zone, whole days as calendar days (vikunja-harness d7e202228
+# pkg/models/tasks.go:1813 updateReminders -> tasks.go:2575
+# updateRelativeReminderDates -> task_next_occurrence.go:283
+# relativeReminderTime). Due Sun 2027-03-14 20:00 EDT; "one day before" is stored
+# 00:00Z (elapsed) but recomputed to Sat 20:00 EST = 01:00Z by a plain move.
+_DST_DUE = "2027-03-15T00:00:00Z"
+
+
+def _flagged_dst_task():
+    task = with_reminder(
+        _recurring_task(due_date=_DST_DUE, repeats_from_current_date=True),
+        relative_period=-86400,
+    )
+    assert task["reminders"][0]["reminder"] == "2027-03-14T00:00:00Z"
+    return task
+
+
+def test_move_task_dst_recomputed_relative_reminder_passes():
+    task = _flagged_dst_task()
+    readback = copy.deepcopy({**task, "project_id": 20})
+    readback["reminders"][0]["reminder"] = "2027-03-14T01:00:00Z"
+    client = _FakeClient(readbacks={"/tasks/42": readback})
+    mt.move_task(client, task, 20)  # must not raise
+    assert client.patch_calls == [("/tasks/42", {"project_id": 20})]
+
+
+def test_move_task_flagged_task_flip_control_raises():
+    task = _flagged_dst_task()
+    readback = {**task, "project_id": 20, "repeats_from_current_date": False}
+    client = _FakeClient(readbacks={"/tasks/42": readback})
+    with pytest.raises(mt.ReconcileError, match="repeats_from_current_date"):
+        mt.move_task(client, task, 20)
+
+
+def test_move_task_flagged_task_remove_control_raises():
+    task = _flagged_dst_task()
+    readback = {**task, "project_id": 20, "reminders": []}
+    client = _FakeClient(readbacks={"/tasks/42": readback})
+    with pytest.raises(mt.ReconcileError, match="'reminders' changed"):
+        mt.move_task(client, task, 20)
+
+
+def test_move_task_relative_period_change_raises():
+    task = _flagged_dst_task()
+    readback = copy.deepcopy({**task, "project_id": 20})
+    readback["reminders"][0]["relative_period"] = -3600
+    client = _FakeClient(readbacks={"/tasks/42": readback})
+    with pytest.raises(mt.ReconcileError, match="'reminders' changed"):
+        mt.move_task(client, task, 20)
+
+
+def test_move_task_absolute_reminder_shift_raises():
+    # Absolute reminders stay strict.
+    absolute = {"reminder": "2027-03-14T00:00:00Z", "relative_period": 0, "relative_to": ""}
+    task = _recurring_task(reminders=[absolute])
+    readback = {
+        **task,
+        "project_id": 20,
+        "reminders": [{**absolute, "reminder": "2027-03-14T01:00:00Z"}],
+    }
+    client = _FakeClient(readbacks={"/tasks/42": readback})
+    with pytest.raises(mt.ReconcileError, match="'reminders' changed"):
+        mt.move_task(client, task, 20)
 
 
 def test_move_task_readback_project_mismatch_raises():
@@ -736,12 +830,15 @@ def test_move_task_readback_project_mismatch_raises():
         mt.move_task(client, task, 20)
 
 
-def test_move_task_readback_field_changed_raises():
-    task = _task(42, 2, title="Original", repeat_after=86400)
-    # readback zeroed repeat_after (the #524 failure) → raise.
-    readback = {"id": 42, "project_id": 20, "title": "Original", "repeat_after": 0}
+def test_move_task_readback_rule_replaced_raises():
+    task = _task(42, 2, title="Original", repeat=_DAILY)
+    # readback carries a different rule (damage, not an equal reshaping).
+    readback = {
+        "id": 42, "project_id": 20, "title": "Original",
+        "repeat": {"freq": "weekly", "interval": 1},
+    }
     client = _FakeClient(readbacks={"/tasks/42": readback})
-    with pytest.raises(mt.ReconcileError, match="repeat_after"):
+    with pytest.raises(mt.ReconcileError, match="'repeat' changed"):
         mt.move_task(client, task, 20)
 
 
@@ -793,7 +890,7 @@ def test_move_task_readback_labels_survive_passes():
     }
     client = _FakeClient(readbacks={"/tasks/42": readback})
     mt.move_task(client, task, 20)  # must not raise
-    assert client.post_calls[0][0] == "/tasks/42"
+    assert client.patch_calls[0][0] == "/tasks/42"
 
 
 # ---------------------------------------------------------------------------
@@ -882,7 +979,7 @@ def test_reconcile_dry_run_no_mutation():
     m = mt.load_manifest(MANIFEST_PATH)
     client = _C()
     plan, summary = mt.reconcile(client, m, apply=False, backup_ref=None)
-    assert client.post_calls == []
+    assert client.patch_calls == []
     assert client.put_calls == []
     assert client.delete_calls == []
     assert summary.mode == "dry-run"

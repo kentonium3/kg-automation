@@ -211,6 +211,7 @@ local validation and CI.
 - [Vault Path Registry Migration Runbook](<./runbooks/vault-path-registry-migration.md>)
 - [Vikunja Date Handling](<./runbooks/vikunja-date-handling.md>)
 - [Vikunja Downstream Development and Releases](<./runbooks/vikunja-downstream-releases.md>)
+- [Vikunja Recurrence-Rule Inventory and Repair](<./runbooks/vikunja-task-repair.md>)
 - [Vikunja Release Cutover (the go packet)](<./runbooks/vikunja-release-cutover.md>)
 - [WhatsApp Channel Operations Runbook](<./runbooks/whatsapp-ops.md>)
 

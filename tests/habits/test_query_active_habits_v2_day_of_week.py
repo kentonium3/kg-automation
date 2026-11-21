@@ -34,8 +34,7 @@ def _task_fields(
         "title": title,
         "due_date": due_date,
         "done": done,
-        "repeat_after": 86400,
-        "repeat_mode": "default",
+        "repeat": {"freq": "daily", "interval": 1},
         "project_id": project_id,
         "labels": [],
     }
@@ -78,15 +77,15 @@ class TestDayOfWeekFilter:
 habits:
   - task_id: 14
     title: "Wake"
-    repeat_after_seconds: 86400
+    rrule: "FREQ=DAILY;INTERVAL=1"
   - task_id: 77
     title: "Friday strength"
     designated_weekdays: ["Fri"]
-    repeat_after_seconds: 604800
+    rrule: "FREQ=WEEKLY;BYDAY=FR"
   - task_id: 76
     title: "Wed strength"
     designated_weekdays: ["Wed"]
-    repeat_after_seconds: 604800
+    rrule: "FREQ=WEEKLY;BYDAY=WE"
 """
 
     def test_friday_only_habit_included_on_friday(
@@ -176,7 +175,7 @@ class TestUnscheduledHabitFallback:
 habits:
   - task_id: 100
     title: "Known"
-    repeat_after_seconds: 86400
+    rrule: "FREQ=DAILY;INTERVAL=1"
 """,
         )
         mock_sync_cache_fixture(
@@ -212,7 +211,7 @@ habits:
   - task_id: 1
     title: "Bad"
     designated_weekdays: ["Xyz"]
-    repeat_after_seconds: 86400
+    rrule: "FREQ=DAILY;INTERVAL=1"
 """,
         )
         mock_sync_cache_fixture(
@@ -234,7 +233,7 @@ habits:
   - task_id: 1
     title: "Bad"
     designated_weekdays: ["Xyz"]
-    repeat_after_seconds: 86400
+    rrule: "FREQ=DAILY;INTERVAL=1"
 """,
         )
         mock_sync_cache_fixture(tasks={1: _task_fields()})

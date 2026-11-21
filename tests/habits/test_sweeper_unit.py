@@ -5,8 +5,10 @@ Covers:
   * ``evaluate_habit_resolution`` resolution semantics
   * ``run_sweep`` end-to-end: empty / unresolved / completed-in-window /
     skipped-in-window / already-auto-skipped / dry-run / per-habit failure
-  * Issue #112 regression-prevention: computed due_dates use explicit ET
+  * Issue #112 regression-prevention: written due_dates use explicit ET
     offset (not ``Z``) — asserted via regex.
+  * #1111: day-specific next dates come from the task's rule (occurrences);
+    the write is a v2 PATCH of ``due_date`` only.
 """
 from __future__ import annotations
 
@@ -22,7 +24,10 @@ import pytest
 # Importing via the package path exercises the same path the sweeper uses
 # in production (``python3 -m scripts.habits.sweeper``).
 from scripts.habits import sweeper
+from tests.habits.conftest import _json_cm
 
+#: A daily habit's v2 read for the sweeper's pause check (WP12, FR-026).
+_DAILY_TASK = {"id": 14, "description": "", "project_id": 13}
 
 # ---------------------------------------------------------------------------
 # Constants — keep aligned with the WP01 schedule YAML's day-specific entries
@@ -30,34 +35,24 @@ from scripts.habits import sweeper
 # ---------------------------------------------------------------------------
 
 FIXTURES_DIR = Path(__file__).parent / "fixtures"
-SCHEDULE_YAML = """\
-habits:
-  - task_id: 14
-    title: "Wake at 5:00 AM"
-    repeat_after_seconds: 86400
-  - task_id: 15
-    title: "Meditate"
-    repeat_after_seconds: 86400
-  - task_id: 16
-    title: "Morning shoulder PT"
-    repeat_after_seconds: 86400
-  - task_id: 18
-    title: "Get steps in today"
-    repeat_after_seconds: 86400
-  - task_id: 19
-    title: "Read 30 min minimum"
-    repeat_after_seconds: 86400
-  - task_id: 20
-    title: "Evening shoulder PT"
-    repeat_after_seconds: 86400
-  - task_id: 65
-    title: "Morning hip PT"
-    repeat_after_seconds: 86400
-  - task_id: 76
-    title: "Strength training — Wednesday"
-    designated_weekdays: ["Wed"]
-    repeat_after_seconds: 604800
-"""
+#: (task_id, title, designated_weekdays). The schedule loader is stubbed
+#: (``stub_schedule`` in conftest) so these tests do not depend on the YAML
+#: format, which ``schedule_loader`` owns.
+SCHEDULE_ENTRIES = [
+    (14, "Wake at 5:00 AM", []),
+    (15, "Meditate", []),
+    (16, "Morning shoulder PT", []),
+    (18, "Get steps in today", []),
+    (19, "Read 30 min minimum", []),
+    (20, "Evening shoulder PT", []),
+    (65, "Morning hip PT", []),
+    (76, "Strength training — Wednesday", ["Wed"]),
+]
+
+
+@pytest.fixture(autouse=True)
+def _stub_schedule(stub_schedule):
+    """Activate the conftest schedule stub for every test in this module."""
 
 
 # ---------------------------------------------------------------------------
@@ -66,8 +61,8 @@ habits:
 
 
 def _write_schedule(tmp_path: Path) -> Path:
-    schedule = tmp_path / "schedule.yaml"
-    schedule.write_text(SCHEDULE_YAML, encoding="utf-8")
+    schedule = tmp_path / "schedule.stub.json"
+    schedule.write_text(json.dumps(SCHEDULE_ENTRIES), encoding="utf-8")
     return schedule
 
 
@@ -326,10 +321,12 @@ class TestRunSweepHappyPath:
         assert tick.habits_auto_skipped == []
         assert tick.errors == []
 
-    def test_unresolved_daily_habit_auto_skipped_no_vikunja_call(self, tmp_path):
-        """Unresolved daily habit auto-skipped; NO Vikunja PUT (daily habits
-        inherit their next instance from Vikunja's native repeat cadence)."""
+    def test_unresolved_daily_habit_auto_skipped_no_vikunja_write(self, tmp_path):
+        """Unresolved daily habit auto-skipped; NO Vikunja write (daily
+        habits get their next instance from their own rule on completion).
+        One v2 read confirms it is not paused first (WP12, FR-026)."""
         args = self._common_args(tmp_path)
+        args["vikunja_token_path"].write_text("token-xxx\n", encoding="utf-8")
         # Checkin from 2026-05-30 (>48hr ago vs now=2026-06-02 11:30 UTC).
         _write_checkin(
             args["state_dir"],
@@ -337,14 +334,18 @@ class TestRunSweepHappyPath:
             "2026-05-30T11:05:00Z",
             [{"vikunja_task_id": 14, "title": "Wake at 5:00 AM"}],
         )
-        with patch("urllib.request.urlopen") as mock_urlopen:
+        with patch(
+            "urllib.request.urlopen", side_effect=[_json_cm(_DAILY_TASK)]
+        ) as mock_urlopen:
             tick = sweeper.run_sweep(**args)
         assert tick.exit_status == "success"
         assert len(tick.habits_auto_skipped) == 1
         assert tick.habits_auto_skipped[0].task_id == 14
         assert tick.habits_auto_skipped[0].new_due_date_et is None
-        # Daily habit — no Vikunja PUT.
-        assert mock_urlopen.call_count == 0
+        # Daily habit — one read (pause check), no Vikunja write.
+        assert [
+            c[0][0].get_method() for c in mock_urlopen.call_args_list
+        ] == ["GET"]
         # History event appended.
         body = args["history_path"].read_text(encoding="utf-8").strip()
         assert body, "expected history event written"
@@ -354,10 +355,11 @@ class TestRunSweepHappyPath:
         assert event["original_designated_weekday"] is None
 
     def test_unresolved_dayspecific_habit_auto_skipped_and_vikunja_put(
-        self, tmp_path
+        self, tmp_path, v2_advance_responses
     ):
-        """Day-specific habit auto-skipped triggers Vikunja PUT with explicit
-        ET offset. Asserts the #112 regression-prevention guard."""
+        """Day-specific habit auto-skipped: next date from the task's rule
+        (occurrences), written as a v2 PATCH carrying only ``due_date`` with
+        an explicit ET offset. Asserts the #112 regression-prevention guard."""
         args = self._common_args(tmp_path)
         args["vikunja_token_path"].write_text("token-xxx\n", encoding="utf-8")
         # Wednesday 2026-05-27 checkin, evaluating from 2026-06-02 (Tue).
@@ -373,7 +375,9 @@ class TestRunSweepHappyPath:
                 }
             ],
         )
-        with patch("urllib.request.urlopen", return_value=_ok_response()) as mock_urlopen:
+        with patch(
+            "urllib.request.urlopen", side_effect=v2_advance_responses()
+        ) as mock_urlopen:
             tick = sweeper.run_sweep(**args)
         assert tick.exit_status == "success"
         assert len(tick.habits_auto_skipped) == 1
@@ -387,8 +391,34 @@ class TestRunSweepHappyPath:
             r"^\d{4}-\d{2}-\d{2}T23:59:59[+-]\d{2}:\d{2}$",
             rec.new_due_date_et,
         ), f"new_due_date_et {rec.new_due_date_et!r} not in expected ET format"
-        # Vikunja PUT was called exactly once.
-        assert mock_urlopen.call_count == 1
+        assert rec.new_due_date_et == "2026-06-03T23:59:59-04:00"
+        # GET task, GET occurrences, PATCH due_date, GET read-back.
+        calls = [c[0][0] for c in mock_urlopen.call_args_list]
+        assert [(r.get_method(), r.full_url) for r in calls] == [
+            ("GET", "https://example.invalid/api/v2/tasks/76"),
+            ("GET", "https://example.invalid/api/v2/tasks/76/occurrences?count=1"),
+            ("PATCH", "https://example.invalid/api/v2/tasks/76"),
+            ("GET", "https://example.invalid/api/v2/tasks/76"),
+        ]
+        # Inverted narrow-body assertion: the PATCH body is exactly due_date.
+        assert json.loads(calls[2].data.decode("utf-8")) == {
+            "due_date": "2026-06-03T23:59:59-04:00"
+        }
+
+    def test_dry_run_dayspecific_makes_no_call_and_guesses_no_date(self, tmp_path):
+        """Dry run: no Vikunja call, so no next date is recorded (never a
+        locally computed guess)."""
+        args = self._common_args(tmp_path)
+        _write_checkin(
+            args["state_dir"],
+            "2026-05-27",
+            "2026-05-27T11:05:00Z",
+            [{"vikunja_task_id": 76, "title": "Strength training — Wednesday"}],
+        )
+        with patch("urllib.request.urlopen") as mock_urlopen:
+            tick = sweeper.run_sweep(dry_run=True, **args)
+        assert mock_urlopen.call_count == 0
+        assert [r.new_due_date_et for r in tick.habits_auto_skipped] == [None]
 
     def test_completed_in_window_not_auto_skipped(self, tmp_path):
         args = self._common_args(tmp_path)
@@ -463,7 +493,7 @@ class TestRunSweepHappyPath:
         assert mock_urlopen.call_count == 0
 
     def test_per_habit_failure_yields_partial_status(self, tmp_path):
-        """Mocked Vikunja PUT raises; other habits still process."""
+        """Mocked Vikunja call raises; other habits still process."""
         args = self._common_args(tmp_path)
         args["vikunja_token_path"].write_text("token-xxx\n", encoding="utf-8")
         _write_checkin(
@@ -483,7 +513,10 @@ class TestRunSweepHappyPath:
         import urllib.error
 
         def side_effect(req, timeout=15):
-            # Fail PUT for task 76; daily habits don't call urlopen at all.
+            # Fail every call for task 76; the daily habit's pause-check
+            # read (WP12) succeeds.
+            if req.full_url.endswith("/tasks/14"):
+                return _json_cm(_DAILY_TASK)
             raise urllib.error.HTTPError(
                 "url", 500, "Server Error", hdrs=None, fp=None
             )
@@ -496,27 +529,42 @@ class TestRunSweepHappyPath:
         assert 14 in ids
         # Day-specific (76) errored and NOT marked auto-skipped.
         assert 76 not in ids
-        # Error captured.
-        assert any(e.error_type == "vikunja_put" for e in tick.errors)
+        # Error captured: the failed read decides nothing, so no write.
+        assert any(e.error_type == "paused_state_unavailable" for e in tick.errors)
 
 
 class TestRunSweepIso112Regression:
-    def test_compute_next_designated_weekday_explicit_offset(self):
-        """compute_next_eod_et_for_weekdays (re-used by the sweeper) always
-        produces an explicit-offset string. Regression: #112 forbids Z."""
-        now = datetime(2026, 6, 2, 11, 30, tzinfo=timezone.utc)
-        result = sweeper.compute_next_eod_et_for_weekdays(("Wed",), now_utc=now)
-        assert not result.endswith("Z")
-        assert re.match(
-            r"^\d{4}-\d{2}-\d{2}T23:59:59[+-]\d{2}:\d{2}$",
-            result,
-        ), f"computed {result!r} does not match expected ET format"
+    def test_occurrence_converted_to_explicit_et_offset(self):
+        """An occurrence the server returns in UTC (``Z``) is written as an
+        explicit-offset ET string. Regression: #112 forbids Z."""
+        result = sweeper._occurrence_to_iso_et("2026-06-04T03:59:59Z")
+        assert result == "2026-06-03T23:59:59-04:00"
+        est = sweeper._occurrence_to_iso_et("2026-12-03T04:59:59Z")
+        assert est == "2026-12-02T23:59:59-05:00"
 
-    def test_iso_eod_pattern_rejects_z_suffix(self):
-        """The shared ISO_EOD_PATTERN regex from set_due_dates is re-used by
-        the sweeper for #112 guard validation. Belt-and-suspenders check."""
-        assert sweeper.ISO_EOD_PATTERN.match("2026-06-10T23:59:59-04:00")
-        assert not sweeper.ISO_EOD_PATTERN.match("2026-06-10T23:59:59Z")
+    def test_non_eod_occurrence_keeps_server_time(self):
+        """A rule anchored at 08:00 ET (or at completion time, for a
+        repeat-from-completion rule) keeps the server's time of day; only
+        the representation becomes explicit-offset ET (review cycle 1)."""
+        assert (
+            sweeper._occurrence_to_iso_et("2026-06-03T12:00:00Z")
+            == "2026-06-03T08:00:00-04:00"
+        )
+        assert (
+            sweeper._occurrence_to_iso_et("2026-12-03T13:00:00Z")
+            == "2026-12-03T08:00:00-05:00"
+        )
+
+    def test_unusable_occurrence_is_no_next_occurrence(self):
+        with pytest.raises(sweeper.NoNextOccurrence):
+            sweeper._occurrence_to_iso_et("0001-01-01T00:00:00Z")
+
+    def test_explicit_offset_pattern_rejects_z_suffix(self):
+        """The sweeper's #112 guard accepts any time of day with an explicit
+        offset and rejects ``Z``. Belt-and-suspenders check."""
+        assert sweeper._EXPLICIT_OFFSET_PATTERN.match("2026-06-10T23:59:59-04:00")
+        assert sweeper._EXPLICIT_OFFSET_PATTERN.match("2026-06-10T08:00:00-04:00")
+        assert not sweeper._EXPLICIT_OFFSET_PATTERN.match("2026-06-10T23:59:59Z")
 
 
 class TestRunSweepWriteHelpers:
@@ -736,7 +784,9 @@ class TestRunSweepFailureModes:
                 {"vikunja_task_id": 14, "title": "Wake at 5:00 AM"},
             ],
         )
-        tick = sweeper.run_sweep(**args)
+        args["vikunja_token_path"].write_text("token-xxx\n", encoding="utf-8")
+        with patch("urllib.request.urlopen", side_effect=[_json_cm(_DAILY_TASK)]):
+            tick = sweeper.run_sweep(**args)
         # Malformed habit produces an error; valid habit still auto-skipped.
         assert any(
             e.error_type == "malformed_checkin_habit" for e in tick.errors
@@ -759,9 +809,15 @@ class TestVikunjaClientMigrationWP05:
         assert not hasattr(sweeper, "urllib")
         assert hasattr(sweeper, "VikunjaClient")
 
-    def test_dayspecific_put_uses_vikunja_client_replace_task_fields(
+    def test_dayspecific_write_uses_vikunja_client_patch_task(
         self, tmp_path
     ):
+        """The day-specific write is ``patch_task`` with only ``due_date``,
+        from one client per tick, at most once per task per tick (two
+        expired check-ins for task 76 -> one advance, reused); nothing is
+        POSTed over v1."""
+        from tests.common.vikunja_v2_factory import make_task
+
         schedule = _write_schedule(tmp_path)
         state_dir = tmp_path / "state"
         history_path = tmp_path / "history.jsonl"
@@ -771,16 +827,25 @@ class TestVikunjaClientMigrationWP05:
             state_dir,
             "2026-05-27",
             "2026-05-27T11:05:00Z",
-            [
-                {
-                    "vikunja_task_id": 76,
-                    "title": "Strength training — Wednesday",
-                    "designated_weekdays": ["Wed"],
-                }
-            ],
+            [{"vikunja_task_id": 76, "title": "Strength training — Wednesday"}],
+        )
+        _write_checkin(
+            state_dir,
+            "2026-05-28",
+            "2026-05-28T11:05:00Z",
+            [{"vikunja_task_id": 76, "title": "Strength training — Wednesday"}],
+        )
+        task = make_task(
+            id=76,
+            repeat={"freq": "weekly", "interval": 1, "by_day": ["we"]},
+            due_date="2026-05-28T03:59:59Z",  # missed Wednesday: in the past
         )
         mock_client = MagicMock(name="vikunja_client_instance")
-        mock_client.replace_task_fields.return_value = {}
+        mock_client.get_task_v2.return_value = task
+        mock_client.occurrences.return_value = {
+            "occurrences": ["2026-06-04T03:59:59Z"]
+        }
+        mock_client.patch_task.return_value = task
         with patch(
             "scripts.habits.sweeper.VikunjaClient", return_value=mock_client
         ) as mock_cls:
@@ -793,16 +858,21 @@ class TestVikunjaClientMigrationWP05:
                 now_utc=datetime(2026, 6, 2, 11, 30, tzinfo=timezone.utc),
             )
         assert tick.exit_status == "success"
-        assert len(tick.habits_auto_skipped) == 1
-        new_due_date = tick.habits_auto_skipped[0].new_due_date_et
+        assert len(tick.habits_auto_skipped) == 2
+        # One client for the whole tick, however many habits it writes.
         mock_cls.assert_called_once_with(
             base_url="https://example.invalid/api/v1",
             token="token-xxx",
             timeout=15,
         )
-        mock_client.replace_task_fields.assert_called_once_with(
-            76, {"due_date": new_due_date}
-        )
+        assert mock_client.patch_task.call_args_list == [
+            ((76, {"due_date": "2026-06-03T23:59:59-04:00"}),),
+        ]
+        mock_client.occurrences.assert_called_once_with(76, count=1)
+        assert [r.new_due_date_et for r in tick.habits_auto_skipped] == [
+            "2026-06-03T23:59:59-04:00"
+        ] * 2
+        mock_client.post.assert_not_called()
 
 
 class TestFindExpiredCheckinsAdditional:
