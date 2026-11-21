@@ -75,8 +75,14 @@ install -d -m 700 /data/services/openclaw/state/vikunja-repair/baseline
 ```
 
 ```bash
-cp --preserve=mode /data/services/vikunja/snapshots/20261030T081520Z/vikunja.db /data/services/openclaw/state/vikunja-repair/baseline/vikunja-20261030.db
+cp --preserve=mode /data/services/vikunja/snapshots/20261109T232026Z/vikunja.db /data/services/openclaw/state/vikunja-repair/baseline/vikunja-20261109.db
 ```
+
+Use `20261109T232026Z`, the earliest snapshot with the RRULE columns. The
+2026-10-30 snapshot predates the RRULE schema (`repeat_after`/`repeat_mode`),
+so the helper refuses it (exit 2). To cover the gap before Nov 9, compare its
+recurring tasks (`repeat_after > 0 OR repeat_mode != 0`) with the Nov 9 copy's
+`repeats`, both opened `mode=ro`. On 2026-11-21 all 8 kept their rule (#1111).
 
 If `claude` cannot read the snapshot, stop and ask Kent to run the same `cp`
 via `ssh office2-kgale`, followed by a `chown claude:` of the copy. The helper
@@ -88,7 +94,7 @@ opens the copy with `mode=ro`. It reads only `id`, `repeats` and
 ## 2. Inventory
 
 ```bash
-python3 -m scripts.vikunja.rule_inventory --baseline-db /data/services/openclaw/state/vikunja-repair/baseline/vikunja-20261030.db --schedule-path scripts/habits/migrations/phase3-schedule.yaml --felix-logs /data/services/openclaw/state/habits/sweeper-ledger.jsonl /data/services/openclaw/state/habits-history.jsonl /data/services/openclaw/state/escalation /data/services/openclaw/state/intake --seed-ledger /data/services/openclaw/state/sync/seed-ledger.jsonl --out /data/services/openclaw/state/vikunja-repair/inventory.json
+python3 -m scripts.vikunja.rule_inventory --baseline-db /data/services/openclaw/state/vikunja-repair/baseline/vikunja-20261109.db --schedule-path scripts/habits/migrations/phase3-schedule.yaml --felix-logs /data/services/openclaw/state/habits/sweeper-ledger.jsonl /data/services/openclaw/state/habits-history.jsonl /data/services/openclaw/state/escalation /data/services/openclaw/state/intake --seed-ledger /data/services/openclaw/state/sync/seed-ledger.jsonl --out /data/services/openclaw/state/vikunja-repair/inventory.json
 ```
 
 - `--felix-logs` takes files or directories (their `*.jsonl`). Each file is

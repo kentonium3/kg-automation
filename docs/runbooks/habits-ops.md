@@ -782,7 +782,7 @@ pre-merge token re-issue (see
    (`journalctl --user -u felix-vikunja-sync.service -n 50`) and appends to
    `/data/services/openclaw/state/sync/seed-ledger.jsonl`.
 4. **Inventory.** Run `rule_inventory` against a read-only copy of the
-   2026-10-30 snapshot, with `--seed-ledger` set to that seed ledger, and post
+   2026-11-09 snapshot (`20261109T232026Z`, the earliest with RRULE columns), with `--seed-ledger` set to that seed ledger, and post
    the summary on #1111 (`docs/runbooks/vikunja-task-repair.md`, steps 1–2).
 5. **Repair, only if the inventory is not empty.** `rule_repair --dry-run`,
    then `--apply`, then post the `--emit-issue-markdown` output on #1111
