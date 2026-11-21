@@ -464,6 +464,22 @@ def _emit_anomaly_log_action(
     )
 
 
+def _overall_percent(
+    habits: list[dict], scheduled_key: str, completed_key: str
+) -> Optional[float]:
+    """Aggregate one window's overall percent over habits with a known schedule.
+
+    Returns ``None`` (unknown) when habits exist but none has a known
+    scheduled count for the window. An empty habit list keeps ``0.0``.
+    """
+    known = [h for h in habits if h[scheduled_key] is not None]
+    if habits and not known:
+        return None
+    total_scheduled = sum(h[scheduled_key] for h in known)
+    total_completed = sum(h[completed_key] or 0 for h in known)
+    return _percent(total_completed, total_scheduled)
+
+
 def build_report(
     events_by_title: dict[str, dict],
     *,
@@ -542,22 +558,16 @@ def build_report(
         )
 
     # Habits with an unknown schedule are left out of the overall totals:
-    # counting them as 0 scheduled would be a guess.
-    total_scheduled_current = sum(h["scheduled_days_current"] or 0 for h in habits)
-    total_completed_current = sum(h["completed_events_current"] or 0 for h in habits)
-    overall_percent_current = _percent(
-        total_completed_current, total_scheduled_current
+    # counting them as 0 scheduled would be a guess. When habits exist but
+    # none has a known schedule in a window, that window's overall is
+    # unknown (``None``), never a false 0%.
+    overall_percent_current = _overall_percent(
+        habits, "scheduled_days_current", "completed_events_current"
     )
 
     if include_baseline:
-        total_scheduled_prior = sum(
-            (h["scheduled_days_prior"] or 0) for h in habits
-        )
-        total_completed_prior = sum(
-            (h["completed_events_prior"] or 0) for h in habits
-        )
-        overall_percent_prior: Optional[float] = _percent(
-            total_completed_prior, total_scheduled_prior
+        overall_percent_prior: Optional[float] = _overall_percent(
+            habits, "scheduled_days_prior", "completed_events_prior"
         )
         prior_window_start_iso: Optional[str] = _iso_utc(prior_window_start)
         prior_window_end_iso: Optional[str] = _iso_utc(prior_window_end)
@@ -676,8 +686,18 @@ def _render_whatsapp_text(
     lines.append("")
     overall_current = report["overall_percent_current"]
     overall_prior = report.get("overall_percent_prior")
+    if overall_current is None:
+        # No habit has a known schedule: same marker as an unknown habit row.
+        lines.append(f"*Overall* — {UNKNOWN_SCHEDULE_TEXT}")
+        return "\n".join(lines)
     overall_arrow = _arrow_for_delta(overall_current, overall_prior)
-    if overall_prior is None:
+    if overall_prior is None and report.get("prior_window_start_iso"):
+        # A baseline window exists but no habit has a known schedule in it.
+        overall_line = (
+            f"*Overall: {_render_pct(overall_current)}%* "
+            f"(was {UNKNOWN_SCHEDULE_TEXT})"
+        )
+    elif overall_prior is None:
         overall_line = f"*Overall: {_render_pct(overall_current)}%*"
     else:
         overall_line = (

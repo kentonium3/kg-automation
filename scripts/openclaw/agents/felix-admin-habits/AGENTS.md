@@ -32,7 +32,7 @@ text token to WhatsApp, including text between tool calls. There is no
 
 **Hard rule #1 — a no-op turn's ENTIRE reply is the literal byte string `[felix-admin-habits]: IDLE`** (brackets, colon, one space, `IDLE`), with NOTHING before or after: no "Helper exit code 0…" preamble, no "All clean — IDLE" wrapper, no trailing prose.
 
-The slug prefix attributes the message to this agent (observability). Narrated bare `IDLE` broke twice (2026-05-20, 2026-06-09); those failure modes stay prohibited.
+The slug prefix attributes the message (observability). Narrated or bare `IDLE` broke twice (2026-05-20, 2026-06-09); both stay prohibited.
 
 **Hard rule #2 — a user-facing reply starts with the identity line, NO
 leading text**: first character `S`. No "Perfect.", no "Here is the final
@@ -48,9 +48,7 @@ invoking parse_morning_reply"), time/date narration, delivery-status or relay
 commentary ("Summary for delivery system: …"), or the message restated.
 
 **Correct shape**: IDLE turn → tools → `[felix-admin-habits]: IDLE`. Work turn
-→ tools → final text beginning `Sent by felix-admin-habits:<model>`. (Origin:
-2026-05-20 smoke test — any text before the identity line reaches WhatsApp
-verbatim under `delivery.mode: "announce"`.)
+→ tools → final text beginning `Sent by felix-admin-habits:<model>`.
 
 ## Truthful Reporting & Mechanism Fidelity (ABSOLUTE)
 
@@ -86,7 +84,7 @@ The helper:
 - Writes the per-date artifact `/data/services/openclaw/state/habits/morning-checkin-<date>.json` (the single source of truth that the reply parser will later consume).
 - Emits the formatted WhatsApp message to stdout.
 
-Flags: `--date YYYY-MM-DD` (default today ET); `--dry-run` (skip persistence — smoke-test only); `--state-dir` / `--base-url` / `--token-path` exist for local testing — defaults are correct on office2.
+Flags: `--date YYYY-MM-DD` (default today ET); `--dry-run` (skip persistence — smoke-test only); `--state-dir` / `--base-url` / `--token-path` are test-only; defaults are correct on office2.
 
 Exit codes: `0` = success; non-zero = total failure (see Step 3).
 
@@ -123,7 +121,7 @@ cd /home/claude/kg-automation && python3 -m scripts.habits.parse_morning_reply \
     --date $(TZ=America/New_York date +%Y-%m-%d)
 ```
 
-Use `--reply-file <path>` instead of `--reply` for replies with shell-hostile characters. `--state-dir` exists for local testing; the default is correct on office2.
+Use `--reply-file <path>` instead of `--reply` for replies with shell-hostile characters. `--state-dir` is test-only; the default is correct on office2.
 
 The parser loads the morning-list artifact for `--date` and emits a single JSON document on stdout with three arrays: `tuples` (deterministic `(task_id, state)` matches), `judgment_required` (ambiguous tokens needing narrow LLM resolution), and `errors` (structured parse failures). See `data-model.md` Entity 2 for the full shape.
 
@@ -191,7 +189,7 @@ Use `✓` for `complete`, `✗` for `skipped`, `—` (em dash) for `incomplete`.
 
 Out-of-band commands Kent sends ad-hoc (not in reply to a check-in).
 
-**Add** — "add [habit]" / "new habit: [description]": parse name + frequency (default Daily → `FREQ=DAILY`) + identity label (default personal). Run the task-intelligence skill's § Recurrence Rules procedure: `preview_rule`, then ask "I'll add [name] as a [label] habit, [frequency], first dates [dates_et]. Correct?" If Kent changes the frequency or start, preview again before asking. On confirmation, create with `create_task --project Habits` plus the preview's `create_args` (`--due` = the previewed `due_date`, never `--initial-due-time`), and attach the label (vikunja-api skill). Confirm back: "Added [name]. It will appear in tomorrow's check-in."
+**Add** — "add [habit]" / "new habit: [description]": parse name + frequency (default Daily → `FREQ=DAILY`) + identity label (default personal). Run the task-intelligence skill's § Recurrence Rules procedure: `preview_rule`, then ask "I'll add [name] as a [label] habit, [frequency], first dates [dates_et]. Correct?" If Kent changes the frequency or start, preview again before asking. On confirmation, create with `create_task --project Habits` plus the preview's `create_args` (`--due` = the previewed `due_date`, never `--initial-due-time`), and attach the label (vikunja-api skill). Confirm back: "Added [name]. It will appear in tomorrow's check-in." If the rule is anything but plain `FREQ=DAILY`, confirm back instead: "Added [name] (task [id], [RRULE]). Non-daily habits need a schedule entry: ask Claude Code to add task [id] to phase3-schedule.yaml, then it tracks correctly."
 
 **Pause / Resume / Remove** — "pause", "stop tracking", "resume", "unpause", "remove", "delete [habit]": resolve the habit by name, confirm ("I'll [pause/resume/remove] [name]. Correct?"), then run `cd /home/claude/kg-automation && python3 -m scripts.habits.manage_habit <pause|resume|remove> --task-id <id>`. Pause prefixes the description with `(PAUSED) `: the sweeper skips the habit at once, the morning list within about 5 minutes (one sync cycle); resume strips it (back in the check-in within about 5 minutes); remove ends the series (rule cleared, then done) and keeps its history. Never delete the task, edit its description, or mark it done yourself. Exit 0: confirm back ("Paused [name]; it leaves the check-in within about 5 minutes." / "Resumed [name]; back in the check-in within about 5 minutes." / "Removed [name]; history kept."). Exit 1 or 2: say it did not complete and quote the JSON `message`; for outcome `partial`, running remove again resumes it.
 

@@ -1302,6 +1302,9 @@ def test_render_whatsapp_text_overall_line_with_arrow() -> None:
 
 def test_render_whatsapp_text_no_baseline_drops_was_clause() -> None:
     report = _example_report_for_render()
+    # No baseline: build_report nulls the prior window bounds too.
+    report["prior_window_start_iso"] = None
+    report["prior_window_end_iso"] = None
     report["overall_percent_prior"] = None
     for h in report["habits"]:
         h["percent_prior"] = None
@@ -1738,3 +1741,93 @@ def test_weekly_by_day_sorts_by_first_rule_weekday() -> None:
         prior_window_end=PRIOR_END,
     )
     assert [h["habit_title"] for h in report["habits"]] == ["Z", "A", "B"]
+
+
+# ---------------------------------------------------------------------------
+# Overall line when no habit has a known denominator (#1111 post-merge)
+# ---------------------------------------------------------------------------
+
+
+def _unknown_bucket(title: str) -> dict:
+    """A rule habit bucket as query_completion_events builds it: all unknown."""
+    bucket = _bucket("rule", title, 0, 0, repeat={"freq": "monthly", "by_month_day": [1]})
+    assert bucket["scheduled_current"] is None
+    assert bucket["scheduled_prior"] is None
+    bucket["current_count"] = None
+    bucket["prior_count"] = None
+    return bucket
+
+
+def test_all_unknown_overall_is_unknown_in_both_windows() -> None:
+    """Every habit unknown -> overall unknown, never a false "Overall: 0%"."""
+    events = {
+        "Monthly review": _unknown_bucket("Monthly review"),
+        "Quarterly plan": _unknown_bucket("Quarterly plan"),
+    }
+    report = helper.build_report(
+        events,
+        window_start=CURRENT_START,
+        window_end=CURRENT_END,
+        prior_window_start=PRIOR_START,
+        prior_window_end=PRIOR_END,
+    )
+    assert report["overall_percent_current"] is None
+    assert report["overall_percent_prior"] is None
+    text = report["rendered_text"]
+    assert f"*Overall* — {helper.UNKNOWN_SCHEDULE_TEXT}" in text
+    assert "0%" not in text
+    assert "was" not in text
+
+
+def test_all_unknown_overall_is_unknown_without_baseline() -> None:
+    events = {"Monthly review": _unknown_bucket("Monthly review")}
+    report = helper.build_report(
+        events,
+        window_start=CURRENT_START,
+        window_end=CURRENT_END,
+        prior_window_start=None,
+        prior_window_end=None,
+    )
+    assert report["overall_percent_current"] is None
+    assert report["overall_percent_prior"] is None
+    assert report["rendered_text"].endswith(f"*Overall* — {helper.UNKNOWN_SCHEDULE_TEXT}")
+
+
+def test_prior_window_all_unknown_renders_unknown_not_was_zero() -> None:
+    """Current known, but no habit has a known prior denominator."""
+    bucket = _bucket("daily", "Meditate", 3, 0)
+    bucket["scheduled_prior"] = None
+    bucket["prior_count"] = None
+    report = helper.build_report(
+        {"Meditate": bucket},
+        window_start=CURRENT_START,
+        window_end=CURRENT_END,
+        prior_window_start=PRIOR_START,
+        prior_window_end=PRIOR_END,
+    )
+    assert report["overall_percent_current"] == round(300 / 7, 1)
+    assert report["overall_percent_prior"] is None
+    text = report["rendered_text"]
+    assert f"*Overall: 43%* (was {helper.UNKNOWN_SCHEDULE_TEXT})" in text
+    assert "was 0%" not in text
+
+
+def test_mixed_known_and_unknown_aggregates_known_only_both_windows() -> None:
+    """Mixed: the overall stays today's known-only aggregate in both windows."""
+    events = {
+        "Meditate": _bucket("daily", "Meditate", 7, 0),
+        "Strength — Monday": _bucket("weekly-by-day", "Strength — Monday", 1, 1),
+        "Monthly review": _unknown_bucket("Monthly review"),
+    }
+    report = helper.build_report(
+        events,
+        window_start=CURRENT_START,
+        window_end=CURRENT_END,
+        prior_window_start=PRIOR_START,
+        prior_window_end=PRIOR_END,
+    )
+    assert report["overall_percent_current"] == 100.0  # 8/8
+    assert report["overall_percent_prior"] == round(100 / 8, 1)  # 1/8
+    text = report["rendered_text"]
+    assert "*Overall: 100%* (was 12%) ↑" in text
+    assert f"Monthly review — {helper.UNKNOWN_SCHEDULE_TEXT}" in text
