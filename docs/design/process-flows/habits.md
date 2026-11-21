@@ -236,7 +236,7 @@ contract predates the last three rows and is not edited):
 | `completed_in_window` / `skipped_in_window` | Kent resolved it within 48h; nothing to do. |
 | `already_auto_skipped` | An earlier tick already auto-skipped it (FR-005 no-op). |
 | `auto_skipped_this_tick` | This tick appended `auto_skipped` (and advanced a day-specific habit). |
-| `unresolved` | A write step failed; nothing was written; an `errors[]` entry says why. (Pre-existing, previously undocumented.) |
+| `unresolved` | A write step failed; no history event was appended, but the Vikunja write may already have succeeded (e.g. a readback timeout after the due-date PATCH); an `errors[]` entry says why. (Pre-existing, previously undocumented.) |
 | `paused` | The live v2 read before the first write shows the `(PAUSED) ` prefix. No write, no history event, not an error. |
 | `paused_state_unavailable` | That read failed (including 404 or a missing token file) or had no description. No write; one `errors[]` entry with `error_type: "paused_state_unavailable"`; tick `partial`; retried next tick. |
 

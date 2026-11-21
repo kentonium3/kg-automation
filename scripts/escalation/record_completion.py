@@ -36,8 +36,8 @@ through the two-step path below (post-parity-cleanup; see
           success.
         - For ``state="level_sent" | "snoozed" | "dismissed"``: NO Vikunja
           side-effect. JSONL append (Step 2) is the sole record.
-        - All requests authenticate as ``felix-bot`` (FR-010) using the token
-          loaded from ``token_path``.
+        - All requests authenticate as the kent user (``vikunja-api-kent``)
+          using the token loaded from ``token_path``.
         - On any HTTP/network failure: raise :class:`VikunjaError`. No JSONL
           write happens.
 
@@ -197,7 +197,7 @@ class StateLogError(Exception):
 
 
 def _read_token(token_path: Path) -> str:
-    """Read and return the felix-bot bearer token from ``token_path``.
+    """Read and return the Vikunja bearer token (kent user) from ``token_path``.
 
     Args:
         token_path: Filesystem path to the token file.
@@ -610,7 +610,7 @@ def record_event(
             escalation per-event_type validator
             (``escalation.schema.validate_event_params``).
         base_url: Vikunja API base URL. Default is the office2 Tailscale IP.
-        token_path: Path to the felix-bot bearer token file (FR-010).
+        token_path: Path to the Vikunja bearer token file (``vikunja-api-kent``).
         skip_vikunja: When True, skip Step 1 (Vikunja side-effects). Used by
             reconcile to write synthetic records without re-sending alerts.
             Step 0 (validation) and Step 2 (JSONL append) still run.
