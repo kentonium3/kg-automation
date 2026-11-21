@@ -851,7 +851,7 @@ Authoritative: the `vikunja-occurrences-read`, `vikunja-occurrences-preview`,
 `sync-seed-ledger` and `vikunja-rule-inventory-repair` entries in
 [`data/data-flows.json`](<./data/data-flows.json>).
 
-On the RRULE fork (v2.8.0-rrule.4) a v1 `POST /api/v1/tasks/{id}` replaces the
+On the RRULE fork (v2.8.0-rrule.4 and later) a v1 `POST /api/v1/tasks/{id}` replaces the
 whole task and strips its rule, and v1 `PATCH` answers 405. Every Felix task-field
 write therefore goes through `VikunjaClient.patch_task` (`PATCH /api/v2/tasks/{id}`,
 RFC 7396 merge patch of only the changed keys) and is read back over
