@@ -2,10 +2,10 @@
 title: Credentials and Secrets
 doc_type: reference
 status: approved
-last_updated: '2026-11-20'
-last_validated: '2026-11-20'
-updated_by: 'felix-rrule-adaptation-01M7TKNX (#1111 — vikunja-api-kent required permissions incl. tasks.occurrences + tasks.occurrences_preview; re-issue pending Kent) + qa-pipeline-decommission-01M219TT (#970 — qa-webhook-env registered-at-retirement in the Deprecated Credentials table: /etc/qa-webhook.env archived into the decommission bundle by the operator script, then removed) + vikunja-token-seam-kent-cutover-01KY8XQ0 (#860 phase 2, ADR-0007 — vikunja-api/felix-bot retired to dormant/non-runtime; vikunja-api-kent is the sole runtime Vikunja credential) + #715-vikunja-api-kent-config-token + #699-felix-calendar-helper-personal-google-oauth (RFC #681 calendar phase) + #520-felix-vikunja-sync-project-layer-and-url-config + #523-kg-felix-bot-project-sync-pat-added + #345-audit-confirms-sync (silent-removal policy per change-control.md) + #304-felix-bot-rotation + #267-openclaw-gateway-env-narrative + #100-google-workspace-foundation + #227 + #115 + #115-narrative-sync + rename-kentonium3-pat-to-gh-oauth'
-tags: [304, 343, 490, 115, 520, 860, 1111]
+last_updated: '2026-11-21'
+last_validated: '2026-11-21'
+updated_by: '#1120 (ubuntu-pro-machine-token added: office2 attached to Ubuntu Pro for esm-apps, esm-infra and livepatch) + felix-rrule-adaptation-01M7TKNX (#1111 — vikunja-api-kent required permissions incl. tasks.occurrences + tasks.occurrences_preview; re-issue pending Kent) + qa-pipeline-decommission-01M219TT (#970 — qa-webhook-env registered-at-retirement in the Deprecated Credentials table: /etc/qa-webhook.env archived into the decommission bundle by the operator script, then removed) + vikunja-token-seam-kent-cutover-01KY8XQ0 (#860 phase 2, ADR-0007 — vikunja-api/felix-bot retired to dormant/non-runtime; vikunja-api-kent is the sole runtime Vikunja credential) + #715-vikunja-api-kent-config-token + #699-felix-calendar-helper-personal-google-oauth (RFC #681 calendar phase) + #520-felix-vikunja-sync-project-layer-and-url-config + #523-kg-felix-bot-project-sync-pat-added + #345-audit-confirms-sync (silent-removal policy per change-control.md) + #304-felix-bot-rotation + #267-openclaw-gateway-env-narrative + #100-google-workspace-foundation + #227 + #115 + #115-narrative-sync + rename-kentonium3-pat-to-gh-oauth'
+tags: [304, 343, 490, 115, 520, 860, 1111, 1120]
 ---
 
 # Credentials and Secrets
@@ -150,11 +150,19 @@ Historical provisioning/rotation detail: [`docs/runbooks/felix-bot-vikunja-provi
 
 ### 4. System-managed or standalone tool
 
-Used by: `restic-password`, `tailscale-auth`, `vikunja-admin`
+Used by: `restic-password`, `tailscale-auth`, `vikunja-admin`, `ubuntu-pro-machine-token`
 
 These credentials are owned and managed by their respective tools (Restic,
-Tailscale daemon, Vikunja's login endpoint). Neither OpenClaw nor agents
+Tailscale daemon, Vikunja's login endpoint, the Ubuntu Pro client). Neither OpenClaw nor agents
 interact with them directly.
+
+`ubuntu-pro-machine-token` (2026-11-21, #1120) attaches office2 to Kent's free
+personal Ubuntu Pro subscription. The Pro client keeps it root-only in
+`/var/lib/ubuntu-advantage/private/`. From it the client derives the ESM apt
+credentials (`/etc/apt/auth.conf.d/90ubuntu-advantage`, 0600 root), which apt
+and unattended-upgrades use for `esm.ubuntu.com`, and the Livepatch token. It
+was attached through the browser-approval flow (`sudo pro attach` with no
+argument), so the contract token never appeared on a command line.
 
 ### 5. gh CLI auth store
 
@@ -304,6 +312,7 @@ graph TD
         R[restic-password<br/>password file]
         T[tailscale-auth<br/>system-managed]
         VA[vikunja-admin<br/>runtime JWT only]
+        UP[ubuntu-pro-machine-token<br/>Pro client-managed]
     end
 
     subgraph "gh CLI auth store"
@@ -329,6 +338,7 @@ graph TD
         FA[Felix agents<br/>felix-doc-auditor]
         KM[Kent on Mac<br/>manual git + gh CLI]
         SL[spec-lifecycle.yml<br/>priority-field-sync job]
+        APT[apt / unattended-upgrades<br/>+ canonical-livepatch]
     end
 
     GC -->|gog auth credentials| GOG
@@ -341,6 +351,7 @@ graph TD
     R -->|password-file flag| BK
     T -->|daemon-managed| TS
     VA -->|runtime JWT| UI
+    UP -->|ESM apt auth + Livepatch token| APT
     GH -->|gh CLI / git push| FA
     GHK -->|gh CLI / git push| KM
     OGE -->|systemd EnvironmentFile=| OC
@@ -356,6 +367,7 @@ graph TD
 | `vikunja-admin` | username/password | Runtime JWT, not stored | Vikunja web UI, `setup_vikunja.py` |
 | `restic-password` | password file | Standalone — `/etc/restic/password` | `backup.sh` |
 | `tailscale-auth` | system-managed | Managed by `tailscaled` | Tailscale daemon |
+| `ubuntu-pro-machine-token` | system-managed (Ubuntu Pro free personal subscription, #1120) | Pro client, root-only: `/var/lib/ubuntu-advantage/private/`; derived ESM apt auth in `/etc/apt/auth.conf.d/90ubuntu-advantage` | apt + unattended-upgrades (`esm.ubuntu.com`), `canonical-livepatch` |
 | `anthropic` | API key | OpenClaw native auth store (`/home/claude/.openclaw/agents/main/agent/auth-profiles.json`) + scoped plaintext (`/data/services/openclaw/secrets/anthropic`, 0600) | `openclaw-gateway` (proxies API calls for all openclaw-launched agents), `felix-doc-auditor-driver` (reads the plaintext file directly each systemd tick and calls `api.anthropic.com` via the `anthropic` Python SDK — bypasses openclaw-gateway; #343), `felix-heartbeat-gate` (same file-read pattern as the doc-auditor driver — reads the key each 30-min systemd tick and calls `api.anthropic.com` directly with `claude-haiku-4-5`; #490) |
 | `vikunja-api-kent` | API token, all-permissions (owner: `kent` Vikunja user, #715; **sole runtime credential** per ADR-0007) | Scoped plaintext — `/data/services/openclaw/secrets/vikunja-api-kent` (mode 600, claude:claude) | **All runtime Felix→Vikunja access** via `scripts/common/vikunja_config.get_vikunja_token_path()` (directly or via the shared `VikunjaClient` default) — habits, escalation, enrichment, sync, inbox scan/apply, credential-health writer, `vikunja/create_task`, `trust/assertion_verifier`, config/label tooling (`create_taxonomy_labels`), and the #748 `validate_refs` validator. Runtime attributes to `kent` (see §3). Needs the v2 task permissions incl. `tasks.occurrences` + `tasks.occurrences_preview` (#1111; re-issue pending Kent — see §3 *Required permissions*). |
 | `vikunja-api` | API token (owner: `felix-bot` Vikunja user, #304) — **RETIRED / dormant (non-runtime)** per ADR-0007 | Scoped plaintext — `/data/services/openclaw/secrets/vikunja-api` (retained on office2 for the dormant user) | **None at runtime** — the felix-bot Vikunja user is dormant (not deprovisioned; owns Inbox 14, history preserved). Admin/one-shot felix-bot scripts only (`provision_felix_bot`, `validate_felix_bot`, `swap_vikunja_secrets`). See §3 + credential-manifest. |

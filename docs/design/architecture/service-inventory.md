@@ -2,7 +2,7 @@
 title: Service Inventory
 doc_type: reference
 status: approved
-tags: [1111, 1087, 860, 775, 749, 750, 656, 588, 579, 572, 520, 519, 518, 137, 189, 80, 202, 149, 190, 374, 100, 253, 185, 254, 371, 309, 343, 306, 308, 310, 362, 391, 400, 105, 115, 562, 490, 408, 567, 563, 558, 561, 540, 542, 306/, 152, 376, 368-, 112]
+tags: [1120, 1111, 1087, 860, 775, 749, 750, 656, 588, 579, 572, 520, 519, 518, 137, 189, 80, 202, 149, 190, 374, 100, 253, 185, 254, 371, 309, 343, 306, 308, 310, 362, 391, 400, 105, 115, 562, 490, 408, 567, 563, 558, 561, 540, 542, 306/, 152, 376, 368-, 112]
 ---
 
 # Service Inventory
@@ -16,6 +16,7 @@ All services run on office2 unless otherwise noted.
 | Service | Type | Version/Image | Port | Bind IP | systemd Unit | Data Path |
 |---------|------|---------------|------|---------|-------------|-----------|
 | Vikunja | Docker (compose) | `office2.local/vikunja:active` (release v2.8.0-rrule.5, see #1113; accepted 2026-11-20) | 3456 | 100.92.197.90 | `vikunja.service` (system, oneshot → `docker compose up -d`) | `/data/services/vikunja/data` |
+| Canonical Livepatch | Native (snap) | `canonical-livepatch` v11.1.0 (snap rev 418), Ubuntu Pro free personal; added 2026-11-21 (#1120) | — (outbound only: `livepatch.canonical.com`) | — | `snap.canonical-livepatch.canonical-livepatchd.service` (system) | — |
 | Obsidian Sync | Native | `ob` v0.0.10 (upgraded 2026-06-06), `ob sync --continuous` | — | — | `obsidian-sync.service` (system, runs as `kgale`) | `/home/kgale/second-brain/notes` |
 | Transcribe API | Docker (GPU) | `transcribe-transcribe` | 8787 | 100.92.197.90 | `transcribe.service` | `/data/services/transcribe` |
 | OpenClaw Gateway | npm-global | `2026.6.11` | 18789 | 127.0.0.1 | `openclaw-gateway.service` (user) | `/data/services/openclaw/data` |

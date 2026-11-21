@@ -4,11 +4,11 @@ doc_type: guide
 level: reference
 status: approved
 owners: [kgale]
-last_validated: 2026-07-09
-revision: v1.5
+last_validated: 2026-11-21
+revision: v1.6
 audience: agents_and_humans
-updated_by: 'backup-integrity-observability-01M1414D (#903: +backup-script-drift, observe-only) + crontab-backup-coverage-01M12V87 (#895: +Host-State Capture subgraph — crontab-capture produces into an existing Restic source path; agent-drift-check registered for health) + #699'
-tags: [309, 408, 518, 519, 520, 579, 679, 699]
+updated_by: '#1120 (+canonical-livepatch, independent host hardening; no Felix service depends on it) + backup-integrity-observability-01M1414D (#903: +backup-script-drift, observe-only) + crontab-backup-coverage-01M12V87 (#895: +Host-State Capture subgraph — crontab-capture produces into an existing Restic source path; agent-drift-check registered for health) + #699'
+tags: [309, 408, 518, 519, 520, 579, 679, 699, 1120]
 ---
 
 # Service Dependencies
@@ -50,6 +50,7 @@ detail.
 graph LR
     subgraph Infrastructure["Infrastructure (Tier 0-1)"]
         security-monitor["security-monitor<br/>Tier 1"]
+        livepatch["canonical-livepatch<br/>Tier 0<br/>(Ubuntu Pro, #1120)"]
     end
 
     subgraph Core["Core Services (Tier 2)"]
@@ -95,6 +96,7 @@ graph LR
         docker["docker"]
         gog["gog CLI<br/>(Workspace: mail/drive —<br/>Calendar migrated off #699)"]
         google_cal_api["Google Calendar API v3"]
+        livepatch_cloud["livepatch.canonical.com"]
     end
 
     vikunja -->|"requires"| tailscale
@@ -105,6 +107,8 @@ graph LR
     openclaw -->|"requires"| vikunja
 
     transcribe -->|"requires"| docker
+
+    livepatch -->|"requires<br/>(outbound HTTPS, kernel patches)"| livepatch_cloud
 
     inbox -->|"requires"| openclaw
     habits -->|"requires"| openclaw
