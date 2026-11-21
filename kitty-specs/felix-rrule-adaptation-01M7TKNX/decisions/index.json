@@ -1,0 +1,129 @@
+{
+  "entries": [
+    {
+      "created_at": "2026-11-19T19:15:15.226673Z",
+      "decision_id": "01M7TKR2MTGA69H757Y86N4ZD5",
+      "final_answer": "Kent 2026-11-19 (relayed by the local-agent-bus lead): Office2 stays on the Vikunja fork until upstream ships RRULE, so fork-only is not a reason to avoid v2. Floor is B: O7 v2 PATCH in the shared client becomes the main write path, with v1 full-echo kept only where v2 does not fit. O1-O6 are weighed on their merits by the lead. Any live-data change (e.g. new rules on tasks 75/76/77) is a separate Kent-approved step.",
+      "input_key": "native_rrule_adoption",
+      "mission_id": "01M7TKNXHEY62ZESGYBPGQWXKA",
+      "mission_slug": "felix-rrule-adaptation-01M7TKNX",
+      "opened_by": "cli",
+      "options": [
+        "Minimal: fix on v1 full-echo; assess O1-O7 in the plan, file follow-ups",
+        "Fix plus O7 v2 PATCH client seam",
+        "Fix plus O1/O2/O4 habit-schedule adoption",
+        "All of O1-O7",
+        "Other"
+      ],
+      "origin_flow": "specify",
+      "other_answer": true,
+      "question": "Which of the audit's native-RRULE opportunities (O1-O7) are in scope for this mission, beyond the mandatory fixes?",
+      "rationale": null,
+      "resolved_at": "2026-11-19T19:37:03.776203Z",
+      "resolved_by": null,
+      "slot_key": "specify.scope.native-rrule-adoption",
+      "status": "resolved",
+      "step_id": null,
+      "summary_json": null
+    },
+    {
+      "created_at": "2026-11-19T19:37:30.942102Z",
+      "decision_id": "01M7TN0V1YB8CBS75500VSMJ91",
+      "final_answer": "Kent 2026-11-19 (relayed by the local-agent-bus lead): 'Live data changes are approved.' Plan into the mission: new rules on tasks 75, 76, 77 and repair of stripped rules. Before each live write, save the task exactly as read so it can be restored. Record each change on #1111 with task ids and before/after values. Merges to main and Office2 deploys stay Kent's gates.",
+      "input_key": "live_data_changes",
+      "mission_id": "01M7TKNXHEY62ZESGYBPGQWXKA",
+      "mission_slug": "felix-rrule-adaptation-01M7TKNX",
+      "opened_by": "cli",
+      "options": [
+        "In scope, with snapshot-before-write and a record on #1111",
+        "Separate step outside the mission",
+        "Other"
+      ],
+      "origin_flow": "specify",
+      "other_answer": true,
+      "question": "Are live-data changes (new rules on tasks 75/76/77, repair of stripped rules) in this mission's scope?",
+      "rationale": null,
+      "resolved_at": "2026-11-19T19:37:32.259504Z",
+      "resolved_by": null,
+      "slot_key": "specify.scope.live-data-changes",
+      "status": "resolved",
+      "step_id": null,
+      "summary_json": null
+    },
+    {
+      "created_at": "2026-11-19T19:37:33.592931Z",
+      "decision_id": "01M7TN0XMRV6SNWW9P6NCQT86X",
+      "final_answer": "Retire: remove the tool, keep the frozen YAML history",
+      "input_key": "migrate_schedule_disposition",
+      "mission_id": "01M7TKNXHEY62ZESGYBPGQWXKA",
+      "mission_slug": "felix-rrule-adaptation-01M7TKNX",
+      "opened_by": "cli",
+      "options": [
+        "Retire: remove the tool, keep the frozen YAML history",
+        "Fix: guard, partial-update writes, rule-aware snapshot/rollback",
+        "Other"
+      ],
+      "origin_flow": "specify",
+      "other_answer": false,
+      "question": "migrate_schedule (dormant phase-3 one-shot, rows 12-16 BROKEN): fix it or retire it from the active surface?",
+      "rationale": null,
+      "resolved_at": "2026-11-19T21:01:09.347940Z",
+      "resolved_by": null,
+      "slot_key": "specify.scope.migrate-schedule-disposition",
+      "status": "resolved",
+      "step_id": null,
+      "summary_json": null
+    },
+    {
+      "created_at": "2026-11-19T21:04:01.849230Z",
+      "decision_id": "01M7TSZ89SJK2KXKT5SNXMT6CF",
+      "final_answer": "Keep them Done; drop the 75-77 rule write from the mission",
+      "input_key": "weekday_habits_reactivation",
+      "mission_id": "01M7TKNXHEY62ZESGYBPGQWXKA",
+      "mission_slug": "felix-rrule-adaptation-01M7TKNX",
+      "opened_by": "cli",
+      "options": [
+        "Reopen as active habits with weekly by-day rules",
+        "Keep them Done; drop the 75-77 rule write from the mission",
+        "Other"
+      ],
+      "origin_flow": "specify",
+      "other_answer": false,
+      "question": "Tasks 75-77 (strength training) have been Done with no rule since July. Should applying their weekly by-day rules also reopen them as active habits?",
+      "rationale": null,
+      "resolved_at": "2026-11-19T21:08:42.996846Z",
+      "resolved_by": null,
+      "slot_key": "specify.scope.weekday-habits-reactivation",
+      "status": "resolved",
+      "step_id": null,
+      "summary_json": null
+    },
+    {
+      "created_at": "2026-11-19T21:14:47.622676Z",
+      "decision_id": "01M7TTJYY6XMR4G40CDDQ1K94A",
+      "final_answer": "Kent re-issues the token with the two permissions before deploy (Kent 2026-11-19: 'go ahead with the plan', taken as adopting the recommended option A; revisit if Kent says otherwise)",
+      "input_key": "occurrences_token_permission",
+      "mission_id": "01M7TKNXHEY62ZESGYBPGQWXKA",
+      "mission_slug": "felix-rrule-adaptation-01M7TKNX",
+      "opened_by": "cli",
+      "options": [
+        "Kent re-issues the token with the two permissions before deploy",
+        "Build with a Felix-side fallback; grant later",
+        "Drop O1/O4/O5 occurrence use from this mission",
+        "Other"
+      ],
+      "origin_flow": "plan",
+      "other_answer": false,
+      "question": "Felix's token (vikunja-api-kent) lacks tasks.occurrences and tasks.occurrences_preview, and Vikunja tokens cannot be edited (create/delete only). Re-issue the token with those permissions before deploy, or build the occurrences/preview features to degrade without them?",
+      "rationale": null,
+      "resolved_at": "2026-11-19T21:16:38.339525Z",
+      "resolved_by": null,
+      "slot_key": "plan.credentials.occurrences-token-permission",
+      "status": "resolved",
+      "step_id": null,
+      "summary_json": null
+    }
+  ],
+  "mission_id": "01M7TKNXHEY62ZESGYBPGQWXKA",
+  "version": 1
+}

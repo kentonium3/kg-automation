@@ -77,10 +77,11 @@ def good_habits_record():
 # Sync cache fixtures (mission #519)
 # ---------------------------------------------------------------------------
 
-#: The 7 curated task fields the driver tracks.
-_TRACKED_TASK_FIELDS = frozenset(
-    {"title", "done", "due_date", "project_id", "repeat_after", "repeat_mode", "labels"}
-)
+#: The 7 curated task fields the driver tracks. Imported from the driver
+#: rather than copied, so the fixture cannot drift from the real cache shape
+#: (WP06 / #1111 replaced repeat_after/repeat_mode with repeat +
+#: repeats_from_current_date).
+from scripts.sync.diff import TRACKED_TASK_FIELDS as _TRACKED_TASK_FIELDS
 
 
 @pytest.fixture
@@ -105,8 +106,9 @@ def mock_sync_cache_fixture(
         def test_something(mock_sync_cache_fixture):
             sync_dir = mock_sync_cache_fixture(
                 tasks={14: {"title": "Wake at 5", "done": False, "due_date": None,
-                            "project_id": 2, "repeat_after": 0,
-                            "repeat_mode": "default", "labels": []}},
+                            "project_id": 2,
+                            "repeat": {"freq": "daily", "interval": 1},
+                            "repeats_from_current_date": False, "labels": []}},
                 freshness_age_seconds=120,
             )
             # sync_dir == tmp_path / "sync"

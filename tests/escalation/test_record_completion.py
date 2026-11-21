@@ -89,6 +89,25 @@ def _resp(payload, *, status: int = 200):
     return cm
 
 
+def _task(task_id: int = 1234, **overrides):
+    """Minimal one-off v2 task body (no rule) for the GET-before-write read.
+
+    Since WP04 (felix-rrule-adaptation, #1111) ``done`` and ``rescheduled``
+    read the task on v2 before the PATCH, so a Vikunja-touching test stages
+    ``[_resp(_task()), _resp(<patch response>)]``. Rule-bearing round trips
+    live in ``test_escalation_rule_roundtrip.py``.
+    """
+    body = {
+        "id": task_id,
+        "done": False,
+        "due_date": "2026-05-15T00:00:00Z",
+        "repeat": None,
+        "repeats_from_current_date": False,
+    }
+    body.update(overrides)
+    return body
+
+
 def _http_error(code: int = 500, body: bytes = b'{"message":"boom"}'):
     return urllib.error.HTTPError(
         url="http://test/", code=code, msg="boom",
@@ -158,19 +177,22 @@ class TestHappyPathPerEventType:
         tmp_token_file,
         make_jsonl_record,
     ):
-        """`done` path issues PATCH /tasks/{id} (done=true); no other Vikunja call."""
+        """`done` reads the task, then PATCH /api/v2/tasks/{id} with exactly done=true."""
         mock_urlopen.side_effect = [
-            _resp({"id": 1234, "done": True}),
+            _resp(_task()),
+            _resp(_task(done=True)),
         ]
         record = make_jsonl_record(state="done", source="kent_reply")
-        record_event(record, token_path=tmp_token_file)
+        result = record_event(record, token_path=tmp_token_file)
 
-        assert mock_urlopen.call_count == 1
-
-        first_req = mock_urlopen.call_args_list[0][0][0]
-        assert first_req.get_method() == "PATCH"
-        assert first_req.full_url.endswith("/tasks/1234")
-        assert json.loads(first_req.data.decode("utf-8")) == {"done": True}
+        assert mock_urlopen.call_count == 2
+        get_req, patch_req = (c[0][0] for c in mock_urlopen.call_args_list)
+        assert get_req.get_method() == "GET"
+        assert get_req.full_url == "https://vikunja.test/api/v2/tasks/1234"
+        assert patch_req.get_method() == "PATCH"
+        assert patch_req.full_url == "https://vikunja.test/api/v2/tasks/1234"
+        assert json.loads(patch_req.data.decode("utf-8")) == {"done": True}
+        assert result["vikunja_actions"] == ["task_PATCH_done", "outcome:done_one_off"]
 
     def test_record_rescheduled_patches_due_date(
         self,
@@ -181,7 +203,8 @@ class TestHappyPathPerEventType:
     ):
         """`rescheduled` PATCHes due_date once as end-of-day ET (#733)."""
         mock_urlopen.side_effect = [
-            _resp({"id": 1234, "due_date": "2026-06-15T23:59:59-04:00"}),
+            _resp(_task()),
+            _resp(_task(due_date="2026-06-16T03:59:59Z")),
         ]
         record = make_jsonl_record(
             state="rescheduled",
@@ -190,10 +213,10 @@ class TestHappyPathPerEventType:
         )
         record_event(record, token_path=tmp_token_file)
 
-        assert mock_urlopen.call_count == 1
-        first_req = mock_urlopen.call_args_list[0][0][0]
+        assert mock_urlopen.call_count == 2
+        first_req = mock_urlopen.call_args_list[1][0][0]
         assert first_req.get_method() == "PATCH"
-        assert first_req.full_url.endswith("/tasks/1234")
+        assert first_req.full_url == "https://vikunja.test/api/v2/tasks/1234"
         body = json.loads(first_req.data.decode("utf-8"))
         # #733: never UTC `Z` — a "to June 15" reschedule must read back as
         # June 15 in ET (enumerate_candidates converts the instant to an ET
@@ -353,7 +376,7 @@ class TestSideEffectOrdering:
         before the JSONL append). For level_sent/snoozed/dismissed there's
         no Vikunja call to commit, so this scenario is by-state-restricted.
         """
-        mock_urlopen.side_effect = [_resp({"id": 6000, "done": True})]
+        mock_urlopen.side_effect = [_resp(_task()), _resp(_task(done=True))]
 
         def _boom(_record: dict) -> Path:
             raise StateLogError("simulated disk full")
@@ -363,7 +386,7 @@ class TestSideEffectOrdering:
         record = make_jsonl_record(state="done", source="kent_reply")
         with pytest.raises(StateLogError, match="simulated disk full"):
             record_event(record, token_path=tmp_token_file)
-        assert mock_urlopen.call_count == 1
+        assert mock_urlopen.call_count == 2
 
     def test_vikunja_http_error_no_jsonl_write(
         self,
@@ -517,15 +540,16 @@ class TestFelixBotIdentity:
         post-parity-cleanup; level_sent/snoozed/dismissed bypass Vikunja
         entirely so they can't exercise the auth header.
         """
-        mock_urlopen.side_effect = [_resp({"id": 7001, "done": True})]
+        mock_urlopen.side_effect = [_resp(_task()), _resp(_task(done=True))]
         record = make_jsonl_record(state="done", source="kent_reply")
         record_event(record, token_path=tmp_token_file)
 
-        first_req = mock_urlopen.call_args_list[0][0][0]
-        # urllib normalizes header capitalization.
-        assert first_req.headers.get("Authorization") == (
-            f"Bearer {fake_vikunja_token}"
-        )
+        assert mock_urlopen.call_count == 2
+        for call in mock_urlopen.call_args_list:
+            # urllib normalizes header capitalization.
+            assert call[0][0].headers.get("Authorization") == (
+                f"Bearer {fake_vikunja_token}"
+            )
 
 
 # ---------------------------------------------------------------------------
@@ -1140,7 +1164,8 @@ class TestVikunjaClientMigration:
     ``mock_urlopen``), so request shape / emitted record / exit code / error
     message parity is already covered end-to-end above. These tests pin the
     migration itself: the done/rescheduled PATCH goes through
-    ``VikunjaClient.patch`` (not a hand-rolled urllib helper).
+    ``VikunjaClient.patch_task`` on v2 (WP04, felix-rrule-adaptation #1111),
+    not the v1 ``VikunjaClient.patch`` that answered 405 (research.md R-005).
     """
 
     def test_done_patch_goes_through_vikunja_client(
@@ -1151,27 +1176,32 @@ class TestVikunjaClientMigration:
         make_jsonl_record,
         monkeypatch,
     ):
-        """``state=done`` calls ``VikunjaClient.patch("/tasks/{id}", json=...)``."""
+        """``state=done`` calls ``VikunjaClient.patch_task(id, {"done": True})``."""
         from scripts.common.vikunja_client import VikunjaClient
 
-        calls: list[tuple[str, dict]] = []
+        calls: list[tuple[int, dict]] = []
         original_init = VikunjaClient.__init__
 
         def _spy_init(self, *, base_url=None, token=None, timeout=30.0):
             original_init(self, base_url=base_url, token=token, timeout=timeout)
             assert token == fake_vikunja_token
 
-        def _spy_patch(self, path, *, json=None, params=None, timeout=None):
-            calls.append((path, json))
-            return {"id": 1234, "done": True}
+        def _spy_patch_task(self, task_id, changes, *, timeout=None):
+            calls.append((task_id, dict(changes)))
+            return _task(task_id, done=True)
+
+        def _forbid_v1(self, *args, **kwargs):
+            raise AssertionError("v1 VikunjaClient.patch must not be used")
 
         monkeypatch.setattr(VikunjaClient, "__init__", _spy_init)
-        monkeypatch.setattr(VikunjaClient, "patch", _spy_patch)
+        monkeypatch.setattr(VikunjaClient, "patch_task", _spy_patch_task)
+        monkeypatch.setattr(VikunjaClient, "get_task_v2", lambda self, tid, **kw: _task(tid))
+        monkeypatch.setattr(VikunjaClient, "patch", _forbid_v1)
 
         record = make_jsonl_record(state="done", source="kent_reply")
         record_event(record, token_path=tmp_token_file)
 
-        assert calls == [("/tasks/1234", {"done": True})]
+        assert calls == [(1234, {"done": True})]
 
     def test_rescheduled_patch_goes_through_vikunja_client(
         self,
@@ -1180,16 +1210,17 @@ class TestVikunjaClientMigration:
         make_jsonl_record,
         monkeypatch,
     ):
-        """``state=rescheduled`` calls ``VikunjaClient.patch`` with ``due_date``."""
+        """``state=rescheduled`` calls ``VikunjaClient.patch_task`` with ``due_date``."""
         from scripts.common.vikunja_client import VikunjaClient
 
-        calls: list[tuple[str, dict]] = []
+        calls: list[tuple[int, dict]] = []
 
-        def _spy_patch(self, path, *, json=None, params=None, timeout=None):
-            calls.append((path, json))
-            return {"id": 1234, "due_date": json.get("due_date")}
+        def _spy_patch_task(self, task_id, changes, *, timeout=None):
+            calls.append((task_id, dict(changes)))
+            return _task(task_id, due_date=changes.get("due_date"))
 
-        monkeypatch.setattr(VikunjaClient, "patch", _spy_patch)
+        monkeypatch.setattr(VikunjaClient, "patch_task", _spy_patch_task)
+        monkeypatch.setattr(VikunjaClient, "get_task_v2", lambda self, tid, **kw: _task(tid))
 
         record = make_jsonl_record(
             state="rescheduled",
@@ -1199,8 +1230,8 @@ class TestVikunjaClientMigration:
         record_event(record, token_path=tmp_token_file)
 
         assert len(calls) == 1
-        path, body = calls[0]
-        assert path == "/tasks/1234"
+        task_id, body = calls[0]
+        assert task_id == 1234
         assert body == {"due_date": "2026-06-15T23:59:59-04:00"}
 
     def test_client_http_error_reraised_as_module_vikunja_error(
@@ -1224,12 +1255,13 @@ class TestVikunjaClientMigration:
             VikunjaServerError as _ClientVikunjaServerError,
         )
 
-        def _spy_patch(self, path, *, json=None, params=None, timeout=None):
+        def _spy_patch_task(self, task_id, changes, *, timeout=None):
             raise _ClientVikunjaServerError(
-                path=path, status=503, body='{"message":"down"}'
+                path=f"/tasks/{task_id}", status=503, body='{"message":"down"}'
             )
 
-        monkeypatch.setattr(VikunjaClient, "patch", _spy_patch)
+        monkeypatch.setattr(VikunjaClient, "patch_task", _spy_patch_task)
+        monkeypatch.setattr(VikunjaClient, "get_task_v2", lambda self, tid, **kw: _task(tid))
 
         record = make_jsonl_record(state="done", source="kent_reply")
         with pytest.raises(VikunjaError, match="HTTP 503") as excinfo:
@@ -1238,5 +1270,61 @@ class TestVikunjaClientMigration:
         # (adapter path), matching the pre-migration ``_http_request``
         # message content.
         assert "down" in str(excinfo.value)
+        assert "PATCH https://vikunja.test/api/v2/tasks/1234" in str(excinfo.value)
         path = jsonl_sandbox / "project-4-escalation-history.jsonl"
         assert not path.exists() or _read_jsonl(path) == []
+
+
+# ---------------------------------------------------------------------------
+# level_sent due-date baseline (WP04 review cycle 1, finding 1)
+# ---------------------------------------------------------------------------
+
+
+def _level_sent_argv(tmp_token_file, *extra: str, state: str = "level_sent") -> list[str]:
+    argv = [
+        "--task-id", "1234", "--project-id", "4", "--title", "Task",
+        "--date", "2026-05-21", "--state", state, "--source", "agent",
+        "--token-path", str(tmp_token_file), "--base-url", "http://test/api/v1/",
+    ]
+    if state == "level_sent":
+        argv += ["--level", "1"]
+    return argv + list(extra)
+
+
+@pytest.mark.parametrize(
+    ("due", "stored"),
+    [
+        ("2026-05-20T03:59:59Z", "2026-05-20T03:59:59Z"),
+        ("0001-01-01T00:00:00Z", None),  # unset sentinel: dropped, record kept
+        ("not a date", None),
+        (None, None),  # flag absent: old behaviour
+    ],
+)
+def test_level_sent_records_due_date_at_alert(
+    mock_urlopen, jsonl_sandbox, tmp_token_file, monkeypatch, due, stored
+):
+    mock_urlopen.side_effect = AssertionError("level_sent must not call Vikunja")
+    monkeypatch.setattr(rc, "_read_stdin_record", lambda: None)
+    extra = ("--due-date", due) if due is not None else ()
+
+    assert main(_level_sent_argv(tmp_token_file, *extra)) == 0
+
+    [record] = _read_jsonl(jsonl_sandbox / "project-4-escalation-history.jsonl")
+    assert record.get("due_date_at_alert") == stored
+    if stored is None:
+        assert "due_date_at_alert" not in record
+
+
+def test_due_date_flag_ignored_for_other_states(
+    mock_urlopen, jsonl_sandbox, tmp_token_file, monkeypatch
+):
+    mock_urlopen.side_effect = AssertionError("dismissed must not call Vikunja")
+    monkeypatch.setattr(rc, "_read_stdin_record", lambda: None)
+
+    code = main(
+        _level_sent_argv(tmp_token_file, "--due-date", "2026-05-20T03:59:59Z", state="dismissed")
+    )
+
+    assert code == 0
+    [record] = _read_jsonl(jsonl_sandbox / "project-4-escalation-history.jsonl")
+    assert "due_date_at_alert" not in record

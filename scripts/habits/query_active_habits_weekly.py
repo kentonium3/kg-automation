@@ -13,7 +13,8 @@ current-state response + same CLI arguments → byte-identical JSON
 output AND byte-identical ``rendered_text`` (NFR-001, NFR-004).
 
 The Vikunja side is retained only for **current-state** habit-list
-metadata (titles + ``repeat_after`` for classification). Completion
+metadata (titles + the ``repeat`` rule for classification, mission
+felix-rrule-adaptation #1111 FR-012). Completion
 history is read exclusively from the canonical JSONL store via the
 IC-01 wrapper. The IC-03 architectural test in WP03 ratchets this
 boundary — this file is on the current-state allowlist but is NOT
@@ -26,10 +27,26 @@ Authoritative contracts:
 
 Public surface
 --------------
-Constants: ``DAILY_REPEAT_AFTER``
-Functions: ``parse_weekday_in_title``, ``classify_habit``,
-    ``scheduled_days_for_window``, ``query_completion_events``,
-    ``build_report``, ``main``
+Constants: ``HABIT_KINDS``, ``UNKNOWN_SCHEDULE_TEXT``
+Functions: ``classify_habit``, ``scheduled_days_for_window``,
+    ``query_completion_events``, ``build_report``, ``main``
+
+Classification and scheduled days (FR-012, #1111)
+-------------------------------------------------
+Habits are classified from their Vikunja ``repeat`` rule (list bodies carry
+``repeat`` but not ``repeats_rrule``), never from ``repeat_after`` (dead on
+the RRULE server) or weekday words in the title. Plain daily
+(``FREQ=DAILY;INTERVAL=1``) and plain weekly-by-day
+(``FREQ=WEEKLY;INTERVAL=1;BYDAY=...``, nothing else) rules are counted
+locally. Any other rule's scheduled days are ``None`` and render as
+:data:`UNKNOWN_SCHEDULE_TEXT` — never a guessed 0.
+
+The server's occurrence preview is deliberately not used. In vikunja-harness
+d7e202228 it steps from ``max(now, due_date)``
+(``pkg/models/task_next_occurrence_engine.go:205-212, 429-440``;
+``pkg/models/task_occurrences.go:176, 189-202``), so it cannot evaluate the
+report's windows, which are always in the past. Re-anchoring it would also
+shift an interval rule's phase (review cycle 2, #1111).
 
 Habit project id (mission deterministic-cron-hardening-01KXA4PX, #723;
 mission vikunja-reference-seam-01KXK68Z, #748/#745)
@@ -49,26 +66,24 @@ from __future__ import annotations
 import argparse
 import json
 import os
-import re
 import subprocess
 import sys
+from collections.abc import Iterable, Mapping
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Iterable, Optional
+from typing import Any, Optional
 from zoneinfo import ZoneInfo
 
-from scripts.common import vikunja_scope
+from scripts.common import vikunja_rule, vikunja_scope
 from scripts.common.vikunja_client import VikunjaClient, VikunjaError
 from scripts.habits import history
 
 __all__ = [
-    "DAILY_REPEAT_AFTER",
-    "WEEKDAY_PATTERN",
-    "WEEKDAY_TO_ISO",
-    "ISO_TO_PYTHON_WEEKDAY",
     "AGENT_NAME",
+    "HABIT_KINDS",
     "REPORT_TZ",
-    "parse_weekday_in_title",
+    "RULE_WEEKDAY_TO_PYTHON",
+    "UNKNOWN_SCHEDULE_TEXT",
     "classify_habit",
     "scheduled_days_for_window",
     "query_completion_events",
@@ -97,45 +112,22 @@ def _resolve_habits_project_id() -> int:
     return project_id
 
 
-DAILY_REPEAT_AFTER = 86400  # seconds — Vikunja's encoding of "every 24 hours"
+#: Report kinds, in report sort order. ``other`` (no rule) is filtered out.
+HABIT_KINDS: tuple[str, ...] = ("daily", "weekly-by-day", "rule")
 
-#: Matches weekday names in habit titles. Both the 3-letter abbreviation
-#: (``Mon``) and the full word form (``Monday``, ``Wednesday``, ``Saturday``)
-#: are supported. The full-word alternatives come first so the engine
-#: prefers ``Wednesday`` over the prefix ``Wed`` when the title contains
-#: the full word — necessary because ``Wednesday`` is not ``Wed`` + ``day``
-#: and the simpler ``(Mon|Tue|Wed|...)(day)?`` regex fails the ``\b``
-#: word-boundary check after the prefix.
-WEEKDAY_PATTERN = re.compile(
-    r"\b(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday|"
-    r"Mon|Tue|Wed|Thu|Fri|Sat|Sun)\b",
-    re.IGNORECASE,
-)
-
-#: Lowercase 3-letter prefix → canonical ISO upper-case 3-letter name.
-#: ``parse_weekday_in_title`` truncates each match's lowercase form to its
-#: first three characters before looking it up here, so both ``"mon"`` and
-#: ``"monday"`` resolve to ``"MON"``.
-WEEKDAY_TO_ISO = {
-    "mon": "MON",
-    "tue": "TUE",
-    "wed": "WED",
-    "thu": "THU",
-    "fri": "FRI",
-    "sat": "SAT",
-    "sun": "SUN",
+#: Vikunja ``by_day`` token -> ``datetime.weekday()`` (Mon=0..Sun=6).
+RULE_WEEKDAY_TO_PYTHON: dict[str, int] = {
+    "mo": 0,
+    "tu": 1,
+    "we": 2,
+    "th": 3,
+    "fr": 4,
+    "sa": 5,
+    "su": 6,
 }
 
-#: Canonical ISO weekday → ``datetime.weekday()`` integer (Mon=0..Sun=6).
-ISO_TO_PYTHON_WEEKDAY = {
-    "MON": 0,
-    "TUE": 1,
-    "WED": 2,
-    "THU": 3,
-    "FRI": 4,
-    "SAT": 5,
-    "SUN": 6,
-}
+#: Rendered in place of a percentage when a habit's scheduled days are unknown.
+UNKNOWN_SCHEDULE_TEXT = "scheduled: unknown (rule preview unavailable)"
 
 #: Agent identity recorded by ``log_action.py``. The weekly cron tick is
 #: owned by ``felix-admin-habits``; the helper records under that agent's
@@ -150,71 +142,75 @@ _PAGE_SIZE = 200
 # ---------------------------------------------------------------------------
 
 
-def parse_weekday_in_title(title: str) -> frozenset[str]:
-    """Return the set of ISO weekday names mentioned in ``title``.
+def classify_habit(task: Mapping[str, Any]) -> str:
+    """Classify a Vikunja task from its ``repeat`` rule (FR-012).
 
-    Returns an empty :class:`frozenset` if no weekday names are present.
-    Case-insensitive; matches both the 3-letter prefix (``Mon``) and the
-    full word (``Monday``). Multiple weekdays in a single title are all
-    returned (e.g., ``"Yoga — Mon and Wed"`` → ``{"MON", "WED"}``).
+    - ``FREQ=DAILY;INTERVAL=1`` and nothing else -> ``"daily"``.
+    - ``FREQ=WEEKLY`` with a ``BYDAY`` list -> ``"weekly-by-day"``.
+    - any other rule -> ``"rule"`` (scheduled days unknown).
+    - no rule -> ``"other"`` (filtered before the report, as before; this
+      includes Done habits whose rule is gone, e.g. tasks 75–77, C-008).
     """
-    if not title:
-        return frozenset()
-    matches = WEEKDAY_PATTERN.findall(title)
-    return frozenset(WEEKDAY_TO_ISO[m.lower()[:3]] for m in matches)
-
-
-def classify_habit(task: dict) -> str:
-    """Classify a Vikunja task into ``"daily"``, ``"weekday-in-title"``, or ``"other"``.
-
-    Rules per spec FR-004 and ``data-model.md`` HabitClassifier:
-
-    - ``repeat_after == DAILY_REPEAT_AFTER`` AND title has no weekday → ``"daily"``.
-    - ``repeat_after == 0`` AND title contains at least one weekday → ``"weekday-in-title"``.
-    - Anything else → ``"other"`` (filtered before reaching the report per FR-006).
-    """
-    repeat_after = task.get("repeat_after")
-    title = task.get("title") or ""
-    weekdays = parse_weekday_in_title(title)
-    if repeat_after == DAILY_REPEAT_AFTER and not weekdays:
+    rule = vikunja_rule.normalise(task.get("repeat"))
+    if rule is None:
+        return "other"
+    if rule == {"freq": "daily", "interval": 1}:
         return "daily"
-    if repeat_after == 0 and weekdays:
-        return "weekday-in-title"
-    return "other"
+    if rule["freq"] == "weekly" and rule.get("by_day"):
+        return "weekly-by-day"
+    return "rule"
+
+
+def _local_weekdays(rule: Mapping[str, Any]) -> set[int] | None:
+    """Python weekdays of a plain ``FREQ=WEEKLY;INTERVAL=1;BYDAY=..`` rule.
+
+    ``None`` when the rule has anything else (COUNT, UNTIL, another BY*
+    part, a non-default WKST, an interval > 1, or an ordinal BYDAY such as
+    ``1mo``): those cannot be counted locally, so they are unknown.
+    """
+    if set(rule) - {"freq", "interval", "by_day"} or rule.get("interval") != 1:
+        return None
+    days = rule.get("by_day") or []
+    if not days or any(d not in RULE_WEEKDAY_TO_PYTHON for d in days):
+        return None
+    return {RULE_WEEKDAY_TO_PYTHON[d] for d in days}
 
 
 def scheduled_days_for_window(
     kind: str,
-    title: str,
+    task: Mapping[str, Any],
     window_start: datetime,
     window_end: datetime,
-) -> int:
-    """Return scheduled-day count for ``kind`` over ``[window_start, window_end)``.
+) -> int | None:
+    """Return the scheduled-day count for ``task`` over ``[window_start, window_end)``.
 
-    - ``daily`` → number of complete days in the half-open window (7 for
-      a standard 7-day window).
-    - ``weekday-in-title`` → number of days in the window whose weekday
-      matches any weekday parsed from ``title``.
-    - ``other`` → 0 (these tasks are filtered before reaching scheduling).
+    - ``daily`` -> number of days in the half-open window (7 for a week).
+    - ``weekly-by-day`` -> number of window days whose weekday is in
+      ``BYDAY``, computed locally when the rule is plain
+      ``FREQ=WEEKLY;INTERVAL=1;BYDAY=...``; otherwise ``None``.
+    - ``rule`` -> ``None`` (unknown; see the module docstring for why the
+      server preview is not used).
+    - ``other`` -> 0 (filtered before scheduling).
     """
     if window_end <= window_start:
         return 0
     if kind == "daily":
-        delta = window_end.date() - window_start.date()
-        return delta.days
-    if kind == "weekday-in-title":
-        weekdays = parse_weekday_in_title(title)
-        if not weekdays:
-            return 0
-        target_python_weekdays = {ISO_TO_PYTHON_WEEKDAY[w] for w in weekdays}
-        count = 0
-        cursor = window_start
-        while cursor < window_end:
-            if cursor.weekday() in target_python_weekdays:
-                count += 1
-            cursor = cursor + timedelta(days=1)
-        return count
-    return 0
+        return (window_end.date() - window_start.date()).days
+    if kind not in ("weekly-by-day", "rule"):
+        return 0
+    rule = vikunja_rule.normalise(task.get("repeat"))
+    if rule is None:
+        return 0
+    weekdays = _local_weekdays(rule) if kind == "weekly-by-day" else None
+    if weekdays is None:
+        return None
+    count = 0
+    cursor = window_start
+    while cursor < window_end:
+        if cursor.weekday() in weekdays:
+            count += 1
+        cursor = cursor + timedelta(days=1)
+    return count
 
 
 # ---------------------------------------------------------------------------
@@ -251,27 +247,26 @@ def _paginate(
 
 def _completed_in_window_for_habit(
     *,
-    kind: str,
-    title: str,
+    scheduled: int | None,
     habit_id: int,
     window_start: datetime,
     window_end: datetime,
-) -> int:
+) -> int | None:
     """Return dedup-by-date completion count for ``habit_id`` in the window.
 
     Routes through :func:`scripts.habits.history.scheduled_vs_completed_for_habit`
     so the canonical-read invariant (FR-002) is honored even by the helper's
     internal aggregation path. The wrapper handles dedup-by-date and clamping;
     we discard the scheduled half and return only the completed count because
-    we already compute scheduled here via :func:`scheduled_days_for_window`.
+    the scheduled count was computed by :func:`scheduled_days_for_window`.
 
-    Falls back to 0 when scheduled is 0 (e.g. weekday-in-title habit whose
-    target weekday isn't in the window): the wrapper requires
-    ``scheduled_days_count > 0`` so we can't call it; a habit with no
-    scheduled occurrences in the window contributes 0 to the report
-    regardless.
+    Returns 0 when nothing is scheduled (the wrapper requires
+    ``scheduled_days_count > 0``), and ``None`` when the scheduled count is
+    unknown: without it the completed count cannot be clamped, so it is not
+    reported either.
     """
-    scheduled = scheduled_days_for_window(kind, title, window_start, window_end)
+    if scheduled is None:
+        return None
     if scheduled <= 0:
         return 0
     _, completed = history.scheduled_vs_completed_for_habit(
@@ -295,23 +290,28 @@ def query_completion_events(
 
     Returns a dict keyed by habit title. Each value carries:
 
-    - ``kind``: ``"daily"`` or ``"weekday-in-title"``.
+    - ``kind``: ``"daily"``, ``"weekly-by-day"`` or ``"rule"``.
     - ``title``: canonical habit title (same as the dict key).
+    - ``repeat``: the habit's rule in normal form (for sorting).
+    - ``scheduled_current`` / ``scheduled_prior``: scheduled days per window
+      (``None`` when unknown; ``scheduled_prior`` is ``None`` without a prior
+      window).
     - ``current_count``: dedup-by-date completion count from
-      ``habits-history.jsonl`` in the current window.
+      ``habits-history.jsonl`` in the current window (``None`` when the
+      scheduled count is unknown).
     - ``prior_count``: same for the prior window (0 if
       ``prior_window_start`` / ``prior_window_end`` is ``None``).
 
     The Vikunja query is intentionally **current-state only**: titles +
-    ``repeat_after`` for classification. Completion counts come from the
+    the ``repeat`` rule for classification. Completion counts come from the
     canonical store via :mod:`scripts.habits.history` (FR-002). The
     WP03 architectural test allowlists this file for the current-state
     Vikunja call; it does NOT allow ``task.get("done_at")`` reads —
     those have been removed from this module.
 
-    ``"other"``-classified tasks are filtered out before aggregation
-    (the cardiac-lab one-off and any non-recurring/non-weekday tasks
-    never appear in the report).
+    ``"other"``-classified tasks (no rule) are filtered out before
+    aggregation: the cardiac-lab one-off and any non-recurring task never
+    appear in the report.
     """
     events: dict[str, dict] = {}
 
@@ -332,27 +332,34 @@ def query_completion_events(
             # in edge cases; keep the first-seen bucket.
             continue
 
+        scheduled_current = scheduled_days_for_window(
+            kind, task, window_start, window_end
+        )
         current_count = _completed_in_window_for_habit(
-            kind=kind,
-            title=title,
+            scheduled=scheduled_current,
             habit_id=habit_id,
             window_start=window_start,
             window_end=window_end,
         )
+        scheduled_prior: int | None = None
+        prior_count: int | None = 0
         if prior_window_start is not None and prior_window_end is not None:
+            scheduled_prior = scheduled_days_for_window(
+                kind, task, prior_window_start, prior_window_end
+            )
             prior_count = _completed_in_window_for_habit(
-                kind=kind,
-                title=title,
+                scheduled=scheduled_prior,
                 habit_id=habit_id,
                 window_start=prior_window_start,
                 window_end=prior_window_end,
             )
-        else:
-            prior_count = 0
 
         events[title] = {
             "kind": kind,
             "title": title,
+            "repeat": vikunja_rule.normalise(task.get("repeat")),
+            "scheduled_current": scheduled_current,
+            "scheduled_prior": scheduled_prior,
             "current_count": current_count,
             "prior_count": prior_count,
         }
@@ -376,19 +383,47 @@ def _percent(numerator: int, denominator: int) -> float:
     return round(100.0 * numerator / denominator, 1)
 
 
-def _primary_weekday_for_title(title: str) -> int:
-    weekdays = parse_weekday_in_title(title)
-    if not weekdays:
-        return 7  # sort after Sun; never reached for valid weekday-in-title rows
-    return min(ISO_TO_PYTHON_WEEKDAY[w] for w in weekdays)
+def _sort_key(bucket: Mapping[str, Any]) -> tuple[int, int, str]:
+    """Daily first, then weekly-by-day by first weekday, then other rules; title last."""
+    kind = bucket["kind"]
+    kind_rank = HABIT_KINDS.index(kind) if kind in HABIT_KINDS else len(HABIT_KINDS)
+    weekday_rank = 0
+    if kind == "weekly-by-day":
+        days = [
+            RULE_WEEKDAY_TO_PYTHON[d[-2:]]
+            for d in (bucket.get("repeat") or {}).get("by_day", [])
+            if d[-2:] in RULE_WEEKDAY_TO_PYTHON
+        ]
+        weekday_rank = min(days) if days else 7
+    return (kind_rank, weekday_rank, bucket["title"])
 
 
-def _sort_key(habit: dict) -> tuple[int, int, str]:
-    kind = habit["habit_kind"]
-    kind_rank = 0 if kind == "daily" else 1
-    if kind == "weekday-in-title":
-        return (kind_rank, _primary_weekday_for_title(habit["habit_title"]), habit["habit_title"])
-    return (kind_rank, 0, habit["habit_title"])
+def _cap(
+    *,
+    raw: int | None,
+    scheduled: int | None,
+    title: str,
+    kind: str,
+    window: str,
+    window_start: datetime,
+    window_end: datetime,
+) -> int | None:
+    """Clamp ``raw`` at ``scheduled``, emitting an anomaly when it was over."""
+    if raw is None or scheduled is None:
+        return None
+    capped = min(raw, scheduled)
+    if raw > scheduled:
+        _emit_anomaly_log_action(
+            habit_title=title,
+            habit_kind=kind,
+            window=window,
+            scheduled_days=scheduled,
+            raw_count=raw,
+            capped_count=capped,
+            window_start=window_start,
+            window_end=window_end,
+        )
+    return capped
 
 
 def _emit_anomaly_log_action(
@@ -429,6 +464,22 @@ def _emit_anomaly_log_action(
     )
 
 
+def _overall_percent(
+    habits: list[dict], scheduled_key: str, completed_key: str
+) -> Optional[float]:
+    """Aggregate one window's overall percent over habits with a known schedule.
+
+    Returns ``None`` (unknown) when habits exist but none has a known
+    scheduled count for the window. An empty habit list keeps ``0.0``.
+    """
+    known = [h for h in habits if h[scheduled_key] is not None]
+    if habits and not known:
+        return None
+    total_scheduled = sum(h[scheduled_key] for h in known)
+    total_completed = sum(h[completed_key] or 0 for h in known)
+    return _percent(total_completed, total_scheduled)
+
+
 def build_report(
     events_by_title: dict[str, dict],
     *,
@@ -438,6 +489,11 @@ def build_report(
     prior_window_end: Optional[datetime],
 ) -> dict:
     """Assemble the WeeklyHabitReport JSON-ready dict.
+
+    Takes each bucket's scheduled-day counts from
+    :func:`query_completion_events`. A ``None`` (unknown) scheduled count
+    gives ``None`` completed/percent fields for that cell, and the habit is
+    left out of the overall totals.
 
     Caps ``completed_events_current`` / ``completed_events_prior`` at
     their scheduled-day counts so percentages stay in ``[0, 100]`` even
@@ -451,43 +507,34 @@ def build_report(
     )
 
     habits: list[dict] = []
-    for title, bucket in events_by_title.items():
+    for bucket in sorted(events_by_title.values(), key=_sort_key):
+        title = bucket["title"]
         kind = bucket["kind"]
-        scheduled_current = scheduled_days_for_window(
-            kind, title, window_start, window_end
+        scheduled_current = bucket["scheduled_current"]
+        completed_current = _cap(
+            raw=bucket["current_count"],
+            scheduled=scheduled_current,
+            title=title,
+            kind=kind,
+            window="current",
+            window_start=window_start,
+            window_end=window_end,
         )
-        raw_current = bucket["current_count"]
-        completed_current = min(raw_current, scheduled_current)
-        if raw_current > scheduled_current:
-            _emit_anomaly_log_action(
-                habit_title=title,
-                habit_kind=kind,
-                window="current",
-                scheduled_days=scheduled_current,
-                raw_count=raw_current,
-                capped_count=completed_current,
-                window_start=window_start,
-                window_end=window_end,
-            )
         if include_baseline:
-            scheduled_prior = scheduled_days_for_window(
-                kind, title, prior_window_start, prior_window_end
+            scheduled_prior = bucket["scheduled_prior"]
+            completed_prior = _cap(
+                raw=bucket["prior_count"],
+                scheduled=scheduled_prior,
+                title=title,
+                kind=kind,
+                window="prior",
+                window_start=prior_window_start,  # type: ignore[arg-type]
+                window_end=prior_window_end,  # type: ignore[arg-type]
             )
-            raw_prior = bucket["prior_count"]
-            completed_prior = min(raw_prior, scheduled_prior)
-            if raw_prior > scheduled_prior:
-                _emit_anomaly_log_action(
-                    habit_title=title,
-                    habit_kind=kind,
-                    window="prior",
-                    scheduled_days=scheduled_prior,
-                    raw_count=raw_prior,
-                    capped_count=completed_prior,
-                    window_start=prior_window_start,
-                    window_end=prior_window_end,
-                )
-            percent_prior: Optional[float] = _percent(
-                completed_prior, scheduled_prior
+            percent_prior: Optional[float] = (
+                None
+                if scheduled_prior is None or completed_prior is None
+                else _percent(completed_prior, scheduled_prior)
             )
         else:
             scheduled_prior = None
@@ -499,30 +546,28 @@ def build_report(
                 "habit_kind": kind,
                 "scheduled_days_current": scheduled_current,
                 "completed_events_current": completed_current,
-                "percent_current": _percent(completed_current, scheduled_current),
+                "percent_current": (
+                    None
+                    if scheduled_current is None or completed_current is None
+                    else _percent(completed_current, scheduled_current)
+                ),
                 "scheduled_days_prior": scheduled_prior,
                 "completed_events_prior": completed_prior,
                 "percent_prior": percent_prior,
             }
         )
 
-    habits.sort(key=_sort_key)
-
-    total_scheduled_current = sum(h["scheduled_days_current"] for h in habits)
-    total_completed_current = sum(h["completed_events_current"] for h in habits)
-    overall_percent_current = _percent(
-        total_completed_current, total_scheduled_current
+    # Habits with an unknown schedule are left out of the overall totals:
+    # counting them as 0 scheduled would be a guess. When habits exist but
+    # none has a known schedule in a window, that window's overall is
+    # unknown (``None``), never a false 0%.
+    overall_percent_current = _overall_percent(
+        habits, "scheduled_days_current", "completed_events_current"
     )
 
     if include_baseline:
-        total_scheduled_prior = sum(
-            (h["scheduled_days_prior"] or 0) for h in habits
-        )
-        total_completed_prior = sum(
-            (h["completed_events_prior"] or 0) for h in habits
-        )
-        overall_percent_prior: Optional[float] = _percent(
-            total_completed_prior, total_scheduled_prior
+        overall_percent_prior: Optional[float] = _overall_percent(
+            habits, "scheduled_days_prior", "completed_events_prior"
         )
         prior_window_start_iso: Optional[str] = _iso_utc(prior_window_start)
         prior_window_end_iso: Optional[str] = _iso_utc(prior_window_end)
@@ -624,6 +669,9 @@ def _render_whatsapp_text(
     for habit in report["habits"]:
         current_pct = habit["percent_current"]
         prior_pct = habit.get("percent_prior")
+        if current_pct is None:
+            lines.append(f"{habit['habit_title']} — {UNKNOWN_SCHEDULE_TEXT}")
+            continue
         arrow = _arrow_for_delta(current_pct, prior_pct)
         if prior_pct is None:
             row = f"{habit['habit_title']} — {_render_pct(current_pct)}%"
@@ -638,8 +686,18 @@ def _render_whatsapp_text(
     lines.append("")
     overall_current = report["overall_percent_current"]
     overall_prior = report.get("overall_percent_prior")
+    if overall_current is None:
+        # No habit has a known schedule: same marker as an unknown habit row.
+        lines.append(f"*Overall* — {UNKNOWN_SCHEDULE_TEXT}")
+        return "\n".join(lines)
     overall_arrow = _arrow_for_delta(overall_current, overall_prior)
-    if overall_prior is None:
+    if overall_prior is None and report.get("prior_window_start_iso"):
+        # A baseline window exists but no habit has a known schedule in it.
+        overall_line = (
+            f"*Overall: {_render_pct(overall_current)}%* "
+            f"(was {UNKNOWN_SCHEDULE_TEXT})"
+        )
+    elif overall_prior is None:
         overall_line = f"*Overall: {_render_pct(overall_current)}%*"
     else:
         overall_line = (

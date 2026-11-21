@@ -8,15 +8,29 @@ sweeper:
 
   1. Appends an ``auto_skipped`` event to ``habits-history.jsonl`` (per
      ``contracts/history-event-auto-skipped.contract.md``).
-  2. For **day-specific** habits only: advances Vikunja ``due_date`` to the
-     next occurrence of one of the habit's designated weekdays at end-of-
-     day Eastern Time. Daily habits inherit their next occurrence from
-     Vikunja's native ``repeat_after`` cadence — no PUT needed.
+  2. For **day-specific** habits only (at most once per task per tick, and
+     not at all when the stored due date is already in the future): advances
+     Vikunja ``due_date`` to the
+     task's next occurrence **from its own rule** (``GET /api/v2/tasks/{id}/
+     occurrences?count=1``, O1 / FR-004 of #1111), written with a v2 merge
+     patch that carries only ``due_date``. Daily habits get their next
+     occurrence from Vikunja's rule (``FREQ=DAILY``) on completion — the
+     sweeper never writes them in Vikunja. A habit with no rule, no
+     next occurrence, or an occurrences call that fails (401: the token lacks
+     ``tasks.occurrences``; timeout) is a per-habit ``SweeperError`` and is
+     never given a guessed date.
   3. Writes a structured per-tick artifact at
      ``/data/services/openclaw/state/habits/sweeper-tick-<YYYY-MM-DD>.json``
      per ``contracts/sweeper-tick.contract.md``.
   4. Appends a JSONL ledger line at
      ``/data/services/openclaw/state/habits/sweeper-ledger.jsonl``.
+
+Paused habits (FR-026, #1111): right before every write for a habit (the
+history append, and the due-date advance) the sweeper reads the task live
+over v2 and skips it, writing nothing, when ``manage_habit.is_paused`` holds
+(status ``paused``). If that read fails or has no description, nothing is
+written and the habit is a ``paused_state_unavailable`` error. Dry runs make
+no Vikunja call, so they cannot see pauses.
 
 Architectural pattern: stateless Python oneshot fired by a systemd user
 timer (``felix-habit-sweeper.timer``). Mirrors the post-#343 felix-doc-
@@ -25,8 +39,9 @@ auditor shape (tick artifact + JSONL ledger + ``SUMMARY:`` line on stdout
 
 Determinism (Directive 6): zero LLM calls. All decisions are pure data
 operations against the schedule YAML, ``morning-checkin-<date>.json``
-artifacts, and ``habits-history.jsonl``. Vikunja PUTs are deterministic
-HTTP calls with a precomputed payload.
+artifacts, and ``habits-history.jsonl``. Vikunja writes are deterministic
+HTTP calls whose payload is the rule's next occurrence as read from the
+server.
 
 Idempotency (FR-005): re-running the sweeper for the same
 ``(task_id, original_checkin_date_et)`` MUST be a no-op. Enforced by
@@ -34,12 +49,14 @@ scanning history for an existing ``auto_skipped`` event matching the pair
 before appending a new one. Tick artifacts overwrite per-date so running
 the sweeper twice the same day surfaces the latest run only.
 
-Issue #112 regression-prevention: any Vikunja due_date the sweeper PUTs
+Issue #112 regression-prevention: any Vikunja due_date the sweeper writes
 MUST end with an explicit ET offset (``-04:00`` EDT or ``-05:00`` EST),
-NOT ``Z``. The sweeper reuses ``set_due_dates.compute_next_eod_et_for_weekdays``
-which is unit-tested to produce explicit-offset strings, and additionally
-validates the result against ``set_due_dates.ISO_EOD_PATTERN`` before any
-PUT call.
+NOT ``Z``. The occurrence instant is converted to Eastern time and checked
+against an explicit-offset pattern before the write. Its time of day is the
+server's and is kept as is: the engine anchors a normal rule at the due
+date's wall clock and a repeat-from-completion rule at the completion time
+(vikunja-harness d7e202228 ``task_next_occurrence_engine.go``
+``withDueDate``), so end-of-day is not guaranteed and is not enforced.
 
 CLI surface::
 
@@ -79,18 +96,24 @@ from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
 
-from scripts.common.vikunja_client import VikunjaClient, VikunjaError
+from scripts.common.et_datetime import parse_vikunja_instant, to_et
+from scripts.common.vikunja_client import (
+    VikunjaAuthError,
+    VikunjaClient,
+    VikunjaError,
+)
 from scripts.common.vikunja_config import (
     get_vikunja_base_url,
     get_vikunja_token_path,
 )
+from scripts.common.vikunja_rule import has_rule
 
 # --------------------------------------------------------------------------
 # Cross-WP imports
 #
 # WP-01 deliverable: ``schedule_loader`` is the single parse surface for the
-# runtime schedule YAML. WP-01 deliverable: ``set_due_dates`` provides the
-# day-of-week math + the #112-guarded due_date string format. Both imports
+# runtime schedule YAML. ``set_due_dates`` provides the post-write
+# recurrence check shared with its bulk mode (#1111). Both imports
 # use the WP-01 try/except fallback pattern so direct-script invocation
 # (``python3 scripts/habits/sweeper.py``) works alongside the module form
 # (``python3 -m scripts.habits.sweeper``). Precedent: ``set_due_dates.py``
@@ -98,33 +121,27 @@ from scripts.common.vikunja_config import (
 # --------------------------------------------------------------------------
 try:
     from scripts.habits.schedule_loader import (
+        WEEKDAY_NAMES,
         ScheduleConfigError,
         ScheduleEntry,
-        WEEKDAY_NAMES,
         is_day_specific,
         load_schedule,
     )
-    from scripts.habits.set_due_dates import (
-        ISO_EOD_PATTERN,
-        compute_next_eod_et_for_weekdays,
-        validate_iso_eod_et,
-    )
+    from scripts.habits.set_due_dates import recurrence_drift
+    from scripts.habits.manage_habit import is_paused
 except ImportError:  # pragma: no cover -- exercised only on direct-script form
     # Fallback for ``python3 scripts/habits/sweeper.py``. The absolute-package
     # import above resolves under ``python3 -m scripts.habits.sweeper``; both
     # invocation forms are documented + used in production.
     from schedule_loader import (  # type: ignore[no-redef]
+        WEEKDAY_NAMES,
         ScheduleConfigError,
         ScheduleEntry,
-        WEEKDAY_NAMES,
         is_day_specific,
         load_schedule,
     )
-    from set_due_dates import (  # type: ignore[no-redef]
-        ISO_EOD_PATTERN,
-        compute_next_eod_et_for_weekdays,
-        validate_iso_eod_et,
-    )
+    from set_due_dates import recurrence_drift  # type: ignore[no-redef]
+    from manage_habit import is_paused  # type: ignore[no-redef]
 
 
 # ---------------------------------------------------------------------------
@@ -167,6 +184,25 @@ SCHEMA_VERSION = 1
 #: Auto-skipped history event type literal — matches the
 #: history-event-auto-skipped contract.
 EVENT_TYPE_AUTO_SKIPPED = "auto_skipped"
+
+#: Every ``habits_evaluated[].status`` the sweeper emits. The 2026-06 tick
+#: contract (habit-day-specific-scheduling-01KT48Y6 sweeper-tick.contract.md)
+#: lists the first four plus ``deferred_outside_48hr`` (never emitted).
+#: ``unresolved`` stays on a habit whose write step failed (an ``errors``
+#: entry says why). WP12 (#1111, FR-026) adds ``paused`` (the live read shows
+#: the ``(PAUSED)`` prefix; nothing written) and ``paused_state_unavailable``
+#: (that read failed or had no description; nothing written, plus an error).
+HABIT_STATUSES: frozenset[str] = frozenset(
+    {
+        "completed_in_window",
+        "skipped_in_window",
+        "already_auto_skipped",
+        "auto_skipped_this_tick",
+        "unresolved",
+        "paused",
+        "paused_state_unavailable",
+    }
+)
 
 #: ULID-like tick identifier alphabet (Crockford base32 minus I/L/O/U).
 _ULID_ALPHABET = "0123456789ABCDEFGHJKMNPQRSTVWXYZ"
@@ -603,33 +639,186 @@ def evaluate_habit_resolution(
 
 
 # ---------------------------------------------------------------------------
-# Helpers — Vikunja PUT
+# Helpers — rule-driven due-date advance (O1 / FR-004, #1111)
 # ---------------------------------------------------------------------------
 
+#: Per-request timeout for the sweeper's Vikunja calls.
+VIKUNJA_TIMEOUT_SECONDS = 15
 
-def _vikunja_put_due_date(
-    *,
-    base_url: str,
-    token: str,
-    task_id: int,
-    new_due_date: str,
-    timeout: float = 15,
-) -> None:
-    """Update one Vikunja task's ``due_date`` via the partial-update verb.
 
-    Migrated onto :class:`~scripts.common.vikunja_client.VikunjaClient`
-    (WP05, mission #860) — ``replace_task_fields`` issues the identical
-    ``POST /tasks/{id}`` call with a body containing only ``due_date``,
-    preserving Phase 1 behavior verbatim (including the POST-partial-replace
-    quirk this call site has always relied on; not a bug fix — see
-    ``vikunja_client.replace_task_fields`` docstring).
+class AdvanceError(Exception):
+    """Base for a day-specific habit the sweeper cannot advance by its rule.
+
+    ``error_type`` is the tick-artifact ``SweeperError.error_type``.
+    """
+
+    error_type = "advance"
+
+
+class NoRuleError(AdvanceError):
+    """The task carries no recurrence rule, so there is no next date to take."""
+
+    error_type = "no_rule"
+
+
+class NoNextOccurrence(AdvanceError):
+    """The rule yields no next occurrence (``reason`` from the server)."""
+
+    error_type = "no_next_occurrence"
+
+
+class RuleChanged(AdvanceError):
+    """The rule, ``repeats_from_current_date`` or reminders read back after the
+    due-date write differ from before (``set_due_dates.recurrence_drift``)."""
+
+    error_type = "rule_changed"
+
+
+class HabitPaused(Exception):
+    """The habit is paused (``manage_habit.is_paused``): skip it, write nothing.
+
+    Not an :class:`AdvanceError`: a paused habit is not a failure (FR-026).
+    """
+
+
+class PausedStateUnavailable(AdvanceError):
+    """The live read that decides "paused?" failed or carried no description.
+
+    Nothing is written; the next tick retries (FR-026, review cycle 1).
+    """
+
+    error_type = "paused_state_unavailable"
+
+
+class DueDateGuardError(AdvanceError):
+    """The next occurrence did not render as an explicit-offset ET string
+    (#112 forbids ``Z``); not written."""
+
+    error_type = "due_date_format"
+
+
+#: An explicit-offset ISO-8601 instant to the second, never ``Z`` (#112).
+_EXPLICIT_OFFSET_PATTERN = re.compile(
+    r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{2}:\d{2}$"
+)
+
+
+def _occurrence_to_iso_et(value: object) -> str:
+    """Convert one occurrence instant to an explicit-offset ET ISO string.
+
+    The server's time of day is kept (see the module docstring); only the
+    representation changes.
 
     Raises:
-        VikunjaError: HTTP error, network/URL error, or timeout — the
-            client's typed equivalent of the previous ``OSError`` contract.
+        NoNextOccurrence: the value is not a usable instant.
+        DueDateGuardError: the ET rendering is not explicit-offset (#112).
     """
-    client = VikunjaClient(base_url=base_url, token=token, timeout=timeout)
-    client.replace_task_fields(task_id, {"due_date": new_due_date})
+    instant = parse_vikunja_instant(value)
+    if instant is None:
+        raise NoNextOccurrence(f"unusable occurrence value {value!r}")
+    iso = to_et(instant).isoformat(timespec="seconds")
+    if not _EXPLICIT_OFFSET_PATTERN.match(iso):  # pragma: no cover -- defensive #112
+        raise DueDateGuardError(
+            f"next occurrence {iso!r} is not an explicit-offset ET instant"
+        )
+    return iso
+
+
+def _advance_to_next_occurrence(
+    *, client: VikunjaClient, task_id: int, now_utc: datetime
+) -> str:
+    """Move a day-specific habit's ``due_date`` to its rule's next occurrence.
+
+    Steps: read the v2 task; refuse a task with no rule; if its stored
+    ``due_date`` is already after *now_utc*, it is already on an upcoming
+    occurrence (advanced by an earlier tick whose run did not finish, or
+    completed since), so return that date with **no write**; otherwise ask
+    the server for the next occurrence (searched strictly after the stored
+    due date and after now, so missed dates are skipped); convert it to an
+    explicit-offset ET string (#112), keeping the server's time of day;
+    PATCH only ``due_date``; read back and require the same rule,
+    ``repeats_from_current_date`` and reminders.
+
+    The early return is what makes a retry after a committed PATCH
+    idempotent: advancing again would skip a real occurrence (review
+    cycle 2).
+
+    Returns:
+        The ET ISO due date the task now carries (written or already stored).
+
+    Raises:
+        NoRuleError, NoNextOccurrence, DueDateGuardError: nothing written.
+        RuleChanged: written, but the rule read back differs.
+        VikunjaError: any client failure (``VikunjaAuthError`` on a 401;
+            a 401 on occurrences names the ``tasks.occurrences`` permission).
+    """
+    before = _confirm_not_paused(client, task_id)
+    if not has_rule(before):
+        raise NoRuleError(
+            f"task {task_id} has no recurrence rule "
+            f"(repeats_rrule={before.get('repeats_rrule')!r}); "
+            f"refusing to guess its next date"
+        )
+    stored_due = parse_vikunja_instant(before.get("due_date"))
+    if stored_due is not None and stored_due > now_utc:
+        return _occurrence_to_iso_et(before.get("due_date"))
+    answer = client.occurrences(task_id, count=1)
+    occurrences = answer.get("occurrences") or []
+    if not occurrences:
+        raise NoNextOccurrence(
+            f"task {task_id}: rule gives no next occurrence "
+            f"(reason={answer.get('reason')!r})"
+        )
+    iso = _occurrence_to_iso_et(occurrences[0])
+    client.patch_task(task_id, {"due_date": iso})
+    after = client.get_task_v2(task_id)
+    drift = recurrence_drift(before, after)
+    if drift:
+        raise RuleChanged(
+            f"task {task_id}: {', '.join(drift)} changed across the due_date "
+            f"write (before repeats_rrule={before.get('repeats_rrule')!r}, "
+            f"after repeats_rrule={after.get('repeats_rrule')!r})"
+        )
+    return iso
+
+
+def _advance_error_type(exc: Exception) -> str:
+    """Map an advance failure to its tick-artifact ``error_type``."""
+    if isinstance(exc, AdvanceError):
+        return exc.error_type
+    if isinstance(exc, VikunjaAuthError) and exc.path.endswith("/occurrences"):
+        return "occurrences_unauthorized"
+    return "vikunja_put"
+
+
+def _confirm_not_paused(client: VikunjaClient, task_id: int) -> dict:
+    """Read task *task_id* live (v2) and refuse it if it is paused (FR-026).
+
+    Called right before every sweeper write for a habit (the history append,
+    and for a day-specific habit the due-date advance), so a pause takes
+    effect on the very next tick, whatever the sync cache says.
+
+    Returns:
+        The v2 task (the day-specific advance uses it as its pre-write read).
+
+    Raises:
+        HabitPaused: the description carries the ``(PAUSED)`` marker.
+        PausedStateUnavailable: the read failed (including 404) or the body
+            has no string ``description``, so "paused?" cannot be decided.
+    """
+    try:
+        task = client.get_task_v2(task_id)
+    except VikunjaError as exc:
+        raise PausedStateUnavailable(
+            f"task {task_id}: could not read pause state ({exc})"
+        ) from exc
+    if not isinstance(task.get("description"), str):
+        raise PausedStateUnavailable(
+            f"task {task_id}: v2 read has no description; pause state unknown"
+        )
+    if is_paused(task):
+        raise HabitPaused(f"task {task_id} is paused")
+    return task
 
 
 def _load_token(path: Path) -> str:
@@ -678,11 +867,12 @@ def run_sweep(
             and where the per-tick artifact + ledger are written.
         history_path: Canonical ``habits-history.jsonl`` location.
         vikunja_token_path: Path to the Vikunja API bearer token file.
-            Read only when at least one day-specific habit needs a PUT
+            Read only when at least one day-specific habit needs a write
             (and never in ``dry_run`` mode).
         vikunja_base_url: Vikunja API base URL.
         now_utc: Current UTC instant (injected for deterministic tests).
-        dry_run: If True, no history append and no Vikunja PUTs are issued.
+        dry_run: If True, no history append and no Vikunja call is made
+            (so a day-specific auto-skip records no ``new_due_date_et``).
             The tick artifact IS still written (with ``dry_run: true``) so
             operators can preview what the sweep WOULD do.
 
@@ -729,16 +919,53 @@ def run_sweep(
     # ---- Read history once for the whole tick ----------------------------
     history = _read_history(history_path)
 
-    # ---- Optionally load the Vikunja token (deferred until needed) -------
-    vikunja_token: str | None = None
+    # ---- One Vikunja client per tick, built only when needed -----------
+    vikunja_client: VikunjaClient | None = None
 
-    def _ensure_token() -> str:
-        nonlocal vikunja_token
-        if vikunja_token is None:
-            vikunja_token = _load_token(
-                vikunja_token_path or get_vikunja_token_path()
+    def _ensure_client() -> VikunjaClient:
+        nonlocal vikunja_client
+        if vikunja_client is None:
+            token = _load_token(vikunja_token_path or get_vikunja_token_path())
+            vikunja_client = VikunjaClient(
+                base_url=vikunja_base_url,
+                token=token,
+                timeout=VIKUNJA_TIMEOUT_SECONDS,
             )
-        return vikunja_token
+        return vikunja_client
+
+    #: task_id -> verified ET due date from this tick's advance.
+    advanced_this_tick: dict[int, str] = {}
+    #: task_id -> live pause check result this tick (True = paused). One
+    #: check per habit per tick, before its first write (FR-026); a pause
+    #: landing mid-tick is accepted (Kent, 2026-11-20).
+    paused_this_tick: dict[int, bool] = {}
+
+    def _paused_guard(task_id: int) -> bool:
+        """True means "do not write": paused, or pause state unknown."""
+        if task_id in paused_this_tick:
+            if paused_this_tick[task_id]:
+                tick.habits_evaluated[-1].status = "paused"
+            return paused_this_tick[task_id]
+        try:
+            _confirm_not_paused(_ensure_client(), task_id)
+        except HabitPaused:
+            paused_this_tick[task_id] = True
+            tick.habits_evaluated[-1].status = "paused"
+            return True
+        except (PausedStateUnavailable, OSError) as exc:
+            # OSError: the token file read inside _ensure_client(). Not
+            # cached: a later entry may retry the read.
+            tick.habits_evaluated[-1].status = "paused_state_unavailable"
+            tick.errors.append(
+                SweeperError(
+                    task_id=task_id,
+                    error_type=PausedStateUnavailable.error_type,
+                    error_message=str(exc),
+                )
+            )
+            return True
+        paused_this_tick[task_id] = False
+        return False
 
     # ---- Per-checkin, per-habit evaluation -------------------------------
     for artifact in expired:
@@ -817,79 +1044,50 @@ def run_sweep(
             )
 
             new_due_date_et: str | None = None
-            if is_dayspec:
-                # Compute next designated weekday's EOD-ET. Uses the
-                # WP-01 helper which is unit-tested to produce an
-                # explicit-offset (NOT 'Z') ISO timestamp, then we
-                # belt-and-suspenders validate via ISO_EOD_PATTERN.
+            if is_dayspec and not dry_run:
+                # Take the next date from the task's own rule (O1). Dry
+                # runs make no Vikunja call, so they record no new date
+                # rather than a guessed one.
                 try:
-                    new_due_date_et = compute_next_eod_et_for_weekdays(
-                        schedule_entry.designated_weekdays,
-                        now_utc=now_utc,
-                    )
-                except ValueError as exc:  # pragma: no cover -- guarded at load
+                    # At most one advance per task per tick: a backlog of
+                    # several expired check-ins for the same habit reuses
+                    # the first verified result instead of advancing again
+                    # (which would skip an occurrence, review cycle 2).
+                    if paused_this_tick.get(task_id):
+                        # Paused at this tick's check: no write (FR-026).
+                        tick.habits_evaluated[-1].status = "paused"
+                        continue
+                    if task_id not in advanced_this_tick:
+                        # WRITE SITE 1 (patch_task inside): its pre-write
+                        # read IS the habit's live pause check this tick.
+                        advanced_this_tick[task_id] = _advance_to_next_occurrence(
+                            client=_ensure_client(),
+                            task_id=task_id,
+                            now_utc=now_utc,
+                        )
+                        paused_this_tick[task_id] = False
+                    new_due_date_et = advanced_this_tick[task_id]
+                except HabitPaused:
+                    paused_this_tick[task_id] = True
+                    tick.habits_evaluated[-1].status = "paused"
+                    continue
+                except (AdvanceError, VikunjaError, OSError) as exc:
+                    # OSError: the token file read inside _ensure_client().
+                    if isinstance(exc, PausedStateUnavailable):
+                        tick.habits_evaluated[-1].status = "paused_state_unavailable"
                     tick.errors.append(
                         SweeperError(
                             task_id=task_id,
-                            error_type="weekday_computation",
+                            error_type=_advance_error_type(exc),
                             error_message=str(exc),
                         )
                     )
+                    # Per-habit failure resilience: continue with the
+                    # remaining habits. We do NOT append the auto_skipped
+                    # history event when the advance failed — the next tick
+                    # retries both steps and the idempotency check still
+                    # works (no prior history event yet).
                     continue
-                guard = validate_iso_eod_et(new_due_date_et)
-                if guard is not None:  # pragma: no cover -- defensive #112
-                    tick.errors.append(
-                        SweeperError(
-                            task_id=task_id,
-                            error_type="iso_eod_validation",
-                            error_message=guard,
-                        )
-                    )
-                    continue
-                # Belt: also enforce the regex literally (mirrors the
-                # set_due_dates guard call site).
-                if not ISO_EOD_PATTERN.match(new_due_date_et):  # pragma: no cover
-                    tick.errors.append(
-                        SweeperError(
-                            task_id=task_id,
-                            error_type="iso_eod_validation",
-                            error_message=(
-                                f"computed due_date {new_due_date_et!r} does "
-                                f"not match ISO_EOD_PATTERN"
-                            ),
-                        )
-                    )
-                    continue
-
-                # PUT to Vikunja (skipped in dry_run).
-                if not dry_run:
-                    try:
-                        token = _ensure_token()
-                        _vikunja_put_due_date(
-                            base_url=vikunja_base_url,
-                            token=token,
-                            task_id=task_id,
-                            new_due_date=new_due_date_et,
-                        )
-                    except (VikunjaError, OSError) as exc:
-                        # VikunjaError: typed failures from the shared client
-                        # (HTTP status, timeout, network). OSError: retained
-                        # defensively for any lower-level I/O failure (e.g.
-                        # the token file read inside _ensure_token()).
-                        tick.errors.append(
-                            SweeperError(
-                                task_id=task_id,
-                                error_type="vikunja_put",
-                                error_message=str(exc),
-                            )
-                        )
-                        # Per-habit failure resilience: continue with the
-                        # remaining habits. We do NOT append the
-                        # auto_skipped history event when the Vikunja PUT
-                        # failed — running again next tick will retry
-                        # both steps and the idempotency check still works
-                        # (no prior history event yet).
-                        continue
 
             # Append the auto_skipped history event (skipped in dry_run).
             event = {
@@ -901,6 +1099,11 @@ def run_sweep(
                 "recorded_at_utc": _utc_now_iso(now_utc),
             }
             if not dry_run:
+                # WRITE SITE 2: paused habits are never swept (FR-026). The
+                # habit's one live check this tick (made here for a daily
+                # habit, or by its advance) covers every history append.
+                if _paused_guard(task_id):
+                    continue
                 try:
                     _append_history_event(history_path, event)
                 except OSError as exc:
@@ -1017,7 +1220,7 @@ def _build_parser() -> argparse.ArgumentParser:
             "Daily 48hr auto-skip sweeper for the habits check-in pipeline "
             "(mission #408). Marks unresolved habits as auto_skipped and, "
             "for day-specific habits, advances their Vikunja due_date to "
-            "the next designated weekday. Writes a structured tick artifact "
+            "the next occurrence of their own Vikunja rule. Writes a structured tick artifact "
             "for operator inspection."
         ),
     )
@@ -1026,7 +1229,7 @@ def _build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help=(
             "Compute what the sweep WOULD do, but issue no history appends "
-            "and no Vikunja PUTs. The tick artifact is still written with "
+            "and no Vikunja calls. The tick artifact is still written with "
             "dry_run=true so operators can preview."
         ),
     )
@@ -1063,7 +1266,7 @@ def _build_parser() -> argparse.ArgumentParser:
         help=(
             "Path to the Vikunja API token file (default: resolved via "
             "VIKUNJA_TOKEN_PATH env or the kent-owned runtime credential). "
-            "Read only when at least one day-specific habit needs a PUT."
+            "Read only when at least one day-specific habit needs a write."
         ),
     )
     parser.add_argument(

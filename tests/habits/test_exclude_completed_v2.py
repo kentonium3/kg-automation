@@ -58,7 +58,7 @@ def _task(task_id: int, title: str = "Habit") -> dict:
         "title": title,
         "due_date": "2026-05-20T08:00:00Z",
         "done": False,
-        "repeat_after": 86400,
+        "repeat": {"freq": "daily", "interval": 1},
         "project_id": 42,
         "labels": [],
     }

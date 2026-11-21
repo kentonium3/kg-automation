@@ -6,9 +6,9 @@ status: approved
 level: 2
 owners: [kent]
 audience: agents_and_humans
-last_validated: '2026-06-02'
-updated_by: '#408'
-version: '2.1.0'
+last_validated: '2026-11-20'
+updated_by: 'felix-rrule-adaptation-01M7TKNX (#1111 — RRULE habits: v2 writes, pause/resume/remove helper, sweeper by rule + statuses, re-enable and drift check; --reconcile-schedule retired) + #408'
+version: '2.2.0'
 ---
 
 # Habit Check-in Operations
@@ -18,8 +18,19 @@ version: '2.1.0'
 The `felix-admin-habits` agent manages Kent's daily habit check-in and
 accountability tracking. It runs on office2 via OpenClaw, delivering a
 morning check-in via WhatsApp at 7:05 AM ET, parsing Kent's reply, and
-recording completions to the canonical JSONL state log. A weekly
-pattern report runs Sunday evenings.
+recording completions to the canonical JSONL state log. The weekly
+pattern report is not this agent's: it runs on the deterministic
+`felix-habits-weekly` timer (Monday 06:00 ET, #723).
+
+**RRULE habits (#1111).** On the v2.8.0-rrule Vikunja fork each habit
+carries an RFC 5545 rule (`FREQ=DAILY;INTERVAL=1`, `FREQ=WEEKLY;BYDAY=MO`,
+...). Felix writes habit tasks only through helpers that send a v2 merge
+patch (`PATCH /api/v2/tasks/{id}`) and read the task back, because a v1
+`POST /tasks/{id}` strips the rule. The weekly report classifies habits
+from their rule: plain daily and plain weekly-by-day rules have their
+scheduled days counted locally; any other rule shows
+`scheduled: unknown (rule preview unavailable)` and is left out of the
+totals. It no longer reads `repeat_after` and makes no preview call.
 
 As of mission [#371](https://github.com/kentonium3/kg-automation/issues/371)
 (habits scripts-first port — sibling of [#309](https://github.com/kentonium3/kg-automation/issues/309)
@@ -412,14 +423,45 @@ in the schedule YAML are active.
 
 ### Add/remove habits directly in Vikunja
 
-Habits are managed via the Vikunja web UI or API. To add a habit,
-create a task in the Habits project (id=13) with the personal
-identity label. Set `repeat_after` so Vikunja rolls `due_date`
-automatically when the task is marked done (Phase 3 #306 / cutover
-#308).
+Kent asks Felix (the habits agent runs the helpers below), or edits in the
+Vikunja web UI. Never write a habit task with a raw v1 `POST /tasks/{id}`:
+on the RRULE server it replaces the task and strips its rule (#1111).
 
-To pause a habit, add `(PAUSED)` to the description. To archive, mark
-the task done (history is preserved).
+- **Add**: the agent previews the rule with
+  `python3 -m scripts.vikunja.preview_rule --rrule "<RRULE>" ...`, shows
+  Kent the dates, then creates with
+  `python3 -m scripts.vikunja.create_task --project Habits` and the
+  preview's `create_args`. The create reads the task back and fails if the
+  stored rule differs. Add the habit's `task_id` and `rrule` to the
+  `habits:` section of `scripts/habits/migrations/phase3-schedule.yaml`,
+  then run the [schedule drift check](<#schedule-drift-check>).
+- **Pause / resume / remove** (FR-026):
+
+  ```bash
+  ssh office2-claude 'cd /home/claude/kg-automation && python3 -m scripts.habits.manage_habit pause --task-id <id>'
+  ```
+
+  `pause` adds the `(PAUSED) ` prefix to the task description and
+  `resume` strips it. The rule, `repeats_from_current_date` and reminders
+  are kept and verified by readback; both are idempotent (`already_paused`
+  / `not_paused`, exit 0). `remove` **ends the series** (rule cleared,
+  then done, each verified) and **never deletes the task**, so its history
+  stays; if it stops part-way (`partial`), run `remove` again. Any task
+  outside the Habits project is refused (exit 2, nothing written).
+
+**What `(PAUSED)` does.** Only the description prefix counts (the title
+does not); leading whitespace or the editor's `<p>` before it is accepted,
+and it is case-sensitive.
+
+- The **morning list** skips a paused habit. It reads the sync cache, so a
+  just-paused habit may still be listed for about 5 minutes (one sync
+  cycle); a cache older than 15 minutes is refused outright.
+- The **sweeper** skips a paused habit. It reads each habit live over v2
+  once per tick, before that habit's first write, so a pause holds even
+  when the cache is behind. A pause that lands mid-tick is accepted.
+- **Rollout gap**: cache entries carry `description` only after the first
+  sync cycle following the deploy; until then every habit reads as not
+  paused on the morning list.
 
 ## Troubleshooting
 
@@ -479,7 +521,8 @@ forward it. If a future mission adds it, the hook point is
 | Tick artifact | `sweeper-tick-<date>.json` (overwrite per ET date) |
 | Ledger | `sweeper-ledger.jsonl` (append-only) |
 | History writes | `auto_skipped` events appended to `habits-history.jsonl` |
-| Vikunja writes | `POST /tasks/<id>` for day-specific habits only |
+| Vikunja reads | `GET /api/v2/tasks/<id>` pause check once per habit per tick; `GET /api/v2/tasks/<id>/occurrences?count=1` for day-specific habits (#1111) |
+| Vikunja writes | `PATCH /api/v2/tasks/<id>` `{due_date}` + readback, day-specific habits only (#1111). Daily habits are never written. |
 | Health signal | latest tick artifact's `exit_status` field |
 | LLM calls | zero (deterministic per Directive 6) |
 | Runs as | `claude` user |
@@ -496,7 +539,7 @@ A healthy tick prints `success   2026-MM-DDTHH:MM:SSZ   0`.
 
 1. Code merged to `main` (`git pull` on office2 brings in `scripts/habits/sweeper.py` + the systemd units).
 2. Restic backup for `/data/services/openclaw/state/` is current within the last 24h (Tier 2 — the sweeper appends to the existing JSONL history).
-3. Vikunja API token exists and is readable by the `claude` user: `ssh office2-claude 'ls -l /data/services/openclaw/secrets/vikunja-api'` (expect `-rw------- claude claude`).
+3. Vikunja API token exists and is readable by the `claude` user: `ssh office2-claude 'ls -l /data/services/openclaw/secrets/vikunja-api-kent'` (expect `-rw------- claude claude`). It must carry `tasks.occurrences` (#1111); without it every day-specific advance fails with `occurrences_unauthorized`.
 4. Schedule YAML has the day-specific entries: `ssh office2-claude 'grep designated_weekdays /home/claude/kg-automation/scripts/habits/migrations/phase3-schedule.yaml'` returns at least one match (the Mon/Wed/Fri strength-training entries).
 5. System python has PyYAML available: `ssh office2-claude 'python3 -c "import yaml; print(yaml.__version__)"'` returns a version (NOT `ModuleNotFoundError`). If missing, install via `apt-get install python3-yaml` — present Kent the sudo command per CLAUDE.md Tier 0 protocol.
 
@@ -572,12 +615,80 @@ ssh office2-claude 'cat /data/services/openclaw/state/habits/sweeper-tick-$(TZ=A
 
 | Symptom | Check | Fix |
 |---------|-------|-----|
-| Sweeper exited non-zero | `journalctl --user -u felix-habit-sweeper.service -n 50` | Read the `SUMMARY:` line + tick artifact's `errors[]`. Per-habit Vikunja PUT failures yield `exit_status: partial` (exit 1); schedule load failures yield `failure` (exit 2). |
+| Sweeper exited non-zero | `journalctl --user -u felix-habit-sweeper.service -n 50` | Read the `SUMMARY:` line + tick artifact's `errors[]`. Per-habit Vikunja failures (including `paused_state_unavailable`) yield `exit_status: partial` (exit 1); schedule load failures yield `failure` (exit 2). |
 | Unresolved habit not auto-skipped | `jq '.habits_evaluated[] | select(.task_id==N)' /data/services/openclaw/state/habits/sweeper-tick-*.json` | Confirm the relevant `morning-checkin-<date>.json` is actually >48hr old. The sweeper deliberately defers anything inside the 48hr window. |
 | Kent's late reply didn't correlate | Read `parse_morning_reply` stderr + the produced JSON's `correlated_checkin_date_et` field | The 48hr correlation only fires when state_dir contains recent artifacts. If Kent replied >48hr after the relevant check-in, the sweeper has already marked the habits `auto_skipped` — the parser will not retroactively mark them done. |
-| Vikunja PUT failed | tick `errors[*].error_type=="vikunja_put"` entries | Per-habit failures don't abort the tick; rerun the sweeper after Vikunja recovers. The idempotency check ensures already-skipped habits aren't double-emitted. |
+| Vikunja write failed | tick `errors[*].error_type` (`vikunja_put` for any other client failure on the advance; `occurrences_unauthorized`; `paused_state_unavailable`; `no_rule`, `no_next_occurrence`, `rule_changed`, `due_date_format`) | Per-habit failures don't abort the tick and write no history event; the next tick retries. `occurrences_unauthorized` means the token lacks `tasks.occurrences` (see credentials-and-secrets.md). A `rule_changed` or `no_rule` error means the rule must be repaired (`docs/runbooks/vikunja-task-repair.md`). |
+| Habit shows status `paused` | `jq '.habits_evaluated[] | select(.status=="paused")' …/sweeper-tick-<date>.json` | Expected: the live description starts with `(PAUSED)`. Resume with `manage_habit resume` if that is wrong. |
 | Tick artifact missing today's run | `systemctl --user list-timers felix-habit-sweeper.timer` | Verify next-fire timestamp is in the next 24hr. `Persistent=true` guarantees a missed tick fires on next start. |
-| `auto_skipped` event in history but habit still appearing in next check-in | Verify the day-specific habit's Vikunja `due_date` was actually advanced (`jq '.habits_auto_skipped' /data/.../sweeper-tick-*.json` should show the advanced timestamp) | Vikunja PUT may have failed silently — rerun with `--dry-run` first to confirm the computed new_due_date, then rerun without `--dry-run`. |
+| `auto_skipped` event in history but habit still appearing in next check-in | Verify the day-specific habit's Vikunja `due_date` was actually advanced (`jq '.habits_auto_skipped' /data/.../sweeper-tick-*.json` should show the advanced timestamp) | Since #1111 the history event is written only after the advance read back clean, so this points at a cache lag (the morning list reads the sync cache) or a manual edit. Read the task over v2 and compare with the rule's next occurrence. |
+
+### Tick statuses (`habits_evaluated[].status`)
+
+The canonical list is `sweeper.HABIT_STATUSES` in `scripts/habits/sweeper.py`
+(the 2026-06 sweeper-tick contract in
+`kitty-specs/habit-day-specific-scheduling-01KT48Y6/` predates the #1111
+additions and is not edited):
+
+| Status | Meaning |
+|---|---|
+| `completed_in_window` | Kent replied done within the 48h window; nothing to do. |
+| `skipped_in_window` | Kent replied skip within the window; nothing to do. |
+| `already_auto_skipped` | An earlier tick already auto-skipped this check-in (idempotent no-op). |
+| `auto_skipped_this_tick` | Unresolved past 48h; this tick appended `auto_skipped` (and advanced a day-specific habit). |
+| `unresolved` | Left unwritten because a write step failed; an `errors[]` entry says why. Previously undocumented. |
+| `paused` | (#1111, FR-026) The live v2 read made before the first write shows the `(PAUSED) ` description prefix. Nothing written, no history event, not an error. |
+| `paused_state_unavailable` | (#1111, FR-026) That read failed (including a 404 or a missing token file) or had no description. Nothing written; one `errors[]` entry with `error_type: "paused_state_unavailable"`; the tick is `partial`; the next tick retries. |
+
+`deferred_outside_48hr` is listed in the 2026-06 contract but is never
+emitted. Daily habits now get one v2 GET per tick (the pause check) but the
+sweeper still never writes them in Vikunja. `--dry-run` makes no Vikunja
+call, so it cannot see pauses.
+
+### Re-enabling the sweeper (#1111)
+
+The timer was stopped and disabled at 19:09Z on 2026-11-19 (Kent's go,
+#1111 containment); the service unit was not touched. Re-enable it only
+after the fix is live, the [rollout window](<./deploy/office2-deploy-paths.md#rollout-window-helpers-ahead-of-agent-docs-1111>)
+checks have passed, the `vikunja-api-kent` token carries `tasks.occurrences`,
+the [schedule drift check](<#schedule-drift-check>) is clean and the
+inventory/repair step (`docs/runbooks/vikunja-task-repair.md`) is done, and
+**only on Kent's go**:
+
+1. Re-enable and start the timer:
+
+   ```bash
+   ssh office2-claude 'systemctl --user enable --now felix-habit-sweeper.timer'
+   ```
+
+2. Confirm the next fire time:
+
+   ```bash
+   ssh office2-claude 'systemctl --user list-timers felix-habit-sweeper.timer'
+   ```
+
+   The timer is `Persistent=true`, so if a scheduled 07:30 ET run was missed
+   while it was disabled it catches up with **one** run on enable.
+
+3. After the next tick, check it had no errors (expect `success` and `0`):
+
+   ```bash
+   ssh office2-claude 'jq -r "[.exit_status,(.errors|length)] | @tsv" /data/services/openclaw/state/habits/sweeper-tick-latest.json'
+   ```
+
+   and the newest ledger line:
+
+   ```bash
+   ssh office2-claude 'tail -1 /data/services/openclaw/state/habits/sweeper-ledger.jsonl'
+   ```
+
+4. Run the [schedule drift check](<#schedule-drift-check>) again and confirm it
+   still shows 7 `match` rows. Record both results on
+   [#1111](https://github.com/kentonium3/kg-automation/issues/1111).
+
+If the tick shows errors, disable the timer again
+(`systemctl --user disable --now felix-habit-sweeper.timer`) and triage
+from `errors[]` before retrying.
 
 ### Sweeper rollback (mission #408)
 
@@ -610,34 +721,80 @@ immediately on the next tick.
 To revert the `exclude_completed_v2` extension (only if a regression
 forces it), `git revert` the WP02 commit on the lane and redeploy.
 
-## Reconciliation command (mission #408)
+## Reconciliation command — retired (#1111)
 
-When Kent changes a habit's `designated_weekdays` (e.g., moves the Wed
-strength training to Tue), run the reconciliation flag on
-`set_due_dates.py` to advance the Vikunja `due_date` to the next
-occurrence of the NEW designated weekday.
+`set_due_dates --reconcile-schedule` was retired by #1111: the sweeper now
+advances day-specific habits by their own Vikunja rule, so a schedule-driven
+reconcile is redundant. To move a habit to different days, change its rule
+in Vikunja (or ask Felix to), update the matching `rrule` in
+`scripts/habits/migrations/phase3-schedule.yaml`, and run the schedule drift
+check below. `set_due_dates.py` itself remains: it sets `due_date` with a
+v2 merge patch and reports a habit whose rule changed across the write as
+`rule_changed` in `failed`.
 
-Edit the YAML (locally or on office2):
+## Schedule drift check
 
-```bash
-vim scripts/habits/migrations/phase3-schedule.yaml
-```
-
-Preview the changes against live Vikunja state (no PUTs issued):
-
-```bash
-ssh office2-claude 'cd /home/claude/kg-automation && /usr/bin/python3 -m scripts.habits.set_due_dates --reconcile-schedule --dry-run'
-```
-
-Apply (issues Vikunja POSTs to advance any due_dates that drifted):
+Read-only. Compares each `habits:` entry's declared `rrule` in
+`phase3-schedule.yaml` with the live task's rule (one
+`GET /api/v2/tasks/<id>` per habit; never writes):
 
 ```bash
-ssh office2-claude 'cd /home/claude/kg-automation && /usr/bin/python3 -m scripts.habits.set_due_dates --reconcile-schedule'
+ssh office2-claude 'cd /home/claude/kg-automation && python3 -m scripts.habits.schedule_loader --check-live'
 ```
 
-The command writes an E5 reconciliation record at
-`/data/services/openclaw/state/habits/reconcile-<datetime>.json`
-documenting which task_ids changed and the old/new due_dates.
+It prints one JSON line per habit
+(`task_id, title, schedule_rrule, live_rrule, status`), then a summary line.
+
+| Status | Meaning |
+|---|---|
+| `match` | The live rule equals the declared one. |
+| `inactive` | The live task is done (checked first). Tasks 75–77 stay done by design. |
+| `missing` | The live task has no rule. |
+| `differs` | The live rule is not the declared one. |
+| `unreadable` | The GET failed; `error` names only the exception class. |
+
+Exit 0 when nothing is `missing`, `differs` or `unreadable`; 1 otherwise; 2
+on a schedule-load or client setup error. With today's schedule expect
+**7 `match` rows** (the daily habits) and no `missing`, `differs` or
+`unreadable`. A `missing` row is repaired with
+`docs/runbooks/vikunja-task-repair.md`; a `differs` row means the schedule
+or the task changed, so decide which one is right.
+
+## Post-merge operator canary (#1111)
+
+The integration check for `felix-rrule-adaptation-01M7TKNX`, run by the
+operator after the merge to `main`, in this order. Record each result on
+[#1111](https://github.com/kentonium3/kg-automation/issues/1111). It comes
+from the mission's `quickstart.md`. Nothing here runs before Kent's
+pre-merge token re-issue (see
+[credentials-and-secrets.md](<../design/architecture/credentials-and-secrets.md>),
+*Required permissions*).
+
+1. **Rollout window.** Complete the
+   [rollout window](<./deploy/office2-deploy-paths.md#rollout-window-helpers-ahead-of-agent-docs-1111>)
+   (pause `N done`, checkout at the merge SHA, synced copies match, a fresh
+   session holds the new prompt).
+2. **Schedule drift check.** Run the [schedule drift check](<#schedule-drift-check>).
+   Expect 7 `match` rows and no `missing`, `differs` or `unreadable`.
+3. **Wait for one sync cycle.** After the deploy the sync seeds a baseline for
+   each tracked task. A cycle that seeds prints
+   `[sync] tick=<id> status=ok baseline_seeded=N`
+   (`journalctl --user -u felix-vikunja-sync.service -n 50`) and appends to
+   `/data/services/openclaw/state/sync/seed-ledger.jsonl`.
+4. **Inventory.** Run `rule_inventory` against a read-only copy of the
+   2026-10-30 snapshot, with `--seed-ledger` set to that seed ledger, and post
+   the summary on #1111 (`docs/runbooks/vikunja-task-repair.md`, steps 1–2).
+5. **Repair, only if the inventory is not empty.** `rule_repair --dry-run`,
+   then `--apply`, then post the `--emit-issue-markdown` output on #1111
+   (same runbook, steps 3–5).
+6. **Re-enable the sweeper, on Kent's go.** Follow
+   [Re-enabling the sweeper](<#re-enabling-the-sweeper-1111>): the next tick
+   has 0 errors, and the drift check still shows 7 `match` rows.
+7. **First week.** Let one Felix-recorded habit completion run. Read that task
+   over v2 (`GET /api/v2/tasks/<id>`) and confirm it still has its rule and
+   an advanced `due_date`. Confirm the escalation JSONL records the next
+   `N done` with an `outcome:` entry in `vikunja_actions`
+   ([escalation-ops.md](<./escalation-ops.md#done-and-reschedule-writes-1111>)).
 
 ## Privacy boundary
 
@@ -651,6 +808,7 @@ the agent must carry.
 ## Cross-references
 
 - **Mission**: [#371](https://github.com/kentonium3/kg-automation/issues/371) — habits scripts-first port (this fix)
+- **RRULE adaptation**: [#1111](https://github.com/kentonium3/kg-automation/issues/1111) — v2 writes, `manage_habit`, sweeper by rule, drift check; repair runbook `docs/runbooks/vikunja-task-repair.md`
 - **Cutover playbook**: [`quickstart.md`](../../kitty-specs/habits-checkin-reply-scripts-first-01KS86ZQ/quickstart.md)
 - **Mission spec**: [`spec.md`](../../kitty-specs/habits-checkin-reply-scripts-first-01KS86ZQ/spec.md)
 - **CLI contracts**: [`contracts/cli.md`](../../kitty-specs/habits-checkin-reply-scripts-first-01KS86ZQ/contracts/cli.md)

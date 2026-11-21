@@ -41,8 +41,7 @@ def _task_fields(
     title: str = "Habit",
     due_date: str = "2026-05-20T08:00:00Z",
     done: bool = False,
-    repeat_after: int = 86400,
-    repeat_mode: str = "default",
+    repeat: dict | None = None,
     project_id: int = HABITS_PROJECT_ID,
     labels: list | None = None,
 ) -> dict:
@@ -51,8 +50,7 @@ def _task_fields(
         "title": title,
         "due_date": due_date,
         "done": done,
-        "repeat_after": repeat_after,
-        "repeat_mode": repeat_mode,
+        "repeat": repeat if repeat is not None else {"freq": "daily", "interval": 1},
         "project_id": project_id,
         "labels": labels or [],
     }
@@ -126,7 +124,12 @@ class TestHappyPath:
         assert task["title"] == "Wake at 5:00 AM"
         assert "due_date" in task
         assert "done" in task
-        assert "repeat_after" in task
+        # The rule passes through from the cache. Only the key is asserted:
+        # the cache keeps ``repeat`` once WP06 adds it to TRACKED_TASK_FIELDS.
+        assert "repeat" in task
+        # FR-017 (#1111): the dead interval fields are no longer emitted.
+        assert "repeat_after" not in task
+        assert "repeat_mode" not in task
         assert "project_id" in task
         assert "labels" in task
 
@@ -307,15 +310,15 @@ class TestDayOfWeekFilter:
 habits:
   - task_id: 14
     title: "Wake"
-    repeat_after_seconds: 86400
+    rrule: "FREQ=DAILY;INTERVAL=1"
   - task_id: 77
     title: "Friday strength"
     designated_weekdays: ["Fri"]
-    repeat_after_seconds: 604800
+    rrule: "FREQ=WEEKLY;BYDAY=FR"
   - task_id: 76
     title: "Wed strength"
     designated_weekdays: ["Wed"]
-    repeat_after_seconds: 604800
+    rrule: "FREQ=WEEKLY;BYDAY=WE"
 """
 
     def test_day_specific_included_on_designated_day(
@@ -379,7 +382,7 @@ habits:
 habits:
   - task_id: 100
     title: "Known"
-    repeat_after_seconds: 86400
+    rrule: "FREQ=DAILY;INTERVAL=1"
 """,
         )
         mock_sync_cache_fixture(

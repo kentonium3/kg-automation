@@ -68,6 +68,7 @@ try:
         is_active_today,
         load_schedule,
     )
+    from scripts.habits.manage_habit import is_paused
 except ImportError:
     # Fallback for direct-script invocation (`python3 scripts/habits/query_active_habits_v2.py`).
     # The absolute-package import above resolves only under `python3 -m scripts.habits.query_active_habits_v2`;
@@ -79,6 +80,7 @@ except ImportError:
         is_active_today,
         load_schedule,
     )
+    from manage_habit import is_paused  # type: ignore[no-redef]
 
 
 # ---------------------------------------------------------------------------
@@ -204,7 +206,7 @@ def query_active_today(
 
     Returns:
         List of task dicts. Each dict contains at least ``id``, ``title``,
-        ``due_date``, ``done``, ``repeat_after``, ``project_id``, ``labels``.
+        ``due_date``, ``done``, ``repeat``, ``project_id``, ``labels``.
         Empty list if no habits are active.
 
     Raises:
@@ -251,6 +253,8 @@ def query_active_today(
             continue  # not in the Habits project — skip (#556)
         if fields.get("done", False):
             continue
+        if is_paused(fields):
+            continue  # paused habit (FR-026, #1111): never listed or auto-skipped
         due = fields.get("due_date") or ""
         if not due:
             continue  # truly-absent due date — excluded (unchanged)
@@ -276,8 +280,9 @@ def query_active_today(
             "title": fields.get("title"),
             "due_date": fields.get("due_date"),
             "done": fields.get("done", False),
-            "repeat_after": fields.get("repeat_after"),
-            "repeat_mode": fields.get("repeat_mode"),
+            # The recurrence rule (#1111, FR-017); the dead repeat_after /
+            # repeat_mode interval fields are no longer emitted.
+            "repeat": fields.get("repeat"),
             "project_id": fields.get("project_id"),
             "labels": fields.get("labels") or [],
         })

@@ -1,24 +1,24 @@
 {
   "_meta": {
-    "description": "Mocked Vikunja API responses for the weekly habit-report helper (WP02 of mission vikunja-client-and-habits-weekly-report-01KTKSFT). Each scenario keys a deterministic input/output pair: `done_responses` and `active_responses` are sequential JSON arrays returned to paginated `client.get` calls (the helper requests filter=done=true first, then filter=done=false). `window_end` anchors `_resolve_windows`. `expected_report` is the JSON the helper must emit on stdout. Window math: current = [2026-06-01T00:00:00Z, 2026-06-08T00:00:00Z), prior = [2026-05-25T00:00:00Z, 2026-06-01T00:00:00Z).",
+    "description": "Mocked Vikunja API responses for the weekly habit-report helper (WP02 of mission vikunja-client-and-habits-weekly-report-01KTKSFT). Each scenario keys a deterministic input/output pair: `done_responses` and `active_responses` are sequential JSON arrays returned to paginated `client.get` calls (the helper requests filter=done=true first, then filter=done=false). `window_end` anchors `_resolve_windows`. `expected_report` is the JSON the helper must emit on stdout. Task bodies are in the v2 list shape (mission felix-rrule-adaptation, #1111): the rule is the `repeat` object; list bodies carry no `repeats_rrule`. The legacy done/active scenarios are historical; `weekly_production_rrule_habits` drives the FR-012 tests. Window math: current = [2026-06-01T00:00:00Z, 2026-06-08T00:00:00Z), prior = [2026-05-25T00:00:00Z, 2026-06-01T00:00:00Z).",
     "window_end": "2026-06-08",
     "window_days": 7
   },
   "weekly_normal_data": {
     "done_responses": [
       [
-        {"id": 100, "title": "Meditate", "repeat_after": 86400, "done": true, "done_at": "2026-06-02T07:00:00Z"},
-        {"id": 101, "title": "Meditate", "repeat_after": 86400, "done": true, "done_at": "2026-06-03T07:00:00Z"},
-        {"id": 102, "title": "Meditate", "repeat_after": 86400, "done": true, "done_at": "2026-06-04T07:00:00Z"},
-        {"id": 103, "title": "Meditate", "repeat_after": 86400, "done": true, "done_at": "2026-06-05T07:00:00Z"},
-        {"id": 104, "title": "Meditate", "repeat_after": 86400, "done": true, "done_at": "2026-06-06T07:00:00Z"},
-        {"id": 105, "title": "Meditate", "repeat_after": 86400, "done": true, "done_at": "2026-05-26T07:00:00Z"},
-        {"id": 200, "title": "Read 30 min minimum", "repeat_after": 86400, "done": true, "done_at": "2026-06-01T22:00:00Z"},
-        {"id": 201, "title": "Read 30 min minimum", "repeat_after": 86400, "done": true, "done_at": "2026-06-02T22:00:00Z"},
-        {"id": 202, "title": "Read 30 min minimum", "repeat_after": 86400, "done": true, "done_at": "2026-06-03T22:00:00Z"},
-        {"id": 300, "title": "Strength training — Monday", "repeat_after": 0, "done": true, "done_at": "2026-06-01T18:00:00Z"},
-        {"id": 301, "title": "Strength training — Wednesday", "repeat_after": 0, "done": true, "done_at": "2026-06-03T18:00:00Z"},
-        {"id": 302, "title": "Yoga — Saturday", "repeat_after": 0, "done": true, "done_at": "2026-06-06T10:00:00Z"}
+        {"id": 100, "title": "Meditate", "repeat": {"freq": "daily", "interval": 1}, "done": true, "done_at": "2026-06-02T07:00:00Z"},
+        {"id": 101, "title": "Meditate", "repeat": {"freq": "daily", "interval": 1}, "done": true, "done_at": "2026-06-03T07:00:00Z"},
+        {"id": 102, "title": "Meditate", "repeat": {"freq": "daily", "interval": 1}, "done": true, "done_at": "2026-06-04T07:00:00Z"},
+        {"id": 103, "title": "Meditate", "repeat": {"freq": "daily", "interval": 1}, "done": true, "done_at": "2026-06-05T07:00:00Z"},
+        {"id": 104, "title": "Meditate", "repeat": {"freq": "daily", "interval": 1}, "done": true, "done_at": "2026-06-06T07:00:00Z"},
+        {"id": 105, "title": "Meditate", "repeat": {"freq": "daily", "interval": 1}, "done": true, "done_at": "2026-05-26T07:00:00Z"},
+        {"id": 200, "title": "Read 30 min minimum", "repeat": {"freq": "daily", "interval": 1}, "done": true, "done_at": "2026-06-01T22:00:00Z"},
+        {"id": 201, "title": "Read 30 min minimum", "repeat": {"freq": "daily", "interval": 1}, "done": true, "done_at": "2026-06-02T22:00:00Z"},
+        {"id": 202, "title": "Read 30 min minimum", "repeat": {"freq": "daily", "interval": 1}, "done": true, "done_at": "2026-06-03T22:00:00Z"},
+        {"id": 300, "title": "Strength training — Monday", "repeat": {"freq": "weekly", "interval": 1, "by_day": ["mo"]}, "done": true, "done_at": "2026-06-01T18:00:00Z"},
+        {"id": 301, "title": "Strength training — Wednesday", "repeat": {"freq": "weekly", "interval": 1, "by_day": ["we"]}, "done": true, "done_at": "2026-06-03T18:00:00Z"},
+        {"id": 302, "title": "Yoga — Saturday", "repeat": {"freq": "weekly", "interval": 1, "by_day": ["sa"]}, "done": true, "done_at": "2026-06-06T10:00:00Z"}
       ]
     ],
     "active_responses": [
@@ -52,7 +52,7 @@
         },
         {
           "habit_title": "Strength training — Monday",
-          "habit_kind": "weekday-in-title",
+          "habit_kind": "weekly-by-day",
           "scheduled_days_current": 1,
           "completed_events_current": 1,
           "percent_current": 100.0,
@@ -62,7 +62,7 @@
         },
         {
           "habit_title": "Strength training — Wednesday",
-          "habit_kind": "weekday-in-title",
+          "habit_kind": "weekly-by-day",
           "scheduled_days_current": 1,
           "completed_events_current": 1,
           "percent_current": 100.0,
@@ -72,7 +72,7 @@
         },
         {
           "habit_title": "Yoga — Saturday",
-          "habit_kind": "weekday-in-title",
+          "habit_kind": "weekly-by-day",
           "scheduled_days_current": 1,
           "completed_events_current": 1,
           "percent_current": 100.0,
@@ -88,8 +88,8 @@
   "weekly_cardiac_non_habit_present": {
     "done_responses": [
       [
-        {"id": 100, "title": "Meditate", "repeat_after": 86400, "done": true, "done_at": "2026-06-02T07:00:00Z"},
-        {"id": 999, "title": "Upload cardiac lab history", "repeat_after": 0, "done": true, "done_at": "2026-06-03T15:00:00Z"}
+        {"id": 100, "title": "Meditate", "repeat": {"freq": "daily", "interval": 1}, "done": true, "done_at": "2026-06-02T07:00:00Z"},
+        {"id": 999, "title": "Upload cardiac lab history", "repeat": null, "done": true, "done_at": "2026-06-03T15:00:00Z"}
       ]
     ],
     "active_responses": [
@@ -119,12 +119,12 @@
   "weekly_baseline_nonzero": {
     "done_responses": [
       [
-        {"id": 100, "title": "Meditate", "repeat_after": 86400, "done": true, "done_at": "2026-06-02T07:00:00Z"},
-        {"id": 101, "title": "Meditate", "repeat_after": 86400, "done": true, "done_at": "2026-06-03T07:00:00Z"},
-        {"id": 102, "title": "Meditate", "repeat_after": 86400, "done": true, "done_at": "2026-05-25T07:00:00Z"},
-        {"id": 103, "title": "Meditate", "repeat_after": 86400, "done": true, "done_at": "2026-05-26T07:00:00Z"},
-        {"id": 104, "title": "Meditate", "repeat_after": 86400, "done": true, "done_at": "2026-05-27T07:00:00Z"},
-        {"id": 105, "title": "Meditate", "repeat_after": 86400, "done": true, "done_at": "2026-05-28T07:00:00Z"}
+        {"id": 100, "title": "Meditate", "repeat": {"freq": "daily", "interval": 1}, "done": true, "done_at": "2026-06-02T07:00:00Z"},
+        {"id": 101, "title": "Meditate", "repeat": {"freq": "daily", "interval": 1}, "done": true, "done_at": "2026-06-03T07:00:00Z"},
+        {"id": 102, "title": "Meditate", "repeat": {"freq": "daily", "interval": 1}, "done": true, "done_at": "2026-05-25T07:00:00Z"},
+        {"id": 103, "title": "Meditate", "repeat": {"freq": "daily", "interval": 1}, "done": true, "done_at": "2026-05-26T07:00:00Z"},
+        {"id": 104, "title": "Meditate", "repeat": {"freq": "daily", "interval": 1}, "done": true, "done_at": "2026-05-27T07:00:00Z"},
+        {"id": 105, "title": "Meditate", "repeat": {"freq": "daily", "interval": 1}, "done": true, "done_at": "2026-05-28T07:00:00Z"}
       ]
     ],
     "active_responses": [
@@ -154,7 +154,7 @@
   "weekly_weekday_in_title_completed_on_match": {
     "done_responses": [
       [
-        {"id": 300, "title": "Strength training — Wednesday", "repeat_after": 0, "done": true, "done_at": "2026-06-03T18:00:00Z"}
+        {"id": 300, "title": "Strength training — Wednesday", "repeat": {"freq": "weekly", "interval": 1, "by_day": ["we"]}, "done": true, "done_at": "2026-06-03T18:00:00Z"}
       ]
     ],
     "active_responses": [
@@ -168,7 +168,7 @@
       "habits": [
         {
           "habit_title": "Strength training — Wednesday",
-          "habit_kind": "weekday-in-title",
+          "habit_kind": "weekly-by-day",
           "scheduled_days_current": 1,
           "completed_events_current": 1,
           "percent_current": 100.0,
@@ -187,7 +187,7 @@
     ],
     "active_responses": [
       [
-        {"id": 300, "title": "Strength training — Wednesday", "repeat_after": 0, "done": false, "due_date": "2026-06-10T18:00:00Z"}
+        {"id": 300, "title": "Strength training — Wednesday", "repeat": {"freq": "weekly", "interval": 1, "by_day": ["we"]}, "done": false, "due_date": "2026-06-10T18:00:00Z"}
       ]
     ],
     "expected_report": {
@@ -198,7 +198,7 @@
       "habits": [
         {
           "habit_title": "Strength training — Wednesday",
-          "habit_kind": "weekday-in-title",
+          "habit_kind": "weekly-by-day",
           "scheduled_days_current": 1,
           "completed_events_current": 0,
           "percent_current": 0.0,
@@ -210,6 +210,25 @@
       "overall_percent_current": 0.0,
       "overall_percent_prior": 0.0
     }
+  },
+  "weekly_production_rrule_habits": {
+    "_meta": "Production habit catalog on the RRULE server (#1111, FR-012): the 7 daily habits carry FREQ=DAILY;INTERVAL=1 as a `repeat` object; tasks 75-77 are Done with no rule (C-008) and must be excluded. The pre-#1111 classifier read the dead interval field and classified all of these `other` (empty report).",
+    "tasks_pages": [
+      [
+        {"id": 14, "title": "Wake at 5:00 AM", "done": false, "due_date": "2026-06-08T03:59:59Z", "repeat": {"freq": "daily", "interval": 1}, "repeats_from_current_date": false},
+        {"id": 15, "title": "Meditate", "done": false, "due_date": "2026-06-08T03:59:59Z", "repeat": {"freq": "daily", "interval": 1}, "repeats_from_current_date": false},
+        {"id": 16, "title": "Morning shoulder PT", "done": false, "due_date": "2026-06-08T03:59:59Z", "repeat": {"freq": "daily", "interval": 1}, "repeats_from_current_date": false},
+        {"id": 18, "title": "Get steps in today", "done": false, "due_date": "2026-06-08T03:59:59Z", "repeat": {"freq": "daily", "interval": 1}, "repeats_from_current_date": false},
+        {"id": 19, "title": "Read 30 min minimum", "done": false, "due_date": "2026-06-08T03:59:59Z", "repeat": {"freq": "daily", "interval": 1}, "repeats_from_current_date": false},
+        {"id": 20, "title": "Evening shoulder PT", "done": false, "due_date": "2026-06-08T03:59:59Z", "repeat": {"freq": "daily", "interval": 1}, "repeats_from_current_date": false},
+        {"id": 65, "title": "Morning hip PT", "done": false, "due_date": "2026-06-08T03:59:59Z", "repeat": {"freq": "daily", "interval": 1}, "repeats_from_current_date": false},
+        {"id": 75, "title": "Strength training — Monday", "done": true, "due_date": "2026-05-04T12:00:00Z", "repeat": null, "repeats_from_current_date": false},
+        {"id": 76, "title": "Strength training — Wednesday", "done": true, "due_date": "2026-05-04T12:00:00Z", "repeat": null, "repeats_from_current_date": false},
+        {"id": 77, "title": "Strength training — Friday", "done": true, "due_date": "2026-05-04T12:00:00Z", "repeat": null, "repeats_from_current_date": false}
+      ]
+    ],
+    "expected_daily_titles": ["Evening shoulder PT", "Get steps in today", "Meditate", "Morning hip PT", "Morning shoulder PT", "Read 30 min minimum", "Wake at 5:00 AM"],
+    "expected_excluded_ids": [75, 76, 77]
   },
   "weekly_partial_pagination": {
     "_meta": "200 daily events page 1 + 5 daily events page 2 — verifies pagination loop stops on partial page.",

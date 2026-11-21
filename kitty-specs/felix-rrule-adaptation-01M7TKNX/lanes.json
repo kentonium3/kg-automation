@@ -1,0 +1,332 @@
+{
+  "version": 1,
+  "mission_slug": "felix-rrule-adaptation-01M7TKNX",
+  "mission_id": "01M7TKNXHEY62ZESGYBPGQWXKA",
+  "mission_branch": "kitty/mission-felix-rrule-adaptation-01M7TKNX",
+  "target_branch": "fix/felix-rrule-adaptation",
+  "lanes": [
+    {
+      "lane_id": "lane-a",
+      "wp_ids": [
+        "WP01"
+      ],
+      "write_scope": [
+        "scripts/common/vikunja_rule.py",
+        "tests/common/test_vikunja_rule.py",
+        "tests/common/test_vikunja_v2_factory.py",
+        "tests/common/vikunja_v2_factory.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "legacy-cleanup"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    },
+    {
+      "lane_id": "lane-b",
+      "wp_ids": [
+        "WP02"
+      ],
+      "write_scope": [
+        "scripts/common/vikunja_client.py",
+        "tests/common/test_vikunja_client.py",
+        "tests/common/test_vikunja_client_v2.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "legacy-cleanup",
+        "tracker-integration"
+      ],
+      "depends_on_lanes": [
+        "lane-a"
+      ],
+      "parallel_group": 1
+    },
+    {
+      "lane_id": "lane-f",
+      "wp_ids": [
+        "WP06"
+      ],
+      "write_scope": [
+        "scripts/sync/classify.py",
+        "scripts/sync/cycle.py",
+        "scripts/sync/diff.py",
+        "scripts/sync/state.py",
+        "tests/common/conftest.py",
+        "tests/common/test_sync_cache.py",
+        "tests/sync/test_classify.py",
+        "tests/sync/test_cycle.py",
+        "tests/sync/test_diff.py",
+        "tests/sync/test_state.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "legacy-cleanup",
+        "tracker-integration"
+      ],
+      "depends_on_lanes": [
+        "lane-a"
+      ],
+      "parallel_group": 1
+    },
+    {
+      "lane_id": "lane-c",
+      "wp_ids": [
+        "WP03"
+      ],
+      "write_scope": [
+        "scripts/habits/record_completion.py",
+        "scripts/habits/set_due_dates.py",
+        "scripts/habits/sweeper.py",
+        "tests/habits/conftest.py",
+        "tests/habits/test_habits_rule_roundtrip.py",
+        "tests/habits/test_record_completion.py",
+        "tests/habits/test_set_due_dates.py",
+        "tests/habits/test_set_due_dates_reconcile.py",
+        "tests/habits/test_sweeper_idempotent.py",
+        "tests/habits/test_sweeper_unit.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "legacy-cleanup"
+      ],
+      "depends_on_lanes": [
+        "lane-a",
+        "lane-b"
+      ],
+      "parallel_group": 2
+    },
+    {
+      "lane_id": "lane-d",
+      "wp_ids": [
+        "WP04"
+      ],
+      "write_scope": [
+        "scripts/escalation/reconcile_completions.py",
+        "scripts/escalation/record_completion.py",
+        "scripts/openclaw/agents/felix-admin-escalation/AGENTS.md",
+        "scripts/openclaw/agents/felix-admin-escalation/TOOLS.md",
+        "scripts/openclaw/skills/escalation/SKILL.md",
+        "tests/architectural/test_agent_docs_no_direct_task_writes.py",
+        "tests/escalation/test_escalation_rule_roundtrip.py",
+        "tests/escalation/test_reconcile_completions.py",
+        "tests/escalation/test_record_completion.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "legacy-cleanup",
+        "tracker-integration"
+      ],
+      "depends_on_lanes": [
+        "lane-a",
+        "lane-b",
+        "lane-f"
+      ],
+      "parallel_group": 2
+    },
+    {
+      "lane_id": "lane-e",
+      "wp_ids": [
+        "WP05"
+      ],
+      "write_scope": [
+        "scripts/intake/apply_reply.py",
+        "scripts/vikunja/migrate_date_only_due_dates.py",
+        "scripts/vikunja/migrate_tasks.py",
+        "tests/intake/test_apply_reply.py",
+        "tests/intake/test_apply_reply_rule_roundtrip.py",
+        "tests/vikunja/test_migrate_date_only_due_dates.py",
+        "tests/vikunja/test_migrate_tasks.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "legacy-cleanup"
+      ],
+      "depends_on_lanes": [
+        "lane-a",
+        "lane-b"
+      ],
+      "parallel_group": 2
+    },
+    {
+      "lane_id": "lane-g",
+      "wp_ids": [
+        "WP07"
+      ],
+      "write_scope": [
+        "scripts/habits/history.py",
+        "scripts/habits/identify_workout_task.py",
+        "scripts/habits/migrations/phase3-schedule.yaml",
+        "scripts/habits/query_active_habits_v2.py",
+        "scripts/habits/query_active_habits_weekly.py",
+        "scripts/habits/schedule_loader.py",
+        "scripts/habits/weekly_report_driver.py",
+        "scripts/sync/cleanup.py",
+        "tests/habits/fixtures/schedule_with_day_specific.yaml",
+        "tests/habits/fixtures/weekly_report_responses.json",
+        "tests/habits/test_exclude_completed_v2.py",
+        "tests/habits/test_identify_workout_task.py",
+        "tests/habits/test_morning_checkin_list.py",
+        "tests/habits/test_morning_checkin_list_day_of_week.py",
+        "tests/habits/test_query_active_habits_v2.py",
+        "tests/habits/test_query_active_habits_v2_day_of_week.py",
+        "tests/habits/test_query_active_habits_v2_filter.py",
+        "tests/habits/test_query_active_habits_weekly.py",
+        "tests/habits/test_reconcile_completions.py",
+        "tests/habits/test_schedule_check_live.py",
+        "tests/habits/test_schedule_loader.py",
+        "tests/habits/test_weekly_report_driver.py",
+        "tests/sync/test_cleanup.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "artifact-rendering",
+        "legacy-cleanup",
+        "tracker-integration"
+      ],
+      "depends_on_lanes": [
+        "lane-a",
+        "lane-b"
+      ],
+      "parallel_group": 2
+    },
+    {
+      "lane_id": "lane-j",
+      "wp_ids": [
+        "WP10"
+      ],
+      "write_scope": [
+        "docs/runbooks/vikunja-task-repair.md",
+        "scripts/vikunja/rule_inventory.py",
+        "scripts/vikunja/rule_repair.py",
+        "tests/vikunja/test_rule_inventory.py",
+        "tests/vikunja/test_rule_repair.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "legacy-cleanup",
+        "tracker-integration"
+      ],
+      "depends_on_lanes": [
+        "lane-a",
+        "lane-b"
+      ],
+      "parallel_group": 2
+    },
+    {
+      "lane_id": "lane-h",
+      "wp_ids": [
+        "WP08"
+      ],
+      "write_scope": [
+        "scripts/habits/migrate_schedule.py",
+        "scripts/vikunja/create_task.py",
+        "tests/architectural/test_habits_history_canonical_read.py",
+        "tests/architectural/test_no_retired_repeat_fields.py",
+        "tests/habits/test_migrate_schedule.py",
+        "tests/vikunja/test_create_task.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "legacy-cleanup",
+        "tracker-integration"
+      ],
+      "depends_on_lanes": [
+        "lane-c",
+        "lane-d",
+        "lane-e",
+        "lane-f",
+        "lane-g"
+      ],
+      "parallel_group": 3
+    },
+    {
+      "lane_id": "lane-i",
+      "wp_ids": [
+        "WP09"
+      ],
+      "write_scope": [
+        "scripts/openclaw/agents/felix-admin-habits/AGENTS.md",
+        "scripts/openclaw/agents/felix-admin-tasker/AGENTS.md",
+        "scripts/openclaw/skills/task-intelligence/SKILL.md",
+        "scripts/openclaw/skills/vikunja-api/SKILL.md",
+        "scripts/vikunja/preview_rule.py",
+        "tests/vikunja/test_preview_rule.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "artifact-rendering",
+        "legacy-cleanup",
+        "tracker-integration"
+      ],
+      "depends_on_lanes": [
+        "lane-d",
+        "lane-h"
+      ],
+      "parallel_group": 4
+    },
+    {
+      "lane_id": "lane-k",
+      "wp_ids": [
+        "WP12"
+      ],
+      "write_scope": [
+        "scripts/habits/manage_habit.py",
+        "scripts/vikunja/update_task.py",
+        "tests/habits/test_manage_habit.py",
+        "tests/habits/test_paused_habits_excluded.py",
+        "tests/vikunja/test_update_task.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "legacy-cleanup",
+        "tracker-integration"
+      ],
+      "depends_on_lanes": [
+        "lane-i"
+      ],
+      "parallel_group": 5
+    },
+    {
+      "lane_id": "lane-planning",
+      "wp_ids": [
+        "WP11"
+      ],
+      "write_scope": [
+        "docs/DEVELOPER_PORTAL.md",
+        "docs/INDEX.md",
+        "docs/design/architecture/credentials-and-secrets.md",
+        "docs/design/architecture/data-flows.md",
+        "docs/design/architecture/data-flows.view.md",
+        "docs/design/architecture/data/credential-manifest.json",
+        "docs/design/architecture/data/data-flows.json",
+        "docs/design/architecture/data/mutation-surfaces.json",
+        "docs/design/architecture/data/service-inventory.json",
+        "docs/design/architecture/service-inventory.md",
+        "docs/design/process-flows/habits.md",
+        "docs/runbooks/agent-prompt-sync-ops.md",
+        "docs/runbooks/deploy/office2-deploy-paths.md",
+        "docs/runbooks/escalation-ops.md",
+        "docs/runbooks/habits-ops.md",
+        "docs/runbooks/openclaw-agent-setup.md"
+      ],
+      "predicted_surfaces": [
+        "planning"
+      ],
+      "depends_on_lanes": [
+        "lane-h",
+        "lane-i",
+        "lane-j",
+        "lane-k"
+      ],
+      "parallel_group": 6
+    }
+  ],
+  "computed_at": "2026-11-20T19:51:03.307038+00:00",
+  "computed_from": "dependency_graph+ownership",
+  "planning_artifact_wps": [
+    "WP11"
+  ],
+  "planning_commit_sha": "cc4f2154dbac9219fb409c830cbf73966411a579"
+}

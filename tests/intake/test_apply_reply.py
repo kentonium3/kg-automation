@@ -2,7 +2,8 @@
 closes #750).
 
 All tests inject a stateful fake mirroring the real ``VikunjaClient`` write
-surface — ``get/post/put/delete`` with an explicit ``timeout`` — over an
+surface — ``get/get_task_v2/patch_task/put/delete`` with an explicit
+``timeout`` — over an
 in-memory task store, so no real network is constructed (the global conftest
 urlopen guard fails loud otherwise) and the read-modify-write + readback +
 family-replace behaviour is observable end-to-end.
@@ -72,7 +73,7 @@ def _task(
     labels: list[str] | None = None,
     done: bool = False,
     due_date: str | None = None,
-    repeat_after: int | None = None,
+    repeat: dict | None = None,
     title: str | None = None,
 ) -> dict:
     task: dict = {
@@ -84,8 +85,8 @@ def _task(
     }
     if due_date is not None:
         task["due_date"] = due_date
-    if repeat_after is not None:
-        task["repeat_after"] = repeat_after
+    if repeat is not None:
+        task["repeat"] = repeat
     return task
 
 
@@ -124,14 +125,15 @@ class FakeVikunja:
             return copy.deepcopy(self.tasks[tid])
         raise AssertionError(f"unexpected GET {path}")
 
-    def post(self, path, *, json=None, params=None, timeout=None):
-        self.calls.append(("POST", path, json, timeout))
-        assert timeout is not None, "POST must be bounded by an explicit timeout"
-        m = _TASK_RE.match(path)
-        assert m, f"unexpected POST {path}"
-        tid = int(m.group(1))
-        self.tasks[tid].update(json)
-        return {}
+    def get_task_v2(self, task_id, *, timeout=None):
+        return self.get(f"/tasks/{task_id}", timeout=timeout)
+
+    def patch_task(self, task_id, changes, *, timeout=None):
+        """Merge-patch: only the sent keys change (RFC 7396, #1111)."""
+        self.calls.append(("PATCH", f"/tasks/{task_id}", dict(changes), timeout))
+        assert timeout is not None, "PATCH must be bounded by an explicit timeout"
+        self.tasks[task_id].update(changes)
+        return copy.deepcopy(self.tasks[task_id])
 
     def put(self, path, *, json=None, params=None, timeout=None):
         self.calls.append(("PUT", path, json, timeout))
@@ -241,7 +243,7 @@ def test_sparse_apply_leaves_valid_family_untouched():
     assert client.titles(103) == {"f:3-edge", "q:schedule"}
 
 
-def test_project_reassignment_uses_rmw_post_and_readback():
+def test_project_reassignment_patches_only_project_id_and_reads_back():
     task = _task(104, labels=["f:2-growth", "q:do"], title="Deck")
     client = FakeVikunja([task])
 
@@ -249,12 +251,12 @@ def test_project_reassignment_uses_rmw_post_and_readback():
 
     assert result.status == "applied"
     assert client.tasks[104]["project_id"] == POINTERHEALTH_ID
-    # A field POST happened (project reassignment) and the title was echoed back
-    # in the allowlisted payload (non-clobber #524).
-    post_calls = [c for c in client.calls if c[0] == "POST"]
-    assert len(post_calls) == 1
-    assert post_calls[0][2]["title"] == "Deck"
-    assert post_calls[0][2]["project_id"] == POINTERHEALTH_ID
+    # One field PATCH carrying only the change (merge-patch, #1111): nothing is
+    # echoed back, so nothing unstated can be zeroed (#524).
+    patch_calls = [c for c in client.calls if c[0] == "PATCH"]
+    assert len(patch_calls) == 1
+    assert patch_calls[0][2] == {"project_id": POINTERHEALTH_ID}
+    assert client.tasks[104]["title"] == "Deck"
 
 
 # ---------------------------------------------------------------------------
@@ -289,13 +291,13 @@ class _NormalizingVikunja(FakeVikunja):
     UTC 'Z' on store, so the readback returns a different STRING for the same
     instant (#733/#736). This is what the mock-only tests could not exercise."""
 
-    def post(self, path, *, json=None, params=None, timeout=None):
-        payload = dict(json or {})
+    def patch_task(self, task_id, changes, *, timeout=None):
+        payload = dict(changes)
         due = payload.get("due_date")
         if isinstance(due, str) and due:
             inst = datetime.fromisoformat(due).astimezone(timezone.utc)
             payload["due_date"] = inst.strftime("%Y-%m-%dT%H:%M:%SZ")
-        return super().post(path, json=payload, params=params, timeout=timeout)
+        return super().patch_task(task_id, payload, timeout=timeout)
 
 
 def test_due_readback_tolerates_vikunja_utc_normalization():
@@ -314,11 +316,11 @@ def test_due_readback_still_catches_a_genuinely_wrong_instant():
     # The instant compare must NOT mask a real partial-replace drift: a mock that
     # stores a DIFFERENT day must still raise → per-line 'failed'.
     class _WrongDayVikunja(FakeVikunja):
-        def post(self, path, *, json=None, params=None, timeout=None):
-            payload = dict(json or {})
+        def patch_task(self, task_id, changes, *, timeout=None):
+            payload = dict(changes)
             if isinstance(payload.get("due_date"), str) and payload["due_date"]:
                 payload["due_date"] = "2026-07-25T03:59:59Z"  # wrong day
-            return super().post(path, json=payload, params=params, timeout=timeout)
+            return super().patch_task(task_id, payload, timeout=timeout)
 
     client = _WrongDayVikunja([_task(201)])
     result = _apply(client, "1 personal do due:2026-07-20", 201)
@@ -393,7 +395,7 @@ def test_habit_attaches_t_habit_nonfamily():
 
 
 def test_habit_on_recurring_task_notes_no_double_recurrence():
-    task = _task(207, repeat_after=86400)
+    task = _task(207, repeat={"freq": "daily", "interval": 1})
     client = FakeVikunja([task])
     result = _apply(client, "1 personal do habit", 207)
     assert "t:habit" in client.titles(207)
@@ -461,6 +463,8 @@ def test_q_eliminate_marks_task_done():
 
     assert result.status == "applied"
     assert client.tasks[213]["done"] is True
+    # A one-off task: a plain done patch, nothing else in the body (#1111).
+    assert [c[2] for c in client.calls if c[0] == "PATCH"] == [{"done": True}]
     assert "q:eliminate" in client.titles(213)
     assert any("eliminated" in n for n in result.notes)
 

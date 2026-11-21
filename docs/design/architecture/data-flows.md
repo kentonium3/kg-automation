@@ -2,9 +2,9 @@
 title: Data Flows
 doc_type: reference
 status: approved
-last_updated: '2026-10-14'
-updated_by: 'canary-deadman-backup-coverage-01M4XVY3 (#1063 — +felix-health-check-coverage flow: twice-daily dead-man''s switch on the canary tick and independent backup check through the canary''s evaluator) + qa-pipeline-decommission-01M219TT (#970 — qa-linear-dispatch-ingress registered-at-retirement: the Linear→office2 QA dispatch flow, the host''s only public-internet data flow, retired; never recorded here while live, an out-of-band gap from #886) + crontab-backup-coverage-01M12V87 (#895 — +crontab-capture flow: hourly claude-crontab capture into /data/services/, already a Restic source path, so the crontab becomes recoverable from a snapshot without depending on a security-monitor drift baseline) + vikunja-token-seam-kent-cutover-01KY8XQ0 (#860 phase 2, ADR-0007 — intake scan flow flips from a felix-bot read token to the kent token, collapsing the #715 two-token model onto the single runtime vikunja-api-kent credential) + openclaw-skills-sync-01KXW1DQ (#775 — +openclaw-skill-sync flow: pull-based SKILL.md deploy/sync repo -> office2 via agent-skill-sync, sibling to agent-prompt-sync #567; closes the #563 skills silent-drift class) + task-intake-validation-loop-01KXS06W (#749 — +intake-validation-loop flow: scan -> WhatsApp digest -> compact-shorthand reply -> kent-token apply; closes #750) + felix-canary-registry-01KX8T7B (#327 — +felix-canary, +felix-trust-scan, +unified-alert-bus-emit observability flows) + felix-calendar-helper-01KX4H3C (#699 — calendar surface now Felix helper -> Google direct, not gog; closes #679) + felix-admin-cron-path-fix-01KWQTY3 (#656) + restore-whatsapp-dm-reply-delivery-01KTVVHH (#588) + inbox-calendar-and-aspiration-routing-01KTHHXS + #520-felix-vikunja-sync-project-layer-and-url-config'
-tags: [860, 775, 567, 563, 327, 683, 701, 706, 516, 656, 588, 520, 507, 519, 518, 309, 343, 362, 391, 400, 310, 374]
+last_updated: '2026-11-20'
+updated_by: 'felix-rrule-adaptation-01M7TKNX (#1111 — Felix task writes on PATCH /api/v2/tasks/{id} so RRULE recurrence survives; +v2 write/read flows, sync seed ledger, rule inventory/repair; escalation agent no longer writes Vikunja; morning list and escalation reconcile legs corrected to the sync cache) + canary-deadman-backup-coverage-01M4XVY3 (#1063 — +felix-health-check-coverage flow: twice-daily dead-man''s switch on the canary tick and independent backup check through the canary''s evaluator) + qa-pipeline-decommission-01M219TT (#970 — qa-linear-dispatch-ingress registered-at-retirement: the Linear→office2 QA dispatch flow, the host''s only public-internet data flow, retired; never recorded here while live, an out-of-band gap from #886) + crontab-backup-coverage-01M12V87 (#895 — +crontab-capture flow: hourly claude-crontab capture into /data/services/, already a Restic source path, so the crontab becomes recoverable from a snapshot without depending on a security-monitor drift baseline) + vikunja-token-seam-kent-cutover-01KY8XQ0 (#860 phase 2, ADR-0007 — intake scan flow flips from a felix-bot read token to the kent token, collapsing the #715 two-token model onto the single runtime vikunja-api-kent credential) + openclaw-skills-sync-01KXW1DQ (#775 — +openclaw-skill-sync flow: pull-based SKILL.md deploy/sync repo -> office2 via agent-skill-sync, sibling to agent-prompt-sync #567; closes the #563 skills silent-drift class) + task-intake-validation-loop-01KXS06W (#749 — +intake-validation-loop flow: scan -> WhatsApp digest -> compact-shorthand reply -> kent-token apply; closes #750) + felix-canary-registry-01KX8T7B (#327 — +felix-canary, +felix-trust-scan, +unified-alert-bus-emit observability flows) + felix-calendar-helper-01KX4H3C (#699 — calendar surface now Felix helper -> Google direct, not gog; closes #679) + felix-admin-cron-path-fix-01KWQTY3 (#656) + restore-whatsapp-dm-reply-delivery-01KTVVHH (#588) + inbox-calendar-and-aspiration-routing-01KTHHXS + #520-felix-vikunja-sync-project-layer-and-url-config'
+tags: [1111, 860, 775, 567, 563, 327, 683, 701, 706, 516, 656, 588, 520, 507, 519, 518, 309, 343, 362, 391, 400, 310, 374]
 ---
 
 # Data Flows
@@ -131,8 +131,18 @@ felix-vikunja-sync.timer (5-min) → felix-vikunja-sync.service (oneshot)
   → /data/services/openclaw/state/sync/project-cache.json (atomic write — #520)
   → /data/services/openclaw/state/sync/conflict-events.jsonl   (append)
   → /data/services/openclaw/state/sync/last-tick.json   (atomic write)
+  → /data/services/openclaw/state/sync/seed-ledger.jsonl   (atomic replace — #1111 baseline seeds)
   → openclaw send --channel whatsapp   (subprocess, unsafe task events only)
 ```
+
+**#1111 tracked fields and seed ledger.** The sync tracks `repeat` and
+`repeats_from_current_date` (replacing `repeat_after`/`repeat_mode`; `repeats_rrule`
+is not tracked because v1 list bodies lack it) and caches `description` untracked,
+for the habits `(PAUSED)` check. A cached entry missing a newly tracked field adopts
+the live value once without a divergence; every such seed is written to
+`seed-ledger.jsonl` (`{cycle_id, task_id, field, seeded_value, at}`) before the
+cache, and `last-tick.json` reports `baseline_seeded=N`. The rule inventory reads
+the ledger.
 
 The driver is **read-only against Vikunja** (SC-009). Full-poll means every tick fetches the
 complete task and project sets — there is no `updated_since` delta or incremental cursor.
@@ -176,11 +186,13 @@ Mirror of the #309 escalation port — same architecture (canonical per-Kent-day
 ```
 felix-admin-habits agent (cron habits-morning-checkin, 7:05 AM ET)
   → scripts/habits/morning_checkin_list.py
-       ├─ scripts/habits/query_active_habits_v2.py  (Vikunja GET /projects/13/tasks, filter due_date<=now/d AND done=false)
+       ├─ scripts/habits/query_active_habits_v2.py  (sync cache task-cache.json: Habits project, done=false, due<=EOD-ET, not (PAUSED))
        └─ scripts/habits/exclude_completed_v2.py    (reads /data/services/openclaw/state/habits-history.jsonl)
   → /data/services/openclaw/state/habits/morning-checkin-<YYYY-MM-DD>.json   (atomic write — canonical ordering)
   → stdout (formatted WhatsApp message, relayed verbatim by the agent)
 ```
+
+Since #519 the habits list comes from the sync cache, not a Vikunja call (this leg was corrected by #1111). Since #1111 a habit whose cached description starts with `(PAUSED)` is skipped; because the cache is refreshed every ~5 minutes, a just-paused habit can still appear for about one sync cycle.
 
 The artifact ordering is byte-identical to the formatted WhatsApp message (FR-002). The agent relays the helper's stdout verbatim with NO commentary or re-ordering (FR-007). One file per Kent-day; ~1 KB at N=8-12 habits (NFR-005); no rotation (~365 files/year).
 
@@ -194,7 +206,7 @@ felix-admin-habits agent (reply tick)
 
 For each tuple in deterministic tuples:
   → scripts/habits/record_completion.py --task-id <id> --state <state> --date <date> --source kent_reply --idempotent
-       (Phase 3 helper unchanged per C-001/FR-010; three-write to Vikunja + JSONL state log)
+       (three-write: PATCH /api/v2/tasks/<id> {done:true} since #1111 → PUT v1 comment → JSONL state log)
 ```
 
 The parser NEVER re-queries Vikunja (FR-008) — the morning-list artifact is the authoritative source of position->task_id mapping for the date. If the artifact is missing (exit code 4), the agent files a P2-bug via `felix-file-issue.py` rather than falling back to live Vikunja state (FR-009).
@@ -265,15 +277,17 @@ Per-event side-effect dispatch per research D6 (Vikunja PATCH FIRST when applica
 
 ```
 felix-admin-escalation agent → scripts/escalation/record_completion.py
-  → Vikunja /tasks/<id>   (PATCH done/due_date — only for done/rescheduled events)
+  → Vikunja PATCH /api/v2/tasks/<id> + GET readback   (done/due_date — only for done/rescheduled events; #1111)
   → scripts/common/state_log.py → /data/services/openclaw/state/escalation/<project-slug>-escalation-history.jsonl
 ```
 
 Side-effects per event_type:
 - `level_sent` — WhatsApp send (upstream of `record_completion`) + JSONL append (sole side-effect of this helper)
 - `snoozed` / `dismissed` — JSONL append only
-- `done` — `PATCH done=true` + JSONL append
-- `rescheduled` (kent_reply source) — `PATCH due_date` + JSONL append
+- `done` — `PATCH done=true` (v2 merge patch) + JSONL append; outcome `advanced` / `series_ended` / `done_one_off` / `unexpected` (unexpected still appends, then exit 4)
+- `rescheduled` (kent_reply source) — `PATCH due_date` (v2) + readback + JSONL append; a changed rule fails before the append
+
+Since #1111 the agent never writes Vikunja itself; `N done` goes only through this helper. `level_sent` also stores the alerted `due_date` as `due_date_at_alert`, the reconcile baseline.
 
 JSONL state log files are per-project (NFR-003, research D2): filename-based partition keyed on project slug. Schema (data-model Entity 1): `domain=escalation`, `state ∈ {level_sent, snoozed, dismissed, done, rescheduled}`, `source ∈ {agent, reconcile, kent_reply, operator_repair}`.
 
@@ -290,7 +304,7 @@ felix-admin-escalation agent → scripts/escalation/derive_state.py
 
 ```
 felix-admin-escalation agent → scripts/escalation/reconcile_completions.py
-  → Vikunja /projects/<id>/tasks + /tasks/<id>   (GET only)
+  → /data/services/openclaw/state/sync/task-cache.json   (via sync_cache.py; no Vikunja call — corrected by #1111)
   → scripts/escalation/record_completion.py --no-vikunja   (synthetic record emit, source=reconcile)
   → scripts/common/state_log.py → <project-slug>-escalation-history.jsonl
 ```
@@ -298,6 +312,7 @@ felix-admin-escalation agent → scripts/escalation/reconcile_completions.py
 Runs at tick start (FR-005). Enumerates escalation-subscribed tasks (those with at least one prior `level_sent` JSONL record AND no terminal record since); GETs current Vikunja state per task; emits synthetic records when:
 - `vikunja.done=true` but JSONL has no `done` → synthetic `{state: "done", source: "reconcile"}`
 - `vikunja.due_date != last_rescheduled_to` (and no terminal record) → synthetic `{state: "rescheduled", source: "reconcile", reschedule_to: <new>}`
+- #1111 (FR-015): a cached task **with a rule**, not done, whose due date is later than the current window's baseline (`due_date_at_alert`, else the last `reschedule_to`) → synthetic `done` (Kent completed the occurrence in the UI and the series advanced), not a reschedule
 
 ### Enrichment Record Writes (#310 — JSONL state migration, Phase 7 of ADR-0002 / final)
 
@@ -828,6 +843,51 @@ it stays due next scan (no lost alert). Siblings share the *bus*, not the scanne
 (DEC-007). Ops: [`trust-reporting-detector.md`](<../../runbooks/trust-reporting-detector.md>);
 pattern [`observability-and-alerting.md`](<./observability-and-alerting.md>).
 
+### Felix → Vikunja v2 task writes and rule reads (#1111)
+
+Authoritative: the `vikunja-occurrences-read`, `vikunja-occurrences-preview`,
+`vikunja-task-create-v2`, `vikunja-task-field-update`,
+`habits-manage-pause-resume-remove`, `habits-schedule-drift-check`,
+`sync-seed-ledger` and `vikunja-rule-inventory-repair` entries in
+[`data/data-flows.json`](<./data/data-flows.json>).
+
+On the RRULE fork (v2.8.0-rrule.4) a v1 `POST /api/v1/tasks/{id}` replaces the
+whole task and strips its rule, and v1 `PATCH` answers 405. Every Felix task-field
+write therefore goes through `VikunjaClient.patch_task` (`PATCH /api/v2/tasks/{id}`,
+RFC 7396 merge patch of only the changed keys) and is read back over
+`GET /api/v2/tasks/{id}`. The configured base URL stays `/api/v1`; the client derives
+`/api/v2` from it. List reads, comments and label attach stay on v1.
+
+```
+habits/record_completion ─┐
+escalation/record_completion ─┤
+habits/set_due_dates ─────────┤
+habits/sweeper (day-specific) ┤      PATCH /api/v2/tasks/{id}  (+ GET readback: rule,
+habits/manage_habit ──────────┼──►   repeats_from_current_date, reminders unchanged)
+intake/apply_reply ───────────┤
+vikunja/update_task ──────────┤
+vikunja/rule_repair (operator)┘
+vikunja/create_task ───────────────► POST /api/v2/projects/{id}/tasks (+ readback: same rule)
+habits/sweeper ────────────────────► GET /api/v2/tasks/{id}/occurrences?count=1   (tasks.occurrences)
+vikunja/preview_rule, record_completion (UNTIL rules)
+                   ────────────────► POST /api/v2/tasks/occurrences/preview      (tasks.occurrences_preview)
+habits/schedule_loader --check-live, rule_inventory ─► GET /api/v2/tasks/{id}   (read-only)
+felix-vikunja-sync ────────────────► /data/services/openclaw/state/sync/seed-ledger.jsonl ─► rule_inventory --seed-ledger
+rule_repair ───────────────────────► /data/services/openclaw/state/vikunja-repair/<run_id>/
+```
+
+- **Agents do not write tasks.** The escalation, habits and tasker agent docs and the
+  `vikunja-api` skill route every write through these helpers.
+- **Pause (FR-026).** `manage_habit pause|resume` adds or strips the `(PAUSED) `
+  description prefix through `update_task`; `remove` is `end_series` (rule cleared,
+  then done), never a delete. The morning list sees a pause through the sync cache
+  (within ~5 minutes, and only after the first sync cycle following deploy, when
+  cache entries first carry `description`); the sweeper reads each habit live once
+  per tick before its first write.
+- **Token.** `vikunja-api-kent` needs `tasks.occurrences` and
+  `tasks.occurrences_preview`; the re-issue is pending Kent
+  ([credentials-and-secrets.md](<./credentials-and-secrets.md>)).
+
 ### Task-Intake Validation Loop (#749; folds in #750)
 
 ```
@@ -842,7 +902,7 @@ felix-admin-capture (each inbox tick, AFTER route_and_finalize)
 Kent (WhatsApp reply, compact shorthand) → Felix main
   → …/intake/latest.json + digest records    (content-based correlation: line-# set + title evidence, 48h)
   → scripts/intake/apply_reply.py            (deterministic parse via shorthand.py; seam resolution)
-       → Vikunja POST /tasks/<id> + label attach   (vikunja-api-kent WRITE token; RMW + family-replace)
+       → Vikunja PATCH /api/v2/tasks/<id> + v2 readback; v1 label PUT/DELETE; end_series for q:eliminate on a recurring task   (vikunja-api-kent; #1111)
        → …/intake/intake-apply-<ET-date>.jsonl      (append-only ApplyResult ledger)
   → Kent (WhatsApp)                          (per-line confirmation)
 ```

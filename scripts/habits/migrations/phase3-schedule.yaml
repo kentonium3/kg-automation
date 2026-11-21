@@ -1,38 +1,20 @@
-# habits-schedule.yaml — ADR-0002 Phase 3 schedule migration
+# phase3-schedule.yaml — habit runtime schedule + frozen ADR-0002 Phase 3 record
 #
-# This file is the canonical input to scripts/habits/migrate_schedule.py.
-# It describes the one-shot schedule change applied during this mission:
+# Two sections:
+#   - `operations:` is the FROZEN record of the one-shot ADR-0002 Phase 3
+#     schedule migration (mission habits-native-repeat-jsonl-state-01KS0M59).
+#     It is history: never edit it (C-005, mission felix-rrule-adaptation,
+#     #1111). The tool that applied it, scripts/habits/migrate_schedule.py,
+#     is retired, and its `repeat_after`/`repeat_mode` fields describe the
+#     pre-RRULE Vikunja model, not the live rules.
+#   - `habits:` (below) is the live runtime schedule read by
+#     scripts/habits/schedule_loader.py.
+#
+# What the frozen record describes:
 #   - 7 daily PATCHes: set repeat_after=86400 on the surviving habit tasks.
-#   - 1 retire: mark the workout task done=true (it stays in the project
-#     with repeat_after=0 so Vikunja's auto-advance does NOT un-retire it).
-#   - 3 creates: weekly Mon/Wed/Fri strength-training tasks, inheriting
-#     the retired workout task's project_id and labels.
-#
-# IMPORTANT — workout task ID is a placeholder:
-#   The retire op below uses task_id: 17 as a TBD placeholder. Operator MUST
-#   confirm the actual workout task ID first by running:
-#       python3 -m scripts.habits.identify_workout_task
-#   then edit the retire op's task_id (and possibly remove one of the
-#   PATCH ops if the lookup returns a different ID from the daily set).
-#
-# Apply protocol (Tier 2):
-#   1. ssh office2-kgale + verify a recent Restic snapshot exists for /data.
-#   2. Dry-run first:
-#       python3 -m scripts.habits.migrate_schedule \
-#           --schedule kitty-specs/habits-native-repeat-jsonl-state-01KS0M59/habits-schedule.yaml \
-#           --snapshot-out /data/services/openclaw/state/habits-pre-phase3-snapshot.json \
-#           --dry-run
-#   3. After reviewing the dry-run plan, set the env-var gate and apply:
-#       FELIX_TIER2_PREFLIGHT_OK=yes python3 -m scripts.habits.migrate_schedule \
-#           --schedule kitty-specs/habits-native-repeat-jsonl-state-01KS0M59/habits-schedule.yaml \
-#           --snapshot-out /data/services/openclaw/state/habits-pre-phase3-snapshot.json
-#   4. If anything goes wrong:
-#       python3 -m scripts.habits.migrate_schedule \
-#           --rollback \
-#           --snapshot-file /data/services/openclaw/state/habits-pre-phase3-snapshot.json
-#
-# See kitty-specs/habits-native-repeat-jsonl-state-01KS0M59/quickstart.md
-# for the full walkthrough.
+#   - 1 retire: mark the workout task done=true.
+#   - 3 creates: weekly Mon/Wed/Fri strength-training tasks (live task_ids
+#     75/76/77, which are now Done and stay Done per C-008).
 
 mission_id: "01KS0M59313RF0WVJZTXYDJC6C"
 
@@ -132,7 +114,7 @@ operations:
 #
 # This section is the runtime authoring surface for day-of-week filtering and
 # the auto-skip sweeper. It is independent of the `operations:` migration list
-# above (which is a frozen one-shot record consumed by migrate_schedule.py).
+# above (a frozen one-shot record; C-005).
 #
 # Schema:   see kitty-specs/habit-day-specific-scheduling-01KT48Y6/
 #                 contracts/schedule-config.contract.md
@@ -143,6 +125,13 @@ operations:
 # (Mon..Sun). If absent or empty, the habit is daily (every day). If present,
 # the habit only appears in the morning check-in on the listed weekdays.
 #
+# `rrule`: required RFC 5545 recurrence rule the live Vikunja task should
+# carry (#1111). A daily habit must declare exactly "FREQ=DAILY;INTERVAL=1".
+# A day-specific habit must be weekly (or less often) with BYDAY equal to its
+# designated_weekdays (the #608 ratchet). `repeat_after_seconds` is refused.
+# Check live drift (read-only) with:
+#     python3 -m scripts.habits.schedule_loader --check-live
+#
 # CANONICAL SOURCE OF TRUTH for habit task_ids/titles: LIVE Vikunja project 13
 # ("Habits"). Always verify task_id ↔ title bindings against live Vikunja
 # (e.g. `GET /api/v1/projects/13/tasks`) before editing this section. Do NOT
@@ -151,45 +140,49 @@ operations:
 # task_ids to the wrong titles. The "stale runbook" follow-up is tracked
 # separately (regenerate from live Vikunja when doc-auditor is re-enabled).
 #
-# When a new strength-training task is created, add an entry here with the
-# assigned Vikunja task_id and the corresponding designated_weekdays list,
-# then run `set_due_dates.py --reconcile-schedule` to advance due_date.
+# When a new day-specific habit task is created, add an entry here with the
+# assigned Vikunja task_id, its designated_weekdays and the matching rrule,
+# then run the --check-live drift check above. The task's own rule moves its
+# due date; there is no separate reconcile step.
 
 habits:
   # ── Daily habits (no designated_weekdays — appear every day) ────────
   - task_id: 14
     title: "Wake at 5:00 AM"
-    repeat_after_seconds: 86400
+    rrule: "FREQ=DAILY;INTERVAL=1"
   - task_id: 15
     title: "Meditate"
-    repeat_after_seconds: 86400
+    rrule: "FREQ=DAILY;INTERVAL=1"
   - task_id: 16
     title: "Morning shoulder PT"
-    repeat_after_seconds: 86400
+    rrule: "FREQ=DAILY;INTERVAL=1"
   - task_id: 18
     title: "Get steps in today"
-    repeat_after_seconds: 86400
+    rrule: "FREQ=DAILY;INTERVAL=1"
   - task_id: 19
     title: "Read 30 min minimum"
-    repeat_after_seconds: 86400
+    rrule: "FREQ=DAILY;INTERVAL=1"
   - task_id: 20
     title: "Evening shoulder PT"
-    repeat_after_seconds: 86400
+    rrule: "FREQ=DAILY;INTERVAL=1"
   - task_id: 65
     title: "Morning hip PT"
-    repeat_after_seconds: 86400
+    rrule: "FREQ=DAILY;INTERVAL=1"
 
   # ── Day-specific habits (Mon/Wed/Fri strength training, weekly cadence) ──
   # Bound to live Vikunja task_ids 75/76/77 (verified against project 13).
+  # These tasks are Done and stay Done with no live rule (C-008, Kent
+  # 2026-11-19); the rrule is the declared rule only, and the --check-live
+  # drift check reports them `inactive`, not drift.
   - task_id: 75
     title: "Strength training — Monday"
     designated_weekdays: ["Mon"]
-    repeat_after_seconds: 604800
+    rrule: "FREQ=WEEKLY;BYDAY=MO"
   - task_id: 76
     title: "Strength training — Wednesday"
     designated_weekdays: ["Wed"]
-    repeat_after_seconds: 604800
+    rrule: "FREQ=WEEKLY;BYDAY=WE"
   - task_id: 77
     title: "Strength training — Friday"
     designated_weekdays: ["Fri"]
-    repeat_after_seconds: 604800
+    rrule: "FREQ=WEEKLY;BYDAY=FR"

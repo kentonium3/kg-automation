@@ -1,0 +1,65 @@
+{
+  "rows": {
+    "#1111": {
+      "evidence_ref": "Code side merged on fix/felix-rrule-adaptation (12 WPs done, mission review PASS WITH NOTES 2026-11-21). Follow-up: #1111 stays open for the post-deploy steps (merge to main, live inventory, sweeper re-enable, final rule-loss check; DoD 5-7); re-escalation in #1118.",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": "spec.md",
+      "title": "Felix: review and adapt all calendar/habit functions to Vikunja RRULE recurrence (record_completion currently strips rules)",
+      "verdict": "deferred-with-followup",
+      "wp": "WP01"
+    },
+    "#492": {
+      "evidence_ref": "context-only citation in plan/WP prompts; no work owed by this mission",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": null,
+      "title": null,
+      "verdict": "not-applicable",
+      "wp": null
+    },
+    "#608": {
+      "evidence_ref": "context-only citation in plan/WP prompts; no work owed by this mission",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": null,
+      "title": null,
+      "verdict": "not-applicable",
+      "wp": null
+    },
+    "#621": {
+      "evidence_ref": "context-only citation in plan/WP prompts; no work owed by this mission",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": null,
+      "title": null,
+      "verdict": "not-applicable",
+      "wp": null
+    },
+    "#757": {
+      "evidence_ref": "context-only citation in plan/WP prompts; no work owed by this mission",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": null,
+      "title": null,
+      "verdict": "not-applicable",
+      "wp": null
+    }
+  },
+  "schema_version": 1
+}

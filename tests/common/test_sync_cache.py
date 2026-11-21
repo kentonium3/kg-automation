@@ -32,8 +32,8 @@ _TASK_A: dict[str, Any] = {
     "done": False,
     "due_date": "2026-06-04T09:00:00Z",
     "project_id": 2,
-    "repeat_after": 1,
-    "repeat_mode": "default",
+    "repeat": {"freq": "daily", "interval": 1},
+    "repeats_from_current_date": False,
     "labels": [],
 }
 _TASK_B: dict[str, Any] = {
@@ -41,8 +41,8 @@ _TASK_B: dict[str, Any] = {
     "done": True,
     "due_date": "2026-06-04T09:00:00Z",
     "project_id": 2,
-    "repeat_after": 1,
-    "repeat_mode": "default",
+    "repeat": {"freq": "daily", "interval": 1},
+    "repeats_from_current_date": False,
     "labels": [],
 }
 _TASK_C: dict[str, Any] = {
@@ -50,8 +50,8 @@ _TASK_C: dict[str, Any] = {
     "done": False,
     "due_date": None,
     "project_id": 99,  # private project
-    "repeat_after": 0,
-    "repeat_mode": "default",
+    "repeat": None,
+    "repeats_from_current_date": False,
     "labels": [],
 }
 
@@ -654,3 +654,31 @@ class TestModuleContract:
         mock_sync_cache_fixture(tasks={14: _TASK_A}, freshness_age_seconds=60)
         with pytest.raises(AssertionError, match="single-call"):
             mock_sync_cache_fixture(tasks={15: _TASK_B}, freshness_age_seconds=60)
+
+
+# ===========================================================================
+# WP06 (#1111) — the cache carries the recurrence rule
+# ===========================================================================
+
+
+class TestCachedRule:
+    def test_fixture_tracks_v2_rule_fields(self):
+        from tests.common.conftest import _TRACKED_TASK_FIELDS
+        from scripts.sync.diff import TRACKED_TASK_FIELDS
+
+        assert _TRACKED_TASK_FIELDS == TRACKED_TASK_FIELDS
+        assert {"repeat", "repeats_from_current_date"} <= _TRACKED_TASK_FIELDS
+        assert "repeat_after" not in _TRACKED_TASK_FIELDS
+
+    def test_view_fields_expose_rule_to_has_rule(self, mock_sync_cache_fixture):
+        """The downstream consumer (WP04) reads has_rule(view.fields)."""
+        from scripts.common.vikunja_rule import has_rule
+
+        mock_sync_cache_fixture(
+            tasks={14: _TASK_A, 15: {**_TASK_B, "repeat": None}},
+            freshness_age_seconds=60,
+        )
+        views = sc.read_cached_tasks(sc.SLA_NORMAL)
+        assert views[14].fields["repeat"] == {"freq": "daily", "interval": 1}
+        assert has_rule(views[14].fields) is True
+        assert has_rule(views[15].fields) is False

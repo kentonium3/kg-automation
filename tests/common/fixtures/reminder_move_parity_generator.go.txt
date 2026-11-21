@@ -1,0 +1,43 @@
+package models
+
+import (
+	"encoding/json"
+	"fmt"
+	"testing"
+	"time"
+)
+
+type felixCase struct {
+	Name      string
+	Rule      string
+	Due       string
+	Reminders []string
+	Now       string
+}
+
+func TestFelixParityDump(t *testing.T) {
+	ny, _ := time.LoadLocation("America/New_York")
+	p := func(s string) time.Time { v, err := time.Parse(time.RFC3339, s); if err != nil { panic(err) }; return v }
+	cases := []felixCase{
+		{"named_time_gap_clamp", "FREQ=DAILY;BYHOUR=3;BYMINUTE=0", "2027-03-13T08:00:00Z", []string{"2027-03-13T07:30:00Z"}, "2027-03-13T09:00:00Z"},
+		{"named_time_plain", "FREQ=DAILY;BYHOUR=9;BYMINUTE=0", "2026-11-20T14:00:00Z", []string{"2026-11-20T13:00:00Z", "2026-11-20T15:30:00Z"}, "2026-11-20T15:00:00Z"},
+		{"daily_gap_forward", "FREQ=DAILY", "2027-03-13T15:00:00Z", []string{"2027-03-13T07:30:00Z", "2027-03-13T08:15:00Z"}, "2027-03-13T16:00:00Z"},
+		{"daily_overlap_earlier", "FREQ=DAILY", "2026-10-31T14:00:00Z", []string{"2026-10-31T05:30:00Z"}, "2026-10-31T15:00:00Z"},
+		{"weekly_across_fallback", "FREQ=WEEKLY", "2026-10-28T13:00:00Z", []string{"2026-10-28T12:00:00Z", "2026-10-27T22:00:00Z"}, "2026-10-28T14:00:00Z"},
+		{"hourly_elapsed", "FREQ=HOURLY;INTERVAL=6", "2027-03-14T05:00:00Z", []string{"2027-03-14T04:30:00Z"}, "2027-03-14T05:10:00Z"},
+		{"named_time_clamp_after", "FREQ=DAILY;BYHOUR=1;BYMINUTE=30", "2026-10-31T05:30:00Z", []string{"2026-10-31T06:00:00Z"}, "2026-10-31T06:10:00Z"},
+	}
+	out := []map[string]any{}
+	for _, c := range cases {
+		rems := make([]datedValue, len(c.Reminders))
+		for i, r := range c.Reminders { rems[i] = datedValue{At: p(r)} }
+		res := nextOccurrence(nextOccurrenceInput{Rule: c.Rule, Due: datedValue{At: p(c.Due)}, Reminders: rems, Now: p(c.Now), Zone: ny})
+		moved := []string{}
+		for _, r := range res.Reminders { moved = append(moved, r.At.UTC().Format(time.RFC3339)) }
+		out = append(out, map[string]any{"name": c.Name, "rule": c.Rule, "due": c.Due, "reminders": c.Reminders, "now": c.Now, "new_due": res.Due.At.UTC().Format(time.RFC3339), "moved": moved, "reason": string(res.Reason)})
+	}
+	b, _ := json.MarshalIndent(out, "", "  ")
+	fmt.Println("PARITY_JSON_BEGIN")
+	fmt.Println(string(b))
+	fmt.Println("PARITY_JSON_END")
+}

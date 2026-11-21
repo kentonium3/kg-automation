@@ -16,11 +16,14 @@ from pathlib import Path
 
 import pytest
 
+from scripts.sync import cleanup
 from scripts.sync.cleanup import (
-    _USING_RUAMEL,
     append_task_deleted_event,
     prune_schedule_yaml,
 )
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+PRODUCTION_SCHEDULE = REPO_ROOT / "scripts" / "habits" / "migrations" / "phase3-schedule.yaml"
 
 
 # ---------------------------------------------------------------------------
@@ -179,9 +182,9 @@ def test_append_task_deleted_event_invalid_task_id(
 def test_prune_schedule_yaml_happy_path(tmp_path: Path) -> None:
     """Pruning task_id=2 from a 3-entry schedule removes it and returns True."""
     habits = [
-        {"task_id": 1, "title": "Habit one", "repeat_after_seconds": 86400},
-        {"task_id": 2, "title": "Habit two", "repeat_after_seconds": 86400},
-        {"task_id": 3, "title": "Habit three", "repeat_after_seconds": 86400},
+        {"task_id": 1, "title": "Habit one", "rrule": "FREQ=DAILY;INTERVAL=1"},
+        {"task_id": 2, "title": "Habit two", "rrule": "FREQ=DAILY;INTERVAL=1"},
+        {"task_id": 3, "title": "Habit three", "rrule": "FREQ=DAILY;INTERVAL=1"},
     ]
     path = tmp_path / "schedule.yaml"
     path.write_text(_make_schedule_yaml(habits), encoding="utf-8")
@@ -204,9 +207,9 @@ def test_prune_schedule_yaml_happy_path(tmp_path: Path) -> None:
 def test_prune_schedule_yaml_idempotent(tmp_path: Path) -> None:
     """Second call for the same task_id returns False and leaves file unchanged."""
     habits = [
-        {"task_id": 1, "title": "Habit one", "repeat_after_seconds": 86400},
-        {"task_id": 2, "title": "Habit two", "repeat_after_seconds": 86400},
-        {"task_id": 3, "title": "Habit three", "repeat_after_seconds": 86400},
+        {"task_id": 1, "title": "Habit one", "rrule": "FREQ=DAILY;INTERVAL=1"},
+        {"task_id": 2, "title": "Habit two", "rrule": "FREQ=DAILY;INTERVAL=1"},
+        {"task_id": 3, "title": "Habit three", "rrule": "FREQ=DAILY;INTERVAL=1"},
     ]
     path = tmp_path / "schedule.yaml"
     path.write_text(_make_schedule_yaml(habits), encoding="utf-8")
@@ -232,8 +235,8 @@ def test_prune_schedule_yaml_idempotent(tmp_path: Path) -> None:
 def test_prune_schedule_yaml_missing_entry(tmp_path: Path) -> None:
     """Pruning a task_id not in the schedule returns False; file unchanged."""
     habits = [
-        {"task_id": 1, "title": "Habit one", "repeat_after_seconds": 86400},
-        {"task_id": 3, "title": "Habit three", "repeat_after_seconds": 86400},
+        {"task_id": 1, "title": "Habit one", "rrule": "FREQ=DAILY;INTERVAL=1"},
+        {"task_id": 3, "title": "Habit three", "rrule": "FREQ=DAILY;INTERVAL=1"},
     ]
     path = tmp_path / "schedule.yaml"
     original_text = _make_schedule_yaml(habits)
@@ -286,25 +289,25 @@ def test_prune_schedule_yaml_malformed_yaml(tmp_path: Path) -> None:
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.skipif(
-    not _USING_RUAMEL,
-    reason="ruamel.yaml not installed; comment-preservation test skipped",
-)
 def test_prune_schedule_yaml_preserves_comments(tmp_path: Path) -> None:
-    """After pruning, the leading comment block is still present in the file."""
+    """After pruning, the leading comment block is still present in the file.
+
+    No longer ruamel-only: the block-sequence text edit keeps comments with
+    PyYAML alone (#1111).
+    """
     comment_line = "# THIS COMMENT MUST SURVIVE THE ROUND-TRIP"
     yaml_content = (
         f"{comment_line}\n"
         "habits:\n"
         "  - task_id: 1\n"
         "    title: \"Habit one\"\n"
-        "    repeat_after_seconds: 86400\n"
+        "    rrule: \"FREQ=DAILY;INTERVAL=1\"\n"
         "  - task_id: 2\n"
         "    title: \"Habit two\"\n"
-        "    repeat_after_seconds: 86400\n"
+        "    rrule: \"FREQ=DAILY;INTERVAL=1\"\n"
         "  - task_id: 3\n"
         "    title: \"Habit three\"\n"
-        "    repeat_after_seconds: 86400\n"
+        "    rrule: \"FREQ=DAILY;INTERVAL=1\"\n"
     )
     path = tmp_path / "schedule_with_comment.yaml"
     path.write_text(yaml_content, encoding="utf-8")
@@ -321,3 +324,225 @@ def test_prune_schedule_yaml_preserves_comments(tmp_path: Path) -> None:
     assert "task_id: 2" not in written
     assert "task_id: 1" in written
     assert "task_id: 3" in written
+
+
+# ---------------------------------------------------------------------------
+# prune_schedule_yaml — #1111: rrule carried through, operations byte-identical
+# ---------------------------------------------------------------------------
+
+
+def _operations_block(text: str) -> str:
+    start = text.index("\noperations:\n") + 1
+    end = text.index("\n# ── habits: runtime schedule") + 1
+    return text[start:end]
+
+
+@pytest.mark.parametrize("pruned_id", [75, 14, 77])
+def test_prune_production_schedule_round_trip(tmp_path: Path, pruned_id: int) -> None:
+    """Pruning a habit from (a copy of) the real schedule removes exactly its
+    item lines: the frozen ``operations:`` block is byte-identical (C-005),
+    every surviving ``rrule`` is kept, and the result still loads."""
+    import yaml
+
+    from scripts.habits import schedule_loader
+
+    original = PRODUCTION_SCHEDULE.read_text(encoding="utf-8")
+    path = tmp_path / "phase3-schedule.yaml"
+    path.write_text(original, encoding="utf-8")
+
+    assert prune_schedule_yaml(pruned_id, path) is True
+    written = path.read_text(encoding="utf-8")
+
+    assert _operations_block(written).encode() == _operations_block(original).encode()
+    # Only the pruned item's lines are gone; every other line is untouched.
+    removed = [ln for ln in original.splitlines() if ln not in written.splitlines()]
+    assert removed and all(
+        ln.lstrip().startswith(("- task_id:", "title:", "rrule:", "designated_weekdays:"))
+        for ln in removed
+    )
+    pruned_entry = next(e for e in yaml.safe_load(original)["habits"] if e["task_id"] == pruned_id)
+    assert len(original.splitlines()) - len(written.splitlines()) == len(pruned_entry)
+
+    before = {e["task_id"]: e for e in yaml.safe_load(original)["habits"]}
+    after = {e["task_id"]: e for e in yaml.safe_load(written)["habits"]}
+    del before[pruned_id]
+    assert after == before
+    assert all("rrule" in entry for entry in after.values())
+    assert yaml.safe_load(written)["operations"] == yaml.safe_load(original)["operations"]
+    # The schedule loader still accepts the pruned file.
+    assert len(schedule_loader.load_schedule(path)) == len(before)
+
+
+def test_prune_keeps_group_comments_and_trailing_sections(tmp_path: Path) -> None:
+    text = (
+        "# header\n"
+        "habits:\n"
+        "  # ── Daily ──\n"
+        "  - task_id: 1\n"
+        "    title: \"One\"\n"
+        "    rrule: \"FREQ=DAILY;INTERVAL=1\"\n"
+        "\n"
+        "  # ── Weekly ──\n"
+        "  - task_id: 2\n"
+        "    title: \"Two\"\n"
+        "    designated_weekdays: [\"Mon\"]\n"
+        "    rrule: \"FREQ=WEEKLY;BYDAY=MO\"\n"
+        "trailer:\n"
+        "  - task_id: 2\n"
+    )
+    path = tmp_path / "s.yaml"
+    path.write_text(text, encoding="utf-8")
+    assert prune_schedule_yaml(2, path) is True
+    assert path.read_text(encoding="utf-8") == (
+        "# header\n"
+        "habits:\n"
+        "  # ── Daily ──\n"
+        "  - task_id: 1\n"
+        "    title: \"One\"\n"
+        "    rrule: \"FREQ=DAILY;INTERVAL=1\"\n"
+        "\n"
+        "  # ── Weekly ──\n"
+        "trailer:\n"
+        "  - task_id: 2\n"
+    )
+
+
+def test_prune_column_zero_sequence(tmp_path: Path) -> None:
+    """PyYAML's default dump puts the dashes at column 0; that shape prunes too."""
+    path = tmp_path / "s.yaml"
+    path.write_text(
+        "habits:\n- task_id: 1\n  rrule: FREQ=DAILY\n- task_id: 2\n  rrule: FREQ=DAILY\nother: 1\n",
+        encoding="utf-8",
+    )
+    assert prune_schedule_yaml(1, path) is True
+    assert path.read_text(encoding="utf-8") == (
+        "habits:\n- task_id: 2\n  rrule: FREQ=DAILY\nother: 1\n"
+    )
+
+
+def test_prune_refuses_when_text_edit_disagrees(tmp_path: Path) -> None:
+    """A blank line inside an item splits it; the parse-back check refuses
+    rather than writing a corrupted schedule."""
+    text = "habits:\n  - task_id: 1\n\n    title: \"split\"\n  - task_id: 2\n"
+    path = tmp_path / "s.yaml"
+    path.write_text(text, encoding="utf-8")
+    with pytest.raises(ValueError, match="file left unchanged"):
+        prune_schedule_yaml(1, path)
+    assert path.read_text(encoding="utf-8") == text
+
+
+def test_prune_flow_style_falls_back_to_library(tmp_path: Path) -> None:
+    path = tmp_path / "s.yaml"
+    path.write_text(
+        '{habits: [{task_id: 1, rrule: "FREQ=DAILY"}, {task_id: 2, rrule: "FREQ=DAILY"}]}\n',
+        encoding="utf-8",
+    )
+    assert prune_schedule_yaml(1, path) is True
+    import yaml
+
+    assert yaml.safe_load(path.read_text(encoding="utf-8")) == {
+        "habits": [{"task_id": 2, "rrule": "FREQ=DAILY"}]
+    }
+    # The library fallback was taken: the text path declines a flow mapping.
+    assert cleanup._prune_habits_text('{habits: [{task_id: 1}]}\n', 1) is None
+
+
+# ---------------------------------------------------------------------------
+# Review cycle 1 (findings 3 and 4): fallback layouts never re-serialise
+# operations (C-005); pruning the last habit writes an explicit empty list.
+# ---------------------------------------------------------------------------
+
+
+_OPERATIONS_TEXT = (
+    "# frozen header comment\n"
+    "operations:\n"
+    "  # ── 1 patch ──\n"
+    "  - op: patch\n"
+    "    task_id: 14\n"
+    "    target:\n"
+    "      repeat_after: 86400\n"
+)
+
+
+@pytest.mark.parametrize("key", ['"habits"', "'habits'"])
+def test_prune_quoted_habits_key_keeps_operations_bytes(tmp_path: Path, key: str) -> None:
+    """A quoted key is still a block sequence: the text path handles it and
+    the operations bytes are untouched."""
+    text = (
+        _OPERATIONS_TEXT
+        + f"{key}:  # runtime\n"
+        "  - task_id: 1\n"
+        "    rrule: \"FREQ=DAILY;INTERVAL=1\"\n"
+        "  - task_id: 2\n"
+        "    rrule: \"FREQ=DAILY;INTERVAL=1\"\n"
+    )
+    path = tmp_path / "s.yaml"
+    path.write_text(text, encoding="utf-8")
+    assert prune_schedule_yaml(1, path) is True
+    written = path.read_text(encoding="utf-8")
+    assert written.startswith(_OPERATIONS_TEXT)
+    assert written == text.replace(
+        "  - task_id: 1\n    rrule: \"FREQ=DAILY;INTERVAL=1\"\n", ""
+    )
+
+
+@pytest.mark.parametrize(
+    "habits_text",
+    [
+        '{habits: [{task_id: 1, rrule: "FREQ=DAILY"}]}\n',
+        'habits: [{task_id: 1, rrule: "FREQ=DAILY"}, {task_id: 2, rrule: "FREQ=DAILY"}]\n',
+        '? habits\n: - task_id: 1\n  - task_id: 2\n',
+    ],
+)
+def test_prune_unsupported_layout_with_operations_is_refused(tmp_path: Path, habits_text: str) -> None:
+    """A layout the text path cannot edit is refused when the file holds the
+    frozen operations record: no library re-serialisation, nothing written."""
+    text = _OPERATIONS_TEXT + habits_text if not habits_text.startswith("{") else (
+        habits_text[:-2] + ", operations: [{op: patch, task_id: 14}]}\n"
+    )
+    path = tmp_path / "s.yaml"
+    path.write_text(text, encoding="utf-8")
+    import yaml
+
+    assert "operations" in yaml.safe_load(text)
+    with pytest.raises(ValueError, match="operations"):
+        prune_schedule_yaml(1, path)
+    assert path.read_text(encoding="utf-8") == text
+
+
+def test_prune_last_habit_writes_empty_sequence(tmp_path: Path) -> None:
+    from scripts.habits import schedule_loader
+
+    text = (
+        _OPERATIONS_TEXT
+        + "habits:  # runtime\n"
+        "  # ── Daily ──\n"
+        "  - task_id: 1\n"
+        "    title: \"One\"\n"
+        "    rrule: \"FREQ=DAILY;INTERVAL=1\"\n"
+    )
+    path = tmp_path / "s.yaml"
+    path.write_text(text, encoding="utf-8")
+    assert prune_schedule_yaml(1, path) is True
+    written = path.read_text(encoding="utf-8")
+    assert written == _OPERATIONS_TEXT + "habits: []  # runtime\n  # ── Daily ──\n"
+    import yaml
+
+    assert yaml.safe_load(written)["habits"] == []
+    assert schedule_loader.load_schedule(path) == []
+    assert prune_schedule_yaml(1, path) is False  # idempotent after emptying
+
+
+def test_prune_last_habit_from_production_copy(tmp_path: Path) -> None:
+    """Pruning every habit from the real schedule ends with habits: [] and
+    the operations block byte-identical."""
+    import yaml
+
+    original = PRODUCTION_SCHEDULE.read_text(encoding="utf-8")
+    path = tmp_path / "phase3-schedule.yaml"
+    path.write_text(original, encoding="utf-8")
+    for entry in yaml.safe_load(original)["habits"]:
+        assert prune_schedule_yaml(entry["task_id"], path) is True
+    written = path.read_text(encoding="utf-8")
+    assert yaml.safe_load(written)["habits"] == []
+    assert _operations_block(written).encode() == _operations_block(original).encode()

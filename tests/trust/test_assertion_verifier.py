@@ -231,6 +231,8 @@ def test_iter_recent_assertions_missing_base_dir_yields_nothing(tmp_path, monkey
 
 
 class _FakeCreateClient:
+    """The v2 create seam create_task uses (#1111 WP08): create, then read back."""
+
     def __init__(self, *, put_result):
         self._put_result = put_result
         self.put_calls: list[tuple[str, dict]] = []
@@ -238,9 +240,13 @@ class _FakeCreateClient:
     def get(self, path, **_kwargs):
         raise AssertionError(f"unexpected GET {path}")
 
-    def put(self, path, *, json=None, **_kwargs):  # noqa: A002 - mirror client API
-        self.put_calls.append((path, json))
-        return self._put_result
+    def create_task_v2(self, project_id, fields, **_kwargs):
+        self.put_calls.append((f"/projects/{project_id}/tasks", dict(fields)))
+        return dict(self._put_result)
+
+    def get_task_v2(self, task_id):
+        assert task_id == self._put_result["id"]
+        return dict(self._put_result)
 
 
 def test_create_task_main_succeeds_even_if_record_assertion_raises(monkeypatch, capsys):

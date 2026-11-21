@@ -10,7 +10,7 @@ Why a wrapper instead of letting every caller call ``state_log.read``
 directly:
 
 - ``done_at`` on a Vikunja task is a single timestamp that gets reset on
-  every ``repeat_after`` recurrence cycle. For a daily habit, ``done_at``
+  every recurrence cycle (each completion of a repeating task). For a daily habit, ``done_at``
   is only useful for "is today's instance currently done" — it is NOT a
   history. Reading it for weekly accountability collapses 7 completions
   to either 0 or 1 depending on whether today's instance happens to be

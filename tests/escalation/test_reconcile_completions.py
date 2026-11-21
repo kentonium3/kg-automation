@@ -1664,3 +1664,466 @@ def test_reconcile_project_never_calls_vikunja_http_directly(
     new_records = [r for r in records if r.get("state") == "done"]
     assert len(new_records) == 1
     assert new_records[0]["source"] == "reconcile"
+
+
+# ---------------------------------------------------------------------------
+# Recurring completions (mission felix-rrule-adaptation, WP04, FR-014/FR-015)
+# ---------------------------------------------------------------------------
+
+_DAILY = {"freq": "daily", "interval": 1}
+
+
+def _cache_task_fields_v2(
+    task_id: int,
+    *,
+    done: bool = False,
+    due_date: str | None = "2026-05-25T12:00:00Z",
+    repeat: dict | None = None,
+    project_id: int = 4,
+    title: str = "Task",
+) -> dict:
+    """Cache fields as the WP06 sync writes them: raw ``repeat`` + from-current flag."""
+    return {
+        "title": title,
+        "done": done,
+        "due_date": due_date,
+        "project_id": project_id,
+        "repeat": repeat,
+        "repeats_from_current_date": False,
+        "labels": [],
+    }
+
+
+def _seed_rescheduled(jsonl_path: Path, task_id: int, project_id: int, to: str | None) -> None:
+    records = [
+        _make_record(
+            task_id=task_id, project_id=project_id, state="level_sent",
+            date_str="2026-05-18", level=1,
+        )
+    ]
+    if to is not None:
+        records.append(
+            _make_record(
+                task_id=task_id, project_id=project_id, state="rescheduled",
+                date_str="2026-05-19", timestamp="2026-05-19T12:00:00+00:00",
+                reschedule_to=to,
+            )
+        )
+    _write_jsonl(jsonl_path, records)
+
+
+def _reconcile_with(
+    fields: dict,
+    *,
+    jsonl_sandbox: Path,
+    mock_sync_cache_fixture,  # noqa: F811
+    mock_urlopen,
+    last_reschedule: str | None = "2026-05-22",
+):
+    project_id, task_id = 4, 1234
+    jsonl_path = jsonl_sandbox / f"project-{project_id}-escalation-history.jsonl"
+    _seed_rescheduled(jsonl_path, task_id, project_id, last_reschedule)
+    mock_sync_cache_fixture(tasks={task_id: fields})
+    mock_urlopen.side_effect = AssertionError("reconcile must not call Vikunja")
+    report = reconcile_project(project_id, jsonl_dir=jsonl_sandbox)
+    new = [r for r in _read_jsonl(jsonl_path) if r.get("source") == "reconcile"]
+    return report, new
+
+
+def test_recurring_due_advanced_emits_synthetic_done_not_rescheduled(
+    jsonl_sandbox: Path,
+    tmp_token_file: Path,
+    mock_sync_cache_fixture,  # noqa: F811
+    mock_urlopen,
+    recorded_hard_fails: _HardFailRecorder,
+) -> None:
+    """FR-015: rule present + due advanced + not done -> completed in the UI."""
+    report, new = _reconcile_with(
+        _cache_task_fields_v2(1234, repeat=_DAILY),
+        jsonl_sandbox=jsonl_sandbox,
+        mock_sync_cache_fixture=mock_sync_cache_fixture,
+        mock_urlopen=mock_urlopen,
+    )
+
+    assert report.synthetic_done_emitted == 1
+    assert report.synthetic_rescheduled_emitted == 0
+    assert report.hard_fails == []
+    [record] = new
+    assert record["state"] == "done"
+    assert record["note"] == (
+        "Synthesized by reconcile: recurring task advanced (completed in UI); "
+        "due_date 2026-05-22→2026-05-25"
+    )
+
+
+def test_non_recurring_due_advanced_still_emits_rescheduled(
+    jsonl_sandbox: Path,
+    tmp_token_file: Path,
+    mock_sync_cache_fixture,  # noqa: F811
+    mock_urlopen,
+    recorded_hard_fails: _HardFailRecorder,
+) -> None:
+    report, new = _reconcile_with(
+        _cache_task_fields_v2(1234, repeat=None),
+        jsonl_sandbox=jsonl_sandbox,
+        mock_sync_cache_fixture=mock_sync_cache_fixture,
+        mock_urlopen=mock_urlopen,
+    )
+
+    assert report.synthetic_rescheduled_emitted == 1
+    assert report.synthetic_done_emitted == 0
+    [record] = new
+    assert record["state"] == "rescheduled"
+    assert record["reschedule_to"] == "2026-05-25"
+
+
+def test_old_cache_without_repeat_key_keeps_todays_rescheduled_behaviour(
+    jsonl_sandbox: Path,
+    tmp_token_file: Path,
+    mock_sync_cache_fixture,  # noqa: F811
+    mock_urlopen,
+    recorded_hard_fails: _HardFailRecorder,
+) -> None:
+    """A pre-WP06 cache has no ``repeat`` key: fall back, never guess."""
+    fields = _cache_task_fields(1234, due_date="2026-05-25T12:00:00Z")
+    assert "repeat" not in fields
+    report, new = _reconcile_with(
+        fields,
+        jsonl_sandbox=jsonl_sandbox,
+        mock_sync_cache_fixture=mock_sync_cache_fixture,
+        mock_urlopen=mock_urlopen,
+    )
+
+    assert report.synthetic_rescheduled_emitted == 1
+    assert report.synthetic_done_emitted == 0
+    assert [r["state"] for r in new] == ["rescheduled"]
+
+
+@pytest.mark.parametrize(
+    ("last_reschedule", "due_date"),
+    [
+        (None, "2026-05-25T12:00:00Z"),  # no last-known due date to compare
+        ("2026-05-28", "2026-05-25T12:00:00Z"),  # moved earlier, not advanced
+    ],
+)
+def test_recurring_without_evidence_of_advance_emits_rescheduled(
+    jsonl_sandbox: Path,
+    tmp_token_file: Path,
+    mock_sync_cache_fixture,  # noqa: F811
+    mock_urlopen,
+    recorded_hard_fails: _HardFailRecorder,
+    last_reschedule: str | None,
+    due_date: str,
+) -> None:
+    report, new = _reconcile_with(
+        _cache_task_fields_v2(1234, repeat=_DAILY, due_date=due_date),
+        jsonl_sandbox=jsonl_sandbox,
+        mock_sync_cache_fixture=mock_sync_cache_fixture,
+        mock_urlopen=mock_urlopen,
+        last_reschedule=last_reschedule,
+    )
+
+    assert report.synthetic_done_emitted == 0
+    assert report.synthetic_rescheduled_emitted == 1
+    assert [r["state"] for r in new] == ["rescheduled"]
+
+
+def test_finished_series_reads_as_done(
+    jsonl_sandbox: Path,
+    tmp_token_file: Path,
+    mock_sync_cache_fixture,  # noqa: F811
+    mock_urlopen,
+    recorded_hard_fails: _HardFailRecorder,
+) -> None:
+    """FR-014: an UNTIL-ended series is done=true with the rule kept -> done-drift."""
+    report, new = _reconcile_with(
+        _cache_task_fields_v2(
+            1234, done=True, repeat={**_DAILY, "until": "2026-05-24T23:59:59Z"}
+        ),
+        jsonl_sandbox=jsonl_sandbox,
+        mock_sync_cache_fixture=mock_sync_cache_fixture,
+        mock_urlopen=mock_urlopen,
+    )
+
+    assert report.synthetic_done_emitted == 1
+    assert report.synthetic_rescheduled_emitted == 0
+    [record] = new
+    assert record["state"] == "done"
+    assert record["note"] == "Synthesized by reconcile: Vikunja done=true, no JSONL done record."
+
+
+def test_recurring_done_dry_run_counts_without_writing(
+    jsonl_sandbox: Path,
+    tmp_token_file: Path,
+    mock_sync_cache_fixture,  # noqa: F811
+    mock_urlopen,
+    recorded_hard_fails: _HardFailRecorder,
+) -> None:
+    project_id, task_id = 4, 1234
+    jsonl_path = jsonl_sandbox / f"project-{project_id}-escalation-history.jsonl"
+    _seed_rescheduled(jsonl_path, task_id, project_id, "2026-05-22")
+    mock_sync_cache_fixture(tasks={task_id: _cache_task_fields_v2(task_id, repeat=_DAILY)})
+    before = _read_jsonl(jsonl_path)
+
+    report = reconcile_project(project_id, jsonl_dir=jsonl_sandbox, dry_run=True)
+
+    assert report.synthetic_done_emitted == 1
+    assert _read_jsonl(jsonl_path) == before
+
+
+# ---------------------------------------------------------------------------
+# Due-date baseline + subscription window (WP04 review cycle 1, findings 1-2)
+# ---------------------------------------------------------------------------
+
+
+def _level_sent(task_id: int, ts: str, *, due_at_alert: str | None, level: int = 1) -> dict:
+    record = _make_record(
+        task_id=task_id, project_id=4, state="level_sent",
+        date_str=ts[:10], timestamp=ts, level=level,
+    )
+    if due_at_alert is not None:
+        record["due_date_at_alert"] = due_at_alert
+    return record
+
+
+def _run(
+    jsonl_path: Path, fields: dict, jsonl_sandbox: Path, mock_sync_cache_fixture  # noqa: F811
+):
+    mock_sync_cache_fixture(tasks={1234: fields})
+    report = reconcile_project(4, jsonl_dir=jsonl_sandbox)
+    return report, _read_jsonl(jsonl_path)
+
+
+def test_first_recurring_completion_before_any_reschedule_is_done(
+    jsonl_sandbox: Path,
+    tmp_token_file: Path,
+    mock_sync_cache_fixture,  # noqa: F811
+    mock_urlopen,
+    recorded_hard_fails: _HardFailRecorder,
+) -> None:
+    """Finding 1: the level_sent baseline makes the first completion a done."""
+    jsonl_path = jsonl_sandbox / "project-4-escalation-history.jsonl"
+    _write_jsonl(
+        jsonl_path,
+        [_level_sent(1234, "2026-05-21T12:00:00+00:00", due_at_alert="2026-05-20T03:59:59Z")],
+    )
+    mock_urlopen.side_effect = AssertionError("reconcile must not call Vikunja")
+
+    report, records = _run(
+        jsonl_path,
+        _cache_task_fields_v2(1234, repeat=_DAILY, due_date="2026-05-21T03:59:59Z"),
+        jsonl_sandbox,
+        mock_sync_cache_fixture,
+    )
+
+    assert report.synthetic_done_emitted == 1
+    assert report.synthetic_rescheduled_emitted == 0
+    [done] = [r for r in records if r["state"] == "done"]
+    assert done["note"].endswith("due_date 2026-05-20T03:59:59Z\u21922026-05-21T03:59:59Z")
+
+
+def test_recurring_due_equal_to_baseline_is_no_drift(
+    jsonl_sandbox: Path,
+    tmp_token_file: Path,
+    mock_sync_cache_fixture,  # noqa: F811
+    mock_urlopen,
+    recorded_hard_fails: _HardFailRecorder,
+) -> None:
+    jsonl_path = jsonl_sandbox / "project-4-escalation-history.jsonl"
+    _write_jsonl(
+        jsonl_path,
+        [_level_sent(1234, "2026-05-21T12:00:00+00:00", due_at_alert="2026-05-20T03:59:59Z")],
+    )
+    report, records = _run(
+        jsonl_path,
+        _cache_task_fields_v2(1234, repeat=_DAILY, due_date="2026-05-20T03:59:59Z"),
+        jsonl_sandbox,
+        mock_sync_cache_fixture,
+    )
+
+    assert report.synthetic_done_emitted == 0
+    assert report.synthetic_rescheduled_emitted == 0
+    assert len(records) == 1
+
+
+def test_unusable_baseline_falls_back_to_todays_behaviour(
+    jsonl_sandbox: Path,
+    tmp_token_file: Path,
+    mock_sync_cache_fixture,  # noqa: F811
+    mock_urlopen,
+    recorded_hard_fails: _HardFailRecorder,
+) -> None:
+    jsonl_path = jsonl_sandbox / "project-4-escalation-history.jsonl"
+    _write_jsonl(
+        jsonl_path,
+        [_level_sent(1234, "2026-05-21T12:00:00+00:00", due_at_alert="0001-01-01T00:00:00Z")],
+    )
+    report, _ = _run(
+        jsonl_path,
+        _cache_task_fields_v2(1234, repeat=_DAILY),
+        jsonl_sandbox,
+        mock_sync_cache_fixture,
+    )
+
+    assert report.synthetic_rescheduled_emitted == 1
+    assert report.synthetic_done_emitted == 0
+
+
+def test_multi_cycle_complete_reescalate_complete_again(
+    jsonl_sandbox: Path,
+    tmp_token_file: Path,
+    mock_urlopen,
+    recorded_hard_fails: _HardFailRecorder,
+    monkeypatch,
+) -> None:
+    """Finding 2: an earlier done must not hide the next occurrence's completion.
+
+    The cache read is swapped for a mutable view (the shared cache fixture
+    is single-call), so one test walks complete -> re-escalate -> complete.
+    """
+    from scripts.common.sync_cache import TaskCacheView
+
+    cache: dict[str, dict] = {}
+
+    def _read(*, task_id, sla, touchpoint_name):
+        return TaskCacheView(
+            task_id=task_id,
+            fields=cache["fields"],
+            vikunja_updated_at="2026-05-21T00:00:00Z",
+            is_private=False,
+        )
+
+    monkeypatch.setattr(rcn, "read_cached_task_by_id", _read)
+    stamps = iter(["2026-05-21T13:00:00+00:00", "2026-05-22T13:00:00+00:00"])
+    monkeypatch.setattr(rc, "_now_utc_iso", lambda: next(stamps))
+    from datetime import datetime as _real_datetime
+
+    today = {"value": _real_datetime(2026, 5, 21, 9, 0)}
+
+    class _Clock(_real_datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return today["value"].replace(tzinfo=tz)
+
+    # Each cycle's synthetic done is dated on its own day; the (task, date,
+    # state) idempotency key would otherwise fold two same-day records.
+    monkeypatch.setattr(rcn, "datetime", _Clock)
+    mock_urlopen.side_effect = AssertionError("reconcile must not call Vikunja")
+    jsonl_path = jsonl_sandbox / "project-4-escalation-history.jsonl"
+    _write_jsonl(
+        jsonl_path,
+        [_level_sent(1234, "2026-05-21T12:00:00+00:00", due_at_alert="2026-05-20T03:59:59Z")],
+    )
+
+    # Cycle 1: completed in the UI -> synthetic done closes the subscription.
+    cache["fields"] = _cache_task_fields_v2(1234, repeat=_DAILY, due_date="2026-05-21T03:59:59Z")
+    assert reconcile_project(4, jsonl_dir=jsonl_sandbox).synthetic_done_emitted == 1
+
+    # Unsubscribed until re-escalated: the same cache state emits nothing.
+    assert reconcile_project(4, jsonl_dir=jsonl_sandbox).tasks_scanned == 0
+
+    # The next occurrence goes overdue and is escalated again.
+    with jsonl_path.open("a", encoding="utf-8") as fh:
+        fh.write(json.dumps(_level_sent(
+            1234, "2026-05-22T12:00:00+00:00", due_at_alert="2026-05-21T03:59:59Z"
+        )) + "\n")
+
+    # Cycle 2 (next day): completed again -> a second done, baselined on the new alert.
+    today["value"] = _real_datetime(2026, 5, 22, 9, 0)
+    cache["fields"] = _cache_task_fields_v2(1234, repeat=_DAILY, due_date="2026-05-22T03:59:59Z")
+    report2 = reconcile_project(4, jsonl_dir=jsonl_sandbox)
+
+    assert report2.synthetic_done_emitted == 1
+    assert report2.synthetic_rescheduled_emitted == 0
+    dones = [r for r in _read_jsonl(jsonl_path) if r["state"] == "done"]
+    assert [d["note"].split("due_date ")[1] for d in dones] == [
+        "2026-05-20T03:59:59Z\u21922026-05-21T03:59:59Z",
+        "2026-05-21T03:59:59Z\u21922026-05-22T03:59:59Z",
+    ]
+
+
+def test_done_drift_after_resubscription_is_not_hidden_by_old_done(
+    jsonl_sandbox: Path,
+    tmp_token_file: Path,
+    mock_sync_cache_fixture,  # noqa: F811
+    mock_urlopen,
+    recorded_hard_fails: _HardFailRecorder,
+) -> None:
+    """A finished series (done=true) in a later subscription still reads as done."""
+    jsonl_path = jsonl_sandbox / "project-4-escalation-history.jsonl"
+    _write_jsonl(
+        jsonl_path,
+        [
+            _level_sent(1234, "2026-05-18T12:00:00+00:00", due_at_alert="2026-05-17T03:59:59Z"),
+            _make_record(task_id=1234, state="done", date_str="2026-05-18",
+                         timestamp="2026-05-18T13:00:00+00:00", source="reconcile"),
+            _level_sent(1234, "2026-05-21T12:00:00+00:00", due_at_alert="2026-05-20T03:59:59Z"),
+        ],
+    )
+    report, records = _run(
+        jsonl_path,
+        _cache_task_fields_v2(1234, done=True, repeat={**_DAILY, "until": "2026-05-20T23:59:59Z"}),
+        jsonl_sandbox,
+        mock_sync_cache_fixture,
+    )
+
+    assert report.synthetic_done_emitted == 1
+    assert len([r for r in records if r["state"] == "done"]) == 2
+
+
+def test_same_day_advance_of_hourly_rule_is_done(
+    jsonl_sandbox: Path,
+    tmp_token_file: Path,
+    mock_sync_cache_fixture,  # noqa: F811
+    mock_urlopen,
+    recorded_hard_fails: _HardFailRecorder,
+) -> None:
+    """Cycle 2, finding 2: an instant baseline sees a same-day advance."""
+    jsonl_path = jsonl_sandbox / "project-4-escalation-history.jsonl"
+    _write_jsonl(
+        jsonl_path,
+        [_level_sent(1234, "2026-05-21T15:30:00+00:00", due_at_alert="2026-05-21T15:00:00Z")],
+    )
+    mock_urlopen.side_effect = AssertionError("reconcile must not call Vikunja")
+
+    report, records = _run(
+        jsonl_path,
+        _cache_task_fields_v2(
+            1234, repeat={"freq": "hourly", "interval": 1}, due_date="2026-05-21T16:00:00Z"
+        ),
+        jsonl_sandbox,
+        mock_sync_cache_fixture,
+    )
+
+    assert report.synthetic_done_emitted == 1
+    assert report.synthetic_rescheduled_emitted == 0
+    [done] = [r for r in records if r["state"] == "done"]
+    assert done["note"].endswith("due_date 2026-05-21T15:00:00Z\u21922026-05-21T16:00:00Z")
+
+
+def test_legacy_date_baseline_still_compares_calendar_dates(
+    jsonl_sandbox: Path,
+    tmp_token_file: Path,
+    mock_sync_cache_fixture,  # noqa: F811
+    mock_urlopen,
+    recorded_hard_fails: _HardFailRecorder,
+) -> None:
+    """A newer reschedule_to (date only) wins over the alert instant: same ET day = no drift."""
+    jsonl_path = jsonl_sandbox / "project-4-escalation-history.jsonl"
+    _write_jsonl(
+        jsonl_path,
+        [
+            _level_sent(1234, "2026-05-20T12:00:00+00:00", due_at_alert="2026-05-19T03:59:59Z"),
+            _make_record(task_id=1234, state="rescheduled", date_str="2026-05-21",
+                         timestamp="2026-05-21T12:00:00+00:00", reschedule_to="2026-05-25"),
+        ],
+    )
+    report, _ = _run(
+        jsonl_path,
+        _cache_task_fields_v2(1234, repeat=_DAILY, due_date="2026-05-26T03:59:59Z"),
+        jsonl_sandbox,
+        mock_sync_cache_fixture,
+    )
+
+    assert report.synthetic_done_emitted == 0
+    assert report.synthetic_rescheduled_emitted == 0

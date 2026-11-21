@@ -35,12 +35,15 @@ REASON_CODES: tuple[str, ...] = (
 # Fields whose value affects downstream Felix behavior. Divergences on these
 # fields strengthen the unsafe-class signal. Curated default; downstream WPs
 # may surface this via the driver's config without re-deriving the set.
+# ``repeat`` / ``repeats_from_current_date`` replaced the dead v1
+# ``repeat_after`` / ``repeat_mode`` pair (#1111): a rule change alters what
+# Vikunja does on the next completion, so it is never auto-resolved.
 DOWNSTREAM_AFFECTING_FIELDS: frozenset[str] = frozenset({
     "due_date",
     "project_id",
     "done",
-    "repeat_after",
-    "repeat_mode",
+    "repeat",
+    "repeats_from_current_date",
     "title",
 })
 

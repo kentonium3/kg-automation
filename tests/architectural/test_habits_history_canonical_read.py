@@ -60,11 +60,12 @@ VIKUNJA_CURRENT_STATE_ALLOWLIST: frozenset[str] = frozenset({
     "record_completion.py",              # writes completion to Vikunja current state
     "sweeper.py",                        # current-state sweeper for missed day-specific habits
     "set_due_dates.py",                  # current-state mutation
-    "migrate_schedule.py",               # current-state mutation: one-shot Tier-2 schedule migration (writes recurrence via felix-bot; reads done_at only for the rollback snapshot, not as completion history) — VikunjaClient import surfaced by the #860 migration
     "identify_workout_task.py",          # current-state query for the day's workout task
     "backfill_jsonl_from_comments.py",   # one-time backfill READS Vikunja COMMENTS (not done_at)
-    "query_active_habits_weekly.py",     # current-state ONLY: titles + repeat_after classification
+    "query_active_habits_weekly.py",     # current-state ONLY: titles + rule classification (repeat), preview of scheduled days
+    "schedule_loader.py",                # current-state ONLY: --check-live drift check GETs each habit's live rule (#1111 FR-013); never reads done_at as history
     "weekly_report_driver.py",           # wraps query_active_habits_weekly in-process; same current-state-only VikunjaClient use (#723)
+    "manage_habit.py",                   # current-state ONLY: pause/resume (description prefix) and remove (end series) one habit (#1111 FR-026); never reads done_at as history
 })
 
 

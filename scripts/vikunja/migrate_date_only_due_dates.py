@@ -21,9 +21,10 @@ of day) and values already at EOD-ET are left untouched — the migration is
 **idempotent** (a re-run is a no-op).
 
 Dry-run by default; ``--apply`` executes. Writes go through the **kent token**
-(``vikunja-api-kent``) via an allowlisted read-modify-write with an instant-based
-readback check (Vikunja normalizes due_date to UTC ``Z``, so a string compare
-false-fails, #757). Mirrors ``scripts/vikunja/migrate_tasks.py``.
+(``vikunja-api-kent``) as a v2 merge-patch carrying only ``due_date`` (#1111),
+with an instant-based readback check (Vikunja normalizes due_date to UTC ``Z``,
+so a string compare false-fails, #757) plus the recurrence-state check shared
+with ``scripts/vikunja/migrate_tasks.py`` (:func:`rule_state_drift`).
 """
 from __future__ import annotations
 
@@ -36,10 +37,9 @@ from scripts.common.vikunja_client import VikunjaClient, VikunjaError
 from scripts.common.vikunja_config import get_vikunja_base_url
 from scripts.vikunja.migrate_tasks import (
     DEFAULT_KENT_TOKEN_FILE,
-    _WRITABLE_FIELDS,
     _read_token_file,
-    _writable_payload,
     list_all_tasks,
+    rule_state_drift,
 )
 
 #: Vikunja's "no due date" sentinel prefix (year-1).
@@ -104,19 +104,19 @@ def plan_migration(tasks: list[dict]) -> list[dict]:
 
 
 def apply_change(client: Any, task: dict, new_due: str) -> None:
-    """RMW the task's ``due_date`` to *new_due*; readback-verify the INSTANT.
+    """Patch the task's ``due_date`` to *new_due*; readback-verify the result.
 
-    Echoes the writable-field allowlist so Vikunja's partial-replace can't zero
-    an unstated field (#524), then compares the readback due_date by *instant*
-    (Vikunja returns it as UTC ``Z``, so a string compare of our ET-offset write
-    false-fails, #757). Other allowlisted fields must be byte-unchanged.
+    Sends exactly ``{"due_date": new_due}`` through
+    :meth:`VikunjaClient.patch_task`, so no other field is re-sent (#524,
+    #1111). The v2 readback must show the due_date *instant* (Vikunja returns
+    it as UTC ``Z``, so a string compare of our ET-offset write false-fails,
+    #757), and the rule, from-current flag and reminders unchanged (relative
+    reminders are compared by anchor and period; :func:`rule_state_drift`).
     """
     task_id = task["id"]
-    payload = _writable_payload(task)
-    payload["due_date"] = new_due
-    client.post(f"/tasks/{task_id}", json=payload)
+    client.patch_task(task_id, {"due_date": new_due})
 
-    readback = client.get(f"/tasks/{task_id}")
+    readback = client.get_task_v2(task_id)
     if not isinstance(readback, dict):
         raise MigrationError(f"task {task_id}: readback returned a non-object")
     if et_datetime.parse_vikunja_instant(
@@ -126,14 +126,11 @@ def apply_change(client: Any, task: dict, new_due: str) -> None:
             f"task {task_id}: due_date readback instant is "
             f"{readback.get('due_date')!r}, expected {new_due!r}"
         )
-    for name in _WRITABLE_FIELDS:
-        if name == "due_date":
-            continue
-        if name in payload and readback.get(name) != payload[name]:
-            raise MigrationError(
-                f"task {task_id}: field {name!r} drifted from {payload[name]!r} "
-                f"to {readback.get(name)!r} (partial-replace, #524)"
-            )
+    drift = rule_state_drift(task, readback)
+    if drift is not None:
+        raise MigrationError(
+            f"task {task_id}: {drift} (recurrence state drifted, #524, #1111)"
+        )
 
 
 def _print_plan(plan: list[dict]) -> None:

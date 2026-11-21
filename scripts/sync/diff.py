@@ -12,10 +12,11 @@ from __future__ import annotations
 
 import json
 import re
+from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any
 
-from scripts.common import vikunja_refs
+from scripts.common import vikunja_refs, vikunja_rule
 from scripts.sync.fetch import FetchedSnapshot
 from scripts.sync.state import LayerSummary, PerLayerSummary, ProjectCacheRecord, TaskCacheRecord
 
@@ -24,6 +25,7 @@ from scripts.sync.state import LayerSummary, PerLayerSummary, ProjectCacheRecord
 __all__ = [
     "LayerSummary",
     "PerLayerSummary",
+    "BaselineSeed",
     "DivergenceCandidate",
     "ProjectDiffEvent",
     "compute_divergences",
@@ -37,13 +39,17 @@ __all__ = [
 # ---------------------------------------------------------------------------
 
 
+# ``repeat`` (structured rule) and ``repeats_from_current_date`` replace the
+# dead v1 ``repeat_after`` / ``repeat_mode`` pair (#1111, FR-016). The sync
+# reads LIST endpoints, whose bodies carry ``repeat`` but not ``repeats_rrule``
+# (research.md R-003), so ``repeats_rrule`` is deliberately NOT tracked.
 TRACKED_TASK_FIELDS: frozenset[str] = frozenset({
     "title",
     "done",
     "due_date",
     "project_id",
-    "repeat_after",
-    "repeat_mode",
+    "repeat",
+    "repeats_from_current_date",
     "labels",
 })
 
@@ -82,6 +88,28 @@ class DivergenceCandidate:
 
 
 # ---------------------------------------------------------------------------
+# BaselineSeed
+# ---------------------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class BaselineSeed:
+    """One (task, field) pair adopted from Vikunja because the cache lacked the key.
+
+    A cached entry written before a field was tracked has no key for it. Rather
+    than raise a divergence (cached ``None`` vs live value) for every such task,
+    the live value is adopted once, with no divergence (research.md R-008). The
+    cycle records every seed in ``seed-ledger.jsonl`` (post-plan finding 9), so
+    a seed is never silent. ``seeded_value`` is the canonical (normalised) live
+    value; ``None`` for ``repeat`` means "no rule was observed".
+    """
+
+    vikunja_entity_id: int
+    field: str
+    seeded_value: Any
+
+
+# ---------------------------------------------------------------------------
 # ProjectDiffEvent
 # ---------------------------------------------------------------------------
 
@@ -117,6 +145,10 @@ class ProjectDiffEvent:
 
 _DATETIME_FIELDS: frozenset[str] = frozenset({"due_date"})
 _LIST_FIELDS: frozenset[str] = frozenset({"labels"})
+# Structured recurrence rules: compared in vikunja_rule's normal form.
+_RULE_FIELDS: frozenset[str] = frozenset({"repeat"})
+# Booleans where an absent/None value means False.
+_FLAG_FIELDS: frozenset[str] = frozenset({"repeats_from_current_date"})
 
 _ISO_FRACTIONAL_RE = re.compile(r"^(.*?)(\.\d+)([Zz]|[+-]\d{2}:?\d{2})$")
 
@@ -164,7 +196,25 @@ def _canonicalize(field: str, value: Any) -> Any:
         return _normalize_datetime(value)
     if field in _LIST_FIELDS:
         return _normalize_list(value)
+    if field in _RULE_FIELDS:
+        if value is None or isinstance(value, Mapping):
+            return vikunja_rule.normalise(value)
+        # A malformed (non-mapping) rule is compared verbatim, so it can never
+        # silently equal "no rule".
+        return value
+    if field in _FLAG_FIELDS:
+        return bool(value)
     return value
+
+
+def _reported(field: str, raw: Any, canonical: Any) -> Any:
+    """Value carried on a DivergenceCandidate.
+
+    Rule fields report the normal form (both sides comparable at a glance, no
+    response-only noise such as ``read_only``); every other field keeps its raw
+    value, as before WP06.
+    """
+    return canonical if field in _RULE_FIELDS else raw
 
 
 # ---------------------------------------------------------------------------
@@ -184,6 +234,7 @@ def compute_divergences(
     set[int],
     list[ProjectDiffEvent],
     LayerSummary,
+    list[BaselineSeed],
 ]:
     """Compute the full set-diff for one cycle. Pure function.
 
@@ -199,7 +250,7 @@ def compute_divergences(
             Structural operations (additions and deletions) are NOT filtered.
 
     Returns:
-        A 5-tuple:
+        A 6-tuple:
           - divergences: list[DivergenceCandidate] — task content changes
             (in_both tasks with changed TRACKED_TASK_FIELDS), sorted by
             vikunja_entity_id ascending.
@@ -210,6 +261,9 @@ def compute_divergences(
           - project_events: list[ProjectDiffEvent] — project-layer changes,
             sorted by (project_id, type).
           - layer_summary: LayerSummary — per-layer aggregate counts.
+          - seeds: list[BaselineSeed] — in_both (non-private) tasks whose
+            cached entry LACKS a tracked key (absent, not ``None``). The live
+            value is adopted without a divergence. Sorted by (task id, field).
 
     Pure function. No I/O.
     """
@@ -233,6 +287,7 @@ def compute_divergences(
     }
 
     divergences: list[DivergenceCandidate] = []
+    seeds: list[BaselineSeed] = []
     for task_id in in_both:
         task = snapshot_by_id[task_id]
 
@@ -251,8 +306,21 @@ def compute_divergences(
         cached_fields = cache_entry.fields
         for field_name in TRACKED_TASK_FIELDS:
             vikunja_raw = task.get(field_name)
-            cached_raw = cached_fields.get(field_name)
             vikunja_canonical = _canonicalize(field_name, vikunja_raw)
+            if field_name not in cached_fields:
+                # Seed-on-missing-key (R-008): the key is ABSENT (an entry
+                # written before this field was tracked), not None. Adopt the
+                # live value once; the cache write persists it and the cycle
+                # records it in the seed ledger.
+                seeds.append(
+                    BaselineSeed(
+                        vikunja_entity_id=task_id,
+                        field=field_name,
+                        seeded_value=vikunja_canonical,
+                    )
+                )
+                continue
+            cached_raw = cached_fields[field_name]
             cached_canonical = _canonicalize(field_name, cached_raw)
             if vikunja_canonical == cached_canonical:
                 continue
@@ -260,8 +328,8 @@ def compute_divergences(
                 DivergenceCandidate(
                     vikunja_entity_id=task_id,
                     field=field_name,
-                    vikunja_value=vikunja_raw,
-                    felix_cached_value=cached_raw,
+                    vikunja_value=_reported(field_name, vikunja_raw, vikunja_canonical),
+                    felix_cached_value=_reported(field_name, cached_raw, cached_canonical),
                     vikunja_updated_at=str(task.get("updated") or ""),
                     ts_observed_utc=ts_observed_utc,
                 )
@@ -269,6 +337,7 @@ def compute_divergences(
 
     # Sort divergences by task ID ascending (deterministic output).
     divergences.sort(key=lambda c: (c.vikunja_entity_id, c.field))
+    seeds.sort(key=lambda s: (s.vikunja_entity_id, s.field))
 
     first_observation_task_ids: set[int] = in_vikunja_only
     deleted_task_ids: set[int] = in_cache_only
@@ -381,4 +450,5 @@ def compute_divergences(
         deleted_task_ids,
         project_events,
         layer_summary,
+        seeds,
     )

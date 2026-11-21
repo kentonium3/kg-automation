@@ -102,8 +102,15 @@ class TestConstants:
         assert isinstance(c.DOWNSTREAM_AFFECTING_FIELDS, frozenset)
 
     def test_downstream_set_contains_expected_fields(self):
-        for name in ("due_date", "project_id", "done", "repeat_after", "repeat_mode", "title"):
+        for name in (
+            "due_date", "project_id", "done", "repeat", "repeats_from_current_date", "title",
+        ):
             assert name in c.DOWNSTREAM_AFFECTING_FIELDS
+
+    def test_downstream_set_drops_dead_v1_rule_fields(self):
+        # #1111: repeat_after / repeat_mode no longer exist on v2 bodies.
+        assert "repeat_after" not in c.DOWNSTREAM_AFFECTING_FIELDS
+        assert "repeat_mode" not in c.DOWNSTREAM_AFFECTING_FIELDS
 
     def test_override_label_literal(self):
         assert c.MANUAL_OVERRIDE_LABEL == "felix:ignore"
@@ -295,3 +302,29 @@ class TestDeterminism:
         task = {"title": "x"}
         results = [c.classify(candidate, task) for _ in range(5)]
         assert all(r == results[0] for r in results)
+
+
+# ===========================================================================
+# Rule divergence (WP06 / #1111, FR-016)
+# ===========================================================================
+
+
+class TestRuleDivergenceIsUnsafe:
+    @pytest.mark.parametrize("field", ["repeat", "repeats_from_current_date"])
+    def test_rule_divergence_classified_unsafe(self, field):
+        cand = DivergenceCandidate(
+            vikunja_entity_id=14,
+            field=field,
+            vikunja_value=None if field == "repeat" else True,
+            felix_cached_value=(
+                {"freq": "daily", "interval": 1} if field == "repeat" else False
+            ),
+            vikunja_updated_at="2026-11-19T12:00:00Z",
+            ts_observed_utc=TS,
+        )
+        result = c.classify(cand, {"id": 14, "title": "Wake at 5:00 AM", "labels": []})
+        assert result.class_ == c.CLASS_UNSAFE
+        assert "uc3_downstream_behavior" in result.unsafe_reasons
+        # Both normalised values reach the classified conflict unchanged.
+        assert result.candidate.vikunja_value == cand.vikunja_value
+        assert result.candidate.felix_cached_value == cand.felix_cached_value

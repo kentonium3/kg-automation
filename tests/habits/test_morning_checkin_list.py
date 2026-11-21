@@ -47,8 +47,7 @@ def _task_fields(
     title: str = "Habit",
     due_date: str = "2026-05-22T08:00:00Z",
     done: bool = False,
-    repeat_after: int = 86400,
-    repeat_mode: str = "default",
+    repeat: dict | None = None,
     project_id: int = HABITS_PROJECT_ID,
     labels: list | None = None,
 ) -> dict:
@@ -57,8 +56,7 @@ def _task_fields(
         "title": title,
         "due_date": due_date,
         "done": done,
-        "repeat_after": repeat_after,
-        "repeat_mode": repeat_mode,
+        "repeat": repeat if repeat is not None else {"freq": "daily", "interval": 1},
         "project_id": project_id,
         "labels": labels or [],
     }

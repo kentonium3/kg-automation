@@ -5,7 +5,9 @@ Three-write atomic completion record per ADR Q3-D (research D4):
 
     Step 1: idempotency check via ``state_log.read("habits", task_id, date, state)``
             -- if a matching record exists, exit 0 immediately (no writes).
-    Step 2: POST /tasks/<id> with ``done=true`` -- Vikunja auto-advance trigger.
+    Step 2: PATCH /api/v2/tasks/<id> with exactly ``{"done": true}`` --
+            Vikunja advances the series by its rule (#1111). The result is
+            classified by ``vikunja_rule.completion_outcome``.
     Step 3: PUT /tasks/<id>/comments -- UI-visible mirror (G4: PUT not POST).
     Step 4: state_log.append("habits", record) -- canonical history.
 
@@ -31,7 +33,8 @@ CLI:
 
 Exit codes (per contracts/cli.md):
     0 -- success (three writes done OR idempotent no-op detected)
-    1 -- Vikunja write failure (step 2 or step 3)
+    1 -- Vikunja write failure (step 2 or step 3), or an ``unexpected``
+         completion outcome (comment + state log still written)
     2 -- state_log write failure (Vikunja already committed -- operator triages)
     3 -- validation / usage error (bad state value, missing required arg, etc.)
 
@@ -69,7 +72,11 @@ from scripts.common.vikunja_config import (
     get_vikunja_base_url,
     get_vikunja_token_path,
 )
-
+from scripts.common.vikunja_rule import (
+    completion_outcome,
+    exhaustion_expected,
+    recurrence_drift,
+)
 
 # ---------------------------------------------------------------------------
 # Module constants
@@ -86,6 +93,10 @@ DEFAULT_TOKEN_PATH: str = ""
 #: appends the free-form note as a final pipe-delimited segment.
 COMMENT_TEMPLATE = "[Felix] {date} | {state}"
 COMMENT_TEMPLATE_WITH_NOTE = "[Felix] {date} | {state} | {note}"
+
+#: Marker added to the comment and the state-log note when the completion
+#: ended the series (COUNT exhausted or UNTIL passed, FR-014).
+SERIES_ENDED_MARKER = "series_ended"
 
 
 # ---------------------------------------------------------------------------
@@ -132,6 +143,23 @@ def _format_comment(date: str, state: str, note: str | None) -> str:
     )
 
 
+def _with_outcome_marker(note: str | None, marker: str) -> str:
+    """Return *note* with *marker* appended (or *marker* alone if no note)."""
+    if note is None or not str(note).strip():
+        return marker
+    return f"{str(note).strip()}; {marker}"
+
+
+def _rule_state(task: dict) -> str:
+    """Short rule-state rendering for error messages."""
+    return (
+        f"done={task.get('done')!r} due_date={task.get('due_date')!r} "
+        f"repeats_rrule={task.get('repeats_rrule')!r} "
+        f"repeats_from_current_date={task.get('repeats_from_current_date')!r} "
+        f"reminders={len(task.get('reminders') or [])}"
+    )
+
+
 # ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
@@ -164,7 +192,14 @@ def record(
        violation before any I/O.
     2. **Idempotency check**: ``state_log.read("habits", task_id, date, state)``.
        If a matching record exists, return immediately (no writes).
-    3. **Step 2 (Vikunja done=true)**: POST ``/tasks/<id>`` with ``{"done": True}``.
+    3. **Step 2 (Vikunja done=true)**: GET the v2 task, decide whether the
+       completion should end the series (``exhaustion_expected``), PATCH
+       ``/api/v2/tasks/<id>`` with exactly ``{"done": True}`` and classify
+       the result (``completion_outcome``): ``advanced``, ``series_ended``
+       (recorded as ``series_ended`` in the comment and the state-log note)
+       or ``unexpected``. A lost or changed ``repeats_from_current_date`` or
+       reminder (``vikunja_rule.recurrence_drift``, completion-aware) also
+       makes the outcome ``unexpected``.
     4. **Step 3 (Vikunja comment)**: PUT ``/tasks/<id>/comments`` with
        ``{"comment": "[Felix] <date> | <state>"}`` (G4: PUT not POST).
     5. **Step 4 (state_log)**: ``state_log.append("habits", record)``.
@@ -190,7 +225,9 @@ def record(
     Raises:
         ValueError: On invalid state, missing field, or other schema
             violation -- raised before any I/O.
-        OSError: On Vikunja API failure (step 2 or 3) or state_log write
+        OSError: On Vikunja API failure (step 2 or 3), an ``unexpected``
+            completion outcome (raised after steps 3 and 4 are written,
+            message ``"step 2: unexpected completion outcome ..."``) or state_log write
             failure (step 4). The exception message is prefixed with
             ``"step N (...)"`` so the caller can distinguish failure points.
     """
@@ -224,43 +261,48 @@ def record(
     if existing:
         return
 
-    # Step 2: Vikunja done=true. Narrow read-modify-write via VikunjaClient
-    # (WP01's replace_task_fields, driven with a manually-echoed body --
-    # NOT update_task_fields' full-current-task echo; see WP04 caveat).
-    #
-    # WHY the GET first (read-modify-write): Vikunja v0.24.6 treats POST
-    # /tasks/<id> as a replacement -- fields not in the body are zeroed
-    # server-side. Posting {"done": true} alone clears repeat_after and
-    # repeat_mode, breaking the very auto-advance trigger this step exists
-    # to fire. See #524 for the reproducer (2026-06-04 morning check-in
-    # missed 4 of 7 daily habits because earlier completions had silently
-    # stripped repeat_after=86400 -> 0). We GET the current task and echo
-    # repeat_after/repeat_mode back so the recurrence config survives --
-    # but the POST body stays NARROW (only these 3 fields), matching the
-    # pre-migration wire shape exactly (not a full-task echo).
+    # Step 2: Vikunja done=true via the v2 merge patch (#1111). A v2 PATCH
+    # leaves every omitted field as stored, so the body is exactly
+    # {"done": true} -- nothing is echoed back and the rule survives. The
+    # server advances a repeating task to its next occurrence and reopens it;
+    # completion_outcome classifies what actually happened.
     client = VikunjaClient(base_url=api_base_url, token=token)
     try:
-        current = client.get_task(task_id)
+        before = client.get_task_v2(task_id)
     except VikunjaError as e:
         raise OSError(
             f"step 2 (Vikunja GET pre-done) failed: {_vikunja_error_detail(e)}"
         ) from e
-    if not isinstance(current, dict):
-        raise OSError(
-            f"step 2 (Vikunja GET pre-done) returned non-dict body: "
-            f"{type(current).__name__}"
-        )
-    body = {
-        "done": True,
-        "repeat_after": current.get("repeat_after", 0),
-        "repeat_mode": current.get("repeat_mode", 0),
-    }
+    exhaustion = exhaustion_expected(before, preview=client.preview_occurrences)
     try:
-        client.replace_task_fields(task_id, body)
+        after = client.patch_task(task_id, {"done": True})
     except VikunjaError as e:
         raise OSError(
             f"step 2 (Vikunja done=true) failed: {_vikunja_error_detail(e)}"
         ) from e
+    if after is None:
+        # 304: nothing changed (already done). Re-read for the classifier.
+        try:
+            after = client.get_task_v2(task_id)
+        except VikunjaError as e:
+            raise OSError(
+                f"step 2 (Vikunja GET post-done) failed: "
+                f"{_vikunja_error_detail(e)}"
+            ) from e
+    outcome = completion_outcome(before, after, exhaustion=exhaustion)
+    # The rule itself is judged by completion_outcome. The flag and the
+    # reminders must survive too (FR-020): absolute reminders may move only
+    # as the server moves them on an advance, relative ones are recomputed
+    # from their anchor (shared helper, same rules as escalation's check).
+    losses = recurrence_drift(
+        before, after, compare_rule=False, advanced=outcome == "advanced"
+    )
+    if losses:
+        outcome = "unexpected"
+    if outcome == "series_ended":
+        # The series finished on this completion: say so in both records.
+        note = _with_outcome_marker(note, SERIES_ENDED_MARKER)
+        record_dict["note"] = note
 
     # Step 3: Vikunja comment. G4: comment-create endpoint is PUT, not POST
     # (VikunjaClient.create_comment encodes this).
@@ -287,6 +329,16 @@ def record(
         state_log.append("habits", record_dict)
     except OSError as e:
         raise OSError(f"step 4 (state_log append) failed: {e}") from e
+
+    if outcome == "unexpected":
+        # The comment and state log above are the facts and stay written;
+        # the outcome itself is an anomaly the habits agent must report.
+        lost = f"; companion fields changed: {', '.join(losses)}" if losses else ""
+        raise OSError(
+            "step 2: unexpected completion outcome for task "
+            f"{task_id} (exhaustion={exhaustion}): "
+            f"before {_rule_state(before)}; after {_rule_state(after)}{lost}"
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -317,7 +369,7 @@ def build_parser() -> argparse.ArgumentParser:
         description=(
             "ADR-0002 Phase 3 three-write atomic completion helper. "
             "Reads a record from stdin (JSON object) OR from flags; "
-            "performs idempotency check, Vikunja done=true POST, Vikunja "
+            "performs idempotency check, Vikunja done=true PATCH (v2), Vikunja "
             "comment PUT (G4), and state_log.append in that order. "
             "Exits 0 on success/no-op, 1 on Vikunja failure, 2 on "
             "state_log failure (Vikunja already committed), 3 on "

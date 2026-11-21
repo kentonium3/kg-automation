@@ -14,14 +14,22 @@ cwd-independent invocation from the Mac use the global slash-command
 ``~/.claude/commands/create-vikunja-task.md``, which SSH-dispatches to this
 module (so the token is never copied off office2).
 
-Create uses ``PUT /projects/{id}/tasks`` — NOT ``POST /tasks/{id}`` (which zeroes
-unstated fields; see #524). The Vikunja **UI identifier** (e.g. ``#38``) differs
-from the **API id** (e.g. ``98``); both are reported.
+Create uses the v2 API, ``POST /api/v2/projects/{id}/tasks``
+(``VikunjaClient.create_task_v2``, mission felix-rrule-adaptation #1111). The
+task is then read back over v2 (``get_task_v2``); a requested recurrence rule
+must be stored exactly (``vikunja_rule.same_rule``), or the CLI exits 1 naming
+the created task id: a recurring create that produced a one-off is never
+reported as success. The Vikunja **UI identifier** (e.g. ``#38``) differs from
+the **API id** (e.g. ``98``); both are reported.
 
 Invocation:
 
     python3 -m scripts.vikunja.create_task --title "Review billing" \\
         --project 1 --due 2026-07-16T14:00:00Z
+
+    # Every second week, six times:
+    python3 -m scripts.vikunja.create_task --title "Water plants" \\
+        --due 2026-07-16T14:00:00Z --rrule "FREQ=WEEKLY;INTERVAL=2;COUNT=6"
 
 Project defaults to Inbox (id 1). ``--project`` accepts an id or a project name
 (resolved case-insensitively; the lowest matching id wins — note two "Inbox"
@@ -32,18 +40,36 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import sys
 from typing import Any
 
+from scripts.common.et_datetime import parse_vikunja_instant
+from scripts.common.vikunja_rule import rrule_text_to_parts, same_rule
+
 __all__ = [
     "DEFAULT_PROJECT_ID",
+    "RuleNotStoredError",
     "build_payload",
-    "resolve_project_id",
     "create_task",
     "main",
+    "resolve_project_id",
 ]
 
 DEFAULT_PROJECT_ID = 1  # "Inbox"
+
+_HH_MM = re.compile(r"^(?:[01]\d|2[0-3]):[0-5]\d$")
+
+
+class RuleNotStoredError(RuntimeError):
+    """The task was created, but its readback lacks the requested recurrence."""
+
+    def __init__(self, task_id: Any, detail: str) -> None:
+        super().__init__(
+            f"created task {task_id} but its rule is missing/different ({detail}) "
+            "— fix or delete it"
+        )
+        self.task_id = task_id
 
 
 def build_payload(
@@ -52,27 +78,48 @@ def build_payload(
     due_date: str | None = None,
     description: str | None = None,
     priority: int | None = None,
-    repeat_after: int | None = None,
-    repeat_mode: int | None = None,
+    rrule: str | None = None,
+    from_completion: bool = False,
+    initial_due_time: str | None = None,
 ) -> dict[str, Any]:
-    """Build the Vikunja task-create body from CLI inputs.
+    """Build the v2 task-create fields from CLI inputs, validating the rule early.
 
     Only non-empty fields are included, so the create never sends stray
     nulls. ``title`` is required (Vikunja rejects an empty title).
 
-    Recurrence uses Vikunja's ``repeat_after`` (seconds) + ``repeat_mode``
-    (0=default/interval, 1=monthly, 2=from-current-date) — NOT RRULE (see
-    reference_vikunja_recurrence_model). A repeating task advances its own
-    ``due_date`` on completion, so a ``due_date`` anchor is required whenever a
-    repeat is set. ``repeat_mode`` alone (e.g. 1=monthly) is honored without a
-    ``repeat_after``; a bare ``repeat_after`` implies default-mode interval
-    recurrence.
+    Recurrence is an RFC 5545 rule (``rrule``, sent as ``repeats_rrule`` by
+    :func:`create_task`, not part of the returned fields). It is parsed here
+    with ``vikunja_rule.rrule_text_to_parts`` so a malformed rule fails before
+    any HTTP call; the server still validates its semantics. A recurring task
+    needs an anchor: either ``due_date`` or ``initial_due_time`` (``HH:MM``,
+    from which the server generates the first due date), not both.
+    ``from_completion`` maps to ``repeats_from_current_date: true`` (the next
+    occurrence counts from when the task is completed).
+
+    Raises:
+        ValueError: empty title, unparseable rule, a rule without an anchor,
+            or a recurrence option given without ``rrule``.
     """
     title = title.strip()
     if not title:
         raise ValueError("task title must be non-empty")
-    if (repeat_after is not None or repeat_mode is not None) and not due_date:
-        raise ValueError("a due date is required when a repeat is set (recurrence advances the due date)")
+    if rrule is None:
+        if from_completion or initial_due_time is not None:
+            raise ValueError("--from-completion and --initial-due-time need --rrule")
+    else:
+        rrule_text_to_parts(rrule)  # raises ValueError with the offending part
+        if initial_due_time is not None:
+            if due_date:
+                raise ValueError("give a due date or --initial-due-time, not both")
+            if not _HH_MM.match(initial_due_time):
+                raise ValueError(
+                    f"--initial-due-time must be HH:MM (24h), got {initial_due_time!r}"
+                )
+        elif not due_date:
+            raise ValueError(
+                "a recurring task needs a due date or --initial-due-time "
+                "(the rule is anchored at its first occurrence)"
+            )
     payload: dict[str, Any] = {"title": title}
     if due_date:
         payload["due_date"] = due_date
@@ -80,10 +127,8 @@ def build_payload(
         payload["description"] = description
     if priority is not None:
         payload["priority"] = priority
-    if repeat_after is not None:
-        payload["repeat_after"] = repeat_after
-    if repeat_mode is not None:
-        payload["repeat_mode"] = repeat_mode
+    if from_completion:
+        payload["repeats_from_current_date"] = True
     return payload
 
 
@@ -116,12 +161,67 @@ def resolve_project_id(client: Any, project: str) -> int:
     return matches[0]
 
 
-def create_task(client: Any, project_id: int, payload: dict[str, Any]) -> dict[str, Any]:
-    """PUT the task under ``project_id`` and return the created task JSON."""
-    result = client.put(f"/projects/{project_id}/tasks", json=payload)
-    if not isinstance(result, dict):
-        raise ValueError("unexpected task-create response shape")
-    return result
+def create_task(
+    client: Any,
+    project_id: int,
+    payload: dict[str, Any],
+    *,
+    rrule: str | None = None,
+    initial_due_time: str | None = None,
+) -> dict[str, Any]:
+    """Create the task over v2, read it back, and verify any requested rule.
+
+    Returns the v2 readback. When ``rrule`` was requested the readback's
+    ``repeat`` must be the same rule (``same_rule``), a requested
+    ``repeats_from_current_date`` must have stuck, an explicit ``due_date``
+    must be stored as the same instant (to the second; WP09: the anchor shown
+    by ``preview_rule`` is the one created), and an ``initial_due_time`` must
+    have produced a due date; otherwise
+    :class:`RuleNotStoredError` names the created task id. The created task
+    is left in place either way (the error tells the operator to fix or
+    delete it).
+    """
+    created = client.create_task_v2(
+        project_id, payload, rrule=rrule, initial_due_time=initial_due_time
+    )
+    task_id = created.get("id")
+    try:
+        readback = client.get_task_v2(task_id)
+    except Exception as exc:
+        raise RuntimeError(
+            f"created task {task_id} but could not read it back ({exc}); check it"
+        ) from exc
+    if rrule is not None:
+        if not same_rule(rrule_text_to_parts(rrule), readback.get("repeat")):
+            raise RuleNotStoredError(
+                task_id,
+                f"asked {rrule!r}, stored {readback.get('repeats_rrule')!r}",
+            )
+        if payload.get("repeats_from_current_date") and (
+            readback.get("repeats_from_current_date") is not True
+        ):
+            raise RuleNotStoredError(task_id, "repeats_from_current_date not set")
+        asked_due = parse_vikunja_instant(payload.get("due_date"))
+        if asked_due is not None:
+            # The anchor Kent confirmed (preview_rule's due_date) must be the
+            # one stored. The server keeps an explicit due date to the second.
+            stored_due = parse_vikunja_instant(readback.get("due_date"))
+            if stored_due != asked_due.replace(microsecond=0):
+                raise RuleNotStoredError(
+                    task_id,
+                    f"asked due {payload.get('due_date')!r}, "
+                    f"stored {readback.get('due_date')!r}",
+                )
+        if initial_due_time is not None and (
+            parse_vikunja_instant(readback.get("due_date")) is None
+        ):
+            # The server saves the task without a due date when the rule has
+            # no instance after now, and says why in ``reason``.
+            raise RuleNotStoredError(
+                task_id,
+                f"no first due date generated (reason {created.get('reason')!r})",
+            )
+    return readback
 
 
 def _build_client() -> Any:
@@ -171,17 +271,28 @@ def _build_parser() -> argparse.ArgumentParser:
         "--priority", type=int, default=None, help="optional priority (Vikunja 0-5)"
     )
     parser.add_argument(
-        "--repeat-after",
-        type=int,
+        "--rrule",
         default=None,
-        help="recurrence interval in SECONDS (Vikunja repeat_after); requires --due",
+        help=(
+            "recurrence as RFC 5545 RRULE text; needs --due or --initial-due-time. "
+            "Examples: daily 'FREQ=DAILY'; fortnightly 'FREQ=WEEKLY;INTERVAL=2'; "
+            "monthly on the 15th 'FREQ=MONTHLY;BYMONTHDAY=15'; six times "
+            "'FREQ=WEEKLY;COUNT=6'; until a date 'FREQ=DAILY;UNTIL=20261231T235959Z' "
+            "(UNTIL must be UTC, ending in Z)"
+        ),
     )
     parser.add_argument(
-        "--repeat-mode",
-        type=int,
-        choices=[0, 1, 2],
+        "--from-completion",
+        action="store_true",
+        help="repeat from when the task is completed, not from its due date "
+        "(repeats_from_current_date); needs --rrule",
+    )
+    parser.add_argument(
+        "--initial-due-time",
         default=None,
-        help="recurrence mode: 0=default/interval, 1=monthly, 2=from-current-date (requires --due)",
+        metavar="HH:MM",
+        help="with --rrule and no --due: the server picks the first due date "
+        "at this local time",
     )
     parser.add_argument(
         "--json", action="store_true", help="emit the raw created-task JSON"
@@ -198,12 +309,19 @@ def main(argv: list[str] | None = None, *, client: Any | None = None) -> int:
             due_date=args.due,
             description=args.description,
             priority=args.priority,
-            repeat_after=args.repeat_after,
-            repeat_mode=args.repeat_mode,
+            rrule=args.rrule,
+            from_completion=args.from_completion,
+            initial_due_time=args.initial_due_time,
         )
         active_client = client if client is not None else _build_client()
         project_id = resolve_project_id(active_client, args.project)
-        task = create_task(active_client, project_id, payload)
+        task = create_task(
+            active_client,
+            project_id,
+            payload,
+            rrule=args.rrule,
+            initial_due_time=args.initial_due_time,
+        )
     except Exception as exc:  # noqa: BLE001 - CLI boundary: report, exit 1
         print(f"ERROR: {type(exc).__name__}: {exc}", file=sys.stderr)
         return 1
@@ -221,6 +339,8 @@ def main(argv: list[str] | None = None, *, client: Any | None = None) -> int:
             f"project={project_id} due={task.get('due_date') or '-'}"
         )
         print(f"title: {task.get('title')}")
+        if task.get("repeats_rrule"):
+            print(f"rule: {task.get('repeats_rrule')}")
     return 0
 
 

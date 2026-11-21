@@ -835,3 +835,267 @@ class TestFR012Abort:
         result = cy.run_cycle(_config(state_dir, secrets_dir), now_utc=NOW_UTC)
         assert result.exit_code == 1
         assert "step 1" in (result.cycle_error or "")
+
+
+# ===========================================================================
+# Group 9 — The recurrence rule is tracked; seed-on-missing-key (WP06 / #1111)
+# ===========================================================================
+
+
+_RULE_PID = 2
+_RULE_PROJECTS = [{"id": _RULE_PID, "title": "Habits", "is_archived": False}]
+
+
+def _rule_task(task_id: int, **overrides):
+    """A task as the v2 list endpoint serialises it (no repeats_rrule)."""
+    from tests.common.vikunja_v2_factory import make_list_task
+
+    return make_list_task(
+        id=task_id,
+        identifier=f"#{task_id}",
+        index=task_id,
+        title=f"Habit {task_id}",
+        project_id=_RULE_PID,
+        **overrides,
+    )
+
+
+def _pre_upgrade_cache(state_dir: Path, task_ids) -> None:
+    """Write a cache in the pre-WP06 shape: v1 rule keys, no repeat keys."""
+    tasks = {}
+    for tid in task_ids:
+        live = _rule_task(tid)
+        tasks[str(tid)] = st.TaskCacheEntry(
+            vikunja_task_id=tid,
+            fields={
+                "title": live["title"],
+                "done": live["done"],
+                "due_date": live["due_date"],
+                "project_id": live["project_id"],
+                "repeat_after": 86400,
+                "repeat_mode": 0,
+                "labels": live["labels"],
+            },
+            vikunja_updated_at=live["updated"],
+            felix_last_observed_at="2026-11-19T11:00:00Z",
+        )
+    st.write_task_cache(
+        state_dir,
+        st.TaskCacheRecord(last_updated_utc="2026-11-19T11:00:00Z", tasks=tasks),
+    )
+    st.write_project_cache(
+        state_dir,
+        st.ProjectCacheRecord(
+            last_refreshed_utc="2026-11-19T11:00:00Z",
+            projects={str(_RULE_PID): st.ProjectCacheEntry(title="Habits", is_archived=False)},
+        ),
+    )
+
+
+def _ledger_rows(state_dir: Path) -> list[dict]:
+    path = state_dir / st.SEED_LEDGER_FILENAME
+    if not path.exists():
+        return []
+    return [json.loads(line) for line in path.read_text().splitlines()]
+
+
+class TestRuleTrackingAndSeeding:
+    def test_tracked_fields_do_not_include_repeats_rrule(self):
+        # The sync reads list endpoints, whose bodies omit repeats_rrule.
+        assert "repeats_rrule" not in cy.TRACKED_TASK_FIELDS
+        assert "repeat_after" not in cy.TRACKED_TASK_FIELDS
+        assert {"repeat", "repeats_from_current_date"} <= cy.TRACKED_TASK_FIELDS
+
+    def test_first_cycle_over_pre_upgrade_cache_seeds_without_divergence(
+        self, env, mock_urlopen, capsys
+    ):
+        state_dir, secrets_dir = env
+        ids = list(range(100, 120))
+        _pre_upgrade_cache(state_dir, ids)
+        mock_urlopen.side_effect = _full_poll_responses(
+            [_rule_task(i) for i in ids], projects=_RULE_PROJECTS
+        )
+        send = _ok_send()
+        result = cy.run_cycle(
+            _config(state_dir, secrets_dir), send_callable=send, now_utc=NOW_UTC
+        )
+
+        assert result.exit_code == 0
+        # 0 divergences: no conflict events, no pings.
+        assert result.events_emitted == {"auto_resolved": 0, "unsafe_to_auto_resolve": 0}
+        assert not (state_dir / st.CONFLICT_EVENTS_FILENAME).exists()
+        assert send.call_count == 0
+        # N seeds = 2 per task (repeat + repeats_from_current_date).
+        n = 2 * len(ids)
+        assert result.baseline_seeded == n
+        last = json.loads((state_dir / st.LAST_TICK_FILENAME).read_text())
+        assert last["baseline_seeded"] == n
+        assert last["schema_version"] == st.HEALTH_SCHEMA_VERSION
+        assert f"baseline_seeded={n}" in capsys.readouterr().err
+        # One ledger line per seed, carrying the documented keys.
+        rows = _ledger_rows(state_dir)
+        assert len(rows) == n
+        assert {r["cycle_id"] for r in rows} == {result.tick_id}
+        assert set(rows[0]) == {"cycle_id", "task_id", "field", "seeded_value", "at"}
+        assert {(r["task_id"], r["field"]) for r in rows} == {
+            (i, f) for i in ids for f in ("repeat", "repeats_from_current_date")
+        }
+        repeat_row = next(r for r in rows if r["task_id"] == 100 and r["field"] == "repeat")
+        assert repeat_row["seeded_value"] == {"freq": "daily", "interval": 1}
+        # The cache now holds the live rule (the seed persisted).
+        cache = st.read_task_cache(state_dir)
+        assert cache.tasks["100"].fields["repeat"] == {"freq": "daily", "interval": 1}
+        assert cache.tasks["100"].fields["repeats_from_current_date"] is False
+        # Schema version unchanged (no forced re-bootstrap).
+        assert st.SCHEMA_VERSION == 1
+        assert json.loads((state_dir / st.TASK_CACHE_FILENAME).read_text())["schema_version"] == 1
+
+    def test_second_cycle_with_one_rule_removed_is_one_unsafe_divergence(
+        self, env, mock_urlopen
+    ):
+        from tests.common.vikunja_v2_factory import strip_rule
+
+        state_dir, secrets_dir = env
+        ids = [100, 101, 102]
+        _pre_upgrade_cache(state_dir, ids)
+        cycle1 = [_rule_task(i) for i in ids]
+        cycle2 = [strip_rule(t) if t["id"] == 101 else t for t in cycle1]
+        mock_urlopen.side_effect = [
+            *_full_poll_responses(cycle1, projects=_RULE_PROJECTS),
+            *_full_poll_responses(cycle2, projects=_RULE_PROJECTS),
+        ]
+        send = _ok_send()
+        r1 = cy.run_cycle(_config(state_dir, secrets_dir), send_callable=send, now_utc=NOW_UTC)
+        assert r1.baseline_seeded == 6
+        r2 = cy.run_cycle(_config(state_dir, secrets_dir), send_callable=send, now_utc=NOW_UTC)
+
+        assert r2.exit_code == 0
+        # Idempotent: the keys are present now, so no second seed.
+        assert r2.baseline_seeded == 0
+        assert len(_ledger_rows(state_dir)) == 6
+        assert r2.events_emitted == {"auto_resolved": 0, "unsafe_to_auto_resolve": 1}
+        rows = [
+            json.loads(line)
+            for line in (state_dir / st.CONFLICT_EVENTS_FILENAME).read_text().splitlines()
+        ]
+        assert len(rows) == 1
+        row = rows[0]
+        assert row["vikunja_entity_id"] == 101
+        assert row["diff_field"] == "repeat"
+        assert row["class"] == "unsafe_to_auto_resolve"
+        assert "uc3_downstream_behavior" in row["unsafe_reasons"]
+        assert row["vikunja_value"] is None
+        assert row["felix_cached_value"] == {"freq": "daily", "interval": 1}
+
+    def test_task_first_observed_without_rule_records_null_seed(self, env, mock_urlopen):
+        """Finding 9: a pre-cycle loss seeds ``null`` -- and the ledger says so."""
+        from tests.common.vikunja_v2_factory import strip_rule
+
+        state_dir, secrets_dir = env
+        _pre_upgrade_cache(state_dir, [100])
+        mock_urlopen.side_effect = _full_poll_responses(
+            [strip_rule(_rule_task(100))], projects=_RULE_PROJECTS
+        )
+        result = cy.run_cycle(_config(state_dir, secrets_dir), send_callable=_ok_send(), now_utc=NOW_UTC)
+
+        assert result.exit_code == 0
+        assert result.events_emitted == {"auto_resolved": 0, "unsafe_to_auto_resolve": 0}
+        raw_lines = (state_dir / st.SEED_LEDGER_FILENAME).read_text().splitlines()
+        repeat_line = next(line for line in raw_lines if '"field": "repeat"' in line)
+        assert '"seeded_value": null' in repeat_line
+        assert json.loads(repeat_line)["task_id"] == 100
+
+    def test_dry_run_reports_seeds_but_writes_no_ledger(self, env, mock_urlopen, capsys):
+        state_dir, secrets_dir = env
+        _pre_upgrade_cache(state_dir, [100])
+        mock_urlopen.side_effect = _full_poll_responses(
+            [_rule_task(100)], projects=_RULE_PROJECTS
+        )
+        result = cy.run_cycle(
+            _config(state_dir, secrets_dir, dry_run=True), send_callable=_ok_send(), now_utc=NOW_UTC
+        )
+        assert result.baseline_seeded == 2
+        assert not (state_dir / st.SEED_LEDGER_FILENAME).exists()
+        assert "would_seed=2" in capsys.readouterr().err
+
+    def test_ledger_write_failure_fails_the_cycle_and_keeps_old_cache(
+        self, env, mock_urlopen, monkeypatch
+    ):
+        """No unrecorded seed: if the ledger cannot be written, the cache is not advanced."""
+        state_dir, secrets_dir = env
+        _pre_upgrade_cache(state_dir, [100])
+        mock_urlopen.side_effect = _full_poll_responses(
+            [_rule_task(100)], projects=_RULE_PROJECTS
+        )
+
+        def _boom(*_a, **_k):
+            raise OSError("disk full")
+
+        monkeypatch.setattr(cy, "append_seed_ledger", _boom)
+        result = cy.run_cycle(_config(state_dir, secrets_dir), send_callable=_ok_send(), now_utc=NOW_UTC)
+        assert result.exit_code == 2
+        cache = st.read_task_cache(state_dir)
+        assert "repeat" not in cache.tasks["100"].fields
+
+    def test_bootstrap_then_cycle_produces_no_seeds(self, tmp_path, mock_urlopen):
+        state_dir = tmp_path / "state"
+        secrets_dir = tmp_path / "secrets"
+        state_dir.mkdir()
+        secrets_dir.mkdir()
+        tasks = [_rule_task(100), _rule_task(101, repeat=None)]
+        mock_urlopen.side_effect = [
+            *_full_poll_responses(tasks, projects=_RULE_PROJECTS),
+            *_full_poll_responses(tasks, projects=_RULE_PROJECTS),
+        ]
+        boot = cy.run_bootstrap(_config(state_dir, secrets_dir), now_utc=NOW_UTC)
+        assert boot.exit_code == 0
+        assert boot.baseline_seeded == 0
+        cache = st.read_task_cache(state_dir)
+        assert set(cache.tasks["100"].fields) == set(cy.TRACKED_TASK_FIELDS) | cy.CACHED_ONLY_TASK_FIELDS
+        last = json.loads((state_dir / st.LAST_TICK_FILENAME).read_text())
+        assert last["baseline_seeded"] == 0
+
+        result = cy.run_cycle(_config(state_dir, secrets_dir), send_callable=_ok_send(), now_utc=NOW_UTC)
+        assert result.exit_code == 0
+        assert result.baseline_seeded == 0
+        assert result.events_emitted == {"auto_resolved": 0, "unsafe_to_auto_resolve": 0}
+        assert not (state_dir / st.SEED_LEDGER_FILENAME).exists()
+
+    def test_partial_ledger_write_then_retry_cycle_leaves_parseable_ledger(
+        self, env, mock_urlopen, monkeypatch
+    ):
+        """Review cycle 1, finding 1: a partial ledger write followed by a retry
+        cycle must leave only whole, parseable JSONL lines."""
+        state_dir, secrets_dir = env
+        ids = [100, 101]
+        _pre_upgrade_cache(state_dir, ids)
+        tasks = [_rule_task(i) for i in ids]
+        mock_urlopen.side_effect = [
+            *_full_poll_responses(tasks, projects=_RULE_PROJECTS),
+            *_full_poll_responses(tasks, projects=_RULE_PROJECTS),
+        ]
+
+        real_replace = st.os.replace
+
+        def _torn_replace(src, dst):
+            # Simulate a crash after a partial temp-file write: truncate the
+            # temp file mid-line, then fail before the rename.
+            data = Path(src).read_bytes()
+            Path(src).write_bytes(data[: len(data) // 2])
+            raise OSError("No space left on device")
+
+        monkeypatch.setattr(st.os, "replace", _torn_replace)
+        r1 = cy.run_cycle(_config(state_dir, secrets_dir), send_callable=_ok_send(), now_utc=NOW_UTC)
+        assert r1.exit_code == 2
+        assert "repeat" not in st.read_task_cache(state_dir).tasks["100"].fields
+        monkeypatch.setattr(st.os, "replace", real_replace)
+
+        r2 = cy.run_cycle(_config(state_dir, secrets_dir), send_callable=_ok_send(), now_utc=NOW_UTC)
+        assert r2.exit_code == 0
+        assert r2.baseline_seeded == 4
+        lines = (state_dir / st.SEED_LEDGER_FILENAME).read_text().splitlines()
+        rows = [json.loads(line) for line in lines]  # every line parses
+        assert len(rows) == 4
+        assert {r["cycle_id"] for r in rows} == {r2.tick_id}
+        assert not (state_dir / (st.SEED_LEDGER_FILENAME + ".tmp")).exists()
+        assert "repeat" in st.read_task_cache(state_dir).tasks["100"].fields

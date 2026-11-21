@@ -11,8 +11,8 @@
 
 ### Query overdue tasks
 
-**`/tasks/all` returns HTTP 400 (code 2004) on Vikunja 2.4.0+** — a v1-layer
-regression (#853). Do NOT use it. Query per-project instead:
+Query per project (the escalation helpers already do this; `/tasks/all` is
+not used):
 
 ```
 GET /api/v1/projects/{id}/tasks?filter=done = false && priority >= 2&sort_by=due_date&order_by=asc&per_page=50
@@ -25,12 +25,9 @@ spaces/operators.)
 
 ### Mark task done
 
-```
-POST /api/v1/tasks/{id}
-Content-Type: application/json
-
-{"done": true}
-```
+Done flows through `record_completion --state done` (see AGENTS.md). The
+helper performs the Vikunja write itself and keeps a repeating task's rule.
+Never write a task directly.
 
 ### Reschedule a task (due date)
 

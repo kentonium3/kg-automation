@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
-  "last_updated": "2026-10-15",
-  "updated_by": "offhost-deadman-pings-01M50990 (#1077 \u2014 deadman-ping-egress to hc-ping.com and the read-only ntfy-health-probe) + deploy-runtime-installed-report-01M4ZP8E (kentonium3/kg-automation#1072 \u2014 github-to-office2-deploy-pull gains the installed-file report hop: --apply reports the files it wrote and felix-deployer folds their baselines into the rebaseline token) + canary-deadman-backup-coverage-01M4XVY3 (kentonium3/kg-automation#1063 \u2014 added felix-health-check-coverage: the twice-daily dead-man's switch on felix-canary's tick and independent restic-backup check through the canary's evaluator; felix-canary tick description no longer defers watching to #269) + qa-pipeline-decommission-01M219TT (kentonium3/kg-automation#970 — qa-linear-dispatch-ingress registered-at-retirement: the Linear→office2 QA dispatch flow (Funnel :8443 → webhook :3457 → qa-register :8788), the host's only public-internet data flow, was retired; it was never in this file while live, an out-of-band gap from #886 that the retired entry now records) + crontab-backup-coverage-01M12V87 (#895 \u2014 added the crontab-capture producer\u2192storage\u2192backup flow; no Restic source path was added) + vikunja-token-seam-kent-cutover-01KY8XQ0 (#860 phase 2, ADR-0007 \u2014 runtime Vikunja identity consolidated onto the kent user: the intake scan flips from a felix-bot read token to the kent token (vikunja-api-kent), collapsing the #715 two-token model to a single runtime credential resolved via scripts/common/vikunja_config.get_vikunja_token_path(); felix-bot Vikunja user left dormant, GitHub kg-felix-bot unaffected) + openclaw-skills-sync-01KXW1DQ (#775 \u2014 +openclaw-skill-sync flow: pull-based SKILL.md deploy/sync repo scripts/openclaw/skills/<skill>/SKILL.md -> office2 /home/claude/.openclaw/skills/<skill>/SKILL.md via agent-skill-sync, sibling to agent-prompt-sync #567; MD5-diff + atomic copy-only on the shared checkout; closes the #563 skills silent-drift class) + task-intake-validation-loop-01KXS06W (#749 \u2014 +intake-validation-loop flow: scan (felix-bot read) -> WhatsApp digest -> compact-shorthand reply -> apply (kent write token) with content-based correlation + state under /data/services/openclaw/state/intake/; closes #750) + felix-canary-registry-01KX8T7B (#327 \u2014 +felix-canary component-health scanner, +felix-trust-scan trust-drift sibling, +unified-alert-bus-emit shared #701 emit path) + felix-time-logging-01KX79HT (#703 \u2014 WhatsApp -> timelog -> Sheets flow added) + felix-calendar-helper-01KX4H3C (#699 \u2014 calendar surface now flows Felix helper -> Google directly, not gog; closes #679)",
+  "last_updated": "2026-11-20",
+  "updated_by": "felix-rrule-adaptation-01M7TKNX (kentonium3/kg-automation#1111 \u2014 Felix task writes move to PATCH /api/v2/tasks/{id} (merge patch, readback-verified) and creates to POST /api/v2/projects/{id}/tasks so RRULE recurrence survives; +vikunja-occurrences-read, +vikunja-occurrences-preview, +habits-manage-pause-resume-remove, +vikunja-task-field-update, +vikunja-task-create-v2, +habits-schedule-drift-check, +sync-seed-ledger, +vikunja-rule-inventory-repair; escalation agent no longer writes Vikunja; set_due_dates --reconcile-schedule retired and set_due_dates no longer reads the sync cache) + offhost-deadman-pings-01M50990 (#1077 \u2014 deadman-ping-egress to hc-ping.com and the read-only ntfy-health-probe) + deploy-runtime-installed-report-01M4ZP8E (kentonium3/kg-automation#1072 \u2014 github-to-office2-deploy-pull gains the installed-file report hop: --apply reports the files it wrote and felix-deployer folds their baselines into the rebaseline token) + canary-deadman-backup-coverage-01M4XVY3 (kentonium3/kg-automation#1063 \u2014 added felix-health-check-coverage: the twice-daily dead-man's switch on felix-canary's tick and independent restic-backup check through the canary's evaluator; felix-canary tick description no longer defers watching to #269) + qa-pipeline-decommission-01M219TT (kentonium3/kg-automation#970 — qa-linear-dispatch-ingress registered-at-retirement: the Linear→office2 QA dispatch flow (Funnel :8443 → webhook :3457 → qa-register :8788), the host's only public-internet data flow, was retired; it was never in this file while live, an out-of-band gap from #886 that the retired entry now records) + crontab-backup-coverage-01M12V87 (#895 \u2014 added the crontab-capture producer\u2192storage\u2192backup flow; no Restic source path was added) + vikunja-token-seam-kent-cutover-01KY8XQ0 (#860 phase 2, ADR-0007 \u2014 runtime Vikunja identity consolidated onto the kent user: the intake scan flips from a felix-bot read token to the kent token (vikunja-api-kent), collapsing the #715 two-token model to a single runtime credential resolved via scripts/common/vikunja_config.get_vikunja_token_path(); felix-bot Vikunja user left dormant, GitHub kg-felix-bot unaffected) + openclaw-skills-sync-01KXW1DQ (#775 \u2014 +openclaw-skill-sync flow: pull-based SKILL.md deploy/sync repo scripts/openclaw/skills/<skill>/SKILL.md -> office2 /home/claude/.openclaw/skills/<skill>/SKILL.md via agent-skill-sync, sibling to agent-prompt-sync #567; MD5-diff + atomic copy-only on the shared checkout; closes the #563 skills silent-drift class) + task-intake-validation-loop-01KXS06W (#749 \u2014 +intake-validation-loop flow: scan (felix-bot read) -> WhatsApp digest -> compact-shorthand reply -> apply (kent write token) with content-based correlation + state under /data/services/openclaw/state/intake/; closes #750) + felix-canary-registry-01KX8T7B (#327 \u2014 +felix-canary component-health scanner, +felix-trust-scan trust-drift sibling, +unified-alert-bus-emit shared #701 emit path) + felix-time-logging-01KX79HT (#703 \u2014 WhatsApp -> timelog -> Sheets flow added) + felix-calendar-helper-01KX4H3C (#699 \u2014 calendar surface now flows Felix helper -> Google directly, not gog; closes #679)",
   "flows": [
     {
       "name": "vikunja-web-ui",
@@ -202,7 +202,15 @@
           "from": "felix-admin-habits agent",
           "to": "scripts/habits/record_completion.py",
           "protocol": "subprocess",
-          "description": "Three-write helper per ADR Q3-D: POST done=true, PUT [Felix] comment (mirror), state_log.append (canonical)"
+          "description": "Three-write helper per ADR Q3-D: PATCH /api/v2/tasks/<id> {done:true} (since #1111; was a v1 POST that stripped the RRULE), PUT [Felix] comment (mirror), state_log.append (canonical)"
+        },
+        {
+          "from": "scripts/habits/record_completion.py",
+          "to": "Vikunja PATCH /api/v2/tasks/<id> (+ GET /api/v2/tasks/<id>, POST /api/v2/tasks/occurrences/preview)",
+          "protocol": "HTTPS via Tailscale Serve (vikunja-api-kent)",
+          "port": 443,
+          "backend_port": 3456,
+          "description": "#1111: v2 read, exhaustion check (preview only for an UNTIL rule), merge patch {done:true} (re-read on 304), then completion_outcome: advanced | series_ended | unexpected. unexpected still writes the comment and JSONL, then exits 1. The [Felix] comment stays on v1 PUT /api/v1/tasks/<id>/comments."
         },
         {
           "from": "scripts/habits/record_completion.py",
@@ -227,11 +235,9 @@
       "path": [
         {
           "from": "scripts/habits/query_active_habits_v2.py",
-          "to": "Vikunja /projects/<id>/tasks?filter=due_date<=now/d AND done=false",
-          "protocol": "HTTPS via Tailscale Serve",
-          "port": 443,
-          "backend_port": 3456,
-          "description": "Vikunja-native filter expression for active-today habits, project-scoped to Habits"
+          "to": "/data/services/openclaw/state/sync/task-cache.json (via scripts/common/sync_cache.py)",
+          "protocol": "file read",
+          "description": "Corrected by #1111: since #519 a client-side filter over the sync cache (Habits project, done=false, due_date <= end-of-day ET), not a Vikunja call. #1111 adds: a habit whose cached description starts with (PAUSED) is skipped."
         },
         {
           "from": "scripts/habits/exclude_completed_v2.py",
@@ -422,11 +428,9 @@
         },
         {
           "from": "scripts/habits/query_active_habits_v2.py",
-          "to": "Vikunja /projects/13/tasks?filter=due_date<=now/d AND done=false",
-          "protocol": "HTTPS via Tailscale Serve",
-          "port": 443,
-          "backend_port": 3456,
-          "description": "Vikunja-native filter expression for active-today habits, project-scoped to Habits. Read-only."
+          "to": "/data/services/openclaw/state/sync/task-cache.json (via scripts/common/sync_cache.py)",
+          "protocol": "file read",
+          "description": "Corrected by #1111: the read is the sync cache (refused when older than SLA_NORMAL, 900 s), filtered client-side to the Habits project, done=false, due_date <= end-of-day ET, and not (PAUSED). Read-only; no direct Vikunja call."
         }
       ]
     },
@@ -539,7 +543,7 @@
       "deployed_by": "#309",
       "introduced_by": "#309",
       "updated_by": "#376",
-      "description": "Phase 6 (ADR-0002) canonical escalation state write. record_completion.py performs the Vikunja task PATCH FIRST for `done` (PATCH done=true) and `rescheduled` (PATCH due_date) events; for `level_sent`/`snoozed`/`dismissed` the JSONL append is the sole side-effect. JSONL append is always last. Triggers: agent tick, kent_reply via OpenClaw.",
+      "description": "Phase 6 (ADR-0002) canonical escalation state write. record_completion.py performs the Vikunja task PATCH FIRST for `done` (PATCH done=true) and `rescheduled` (PATCH due_date) events, over PATCH /api/v2/tasks/<id> since #1111; level_sent now also stores the alerted due date as due_date_at_alert (the reconcile baseline); for `level_sent`/`snoozed`/`dismissed` the JSONL append is the sole side-effect. JSONL append is always last. Triggers: agent tick, kent_reply via OpenClaw.",
       "path": [
         {
           "from": "felix-admin-escalation agent",
@@ -549,11 +553,11 @@
         },
         {
           "from": "scripts/escalation/record_completion.py",
-          "to": "Vikunja /tasks/<id>",
-          "protocol": "HTTPS via Tailscale Serve",
+          "to": "Vikunja PATCH /api/v2/tasks/<id> (+ GET /api/v2/tasks/<id>, POST /api/v2/tasks/occurrences/preview)",
+          "protocol": "HTTPS via Tailscale Serve (vikunja-api-kent)",
           "port": 443,
           "backend_port": 3456,
-          "description": "PATCH done=true for done events; PATCH due_date for rescheduled events. Skipped entirely for level_sent/snoozed/dismissed."
+          "description": "Since #1111 a v2 merge patch carrying only the changed key (the v1 PATCH answered 405 on the RRULE server; a v1 POST strips the rule). done: v2 read, exhaustion check, PATCH {done:true}, readback, outcome advanced | series_ended | done_one_off | unexpected (unexpected still writes the JSONL done record, then exit 4). rescheduled: PATCH {due_date: end-of-day ET} + readback; a changed rule fails before the JSONL write. Skipped entirely for level_sent/snoozed/dismissed. The felix-admin-escalation agent no longer writes Vikunja itself."
         },
         {
           "from": "scripts/escalation/record_completion.py",
@@ -613,11 +617,9 @@
         },
         {
           "from": "scripts/escalation/reconcile_completions.py",
-          "to": "Vikunja /projects/<id>/tasks and /tasks/<id>",
-          "protocol": "HTTPS via Tailscale Serve",
-          "port": 443,
-          "backend_port": 3456,
-          "description": "Project-scoped enumeration + per-task GET for drift comparison. Read-only."
+          "to": "/data/services/openclaw/state/sync/task-cache.json (via scripts/common/sync_cache.py)",
+          "protocol": "file read",
+          "description": "Corrected by #1111: since #519 the reconcile makes no Vikunja call of its own; it reads the sync driver cache (read_cached_task_by_id). Read-only. #1111 (FR-015): a cached task with a rule, not done, whose due date is later than the current window's baseline (level_sent due_date_at_alert, else the last rescheduled reschedule_to) advanced because Kent completed it in the UI, so a synthetic done is emitted instead of a rescheduled."
         }
       ]
     },
@@ -1754,9 +1756,9 @@
         },
         {
           "from": "scripts/intake/apply_reply.py",
-          "to": "Vikunja API (POST /tasks/<id> + label attach)",
-          "protocol": "HTTPS (vikunja-api-kent WRITE token; read-modify-write + family-replace)",
-          "description": "Applies working project + f: + q: + applicable Tier-2 (due: ET-EOD). felix-bot is never used for the kent-owned label attach \u2014 closes #750 (SC-008). Task leaves Inbox and stops re-appearing."
+          "to": "Vikunja API (PATCH /api/v2/tasks/<id> + GET /api/v2/tasks/<id> readback; v1 PUT/DELETE /tasks/<id>/labels; end_series for q:eliminate on a recurring task)",
+          "protocol": "HTTPS (vikunja-api-kent WRITE token; field changes as a v2 merge patch since #1111, labels family-replace on v1)",
+          "description": "Applies working project + f: + q: + applicable Tier-2 (due: ET-EOD). felix-bot is never used for the kent-owned label attach \u2014 closes #750 (SC-008). Task leaves Inbox and stops re-appearing. #1111: project_id/due_date/done go through a v2 merge patch with a readback that checks the rule survived; q:eliminate on a recurring task ends the series (rule cleared, then done) instead of a bare done=true that would advance it."
         },
         {
           "from": "scripts/intake/apply_reply.py",
@@ -1929,6 +1931,246 @@
         }
       ],
       "purpose": "Stateless felix-alert channel check for the dead-man outcome (#1077 post-plan rounds 3-4)."
+    },
+    {
+      "name": "vikunja-occurrences-read",
+      "status": "active",
+      "deployed_by": "felix-rrule-adaptation-01M7TKNX (#1111)",
+      "introduced_by": "felix-rrule-adaptation-01M7TKNX (#1111)",
+      "updated_by": "felix-rrule-adaptation-01M7TKNX (#1111)",
+      "since": "#1111",
+      "description": "#1111 sweeper day-specific advance. When a day-specific habit is auto-skipped, felix-habit-sweeper asks Vikunja for the rule's next occurrence instead of computing a weekday itself, then moves the due date there with a merge patch and verifies the rule survived. Needs the tasks.occurrences token permission (a 401 is recorded as error_type occurrences_unauthorized). Daily habits are never written by the sweeper; each habit gets one live pause check per tick before its first write.",
+      "path": [
+        {
+          "from": "scripts/habits/sweeper.py",
+          "to": "Vikunja GET /api/v2/tasks/<id>",
+          "protocol": "HTTPS via Tailscale Serve (vikunja-api-kent)",
+          "port": 443,
+          "backend_port": 3456,
+          "description": "Live pause check, once per habit per tick before its first write (the (PAUSED) description prefix). Failed read, 404 or no description -> status paused_state_unavailable, nothing written, tick partial. Also the pre-write read for the advance."
+        },
+        {
+          "from": "scripts/habits/sweeper.py",
+          "to": "Vikunja GET /api/v2/tasks/<id>/occurrences?count=1",
+          "protocol": "HTTPS via Tailscale Serve (vikunja-api-kent)",
+          "port": 443,
+          "backend_port": 3456,
+          "description": "Next occurrence of the stored rule. Skipped when the stored due date is already in the future (idempotent retry). No rule or no next occurrence is an error; nothing is written."
+        },
+        {
+          "from": "scripts/habits/sweeper.py",
+          "to": "Vikunja PATCH /api/v2/tasks/<id> {due_date} + GET readback",
+          "protocol": "HTTPS via Tailscale Serve (vikunja-api-kent)",
+          "port": 443,
+          "backend_port": 3456,
+          "description": "Merge patch of due_date only, then recurrence_drift on rule, repeats_from_current_date and reminders (RuleChanged on drift)."
+        },
+        {
+          "from": "scripts/habits/sweeper.py",
+          "to": "/data/services/openclaw/state/habits-history.jsonl",
+          "protocol": "file append",
+          "description": "auto_skipped event; only after the Vikunja write succeeded (or for daily habits, with no Vikunja write)."
+        }
+      ]
+    },
+    {
+      "name": "vikunja-occurrences-preview",
+      "status": "active",
+      "deployed_by": "felix-rrule-adaptation-01M7TKNX (#1111)",
+      "introduced_by": "felix-rrule-adaptation-01M7TKNX (#1111)",
+      "updated_by": "felix-rrule-adaptation-01M7TKNX (#1111)",
+      "since": "#1111",
+      "description": "#1111 read-only preview of an unsaved or stored rule. preview_rule.py lets felix-admin-tasker and felix-admin-habits show Kent the next dates before create_task writes a recurring task. The habits and escalation record_completion helpers call the same endpoint inside exhaustion_expected, only for a rule with UNTIL, to decide whether a completion should end the series. Needs the tasks.occurrences_preview token permission. The weekly report deliberately does not use it.",
+      "path": [
+        {
+          "from": "felix-admin-tasker / felix-admin-habits agent",
+          "to": "scripts/vikunja/preview_rule.py",
+          "protocol": "subprocess (python3 -m scripts.vikunja.preview_rule --rrule ... --due|--initial-due-time ...)",
+          "description": "Rule parsed locally first; JSON summary on the last stdout line (dates_et, reason_text, create_args). Exit 2 for bad input or missing permission, 3 for Vikunja/config errors."
+        },
+        {
+          "from": "scripts/vikunja/preview_rule.py + scripts/{habits,escalation}/record_completion.py",
+          "to": "Vikunja POST /api/v2/tasks/occurrences/preview",
+          "protocol": "HTTPS via Tailscale Serve (vikunja-api-kent)",
+          "port": 443,
+          "backend_port": 3456,
+          "description": "Server evaluates the rule in America/New_York and returns the anchor plus following occurrences. Treated as a read: nothing is stored. 400 code 2002 = invalid rule, 2003 = invalid time zone, 401 = missing tasks.occurrences_preview."
+        }
+      ]
+    },
+    {
+      "name": "vikunja-task-create-v2",
+      "status": "active",
+      "deployed_by": "felix-rrule-adaptation-01M7TKNX (#1111)",
+      "introduced_by": "felix-rrule-adaptation-01M7TKNX (#1111)",
+      "updated_by": "felix-rrule-adaptation-01M7TKNX (#1111)",
+      "since": "#1111",
+      "description": "#1111 task creation. scripts/vikunja/create_task.py creates through the v2 project endpoint so a recurrence rule (--rrule, RFC 5545) is stored as repeats_rrule, then reads the task back and fails (exit 1) if the stored rule is not the requested one. Agents create tasks only through this helper (vikunja-api SKILL.md).",
+      "path": [
+        {
+          "from": "felix-admin-tasker / felix-admin-habits agent",
+          "to": "scripts/vikunja/create_task.py",
+          "protocol": "subprocess (python3 -m scripts.vikunja.create_task)",
+          "description": "Recurring tasks are previewed first with preview_rule; its create_args are passed through."
+        },
+        {
+          "from": "scripts/vikunja/create_task.py",
+          "to": "Vikunja POST /api/v2/projects/<id>/tasks + GET /api/v2/tasks/<id> readback",
+          "protocol": "HTTPS via Tailscale Serve (vikunja-api-kent)",
+          "port": 443,
+          "backend_port": 3456,
+          "description": "Project name resolved with v1 GET /projects. Readback asserts same_rule(stored, requested)."
+        }
+      ]
+    },
+    {
+      "name": "vikunja-task-field-update",
+      "status": "active",
+      "deployed_by": "felix-rrule-adaptation-01M7TKNX (#1111)",
+      "introduced_by": "felix-rrule-adaptation-01M7TKNX (#1111)",
+      "updated_by": "felix-rrule-adaptation-01M7TKNX (#1111)",
+      "since": "#1111",
+      "description": "#1111 (FR-025) existing-task field edits for felix-admin-tasker (retroactive_enrichment, detect_incomplete). update_task.py changes title, description, due_date, priority or project_id only; it has no rule flag, refuses a due-date change on a recurring task (the series anchor), drops fields already equal, sends only what differs as a v2 merge patch and reads the task back. Outcomes: updated | unchanged | refused | unexpected | error.",
+      "path": [
+        {
+          "from": "felix-admin-tasker agent (or scripts/habits/manage_habit.py in-process)",
+          "to": "scripts/vikunja/update_task.py",
+          "protocol": "subprocess (python3 -m scripts.vikunja.update_task --task-id N [--title|--description|--due|--priority|--project-id])",
+          "description": "Last stdout line is a JSON summary. Exit 0 updated/unchanged, 1 unexpected/error, 2 usage or refusal (nothing written)."
+        },
+        {
+          "from": "scripts/vikunja/update_task.py",
+          "to": "Vikunja GET /api/v2/tasks/<id> -> PATCH /api/v2/tasks/<id> -> GET readback",
+          "protocol": "HTTPS via Tailscale Serve (vikunja-api-kent)",
+          "port": 443,
+          "backend_port": 3456,
+          "description": "Readback: the rule, repeats_from_current_date and reminders must be unchanged and every requested field must read back as sent, else outcome unexpected. A PATCH failure is outcome error and is not retried."
+        }
+      ]
+    },
+    {
+      "name": "habits-manage-pause-resume-remove",
+      "status": "active",
+      "deployed_by": "felix-rrule-adaptation-01M7TKNX (#1111)",
+      "introduced_by": "felix-rrule-adaptation-01M7TKNX (#1111)",
+      "updated_by": "felix-rrule-adaptation-01M7TKNX (#1111)",
+      "since": "#1111",
+      "description": "#1111 (FR-026) habit pause, resume and remove for felix-admin-habits after Kent confirms. pause adds the '(PAUSED) ' description prefix and resume strips it, both through update_task (rule kept, verified by readback; idempotent). remove ends the series with VikunjaClient.end_series (PATCH {repeat:null}, readback, then PATCH {done:true}, readback) and never deletes the task, so history stays. Every action refuses a task outside the Habits project.",
+      "path": [
+        {
+          "from": "felix-admin-habits agent",
+          "to": "scripts/habits/manage_habit.py",
+          "protocol": "subprocess (python3 -m scripts.habits.manage_habit pause|resume|remove --task-id N)",
+          "description": "Outcomes paused/already_paused, resumed/not_paused, removed, partial (re-run remove to resume), unexpected, refused, error. Exit 0 / 1 / 2."
+        },
+        {
+          "from": "scripts/habits/manage_habit.py",
+          "to": "Vikunja GET + PATCH /api/v2/tasks/<id> (description, or end_series)",
+          "protocol": "HTTPS via Tailscale Serve (vikunja-api-kent)",
+          "port": 443,
+          "backend_port": 3456,
+          "description": "Habits-project check on the v2 read before any write."
+        },
+        {
+          "from": "Vikunja (description prefix)",
+          "to": "felix-vikunja-sync -> task-cache.json -> query_active_habits_v2 (morning list) ; sweeper live v2 read",
+          "protocol": "sync cycle / live read",
+          "description": "The morning list sees a pause after the next sync cycle (~5 min); the sweeper reads each habit live once per tick before its first write, so a pause holds even if the cache is behind."
+        }
+      ]
+    },
+    {
+      "name": "habits-schedule-drift-check",
+      "status": "active",
+      "deployed_by": "felix-rrule-adaptation-01M7TKNX (#1111)",
+      "introduced_by": "felix-rrule-adaptation-01M7TKNX (#1111)",
+      "updated_by": "felix-rrule-adaptation-01M7TKNX (#1111)",
+      "since": "#1111",
+      "description": "#1111 (FR-013) read-only drift check between phase3-schedule.yaml (each habit now declares an RFC 5545 rrule; repeat_after_seconds is refused) and the live Vikunja rule. Operator-run; part of the post-merge canary and the sweeper re-enable verification.",
+      "path": [
+        {
+          "from": "Operator (Kent / Claude Code via ssh office2-claude)",
+          "to": "scripts/habits/schedule_loader.py --check-live",
+          "protocol": "CLI (python3 -m scripts.habits.schedule_loader --check-live)",
+          "description": "One JSON line per habit {task_id, title, schedule_rrule, live_rrule, status in match|inactive|missing|differs|unreadable}, then a summary. Exit 0 when nothing is missing/differs/unreadable, 1 otherwise, 2 on a schedule or client setup error."
+        },
+        {
+          "from": "scripts/habits/schedule_loader.py",
+          "to": "Vikunja GET /api/v2/tasks/<id>",
+          "protocol": "HTTPS via Tailscale Serve (vikunja-api-kent)",
+          "port": 443,
+          "backend_port": 3456,
+          "description": "One GET per schedule entry; never writes."
+        }
+      ]
+    },
+    {
+      "name": "sync-seed-ledger",
+      "status": "active",
+      "deployed_by": "felix-rrule-adaptation-01M7TKNX (#1111)",
+      "introduced_by": "felix-rrule-adaptation-01M7TKNX (#1111)",
+      "updated_by": "felix-rrule-adaptation-01M7TKNX (#1111)",
+      "since": "#1111",
+      "description": "#1111 felix-vikunja-sync baseline seeds. The sync now tracks repeat and repeats_from_current_date (replacing repeat_after/repeat_mode) and caches description untracked. When a cached entry lacks a newly tracked field, the live value is adopted once without raising a divergence, and every such seed is recorded in seed-ledger.jsonl so it is never silent. The rule inventory cross-checks it.",
+      "path": [
+        {
+          "from": "felix-vikunja-sync-driver (scripts/sync/cycle.py)",
+          "to": "/data/services/openclaw/state/sync/seed-ledger.jsonl",
+          "protocol": "file write (atomic whole-file replace + fsync, via state.append_seed_ledger)",
+          "description": "One row per seed {cycle_id, task_id, field, seeded_value, at}; seeded_value null for repeat means no rule was observed. Written before task-cache.json in phase 6; last-tick.json carries baseline_seeded=N."
+        },
+        {
+          "from": "/data/services/openclaw/state/sync/seed-ledger.jsonl",
+          "to": "scripts/vikunja/rule_inventory.py --seed-ledger",
+          "protocol": "file read",
+          "description": "Seed rows feed one cross-check in rule_inventory.classify, applied after the normal-end check and only to a FINITE baseline rule (one with COUNT or UNTIL): a task the sync seeded with no rule whose baseline rule was finite is ended (when the normal end is confirmed) or removed, never lost. The seed ledger does NOT change the outcome for an unbounded baseline rule (no COUNT, no UNTIL): with the rule absent now, that task is lost when a successful, non-dry-run Felix write after 2026-10-30 lies within 120 s of the task's live updated (attribution), and removed without attribution, whether or not it was seeded. lost is the only status rule_repair --apply acts on by default."
+        }
+      ]
+    },
+    {
+      "name": "vikunja-rule-inventory-repair",
+      "status": "active",
+      "deployed_by": "felix-rrule-adaptation-01M7TKNX (#1111)",
+      "introduced_by": "felix-rrule-adaptation-01M7TKNX (#1111)",
+      "updated_by": "felix-rrule-adaptation-01M7TKNX (#1111)",
+      "since": "#1111",
+      "description": "#1111 (FR-021/FR-022) operator-only inventory and repair of recurrence rules lost before the fix. rule_inventory compares a read-only copy of a snapshot DB (never the live DB or the snapshot dir) with each task's live v2 state and classifies every task; rule_repair restores the selected rules with v2 merge patches, journalled and resumable, with a per-task before-image for undo. Runbook: docs/runbooks/vikunja-task-repair.md.",
+      "path": [
+        {
+          "from": "Operator (Kent / Claude Code via ssh office2-claude)",
+          "to": "scripts/vikunja/rule_inventory.py",
+          "protocol": "CLI (python3 -m scripts.vikunja.rule_inventory --baseline-db <copy> --out <file> [--schedule-path] [--felix-logs ...] [--seed-ledger ...])",
+          "description": "Read-only. Refuses /data/services/vikunja/data and /data/services/vikunja/snapshots paths. Writes the plan file (mode 600, schema vikunja-rule-inventory/v1); statuses, decided in this order (scripts/vikunja/rule_inventory.classify): deleted = live GET 404; unresolved = the baseline rule text does not parse (no restore source, e.g. a date-only or floating UNTIL); ok = same rule and same repeats_from_current_date; progressed = same rule except a lower COUNT; changed = same rule (or lower COUNT) but a different repeats_from_current_date; ended = done and a COUNT baseline rule now gone (exhausted), or done and an UNTIL baseline rule kept; then, with the rule absent now: removed if the sync seeded no rule and the baseline was finite (seed-ledger cross-check), removed if the baseline was finite (COUNT/UNTIL) and no normal end was confirmed (the finite-rule exception), lost if the baseline was unbounded and a successful non-dry-run Felix write after 2026-10-30 (sweeper-ledger.jsonl day-specific due-date writes, habits-history.jsonl and *-escalation-history.jsonl write records, intake-apply-*.jsonl executed done writes; any other file is not attribution) lies within 120 s of the live updated (attribution, a timestamp-proximity heuristic and a documented residual risk), else removed; any other different live rule is changed. Only lost is repaired by rule_repair --apply by default; removed, changed, ended and unresolved go to Kent."
+        },
+        {
+          "from": "scripts/vikunja/rule_inventory.py",
+          "to": "Vikunja GET /api/v2/tasks/<id>",
+          "protocol": "HTTPS via Tailscale Serve (vikunja-api-kent)",
+          "port": 443,
+          "backend_port": 3456,
+          "description": "One read per candidate; 404 = deleted."
+        },
+        {
+          "from": "Operator",
+          "to": "scripts/vikunja/rule_repair.py",
+          "protocol": "CLI (python3 -m scripts.vikunja.rule_repair --dry-run|--apply|--resume RUN_ID|--restore SNAPSHOT|--emit-issue-markdown RUN_ID --plan <file> [--task-id N --accept-changed])",
+          "description": "Default selection is every lost entry; removed/ended/changed/progressed need --task-id plus --accept-changed. Exit 0 ok, 2 refused, 3 Vikunja read failed before any write, 4 local state write failed, 5 stopped on mismatch/unknown."
+        },
+        {
+          "from": "scripts/vikunja/rule_repair.py",
+          "to": "Vikunja GET + PATCH /api/v2/tasks/<id>",
+          "protocol": "HTTPS via Tailscale Serve (vikunja-api-kent)",
+          "port": 443,
+          "backend_port": 3456,
+          "description": "Clears an existing rule first ({repeat:null}) then writes {repeats_rrule, repeats_from_current_date}; readback per task."
+        },
+        {
+          "from": "scripts/vikunja/rule_repair.py",
+          "to": "/data/services/openclaw/state/vikunja-repair/<run_id>/ (run.json, <id>.before.json, journal.jsonl, issue-comment.md)",
+          "protocol": "file write (dir 700, before-images 600, fsynced journal)",
+          "description": "Emit mode builds the markdown for gh issue comment 1111 and makes no Vikunja call."
+        }
+      ]
     }
   ],
   "planned_flows": [
@@ -1962,7 +2204,7 @@
           "from": "scripts/common/vikunja_config.py (get_vikunja_base_url())",
           "to": "habits touchpoints (morning_checkin_list.py, query_active_habits_v2.py, set_due_dates.py, reconcile_completions.py)",
           "protocol": "python-import",
-          "description": "TP-07, TP-03, TP-04, TP-02: post-#519 migration; URL read at module init"
+          "description": "TP-07, TP-03, TP-04, TP-02: post-#519 migration; URL read at module init. #1111: VikunjaClient derives the v2 root (/api/v2) from this same /api/v1 base URL; the config file is unchanged. set_due_dates.py takes the URL for its v2 writes only; it no longer reads the sync cache."
         },
         {
           "from": "scripts/common/vikunja_config.py (get_vikunja_base_url())",
@@ -2001,10 +2243,10 @@
       "description": "Post-#519 canonical read path: 6 migrated touchpoints across 3 domains (habits \u00d74, escalation \u00d71, enrichment \u00d71) read task state from the sync driver cache via scripts/common/sync_cache.py instead of calling Vikunja directly. No fallback \u2014 cache miss or stale-beyond-SLA_NORMAL raises OSError with structured recovery hint.",
       "path": [
         {
-          "from": "habits touchpoints (morning_checkin_list.py, query_active_habits_v2.py, set_due_dates.py, reconcile_completions.py)",
+          "from": "habits touchpoints (morning_checkin_list.py, query_active_habits_v2.py, reconcile_completions.py)",
           "to": "scripts/common/sync_cache.py",
           "protocol": "python-import",
-          "description": "TP-07, TP-03, TP-04, TP-02: read task list via read_cached_tasks(SLA_NORMAL) or read_cached_task_by_id()"
+          "description": "TP-07, TP-03, TP-02: read task list via read_cached_tasks(SLA_NORMAL) or read_cached_task_by_id(). #1111: TP-04 (set_due_dates.py) no longer reads the cache; its retired --reconcile-schedule mode was the cache reader, and the remaining mode reads each habit live over GET /api/v2/tasks/<id>. query_active_habits_v2 skips habits whose cached description carries the (PAUSED) prefix; the sync caches description for this (CACHED_ONLY_TASK_FIELDS), so a pause reaches the morning list within one sync cycle (~5 min), and only after the first sync cycle following deploy."
         },
         {
           "from": "escalation touchpoint (escalation/reconcile_completions.py)",

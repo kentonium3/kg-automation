@@ -1,0 +1,225 @@
+{
+  "event_count": 214,
+  "last_event_id": "01M7Z0HV5PY0QD0WY401XB72P8",
+  "materialized_at": "2026-11-21T12:16:00.182542+00:00",
+  "mission_number": "",
+  "mission_slug": "felix-rrule-adaptation-01M7TKNX",
+  "mission_type": "",
+  "summary": {
+    "approved": 0,
+    "blocked": 0,
+    "canceled": 0,
+    "claimed": 0,
+    "done": 12,
+    "for_review": 0,
+    "in_progress": 0,
+    "in_review": 0,
+    "planned": 0
+  },
+  "work_packages": {
+    "WP01": {
+      "actor": "merge",
+      "agent": "claude",
+      "force_count": 1,
+      "implementer_of_record": "claude",
+      "lane": "done",
+      "last_event_id": "01M7Z0H49DCBBYSE91DK01TWBM",
+      "last_transition_at": "2026-11-21T12:15:36.749162+00:00",
+      "review_result": {
+        "feedback_path": "/home/kgale/repos/kg-automation/.worktrees/felix-rrule-adaptation-01M7TKNX-coord/kitty-specs/felix-rrule-adaptation-01M7TKNX/tasks/WP01-rule-library-and-fixtures/review-cycle-2.md",
+        "reference": "review-cycle://felix-rrule-adaptation-01M7TKNX/WP01-rule-library-and-fixtures/review-cycle-2.md",
+        "reviewer": "codex::reviewer-renata",
+        "verdict": "approved"
+      },
+      "shell_pid": 2927620,
+      "shell_pid_created_at": "1795125954.42"
+    },
+    "WP02": {
+      "actor": "merge",
+      "agent": "claude",
+      "force_count": 5,
+      "implementer_of_record": "claude",
+      "lane": "done",
+      "last_event_id": "01M7Z0H6BSP2DX3G7TV3BN0RNT",
+      "last_transition_at": "2026-11-21T12:15:38.873840+00:00",
+      "review_result": {
+        "feedback_path": "/home/kgale/repos/kg-automation/.worktrees/felix-rrule-adaptation-01M7TKNX-coord/kitty-specs/felix-rrule-adaptation-01M7TKNX/tasks/WP02-client-seam-v2/review-cycle-4.md",
+        "reference": "review-cycle://felix-rrule-adaptation-01M7TKNX/WP02-client-seam-v2/review-cycle-4.md",
+        "reviewer": "codex::reviewer-renata",
+        "verdict": "approved"
+      },
+      "shell_pid": 3286309,
+      "shell_pid_created_at": "1795129310.3"
+    },
+    "WP03": {
+      "actor": "merge",
+      "agent": "claude",
+      "force_count": 5,
+      "implementer_of_record": "claude",
+      "lane": "done",
+      "last_event_id": "01M7Z0HAH65DBHDXCGQWEQQWQ7",
+      "last_transition_at": "2026-11-21T12:15:43.142832+00:00",
+      "review_result": {
+        "feedback_path": "/home/kgale/repos/kg-automation/.worktrees/felix-rrule-adaptation-01M7TKNX-coord/kitty-specs/felix-rrule-adaptation-01M7TKNX/tasks/WP03-habits-writes/review-cycle-4.md",
+        "reference": "review-cycle://felix-rrule-adaptation-01M7TKNX/WP03-habits-writes/review-cycle-4.md",
+        "reviewer": "codex::reviewer-renata",
+        "verdict": "approved"
+      },
+      "shell_pid": 3986388,
+      "shell_pid_created_at": "1795133553.68"
+    },
+    "WP04": {
+      "actor": "merge",
+      "agent": "claude",
+      "force_count": 5,
+      "implementer_of_record": "claude",
+      "lane": "done",
+      "last_event_id": "01M7Z0HCKQ45HAEPJENXMSM8V0",
+      "last_transition_at": "2026-11-21T12:15:45.271653+00:00",
+      "review_result": {
+        "feedback_path": "/home/kgale/repos/kg-automation/.worktrees/felix-rrule-adaptation-01M7TKNX-coord/kitty-specs/felix-rrule-adaptation-01M7TKNX/tasks/WP04-escalation/review-cycle-4.md",
+        "reference": "review-cycle://felix-rrule-adaptation-01M7TKNX/WP04-escalation/review-cycle-4.md",
+        "reviewer": "codex::reviewer-renata",
+        "verdict": "approved"
+      },
+      "shell_pid": 3932450,
+      "shell_pid_created_at": "1795133162.75"
+    },
+    "WP05": {
+      "actor": "merge",
+      "agent": "claude",
+      "force_count": 1,
+      "implementer_of_record": "claude",
+      "lane": "done",
+      "last_event_id": "01M7Z0HES5TTC383M0VQMSN7W4",
+      "last_transition_at": "2026-11-21T12:15:47.493112+00:00",
+      "review_result": {
+        "feedback_path": "/home/kgale/repos/kg-automation/.worktrees/felix-rrule-adaptation-01M7TKNX-coord/kitty-specs/felix-rrule-adaptation-01M7TKNX/tasks/WP05-intake-and-bulk-tools/review-cycle-2.md",
+        "reference": "review-cycle://felix-rrule-adaptation-01M7TKNX/WP05-intake-and-bulk-tools/review-cycle-2.md",
+        "reviewer": "codex::reviewer-renata",
+        "verdict": "approved"
+      },
+      "shell_pid": 3613426,
+      "shell_pid_created_at": "1795131704.33"
+    },
+    "WP06": {
+      "actor": "merge",
+      "agent": "claude",
+      "force_count": 1,
+      "implementer_of_record": "claude",
+      "lane": "done",
+      "last_event_id": "01M7Z0H8FS0AMXPSV4PPEK6DXH",
+      "last_transition_at": "2026-11-21T12:15:41.049605+00:00",
+      "review_result": {
+        "feedback_path": "/home/kgale/repos/kg-automation/.worktrees/felix-rrule-adaptation-01M7TKNX-coord/kitty-specs/felix-rrule-adaptation-01M7TKNX/tasks/WP06-sync-tracks-rule/review-cycle-2.md",
+        "reference": "review-cycle://felix-rrule-adaptation-01M7TKNX/WP06-sync-tracks-rule/review-cycle-2.md",
+        "reviewer": "codex::reviewer-renata",
+        "verdict": "approved"
+      },
+      "shell_pid": 3168651,
+      "shell_pid_created_at": "1795128436.09"
+    },
+    "WP07": {
+      "actor": "merge",
+      "agent": "claude",
+      "force_count": 3,
+      "implementer_of_record": "claude",
+      "lane": "done",
+      "last_event_id": "01M7Z0HGTS3ATSVAPY3V9W31QF",
+      "last_transition_at": "2026-11-21T12:15:49.593368+00:00",
+      "review_result": {
+        "feedback_path": "/home/kgale/repos/kg-automation/.worktrees/felix-rrule-adaptation-01M7TKNX-coord/kitty-specs/felix-rrule-adaptation-01M7TKNX/tasks/WP07-habits-reads-schedule-report/review-cycle-3.md",
+        "reference": "review-cycle://felix-rrule-adaptation-01M7TKNX/WP07-habits-reads-schedule-report/review-cycle-3.md",
+        "reviewer": "codex::reviewer-renata",
+        "verdict": "approved"
+      },
+      "shell_pid": 1242152,
+      "shell_pid_created_at": "1795262274.28"
+    },
+    "WP08": {
+      "actor": "merge",
+      "agent": "claude",
+      "force_count": 1,
+      "implementer_of_record": "claude",
+      "lane": "done",
+      "last_event_id": "01M7Z0HN0CV9C7VJA12V1MBK6Z",
+      "last_transition_at": "2026-11-21T12:15:53.868513+00:00",
+      "review_result": {
+        "feedback_path": "/home/kgale/repos/kg-automation/.worktrees/felix-rrule-adaptation-01M7TKNX-coord/kitty-specs/felix-rrule-adaptation-01M7TKNX/tasks/WP08-create-retire-cleanup/review-cycle-2.md",
+        "reference": "review-cycle://felix-rrule-adaptation-01M7TKNX/WP08-create-retire-cleanup/review-cycle-2.md",
+        "reviewer": "codex::reviewer-renata",
+        "verdict": "approved"
+      },
+      "shell_pid": 2456286,
+      "shell_pid_created_at": "1795198986.06"
+    },
+    "WP09": {
+      "actor": "merge",
+      "agent": "claude",
+      "force_count": 3,
+      "implementer_of_record": "claude",
+      "lane": "done",
+      "last_event_id": "01M7Z0HQ2R5D3Y8KJ0CEY2PN9W",
+      "last_transition_at": "2026-11-21T12:15:55.992801+00:00",
+      "review_result": {
+        "feedback_path": "/home/kgale/repos/kg-automation/.worktrees/felix-rrule-adaptation-01M7TKNX-coord/kitty-specs/felix-rrule-adaptation-01M7TKNX/tasks/WP09-agent-guidance/review-cycle-4.md",
+        "reference": "review-cycle://felix-rrule-adaptation-01M7TKNX/WP09-agent-guidance/review-cycle-4.md",
+        "reviewer": "codex::reviewer-renata",
+        "verdict": "approved"
+      },
+      "shell_pid": 2886704,
+      "shell_pid_created_at": "1795203935.05"
+    },
+    "WP10": {
+      "actor": "merge",
+      "agent": "claude",
+      "force_count": 6,
+      "implementer_of_record": "claude",
+      "lane": "done",
+      "last_event_id": "01M7Z0HJXWK6TEAA8QZ5NZNG4E",
+      "last_transition_at": "2026-11-21T12:15:51.740813+00:00",
+      "review_result": {
+        "feedback_path": "/home/kgale/repos/kg-automation/.worktrees/felix-rrule-adaptation-01M7TKNX-coord/kitty-specs/felix-rrule-adaptation-01M7TKNX/tasks/WP10-inventory-and-repair/review-cycle-6.md",
+        "reference": "review-cycle://felix-rrule-adaptation-01M7TKNX/WP10-inventory-and-repair/review-cycle-6.md",
+        "reviewer": "codex::reviewer-renata",
+        "verdict": "approved"
+      },
+      "shell_pid": 3804591,
+      "shell_pid_created_at": "1795215387.45"
+    },
+    "WP11": {
+      "actor": "merge",
+      "agent": "claude",
+      "force_count": 1,
+      "implementer_of_record": "claude",
+      "lane": "done",
+      "last_event_id": "01M7Z0HV5PY0QD0WY401XB72P8",
+      "last_transition_at": "2026-11-21T12:16:00.182542+00:00",
+      "review_result": {
+        "feedback_path": "/home/kgale/repos/kg-automation/.worktrees/felix-rrule-adaptation-01M7TKNX-coord/kitty-specs/felix-rrule-adaptation-01M7TKNX/tasks/WP11-architecture-docs-and-rollout/review-cycle-2.md",
+        "reference": "review-cycle://felix-rrule-adaptation-01M7TKNX/WP11-architecture-docs-and-rollout/review-cycle-2.md",
+        "reviewer": "codex::reviewer-renata",
+        "verdict": "approved"
+      },
+      "shell_pid": 3556793,
+      "shell_pid_created_at": "1795212658.23"
+    },
+    "WP12": {
+      "actor": "merge",
+      "agent": "claude",
+      "force_count": 2,
+      "implementer_of_record": "claude",
+      "lane": "done",
+      "last_event_id": "01M7Z0HS3SGA38SRVS5X5P71S7",
+      "last_transition_at": "2026-11-21T12:15:58.073104+00:00",
+      "review_result": {
+        "feedback_path": "/home/kgale/repos/kg-automation/.worktrees/felix-rrule-adaptation-01M7TKNX-coord/kitty-specs/felix-rrule-adaptation-01M7TKNX/tasks/WP12-existing-task-and-habit-helpers/review-cycle-3.md",
+        "reference": "review-cycle://felix-rrule-adaptation-01M7TKNX/WP12-existing-task-and-habit-helpers/review-cycle-3.md",
+        "reviewer": "codex::reviewer-renata",
+        "verdict": "approved"
+      },
+      "shell_pid": 3270588,
+      "shell_pid_created_at": "1795208946.18"
+    }
+  }
+}

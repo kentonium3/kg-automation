@@ -12,7 +12,8 @@ records 0% coverage; lesson from WP01 cycle 3.)
 
 Test groups
 -----------
-- HabitClassifier (parse_weekday_in_title, classify_habit, scheduled_days_for_window).
+- HabitClassifier (classify_habit, scheduled_days_for_window) — from the
+  ``repeat`` rule (mission felix-rrule-adaptation, #1111, FR-012).
 - query_completion_events (pagination, done_at filtering, active fallback).
 - build_report (sort order, overall math, baseline omission, percentage cap).
 - main (success, VikunjaError, internal error, CLI flag validation).
@@ -37,6 +38,7 @@ from scripts.common.vikunja_client import (
     VikunjaTimeoutError,
 )
 from scripts.habits import query_active_habits_weekly as helper
+from tests.common.vikunja_v2_factory import make_list_task
 from tests.habits.fixtures.golden_week_jsonl import (
     DAILY_HABIT_ID,
     DAYSPEC_HABIT_ID,
@@ -56,23 +58,60 @@ PRIOR_END = CURRENT_START
 PRIOR_START = datetime(2026, 5, 25, tzinfo=timezone.utc)
 
 
-# Vikunja habit-task payload helper for the new path. Unlike the prior
-# done_at-based tests, the new path never reads done_at — only id, title,
-# repeat_after — so the mock task shape collapses to just those fields.
+DAILY = {"freq": "daily", "interval": 1}
+
+#: Weekday word -> Vikunja by_day token, for building weekly-by-day buckets.
+_DAY_TOKENS = {
+    "Monday": "mo", "Tuesday": "tu", "Wednesday": "we", "Thursday": "th",
+    "Friday": "fr", "Saturday": "sa", "Sunday": "su",
+}
+
+
+def _weekly(*days: str) -> dict:
+    return {"freq": "weekly", "interval": 1, "by_day": list(days)}
+
+
+# Vikunja habit-task payload helper: the v2 *list* shape (the weekly report
+# pages GET /projects/{id}/tasks, whose bodies carry ``repeat`` but no
+# ``repeats_rrule``). The helper never reads done_at.
 def _vk_task(
     *,
     habit_id: int,
     title: str,
-    repeat_after: int = 86400,
+    repeat: Optional[dict] = DAILY,
+    done: bool = False,
 ) -> dict:
-    """Build a minimal Vikunja-shaped task dict for the new helper path."""
-    return {
-        "id": habit_id,
-        "title": title,
-        "repeat_after": repeat_after,
-        # Intentionally include a sentinel done_at to prove the new code path
+    """Build a Vikunja list-shaped task dict for the helper path."""
+    return make_list_task(
+        id=habit_id,
+        title=title,
+        repeat=repeat,
+        done=done,
+        # Intentionally include a sentinel done_at to prove the code path
         # does NOT read it. Tests in the regression group assert this.
-        "done_at": "9999-01-01T00:00:00Z",
+        done_at="9999-01-01T00:00:00Z",
+    )
+
+
+def _bucket(kind: str, title: str, current: int, prior: int, *, repeat: Optional[dict] = None) -> dict:
+    """An events bucket as query_completion_events builds it (scheduled days computed)."""
+    if repeat is None:
+        repeat = DAILY if kind == "daily" else _weekly(
+            *[tok for word, tok in _DAY_TOKENS.items() if word in title]
+        )
+    task = {"repeat": repeat}
+    return {
+        "kind": kind,
+        "title": title,
+        "repeat": repeat,
+        "scheduled_current": helper.scheduled_days_for_window(
+            kind, task, CURRENT_START, CURRENT_END
+        ),
+        "scheduled_prior": helper.scheduled_days_for_window(
+            kind, task, PRIOR_START, PRIOR_END
+        ),
+        "current_count": current,
+        "prior_count": prior,
     }
 
 
@@ -137,166 +176,135 @@ def _build_mock_client(
 
 
 # ---------------------------------------------------------------------------
-# parse_weekday_in_title (10+ cases)
+# classify_habit — from the rule (FR-012)
 # ---------------------------------------------------------------------------
 
 
-def test_parse_weekday_in_title_full_word_wednesday() -> None:
-    assert helper.parse_weekday_in_title("Strength training — Wednesday") == frozenset({"WED"})
+def test_classify_daily_rule() -> None:
+    assert helper.classify_habit({"repeat": DAILY, "title": "Meditate"}) == "daily"
 
 
-def test_parse_weekday_in_title_three_letter_prefix() -> None:
-    assert helper.parse_weekday_in_title("Yoga — Mon") == frozenset({"MON"})
+def test_classify_daily_rule_server_noise_normalised() -> None:
+    """Upper-case parts, read_only and interval 0 (server treats as 1) are still daily."""
+    task = {"repeat": {"freq": "DAILY", "interval": 0, "read_only": True}}
+    assert helper.classify_habit(task) == "daily"
 
 
-def test_parse_weekday_in_title_case_insensitive() -> None:
-    assert helper.parse_weekday_in_title("yoga — MONDAY") == frozenset({"MON"})
+def test_classify_weekly_by_day_rule() -> None:
+    assert helper.classify_habit({"repeat": _weekly("mo", "we")}) == "weekly-by-day"
 
 
-def test_parse_weekday_in_title_multiple_weekdays() -> None:
-    assert helper.parse_weekday_in_title("Yoga — Mon and Wed") == frozenset({"MON", "WED"})
+def test_classify_title_weekday_is_not_the_classifier() -> None:
+    """A weekday in the title no longer matters: the rule decides."""
+    assert helper.classify_habit({"repeat": DAILY, "title": "Workout — Monday"}) == "daily"
+    assert helper.classify_habit({"repeat": None, "title": "Yoga — Monday"}) == "other"
 
 
-def test_parse_weekday_in_title_full_word_saturday() -> None:
-    assert helper.parse_weekday_in_title("Saturday morning swim") == frozenset({"SAT"})
+@pytest.mark.parametrize(
+    "repeat",
+    [
+        {"freq": "daily", "interval": 2},
+        {"freq": "daily", "interval": 1, "count": 5},
+        {"freq": "weekly", "interval": 1},
+        {"freq": "monthly", "by_month_day": [15]},
+    ],
+)
+def test_classify_other_rules_are_rule_kind(repeat: dict) -> None:
+    assert helper.classify_habit({"repeat": repeat}) == "rule"
 
 
-def test_parse_weekday_in_title_no_weekday() -> None:
-    assert helper.parse_weekday_in_title("Read 30 min minimum") == frozenset()
+@pytest.mark.parametrize("repeat", [None, {}, {"freq": ""}])
+def test_classify_no_rule_is_other(repeat) -> None:
+    assert helper.classify_habit({"repeat": repeat, "title": "Upload cardiac lab history"}) == "other"
 
 
-def test_parse_weekday_in_title_empty_string() -> None:
-    assert helper.parse_weekday_in_title("") == frozenset()
-
-
-def test_parse_weekday_in_title_embedded_word_does_not_match() -> None:
-    # "Monday" inside a longer word like "Mondays" still matches via \b at
-    # both ends only if the trailing 's' breaks the boundary; document the
-    # current behavior — plural 'Mondays' DOES match because \b sits
-    # between 'y' (\w) and 's' (\w)... actually no, \b is between \w and
-    # non-\w. So "Mondays" has Monday then s — no \b after 'y'. Verify.
-    assert helper.parse_weekday_in_title("Mondays standup") == frozenset()
-
-
-def test_parse_weekday_in_title_all_seven() -> None:
-    title = "Mon Tue Wed Thu Fri Sat Sun"
-    assert helper.parse_weekday_in_title(title) == frozenset(
-        {"MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"}
-    )
-
-
-def test_parse_weekday_in_title_dupe_returns_one() -> None:
-    assert helper.parse_weekday_in_title("Mon Mon Mon") == frozenset({"MON"})
-
-
-# ---------------------------------------------------------------------------
-# classify_habit (rules + edge cases)
-# ---------------------------------------------------------------------------
-
-
-def test_classify_daily_repeat_after_86400() -> None:
-    assert helper.classify_habit({"repeat_after": 86400, "title": "Meditate"}) == "daily"
-
-
-def test_classify_weekday_in_title_repeat_after_0() -> None:
-    assert (
-        helper.classify_habit(
-            {"repeat_after": 0, "title": "Strength training — Wednesday"}
-        )
-        == "weekday-in-title"
-    )
-
-
-def test_classify_other_cardiac_zero_repeat_no_weekday() -> None:
-    assert (
-        helper.classify_habit(
-            {"repeat_after": 0, "title": "Upload cardiac lab history"}
-        )
-        == "other"
-    )
-
-
-def test_classify_other_unexpected_repeat_after() -> None:
-    # Anything not 0 and not 86400 falls to "other" per data-model.md.
-    assert helper.classify_habit({"repeat_after": 3600, "title": "Hourly check"}) == "other"
-    assert helper.classify_habit({"repeat_after": 172800, "title": "Every-other-day"}) == "other"
-
-
-def test_classify_other_weekday_with_daily_repeat() -> None:
-    # repeat_after=86400 AND weekday-in-title → classifier prefers "other"
-    # (the rule chain checks weekdays must be empty for daily; non-empty +
-    # 86400 doesn't match either positive arm).
-    assert (
-        helper.classify_habit(
-            {"repeat_after": 86400, "title": "Workout — Monday"}
-        )
-        == "other"
-    )
-
-
-def test_classify_other_missing_repeat_after_field() -> None:
+def test_classify_missing_repeat_field_is_other() -> None:
     assert helper.classify_habit({"title": "Meditate"}) == "other"
 
 
-def test_classify_other_missing_title_field() -> None:
-    assert helper.classify_habit({"repeat_after": 86400}) == "daily"
+def test_classify_dead_interval_fields_are_ignored() -> None:
+    """Positive control for #1111: the old repeat_after shape alone is no rule."""
+    assert helper.classify_habit({"repeat_after": 86400, "repeat_mode": 0}) == "other"
 
 
 # ---------------------------------------------------------------------------
-# scheduled_days_for_window (6+ cases)
+# scheduled_days_for_window — from the rule
 # ---------------------------------------------------------------------------
+
+
+#: Every rule that is not plain daily / plain weekly-by-day is unknown
+#: (review cycle 2, #1111: the server preview is not used by the report).
+_UNKNOWN_RULES = [
+    {"freq": "daily", "interval": 2},
+    {"freq": "monthly"},
+    {"freq": "monthly", "by_month_day": [1]},
+    {"freq": "weekly", "interval": 2, "by_day": ["mo"]},
+    {"freq": "weekly", "interval": 1, "by_day": ["mo"], "count": 3},
+    {"freq": "weekly", "interval": 1, "by_day": ["mo"], "until": "2026-12-31T23:59:59Z"},
+    {"freq": "weekly", "interval": 1, "by_day": ["1mo"]},
+    {"freq": "weekly", "interval": 1, "by_day": ["mo"], "by_hour": [9]},
+]
 
 
 def test_scheduled_days_daily_full_week_returns_seven() -> None:
-    assert helper.scheduled_days_for_window("daily", "Meditate", CURRENT_START, CURRENT_END) == 7
+    assert helper.scheduled_days_for_window(
+        "daily", {"repeat": DAILY}, CURRENT_START, CURRENT_END
+    ) == 7
 
 
 def test_scheduled_days_daily_three_day_window() -> None:
     end = CURRENT_START + timedelta(days=3)
-    assert helper.scheduled_days_for_window("daily", "Meditate", CURRENT_START, end) == 3
+    assert helper.scheduled_days_for_window("daily", {"repeat": DAILY}, CURRENT_START, end) == 3
 
 
-def test_scheduled_days_weekday_in_title_single_match_in_week() -> None:
-    assert (
-        helper.scheduled_days_for_window(
-            "weekday-in-title", "Strength training — Monday", CURRENT_START, CURRENT_END
-        )
-        == 1
-    )
+def test_scheduled_days_weekly_by_day_single_day() -> None:
+    assert helper.scheduled_days_for_window(
+        "weekly-by-day", {"repeat": _weekly("mo")}, CURRENT_START, CURRENT_END,
+    ) == 1
 
 
-def test_scheduled_days_weekday_in_title_two_weekdays_in_title() -> None:
-    assert (
-        helper.scheduled_days_for_window(
-            "weekday-in-title", "Yoga — Mon and Wed", CURRENT_START, CURRENT_END
-        )
-        == 2
-    )
+def test_scheduled_days_weekly_mo_we_is_two_per_standard_week() -> None:
+    """A synthetic FREQ=WEEKLY;BYDAY=MO,WE habit gets 2 days per standard week."""
+    task = {"repeat": _weekly("mo", "we")}
+    for start in (CURRENT_START, PRIOR_START):
+        assert helper.scheduled_days_for_window(
+            "weekly-by-day", task, start, start + timedelta(days=7)
+        ) == 2
 
 
-def test_scheduled_days_weekday_in_title_zero_matches_for_empty_title() -> None:
-    assert (
-        helper.scheduled_days_for_window(
-            "weekday-in-title", "Empty title", CURRENT_START, CURRENT_END
-        )
-        == 0
-    )
+@pytest.mark.parametrize("repeat", _UNKNOWN_RULES)
+def test_scheduled_days_non_plain_rule_is_unknown(repeat) -> None:
+    """Never a guessed 0: a rule that cannot be counted locally is None."""
+    kind = helper.classify_habit({"repeat": repeat})
+    assert kind in ("rule", "weekly-by-day")
+    for start, end in ((CURRENT_START, CURRENT_END), (PRIOR_START, PRIOR_END)):
+        assert helper.scheduled_days_for_window(kind, {"repeat": repeat}, start, end) is None
+
+
+def test_scheduled_days_takes_no_preview_or_clock() -> None:
+    """Review cycle 2: the preview plumbing is gone from the report."""
+    import inspect
+
+    params = inspect.signature(helper.scheduled_days_for_window).parameters
+    assert "preview" not in params and "now" not in params
+    params = inspect.signature(helper.query_completion_events).parameters
+    assert "preview" not in params and "now" not in params
 
 
 def test_scheduled_days_other_returns_zero() -> None:
-    assert helper.scheduled_days_for_window("other", "Cardiac", CURRENT_START, CURRENT_END) == 0
+    assert helper.scheduled_days_for_window("other", {"repeat": None}, CURRENT_START, CURRENT_END) == 0
 
 
 def test_scheduled_days_inverted_window_returns_zero() -> None:
-    assert helper.scheduled_days_for_window("daily", "Meditate", CURRENT_END, CURRENT_START) == 0
+    assert helper.scheduled_days_for_window("daily", {"repeat": DAILY}, CURRENT_END, CURRENT_START) == 0
 
 
 # ---------------------------------------------------------------------------
 # query_completion_events (canonical-store path, post-trustworthy-weekly-...)
 # ---------------------------------------------------------------------------
 #
-# The new code path reads only current-state habit metadata from Vikunja
-# (id, title, repeat_after) and derives completion counts from
+# The code path reads only current-state habit metadata from Vikunja
+# (id, title, repeat) and derives completion counts from
 # ``habits-history.jsonl`` via :mod:`scripts.habits.history`. Each test
 # sets up:
 #   1. A ``tasks_pages`` mock so the Vikunja list call returns the habit
@@ -366,6 +374,9 @@ def test_query_events_single_habit_one_completion_from_jsonl(
         "Meditate": {
             "kind": "daily",
             "title": "Meditate",
+            "repeat": DAILY,
+            "scheduled_current": 7,
+            "scheduled_prior": 7,
             "current_count": 1,
             "prior_count": 0,
         }
@@ -376,8 +387,8 @@ def test_query_events_filters_other_kind(mock_state_log_dir) -> None:
     """A non-recurring non-weekday task ('other') is excluded from events."""
     client = _build_mock_client(
         tasks_pages=[[
-            _vk_task(habit_id=1, title="Meditate", repeat_after=86400),
-            _vk_task(habit_id=2, title="Upload cardiac lab history", repeat_after=0),
+            _vk_task(habit_id=1, title="Meditate"),
+            _vk_task(habit_id=2, title="Upload cardiac lab history", repeat=None),
         ]],
     )
     _write_habits_jsonl(mock_state_log_dir, [])
@@ -568,7 +579,7 @@ def test_query_events_skips_task_missing_id(mock_state_log_dir) -> None:
     """A task without an integer id is skipped (defensive against bad data)."""
     client = _build_mock_client(
         tasks_pages=[[
-            {"title": "No-ID habit", "repeat_after": 86400},
+            {"title": "No-ID habit", "repeat": DAILY},
             _vk_task(habit_id=1, title="Meditate"),
         ]],
     )
@@ -614,13 +625,9 @@ def test_query_events_does_not_read_done_at(mock_state_log_dir) -> None:
 
 def test_build_report_sorts_daily_first_then_weekday() -> None:
     events = {
-        "Yoga — Saturday": {"kind": "weekday-in-title", "title": "Yoga — Saturday",
-                            "current_count": 1, "prior_count": 0},
-        "Meditate": {"kind": "daily", "title": "Meditate",
-                     "current_count": 5, "prior_count": 0},
-        "Strength training — Monday": {"kind": "weekday-in-title",
-                                        "title": "Strength training — Monday",
-                                        "current_count": 1, "prior_count": 0},
+        "Yoga — Saturday": _bucket("weekly-by-day", "Yoga — Saturday", 1, 0),
+        "Meditate": _bucket("daily", "Meditate", 5, 0),
+        "Strength training — Monday": _bucket("weekly-by-day", "Strength training — Monday", 1, 0),
     }
     report = helper.build_report(
         events,
@@ -635,10 +642,8 @@ def test_build_report_sorts_daily_first_then_weekday() -> None:
 
 def test_build_report_two_daily_alphabetical() -> None:
     events = {
-        "Read": {"kind": "daily", "title": "Read",
-                 "current_count": 1, "prior_count": 0},
-        "Meditate": {"kind": "daily", "title": "Meditate",
-                     "current_count": 1, "prior_count": 0},
+        "Read": _bucket("daily", "Read", 1, 0),
+        "Meditate": _bucket("daily", "Meditate", 1, 0),
     }
     report = helper.build_report(
         events,
@@ -655,8 +660,7 @@ def test_build_report_caps_completed_at_scheduled_days(monkeypatch) -> None:
     # exercises. Anomaly emission has dedicated tests below.
     monkeypatch.setattr(helper, "_emit_log_action", lambda **_kwargs: None)
     events = {
-        "Meditate": {"kind": "daily", "title": "Meditate",
-                     "current_count": 99, "prior_count": 0},
+        "Meditate": _bucket("daily", "Meditate", 99, 0),
     }
     report = helper.build_report(
         events,
@@ -690,8 +694,7 @@ def test_build_report_emits_anomaly_when_current_count_exceeds_scheduled(
 ) -> None:
     calls = _capture_emit_log_action(monkeypatch)
     events = {
-        "Meditate": {"kind": "daily", "title": "Meditate",
-                     "current_count": 12, "prior_count": 0},
+        "Meditate": _bucket("daily", "Meditate", 12, 0),
     }
     report = helper.build_report(
         events,
@@ -725,8 +728,7 @@ def test_build_report_emits_anomaly_when_prior_count_exceeds_scheduled(
 ) -> None:
     calls = _capture_emit_log_action(monkeypatch)
     events = {
-        "Meditate": {"kind": "daily", "title": "Meditate",
-                     "current_count": 0, "prior_count": 9},
+        "Meditate": _bucket("daily", "Meditate", 0, 9),
     }
     report = helper.build_report(
         events,
@@ -758,11 +760,8 @@ def test_build_report_emits_anomaly_when_prior_count_exceeds_scheduled(
 def test_build_report_emits_no_anomaly_on_normal_data(monkeypatch) -> None:
     calls = _capture_emit_log_action(monkeypatch)
     events = {
-        "Meditate": {"kind": "daily", "title": "Meditate",
-                     "current_count": 5, "prior_count": 3},
-        "Strength training — Monday": {"kind": "weekday-in-title",
-                                        "title": "Strength training — Monday",
-                                        "current_count": 1, "prior_count": 1},
+        "Meditate": _bucket("daily", "Meditate", 5, 3),
+        "Strength training — Monday": _bucket("weekly-by-day", "Strength training — Monday", 1, 1),
     }
     helper.build_report(
         events,
@@ -777,8 +776,7 @@ def test_build_report_emits_no_anomaly_on_normal_data(monkeypatch) -> None:
 
 def test_build_report_baseline_omission_sets_nulls() -> None:
     events = {
-        "Meditate": {"kind": "daily", "title": "Meditate",
-                     "current_count": 3, "prior_count": 0},
+        "Meditate": _bucket("daily", "Meditate", 3, 0),
     }
     report = helper.build_report(
         events,
@@ -824,12 +822,9 @@ def test_build_report_iso_strings_use_z_suffix() -> None:
 
 def test_build_report_weekday_sort_by_weekday_then_title() -> None:
     events = {
-        "Yoga — Monday": {"kind": "weekday-in-title", "title": "Yoga — Monday",
-                          "current_count": 0, "prior_count": 0},
-        "Stretching — Friday": {"kind": "weekday-in-title", "title": "Stretching — Friday",
-                                "current_count": 0, "prior_count": 0},
-        "Tennis — Monday": {"kind": "weekday-in-title", "title": "Tennis — Monday",
-                            "current_count": 0, "prior_count": 0},
+        "Yoga — Monday": _bucket("weekly-by-day", "Yoga — Monday", 0, 0),
+        "Stretching — Friday": _bucket("weekly-by-day", "Stretching — Friday", 0, 0),
+        "Tennis — Monday": _bucket("weekly-by-day", "Tennis — Monday", 0, 0),
     }
     report = helper.build_report(
         events,
@@ -1246,7 +1241,7 @@ def _example_report_for_render() -> dict:
             },
             {
                 "habit_title": "Strength — Monday",
-                "habit_kind": "weekday-in-title",
+                "habit_kind": "weekly-by-day",
                 "scheduled_days_current": 1,
                 "completed_events_current": 1,
                 "percent_current": 100.0,
@@ -1307,6 +1302,9 @@ def test_render_whatsapp_text_overall_line_with_arrow() -> None:
 
 def test_render_whatsapp_text_no_baseline_drops_was_clause() -> None:
     report = _example_report_for_render()
+    # No baseline: build_report nulls the prior window bounds too.
+    report["prior_window_start_iso"] = None
+    report["prior_window_end_iso"] = None
     report["overall_percent_prior"] = None
     for h in report["habits"]:
         h["percent_prior"] = None
@@ -1339,8 +1337,7 @@ def test_render_whatsapp_text_does_not_include_identity_line() -> None:
 def test_build_report_includes_rendered_text_field() -> None:
     """Additive ``rendered_text`` keeps the existing schema intact."""
     events = {
-        "Meditate": {"kind": "daily", "title": "Meditate",
-                     "current_count": 3, "prior_count": 2},
+        "Meditate": _bucket("daily", "Meditate", 3, 2),
     }
     report = helper.build_report(
         events,
@@ -1431,16 +1428,14 @@ def test_main_as_of_rejects_naive_returns_two(monkeypatch, capsys) -> None:
 def _golden_week_vk_tasks() -> list[dict]:
     """The Vikunja-side task catalog matching the golden-week fixture."""
     return [
-        _vk_task(habit_id=DAILY_HABIT_ID, title="Daily walk", repeat_after=86400),
+        _vk_task(habit_id=DAILY_HABIT_ID, title="Daily walk"),
         _vk_task(
             habit_id=DAYSPEC_HABIT_ID,
             title="Strength training — Monday",
-            repeat_after=0,
+            repeat=_weekly("mo"),
         ),
-        # Weekly-review habit (week-bounded). With repeat_after=0 + no
-        # weekday-in-title token the existing classifier reads "other" and
-        # filters it. WP02 inherits that classifier as-is; the report
-        # cardinal-3 behavior for weekly habits is covered downstream.
+        # Weekly-review habit (week-bounded): no rule in this catalog, so the
+        # classifier reads "other" and filters it.
     ]
 
 
@@ -1593,3 +1588,246 @@ def test_golden_week_does_not_read_done_at_regression(
     daily = next(h for h in payload["habits"] if h["habit_title"] == "Daily walk")
     assert daily["completed_events_current"] == 4
     assert daily["percent_current"] > 0.0
+
+
+# ===========================================================================
+# FR-012 (mission felix-rrule-adaptation, #1111): classify + schedule from
+# the rule. Red on cc4f2154: the old classifier read ``repeat_after``, which
+# RRULE-server list bodies no longer carry, so every habit was "other" and
+# the report was empty.
+# ===========================================================================
+
+
+def test_production_catalog_lists_every_active_daily_habit(
+    fixtures, mock_state_log_dir
+) -> None:
+    scenario = fixtures["weekly_production_rrule_habits"]
+    client = _build_mock_client(tasks_pages=scenario["tasks_pages"])
+    _write_habits_jsonl(mock_state_log_dir, [])
+    events = helper.query_completion_events(
+        client,
+        window_start=CURRENT_START,
+        window_end=CURRENT_END,
+        prior_window_start=PRIOR_START,
+        prior_window_end=PRIOR_END,
+    )
+    assert sorted(events) == scenario["expected_daily_titles"]
+    assert len(events) == 7
+    for bucket in events.values():
+        assert bucket["kind"] == "daily"
+        assert bucket["scheduled_current"] == 7
+        assert bucket["scheduled_prior"] == 7
+    # Tasks 75–77 are Done with no rule (C-008): excluded, not reported at 0%.
+    assert not any("Strength training" in title for title in events)
+
+    report = helper.build_report(
+        events,
+        window_start=CURRENT_START,
+        window_end=CURRENT_END,
+        prior_window_start=PRIOR_START,
+        prior_window_end=PRIOR_END,
+    )
+    assert [h["habit_title"] for h in report["habits"]] == scenario["expected_daily_titles"]
+    assert all(h["scheduled_days_current"] == 7 for h in report["habits"])
+
+
+def test_rule_habit_past_window_is_unknown_and_completions_not_zeroed(mock_state_log_dir) -> None:
+    """A rule habit is unknown in both windows (not 0 scheduled days with its
+    completions suppressed); daily habits stay counted."""
+    client = _build_mock_client(
+        tasks_pages=[[
+            _vk_task(habit_id=1, title="Meditate"),
+            _vk_task(habit_id=2, title="Every other day", repeat={"freq": "daily", "interval": 2}),
+        ]],
+    )
+    _write_habits_jsonl(
+        mock_state_log_dir,
+        [_habit_record(task_id=2, date_iso="2026-06-03", timestamp_iso="2026-06-03T12:00:00+00:00")],
+    )
+    events = helper.query_completion_events(
+        client,
+        window_start=CURRENT_START,
+        window_end=CURRENT_END,
+        prior_window_start=PRIOR_START,
+        prior_window_end=PRIOR_END,
+    )
+    bucket = events["Every other day"]
+    assert bucket["kind"] == "rule"
+    assert bucket["scheduled_current"] is None
+    assert bucket["scheduled_prior"] is None
+    assert bucket["current_count"] is None
+    report = helper.build_report(
+        events,
+        window_start=CURRENT_START,
+        window_end=CURRENT_END,
+        prior_window_start=PRIOR_START,
+        prior_window_end=PRIOR_END,
+    )
+    assert f"Every other day — {helper.UNKNOWN_SCHEDULE_TEXT}" in report["rendered_text"]
+    assert events["Meditate"]["scheduled_current"] == 7  # daily stays local
+
+
+def test_unknown_rule_renders_unknown_never_zero(mock_state_log_dir) -> None:
+    """A rule habit's scheduled days are None, render as "unknown", and the
+    habit is left out of the overall totals."""
+    client = _build_mock_client(
+        tasks_pages=[[
+            _vk_task(habit_id=1, title="Meditate"),
+            _vk_task(habit_id=2, title="Monthly review", repeat={"freq": "monthly", "by_month_day": [1]}),
+        ]],
+    )
+    _write_habits_jsonl(
+        mock_state_log_dir,
+        [_habit_record(task_id=1, date_iso="2026-06-02", timestamp_iso="2026-06-02T07:00:00+00:00")],
+    )
+    events = helper.query_completion_events(
+        client,
+        window_start=CURRENT_START,
+        window_end=CURRENT_END,
+        prior_window_start=PRIOR_START,
+        prior_window_end=PRIOR_END,
+    )
+    monthly = events["Monthly review"]
+    assert monthly["scheduled_current"] is None
+    assert monthly["scheduled_prior"] is None
+    assert monthly["current_count"] is None
+    report = helper.build_report(
+        events,
+        window_start=CURRENT_START,
+        window_end=CURRENT_END,
+        prior_window_start=PRIOR_START,
+        prior_window_end=PRIOR_END,
+    )
+    row = next(h for h in report["habits"] if h["habit_title"] == "Monthly review")
+    assert row["scheduled_days_current"] is None
+    assert row["completed_events_current"] is None
+    assert row["percent_current"] is None
+    assert row["scheduled_days_prior"] is None
+    assert row["percent_prior"] is None
+    # Overall is Meditate alone (1/7), not diluted by a guessed 0.
+    assert report["overall_percent_current"] == round(100 / 7, 1)
+    text = report["rendered_text"]
+    assert f"Monthly review — {helper.UNKNOWN_SCHEDULE_TEXT}" in text
+    assert "Monthly review — 0%" not in text
+    assert helper.UNKNOWN_SCHEDULE_TEXT == "scheduled: unknown (rule preview unavailable)"
+
+
+def test_main_renders_unknown_without_calling_preview(monkeypatch, capsys, mock_state_log_dir) -> None:
+    client = _build_mock_client(
+        tasks_pages=[[_vk_task(habit_id=2, title="Monthly review", repeat={"freq": "monthly"})]],
+    )
+    _write_habits_jsonl(mock_state_log_dir, [])
+    _patch_client_with_mock(monkeypatch, mock_client=client)
+    _silence_log_action(monkeypatch)
+    rc = helper.main(["--window-end", "2026-06-08", "--output", "text"])
+    out = capsys.readouterr().out
+    assert rc == 0
+    assert not client.preview_occurrences.called
+    assert not client.post.called
+    assert f"Monthly review — {helper.UNKNOWN_SCHEDULE_TEXT}" in out
+
+
+def test_weekly_by_day_sorts_by_first_rule_weekday() -> None:
+    events = {
+        "B": _bucket("weekly-by-day", "B", 0, 0, repeat=_weekly("fr")),
+        "A": _bucket("weekly-by-day", "A", 0, 0, repeat=_weekly("we", "tu")),
+        "Z": _bucket("daily", "Z", 0, 0),
+    }
+    report = helper.build_report(
+        events,
+        window_start=CURRENT_START,
+        window_end=CURRENT_END,
+        prior_window_start=PRIOR_START,
+        prior_window_end=PRIOR_END,
+    )
+    assert [h["habit_title"] for h in report["habits"]] == ["Z", "A", "B"]
+
+
+# ---------------------------------------------------------------------------
+# Overall line when no habit has a known denominator (#1111 post-merge)
+# ---------------------------------------------------------------------------
+
+
+def _unknown_bucket(title: str) -> dict:
+    """A rule habit bucket as query_completion_events builds it: all unknown."""
+    bucket = _bucket("rule", title, 0, 0, repeat={"freq": "monthly", "by_month_day": [1]})
+    assert bucket["scheduled_current"] is None
+    assert bucket["scheduled_prior"] is None
+    bucket["current_count"] = None
+    bucket["prior_count"] = None
+    return bucket
+
+
+def test_all_unknown_overall_is_unknown_in_both_windows() -> None:
+    """Every habit unknown -> overall unknown, never a false "Overall: 0%"."""
+    events = {
+        "Monthly review": _unknown_bucket("Monthly review"),
+        "Quarterly plan": _unknown_bucket("Quarterly plan"),
+    }
+    report = helper.build_report(
+        events,
+        window_start=CURRENT_START,
+        window_end=CURRENT_END,
+        prior_window_start=PRIOR_START,
+        prior_window_end=PRIOR_END,
+    )
+    assert report["overall_percent_current"] is None
+    assert report["overall_percent_prior"] is None
+    text = report["rendered_text"]
+    assert f"*Overall* — {helper.UNKNOWN_SCHEDULE_TEXT}" in text
+    assert "0%" not in text
+    assert "was" not in text
+
+
+def test_all_unknown_overall_is_unknown_without_baseline() -> None:
+    events = {"Monthly review": _unknown_bucket("Monthly review")}
+    report = helper.build_report(
+        events,
+        window_start=CURRENT_START,
+        window_end=CURRENT_END,
+        prior_window_start=None,
+        prior_window_end=None,
+    )
+    assert report["overall_percent_current"] is None
+    assert report["overall_percent_prior"] is None
+    assert report["rendered_text"].endswith(f"*Overall* — {helper.UNKNOWN_SCHEDULE_TEXT}")
+
+
+def test_prior_window_all_unknown_renders_unknown_not_was_zero() -> None:
+    """Current known, but no habit has a known prior denominator."""
+    bucket = _bucket("daily", "Meditate", 3, 0)
+    bucket["scheduled_prior"] = None
+    bucket["prior_count"] = None
+    report = helper.build_report(
+        {"Meditate": bucket},
+        window_start=CURRENT_START,
+        window_end=CURRENT_END,
+        prior_window_start=PRIOR_START,
+        prior_window_end=PRIOR_END,
+    )
+    assert report["overall_percent_current"] == round(300 / 7, 1)
+    assert report["overall_percent_prior"] is None
+    text = report["rendered_text"]
+    assert f"*Overall: 43%* (was {helper.UNKNOWN_SCHEDULE_TEXT})" in text
+    assert "was 0%" not in text
+
+
+def test_mixed_known_and_unknown_aggregates_known_only_both_windows() -> None:
+    """Mixed: the overall stays today's known-only aggregate in both windows."""
+    events = {
+        "Meditate": _bucket("daily", "Meditate", 7, 0),
+        "Strength — Monday": _bucket("weekly-by-day", "Strength — Monday", 1, 1),
+        "Monthly review": _unknown_bucket("Monthly review"),
+    }
+    report = helper.build_report(
+        events,
+        window_start=CURRENT_START,
+        window_end=CURRENT_END,
+        prior_window_start=PRIOR_START,
+        prior_window_end=PRIOR_END,
+    )
+    assert report["overall_percent_current"] == 100.0  # 8/8
+    assert report["overall_percent_prior"] == round(100 / 8, 1)  # 1/8
+    text = report["rendered_text"]
+    assert "*Overall: 100%* (was 12%) ↑" in text
+    assert f"Monthly review — {helper.UNKNOWN_SCHEDULE_TEXT}" in text

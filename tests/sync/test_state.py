@@ -7,6 +7,7 @@ via the pytest ``tmp_path`` fixture; no live state directory is touched.
 from __future__ import annotations
 
 import json
+from typing import ClassVar
 
 import pytest
 
@@ -415,3 +416,143 @@ class TestModuleImport:
     def test_layer_pointer_snapshot_removed(self):
         """LayerPointerSnapshot is the v1 type; must NOT exist in state."""
         assert not hasattr(st, "LayerPointerSnapshot")
+
+
+# ===========================================================================
+# Seed ledger + baseline_seeded (WP06 / #1111, R-008, post-plan finding 9)
+# ===========================================================================
+
+
+class TestSeedLedger:
+    def test_schema_version_unchanged(self):
+        # A bump would force an operator re-bootstrap (R-008).
+        assert st.SCHEMA_VERSION == 1
+
+    def test_ledger_filename(self):
+        assert st.SEED_LEDGER_FILENAME == "seed-ledger.jsonl"
+
+    def test_empty_records_create_no_file(self, tmp_path):
+        st.append_seed_ledger(tmp_path, [])
+        assert not (tmp_path / st.SEED_LEDGER_FILENAME).exists()
+
+    def test_appends_one_line_per_record_including_null(self, tmp_path):
+        rows = [
+            {"cycle_id": "C1", "task_id": 1, "field": "repeat",
+             "seeded_value": None, "at": "2026-11-19T12:00:00Z"},
+            {"cycle_id": "C1", "task_id": 1, "field": "repeats_from_current_date",
+             "seeded_value": False, "at": "2026-11-19T12:00:00Z"},
+        ]
+        st.append_seed_ledger(tmp_path, rows)
+        st.append_seed_ledger(tmp_path, rows[:1])
+        lines = (tmp_path / st.SEED_LEDGER_FILENAME).read_text().splitlines()
+        assert len(lines) == 3
+        assert '"seeded_value": null' in lines[0]
+        assert [json.loads(line) for line in lines] == [rows[0], rows[1], rows[0]]
+
+    def test_fsyncs(self, tmp_path, monkeypatch):
+        calls: list[int] = []
+        real_fsync = st.os.fsync
+        monkeypatch.setattr(st.os, "fsync", lambda fd: (calls.append(fd), real_fsync(fd)))
+        st.append_seed_ledger(tmp_path, [{"cycle_id": "C", "task_id": 1, "field": "repeat",
+                                          "seeded_value": None, "at": "t"}])
+        assert len(calls) == 2  # the temp file, then the directory
+
+
+class TestHealthBaselineSeeded:
+    def _record(self, **kw):
+        return st.PerTickHealthRecord(
+            tick_id="T",
+            started_at_utc="2026-06-04T19:25:30Z",
+            completed_at_utc="2026-06-04T19:25:31Z",
+            duration_ms=100,
+            cadence_seconds=300,
+            layer_summary=_make_layer_summary(),
+            events_emitted={},
+            cycle_error=None,
+            vikunja_version_seen=None,
+            **kw,
+        )
+
+    def test_defaults_to_zero(self, tmp_path):
+        st.write_per_tick_health(tmp_path, self._record())
+        data = json.loads((tmp_path / st.LAST_TICK_FILENAME).read_text())
+        assert data["baseline_seeded"] == 0
+        assert data["schema_version"] == st.HEALTH_SCHEMA_VERSION == 2
+
+    def test_written(self, tmp_path):
+        st.write_per_tick_health(tmp_path, self._record(baseline_seeded=7))
+        data = json.loads((tmp_path / st.LAST_TICK_FILENAME).read_text())
+        assert data["baseline_seeded"] == 7
+
+
+class TestSeedLedgerAtomicity:
+    """Review cycle 1, finding 1: a partial write must never corrupt the ledger."""
+
+    _ROW: ClassVar[dict] = {"cycle_id": "C1", "task_id": 1, "field": "repeat",
+                            "seeded_value": None, "at": "2026-11-19T12:00:00Z"}
+
+    def test_partial_write_then_retry_leaves_only_whole_lines(self, tmp_path, monkeypatch):
+        import builtins
+
+        st.append_seed_ledger(tmp_path, [self._ROW])
+        before = (tmp_path / st.SEED_LEDGER_FILENAME).read_bytes()
+
+        real_open = builtins.open
+
+        class _PartialWriter:
+            """Writes a prefix of the payload, then fails like a full disk."""
+
+            def __init__(self, f):
+                self._f = f
+
+            def write(self, data):
+                self._f.write(data[: len(data) // 2])
+                self._f.flush()
+                raise OSError("No space left on device")
+
+            def __getattr__(self, name):
+                return getattr(self._f, name)
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *exc):
+                return self._f.__exit__(*exc)
+
+        def _faulty_open(file, mode="r", *a, **k):
+            f = real_open(file, mode, *a, **k)
+            if ("w" in mode or "a" in mode) and "seed-ledger" in str(file):
+                return _PartialWriter(f)
+            return f
+
+        row2 = {**self._ROW, "cycle_id": "C2", "task_id": 2}
+        monkeypatch.setattr(builtins, "open", _faulty_open)
+        with pytest.raises(OSError):
+            st.append_seed_ledger(tmp_path, [row2, {**row2, "field": "repeats_from_current_date"}])
+        monkeypatch.setattr(builtins, "open", real_open)
+
+        # The failed write left the committed ledger byte-for-byte unchanged.
+        assert (tmp_path / st.SEED_LEDGER_FILENAME).read_bytes() == before
+
+        # Retry (the next cycle re-seeds) appends cleanly.
+        row3 = {**self._ROW, "cycle_id": "C3", "task_id": 2}
+        st.append_seed_ledger(tmp_path, [row3])
+        lines = (tmp_path / st.SEED_LEDGER_FILENAME).read_text().splitlines()
+        parsed = [json.loads(line) for line in lines]  # every line parses
+        assert parsed == [self._ROW, row3]
+        # No stray temp file survives.
+        assert [p.name for p in tmp_path.iterdir()] == [st.SEED_LEDGER_FILENAME]
+
+    def test_fsyncs_file_and_directory(self, tmp_path, monkeypatch):
+        import stat as stat_mod
+
+        kinds: list[str] = []
+        real_fsync = st.os.fsync
+
+        def _spy(fd):
+            kinds.append("dir" if stat_mod.S_ISDIR(st.os.fstat(fd).st_mode) else "file")
+            return real_fsync(fd)
+
+        monkeypatch.setattr(st.os, "fsync", _spy)
+        st.append_seed_ledger(tmp_path, [self._ROW])
+        assert kinds == ["file", "dir"]
