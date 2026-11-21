@@ -1,15 +1,15 @@
 {
   "rows": {
     "#1111": {
-      "evidence_ref": "kitty-specs/felix-rrule-adaptation-01M7TKNX/tasks.md (WP01-WP11 close #1111)",
+      "evidence_ref": "Code side merged on fix/felix-rrule-adaptation (12 WPs done, mission review PASS WITH NOTES 2026-11-21). Follow-up: #1111 stays open for the post-deploy steps (merge to main, live inventory, sweeper re-enable, final rule-loss check; DoD 5-7); re-escalation in #1118.",
       "fr": null,
       "nfr": null,
       "repo": null,
       "sc": null,
       "scope": null,
       "source_file": "spec.md",
-      "title": "<fill at WP-implementation time>",
-      "verdict": "in-mission",
+      "title": "Felix: review and adapt all calendar/habit functions to Vikunja RRULE recurrence (record_completion currently strips rules)",
+      "verdict": "deferred-with-followup",
       "wp": "WP01"
     },
     "#492": {
