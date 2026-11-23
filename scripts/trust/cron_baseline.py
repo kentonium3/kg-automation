@@ -3,9 +3,10 @@
 Loads and validates the committed allowlist of legitimate OpenClaw crons
 (``docs/design/architecture/data/approved-crons.json``) into typed
 ``ApprovedCron`` value objects, and exposes a deterministic, order-independent
-content hash (:func:`baseline_hash`) that WP04 folds into finding
-fingerprints so a baseline edit re-evaluates findings rather than letting
-stale seen-state suppress them (data-model.md "State & idempotency").
+content hash (:func:`baseline_hash`) that WP04 folds into cron finding
+fingerprints so a baseline edit re-evaluates cron findings rather than letting
+stale seen-state suppress them (data-model.md "State & idempotency"; narrowed
+to cron findings by #1130).
 
 Fail-safe posture (NFR-001): a missing, unreadable, or malformed baseline
 raises :class:`BaselineError` — it never silently degrades to an empty

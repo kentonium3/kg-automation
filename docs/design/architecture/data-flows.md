@@ -835,8 +835,9 @@ assertions) rather than component *health* — but the same shape: a systemd
 shared **#701 bus** (`scripts/common/alert_bus.emit`). Alert cadence: first
 observation alerts immediately; a persisting finding re-alerts every 24h; a
 previously-seen finding that disappears emits a low-priority `drift_resolved` and
-is dropped from state. Fingerprints fold in the baseline hash so a baseline edit
-re-evaluates every finding. **Timer mode always exits 0** — finding drift is
+is dropped from state. Cron fingerprints fold in the baseline hash so a baseline
+edit re-evaluates every **cron** finding; assertion and unit-drift fingerprints do
+not depend on the baseline (#1130). **Timer mode always exits 0** — finding drift is
 expected signal, never a process failure; each sub-scan is wrapped so a fault in
 one never aborts the other. A failed emit reverts the finding's `last_alerted` so
 it stays due next scan (no lost alert). Siblings share the *bus*, not the scanner
