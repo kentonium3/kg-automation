@@ -229,8 +229,15 @@ Each sub-scan is isolated: an exception in the cron-drift scan (e.g. the
 vice versa. The JSON summary shape is:
 
 ```json
-{"ok": true, "drift_findings": 0, "assertion_findings": 0, "alerts_emitted": 0, "errors": []}
+{"ok": true, "drift_findings": 0, "assertion_findings": 0, "unit_drift_findings": 0,
+ "unit_coverage": {}, "alerts_emitted": 0, "carried_forward": 0, "findings_held": false,
+ "errors": []}
 ```
+
+`carried_forward` counts seen-state entries kept only because their sub-scan
+did not complete this tick, and `findings_held` is `carried_forward > 0` (see
+*Failed sub-scans* below). Both are `0` / `false` on a `--dry-run` tick and
+when reconcile itself raised, because no reconcile result exists to count.
 
 ---
 
@@ -282,6 +289,30 @@ Every stage except the watermark save also sets `alert_path_fault` in
 `last-tick.json`. That forces `exit_status: failure`, so the canary pages, and
 it never changes the process exit code. A plain bus `ok=false`, such as an ntfy
 outage, is still a retry rather than a fault: the finding stays due.
+
+**Failed sub-scans (#1129).** A sub-scan that did not complete says nothing
+about its findings: "could not check" is not "verified false". So a source
+that did not complete never resolves its findings. They carry forward
+unchanged, with no "cleared" alert and no `last_seen` refresh, and the tick
+reports `exit_status: failure` with `carried_forward > 0`. A source counts as
+completed only when its whole sub-scan returned without raising:
+
+| Source | Completed only when | Not completed when |
+|---|---|---|
+| cron | the baseline loaded, and `openclaw cron list` and drift detection both returned | `cron_scan:` error (`BaselineError`, `CronEnumerationError`, or a detector fault) |
+| unit-drift | the deployed-unit dir exists, and enumeration and detection both returned | `unit_scan:` error, **or** the deployed-unit dir is absent (CI/dev skip) |
+| assertion | both the new-assertion pass and the outstanding re-verify loop returned | `assertion_scan:` or `assertion_reverify:` error |
+
+A finding that *is* reported this tick is still updated as usual, even when its
+source did not complete, because a partial result is real evidence of presence.
+The re-verify loop runs even when the new-assertion pass raised. Carried
+findings resolve on the first tick where their source completes. A source that
+keeps failing therefore sends no re-alerts for its old findings: the canary's
+`exit_status: failure` is the signal to look. `last-tick.json` records
+`findings_held` and `carried_forward` alongside `scan_inability` and
+`alert_path_fault`. Holding findings does **not** set `scan_inability`, so it
+never changes the preflight exit-2 contract: an assertion failure still does
+not gate preflight.
 
 ---
 
