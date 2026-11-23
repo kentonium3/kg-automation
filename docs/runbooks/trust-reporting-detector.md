@@ -109,7 +109,7 @@ Finding kinds:
 | Kind | Meaning |
 |---|---|
 | `artifact_missing` | An asserted artifact id could not be found in its owning system — a completion claim that isn't grounded. |
-| `unverifiable_kind` | An asserted artifact kind has no existence check today; recorded as a warning, never treated as missing. |
+| `unverifiable_kind` | An asserted artifact kind has no existence check today; recorded as a warning, never treated as missing. It alerts once (retried until delivered) and never resolves: nothing was checked, so it never produces a "now grounded" alert (#1137). |
 
 **Explicit non-goal (blind spot):** neither scan detects a pure verbal
 completion claim that creates no artifact and emits no assertion. That
@@ -176,6 +176,15 @@ unapprovable (2026-11-23, #1125 option C). Revisit by matching on
 alerts on **first observation**, then re-alerts every 24h while it persists
 (so a standing unapproved cron isn't silently swallowed after the first
 alert), and emits one low-priority `drift_resolved` info alert when it clears.
+Only a finding that is re-checked every tick can clear. An `unverifiable_kind`
+warning is never re-checked, so it alerts once (retried every tick until
+delivered) and is then dropped silently. It never produces "Completion claim
+now grounded", because nothing was verified (#1137). It does not normally
+re-alert on the 24h cadence. The main exception: while the watermark is held
+(most commonly by an earlier indeterminate record in the same file), its record
+is re-read each tick, so it follows the 24h cadence until the hold clears. A
+warning that is both re-read and retried in one tick still alerts once: each
+fingerprint is reconciled once per tick.
 A cron finding's fingerprint is versioned by the baseline's content hash, so
 **editing the baseline re-evaluates every cron finding** rather than letting
 stale seen-state suppress a now-legitimate (or newly-illegitimate) cron.
@@ -291,6 +300,8 @@ Every stage except the watermark save also sets `alert_path_fault` in
 `last-tick.json`. That forces `exit_status: failure`, so the canary pages, and
 it never changes the process exit code. A plain bus `ok=false`, such as an ntfy
 outage, is still a retry rather than a fault: the finding stays due.
+An `unverifiable_kind` warning whose render keeps failing is retried every tick,
+with `exit_status: failure`, until the render is fixed (#1137).
 
 **Failed sub-scans (#1129).** A sub-scan that did not complete says nothing
 about its findings: "could not check" is not "verified false". So a source

@@ -349,7 +349,11 @@ def render_drift_resolved(
     the copy + bus ``source`` so an assertion that clears renders as an
     **assertion** resolution, never "Cron drift cleared" (Codex F2). A
     cleared ``artifact_missing`` means the previously-ungrounded completion
-    claim is now grounded (the artifact exists).
+    claim is now grounded (the artifact exists). Only a re-verifiable
+    assertion entry (``state._is_reverifiable_assertion``) ever reaches the
+    assertion branch: reconcile drops every other assertion entry silently,
+    so an ``unverifiable_kind`` warning never renders as "now grounded"
+    (#1137).
     """
     if source == _state.SOURCE_ASSERTION:
         title = f"Completion claim now grounded: {name}"

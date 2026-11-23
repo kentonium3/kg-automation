@@ -10,6 +10,11 @@ Tracks findings across scan ticks so alert cadence is correct
   ``drift_resolved`` event and drop it from state — but only if the sub-scan
   that owns it completed this tick. A finding whose sub-scan failed is
   carried forward unchanged (#1129).
+- Exception: an assertion finding that is **not re-verifiable** (e.g. an
+  ``unverifiable_kind`` warning) is never re-produced after its first tick, so
+  its disappearance proves nothing. It is dropped silently, with no
+  ``drift_resolved`` event (#1137). Only a re-verifiable ``artifact_missing``
+  entry resolves.
 
 **Baseline-versioned fingerprints** (data-model.md "Baseline-versioned
 fingerprints"): a **cron** finding's fingerprint folds in ``baseline_hash``
@@ -60,6 +65,7 @@ __all__ = [
     "reconcile",
     "keep_due",
     "outstanding_assertion_findings",
+    "undelivered_assertion_findings",
 ]
 
 logger = logging.getLogger(__name__)
@@ -190,13 +196,36 @@ def _entry_source(entry: dict[str, str]) -> str:
     return source if source in ALL_SOURCES else SOURCE_CRON
 
 
-def _assertion_identity_fields(finding: AssertionFinding) -> dict[str, str]:
-    """Identity fields persisted for an ``artifact_missing`` assertion (F2).
+def _is_reverifiable_assertion(entry: dict[str, str]) -> bool:
+    """True iff *entry* is an assertion the runner re-verifies every scan (F2).
 
-    These let the scan runner re-verify an outstanding ``artifact_missing``
-    finding each scan (re-checking the artifact's existence) independent of
-    the once-only assertion watermark, so the finding persists (24h re-alert)
-    while the artifact is still missing and only resolves when it reappears.
+    Only an ``artifact_missing`` claim about a ``vikunja_task`` with a
+    non-empty id has a re-verify path, so only such an entry's absence means
+    "the artifact reappeared". Every other assertion entry is never
+    re-produced after its first tick, so its absence means nothing (#1137).
+    ``assertion_verifier`` owns which kinds are verifiable; block (b)'s
+    ``verify_vikunja_id_present`` in ``run_trust_scan`` is the co-change site.
+    """
+    return (
+        _entry_source(entry) == SOURCE_ASSERTION
+        and entry.get("assertion_kind") == "artifact_missing"
+        and entry.get("artifact_kind") == "vikunja_task"
+        and bool(entry.get("artifact_id"))
+    )
+
+
+def _assertion_identity_fields(finding: AssertionFinding) -> dict[str, str]:
+    """Identity fields persisted for every assertion finding (F2, #1137).
+
+    These let the scan runner rebuild an assertion finding from state,
+    independent of the once-only assertion watermark, in two ways:
+
+    - re-verify an outstanding re-verifiable ``artifact_missing`` finding each
+      scan (:func:`outstanding_assertion_findings`), so it persists (24h
+      re-alert) while the artifact is still missing and only resolves when it
+      reappears;
+    - retry a never-delivered non-re-verifiable finding
+      (:func:`undelivered_assertion_findings`) until its alert is delivered.
     """
     return {
         "assertion_kind": finding.kind,
@@ -314,7 +343,8 @@ def load_state(path: Path | str = DEFAULT_STATE_PATH) -> dict[str, dict[str, str
     # Optional string fields carried through verbatim when present: `name`
     # (readability), `source` ("cron"/"assertion" — F2 resolution routing),
     # and the assertion-identity fields used to re-verify an outstanding
-    # artifact_missing finding each scan (F2).
+    # artifact_missing finding each scan (F2) or retry an undelivered
+    # non-re-verifiable one (#1137).
     _OPTIONAL_STR_FIELDS = (
         "name",
         "source",
@@ -401,7 +431,14 @@ def reconcile(
       ``to_alert``, but ``last_seen`` is still refreshed.
     - fingerprint in state but **absent** from ``current_findings``, and its
       source is in ``completed_sources`` -> produce a :class:`ResolvedEvent`
-      (``first_seen`` + ``cleared_at = now``) and drop the entry.
+      (``first_seen`` + ``cleared_at = now``) and drop the entry. Exception
+      (#1137): an assertion entry that is not re-verifiable
+      (:func:`_is_reverifiable_assertion`) is dropped **without** an event,
+      because nothing ever re-produces it, so its absence is not evidence the
+      claim is grounded. This includes a never-delivered one
+      (:func:`_never_delivered`): reconcile does not carry it. Its delivery
+      depends on the runner re-presenting it in ``current_findings`` via
+      :func:`undelivered_assertion_findings`.
     - fingerprint in state, **absent**, and its source is **not** in
       ``completed_sources`` -> **carried forward unchanged** (#1129): no
       event, no ``last_seen`` refresh. A sub-scan that could not run says
@@ -416,6 +453,15 @@ def reconcile(
     unknown tag is treated as cron. Entries that ARE present in the current
     findings are processed the same whether or not their source completed: a
     partial result is still real evidence of presence.
+
+    **Each fingerprint is handled once per tick** (#1137). The same identity
+    can arrive more than once: a never-delivered warning re-read under a held
+    watermark AND rebuilt by :func:`undelivered_assertion_findings`, an
+    ``artifact_missing`` re-read AND re-verified, or one id listed twice in a
+    record. Every copy would be judged against the same prior entry, so all
+    would be due and alert, and a failed emit of one copy would make
+    ``keep_due`` undo a successful emit of another. The first occurrence wins;
+    later copies are skipped, so they never reach ``to_alert``.
 
     Returns ``(to_alert, resolved_events, new_state)`` — the caller is
     responsible for persisting ``new_state`` via :func:`save_state` (this
@@ -436,11 +482,15 @@ def reconcile(
 
     for finding, baseline_hash in current_findings:
         fingerprint = fingerprint_finding(finding, baseline_hash)
+        if fingerprint in seen_fingerprints:
+            # Same identity reported twice this tick (#1137): first wins.
+            continue
         seen_fingerprints.add(fingerprint)
         name = _finding_name(finding)
         source = _finding_source(finding)
         # Persist assertion identity so an outstanding artifact_missing can be
-        # re-verified next scan independent of the watermark (F2).
+        # re-verified next scan independent of the watermark (F2), or an
+        # undelivered non-re-verifiable one retried (#1137).
         identity_fields = (
             _assertion_identity_fields(finding)
             if isinstance(finding, AssertionFinding)
@@ -494,6 +544,10 @@ def reconcile(
             # (a copy, so keep_due on new_state can never alias prior state).
             new_state[fingerprint] = dict(entry)
             continue
+        if source == SOURCE_ASSERTION and not _is_reverifiable_assertion(entry):
+            # Never re-produced after its first tick, so its absence is not
+            # evidence the claim is grounded: drop it silently (#1137).
+            continue
         resolved_events.append(
             ResolvedEvent(
                 fingerprint=fingerprint,
@@ -511,8 +565,23 @@ def reconcile(
 # Sentinel `last_alerted` value that always parses as "long ago", forcing the
 # next scan to treat the finding as due for re-alert. Used by :func:`keep_due`
 # when an emit fails on a *first observation* (there is no prior last_alerted
-# to fall back to).
+# to fall back to). Second meaning (#1137): an entry carrying it has NEVER been
+# delivered, since keep_due only stamps it when there is no earlier successful
+# alert and restores it on every later failure. :func:`_never_delivered` names
+# that reading; :func:`undelivered_assertion_findings` relies on it.
 _ALWAYS_DUE_SENTINEL = "1970-01-01T00:00:00+00:00"
+
+
+def _never_delivered(entry: dict[str, str]) -> bool:
+    """True iff no emit of *entry*'s alert has been recorded as delivered
+    (``keep_due`` stamped the sentinel on a failed first emit, and no later
+    successful emit has been saved).
+
+    "Recorded" matters: if an emit succeeds but the state save fails on that
+    tick, the saved entry still carries the sentinel and the warning is
+    delivered again next tick. Loud beats silent; accepted.
+    """
+    return entry.get("last_alerted") == _ALWAYS_DUE_SENTINEL
 
 
 def keep_due(
@@ -532,7 +601,11 @@ def keep_due(
       ``last_alerted`` (so the pre-existing cadence is unchanged — no spurious
       reset of a still-valid 24h window);
     - if it was a first observation (absent from ``prior_state``), stamp an
-      always-due sentinel so the immediate retry fires next scan.
+      always-due sentinel so the immediate retry fires next scan. The sentinel
+      also marks the entry never-delivered (:func:`_never_delivered`); a
+      repeat failure restores it from ``prior_state``, so the mark holds until
+      an emit succeeds. That is what lets the runner retry a non-re-verifiable
+      warning (:func:`undelivered_assertion_findings`, #1137).
 
     Mutates ``new_state`` in place. Idempotent and fail-safe (a missing
     fingerprint is a no-op).
@@ -552,33 +625,62 @@ def outstanding_assertion_findings(
 ) -> list[AssertionFinding]:
     """Reconstruct the ``artifact_missing`` assertion findings still in *state* (F2).
 
-    Returns one :class:`AssertionFinding` per state entry that was recorded as
-    an outstanding ``artifact_missing`` assertion (``source == "assertion"``
-    and ``assertion_kind == "artifact_missing"`` with a ``vikunja_task``
-    artifact_kind, the only re-verifiable kind). The scan runner re-verifies
+    Returns one :class:`AssertionFinding` per state entry that is a
+    re-verifiable assertion (:func:`_is_reverifiable_assertion`: an
+    ``artifact_missing`` claim about a ``vikunja_task`` with a non-empty id,
+    the only re-verifiable kind). Every other assertion entry belongs to
+    :func:`undelivered_assertion_findings` instead. The scan runner re-verifies
     each of these against Vikunja every scan — independent of the once-only
     assertion watermark — so a still-missing artifact keeps producing its
     finding (persisting the 24h re-alert cadence) and only clears when the
     artifact reappears.
     """
-    findings: list[AssertionFinding] = []
-    for entry in (state or {}).values():
-        if entry.get("source") != SOURCE_ASSERTION:
-            continue
-        if entry.get("assertion_kind") != "artifact_missing":
-            continue
-        if entry.get("artifact_kind") != "vikunja_task":
-            continue
-        artifact_id = entry.get("artifact_id")
-        if not artifact_id:
-            continue
-        findings.append(
-            AssertionFinding(
-                kind="artifact_missing",
-                agent=entry.get("agent", ""),
-                artifact_kind="vikunja_task",
-                artifact_id=artifact_id,
-                claim=entry.get("claim", ""),
-            )
+    return [
+        AssertionFinding(
+            kind="artifact_missing",
+            agent=entry.get("agent", ""),
+            artifact_kind="vikunja_task",
+            artifact_id=entry["artifact_id"],
+            claim=entry.get("claim", ""),
         )
-    return findings
+        for entry in (state or {}).values()
+        if _is_reverifiable_assertion(entry)
+    ]
+
+
+def undelivered_assertion_findings(
+    state: dict[str, dict[str, str]] | None,
+) -> list[AssertionFinding]:
+    """Rebuild the never-delivered, non-re-verifiable assertion findings in *state* (#1137).
+
+    A non-re-verifiable assertion (e.g. an ``unverifiable_kind`` warning about
+    a calendar event) is produced once, when its record is read; nothing
+    re-produces it later, and :func:`reconcile` drops it silently once it is
+    absent. If its first emit failed, ``keep_due`` stamped it never-delivered
+    (:func:`_never_delivered`), so without help the warning would be lost.
+
+    Returns one :class:`AssertionFinding` per assertion entry that is NOT
+    re-verifiable (the complement of :func:`outstanding_assertion_findings`),
+    is never-delivered, and has a stored ``assertion_kind``. Each is rebuilt
+    from the entry's stored identity fields, so it fingerprints to the same key
+    (assertion fingerprints are baseline-independent, #1130). The runner adds
+    these to the tick's assertion findings with no external call: reconcile
+    then sees each present and due, so it is emitted; on success it is dropped
+    the next tick, on another failure ``keep_due`` keeps it never-delivered and
+    it is retried again. A legacy entry without ``assertion_kind`` cannot be
+    rebuilt and is simply dropped.
+    """
+    return [
+        AssertionFinding(
+            kind=entry["assertion_kind"],
+            agent=entry.get("agent", ""),
+            artifact_kind=entry.get("artifact_kind", ""),
+            artifact_id=entry.get("artifact_id", ""),
+            claim=entry.get("claim", ""),
+        )
+        for entry in (state or {}).values()
+        if _entry_source(entry) == SOURCE_ASSERTION
+        and not _is_reverifiable_assertion(entry)
+        and _never_delivered(entry)
+        and "assertion_kind" in entry
+    ]

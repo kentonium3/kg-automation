@@ -902,3 +902,236 @@ def test_reconcile_missing_or_unknown_source_is_treated_as_cron(source):
 def test_reconcile_rejects_completed_sources_outside_all_sources(completed):
     with pytest.raises(ValueError):
         state_mod.reconcile([], T0, _three_source_state(), completed_sources=completed)
+
+
+# --- #1137: a non-re-verifiable assertion never resolves as "grounded" -------
+
+
+def _unverifiable_finding(artifact_id="e1", artifact_kind="calendar_event") -> AssertionFinding:
+    return AssertionFinding(
+        kind="unverifiable_kind",
+        agent="main",
+        artifact_kind=artifact_kind,
+        artifact_id=artifact_id,
+        claim="Booked the dentist",
+    )
+
+
+def _assertion_entry(**identity: str) -> dict[str, str]:
+    """A stored assertion entry, alerted at T0, with the given identity fields."""
+    return _seen_entry("assertion", identity.pop("name", "x"), **identity)
+
+
+# Every assertion entry shape that has no re-verify path: absent next tick
+# says nothing about it (it is never re-produced), so it must not resolve.
+_NON_REVERIFIABLE_ENTRIES = {
+    "unverifiable-calendar": dict(
+        assertion_kind="unverifiable_kind", artifact_kind="calendar_event",
+        artifact_id="e1", agent="main", claim="c",
+    ),
+    "unverifiable-vault": dict(
+        assertion_kind="unverifiable_kind", artifact_kind="vault_note",
+        artifact_id="n1", agent="main", claim="c",
+    ),
+    "artifact-missing-empty-id": dict(
+        assertion_kind="artifact_missing", artifact_kind="vikunja_task",
+        artifact_id="", agent="main", claim="c",
+    ),
+    "artifact-missing-non-vikunja": dict(
+        assertion_kind="artifact_missing", artifact_kind="calendar_event",
+        artifact_id="e1", agent="main", claim="c",
+    ),
+    "legacy-no-assertion-kind": {},
+}
+
+
+@pytest.mark.parametrize(
+    "identity", _NON_REVERIFIABLE_ENTRIES.values(), ids=_NON_REVERIFIABLE_ENTRIES.keys()
+)
+def test_reconcile_absent_non_reverifiable_assertion_is_dropped_without_resolution(identity):
+    seeded = {"fp-a": _assertion_entry(**identity)}
+
+    to_alert, resolved, new_state = state_mod.reconcile(
+        [], T0 + timedelta(minutes=15), seeded, completed_sources=state_mod.ALL_SOURCES
+    )
+
+    assert to_alert == []
+    assert resolved == []  # no "Completion claim now grounded"
+    assert new_state == {}
+
+
+def test_reconcile_absent_reverifiable_assertion_still_resolves():
+    """Control: an artifact_missing vikunja_task entry that is absent means the
+    re-verify saw the artifact reappear, so it resolves exactly as before."""
+    seeded = _three_source_state()
+
+    _, resolved, new_state = state_mod.reconcile(
+        [], T0 + timedelta(minutes=15), seeded, completed_sources=frozenset({"assertion"})
+    )
+
+    assert [(e.fingerprint, e.source) for e in resolved] == [("fp-assert", "assertion")]
+    assert "fp-assert" not in new_state
+
+
+def test_reconcile_absent_unverifiable_entry_is_carried_when_assertion_source_incomplete():
+    """#1129 still runs first: an assertion source that did not complete
+    carries every assertion entry, re-verifiable or not."""
+    seeded = {"fp-a": _assertion_entry(**_NON_REVERIFIABLE_ENTRIES["unverifiable-calendar"])}
+
+    _, resolved, new_state = state_mod.reconcile(
+        [], T0 + timedelta(minutes=15), seeded, completed_sources=frozenset({"cron"})
+    )
+
+    assert resolved == []
+    assert new_state == seeded
+
+
+def test_reconcile_alone_drops_a_never_delivered_non_reverifiable_entry():
+    """C5: reconcile does not carry a never-delivered entry. Its delivery
+    depends on the runner re-presenting it (undelivered_assertion_findings); an
+    entry nobody re-presents is dropped, silently, like any other."""
+    finding = _unverifiable_finding()
+    _, _, state1 = state_mod.reconcile([(finding, "")], T0, state={})
+    (fp,) = state1
+    state_mod.keep_due(state1, fp, prior_state={})
+    assert state_mod._never_delivered(state1[fp])
+
+    to_alert, resolved, new_state = state_mod.reconcile(
+        [], T0 + timedelta(minutes=15), state1
+    )
+
+    assert to_alert == []
+    assert resolved == []
+    assert new_state == {}
+
+
+def test_keep_due_on_first_observation_marks_entry_never_delivered():
+    """C1: the always-due sentinel also means "never delivered"."""
+    finding = _unverifiable_finding()
+    _, _, new_state = state_mod.reconcile([(finding, "")], T0, state={})
+    (fp,) = new_state
+    assert not state_mod._never_delivered(new_state[fp])
+
+    state_mod.keep_due(new_state, fp, prior_state={})
+
+    assert state_mod._never_delivered(new_state[fp])
+
+
+def test_keep_due_restoring_a_prior_timestamp_is_not_never_delivered():
+    finding = _unverifiable_finding()
+    fp = state_mod.fingerprint_finding(finding, "")
+    prior = {fp: _assertion_entry(**_NON_REVERIFIABLE_ENTRIES["unverifiable-calendar"])}
+    _, _, new_state = state_mod.reconcile(
+        [(finding, "")], T0 + timedelta(hours=24), state=prior
+    )
+
+    state_mod.keep_due(new_state, fp, prior_state=prior)
+
+    assert not state_mod._never_delivered(new_state[fp])
+
+
+def _stored_after_failed_first_emit(finding: AssertionFinding) -> tuple[str, dict[str, str]]:
+    """The (key, entry) reconcile + keep_due store for a first-emit failure."""
+    _, _, new_state = state_mod.reconcile([(finding, "")], T0, state={})
+    (fp,) = new_state
+    state_mod.keep_due(new_state, fp, prior_state={})
+    return fp, new_state[fp]
+
+
+def test_undelivered_assertion_findings_rebuilds_only_never_delivered_non_reverifiable():
+    undelivered_cal = _unverifiable_finding("e1")
+    undelivered_empty_id = AssertionFinding(
+        kind="artifact_missing", agent="main", artifact_kind="vikunja_task",
+        artifact_id="", claim="c",
+    )  # P7: artifact_missing that can never be re-verified
+    fp_cal, entry_cal = _stored_after_failed_first_emit(undelivered_cal)
+    fp_empty, entry_empty = _stored_after_failed_first_emit(undelivered_empty_id)
+    fp_vik, entry_vik = _stored_after_failed_first_emit(_assertion_finding("91"))
+    delivered = _unverifiable_finding("e2")
+    _, _, delivered_state = state_mod.reconcile([(delivered, "")], T0, state={})
+    state = {
+        fp_cal: entry_cal,
+        fp_empty: entry_empty,
+        fp_vik: entry_vik,  # re-verifiable: owned by outstanding_assertion_findings
+        **delivered_state,  # delivered: nothing to retry
+        "fp-cron": {**_seen_entry("cron", "rogue"), "last_alerted": state_mod._ALWAYS_DUE_SENTINEL},
+        "fp-legacy": {  # no assertion_kind: cannot be rebuilt
+            **_seen_entry("assertion", "legacy"),
+            "last_alerted": state_mod._ALWAYS_DUE_SENTINEL,
+        },
+    }
+
+    rebuilt = state_mod.undelivered_assertion_findings(state)
+
+    assert sorted(rebuilt, key=lambda f: f.artifact_id) == [undelivered_empty_id, undelivered_cal]
+    # Same identity -> same fingerprint as the stored key (#1130: unversioned).
+    assert {state_mod.fingerprint_finding(f, "") for f in rebuilt} == {fp_cal, fp_empty}
+
+
+def test_undelivered_assertion_findings_empty_for_none_or_empty():
+    assert state_mod.undelivered_assertion_findings(None) == []
+    assert state_mod.undelivered_assertion_findings({}) == []
+
+
+@pytest.mark.parametrize(
+    "identity",
+    [
+        *_NON_REVERIFIABLE_ENTRIES.values(),
+        dict(
+            assertion_kind="artifact_missing", artifact_kind="vikunja_task",
+            artifact_id="91", agent="main", claim="c",
+        ),
+    ],
+    ids=[*_NON_REVERIFIABLE_ENTRIES.keys(), "reverifiable"],
+)
+def test_retry_and_reverify_sets_are_complements(identity):
+    """C2: a never-delivered assertion entry that has a stored assertion_kind is
+    re-presented by exactly one helper: re-verify if re-verifiable, else retry."""
+    entry = {**_assertion_entry(**identity), "last_alerted": state_mod._ALWAYS_DUE_SENTINEL}
+    state = {"fp": entry}
+
+    reverify = state_mod.outstanding_assertion_findings(state)
+    retry = state_mod.undelivered_assertion_findings(state)
+
+    if "assertion_kind" in identity:
+        assert len(reverify) + len(retry) == 1
+    else:
+        assert reverify == retry == []  # legacy: no kind to rebuild with
+    assert state_mod._is_reverifiable_assertion(entry) is (len(reverify) == 1)
+
+
+def test_undelivered_assertion_findings_is_exported():
+    assert "undelivered_assertion_findings" in state_mod.__all__
+
+
+# --- #1137 review: reconcile handles each fingerprint once per tick ----------
+
+
+@pytest.mark.parametrize(
+    "finding",
+    [_unverifiable_finding(), _assertion_finding("91"), _cron_finding()],
+    ids=["unverifiable", "artifact-missing", "cron"],
+)
+def test_reconcile_same_finding_twice_alerts_once_on_first_observation(finding):
+    to_alert, resolved, new_state = state_mod.reconcile(
+        [(finding, ""), (finding, "")], T0, state={}
+    )
+
+    assert to_alert == [finding]
+    assert resolved == []
+    assert len(new_state) == 1
+
+
+def test_reconcile_same_due_finding_twice_alerts_once():
+    """The #1137 double: a never-delivered entry re-read by (a) and rebuilt by
+    (c) is due twice against the same prior entry. Only the first counts."""
+    finding = _unverifiable_finding()
+    fp, entry = _stored_after_failed_first_emit(finding)
+    now = T0 + timedelta(minutes=15)
+
+    to_alert, _, new_state = state_mod.reconcile(
+        [(finding, ""), (finding, "")], now, state={fp: entry}
+    )
+
+    assert to_alert == [finding]
+    assert new_state[fp]["last_alerted"] == state_mod._utc_iso(now)

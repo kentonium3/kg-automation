@@ -303,6 +303,8 @@ def test_run_scan_second_tick_does_not_reverify_same_assertion(isolated_paths):
 
     # Second tick: no new assertion lines -> 0 assertion findings.
     assert summary2["assertion_findings"] == 0
+    # ...and no false "now grounded" for the unverifiable claim (#1137).
+    assert summary2["alerts_emitted"] == 0
 
 
 # --- --dry-run: no emit, no state/watermark mutation -------------------------
@@ -2031,3 +2033,234 @@ def test_baseline_edit_does_not_rekey_an_outstanding_assertion(isolated_paths):
     assert assertion_keys2 == assertion_keys1
     (key,) = assertion_keys1
     assert saved2[key]["first_seen"] == saved1[key]["first_seen"]
+
+
+# --- #1137: an unverifiable claim warns once and never resolves as grounded ---
+
+_UNVERIFIABLE_CAL = "Completion claim unverifiable: calendar_event"
+
+
+def _calendar_assertion(assertions_dir, artifact_ids=("e1",), *, extra_lines=""):
+    record = {
+        "ts": "2026-07-10T11:00:00+00:00",
+        "agent": "main",
+        "request_summary": None,
+        "request_ref": None,
+        "artifact_kind": "calendar_event",
+        "artifact_ids": list(artifact_ids),
+        "claim": "Booked the dentist",
+    }
+    (assertions_dir / "2026-07-10.jsonl").write_text(
+        extra_lines + json.dumps(record) + "\n", encoding="utf-8"
+    )
+
+
+def _emit_failing_titles(*substrings: str):
+    """An emit fake that returns ok=False for any alert whose title contains
+    one of *substrings*, and delivers everything else."""
+    from scripts.common.alert_bus.model import AlertResult
+
+    def emit(alert):
+        if any(s in alert.title for s in substrings):
+            return AlertResult(ok=False, reason="BUS_DOWN")
+        return AlertResult(ok=True)
+
+    return emit
+
+
+def _titles(mock_emit) -> list[str]:
+    return [c.args[0].title for c in mock_emit.call_args_list]
+
+
+def test_unverifiable_claim_warns_once_and_never_resolves_as_grounded(isolated_paths):
+    state_path, _, assertions_dir = isolated_paths
+    _calendar_assertion(assertions_dir)
+
+    s1, emit1 = _scan(isolated_paths, [_live_job()], now=T0)
+    s2, emit2 = _scan(isolated_paths, [_live_job()], now=T0 + timedelta(minutes=15))
+
+    assert _titles(emit1) == [_UNVERIFIABLE_CAL]
+    assert s1["alerts_emitted"] == 1
+    assert _titles(emit2) == []  # not "Completion claim now grounded: calendar_event:e1"
+    assert s2["alerts_emitted"] == 0
+    assert s2["ok"] is True
+    assert json.loads(state_path.read_text()) == {}
+
+
+def test_unverifiable_warning_whose_emit_failed_is_retried_then_dropped(isolated_paths):
+    state_path, _, assertions_dir = isolated_paths
+    _calendar_assertion(assertions_dir)
+
+    s1, emit1 = _scan(
+        isolated_paths, [_live_job()], now=T0,
+        emit_side_effect=_emit_failing_titles("unverifiable"),
+    )
+    s2, emit2 = _scan(isolated_paths, [_live_job()], now=T0 + timedelta(minutes=15))
+    s3, emit3 = _scan(isolated_paths, [_live_job()], now=T0 + timedelta(minutes=30))
+
+    assert _titles(emit1) == [_UNVERIFIABLE_CAL]
+    assert s1["alerts_emitted"] == 0  # never reached Kent
+    assert _titles(emit2) == [_UNVERIFIABLE_CAL]  # re-delivered, not "now grounded"
+    assert s2["alerts_emitted"] == 1
+    assert _titles(emit3) == []
+    assert json.loads(state_path.read_text()) == {}
+
+
+def test_unverifiable_warning_failing_twice_is_delivered_on_the_third_tick(isolated_paths):
+    """C4: pins keep_due's restore-from-prior branch for this mechanism: the
+    second failure restores the never-delivered sentinel, so it retries again."""
+    state_path, _, assertions_dir = isolated_paths
+    _calendar_assertion(assertions_dir)
+    failing = _emit_failing_titles("unverifiable")
+
+    _s0, emit0 = _scan(isolated_paths, [_live_job()], now=T0, emit_side_effect=failing)
+    _s1, emit1 = _scan(
+        isolated_paths, [_live_job()], now=T0 + timedelta(minutes=15), emit_side_effect=failing
+    )
+    saved1 = json.loads(state_path.read_text())
+    s2, emit2 = _scan(isolated_paths, [_live_job()], now=T0 + timedelta(minutes=30))
+    s3, emit3 = _scan(isolated_paths, [_live_job()], now=T0 + timedelta(minutes=45))
+
+    assert _titles(emit0) == _titles(emit1) == [_UNVERIFIABLE_CAL]
+    assert [e["last_alerted"] for e in saved1.values()] == [state_mod._ALWAYS_DUE_SENTINEL]
+    assert _titles(emit2) == [_UNVERIFIABLE_CAL]
+    assert s2["alerts_emitted"] == 1
+    assert _titles(emit3) == []
+    assert s3["alerts_emitted"] == 0
+    assert json.loads(state_path.read_text()) == {}
+
+
+def test_unverifiable_retry_survives_a_reverify_loop_raise(isolated_paths, tmp_path):
+    """C3/C4: the rebuilt warning is appended before the Vikunja re-verify
+    loop, so a re-verify raise on the retry tick still delivers it, and the
+    tick reports failure (the outstanding artifact_missing is carried)."""
+    state_path, _, assertions_dir = isolated_paths
+    vikunja_line = json.dumps(
+        {
+            "ts": "2026-07-10T10:00:00+00:00",
+            "agent": "main",
+            "request_summary": None,
+            "request_ref": None,
+            "artifact_kind": "vikunja_task",
+            "artifact_ids": ["77"],
+            "claim": "Created Vikunja task",
+        }
+    ) + "\n"
+    _calendar_assertion(assertions_dir, extra_lines=vikunja_line)
+    last_tick = tmp_path / "last-tick.json"
+    vikunja_missing = patch(
+        "scripts.trust.assertion_verifier._build_client",
+        return_value=_FakeVikunja(present=set()),
+    )
+
+    _s0, emit0 = _scan(
+        isolated_paths, [_live_job()], now=T0,
+        emit_side_effect=_emit_failing_titles("unverifiable"),
+        extra_patches=[vikunja_missing],
+    )
+    assert sorted(_titles(emit0)) == sorted(
+        ["Completion claim not grounded: vikunja_task", _UNVERIFIABLE_CAL]
+    )
+
+    s1, emit1 = _scan(
+        isolated_paths, [_live_job()], now=T0 + timedelta(minutes=15), last_tick=last_tick,
+        extra_patches=[
+            patch(
+                "scripts.trust.run_trust_scan.verify_vikunja_id_present",
+                side_effect=RuntimeError("reverify bug"),
+            )
+        ],
+    )
+
+    assert _titles(emit1) == [_UNVERIFIABLE_CAL]
+    assert s1["alerts_emitted"] == 1
+    assert s1["ok"] is False
+    assert any(e.startswith("assertion_reverify:RuntimeError") for e in s1["errors"])
+    assert json.loads(last_tick.read_text())["exit_status"] == "failure"
+    saved = json.loads(state_path.read_text())
+    assert sorted(e["name"] for e in saved.values()) == ["calendar_event:e1", "vikunja_task:77"]
+
+
+# --- #1137 review: a held watermark must not double-emit a retried warning ---
+
+
+def _held_watermark_calendar(assertions_dir):
+    """An indeterminate vikunja record first in the file holds the watermark,
+    so the calendar claim after it is re-read every tick by (a)."""
+    vikunja_line = json.dumps(
+        {
+            "ts": "2026-07-10T10:00:00+00:00",
+            "agent": "main",
+            "request_summary": None,
+            "request_ref": None,
+            "artifact_kind": "vikunja_task",
+            "artifact_ids": ["55"],
+            "claim": "Created Vikunja task",
+        }
+    ) + "\n"
+    _calendar_assertion(assertions_dir, extra_lines=vikunja_line)
+    return patch(
+        "scripts.trust.assertion_verifier._build_client",
+        return_value=_FakeVikunja(error={"55"}),
+    )
+
+
+def _first_ok_then_failing():
+    """Delivers the first alert of the tick and fails every later one."""
+    from scripts.common.alert_bus.model import AlertResult
+
+    calls = []
+
+    def emit(alert):
+        calls.append(alert.title)
+        if len(calls) == 1:
+            return AlertResult(ok=True)
+        return AlertResult(ok=False, reason="BUS_DOWN")
+
+    return emit
+
+
+def _calendar_entry(state_path):
+    (entry,) = [
+        e for e in json.loads(state_path.read_text()).values()
+        if e["name"] == "calendar_event:e1"
+    ]
+    return entry
+
+
+def test_retried_warning_reread_under_held_watermark_alerts_once(isolated_paths):
+    state_path, _, assertions_dir = isolated_paths
+    flaky = _held_watermark_calendar(assertions_dir)
+
+    _s0, emit0 = _scan(
+        isolated_paths, [_live_job()], now=T0,
+        emit_side_effect=_emit_failing_titles("unverifiable"), extra_patches=[flaky],
+    )
+    assert _titles(emit0) == [_UNVERIFIABLE_CAL]
+    assert _calendar_entry(state_path)["last_alerted"] == state_mod._ALWAYS_DUE_SENTINEL
+
+    tick1 = T0 + timedelta(minutes=15)
+    s1, emit1 = _scan(isolated_paths, [_live_job()], now=tick1, extra_patches=[flaky])
+
+    assert _titles(emit1) == [_UNVERIFIABLE_CAL]  # once, not once per source
+    assert s1["alerts_emitted"] == 1
+    assert _calendar_entry(state_path)["last_alerted"] == tick1.isoformat()
+
+
+def test_delivered_retry_is_not_re_marked_undelivered_by_a_duplicate(isolated_paths):
+    """Mixed outcome: had the duplicate been emitted and failed, keep_due would
+    restore the sentinel over the delivered copy and re-send it next tick."""
+    state_path, _, assertions_dir = isolated_paths
+    flaky = _held_watermark_calendar(assertions_dir)
+    _scan(
+        isolated_paths, [_live_job()], now=T0,
+        emit_side_effect=_emit_failing_titles("unverifiable"), extra_patches=[flaky],
+    )
+
+    _s1, emit1 = _scan(
+        isolated_paths, [_live_job()], now=T0 + timedelta(minutes=15),
+        emit_side_effect=_first_ok_then_failing(), extra_patches=[flaky],
+    )
+
+    assert emit1.call_count == 1
+    assert _calendar_entry(state_path)["last_alerted"] != state_mod._ALWAYS_DUE_SENTINEL
