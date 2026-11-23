@@ -1,0 +1,6 @@
+agent-prompt-sync.service                loaded    inactive dead    Agent Prompt Deploy Pipeline (one-shot tick)
+agent-skill-sync.service                 loaded    inactive dead    Agent Skill Deploy Pipeline (one-shot tick)
+backup-script-drift.service              loaded    inactive dead    Compare the repo backup script against the deployed copy (#903)
+credential-health-check.service          loaded    inactive dead    credential-health-check — process credential cadence + activity signals
+felix-canary.service                     loaded    inactive dead    Felix canary
+openclaw-gateway.service                 loaded    active   running OpenClaw gateway
