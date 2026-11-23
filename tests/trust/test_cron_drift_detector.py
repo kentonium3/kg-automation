@@ -13,9 +13,11 @@ from __future__ import annotations
 
 import json
 import subprocess
+from itertools import permutations
 
 import pytest
 
+from scripts.trust import cron_drift_detector as detector_mod
 from scripts.trust.cron_baseline import ApprovedCron
 from scripts.trust.cron_drift_detector import (
     KIND_APPROVED_MISSING,
@@ -252,7 +254,7 @@ def test_findings_are_sorted_deterministically() -> None:
 
 def _mock_completed(returncode: int, stdout: str, stderr: str = "") -> subprocess.CompletedProcess:
     return subprocess.CompletedProcess(
-        args=["openclaw", "cron", "list", "--json"],
+        args=["openclaw", "cron", "list", "--all", "--json"],
         returncode=returncode,
         stdout=stdout,
         stderr=stderr,
@@ -504,3 +506,312 @@ def test_sort_same_kind_and_name_with_none_and_str_agent_does_not_raise() -> Non
     findings = detect_cron_drift(live, [])
 
     assert [(f.name, f.agent_id) for f in findings] == [("dup", "x"), ("dup", None)]
+
+
+# --- #1127: `--all` enumeration, enabled default-deny, pagination guard -------
+
+_ABSENT = object()
+
+
+def test_cron_list_argv_includes_all_so_disabled_jobs_are_enumerated() -> None:
+    """Without --all, OpenClaw omits disabled jobs: a disabled approved cron
+    would read as approved_missing and a disabled unapproved one as invisible."""
+    argv = list(detector_mod.OPENCLAW_CRON_LIST_ARGV)
+    assert argv[-4:] == ["cron", "list", "--all", "--json"]
+
+
+@pytest.mark.parametrize(
+    "value,expected_state,expected_raw",
+    [
+        (False, "false", None),
+        (None, "absent", None),
+        (_ABSENT, "absent", None),
+        (1, "malformed", "1"),
+        (0, "malformed", "0"),
+        ("true", "malformed", "'true'"),
+        ("false", "malformed", "'false'"),
+        ([], "malformed", "[]"),
+        ({"a": 1}, "malformed", "{'a': 1}"),
+    ],
+    ids=["False", "None", "absent", "1", "0", "str-true", "str-false", "list", "dict"],
+)
+def test_enabled_default_deny_matrix(value, expected_state, expected_raw) -> None:
+    """Only a literal True counts as enabled; every other value (identity
+    checks — 1/0 are NOT bools here) raises enabled_mismatch with its state."""
+    live = _live_job()
+    if value is _ABSENT:
+        del live["enabled"]
+    else:
+        live["enabled"] = value
+
+    findings = detect_cron_drift([live], [BASELINE_ENTRY])
+
+    assert [f.kind for f in findings] == [KIND_ENABLED_MISMATCH]
+    finding = findings[0]
+    assert finding.enabled_state == expected_state
+    assert finding.enabled_raw == expected_raw
+    assert finding.enabled is (False if expected_state == "false" else None)
+
+
+def test_enabled_literal_true_yields_no_finding() -> None:
+    assert detect_cron_drift([_live_job(enabled=True)], [BASELINE_ENTRY]) == []
+
+
+def test_enabled_raw_repr_truncated_to_64_chars() -> None:
+    findings = detect_cron_drift([_live_job(enabled="x" * 500)], [BASELINE_ENTRY])
+
+    assert findings[0].enabled_state == "malformed"
+    assert findings[0].enabled_raw is not None
+    assert len(findings[0].enabled_raw) == 64
+
+
+def test_unapproved_disabled_cron_is_still_unapproved_present() -> None:
+    findings = detect_cron_drift(
+        [_live_job(), _live_job(id="r", name="rogue", enabled=False)], [BASELINE_ENTRY]
+    )
+
+    assert [(f.kind, f.name) for f in findings] == [(KIND_UNAPPROVED_PRESENT, "rogue")]
+    assert findings[0].enabled is False
+    assert findings[0].enabled_state == "false"
+
+
+def test_enumerate_live_crons_has_more_raises(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A paginated (truncated) payload must fail safe, never be read as complete."""
+    payload = json.dumps({"jobs": [_live_job()], "hasMore": True})
+    monkeypatch.setattr(
+        "scripts.trust.cron_drift_detector.subprocess.run",
+        lambda *a, **k: _mock_completed(0, payload),
+    )
+
+    with pytest.raises(CronEnumerationError, match="hasMore"):
+        enumerate_live_crons()
+
+
+@pytest.mark.parametrize("has_more", [False, None, _ABSENT], ids=["False", "None", "absent"])
+def test_enumerate_live_crons_has_more_absent_none_or_false_is_accepted(
+    monkeypatch: pytest.MonkeyPatch, has_more: object
+) -> None:
+    body: dict = {"jobs": [_live_job()]}
+    if has_more is not _ABSENT:
+        body["hasMore"] = has_more
+    monkeypatch.setattr(
+        "scripts.trust.cron_drift_detector.subprocess.run",
+        lambda *a, **k: _mock_completed(0, json.dumps(body)),
+    )
+
+    assert enumerate_live_crons() == [_live_job()]
+
+
+@pytest.mark.parametrize(
+    "has_more", ["true", 1, 0, "false", [], {}], ids=["str-true", "1", "0", "str-false", "list", "dict"]
+)
+def test_enumerate_live_crons_has_more_any_other_value_raises(
+    monkeypatch: pytest.MonkeyPatch, has_more: object
+) -> None:
+    """Default-deny: anything but absent/None/False might mean a truncated page."""
+    payload = json.dumps({"jobs": [_live_job()], "hasMore": has_more})
+    monkeypatch.setattr(
+        "scripts.trust.cron_drift_detector.subprocess.run",
+        lambda *a, **k: _mock_completed(0, payload),
+    )
+
+    with pytest.raises(CronEnumerationError, match="hasMore"):
+        enumerate_live_crons()
+
+
+def test_enumerate_live_crons_error_strings_name_all_flag(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        "scripts.trust.cron_drift_detector.subprocess.run",
+        lambda *a, **k: _mock_completed(1, "", stderr="boom"),
+    )
+
+    with pytest.raises(CronEnumerationError, match="cron list --all --json"):
+        enumerate_live_crons()
+
+
+# --- #1126: duplicate live crons sharing (name, agent_id) ---------------------
+
+# Literal (not imported) so a missing constant fails only its own test.
+KIND_DUPLICATE_PRESENT = "duplicate_present"
+
+
+def _dup(id_: object, created: object, **overrides: object) -> dict:
+    return _live_job(id=id_, createdAtMs=created, **overrides)
+
+
+def test_two_copies_of_approved_cron_one_primary_one_duplicate() -> None:
+    live = [_dup("later", 2000), _dup("earlier", 1000)]
+
+    findings = detect_cron_drift(live, [BASELINE_ENTRY])
+
+    assert len(findings) == 1
+    finding = findings[0]
+    assert finding.kind == KIND_DUPLICATE_PRESENT
+    assert finding.name == "inbox-5pm"
+    assert finding.agent_id == "felix-admin-capture"
+    assert finding.cron_id == "later"
+    assert finding.primary_cron_id == "earlier"
+    assert finding.created_at_ms == 2000
+    assert finding.schedule_expr == "0 17 * * *"
+    assert finding.enabled is True
+    assert finding.enabled_state == "true"
+    assert finding.primary_enabled_state == "true"
+
+
+def test_duplicate_primary_is_evaluated_exactly_as_a_single_job() -> None:
+    """The primary of a group still gets its schedule_mismatch; the extra copy
+    gets duplicate_present (and is not itself schedule-evaluated)."""
+    drifted = {"kind": "cron", "expr": "0 18 * * *", "tz": "America/New_York"}
+    live = [_dup("p", 1000, schedule=drifted), _dup("d", 2000, schedule=drifted)]
+
+    findings = detect_cron_drift(live, [BASELINE_ENTRY])
+
+    assert sorted((f.kind, f.cron_id) for f in findings) == [
+        (KIND_DUPLICATE_PRESENT, "d"),
+        (KIND_SCHEDULE_MISMATCH, "p"),
+    ]
+
+
+def test_three_copies_yield_two_duplicates_with_distinct_fingerprints() -> None:
+    from scripts.trust.state import fingerprint_finding
+
+    live = [_dup("c", 3000), _dup("a", 1000), _dup("b", 2000)]
+
+    findings = detect_cron_drift(live, [BASELINE_ENTRY])
+
+    dups = [f for f in findings if f.kind == KIND_DUPLICATE_PRESENT]
+    assert [f.cron_id for f in dups] == ["b", "c"]
+    assert all(f.primary_cron_id == "a" for f in dups)
+    assert len({fingerprint_finding(f, "h") for f in dups}) == 2
+
+
+def test_duplicate_primary_selection_is_order_independent() -> None:
+    jobs = [_dup("c", 3000), _dup("a", 1000), _dup("b", 2000), _dup("z", None)]
+    expected = detect_cron_drift(jobs, [BASELINE_ENTRY])
+
+    for perm in permutations(jobs):
+        assert detect_cron_drift(list(perm), [BASELINE_ENTRY]) == expected
+    assert {f.primary_cron_id for f in expected} == {"a"}
+
+
+def test_duplicate_primary_is_oldest_regardless_of_enabled_state() -> None:
+    """Primary selection uses only the immutable (createdAtMs, id) key, so a
+    copy's enabled state never moves the primary (pre-merge review, Codex #2):
+    the older disabled copy stays primary and is evaluated (enabled_mismatch);
+    the newer copy is the duplicate. Enabled state is reported, not chosen on."""
+    live = [_dup("new-running", 2000), _dup("old-disabled", 1000, enabled=False)]
+
+    findings = detect_cron_drift(live, [BASELINE_ENTRY])
+
+    assert sorted((f.kind, f.cron_id) for f in findings) == [
+        (KIND_DUPLICATE_PRESENT, "new-running"),
+        (KIND_ENABLED_MISMATCH, "old-disabled"),
+    ]
+    dup = next(f for f in findings if f.kind == KIND_DUPLICATE_PRESENT)
+    assert dup.primary_cron_id == "old-disabled"
+    assert dup.enabled_state == "true"
+    assert dup.primary_enabled_state == "false"
+
+
+def test_extra_copy_sharing_primary_id_is_not_reported_as_duplicate() -> None:
+    """seen_copy_ids is seeded with the primary's id when it HAS one, so a copy
+    with the same str id never reads "extra copy is a; primary copy is a"."""
+    assert detect_cron_drift([_dup("a", 1000), _dup("a", 2000)], [BASELINE_ENTRY]) == []
+
+
+def test_id_less_extra_copy_of_id_less_primary_is_still_a_duplicate() -> None:
+    """Codex re-review: seeding with a None primary id would silently drop
+    every id-less duplicate (fail-open). Id-less extras still yield exactly
+    one duplicate_present, under the no-id sentinel."""
+    for live in (
+        [_dup(None, 1000), _dup(None, 2000)],
+        [_dup(None, 1000), _dup(None, 2000), _dup(None, 3000)],
+    ):
+        findings = detect_cron_drift(live, [BASELINE_ENTRY])
+        assert [(f.kind, f.cron_id, f.primary_cron_id) for f in findings] == [
+            (KIND_DUPLICATE_PRESENT, None, None)
+        ]
+
+
+def test_duplicate_null_agent_plugin_crons() -> None:
+    live = [
+        _live_job(),
+        _memory_core_job(id="m2", createdAtMs=1795000000002),
+        _memory_core_job(id="m1", createdAtMs=1795000000001),
+    ]
+
+    findings = detect_cron_drift(live, [BASELINE_ENTRY])
+
+    assert sorted((f.kind, f.cron_id, f.agent_id) for f in findings) == [
+        (KIND_DUPLICATE_PRESENT, "m2", None),
+        (KIND_UNAPPROVED_PRESENT, "m1", None),
+    ]
+    dup = next(f for f in findings if f.kind == KIND_DUPLICATE_PRESENT)
+    assert dup.primary_cron_id == "m1"
+    assert dup.declaration_key == "memory-core:memory-dreaming-promotion"
+
+
+def test_duplicate_of_unapproved_key_is_unapproved_plus_duplicate() -> None:
+    live = [_live_job(), _dup("r1", 1, name="rogue"), _dup("r2", 2, name="rogue")]
+
+    findings = detect_cron_drift(live, [BASELINE_ENTRY])
+
+    assert sorted((f.kind, f.cron_id) for f in findings) == [
+        (KIND_DUPLICATE_PRESENT, "r2"),
+        (KIND_UNAPPROVED_PRESENT, "r1"),
+    ]
+
+
+def test_duplicate_group_mixed_type_id_and_created_at_does_not_raise() -> None:
+    """A1: id normalises to str|None; createdAtMs to int|None (bool, str and
+    float rejected). Mixed raw types inside one group must not raise in the
+    primary-selection sort and must be order-independent."""
+    jobs = [
+        _dup(5, "123"),  # id int -> "5"; created str -> None
+        _dup("b", True),  # created bool -> None
+        _dup(None, 1.5),  # id None; created float -> None
+        _dup("a", 900),  # the only real int created -> primary
+        _dup({"x": 1}, [1]),  # unhashable raws must not raise
+    ]
+
+    expected = detect_cron_drift(jobs, [BASELINE_ENTRY])
+    for perm in permutations(jobs):
+        assert detect_cron_drift(list(perm), [BASELINE_ENTRY]) == expected
+
+    dups = [f for f in expected if f.kind == KIND_DUPLICATE_PRESENT]
+    assert {f.primary_cron_id for f in dups} == {"a"}
+    assert all(f.created_at_ms is None for f in dups)
+    assert all(f.cron_id is None or isinstance(f.cron_id, str) for f in dups)
+    assert {f.cron_id for f in dups} == {"5", "b", None, "{'x': 1}"}
+
+
+def test_created_at_ms_normalised_at_parse_boundary() -> None:
+    for raw, expected in [(1775153265189, 1775153265189), (True, None), ("1", None), (1.0, None)]:
+        findings = detect_cron_drift([_live_job(name="rogue", createdAtMs=raw)], [])
+        assert findings[0].created_at_ms == expected, raw
+
+
+def test_id_less_duplicates_collapse_to_one_finding() -> None:
+    """A2: id-less extra copies share one sentinel identity (no ordinal), so
+    they collapse to one duplicate_present rather than churning."""
+    live = [_dup("a", 1), _dup(None, 2), _dup(None, 3)]
+
+    findings = detect_cron_drift(live, [BASELINE_ENTRY])
+
+    assert [(f.kind, f.cron_id) for f in findings] == [(KIND_DUPLICATE_PRESENT, None)]
+
+
+def test_single_copy_groups_unchanged_by_duplicate_handling() -> None:
+    live = [_live_job(), _live_job(id="r", name="rogue")]
+
+    findings = detect_cron_drift(live, [BASELINE_ENTRY])
+
+    assert [(f.kind, f.name) for f in findings] == [(KIND_UNAPPROVED_PRESENT, "rogue")]
+    assert findings[0].primary_cron_id is None
+
+
+def test_kind_duplicate_present_exported() -> None:
+    assert "KIND_DUPLICATE_PRESENT" in detector_mod.__all__
+    assert detector_mod.KIND_DUPLICATE_PRESENT == "duplicate_present"

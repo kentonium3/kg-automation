@@ -29,7 +29,7 @@ alerting mechanism (C-002).
 
 ### 1. Cron-drift scan (load-bearing guard)
 
-Enumerates live OpenClaw crons (`openclaw cron list --json`) and diffs them
+Enumerates live OpenClaw crons (`openclaw cron list --all --json`) and diffs them
 against the committed approved-cron baseline at
 [`docs/design/architecture/data/approved-crons.json`](<../design/architecture/data/approved-crons.json>)
 (`scripts/trust/cron_baseline.py` + `scripts/trust/cron_drift_detector.py`).
@@ -44,7 +44,52 @@ Finding kinds (matched on `(name, agent_id)`):
 | `unapproved_present` | A live cron exists that is not in the baseline (or an approved cron's name is running under a different `agent_id`) — the "unrequested infrastructure" signal. |
 | `approved_missing` | A baseline cron is not present among live crons. |
 | `schedule_mismatch` | A matched cron's schedule/timezone differs from the baseline. |
-| `enabled_mismatch` | A matched cron is unexpectedly disabled. |
+| `enabled_mismatch` | A matched cron is not confirmed enabled. Its `enabled` is `false`, missing or `null` (`absent`), or any value other than a literal boolean (`malformed`, e.g. `1`, `"true"`, `{}`). Default-deny (#1127). |
+| `duplicate_present` | A second (third, …) live cron shares an existing `(name, agent_id)`. One finding per extra copy, approved key or not (#1126). |
+
+**Disabled jobs are enumerated (`--all`, #1127).** Without `--all`, OpenClaw
+omits disabled jobs from `cron list`. A disabled approved cron then looked
+"missing" (`approved_missing`), and a disabled unapproved cron was invisible.
+With `--all`, a disabled approved cron is an `enabled_mismatch` and a disabled
+unapproved cron is still `unapproved_present`. A disabled cron nobody approved
+is still standing infrastructure.
+
+**Default-deny on `enabled`.** Only a literal `true` counts as enabled. The
+state is recorded as `details.enabled_state` (`true` / `false` / `absent` /
+`malformed`); for `malformed`, `details.enabled_raw` keeps the raw value's
+`repr`, truncated to 64 characters. The state is forensic only and is not part
+of the fingerprint, so a genuine `false` fingerprints exactly as it did before.
+⚠ **Shape drift:** if OpenClaw ever drops or renames the `enabled` field, every
+approved cron alerts `enabled_mismatch` (`absent`) at once. Read a simultaneous
+burst like that as an OpenClaw JSON shape change, not every cron disabled at once.
+
+**Duplicates (#1126).** Live jobs are grouped by `(name, agent_id)`. One copy
+per group is the **primary** and is diffed exactly as a single job would be
+(`unapproved_present` / `schedule_mismatch` / `enabled_mismatch`). The primary
+is the oldest copy (lowest `createdAtMs`, then lowest `id`). Only these
+immutable fields choose it. Each copy's enabled state is reported
+(`enabled_state`, `primary_enabled_state`) but never used to choose, so
+disabling or re-enabling a copy does not move the primary or re-key its
+duplicates. Every other copy alerts as `duplicate_present` with its own
+`cron_id` and the primary's `primary_cron_id`. A copy that shares the
+primary's `id` is not reported. The scan does not compare payloads, so an extra
+copy of an approved cron may run different instructions. Each extra copy has
+its own fingerprint (the identity adds its `cron_id`) and resolves on its own.
+Copies with no `id` are a degraded shape OpenClaw does not emit; they share one
+identity, so they collapse to a single alert.
+
+**Pagination guard.** If `cron list` returns `hasMore` with any value other
+than absent, `null` or `false`, the scan refuses to diff a possibly truncated
+page (default-deny). It raises `CronEnumerationError` and fails
+safe (`ok:false`, `errors[]` entry `cron_scan:CronEnumerationError:`). Today
+OpenClaw returns every job in one page.
+
+**Divergence from other cron readers (recorded, not fixed here).** The canary
+probe `openclaw-cron-state` (`scripts/canary/probes.py`), the deploy library
+(`scripts/deploy/lib/cron.py`) and the security monitor
+(`scripts/office2/security-monitor/audit.sh`) still run `cron list` without
+`--all`. To them a disabled cron looks absent, so they can disagree with this
+detector about a disabled job.
 
 ### 2. Completion-assertion verification scan
 
@@ -99,13 +144,17 @@ finding to an `Alert`:
 | `approved_missing` | warn | `Approved cron missing: <name>` |
 | `schedule_mismatch` | warn | `Approved cron schedule changed: <name>` |
 | `enabled_mismatch` | warn | `Approved cron disabled: <name>` |
+| `enabled_mismatch` (`absent` / `malformed`) | warn | `Approved cron not confirmed enabled: <name>` |
+| `duplicate_present` | error | `Duplicate cron detected: <name>` |
 | `artifact_missing` | error | `Completion claim not grounded: <artifact_kind>` |
 | `unverifiable_kind` | warn | `Completion claim unverifiable: <artifact_kind>` |
 | `drift_resolved` | info | `Cron drift cleared: <name>` |
 
 Each alert's `details` carries the forensic fields relevant to that finding —
 for a cron finding: `agent_id`, `cron_id`, `schedule`, `expected_schedule`,
-`enabled`, `created_at`; for an assertion finding: `agent`, `artifact_id`,
+`enabled`, `enabled_state`, `enabled_raw` (malformed only), `created_at`, and
+for `duplicate_present` also `primary_cron_id` and `primary_enabled_state`; for
+an assertion finding: `agent`, `artifact_id`,
 `claim`. The **owning agent** is named where known (`agent_id` for cron
 findings, `agent` for assertion findings) so the operator can trace the
 divergence back to its source.
@@ -206,7 +255,7 @@ systemctl --user enable --now felix-trust-scan.timer
 
 A detector fault never blocks or breaks normal agent request handling. The
 detector runs entirely out-of-band of any agent conversation — it is a
-systemd timer reading `openclaw cron list --json`, the Vikunja API, and its
+systemd timer reading `openclaw cron list --all --json`, the Vikunja API, and its
 own state files, then writing to the alert bus. On any internal fault
 (unreadable baseline, `openclaw` CLI error, state-file corruption, alert-bus
 outage) the tick records the fault in `errors[]`, sets `ok:false`, emits **no
