@@ -66,6 +66,8 @@ Each decision follows the template's format: Decision / Rationale / Alternatives
 - **Long gaps**: the same rule, with nothing special. Three restarts over 3 hours (`m = 12`, bound 25) are not proven, so the tick records an unverified rise. Thirty-nine restarts over 17 minutes (`m = 2`, bound 5) are proven, so a late tick never hides a real loop.
 - **Accepted limits** (surfaced in plan.md): (1) slow loops of N to `2(N−1)` restarts per tick interval are recorded as unverified, not paged; (2) a short burst that straddles a tick boundary can be split so that no pair proves it. Both follow from Kent's sampling decision. Neither produces a false alert: **every page is a proven crossing** (NFR-004, SC-003).
 - **Alternatives considered**: (a) "Δ ≥ N within `window + slack`" (round 1). Codex round 2 showed it alerts on intervals where no 15-minute window held N, so it changes Kent's window. (b) Treating every long gap as unverified (round 1). It hides real loops after a late tick. (c) A faster cadence. Declined by Kent's `detection_latency` decision.
+- **Addendum 2026-11-23 (WP02 review cycle 1, Codex gpt-6.1-sol, MAJOR).** A **re-remind** proof may use only candidate baselines observed at or after the episode's `last_alert_utc`, so a page always rests on fresh evidence. Without this, a 0→39 burst followed by +1 per tick keeps the episode open, and the original baseline re-pages six hours later (Δ=62, m=26, bound 53). See data-model.md INV-CL-4.
+
 ## R-06 Counter resets, generations, new and removed units — revised (CX-2, CX-7, CX-8, round-2 B7)
 
 - **Decision**:
