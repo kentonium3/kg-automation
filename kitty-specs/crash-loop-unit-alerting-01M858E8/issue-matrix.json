@@ -1,5 +1,17 @@
 {
   "rows": {
+    "#2527": {
+      "evidence_ref": "Cited for context only: spec-kitty tooling defect in the section 0 upstream sweep / fault forecast (spec-kitty/spec-kitty#2527); this mission owes it no work.",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": null,
+      "title": null,
+      "verdict": "not-applicable",
+      "wp": null
+    },
     "#5011": {
       "evidence_ref": "Cited for context only: spec-kitty tooling defect in the section 0 upstream sweep / fault forecast (spec-kitty/spec-kitty#5011); this mission owes it no work.",
       "fr": null,
