@@ -181,10 +181,12 @@ _V2_PREFIX = "v2:"
 def _canonical(parts: tuple[str, ...]) -> str:
     """Encode a fingerprint's ``(*identity, baseline_hash)`` parts injectively (#1128).
 
-    - **Legacy** (no part contains ``|``): ``"|".join(parts)``, byte-identical
-      to every fingerprint written before #1128, so persisted seen-state is
-      not orphaned.
-    - **v2** (any part contains ``|``): ``"v2:" + json.dumps(list(parts))``.
+    - **Legacy** (no part contains ``|`` and every part is UTF-8 encodable):
+      ``"|".join(parts)``, byte-identical to every fingerprint written before
+      #1128, so persisted seen-state is not orphaned.
+    - **v2** (any part contains ``|``, or cannot be UTF-8 encoded — e.g. a
+      lone surrogate from a ``\\ud800`` JSON escape):
+      ``"v2:" + json.dumps(list(parts))``.
 
     Injectivity invariant (distinct part tuples never share a canonical):
 
@@ -195,13 +197,23 @@ def _canonical(parts: tuple[str, ...]) -> str:
     - v2 vs v2: ``json.dumps`` of a list of str is injective;
     - legacy vs v2: a legacy canonical starts with a source tag (``cron|``,
       ``assertion|``, ``unit|``), a code constant that is never ``v2:[``.
+      Routing an unencodable tuple to v2 keeps this: the branch is a pure
+      function of the parts, and v2 is injective on every tuple of str.
 
     ``ensure_ascii=True`` (the default) escapes non-ASCII, so a lone surrogate
     cannot raise ``UnicodeEncodeError`` when the canonical is UTF-8 encoded.
     """
-    if not any(_FIELD_SEPARATOR in part for part in parts):
+    if not any(_FIELD_SEPARATOR in part or not _utf8_encodable(part) for part in parts):
         return _FIELD_SEPARATOR.join(parts)
     return _V2_PREFIX + json.dumps(list(parts))
+
+
+def _utf8_encodable(part: str) -> bool:
+    try:
+        part.encode("utf-8")
+    except UnicodeEncodeError:
+        return False
+    return True
 
 
 def fingerprint_finding(

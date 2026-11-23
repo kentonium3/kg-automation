@@ -1346,8 +1346,10 @@ def test_bus_ok_false_is_still_not_an_alert_path_fault(isolated_paths, tmp_path)
 
 
 def _surrogate_agent_assertion(assertions_dir) -> None:
-    # A lone surrogate survives json.loads but cannot be UTF-8 encoded, so
-    # fingerprint_finding raises UnicodeEncodeError (Codex's repro). Written as
+    # A lone surrogate survives json.loads but cannot be UTF-8 encoded. Before
+    # the pre-merge #1128 fix this made fingerprint_finding raise
+    # UnicodeEncodeError (Codex's repro); _canonical now routes it to v2, so
+    # the test below injects that raise to keep the guard covered. Written as
     # a JSON \\ud800 escape so the file itself is valid UTF-8.
     line = (
         '{"ts": "2026-07-10T11:00:00+00:00", "agent": "bad\\ud800agent", '
@@ -1360,16 +1362,36 @@ def _surrogate_agent_assertion(assertions_dir) -> None:
 def test_unfingerprintable_assertion_is_not_lost_watermark_held(isolated_paths):
     """Codex/renata F2: an unfingerprintable ASSERTION finding never enters
     state, so the watermark must not advance past its record — otherwise it is
-    emitted once and permanently lost. Hold the watermark; emit every tick."""
+    emitted once and permanently lost. Hold the watermark; emit every tick.
+
+    The surrogate no longer makes fingerprinting raise (#1128 routes it to
+    v2), so the pre-fix UnicodeEncodeError is injected for this one assertion
+    to keep exercising the watermark-hold guard independent of the encoder."""
+    from scripts.trust.assertion_verifier import AssertionFinding
+
     state_path, watermark_path, assertions_dir = isolated_paths
     _surrogate_agent_assertion(assertions_dir)
     watermark_path.parent.mkdir(parents=True, exist_ok=True)
     watermark_path.write_text('{"sentinel": 7}\n')
     before = watermark_path.read_bytes()
     live = [_live_job(), _live_job(id="r", name="mystery-cron", agentId="unknown-agent")]
+    real_fingerprint = rts.state_mod.fingerprint_finding
 
-    s1, emit1 = _scan(isolated_paths, live, now=T0)
-    s2, emit2 = _scan(isolated_paths, live, now=T0 + timedelta(minutes=15))
+    def legacy_raising_fingerprint(finding, baseline_hash):
+        if isinstance(finding, AssertionFinding) and finding.artifact_id == "x1":
+            raise UnicodeEncodeError("utf-8", finding.agent, 3, 4, "surrogates not allowed")
+        return real_fingerprint(finding, baseline_hash)
+
+    def fp_patch():
+        return patch(
+            "scripts.trust.run_trust_scan.state_mod.fingerprint_finding",
+            side_effect=legacy_raising_fingerprint,
+        )
+
+    s1, emit1 = _scan(isolated_paths, live, now=T0, extra_patches=[fp_patch()])
+    s2, emit2 = _scan(
+        isolated_paths, live, now=T0 + timedelta(minutes=15), extra_patches=[fp_patch()]
+    )
 
     for summary in (s1, s2):
         assert summary["assertion_findings"] == 1
@@ -1388,6 +1410,22 @@ def test_unfingerprintable_assertion_is_not_lost_watermark_held(isolated_paths):
     assert [e["name"] for e in saved.values()] == ["mystery-cron"]
     assert s1["alerts_emitted"] == 2
     assert s2["alerts_emitted"] == 1
+
+
+def test_surrogate_agent_assertion_now_fingerprints_and_reconciles(isolated_paths):
+    """#1128 pre-merge fix: a lone-surrogate field routes to the v2 encoding,
+    so the record fingerprints, reconciles into state and dedups on tick 2."""
+    state_path, _, assertions_dir = isolated_paths
+    _surrogate_agent_assertion(assertions_dir)
+    live = [_live_job()]
+
+    s1, _ = _scan(isolated_paths, live, now=T0)
+
+    assert s1["errors"] == []
+    assert s1["ok"] is True
+    assert s1["assertion_findings"] == 1
+    assert s1["alerts_emitted"] == 1
+    assert [e["source"] for e in json.loads(state_path.read_text()).values()] == ["assertion"]
 
 
 def test_keep_due_failure_is_recorded_as_alert_path_fault(isolated_paths, tmp_path):

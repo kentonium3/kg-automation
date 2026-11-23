@@ -64,7 +64,7 @@ class CronEnumerationError(Exception):
     """Raised when live cron enumeration cannot be trusted.
 
     Covers a non-zero exit, a timeout, non-JSON stdout, a missing ``jobs``
-    key, or a paginated (``hasMore: true``) payload. Deliberately distinct from returning ``[]`` — an empty
+    key, or a possibly paginated payload (``hasMore`` not absent/null/false). Deliberately distinct from returning ``[]`` — an empty
     list is a valid "genuinely no crons" answer and must never be produced
     as a side effect of a read/parse failure (NFR-001, the fail-safe
     inversion risk called out in the WP02 spec).
@@ -207,17 +207,19 @@ def _parse_live_job(job: dict) -> dict:
     }
 
 
-def _primary_sort_key(job: dict) -> tuple[bool, bool, int, bool, str]:
+def _primary_sort_key(job: dict) -> tuple[bool, int, bool, str]:
     """Total order over the copies of one ``(name, agent_id)`` group (#1126).
 
-    The running copy is preferred, then the oldest (``created_at_ms``; None
-    last), then ``cron_id`` (None last). All inputs are already normalised, so
-    every element is comparable and the choice is independent of input order.
+    Immutable fields only: the oldest copy (``created_at_ms``; None last),
+    then ``cron_id`` (None last). Enabled state is deliberately NOT a key —
+    a copy being disabled or re-enabled must never move the primary, or the
+    duplicate identities would flip and churn alerts (pre-merge review). All
+    inputs are already normalised, so every element is comparable and the
+    choice is independent of input order.
     """
     created = job["created_at_ms"]
     cron_id = job["cron_id"]
     return (
-        job["enabled_state"] != ENABLED_TRUE,
         created is None,
         created or 0,
         cron_id is None,
@@ -259,11 +261,13 @@ def detect_cron_drift(
     for key, group in live_groups.items():
         name, agent_id = key
         live, *extra_copies = sorted(group, key=_primary_sort_key)
-        seen_copy_ids: set[str | None] = set()
+        # Seeded with the primary's id so a copy sharing it is never reported
+        # as "extra copy is a; primary copy is a".
+        seen_copy_ids: set[str | None] = {live["cron_id"]}
         for copy in extra_copies:
             if copy["cron_id"] in seen_copy_ids:
-                # Same identity as a copy already reported (e.g. two id-less
-                # copies): one finding per identity (A2).
+                # Same identity as the primary or a copy already reported
+                # (e.g. two id-less copies): one finding per identity (A2).
                 continue
             seen_copy_ids.add(copy["cron_id"])
             findings.append(
@@ -369,8 +373,8 @@ def enumerate_live_crons() -> list[dict]:
 
     Fail-safe (NFR-001): raises :class:`CronEnumerationError` on a non-zero
     exit, a timeout, non-JSON stdout, a missing ``jobs`` key, or a paginated
-    payload (``hasMore`` literally ``true`` — the scan must never read a
-    truncated page as the complete set) — it never returns ``[]`` on failure. An empty list is reserved for a genuinely
+    payload (``hasMore`` anything but absent/``null``/``false`` — default-deny:
+    the scan must never read a possibly truncated page as the complete set) — it never returns ``[]`` on failure. An empty list is reserved for a genuinely
     empty ``jobs: []`` payload. The caller (WP04) catches
     ``CronEnumerationError`` and fails safe (no alert, ``ok:false``).
     """
@@ -405,10 +409,11 @@ def enumerate_live_crons() -> list[dict]:
     if not isinstance(payload, dict) or "jobs" not in payload:
         raise CronEnumerationError(f"{_CRON_LIST_CMD} response missing 'jobs' key")
 
-    if payload.get("hasMore") is True:
+    has_more = payload.get("hasMore")
+    if has_more is not None and has_more is not False:
         raise CronEnumerationError(
-            f"{_CRON_LIST_CMD} returned a paginated payload (hasMore: true); "
-            "refusing to diff a truncated job list"
+            f"{_CRON_LIST_CMD} returned hasMore={repr(has_more)[:64]} "
+            "(possibly paginated); refusing to diff a truncated job list"
         )
 
     jobs = payload["jobs"]
