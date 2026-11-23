@@ -12,9 +12,13 @@ Tracks findings across scan ticks so alert cadence is correct
   carried forward unchanged (#1129).
 
 **Baseline-versioned fingerprints** (data-model.md "Baseline-versioned
-fingerprints"): the finding fingerprint folds in ``baseline_hash`` (WP02) so
-a baseline edit re-evaluates every finding rather than letting stale
-seen-state suppress a now-legitimate (or newly-illegitimate) cron.
+fingerprints"): a **cron** finding's fingerprint folds in ``baseline_hash``
+(WP02) so a baseline edit re-evaluates every cron finding rather than letting
+stale seen-state suppress a now-legitimate (or newly-illegitimate) cron.
+#1130 narrowed this to cron findings, superseding the mission data-model's
+"every finding": assertion and unit-drift callers pass ``""``, so their
+fingerprints do not depend on the baseline. The per-type rule lives in
+``run_trust_scan._finding_baseline_hash``.
 
 State is a small JSON map ``fingerprint -> {first_seen, last_seen,
 last_alerted}`` (ISO-8601 UTC strings), written atomically (temp file in the
@@ -254,8 +258,11 @@ def fingerprint_finding(
     agent_id for cron; kind + agent + artifact_kind + artifact_id for
     assertion) combined with ``baseline_hash`` (data-model.md
     "Baseline-versioned fingerprints") so a baseline update re-evaluates
-    findings rather than letting stale seen-state suppress a now-legitimate
-    (or newly-illegitimate) cron.
+    cron findings rather than letting stale seen-state suppress a
+    now-legitimate (or newly-illegitimate) cron. Only cron findings are
+    baseline-versioned (#1130): callers pass ``""`` for assertion and
+    unit-drift findings. This function applies whatever hash it is given;
+    the per-type rule is ``run_trust_scan._finding_baseline_hash``.
 
     A cron finding with ``agent_id is None`` (plugin-managed, #1124) encodes
     its agent as a NUL-prefixed sentinel that no real agent id can equal; a

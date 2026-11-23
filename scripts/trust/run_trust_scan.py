@@ -32,9 +32,9 @@ assertion) is marked *completed* only when it ran to the end without raising.
 Reconcile resolves an absent finding only if its source completed; a failed
 source's outstanding findings are carried forward unchanged, counted in the
 summary's ``carried_forward``, and flagged to the canary via last-tick.json
-(``findings_held`` → ``exit_status: failure``). Assertion reconciliation
-requires a loaded baseline hash: on a tick whose baseline did not load, the
-assertion source never completes and its watermark is held.
+(``findings_held`` → ``exit_status: failure``). Only cron findings are
+baseline-versioned (#1130), so a tick whose baseline did not load holds the
+cron findings only; assertion findings reconcile normally.
 """
 
 from __future__ import annotations
@@ -62,7 +62,6 @@ from scripts.trust.cron_drift_detector import (
 )
 from scripts.trust.unit_drift_detector import (
     DEPLOYED_UNIT_DIR,
-    UnitDriftFinding,
     UnitEnumerationError,
     detect_unit_drift,
     enumerate_unit_pairs,
@@ -72,12 +71,18 @@ __all__ = ["main", "run_scan"]
 
 
 def _finding_baseline_hash(finding: Any, cron_baseline_hash: str) -> str:
-    """Fingerprint-versioning hash per finding type. Cron/assertion findings are
-    versioned by the approved-cron baseline content hash; unit-drift findings are
-    NOT baseline-versioned (their identity is ``(unit, kind)``), so they use
-    ``""``. This is the single source of the rule so the reconcile-time fingerprint
-    and the emit-retry ``keep_due`` fingerprint always agree (#817 H1)."""
-    return "" if isinstance(finding, UnitDriftFinding) else cron_baseline_hash
+    """Fingerprint-versioning hash per finding type.
+
+    Only cron findings are versioned by the approved-cron baseline content hash:
+    a baseline edit is meant to re-evaluate cron findings, and nothing else. An
+    assertion's identity ``(kind, agent, artifact_kind, artifact_id)`` and a
+    unit-drift finding's ``(unit, kind)`` have no relation to the cron allowlist,
+    so they use ``""`` — versioning them would falsely resolve and re-alert every
+    outstanding one on each baseline edit (#1130). Default-deny: a new finding
+    type is unversioned unless it opts in here. This is the single source of the
+    rule so the reconcile-time fingerprint and the emit-retry ``keep_due``
+    fingerprint always agree (#817 H1)."""
+    return cron_baseline_hash if isinstance(finding, CronDriftFinding) else ""
 
 
 def _finding_label(finding: Any) -> str:
@@ -396,11 +401,9 @@ def run_scan(
     # ---- Cron-drift sub-scan (WP02) -----------------------------------
     cron_findings: list[CronDriftFinding] = []
     current_baseline_hash = ""
-    baseline_loaded = False
     try:
         baseline = load_baseline(baseline_path) if baseline_path is not None else load_baseline()
         current_baseline_hash = baseline_hash(baseline)
-        baseline_loaded = True
         live_jobs = enumerate_live_crons()
         cron_findings = detect_cron_drift(live_jobs, baseline)
         completed.add(state_mod.SOURCE_CRON)
@@ -413,17 +416,6 @@ def run_scan(
     except Exception as exc:  # noqa: BLE001 - fail-safe isolation (NFR-001)
         errors.append(f"cron_scan:{exc.__class__.__name__}:{exc}")
         scan_inability = True
-
-    # Assertion reconciliation requires a loaded baseline hash (#1129 F1).
-    # Assertion fingerprints are versioned by the cron baseline hash
-    # (_finding_baseline_hash); with "" a still-missing outstanding assertion
-    # would re-verify under a NEW fingerprint, falsely resolving its stored
-    # entry ("now grounded") and alerting a duplicate ("not grounded"). So on
-    # a tick whose baseline did not load, the assertion source is not
-    # completed, no assertion finding enters reconcile (its stored entries
-    # carry under their stored fingerprints), and the watermark is held so
-    # this tick's new records are re-read on the next good tick.
-    assertion_reconcilable = baseline_loaded
 
     # ---- Unit-drift sub-scan (#817) -----------------------------------
     # Diff each deployed systemd-user unit against its repo canonical; a content
@@ -549,7 +541,7 @@ def run_scan(
                 )
             # present is True -> omit from current_findings -> reconcile resolves
             # it (only if the assertion source completed this tick).
-        if new_pass_completed and assertion_reconcilable:
+        if new_pass_completed:
             completed.add(state_mod.SOURCE_ASSERTION)
     except Exception as exc:  # noqa: BLE001 - fail-safe isolation (NFR-001)
         errors.append(f"assertion_reverify:{exc.__class__.__name__}:{exc}")
@@ -570,8 +562,7 @@ def run_scan(
     # 0 whenever reconcile did not run (dry-run, or the #1124 fallback).
     carried_forward = 0
     if not dry_run:
-        reconcilable_assertions = assertion_findings if assertion_reconcilable else []
-        all_findings: list[Any] = [*cron_findings, *reconcilable_assertions, *unit_findings]
+        all_findings: list[Any] = [*cron_findings, *assertion_findings, *unit_findings]
 
         # (1) Per-finding fingerprint isolation. A finding whose fingerprint
         # raises cannot enter seen-state; it is emitted on every tick it is
@@ -584,9 +575,10 @@ def run_scan(
         # unguarded (the emit-retry keep_due branch reuses them).
         # Per-finding fingerprint hash comes from the single _finding_baseline_hash
         # rule so the reconcile-time and emit-retry fingerprints always agree.
-        # Unit-drift findings use "" (identity is (unit, kind), stable across
-        # ticks) so a persistent drift dedups on the 24h cadence and clears by
-        # absence when the unit is redeployed.
+        # Only cron findings carry the baseline hash; assertion and unit-drift
+        # findings use "" (#1130), so their keys are stable across baseline
+        # edits and baseline outages: a persistent finding dedups on the 24h
+        # cadence and clears only by absence.
         findings_with_hash: list[tuple[Any, str]] = []
         fingerprints: dict[int, str] = {}
         unfingerprintable: list[Any] = []
@@ -689,8 +681,7 @@ def run_scan(
             # permanently lost (#1124 review F2). Coarse (holds the whole
             # watermark, re-reading other new records too), but those are
             # fingerprintable and dedup via the saved state.
-            # Also held when assertions could not be reconciled (F1 above).
-            hold_watermark = not assertion_reconcilable or any(
+            hold_watermark = any(
                 isinstance(finding, AssertionFinding) for finding in unfingerprintable
             )
             if state_saved and not hold_watermark:

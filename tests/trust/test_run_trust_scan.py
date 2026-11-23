@@ -1616,7 +1616,8 @@ def _seeded_state() -> dict[str, dict[str, str]]:
         artifact_id="91",
         claim="Created Vikunja task",
     )
-    assertion_fp = state_mod.fingerprint_finding(assertion, cron_hash)
+    # Assertion fingerprints are not baseline-versioned (#1130).
+    assertion_fp = state_mod.fingerprint_finding(assertion, "")
     times = {"first_seen": _SEEN_AT, "last_seen": _SEEN_AT, "last_alerted": _SEEN_AT}
     return {
         "cron": (cron_fp, {**times, "name": "rogue-cron", "source": "cron"}),
@@ -1747,7 +1748,9 @@ def _assert_only_source_carried(run, carried_source: str) -> None:
             True,
         ),
         (
-            ("cron", "assertion"),
+            # #1130: assertion fingerprints do not depend on the baseline, so the
+            # assertion source completes and its reappeared artifact resolves.
+            ("cron",),
             {"load_baseline": {"side_effect": BaselineError("baseline unreadable")}},
             True,
             True,
@@ -1759,15 +1762,6 @@ def _assert_only_source_carried(run, carried_source: str) -> None:
             True,
         ),
         (("unit-drift",), {}, False, False),
-        (
-            ("cron", "assertion"),
-            {
-                "load_baseline": {"side_effect": BaselineError("baseline unreadable")},
-                "verify_vikunja_id_present": {"return_value": False},  # still missing
-            },
-            True,
-            True,
-        ),
         (
             ("assertion",),
             {"verify_vikunja_id_present": {"side_effect": RuntimeError("reverify bug")}},
@@ -1781,7 +1775,6 @@ def _assert_only_source_carried(run, carried_source: str) -> None:
         "baseline-error",
         "unit-enumeration-raises",
         "unit-dir-absent",
-        "baseline-error-assertion-still-missing",
         "assertion-reverify-raises",
     ],
 )
@@ -1887,53 +1880,154 @@ def test_reconcile_fallback_reports_zero_carried_forward(tmp_path):
     assert run.last_tick["exit_status"] == "failure"  # alert_path_fault, as today
 
 
-def test_baseline_error_tick_holds_new_assertions_for_the_next_good_tick(isolated_paths):
-    """F1: assertion reconciliation requires a loaded baseline hash. A new
-    artifact_missing record read on a BaselineError tick is neither alerted
-    under a baseline-less fingerprint nor consumed: the watermark is held, so
-    the next good tick re-reads it and alerts it once, under the real hash."""
+def test_baseline_error_tick_updates_a_still_missing_assertion_in_place(tmp_path):
+    """#1130 (reverses #1129 F1): on a BaselineError tick the assertion source
+    completes, so a still-missing outstanding assertion is updated in place —
+    same key, same first_seen, last_seen refreshed, no alert either way. Only
+    the cron entry is carried."""
+    run = _carry_scan(
+        tmp_path,
+        overrides={
+            "load_baseline": {"side_effect": BaselineError("baseline unreadable")},
+            "verify_vikunja_id_present": {"return_value": False},  # still missing
+        },
+    )
+
+    fp, entry = run.seeded["assertion"]
+    assert run.saved[fp] == {**entry, "last_seen": T0.isoformat()}
+    assert not any("grounded" in t.lower() for t in run.titles)
+    cron_fp, cron_entry = run.seeded["cron"]
+    assert run.saved[cron_fp] == cron_entry  # carried: cron source did not complete
+    assert _CLEARED_TITLE["cron"] not in run.titles
+    assert _CLEARED_TITLE["unit-drift"] in run.titles
+    assert set(run.saved) == {fp, cron_fp}
+    assert run.summary["carried_forward"] == 1  # the cron entry only
+    assert run.summary["findings_held"] is True
+    assert run.summary["_scan_inability"] is True
+    assert run.last_tick["exit_status"] == "failure"
+
+
+def _baseline_tick(isolated_paths, now, *, client=None, **baseline_patch):
+    """One real tick with ``load_baseline`` patched by *baseline_patch*, the
+    assertion's Vikunja artifact missing by default, and no deployed units."""
     from scripts.common.alert_bus.model import AlertResult
 
     state_path, watermark_path, assertions_dir = isolated_paths
+    with patch("scripts.trust.run_trust_scan.load_baseline", **baseline_patch), patch(
+        "scripts.trust.run_trust_scan.enumerate_live_crons", return_value=[_live_job()]
+    ), patch(
+        "scripts.trust.assertion_verifier._build_client",
+        return_value=client if client is not None else _FakeVikunja(present=set()),
+    ), patch("scripts.trust.alert_render.emit") as mock_emit:
+        mock_emit.return_value = AlertResult(ok=True)
+        summary = rts.run_scan(
+            now=now,
+            state_path=state_path,
+            watermark_path=watermark_path,
+            assertions_base_dir=assertions_dir,
+            unit_deployed_dir=state_path.parent / "no-deployed-units",
+        )
+    saved = json.loads(state_path.read_text()) if state_path.exists() else {}
+    return summary, [c.args[0].title for c in mock_emit.call_args_list], saved
+
+
+_ASSERTION_77 = AssertionFinding(
+    kind="artifact_missing",
+    agent="main",
+    artifact_kind="vikunja_task",
+    artifact_id="77",
+    claim="Created Vikunja reminder tasks",
+)
+
+
+def test_baseline_error_tick_alerts_new_assertions_and_advances_watermark(isolated_paths):
+    """#1130 (reverses #1129 F1): a new artifact_missing record read on a
+    BaselineError tick alerts on that tick, is saved under its unversioned key,
+    and the watermark advances. The next good tick dedups it — no re-key."""
+    state_path, watermark_path, assertions_dir = isolated_paths
     _vikunja_assertion(assertions_dir, ["77"])
-    no_units = state_path.parent / "no-deployed-units"
+    unversioned_fp = state_mod.fingerprint_finding(_ASSERTION_77, "")
 
-    def tick(now, **baseline_patch):
-        with patch("scripts.trust.run_trust_scan.load_baseline", **baseline_patch), patch(
-            "scripts.trust.run_trust_scan.enumerate_live_crons", return_value=[_live_job()]
-        ), patch(
-            "scripts.trust.assertion_verifier._build_client",
-            return_value=_FakeVikunja(present=set()),
-        ), patch("scripts.trust.alert_render.emit") as mock_emit:
-            mock_emit.return_value = AlertResult(ok=True)
-            summary = rts.run_scan(
-                now=now,
-                state_path=state_path,
-                watermark_path=watermark_path,
-                assertions_base_dir=assertions_dir,
-                unit_deployed_dir=no_units,
-            )
-        return summary, [c.args[0].title for c in mock_emit.call_args_list]
-
-    summary1, titles1 = tick(T0, side_effect=BaselineError("baseline unreadable"))
-    assert not any("grounded" in t.lower() for t in titles1)
-    assert not state_path.exists() or json.loads(state_path.read_text()) == {}
-    wm = rts._load_watermark(watermark_path)
-    assert all(v == 0 for v in wm.values())  # held: not consumed
-
-    summary2, titles2 = tick(T0 + timedelta(minutes=15), return_value=BASELINE)
-    assert summary2["ok"] is True
-    assert titles2 == ["Completion claim not grounded: vikunja_task"]
-    saved = json.loads(state_path.read_text())
-    expected_fp = state_mod.fingerprint_finding(
-        AssertionFinding(
-            kind="artifact_missing",
-            agent="main",
-            artifact_kind="vikunja_task",
-            artifact_id="77",
-            claim="Created Vikunja reminder tasks",
-        ),
-        baseline_hash(BASELINE),
+    summary1, titles1, saved1 = _baseline_tick(
+        isolated_paths, T0, side_effect=BaselineError("baseline unreadable")
     )
-    assert set(saved) == {expected_fp}
+    assert titles1 == ["Completion claim not grounded: vikunja_task"]
+    assert set(saved1) == {unversioned_fp}
+    assert summary1["carried_forward"] == 0
     assert any(v > 0 for v in rts._load_watermark(watermark_path).values())
+
+    summary2, titles2, saved2 = _baseline_tick(
+        isolated_paths, T0 + timedelta(minutes=15), return_value=BASELINE
+    )
+    assert summary2["ok"] is True
+    assert titles2 == []
+    assert set(saved2) == {unversioned_fp}
+    assert saved2[unversioned_fp]["first_seen"] == saved1[unversioned_fp]["first_seen"]
+
+
+# --- #1130: assertion fingerprints do not depend on the cron baseline ---------
+
+
+@pytest.mark.parametrize(
+    "finding, expected",
+    [
+        (CronDriftFinding(kind="unapproved_present", name="c", agent_id="a"), "cron-hash"),
+        (_ASSERTION_77, ""),
+        (UnitDriftFinding(kind="content_drift", name="u.service", repo_source="u"), ""),
+        (object(), ""),  # default-deny: a new finding type is unversioned
+    ],
+    ids=["cron", "assertion", "unit-drift", "unknown-type"],
+)
+def test_only_cron_findings_are_baseline_versioned(finding, expected):
+    assert rts._finding_baseline_hash(finding, "cron-hash") == expected
+
+
+def test_good_tick_stores_assertion_under_unversioned_key(isolated_paths):
+    _state_path, _watermark_path, assertions_dir = isolated_paths
+    _vikunja_assertion(assertions_dir, ["77"])
+
+    _summary, titles, saved = _baseline_tick(isolated_paths, T0, return_value=BASELINE)
+
+    assert titles == ["Completion claim not grounded: vikunja_task"]
+    assert set(saved) == {state_mod.fingerprint_finding(_ASSERTION_77, "")}
+
+
+BASELINE_B = [
+    *BASELINE,
+    ApprovedCron(
+        name="escalation-daily",
+        agent_id="felix-admin",
+        schedule_expr="0 9 * * *",
+        tz="America/New_York",
+        purpose="test",
+        approved_by="kent",
+        approved_at="2026-11-23",
+    ),
+]
+
+
+def test_baseline_edit_does_not_rekey_an_outstanding_assertion(isolated_paths):
+    """#1130 repro: two ticks through the runner. Tick 1 under baseline A
+    creates the artifact_missing entry; tick 2 under an edited baseline B (one
+    more approved cron), artifact still missing, must neither resolve it ("now
+    grounded") nor re-alert it ("not grounded"): same key, same first_seen."""
+    _state_path, _watermark_path, assertions_dir = isolated_paths
+    _vikunja_assertion(assertions_dir, ["91"])
+    assert baseline_hash(BASELINE_B) != baseline_hash(BASELINE)
+
+    _s1, titles1, saved1 = _baseline_tick(isolated_paths, T0, return_value=BASELINE)
+    assert titles1 == ["Completion claim not grounded: vikunja_task"]
+    assertion_keys1 = {k for k, e in saved1.items() if e.get("source") == "assertion"}
+    assert len(assertion_keys1) == 1
+
+    summary2, titles2, saved2 = _baseline_tick(
+        isolated_paths, T0 + timedelta(hours=1), return_value=BASELINE_B
+    )
+    assert summary2["errors"] == []
+    assert not any("grounded" in t.lower() for t in titles2)
+    assert any("escalation-daily" in t for t in titles2)  # the edit IS re-evaluated for crons
+    assert len(titles2) == 1  # nothing else alerts on a baseline edit
+    assertion_keys2 = {k for k, e in saved2.items() if e.get("source") == "assertion"}
+    assert assertion_keys2 == assertion_keys1
+    (key,) = assertion_keys1
+    assert saved2[key]["first_seen"] == saved1[key]["first_seen"]

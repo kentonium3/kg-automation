@@ -1668,7 +1668,7 @@
           "from": "scripts/trust/run_trust_scan.py (cron-drift detector)",
           "to": "approved-cron baseline (live openclaw/system crons vs baseline)",
           "protocol": "subprocess enumeration + baseline diff",
-          "description": "Enumerates live crons and diffs against the approved-cron baseline; a cron not in the baseline is drift. Fingerprints fold in the baseline hash so a baseline edit re-evaluates every finding rather than letting stale seen-state suppress a now-(il)legitimate cron."
+          "description": "Enumerates live crons and diffs against the approved-cron baseline; a cron not in the baseline is drift. Cron fingerprints fold in the baseline hash so a baseline edit re-evaluates every cron finding rather than letting stale seen-state suppress a now-(il)legitimate cron; assertion and unit-drift fingerprints do not depend on the baseline (#1130)."
         },
         {
           "from": "scripts/trust/run_trust_scan.py (completion-assertion verifier)",

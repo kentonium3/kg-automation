@@ -176,9 +176,11 @@ unapprovable (2026-11-23, #1125 option C). Revisit by matching on
 alerts on **first observation**, then re-alerts every 24h while it persists
 (so a standing unapproved cron isn't silently swallowed after the first
 alert), and emits one low-priority `drift_resolved` info alert when it clears.
-The fingerprint is versioned by the baseline's content hash, so **editing the
-baseline re-evaluates every finding** rather than letting stale seen-state
-suppress a now-legitimate (or newly-illegitimate) cron.
+A cron finding's fingerprint is versioned by the baseline's content hash, so
+**editing the baseline re-evaluates every cron finding** rather than letting
+stale seen-state suppress a now-legitimate (or newly-illegitimate) cron.
+Assertion and unit-drift fingerprints do not depend on the baseline (#1130): a
+baseline edit never resolves or re-alerts them.
 
 ---
 
@@ -305,16 +307,16 @@ the assertion source still completes.
 |---|---|---|
 | cron | the baseline loaded, and `openclaw cron list` and drift detection both returned | `cron_scan:` error (`BaselineError`, `CronEnumerationError`, or a detector fault) |
 | unit-drift | the deployed-unit dir exists, and enumeration and detection both returned | `unit_scan:` error, **or** the deployed-unit dir is absent (CI/dev skip) |
-| assertion | the baseline loaded, and both the new-assertion pass and the outstanding re-verify loop returned | `assertion_scan:` or `assertion_reverify:<Type>:` error, **or** the cron baseline did not load |
+| assertion | both the new-assertion pass and the outstanding re-verify loop returned | `assertion_scan:` or `assertion_reverify:<Type>:` error |
 
-**Assertion reconciliation requires a loaded baseline hash.** Assertion
-fingerprints are versioned by the cron baseline hash. When the baseline does not
-load (`cron_scan:BaselineError:`), no assertion finding is reconciled that tick:
-stored assertion entries carry under their stored fingerprints, and the
-assertion watermark is held, so that tick's new records are re-read and alerted
-on the next good tick. Without this, a still-missing assertion would re-verify
-under a new fingerprint, giving a false "now grounded" and a duplicate "not
-grounded".
+**A baseline outage holds cron findings only.** When the baseline does not load
+(`cron_scan:BaselineError:`), the cron entries carry, but assertion findings
+reconcile normally, because their fingerprints do not depend on the baseline
+(#1130). Assertion alerts continue during a baseline outage: a new
+`artifact_missing` record alerts that tick, a still-missing one keeps its
+cadence, and a reappeared artifact resolves. The tick still reports
+`exit_status: failure` through `scan_inability`, plus `findings_held` when
+cron entries are outstanding.
 
 A finding that *is* reported this tick is still updated as usual, even when its
 source did not complete, because a partial result is real evidence of presence.
