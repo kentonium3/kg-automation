@@ -2179,3 +2179,88 @@ def test_unverifiable_retry_survives_a_reverify_loop_raise(isolated_paths, tmp_p
     assert json.loads(last_tick.read_text())["exit_status"] == "failure"
     saved = json.loads(state_path.read_text())
     assert sorted(e["name"] for e in saved.values()) == ["calendar_event:e1", "vikunja_task:77"]
+
+
+# --- #1137 review: a held watermark must not double-emit a retried warning ---
+
+
+def _held_watermark_calendar(assertions_dir):
+    """An indeterminate vikunja record first in the file holds the watermark,
+    so the calendar claim after it is re-read every tick by (a)."""
+    vikunja_line = json.dumps(
+        {
+            "ts": "2026-07-10T10:00:00+00:00",
+            "agent": "main",
+            "request_summary": None,
+            "request_ref": None,
+            "artifact_kind": "vikunja_task",
+            "artifact_ids": ["55"],
+            "claim": "Created Vikunja task",
+        }
+    ) + "\n"
+    _calendar_assertion(assertions_dir, extra_lines=vikunja_line)
+    return patch(
+        "scripts.trust.assertion_verifier._build_client",
+        return_value=_FakeVikunja(error={"55"}),
+    )
+
+
+def _first_ok_then_failing():
+    """Delivers the first alert of the tick and fails every later one."""
+    from scripts.common.alert_bus.model import AlertResult
+
+    calls = []
+
+    def emit(alert):
+        calls.append(alert.title)
+        if len(calls) == 1:
+            return AlertResult(ok=True)
+        return AlertResult(ok=False, reason="BUS_DOWN")
+
+    return emit
+
+
+def _calendar_entry(state_path):
+    (entry,) = [
+        e for e in json.loads(state_path.read_text()).values()
+        if e["name"] == "calendar_event:e1"
+    ]
+    return entry
+
+
+def test_retried_warning_reread_under_held_watermark_alerts_once(isolated_paths):
+    state_path, _, assertions_dir = isolated_paths
+    flaky = _held_watermark_calendar(assertions_dir)
+
+    _s0, emit0 = _scan(
+        isolated_paths, [_live_job()], now=T0,
+        emit_side_effect=_emit_failing_titles("unverifiable"), extra_patches=[flaky],
+    )
+    assert _titles(emit0) == [_UNVERIFIABLE_CAL]
+    assert _calendar_entry(state_path)["last_alerted"] == state_mod._ALWAYS_DUE_SENTINEL
+
+    tick1 = T0 + timedelta(minutes=15)
+    s1, emit1 = _scan(isolated_paths, [_live_job()], now=tick1, extra_patches=[flaky])
+
+    assert _titles(emit1) == [_UNVERIFIABLE_CAL]  # once, not once per source
+    assert s1["alerts_emitted"] == 1
+    assert _calendar_entry(state_path)["last_alerted"] == tick1.isoformat()
+
+
+def test_delivered_retry_is_not_re_marked_undelivered_by_a_duplicate(isolated_paths):
+    """Mixed outcome: had the duplicate been emitted and failed, keep_due would
+    restore the sentinel over the delivered copy and re-send it next tick."""
+    state_path, _, assertions_dir = isolated_paths
+    flaky = _held_watermark_calendar(assertions_dir)
+    _scan(
+        isolated_paths, [_live_job()], now=T0,
+        emit_side_effect=_emit_failing_titles("unverifiable"), extra_patches=[flaky],
+    )
+
+    _s1, emit1 = _scan(
+        isolated_paths, [_live_job()], now=T0 + timedelta(minutes=15),
+        emit_side_effect=_first_ok_then_failing(), extra_patches=[flaky],
+    )
+
+    assert emit1.call_count == 1
+    assert _calendar_entry(state_path)["last_alerted"] != state_mod._ALWAYS_DUE_SENTINEL

@@ -1102,3 +1102,36 @@ def test_retry_and_reverify_sets_are_complements(identity):
 
 def test_undelivered_assertion_findings_is_exported():
     assert "undelivered_assertion_findings" in state_mod.__all__
+
+
+# --- #1137 review: reconcile handles each fingerprint once per tick ----------
+
+
+@pytest.mark.parametrize(
+    "finding",
+    [_unverifiable_finding(), _assertion_finding("91"), _cron_finding()],
+    ids=["unverifiable", "artifact-missing", "cron"],
+)
+def test_reconcile_same_finding_twice_alerts_once_on_first_observation(finding):
+    to_alert, resolved, new_state = state_mod.reconcile(
+        [(finding, ""), (finding, "")], T0, state={}
+    )
+
+    assert to_alert == [finding]
+    assert resolved == []
+    assert len(new_state) == 1
+
+
+def test_reconcile_same_due_finding_twice_alerts_once():
+    """The #1137 double: a never-delivered entry re-read by (a) and rebuilt by
+    (c) is due twice against the same prior entry. Only the first counts."""
+    finding = _unverifiable_finding()
+    fp, entry = _stored_after_failed_first_emit(finding)
+    now = T0 + timedelta(minutes=15)
+
+    to_alert, _, new_state = state_mod.reconcile(
+        [(finding, ""), (finding, "")], now, state={fp: entry}
+    )
+
+    assert to_alert == [finding]
+    assert new_state[fp]["last_alerted"] == state_mod._utc_iso(now)
