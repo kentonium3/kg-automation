@@ -1,7 +1,7 @@
 {
-  "event_count": 1,
-  "last_event_id": "01M85B2V3FQCMS32TZD1R4SXXV",
-  "materialized_at": "2026-11-23T23:15:29.519035+00:00",
+  "event_count": 2,
+  "last_event_id": "01M85B2WH07J4WAYE7F0YG51JA",
+  "materialized_at": "2026-11-23T23:15:30.976637+00:00",
   "mission_number": "",
   "mission_slug": "crash-loop-unit-alerting-01M858E8",
   "mission_type": "software-dev",
@@ -15,7 +15,7 @@
     "for_review": 0,
     "in_progress": 0,
     "in_review": 0,
-    "planned": 1
+    "planned": 2
   },
   "work_packages": {
     "WP01": {
@@ -24,6 +24,13 @@
       "lane": "planned",
       "last_event_id": "01M85B2V3FQCMS32TZD1R4SXXV",
       "last_transition_at": "2026-11-23T23:15:29.519035+00:00"
+    },
+    "WP02": {
+      "actor": "finalize-tasks",
+      "force_count": 0,
+      "lane": "planned",
+      "last_event_id": "01M85B2WH07J4WAYE7F0YG51JA",
+      "last_transition_at": "2026-11-23T23:15:30.976637+00:00"
     }
   }
 }
