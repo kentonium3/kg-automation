@@ -261,9 +261,13 @@ def detect_cron_drift(
     for key, group in live_groups.items():
         name, agent_id = key
         live, *extra_copies = sorted(group, key=_primary_sort_key)
-        # Seeded with the primary's id so a copy sharing it is never reported
-        # as "extra copy is a; primary copy is a".
-        seen_copy_ids: set[str | None] = {live["cron_id"]}
+        # Seeded with the primary's id, when it has one, so a copy sharing it
+        # is never reported as "extra copy is a; primary copy is a". NOT
+        # seeded with None: that would silently drop every id-less extra copy
+        # (fail-open); id-less extras still yield one duplicate_present.
+        seen_copy_ids: set[str | None] = (
+            {live["cron_id"]} if live["cron_id"] is not None else set()
+        )
         for copy in extra_copies:
             if copy["cron_id"] in seen_copy_ids:
                 # Same identity as the primary or a copy already reported

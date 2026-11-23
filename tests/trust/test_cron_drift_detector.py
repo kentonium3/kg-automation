@@ -716,10 +716,23 @@ def test_duplicate_primary_is_oldest_regardless_of_enabled_state() -> None:
 
 
 def test_extra_copy_sharing_primary_id_is_not_reported_as_duplicate() -> None:
-    """seen_copy_ids is seeded with the primary's id, so a copy with the same
-    id never reads "extra copy is a; primary copy is a"."""
+    """seen_copy_ids is seeded with the primary's id when it HAS one, so a copy
+    with the same str id never reads "extra copy is a; primary copy is a"."""
     assert detect_cron_drift([_dup("a", 1000), _dup("a", 2000)], [BASELINE_ENTRY]) == []
-    assert detect_cron_drift([_dup(None, 1000), _dup(None, 2000)], [BASELINE_ENTRY]) == []
+
+
+def test_id_less_extra_copy_of_id_less_primary_is_still_a_duplicate() -> None:
+    """Codex re-review: seeding with a None primary id would silently drop
+    every id-less duplicate (fail-open). Id-less extras still yield exactly
+    one duplicate_present, under the no-id sentinel."""
+    for live in (
+        [_dup(None, 1000), _dup(None, 2000)],
+        [_dup(None, 1000), _dup(None, 2000), _dup(None, 3000)],
+    ):
+        findings = detect_cron_drift(live, [BASELINE_ENTRY])
+        assert [(f.kind, f.cron_id, f.primary_cron_id) for f in findings] == [
+            (KIND_DUPLICATE_PRESENT, None, None)
+        ]
 
 
 def test_duplicate_null_agent_plugin_crons() -> None:
