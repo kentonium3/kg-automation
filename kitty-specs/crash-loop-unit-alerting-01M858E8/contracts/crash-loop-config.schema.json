@@ -4,24 +4,64 @@
   "title": "felix-canary crash-loop configuration (scripts/canary/crash_loop_config.json)",
   "type": "object",
   "additionalProperties": false,
-  "required": ["threshold", "window_seconds", "slack_seconds", "quiet_ticks_to_clear", "ignore"],
+  "required": [
+    "threshold",
+    "window_seconds",
+    "quiet_ticks_to_clear",
+    "max_alerts_per_tick",
+    "read_budget_seconds",
+    "ignore"
+  ],
   "properties": {
-    "threshold": {"type": "integer", "minimum": 2, "description": "Restart increase within the window that counts as a crash loop (FR-004). Default 3."},
-    "window_seconds": {"type": "integer", "minimum": 60, "description": "Threshold window. Must exceed slack_seconds. Default 900 (one canary tick)."},
-    "slack_seconds": {"type": "integer", "minimum": 0, "description": "Tolerance for tick jitter when choosing the baseline observation (research R-05). Default 120."},
-    "quiet_ticks_to_clear": {"type": "integer", "minimum": 1, "description": "K: consecutive no-rise ticks before a cleared entry (FR-008). Default 2."},
+    "threshold": {
+      "type": "integer",
+      "minimum": 2,
+      "description": "N. A page requires a PROVEN crossing: delta >= m*(N-1)+1 over an interval of m=ceil(period/window) windows (research R-05, FR-004). Default 3.",
+      "maximum": 50
+    },
+    "window_seconds": {
+      "type": "integer",
+      "minimum": 60,
+      "description": "Threshold window. Default 900. Retention of candidate baselines is 4x this.",
+      "maximum": 3600
+    },
+    "quiet_ticks_to_clear": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "K: consecutive no-rise ticks before a cleared entry (FR-008). Default 2."
+    },
     "ignore": {
       "type": "array",
-      "description": "Units/containers that never raise a crash-loop alert (FR-002). Exact match on UnitKey.",
+      "description": "Units/containers that never raise a crash-loop alert (FR-002). Exact match on UnitKey; unique; reason required.",
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["unit", "reason"],
+        "required": [
+          "unit",
+          "reason"
+        ],
         "properties": {
-          "unit": {"type": "string", "pattern": "^(system|user|container):.+$"},
-          "reason": {"type": "string", "minLength": 1}
+          "unit": {
+            "type": "string",
+            "pattern": "^(system|user|container):.+$"
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1
+          }
         }
       }
+    },
+    "max_alerts_per_tick": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Individual crash-loop notifications per tick; all remaining events fold into one bounded aggregate alert (research R-15). Default 3."
+    },
+    "read_budget_seconds": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 10,
+      "description": "Monotonic deadline for reading all three scopes (research R-15). Default 6."
     }
   }
 }

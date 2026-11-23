@@ -1,118 +1,148 @@
 # Data Model: Crash-loop unit alerting
 
-Phase 1 output. Types are Python dataclasses in `scripts/canary/crash_loop.py`, unless noted otherwise. All times are timezone-aware UTC and serialised as ISO-8601.
+Phase 1 output, revised twice after the post-plan Codex review (2026-11-23, rounds 1 and 2). Modules: `scripts/canary/crash_loop_model.py` (value types and config), `scripts/canary/crash_loop_state.py` (persisted state, load and save, lock), `scripts/canary/crash_loop.py` (the pure decision) and `scripts/canary/crash_loop_readers.py` (effects). All times are timezone-aware UTC, serialised as ISO-8601.
 
 ## Entities
 
 ### UnitKey (value)
 
-`"<scope>:<name>"`, where `scope ∈ {system, user, container}`. For units, `name` is the systemd `Id` (for example `obsidian-sync.service`). For containers it is the container name without its leading `/`. This key is the identity used everywhere: state, ignore list, alert `source` and ledger `component_id`.
+`"<scope>:<name>"` with `scope ∈ {system, user, container}`. For units, `name` is the systemd `Id`. For containers it is the container name without its leading `/`. The key identifies the unit in the state file, the ignore list, the alert `source` and the ledger `component_id`.
 
-### RestartObservation (value; produced by the readers, `crash_loop_readers.py`)
+### RestartObservation (value; produced by the readers)
 
 | Field | Type | Notes |
 |---|---|---|
 | `scope` | `str` | `system` \| `user` \| `container` |
-| `name` | `str` | systemd Id / container name |
-| `restart_policy` | `str` | systemd `Restart=` value or docker policy name |
+| `name` | `str` | |
+| `restart_policy` | `str` | systemd `Restart=` value / docker policy name |
 | `restart_count` | `int` | `NRestarts` / `RestartCount`, ≥ 0 |
-| `state` | `str` | systemd `"<ActiveState> (<SubState>)"`; docker `State.Status` |
+| `state` | `str` | systemd `"<ActiveState> (<SubState>)"` / docker `State.Status` |
+| `generation` | `str` | the container ID for containers; the boot ID for system and user units |
 
 `key` property: `f"{scope}:{name}"`.
 
-### ScopeReading (value; reader output per scope)
+### ScopeReading (value)
 
 | Field | Type | Notes |
 |---|---|---|
 | `scope` | `str` | |
-| `ok` | `bool` | `False` means could-not-check |
-| `observations` | `tuple[RestartObservation, ...]` | **watched** units only (policy and loaded filters already applied; ignore filter applied by the decision core) |
-| `error` | `str \| None` | evidence when `ok` is `False` (for example `docker: FileNotFoundError` or `systemctl --user: exit 1: Failed to connect to bus`) |
+| `complete` | `bool` | `False` means could-not-check (research R-13) |
+| `observations` | `tuple[RestartObservation, ...]` | watched units only (loaded and restart-policy filters applied; the ignore filter is applied by the core) |
+| `excluded` | `int` | policy exclusions (diagnostic) |
+| `error` | `str \| None` | the reason when not complete |
+| `elapsed_ms` | `int` | |
 
-### CrashLoopConfig (value; from `scripts/canary/crash_loop_config.json`)
+### CrashLoopConfig (value; `scripts/canary/crash_loop_config.json`)
 
 | Field | Type | Default | Validation |
 |---|---|---|---|
-| `threshold` | `int` | 3 | ≥ 2 (a single restart never alerts) |
-| `window_seconds` | `int` | 900 | > `slack_seconds` |
-| `slack_seconds` | `int` | 120 | ≥ 0 |
-| `quiet_ticks_to_clear` | `int` | 2 | ≥ 1 (K) |
-| `ignore` | `list[{unit, reason}]` | `[]` | `unit` matches `^(system\|user\|container):.+$`; `reason` is a non-empty string; no duplicates |
+| `threshold` (N) | `int` | 3 | 2..50 |
+| `window_seconds` | `int` | 900 | 60..3600 |
+| `quiet_ticks_to_clear` (K) | `int` | 2 | ≥ 1 |
+| `max_alerts_per_tick` | `int` | 3 | ≥ 1 |
+| `read_budget_seconds` | `int` | 6 | 1..10 |
+| `ignore` | `list[{unit, reason}]` | `[]` | `unit` matches `^(system\|user\|container):.+$`; `reason` is non-empty; no duplicates |
 
-An invalid config raises `CrashLoopConfigError`. The stage turns that into all scopes being `unknown` (research R-10).
+There are no other keys. Invalid → `CrashLoopConfigError` → all scopes `unknown`. History retention: everything in the last window, plus up to 64 older entries no older than 24 h (research R-07).
 
 ### UnitState (persisted, per UnitKey)
 
 | Field | Type | Notes |
 |---|---|---|
-| `history` | `list[[iso8601, int]]` | ascending by time, length 1–16 |
-| `episode` | `Episode \| null` | open episode or none |
+| `generation` | `str` | the latest observation's generation (container ID; boot ID for units) |
+| `boot_id` | `str` | the host boot ID under which the unit was last observed (round-3 HIGH) |
+| `history` | `list[[iso8601, int]]` | candidate baselines under dominance compaction: strictly ascending in time, **strictly** increasing in count; `history[-1]` is always the latest observation; entries within the last window are never pruned; older entries are ≤ 24 h old and at most 64 (the newest is always kept) |
+| `episode` | `Episode \| null` | |
+
+Compaction: an observation whose count equals `history[-1].count` replaces that entry (a later baseline with the same count dominates); a higher count is appended.
 
 ### Episode (persisted, nested)
 
 | Field | Type | Notes |
 |---|---|---|
-| `started_utc` | iso8601 | tick of the opening alert |
-| `last_alert_utc` | iso8601 | opening alert or latest re-remind |
-| `quiet_ticks` | `int` | consecutive ticks with no rise; resets to 0 on any rise |
-| `peak_delta` | `int` | largest windowed delta seen in the episode (evidence only) |
+| `started_utc` | iso8601 | |
+| `last_alert_utc` | iso8601 | time of the last alert or re-remind **attempt** (research R-08: no retry) |
+| `quiet_ticks` | `int` | consecutive ticks without a rise |
+| `peak_delta` | `int` | evidence only |
 
 ### CrashLoopState (persisted document): `/data/services/felix-canary/state/crash-loop.json`
 
 ```json
-{"schema_version": 1, "units": {"system:obsidian-sync.service": {"history": [["2026-11-23T12:28:46+00:00", 0], ["2026-11-23T12:44:46+00:00", 39]], "episode": {"started_utc": "2026-11-23T12:44:46+00:00", "last_alert_utc": "2026-11-23T12:44:46+00:00", "quiet_ticks": 0, "peak_delta": 39}}}}
+{"schema_version": 1,
+ "updated_at_utc": "2026-11-23T12:44:46+00:00",
+ "boot_id": "4b0c…",
+ "units": {"system:obsidian-sync.service": {
+    "generation": "4b0c…", "boot_id": "4b0c…",
+    "history": [["2026-11-23T12:28:46+00:00", 0], ["2026-11-23T12:44:46+00:00", 39]],
+    "episode": {"started_utc": "2026-11-23T12:44:46+00:00", "last_alert_utc": "2026-11-23T12:44:46+00:00",
+                "quiet_ticks": 0, "peak_delta": 39}}}}
 ```
 
-The schema is in `contracts/crash-loop-state.schema.json`. A load is fail-safe (research R-07).
+The schema is in `contracts/crash-loop-state.schema.json`. Load is fail-safe, and malformed entries are dropped one by one (research R-07). The lock file `crash-loop.lock` sits beside it.
+
+### Proof (value; decision internal, carried on events)
+
+`baseline_at, baseline_count, current_count, observed_at, delta, period_seconds, m, bound`, where `m = ceil(period / window)` and `bound = m·(N − 1) + 1`. A proof **holds** when `delta ≥ bound` (research R-05).
 
 ### CrashLoopEvent (value; decision output)
 
-| Field | Type | Notes |
-|---|---|---|
-| `kind` | `str` | `alert` \| `reremind` \| `cleared` |
-| `key` | `str` | UnitKey |
-| `scope`, `name`, `state` | `str` | from the current observation (or the last known value for `cleared` after a reset) |
-| `delta` | `int` | windowed restart increase (0 for `cleared`) |
-| `period_seconds` | `int` | `now − baseline.observed_at` |
-| `restart_count` | `int` | current counter |
-| `episode_started_utc` | iso8601 | |
+`kind ∈ {alert, reremind, cleared}`, `key, scope, name, state, episode_started_utc`, plus the Proof fields. For `cleared`, the proof fields describe the last interval, with `delta` 0 or the reset.
 
-### Decision result
+### UnverifiedRise (value; decision output, ledger only)
 
-`evaluate_tick(readings, prior_state, config, now) -> TickOutcome`, which is pure:
+The Proof fields plus `key, scope, name, state`. It is emitted when no pair proves a crossing but some pair has `delta ≥ N`. The tightest such pair is reported.
+
+### Decision function
+
+`evaluate_tick(readings, prior_state, config, now, boot_id) -> TickOutcome`. It is pure and never mutates `prior_state`.
 
 - `new_state: CrashLoopState`
 - `events: list[CrashLoopEvent]`
-- `scope_status: dict[scope, (outcome, evidence)]` with outcome `healthy` or `unknown`
-- `counts: {watched, ignored, first_seen, resets, in_episode}` for the summary and ledger
+- `unverified: list[UnverifiedRise]`
+- `scope_status: dict[scope, (outcome, evidence)]`, with outcome `healthy` or `unknown`, for every scope in `SCOPES`
+- `counts: {watched, ignored, first_seen, resets, in_episode, clock_skipped, rebased_on_boot}`
+
+`plan_emissions(events, config) -> list[Emission]` (the cap plus the bounded aggregate, research R-15), and `render_alert` / `render_aggregate`. Both are pure.
 
 ## Invariants
 
-- **INV-CL-1**: A unit with no prior history never emits an event on that tick (FR-010).
-- **INV-CL-2**: `delta = current − baseline.count`, and history never holds a count greater than a later one: a decrease rebuilds the history (FR-009). So `delta ≥ 0` always.
-- **INV-CL-3**: At most one `alert` per episode. `reremind` only when `now − last_alert ≥ dedup.DEFAULT_WINDOW` (6 h) **and** the unit is over the threshold on that tick (FR-007).
-- **INV-CL-4**: `cleared` is emitted exactly once, on the tick where `quiet_ticks` reaches K, and the episode is then `null`. A later over-threshold tick opens a new episode, with a new alert (FR-008).
-- **INV-CL-5**: Ignored units produce no events and are **not** stored. An ignored unit later removed from the ignore list is then first-seen.
-- **INV-CL-6**: State for units of a scope with `ok = False` is carried forward unchanged. State for units absent from a scope with `ok = True` is dropped.
-- **INV-CL-7**: The decision core reads no clock, does no I/O and makes no model call (NFR-006).
+- **INV-CL-1**: A unit with no prior state never emits an event on that tick (FR-010).
+- **INV-CL-2**: A decrease, a container-ID change or a change in the unit's stored boot ID rebases the unit and never emits an `alert` or `reremind` (FR-009). A boot change also closes any open episode silently. A decrease or container-ID change inside an episode counts as quiet and may emit `cleared` (R-06).
+- **INV-CL-3**: An `alert` or `reremind` is emitted only with a proof that holds (`delta ≥ m·(N−1)+1`), which shows ≥ N restarts within some window-length interval (NFR-004, SC-003).
+- **INV-CL-4**: At most one `alert` per episode. A `reremind` is emitted only when `now − last_alert_utc ≥ dedup.DEFAULT_WINDOW` (6 h) **and** a proof holds on that tick (FR-007).
+- **INV-CL-5**: `cleared` is emitted exactly once, on the tick where `quiet_ticks` reaches K. The episode then becomes `null` and the history is rebased to `[(now, current)]` (FR-008, CX-2).
+- **INV-CL-6**: Ignored units produce no events and are not stored.
+- **INV-CL-7**: An incomplete scope carries its units' state forward unchanged. A complete scope drops the state of units that are absent from it.
+- **INV-CL-8**: The decision core reads no clock, does no I/O and makes no model call (NFR-006).
+- **INV-CL-9**: If `now ≤ history[-1].at`, the unit's state is unchanged and it produces no event. This check runs before any other.
+- **INV-CL-10**: Delivery outcome never changes the state, matching the existing canary (`_route`). A failed delivery is counted in `alerts_undelivered`.
 
 ## Episode state machine (per unit)
 
 ```mermaid
 stateDiagram-v2
-    [*] --> Baseline: first seen (record, no alert)
-    Baseline --> Watching
-    Watching --> Watching: delta < threshold / count reset → rebuild history
-    Watching --> InEpisode: delta ≥ threshold → emit ALERT (ERROR)
-    InEpisode --> InEpisode: rose → quiet=0; over threshold and ≥6h since last alert → emit REREMIND (ERROR)
+    [*] --> Watching: first seen (baseline, no alert)
+    Watching --> Watching: no proof / reset / generation change / boot change → rebase
+    Watching --> Watching: Δ ≥ N but proof fails → UNVERIFIED ledger line
+    Watching --> InEpisode: proof holds → ALERT (ERROR)
+    InEpisode --> InEpisode: rose → quiet = 0; proof holds and ≥ 6 h since last alert → REREMIND
     InEpisode --> InEpisode: no rise (or reset) → quiet += 1 (quiet < K)
-    InEpisode --> Watching: quiet reaches K → emit CLEARED (INFO)
-    Watching --> [*]: unit gone from a successfully read scope (drop state)
-    InEpisode --> [*]: unit gone from a successfully read scope (drop silently)
+    InEpisode --> Watching: quiet reaches K → CLEARED (INFO), history rebased
+    Watching --> [*]: unit gone from a complete scope (drop state)
+    InEpisode --> [*]: unit gone from a complete scope (drop silently)
 ```
 
-The order within one tick for a unit in an episode: compute `rose` and `delta` → if `rose`, `quiet = 0`, otherwise `quiet += 1` → if `quiet ≥ K`, emit `cleared` and close. Otherwise, if `delta ≥ threshold` and the re-remind is due, emit `reremind`. Peak tracking is updated with `max(peak, delta)`.
+**Per-unit order within one tick:**
+
+1. **Clock check** (INV-CL-9).
+2. **Boot change**: if the unit's stored `boot_id` differs from the current one, rebase (history `[(now, current)]`, generation, `boot_id`) and close the episode silently. Done.
+3. **Reset**: a container-ID change, or `current < history[-1].count`. Rebase. With an open episode, go to step 6 with `rose = False` and no proof. Otherwise done.
+4. `rose = current > history[-1].count`.
+5. **Proof**: the best holding proof and the tightest unverified candidate over every history entry (R-05).
+6. **No episode**: if the proof holds, open an episode and emit `alert`. Else, if an unverified candidate exists, record an `UnverifiedRise`.
+   **Episode open**: set `quiet = 0` if `rose`, otherwise `quiet += 1`. If `quiet ≥ K`, emit `cleared`, close the episode and rebase. Otherwise, if the proof holds and the re-remind is due, emit `reremind` and stamp `last_alert_utc`. Update `peak_delta`.
+7. **History update** (unless already rebased this tick): if `current == history[-1].count`, replace that entry with `(now, current)`; otherwise append it. Then prune: keep every entry within the last window. Among older entries, drop those older than 24 h and cap them at 64 by dropping the oldest. Always keep the newest. Store `generation` and `boot_id`.
 
 ## Scope component state (reuses the existing dedup)
 
-`crash-loop:system`, `crash-loop:user` and `crash-loop:container` are ordinary entries in `dedup.json`, with outcomes `healthy` or `unknown`. No schema change.
+`crash-loop:system`, `crash-loop:user` and `crash-loop:container` are ordinary `dedup.json` entries with outcome `healthy` or `unknown`. There is no schema change.
