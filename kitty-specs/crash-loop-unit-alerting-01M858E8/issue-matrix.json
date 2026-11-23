@@ -96,6 +96,18 @@
       "verdict": "not-applicable",
       "wp": null
     },
+    "#kentonium3/kg-automation#1122": {
+      "evidence_ref": "Context: the Node 22 to 24 switch during which the incident happened; no work owed.",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": null,
+      "title": null,
+      "verdict": "not-applicable",
+      "wp": null
+    },
     "#spec-kitty/spec-kitty#7745": {
       "evidence_ref": "Cited for context only (tooling fault forecast); no work owed.",
       "fr": null,
