@@ -31,7 +31,8 @@
       "model": "__resolved_model_absent__",
       "notes": [
         "Ready for review",
-        "Review cycle 1 addressed"
+        "Review cycle 1 addressed",
+        "Review passed (cycle 2): Codex gpt-6.1-sol, read-only; implementer Claude Opus 5.5. Orchestrator ran tests: WP 142 passed, tests/canary 498 passed."
       ],
       "provider": "__resolved_provider_absent__",
       "review": null,
