@@ -1,7 +1,7 @@
 {
-  "event_count": 11,
-  "last_event_id": "01M85BK201MBD5X2CQJ66MSH7D",
-  "materialized_at": "2026-11-23T23:24:20.865096+00:00",
+  "event_count": 13,
+  "last_event_id": "01M85BKCBR4MHEP666704ZG80C",
+  "materialized_at": "2026-11-23T23:24:31.357572+00:00",
   "mission_number": "",
   "mission_slug": "crash-loop-unit-alerting-01M858E8",
   "mission_type": "software-dev",
@@ -13,21 +13,21 @@
     "claimed": 0,
     "done": 0,
     "for_review": 0,
-    "in_progress": 0,
+    "in_progress": 1,
     "in_review": 0,
-    "planned": 6
+    "planned": 5
   },
   "work_packages": {
     "WP01": {
-      "actor": "codex",
+      "actor": "claude",
       "agent": null,
       "agent_profile": "__resolved_profile_absent__",
       "agent_profile_version": "__resolved_profile_version_absent__",
       "force_count": 1,
       "implementer_of_record": "claude",
-      "lane": "planned",
-      "last_event_id": "01M85BK201MBD5X2CQJ66MSH7D",
-      "last_transition_at": "2026-11-23T23:24:20.865096+00:00",
+      "lane": "in_progress",
+      "last_event_id": "01M85BKCBR4MHEP666704ZG80C",
+      "last_transition_at": "2026-11-23T23:24:31.357572+00:00",
       "model": "__resolved_model_absent__",
       "notes": [
         "Ready for review"
@@ -40,7 +40,7 @@
         "reviewer": "codex",
         "verdict": "changes_requested"
       },
-      "role": "reviewer",
+      "role": "implementer",
       "shell_pid": null,
       "shell_pid_created_at": null,
       "subtasks": {
