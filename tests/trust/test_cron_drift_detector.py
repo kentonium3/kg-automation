@@ -587,17 +587,36 @@ def test_enumerate_live_crons_has_more_raises(monkeypatch: pytest.MonkeyPatch) -
         enumerate_live_crons()
 
 
-@pytest.mark.parametrize("has_more", [False, None, "true", 1])
-def test_enumerate_live_crons_has_more_not_literal_true_is_accepted(
+@pytest.mark.parametrize("has_more", [False, None, _ABSENT], ids=["False", "None", "absent"])
+def test_enumerate_live_crons_has_more_absent_none_or_false_is_accepted(
     monkeypatch: pytest.MonkeyPatch, has_more: object
 ) -> None:
+    body: dict = {"jobs": [_live_job()]}
+    if has_more is not _ABSENT:
+        body["hasMore"] = has_more
+    monkeypatch.setattr(
+        "scripts.trust.cron_drift_detector.subprocess.run",
+        lambda *a, **k: _mock_completed(0, json.dumps(body)),
+    )
+
+    assert enumerate_live_crons() == [_live_job()]
+
+
+@pytest.mark.parametrize(
+    "has_more", ["true", 1, 0, "false", [], {}], ids=["str-true", "1", "0", "str-false", "list", "dict"]
+)
+def test_enumerate_live_crons_has_more_any_other_value_raises(
+    monkeypatch: pytest.MonkeyPatch, has_more: object
+) -> None:
+    """Default-deny: anything but absent/None/False might mean a truncated page."""
     payload = json.dumps({"jobs": [_live_job()], "hasMore": has_more})
     monkeypatch.setattr(
         "scripts.trust.cron_drift_detector.subprocess.run",
         lambda *a, **k: _mock_completed(0, payload),
     )
 
-    assert enumerate_live_crons() == [_live_job()]
+    with pytest.raises(CronEnumerationError, match="hasMore"):
+        enumerate_live_crons()
 
 
 def test_enumerate_live_crons_error_strings_name_all_flag(
@@ -677,19 +696,30 @@ def test_duplicate_primary_selection_is_order_independent() -> None:
     assert {f.primary_cron_id for f in expected} == {"a"}
 
 
-def test_duplicate_primary_prefers_running_copy() -> None:
-    """A3: the enabled copy is primary even if a disabled copy is older, so a
-    disabled stray does not mask a healthy approved cron as enabled_mismatch."""
-    live = [_dup("old-disabled", 1000, enabled=False), _dup("new-running", 2000)]
+def test_duplicate_primary_is_oldest_regardless_of_enabled_state() -> None:
+    """Primary selection uses only the immutable (createdAtMs, id) key, so a
+    copy's enabled state never moves the primary (pre-merge review, Codex #2):
+    the older disabled copy stays primary and is evaluated (enabled_mismatch);
+    the newer copy is the duplicate. Enabled state is reported, not chosen on."""
+    live = [_dup("new-running", 2000), _dup("old-disabled", 1000, enabled=False)]
 
     findings = detect_cron_drift(live, [BASELINE_ENTRY])
 
-    assert [(f.kind, f.cron_id) for f in findings] == [
-        (KIND_DUPLICATE_PRESENT, "old-disabled")
+    assert sorted((f.kind, f.cron_id) for f in findings) == [
+        (KIND_DUPLICATE_PRESENT, "new-running"),
+        (KIND_ENABLED_MISMATCH, "old-disabled"),
     ]
-    assert findings[0].primary_cron_id == "new-running"
-    assert findings[0].enabled_state == "false"
-    assert findings[0].primary_enabled_state == "true"
+    dup = next(f for f in findings if f.kind == KIND_DUPLICATE_PRESENT)
+    assert dup.primary_cron_id == "old-disabled"
+    assert dup.enabled_state == "true"
+    assert dup.primary_enabled_state == "false"
+
+
+def test_extra_copy_sharing_primary_id_is_not_reported_as_duplicate() -> None:
+    """seen_copy_ids is seeded with the primary's id, so a copy with the same
+    id never reads "extra copy is a; primary copy is a"."""
+    assert detect_cron_drift([_dup("a", 1000), _dup("a", 2000)], [BASELINE_ENTRY]) == []
+    assert detect_cron_drift([_dup(None, 1000), _dup(None, 2000)], [BASELINE_ENTRY]) == []
 
 
 def test_duplicate_null_agent_plugin_crons() -> None:

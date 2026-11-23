@@ -16,8 +16,10 @@ from pathlib import Path
 import pytest
 
 from scripts.trust import state as state_mod
+from scripts.trust.alert_render import render_drift_resolved
 from scripts.trust.assertion_verifier import AssertionFinding
-from scripts.trust.cron_drift_detector import CronDriftFinding
+from scripts.trust.cron_baseline import ApprovedCron
+from scripts.trust.cron_drift_detector import CronDriftFinding, detect_cron_drift
 from scripts.trust.unit_drift_detector import UnitDriftFinding
 
 T0 = datetime(2026, 7, 10, 12, 0, 0, tzinfo=timezone.utc)
@@ -604,7 +606,18 @@ def test_fingerprint_v2_lone_surrogate_does_not_raise():
 def test_canonical_helper_documents_and_keeps_legacy_encoding():
     assert state_mod._canonical(("cron", "k", "n", "a", "h")) == "cron|k|n|a|h"
     assert state_mod._canonical(("cron", "k", "n|x", "a", "h")).startswith("v2:[")
-    assert "inject" in (state_mod._canonical.__doc__ or "").lower()
+
+
+def test_fingerprint_unencodable_pipe_free_part_routes_to_v2():
+    """A lone surrogate with no pipe cannot be UTF-8 encoded on the legacy
+    path; it must route to v2 (ASCII-escaped) instead of raising."""
+    finding = CronDriftFinding(kind="unapproved_present", name="a\ud800", agent_id="y")
+    expected_canonical = "v2:" + json.dumps(
+        ["cron", "unapproved_present", "a\ud800", "y", BASELINE_HASH_A]
+    )
+    assert state_mod.fingerprint_finding(finding, BASELINE_HASH_A) == hashlib.sha256(
+        expected_canonical.encode("utf-8")
+    ).hexdigest()
 
 
 # --- #1126: duplicate_present identity is 5-field -----------------------------
@@ -664,3 +677,79 @@ def test_enabled_state_and_primary_fields_not_fingerprinted():
         primary_cron_id="p",
     )
     assert state_mod.fingerprint_finding(base, "h") == state_mod.fingerprint_finding(rich, "h")
+
+
+# --- #1126 duplicate lifecycle through reconcile (pre-merge review) ----------
+
+_INBOX_BASELINE = [
+    ApprovedCron(
+        name="inbox-5pm",
+        agent_id="felix-admin-capture",
+        schedule_expr="0 17 * * *",
+        tz="America/New_York",
+        purpose="p",
+        approved_by="kent",
+        approved_at="2026-07-10",
+    )
+]
+
+
+def _inbox_job(id_, created, enabled=True):
+    return {
+        "id": id_,
+        "name": "inbox-5pm",
+        "agentId": "felix-admin-capture",
+        "enabled": enabled,
+        "createdAtMs": created,
+        "schedule": {"kind": "cron", "expr": "0 17 * * *", "tz": "America/New_York"},
+    }
+
+
+def _tick(live, now, state):
+    findings = detect_cron_drift(live, _INBOX_BASELINE)
+    return findings, *state_mod.reconcile([(f, BASELINE_HASH_A) for f in findings], now, state)
+
+
+def test_two_tick_disabling_primary_does_not_churn_duplicate_identity():
+    """Tick 1: approved copies A (older) and B, both enabled. Tick 2: A is
+    disabled. B's duplicate_present fingerprint must not change (no new
+    alert, no resolve); A gets enabled_mismatch."""
+    _, to_alert1, resolved1, state1 = _tick(
+        [_inbox_job("A", 1000), _inbox_job("B", 2000)], T0, {}
+    )
+    assert [(f.kind, f.cron_id) for f in to_alert1] == [("duplicate_present", "B")]
+    assert resolved1 == []
+    (dup_fp,) = state1
+
+    findings2, to_alert2, resolved2, state2 = _tick(
+        [_inbox_job("A", 1000, enabled=False), _inbox_job("B", 2000)],
+        T0 + timedelta(minutes=15),
+        state1,
+    )
+
+    dup2 = [f for f in findings2 if f.kind == "duplicate_present"]
+    assert [(f.cron_id, f.primary_cron_id) for f in dup2] == [("B", "A")]
+    assert state_mod.fingerprint_finding(dup2[0], BASELINE_HASH_A) == dup_fp
+    assert resolved2 == []
+    assert [(f.kind, f.cron_id) for f in to_alert2] == [("enabled_mismatch", "A")]
+    assert dup_fp in state2
+    assert state2[dup_fp]["first_seen"] == state1[dup_fp]["first_seen"]
+
+
+def test_duplicate_lifecycle_removed_copy_resolves_with_named_copy():
+    _, _, _, state1 = _tick([_inbox_job("A", 1000), _inbox_job("B", 2000)], T0, {})
+
+    _, to_alert2, resolved2, state2 = _tick(
+        [_inbox_job("A", 1000)], T0 + timedelta(minutes=15), state1
+    )
+
+    assert to_alert2 == []
+    assert state2 == {}
+    (event,) = resolved2
+    assert event.name == "inbox-5pm (duplicate B)"
+    assert event.source == "cron"
+    alert = render_drift_resolved(
+        event.name, event.first_seen, event.cleared_at, source=event.source
+    )
+    assert alert.title.startswith("Cron drift cleared:")
+    assert alert.title == "Cron drift cleared: inbox-5pm (duplicate B)"
