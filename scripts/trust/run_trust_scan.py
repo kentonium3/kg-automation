@@ -26,6 +26,13 @@ contract C2) — two run modes:
 an exception in one (e.g. the OpenClaw CLI hiccups) is caught into
 ``errors[]`` and does **not** abort the other sub-scan. The overall tick
 never raises.
+
+**Failed sub-scans never resolve** (#1129): each sub-scan (cron, unit-drift,
+assertion) is marked *completed* only when it ran to the end without raising.
+Reconcile resolves an absent finding only if its source completed; a failed
+source's outstanding findings are carried forward unchanged, counted in the
+summary's ``carried_forward``, and flagged to the canary via last-tick.json
+(``findings_held`` → ``exit_status: failure``).
 """
 
 from __future__ import annotations
@@ -178,6 +185,8 @@ def _write_last_tick(
     scan_inability: bool,
     error_count: int,
     alert_path_fault: bool = False,
+    findings_held: bool = False,
+    carried_forward: int = 0,
 ) -> None:
     """Atomically write the per-tick freshness signal the canary reads (#721).
 
@@ -185,9 +194,11 @@ def _write_last_tick(
     cron baseline is unreadable — a sub-scan could not run at all) **or an
     alert-path fault** (#1124: a finding could not be fingerprinted, reconcile
     raised, an emit raised, or the state save failed — findings may not have
-    reached Kent on cadence). Transient finding-side faults (an indeterminate
-    Vikunja re-verify) leave it ``success`` so the canary is not paged on
-    recoverable hiccups. ``error_count``
+    reached Kent on cadence) **or held findings** (#1129: a sub-scan did not
+    complete, so ``carried_forward`` of its outstanding findings could be
+    neither confirmed nor resolved this tick). Transient finding-side faults
+    (an indeterminate Vikunja re-verify) leave it ``success`` so the canary is
+    not paged on recoverable hiccups. ``error_count``
     is informational and deliberately NOT named ``errors``/``error`` so it never
     trips the probe's explicit-error detection. Best-effort: a write failure must
     not crash the tick (fail-safe, NFR-001).
@@ -197,9 +208,13 @@ def _write_last_tick(
 
     payload = {
         "completed_at_utc": now.strftime("%Y-%m-%dT%H:%M:%SZ"),
-        "exit_status": "failure" if (scan_inability or alert_path_fault) else "success",
+        "exit_status": (
+            "failure" if (scan_inability or alert_path_fault or findings_held) else "success"
+        ),
         "scan_inability": scan_inability,
         "alert_path_fault": alert_path_fault,
+        "findings_held": findings_held,
+        "carried_forward": carried_forward,
         "error_count": error_count,
     }
     try:
@@ -359,14 +374,22 @@ def run_scan(
     """Run one scan tick: both sub-scans, cadence reconciliation, and emission.
 
     Returns the summary dict (``ok``, ``drift_findings``, ``assertion_findings``,
-    ``alerts_emitted``, ``errors``). Never raises — every sub-scan and the
-    state I/O are individually guarded (NFR-001). ``dry_run`` computes and
+    ``unit_drift_findings``, ``unit_coverage``, ``alerts_emitted``,
+    ``carried_forward``, ``findings_held``, ``errors``). Never raises — every
+    sub-scan and the state I/O are individually guarded (NFR-001). ``dry_run`` computes and
     returns findings but performs **no emission** and **no state/watermark
     mutation**.
     """
     tick_now = now if now is not None else _utc_now()
     errors: list[str] = []
     scan_inability = False  # True only when a sub-scan could not run at all.
+    # Sources whose sub-scan ran to the end this tick (#1129). Each add is the
+    # LAST statement of its sub-scan's try body — never in an except branch,
+    # never in the unit-dir-absent skip — so only a completed source may
+    # resolve its findings. Invariant: scan_inability => some source is not
+    # completed (the converse does not hold: an assertion failure or the
+    # unit-dir skip leaves a source incomplete without scan_inability).
+    completed: set[str] = set()
 
     # ---- Cron-drift sub-scan (WP02) -----------------------------------
     cron_findings: list[CronDriftFinding] = []
@@ -376,6 +399,7 @@ def run_scan(
         current_baseline_hash = baseline_hash(baseline)
         live_jobs = enumerate_live_crons()
         cron_findings = detect_cron_drift(live_jobs, baseline)
+        completed.add(state_mod.SOURCE_CRON)
     except BaselineError as exc:
         errors.append(f"cron_scan:BaselineError:{exc}")
         scan_inability = True
@@ -400,7 +424,8 @@ def run_scan(
         # The deployed-unit dir is office2-specific (claude's ~/.config/systemd/
         # user). Its absence means this environment (CI/dev) has nothing to check
         # — a transparent skip, not a fault. On office2 the dir always exists, so
-        # this never silently hides real drift there.
+        # this never silently hides real drift there. Nothing was checked, so
+        # the unit-drift source is NOT completed: nothing of it may resolve.
         unit_coverage = {"skipped": f"deployed unit dir not present ({resolved_deployed_dir})"}
     else:
         try:
@@ -415,6 +440,7 @@ def run_scan(
                 "deployed_no_repo_source": coverage.deployed_no_repo_source,
                 "repo_only": len(coverage.repo_only),
             }
+            completed.add(state_mod.SOURCE_UNIT)
         except UnitEnumerationError as exc:
             errors.append(f"unit_scan:UnitEnumerationError:{exc}")
             scan_inability = True
@@ -442,9 +468,14 @@ def run_scan(
     #       re-verified against Vikunja every scan, independent of the watermark,
     #       so a still-missing artifact keeps producing its finding (persisting
     #       the 24h re-alert) and only clears when the artifact reappears (F2).
+    #
+    # (a) and (b) are guarded separately (#1129 B2): a fault in the new-
+    # assertion pass must not skip the re-verify of outstanding findings. The
+    # assertion source is completed only if BOTH ran to the end.
     assertion_findings: list[AssertionFinding] = []
     watermark: dict[str, int] = {}
     committed_watermark: dict[str, int] = {}
+    new_pass_completed = False
     try:
         base_dir = assertions_base_dir if assertions_base_dir is not None else assertions_dir()
         watermark = _load_watermark(Path(watermark_path))
@@ -475,7 +506,16 @@ def run_scan(
         for key, size in fully_advanced.items():
             if key not in indeterminate_files:
                 committed_watermark[key] = size
+        new_pass_completed = True
+    except Exception as exc:  # noqa: BLE001 - fail-safe isolation (NFR-001)
+        errors.append(f"assertion_scan:{exc.__class__.__name__}:{exc}")
+        # An assertion-scan fault does NOT count as scan_inability on its
+        # own for the "drift is never non-zero" contract — but it does
+        # mean the assertion side found nothing new this tick. Hold the
+        # watermark at its loaded value so nothing is silently consumed.
+        committed_watermark = watermark
 
+    try:
         # (b) Re-verify outstanding artifact_missing assertions from state.
         # A still-missing one re-emits its finding (persists 24h cadence); a
         # reappeared one is simply absent from current_findings this tick, so
@@ -492,13 +532,15 @@ def run_scan(
                 errors.append(
                     f"assertion_reverify:indeterminate:vikunja_task:{outstanding.artifact_id}"
                 )
-            # present is True -> omit from current_findings -> reconcile resolves it.
+            # present is True -> omit from current_findings -> reconcile resolves
+            # it (only if the assertion source completed this tick).
+        if new_pass_completed:
+            completed.add(state_mod.SOURCE_ASSERTION)
     except Exception as exc:  # noqa: BLE001 - fail-safe isolation (NFR-001)
-        errors.append(f"assertion_scan:{exc.__class__.__name__}:{exc}")
-        # An assertion-scan fault does NOT count as scan_inability on its
-        # own for the "drift is never non-zero" contract — but it does
-        # mean the assertion side found nothing this tick. Hold the watermark
-        # at its loaded value so nothing is silently consumed.
+        errors.append(f"assertion_reverify:{exc.__class__.__name__}:{exc}")
+        # Not scan_inability either (same contract as (a)). Outstanding
+        # findings not yet re-verified are carried forward by reconcile. The
+        # watermark is held, as it was before (a)/(b) were split.
         committed_watermark = watermark
 
     # ---- Seen-findings cadence reconciliation --------------------------
@@ -509,6 +551,9 @@ def run_scan(
     # sees it via last-tick.json (``exit_status: failure``).
     alerts_emitted = 0
     alert_path_fault = False
+    # State entries kept only because their source did not complete (#1129).
+    # 0 whenever reconcile did not run (dry-run, or the #1124 fallback).
+    carried_forward = 0
     if not dry_run:
         all_findings: list[Any] = [*cron_findings, *assertion_findings, *unit_findings]
 
@@ -555,9 +600,16 @@ def run_scan(
         new_state: dict[str, dict[str, str]] = {}
         try:
             to_alert, resolved_events, new_state = state_mod.reconcile(
-                findings_with_hash, tick_now, current_state
+                findings_with_hash,
+                tick_now,
+                current_state,
+                completed_sources=frozenset(completed),
             )
             reconciled = True
+            # Read from reconcile's output, never re-derived (#1129 B3): every
+            # new_state key is a current finding or a carried entry (keep_due
+            # below adds no keys).
+            carried_forward = len(set(new_state) - set(fingerprints.values()))
         except Exception as exc:  # noqa: BLE001 - fail-closed fallback (#1124)
             errors.append(f"state_reconcile:{exc.__class__.__name__}:{exc}")
             alert_path_fault = True
@@ -643,6 +695,7 @@ def run_scan(
         pass
 
     ok = not errors
+    findings_held = carried_forward > 0
     summary = {
         "ok": ok,
         "drift_findings": len(cron_findings),
@@ -650,6 +703,8 @@ def run_scan(
         "unit_drift_findings": len(unit_findings),
         "unit_coverage": unit_coverage,
         "alerts_emitted": alerts_emitted,
+        "carried_forward": carried_forward,
+        "findings_held": findings_held,
         "errors": errors,
     }
 
@@ -663,6 +718,8 @@ def run_scan(
             now=tick_now,
             scan_inability=scan_inability,
             alert_path_fault=alert_path_fault,
+            findings_held=findings_held,
+            carried_forward=carried_forward,
             error_count=len(errors),
         )
 

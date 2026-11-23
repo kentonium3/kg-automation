@@ -16,13 +16,21 @@ from __future__ import annotations
 import json
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import patch
 
 import pytest
 
 from scripts.trust import run_trust_scan as rts
-from scripts.trust.cron_baseline import ApprovedCron
-from scripts.trust.cron_drift_detector import CronEnumerationError
+from scripts.trust import state as state_mod
+from scripts.trust.assertion_verifier import AssertionFinding
+from scripts.trust.cron_baseline import ApprovedCron, BaselineError, baseline_hash
+from scripts.trust.cron_drift_detector import CronDriftFinding, CronEnumerationError
+from scripts.trust.unit_drift_detector import (
+    UnitCoverage,
+    UnitDriftFinding,
+    UnitEnumerationError,
+)
 
 T0 = datetime(2026, 7, 10, 12, 0, 0, tzinfo=timezone.utc)
 
@@ -1577,18 +1585,6 @@ def test_e2e_duplicate_and_malformed_enabled_through_fake_cron_list_all(
 # drift, the Vikunja artifact reappeared). A source that completes therefore
 # resolves its entry; a source that did not complete must carry it forward.
 
-from types import SimpleNamespace  # noqa: E402
-
-from scripts.trust import state as state_mod  # noqa: E402
-from scripts.trust.assertion_verifier import AssertionFinding  # noqa: E402
-from scripts.trust.cron_baseline import BaselineError, baseline_hash  # noqa: E402
-from scripts.trust.cron_drift_detector import CronDriftFinding  # noqa: E402
-from scripts.trust.unit_drift_detector import (  # noqa: E402
-    UnitCoverage,
-    UnitDriftFinding,
-    UnitEnumerationError,
-)
-
 _SEEN_AT = (T0 - timedelta(hours=1)).isoformat()  # seen + alerted, not yet due
 
 _CLEARED_TITLE = {
@@ -1722,7 +1718,6 @@ def _assert_only_source_carried(run, carried_source: str) -> None:
     assert set(run.saved) == {carried_fp}
     assert run.summary["carried_forward"] == 1
     assert run.summary["findings_held"] is True
-    assert run.summary["ok"] is False
     # B1: held findings are visible to the canary.
     assert run.last_tick["exit_status"] == "failure"
     assert run.last_tick["findings_held"] is True
@@ -1779,6 +1774,9 @@ def test_failed_subscan_carries_its_findings_forward(
     run = _carry_scan(tmp_path, overrides=overrides, unit_dir_present=unit_dir_present)
 
     _assert_only_source_carried(run, carried_source)
+    # `ok` still means "no errors": the unit-dir skip records none, so only the
+    # held finding (via last-tick exit_status) makes that tick visible.
+    assert run.summary["ok"] is (not unit_dir_present)
     # scan_inability (and so the preflight exit-2 contract) is unchanged: an
     # assertion failure or an absent unit dir still does not gate preflight.
     assert run.summary["_scan_inability"] is scan_inability
@@ -1819,6 +1817,7 @@ def test_assertion_new_pass_raise_carries_a_reappeared_artifact(tmp_path):
     )
 
     assert run.mocks["verify_vikunja_id_present"].call_count == 1
+    assert run.summary["ok"] is False
     _assert_only_source_carried(run, "assertion")
 
 
