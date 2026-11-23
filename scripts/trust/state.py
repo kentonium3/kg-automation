@@ -37,7 +37,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from scripts.trust.assertion_verifier import AssertionFinding
-from scripts.trust.cron_drift_detector import CronDriftFinding
+from scripts.trust.cron_drift_detector import KIND_DUPLICATE_PRESENT, CronDriftFinding
 from scripts.trust.unit_drift_detector import UnitDriftFinding
 
 __all__ = [
@@ -101,9 +101,23 @@ def _parse_iso(value: str) -> datetime:
 # fingerprint is byte-identical (no spurious re-alert of persisted findings).
 _NO_AGENT_SENTINEL = "\x00none"
 
+# Identity encoding for an id-less ``duplicate_present`` copy (#1126). NUL-
+# prefixed, so no real OpenClaw cron id can equal it. Deliberately NO ordinal:
+# an ordinal shifts when a sibling copy is removed, which would churn alerts;
+# id-less copies of one key therefore collapse to one identity (a degraded
+# shape OpenClaw does not emit).
+_NO_CRON_ID_SENTINEL = "\x00noid"
+
 
 def _cron_identity(finding: CronDriftFinding) -> tuple[str, ...]:
+    """4-field ``(source, kind, name, agent)`` identity; 5 fields only for
+    ``duplicate_present``, which adds the copy's cron id so each extra copy is
+    tracked and resolves independently (#1126). Every other kind ignores
+    ``cron_id`` (pinned by tests/trust/test_fingerprint_goldens.py)."""
     agent = _NO_AGENT_SENTINEL if finding.agent_id is None else finding.agent_id
+    if finding.kind == KIND_DUPLICATE_PRESENT:
+        cron_id = _NO_CRON_ID_SENTINEL if finding.cron_id is None else finding.cron_id
+        return ("cron", finding.kind, finding.name, agent, cron_id)
     return ("cron", finding.kind, finding.name, agent)
 
 
@@ -123,7 +137,12 @@ def _unit_identity(finding: UnitDriftFinding) -> tuple[str, ...]:
 
 def _finding_name(finding: CronDriftFinding | AssertionFinding | UnitDriftFinding) -> str:
     """Human-readable name for the finding, used in drift_resolved rendering."""
-    if isinstance(finding, (CronDriftFinding, UnitDriftFinding)):
+    if isinstance(finding, CronDriftFinding):
+        if finding.kind == KIND_DUPLICATE_PRESENT:
+            # Display only (drift_resolved copy), not fingerprinted.
+            return f"{finding.name} (duplicate {finding.cron_id or 'no-id'})"
+        return finding.name
+    if isinstance(finding, UnitDriftFinding):
         return finding.name
     return f"{finding.artifact_kind}:{finding.artifact_id}"
 
@@ -155,6 +174,36 @@ def _assertion_identity_fields(finding: AssertionFinding) -> dict[str, str]:
     }
 
 
+_FIELD_SEPARATOR = "|"
+_V2_PREFIX = "v2:"
+
+
+def _canonical(parts: tuple[str, ...]) -> str:
+    """Encode a fingerprint's ``(*identity, baseline_hash)`` parts injectively (#1128).
+
+    - **Legacy** (no part contains ``|``): ``"|".join(parts)``, byte-identical
+      to every fingerprint written before #1128, so persisted seen-state is
+      not orphaned.
+    - **v2** (any part contains ``|``): ``"v2:" + json.dumps(list(parts))``.
+
+    Injectivity invariant (distinct part tuples never share a canonical):
+
+    - legacy vs legacy: no part contains ``|``, and the part count is fixed by
+      the first two parts (source tag + kind: cron 4, or 5 for
+      ``duplicate_present``; assertion 5; unit 3; plus ``baseline_hash``), so
+      splitting on ``|`` recovers the tuple uniquely;
+    - v2 vs v2: ``json.dumps`` of a list of str is injective;
+    - legacy vs v2: a legacy canonical starts with a source tag (``cron|``,
+      ``assertion|``, ``unit|``), a code constant that is never ``v2:[``.
+
+    ``ensure_ascii=True`` (the default) escapes non-ASCII, so a lone surrogate
+    cannot raise ``UnicodeEncodeError`` when the canonical is UTF-8 encoded.
+    """
+    if not any(_FIELD_SEPARATOR in part for part in parts):
+        return _FIELD_SEPARATOR.join(parts)
+    return _V2_PREFIX + json.dumps(list(parts))
+
+
 def fingerprint_finding(
     finding: CronDriftFinding | AssertionFinding | UnitDriftFinding, baseline_hash: str
 ) -> str:
@@ -170,6 +219,7 @@ def fingerprint_finding(
     A cron finding with ``agent_id is None`` (plugin-managed, #1124) encodes
     its agent as a NUL-prefixed sentinel that no real agent id can equal; a
     str agent_id is encoded as itself, so existing fingerprints are unchanged.
+    The parts are encoded by :func:`_canonical` (injective, #1128).
     """
     if isinstance(finding, CronDriftFinding):
         identity = _cron_identity(finding)
@@ -180,7 +230,7 @@ def fingerprint_finding(
     else:
         raise TypeError(f"fingerprint_finding: unsupported finding type {type(finding)!r}")
 
-    canonical = "|".join((*identity, baseline_hash))
+    canonical = _canonical((*identity, baseline_hash))
     return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
 

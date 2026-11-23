@@ -16,6 +16,8 @@ reproduced exactly here:
 | ``approved_missing``  | warn     | ``Approved cron missing: <name>``               |
 | ``schedule_mismatch`` | warn     | ``Approved cron schedule changed: <name>``      |
 | ``enabled_mismatch``  | warn     | ``Approved cron disabled: <name>``              |
+|   (absent/malformed)  | warn     | ``Approved cron not confirmed enabled: <name>`` |
+| ``duplicate_present`` | error    | ``Duplicate cron detected: <name>``             |
 | ``artifact_missing``  | error    | ``Completion claim not grounded: <artifact_kind>``|
 | ``unverifiable_kind`` | warn     | ``Completion claim unverifiable: <artifact_kind>``|
 | ``drift_resolved``    | info     | ``Cron drift cleared: <name>``                  |
@@ -35,7 +37,12 @@ from typing import Any
 from scripts.common.alert_bus import emit
 from scripts.common.alert_bus.model import Alert, AlertResult, Severity
 from scripts.trust.assertion_verifier import AssertionFinding
-from scripts.trust.cron_drift_detector import CronDriftFinding
+from scripts.trust.cron_drift_detector import (
+    ENABLED_ABSENT,
+    ENABLED_MALFORMED,
+    KIND_ENABLED_MISMATCH,
+    CronDriftFinding,
+)
 from scripts.trust.unit_drift_detector import UnitDriftFinding
 
 __all__ = [
@@ -63,6 +70,9 @@ _CRON_SEVERITY: dict[str, Severity] = {
     "approved_missing": Severity.WARN,
     "schedule_mismatch": Severity.WARN,
     "enabled_mismatch": Severity.WARN,
+    # A second copy of a cron is the hijack / standing-infra class
+    # unapproved_present exists for; the scan does not compare payloads (#1126).
+    "duplicate_present": Severity.ERROR,
 }
 
 _CRON_TITLE: dict[str, str] = {
@@ -70,6 +80,7 @@ _CRON_TITLE: dict[str, str] = {
     "approved_missing": "Approved cron missing: {name}",
     "schedule_mismatch": "Approved cron schedule changed: {name}",
     "enabled_mismatch": "Approved cron disabled: {name}",
+    "duplicate_present": "Duplicate cron detected: {name}",
 }
 
 _CRON_DESCRIPTION: dict[str, str] = {
@@ -90,7 +101,27 @@ _CRON_DESCRIPTION: dict[str, str] = {
         "The approved cron {name!r} (agent {agent}) is unexpectedly "
         "disabled."
     ),
+    "duplicate_present": (
+        "More than one live OpenClaw cron is named {name!r} (agent {agent}). "
+        "This extra copy is {cron_id} (enabled={enabled}); the primary copy is "
+        "{primary_cron_id} (enabled={primary_enabled}). The scan does not "
+        "compare payloads, so an extra copy may run different instructions."
+    ),
 }
+
+# enabled_mismatch whose state is absent/malformed rather than a literal
+# false (#1127): the job is not known to be disabled, it simply has no
+# confirmed enabled state. A genuine false keeps the map copy above.
+_ENABLED_UNCONFIRMED_STATES = frozenset({ENABLED_ABSENT, ENABLED_MALFORMED})
+_ENABLED_UNCONFIRMED_TITLE = "Approved cron not confirmed enabled: {name}"
+_ENABLED_UNCONFIRMED_DESCRIPTION = (
+    "The approved cron {name!r} (agent {agent}) has no confirmed enabled "
+    "state (enabled={enabled})."
+)
+
+# How a missing cron id / enabled state reads in duplicate_present copy.
+_NO_CRON_ID_DISPLAY = "<no id>"
+_UNKNOWN_ENABLED_DISPLAY = "unknown"
 
 # How a cron with no owning agent (agent_id None — OpenClaw plugin-managed,
 # #1124) is shown in alert copy and in the ``agent_id`` detail. The
@@ -149,11 +180,26 @@ def _stringify_details(details: dict[str, Any]) -> dict[str, str]:
     return {key: str(value) for key, value in details.items() if value is not None}
 
 
+def _enabled_display(state: str | None, raw: str | None) -> str:
+    """``absent`` / ``malformed:<raw repr>`` / ``true`` / ``false`` for alert copy.
+
+    The result is only ever passed as a ``format`` *field value*, never
+    spliced into a template, so a brace in a raw repr cannot raise (#1127).
+    """
+    if state is None:
+        return _UNKNOWN_ENABLED_DISPLAY
+    if state == ENABLED_MALFORMED and raw is not None:
+        return f"{state}:{raw}"
+    return state
+
+
 def render_cron_finding(finding: CronDriftFinding) -> Alert:
     """Render a :class:`CronDriftFinding` (WP02) into an :class:`Alert`.
 
     Raises ``ValueError`` (via ``Alert.__post_init__``) only if a required
     field would be empty — callers (i.e. :func:`emit_finding`) guard this.
+    Every finding-derived value reaches the copy only as a ``format`` field
+    value or a detail, never as part of a template.
     """
     kind = finding.kind
     severity = _CRON_SEVERITY.get(kind, Severity.WARN)
@@ -161,6 +207,9 @@ def render_cron_finding(finding: CronDriftFinding) -> Alert:
     description_template = _CRON_DESCRIPTION.get(
         kind, "Cron drift finding {kind!r} for {name!r} (agent {agent})."
     )
+    if kind == KIND_ENABLED_MISMATCH and finding.enabled_state in _ENABLED_UNCONFIRMED_STATES:
+        title_template = _ENABLED_UNCONFIRMED_TITLE
+        description_template = _ENABLED_UNCONFIRMED_DESCRIPTION
 
     # A plugin-managed cron has no owning agent (agent_id None, #1124): render
     # that explicitly rather than a literal "None". A str agent keeps its
@@ -176,10 +225,20 @@ def render_cron_finding(finding: CronDriftFinding) -> Alert:
         "kind": kind,
         "name": finding.name,
         "agent": agent_display,
+        "enabled": _enabled_display(finding.enabled_state, finding.enabled_raw),
+        "cron_id": finding.cron_id if finding.cron_id is not None else _NO_CRON_ID_DISPLAY,
+        "primary_cron_id": (
+            finding.primary_cron_id
+            if finding.primary_cron_id is not None
+            else _NO_CRON_ID_DISPLAY
+        ),
+        "primary_enabled": _enabled_display(finding.primary_enabled_state, None),
     }
     title = title_template.format(**format_fields)
     description = description_template.format(**format_fields)
 
+    # New keys are added explicitly; _stringify_details drops None values, so
+    # a finding without them renders exactly as before (#1126/#1127).
     details = _stringify_details(
         {
             "agent_id": agent_detail,
@@ -188,7 +247,11 @@ def render_cron_finding(finding: CronDriftFinding) -> Alert:
             "schedule": finding.schedule_expr,
             "expected_schedule": finding.expected_schedule_expr,
             "enabled": finding.enabled,
+            "enabled_state": finding.enabled_state,
+            "enabled_raw": finding.enabled_raw,
             "created_at": finding.created_at_ms,
+            "primary_cron_id": finding.primary_cron_id,
+            "primary_enabled_state": finding.primary_enabled_state,
         }
     )
 
