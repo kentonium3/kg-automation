@@ -1,7 +1,7 @@
 {
-  "event_count": 20,
-  "last_event_id": "01M85BWAYM6BZNA33DFBAPWFPB",
-  "materialized_at": "2026-11-23T23:29:24.820340+00:00",
+  "event_count": 22,
+  "last_event_id": "01M85CA7ND912G09MTED5T9663",
+  "materialized_at": "2026-11-23T23:37:00.333889+00:00",
   "mission_number": "",
   "mission_slug": "crash-loop-unit-alerting-01M858E8",
   "mission_type": "software-dev",
@@ -13,8 +13,8 @@
     "claimed": 0,
     "done": 0,
     "for_review": 0,
-    "in_progress": 2,
-    "in_review": 0,
+    "in_progress": 1,
+    "in_review": 1,
     "planned": 3
   },
   "work_packages": {
@@ -70,20 +70,30 @@
       "shell_pid_created_at": "1795476549.08"
     },
     "WP03": {
-      "actor": "claude",
-      "agent": "claude",
+      "actor": "codex",
+      "agent": "codex",
       "agent_profile": "__resolved_profile_absent__",
       "agent_profile_version": "__resolved_profile_version_absent__",
       "force_count": 0,
       "implementer_of_record": "claude",
-      "lane": "in_progress",
-      "last_event_id": "01M85BWAYM6BZNA33DFBAPWFPB",
-      "last_transition_at": "2026-11-23T23:29:24.820340+00:00",
+      "lane": "in_review",
+      "last_event_id": "01M85CA7ND912G09MTED5T9663",
+      "last_transition_at": "2026-11-23T23:37:00.333889+00:00",
       "model": "__resolved_model_absent__",
+      "notes": [
+        "Ready for review"
+      ],
       "provider": "__resolved_provider_absent__",
-      "role": "implementer",
-      "shell_pid": 2636045,
-      "shell_pid_created_at": "1795476549.08"
+      "role": "reviewer",
+      "shell_pid": 2656176,
+      "shell_pid_created_at": "1795477016.43",
+      "subtasks": {
+        "T011": "done",
+        "T012": "done",
+        "T013": "done",
+        "T014": "done",
+        "T015": "done"
+      }
     },
     "WP04": {
       "actor": "finalize-tasks",
