@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "kg-automation/crash-loop-config.schema.json",
+  "title": "felix-canary crash-loop configuration (scripts/canary/crash_loop_config.json)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["threshold", "window_seconds", "slack_seconds", "quiet_ticks_to_clear", "ignore"],
+  "properties": {
+    "threshold": {"type": "integer", "minimum": 2, "description": "Restart increase within the window that counts as a crash loop (FR-004). Default 3."},
+    "window_seconds": {"type": "integer", "minimum": 60, "description": "Threshold window. Must exceed slack_seconds. Default 900 (one canary tick)."},
+    "slack_seconds": {"type": "integer", "minimum": 0, "description": "Tolerance for tick jitter when choosing the baseline observation (research R-05). Default 120."},
+    "quiet_ticks_to_clear": {"type": "integer", "minimum": 1, "description": "K: consecutive no-rise ticks before a cleared entry (FR-008). Default 2."},
+    "ignore": {
+      "type": "array",
+      "description": "Units/containers that never raise a crash-loop alert (FR-002). Exact match on UnitKey.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["unit", "reason"],
+        "properties": {
+          "unit": {"type": "string", "pattern": "^(system|user|container):.+$"},
+          "reason": {"type": "string", "minLength": 1}
+        }
+      }
+    }
+  }
+}
