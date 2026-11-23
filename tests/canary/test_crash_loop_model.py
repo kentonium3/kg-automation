@@ -193,6 +193,25 @@ def test_each_rule_violation_raises_naming_the_field(
         load_config(_write(tmp_path, document))
 
 
+def test_invalid_utf8_raises_config_error(tmp_path: Path) -> None:
+    path = tmp_path / "crash_loop_config.json"
+    path.write_bytes(b'{"threshold": "\xff\xfe"}')
+    with pytest.raises(CrashLoopConfigError, match="unreadable"):
+        load_config(path)
+
+
+@pytest.mark.parametrize(
+    "content",
+    ['{"threshold": ' + "9" * 5000 + "}", "[" * 100_000 + "]" * 100_000],
+    ids=["huge-integer", "deep-nesting"],
+)
+def test_decoder_failures_raise_config_error(tmp_path: Path, content: str) -> None:
+    path = tmp_path / "crash_loop_config.json"
+    path.write_text(content, encoding="utf-8")
+    with pytest.raises(CrashLoopConfigError, match="not valid JSON"):
+        load_config(path)
+
+
 def test_invalid_json_raises(tmp_path: Path) -> None:
     path = tmp_path / "crash_loop_config.json"
     path.write_text("{not json", encoding="utf-8")

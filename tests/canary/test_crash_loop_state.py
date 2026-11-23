@@ -194,6 +194,27 @@ def test_bad_document_loads_empty_with_one_diagnostic(
     assert len(diagnostics) == 1
 
 
+@pytest.mark.parametrize(
+    "content",
+    [
+        b'{"schema_version": 1, "units": {}, "boot_id": "' + b"\xff\xfe" + b'"}',
+        b'{"schema_version": 1, "boot_id": null, "units": {}, "n": '
+        + b"9" * 5000
+        + b"}",
+        b"[" * 100_000 + b"]" * 100_000,
+    ],
+    ids=["invalid-utf8", "huge-integer", "deep-nesting"],
+)
+def test_decoder_failures_load_empty_with_one_diagnostic(
+    tmp_path: Path, content: bytes
+) -> None:
+    path = tmp_path / "crash-loop.json"
+    path.write_bytes(content)
+    loaded, diagnostics = load_state(path, now=NOW)
+    assert loaded == CrashLoopState.empty()
+    assert len(diagnostics) == 1
+
+
 def test_unreadable_file_loads_empty_with_one_diagnostic(tmp_path: Path) -> None:
     path = tmp_path / "crash-loop.json"
     path.mkdir()  # reading a directory raises an OSError
@@ -399,6 +420,47 @@ def test_future_top_level_updated_at_resets_with_diagnostic(tmp_path: Path) -> N
 # --------------------------------------------------------------------------- #
 # Atomic write.
 # --------------------------------------------------------------------------- #
+def test_fsync_precedes_replace(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    path = tmp_path / "crash-loop.json"
+    calls: list[str] = []
+    real_fsync, real_replace = os.fsync, os.replace
+
+    def fsync(fd: int) -> None:
+        calls.append("fsync")
+        real_fsync(fd)
+
+    def replace(src: Any, dst: Any) -> None:
+        calls.append("replace")
+        real_replace(src, dst)
+
+    monkeypatch.setattr(os, "fsync", fsync)
+    monkeypatch.setattr(os, "replace", replace)
+    save_state(_sample_state(), path, now=NOW)
+    assert calls == ["fsync", "replace"]
+
+
+def test_failed_fsync_propagates_and_leaves_original(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    path = tmp_path / "crash-loop.json"
+    save_state(_sample_state(), path, now=NOW)
+    before = path.read_bytes()
+    replaced: list[Any] = []
+
+    def boom(fd: int) -> None:
+        raise OSError("simulated fsync failure")
+
+    monkeypatch.setattr(os, "fsync", boom)
+    monkeypatch.setattr(os, "replace", lambda src, dst: replaced.append(src))
+    with pytest.raises(OSError, match="simulated fsync"):
+        save_state(CrashLoopState.empty(), path, now=NOW + timedelta(minutes=15))
+    assert replaced == []
+    assert path.read_bytes() == before
+    assert sorted(p.name for p in tmp_path.iterdir()) == ["crash-loop.json"]
+
+
 def test_failed_replace_leaves_original_and_no_temp_file(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

@@ -215,7 +215,9 @@ def load_state(
 
     try:
         document = json.loads(text)
-    except json.JSONDecodeError as exc:
+    except (ValueError, RecursionError) as exc:
+        # ValueError covers JSONDecodeError and the int digit limit;
+        # RecursionError covers excessive nesting. Both mean corrupt state.
         return CrashLoopState.empty(), [_diag(f"corrupt state file {target}: {exc}")]
     if not isinstance(document, dict):
         return CrashLoopState.empty(), [_diag("state document is not a JSON object")]

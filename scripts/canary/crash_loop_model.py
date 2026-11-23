@@ -293,11 +293,13 @@ def load_config(path: Path = DEFAULT_CONFIG_PATH) -> CrashLoopConfig:
     """
     try:
         text = Path(path).read_text(encoding="utf-8")
-    except OSError as exc:
+    except (OSError, UnicodeDecodeError) as exc:
         raise CrashLoopConfigError(f"config unreadable: {path}: {exc}") from exc
     try:
         document = json.loads(text)
-    except json.JSONDecodeError as exc:
+    except (ValueError, RecursionError) as exc:
+        # ValueError covers JSONDecodeError and the int digit limit;
+        # RecursionError covers excessive nesting.
         raise CrashLoopConfigError(f"config is not valid JSON: {path}: {exc}") from exc
     if not isinstance(document, dict):
         raise CrashLoopConfigError("config: top level must be a JSON object")
