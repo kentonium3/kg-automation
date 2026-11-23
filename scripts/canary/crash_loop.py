@@ -345,8 +345,18 @@ def _evaluate_unit(
             return result
         if holding is not None:
             if now - episode.last_alert_utc >= DEFAULT_WINDOW:
-                result.event = _event("reremind", obs, episode, holding)
-                episode.last_alert_utc = now
+                # INV-CL-4 ruling (WP02 review cycle 1): a re-remind needs fresh
+                # evidence, a baseline observed at or after the last page. An
+                # old burst's baseline can never re-page a slowly rising unit.
+                fresh, _ = prove(
+                    [b for b in prior.history if b[0] >= episode.last_alert_utc],
+                    current,
+                    now,
+                    config,
+                )
+                if fresh is not None:
+                    result.event = _event("reremind", obs, episode, fresh)
+                    episode.last_alert_utc = now
             episode.peak_delta = max(episode.peak_delta, holding.delta)
 
     # 7. History maintenance (dominance compaction, R-07).

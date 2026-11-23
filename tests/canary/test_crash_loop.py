@@ -279,6 +279,37 @@ def test_no_reremind_when_rise_unproven() -> None:
     assert kinds(outcome) == ["reremind"]
 
 
+def test_reremind_needs_fresh_evidence_not_the_original_burst() -> None:
+    # WP02 review cycle 1 (MAJOR), INV-CL-4 ruling: (0,0),(16,39) alerts, then
+    # +1 every 16 min. The minute-0 baseline still "proves" (minute 384:
+    # Δ = 62, m = 26, bound = 53), but it predates the last page, so it must
+    # never re-page — up to the 24 h retention limit.
+    sim = Sim()
+    sim.series([(0, 0), (16, 39)])
+    assert event_kinds(sim) == ["alert"]
+    last_tick = (16 + 24 * 60) // 16  # minute 1456: the baseline's 24 h limit
+    count = 39
+    for tick in range(2, last_tick + 1):
+        count += 1
+        outcome = sim.unit(16 * tick, count)
+        assert outcome.events == [], tick
+        episode = sim.state.units[OBSIDIAN].episode
+        assert episode is not None
+        assert episode.last_alert_utc == at(16), tick
+    # Minute 384 really had a stale holding proof (the case the fix closes).
+    stale, _ = prove([(at(0), 0)], 39 + 23, at(384), CFG)
+    assert stale is not None and stale.m == 26 and stale.bound == 53
+    # A fresh qualifying burst after the 6 h mark re-reminds, from fresh evidence.
+    outcome = sim.unit(16 * (last_tick + 1), count + 10)
+    assert kinds(outcome) == ["reremind"]
+    proof = outcome.events[0].proof
+    assert proof.holds
+    assert proof.baseline_at >= at(16)
+    assert proof.baseline_at == at(16 * last_tick)
+    episode = sim.state.units[OBSIDIAN].episode
+    assert episode is not None and episode.last_alert_utc == at(16 * (last_tick + 1))
+
+
 def test_new_episode_after_clear_alerts_again() -> None:
     sim = Sim()
     sim.series([(0, 0), (16, 20), (32, 20), (48, 20)])
@@ -657,6 +688,31 @@ def test_clock_not_advanced_skips_unit() -> None:
         assert outcome.events == [] and outcome.unverified == []
         assert outcome.counts["clock_skipped"] == 1
         assert sim.state.units[OBSIDIAN] == before
+
+
+@pytest.mark.parametrize("offset_minutes", [0, -6])
+def test_clock_check_precedes_boot_generation_and_reset(offset_minutes: int) -> None:
+    # WP02 review cycle 1 (MINOR), INV-CL-9: at an equal or backward timestamp,
+    # a changed boot ID, a changed container generation and a decreased counter
+    # all lose to the clock check.
+    key = "container:vikunja"
+    sim = Sim()
+    sim.unit(0, 0, key, generation="cid-1")
+    sim.unit(16, 39, key, generation="cid-1")
+    assert event_kinds(sim) == ["alert"]
+    before = copy.deepcopy(sim.state.units[key])
+    outcome = sim.unit(16 + offset_minutes, 2, key, generation="cid-2", boot=BOOT_B)
+    assert outcome.events == [] and outcome.unverified == []
+    assert sim.state.units[key] == before
+    assert outcome.counts == {
+        "watched": 1,
+        "ignored": 0,
+        "first_seen": 0,
+        "resets": 0,
+        "in_episode": 1,
+        "clock_skipped": 1,
+        "rebased_on_boot": 0,
+    }
 
 
 def test_counts_and_scope_status_cover_every_scope() -> None:
