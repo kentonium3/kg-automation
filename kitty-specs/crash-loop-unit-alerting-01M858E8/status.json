@@ -67,7 +67,14 @@
       "provider": "__resolved_provider_absent__",
       "role": "implementer",
       "shell_pid": 2636045,
-      "shell_pid_created_at": "1795476549.08"
+      "shell_pid_created_at": "1795476549.08",
+      "subtasks": {
+        "T006": "done",
+        "T007": "done",
+        "T008": "done",
+        "T009": "done",
+        "T010": "done"
+      }
     },
     "WP03": {
       "actor": "codex",
