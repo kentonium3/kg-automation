@@ -295,20 +295,34 @@ about its findings: "could not check" is not "verified false". So a source
 that did not complete never resolves its findings. They carry forward
 unchanged, with no "cleared" alert and no `last_seen` refresh, and the tick
 reports `exit_status: failure` with `carried_forward > 0`. A source counts as
-completed only when its whole sub-scan returned without raising:
+completed only when its whole sub-scan returned without raising. A raised
+exception is what stops a source from completing. An *indeterminate* result is
+not a raise: a Vikunja re-verify that cannot tell whether the artifact exists
+(`assertion_reverify:indeterminate:`) keeps that finding present, as before, and
+the assertion source still completes.
 
 | Source | Completed only when | Not completed when |
 |---|---|---|
 | cron | the baseline loaded, and `openclaw cron list` and drift detection both returned | `cron_scan:` error (`BaselineError`, `CronEnumerationError`, or a detector fault) |
 | unit-drift | the deployed-unit dir exists, and enumeration and detection both returned | `unit_scan:` error, **or** the deployed-unit dir is absent (CI/dev skip) |
-| assertion | both the new-assertion pass and the outstanding re-verify loop returned | `assertion_scan:` or `assertion_reverify:` error |
+| assertion | the baseline loaded, and both the new-assertion pass and the outstanding re-verify loop returned | `assertion_scan:` or `assertion_reverify:<Type>:` error, **or** the cron baseline did not load |
+
+**Assertion reconciliation requires a loaded baseline hash.** Assertion
+fingerprints are versioned by the cron baseline hash. When the baseline does not
+load (`cron_scan:BaselineError:`), no assertion finding is reconciled that tick:
+stored assertion entries carry under their stored fingerprints, and the
+assertion watermark is held, so that tick's new records are re-read and alerted
+on the next good tick. Without this, a still-missing assertion would re-verify
+under a new fingerprint, giving a false "now grounded" and a duplicate "not
+grounded".
 
 A finding that *is* reported this tick is still updated as usual, even when its
 source did not complete, because a partial result is real evidence of presence.
 The re-verify loop runs even when the new-assertion pass raised. Carried
-findings resolve on the first tick where their source completes. A source that
-keeps failing therefore sends no re-alerts for its old findings: the canary's
-`exit_status: failure` is the signal to look. `last-tick.json` records
+findings resolve on the first tick where their source completes. While a source
+keeps failing, an entry that is absent and carried unchanged gets no re-alerts:
+the canary's `exit_status: failure` is the signal to look. A finding that a
+partial pass does re-produce still follows its normal 24h cadence. `last-tick.json` records
 `findings_held` and `carried_forward` alongside `scan_inability` and
 `alert_path_fault`. Holding findings does **not** set `scan_inability`, so it
 never changes the preflight exit-2 contract: an assertion failure still does
