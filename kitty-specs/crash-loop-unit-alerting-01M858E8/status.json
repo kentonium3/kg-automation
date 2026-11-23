@@ -100,7 +100,8 @@
       "model": "__resolved_model_absent__",
       "notes": [
         "Ready for review",
-        "Review cycle 1 addressed"
+        "Review cycle 1 addressed",
+        "Review passed (cycle 2): Codex gpt-6.1-sol read-only; implementer Claude Opus 5.5. Tests (orchestrator): WP 151 passed, tests/canary 649 passed. Accepted residual MINOR: no direct test for _complete's parse-time deadline check (redundant second guard behind _run_checked/_guarded)."
       ],
       "provider": "__resolved_provider_absent__",
       "review": null,
