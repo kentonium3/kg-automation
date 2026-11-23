@@ -491,3 +491,72 @@ def test_reconcile_corrupt_last_alerted_timestamp_forces_realert():
         [(finding, BASELINE_HASH_A)], T0, state=existing_state
     )
     assert to_alert == [finding]
+
+
+# --- #1124: null-agent (plugin-managed) cron findings ------------------------
+
+# Pinned pre-fix fingerprint of _cron_finding() under BASELINE_HASH_A, computed
+# on the unfixed code (2026-11-23). Existing str-agent fingerprints MUST stay
+# byte-identical, or every persisted finding would spuriously re-alert.
+PINNED_STR_AGENT_FINGERPRINT = (
+    "3f90cd2da8a504e0479ce69b3264cb3cf6375d7ffebed21ff440258c1b9f3704"
+)
+
+
+def _null_agent_finding(name="Memory Dreaming Promotion") -> CronDriftFinding:
+    return CronDriftFinding(
+        kind="unapproved_present",
+        name=name,
+        agent_id=None,
+    )
+
+
+def test_fingerprint_null_agent_returns_hex_digest():
+    fp = state_mod.fingerprint_finding(_null_agent_finding(), BASELINE_HASH_A)
+    assert isinstance(fp, str)
+    assert len(fp) == 64
+    int(fp, 16)  # hex
+
+
+def test_fingerprint_null_agent_distinct_from_empty_and_real_agents():
+    fp_none = state_mod.fingerprint_finding(_null_agent_finding("c"), BASELINE_HASH_A)
+    for agent in ("", "None", "none", "<none>", "main"):
+        other = CronDriftFinding(kind="unapproved_present", name="c", agent_id=agent)
+        assert fp_none != state_mod.fingerprint_finding(other, BASELINE_HASH_A), agent
+
+
+def test_fingerprint_str_agent_byte_identical_to_pre_fix_value():
+    fp = state_mod.fingerprint_finding(_cron_finding(), BASELINE_HASH_A)
+    assert fp == PINNED_STR_AGENT_FINGERPRINT
+
+
+def test_fingerprint_ignores_declaration_key():
+    """declaration_key is forensic only — NOT part of the fingerprint identity."""
+    a = _cron_finding()
+    b = CronDriftFinding(
+        kind=a.kind, name=a.name, agent_id=a.agent_id, declaration_key="plugin:x"
+    )
+    assert state_mod.fingerprint_finding(b, BASELINE_HASH_A) == PINNED_STR_AGENT_FINGERPRINT
+
+
+def test_reconcile_null_agent_finding_alerts_and_persists_str_name(tmp_path: Path):
+    finding = _null_agent_finding()
+    to_alert, resolved, new_state = state_mod.reconcile(
+        [(finding, BASELINE_HASH_A)], T0, {}
+    )
+
+    assert to_alert == [finding]
+    assert resolved == []
+    assert len(new_state) == 1
+    entry = next(iter(new_state.values()))
+    assert entry["name"] == "Memory Dreaming Promotion"
+    assert all(isinstance(v, str) for v in entry.values())
+
+    # Round-trips through save/load and does not re-alert before 24h.
+    path = tmp_path / "seen.json"
+    state_mod.save_state(new_state, path)
+    loaded = state_mod.load_state(path)
+    to_alert2, _, _ = state_mod.reconcile(
+        [(finding, BASELINE_HASH_A)], T0 + timedelta(minutes=15), loaded
+    )
+    assert to_alert2 == []

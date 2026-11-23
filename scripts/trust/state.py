@@ -94,8 +94,17 @@ def _parse_iso(value: str) -> datetime:
     return dt
 
 
+# Identity encoding for a cron with no owning agent (``agent_id is None`` —
+# OpenClaw plugin-managed crons, #1124). A NUL can never appear in a real
+# OpenClaw agent id, so this cannot collide with any real agent (nor with
+# ``""``). A str agent_id is encoded as itself, so every pre-existing
+# fingerprint is byte-identical (no spurious re-alert of persisted findings).
+_NO_AGENT_SENTINEL = "\x00none"
+
+
 def _cron_identity(finding: CronDriftFinding) -> tuple[str, ...]:
-    return ("cron", finding.kind, finding.name, finding.agent_id)
+    agent = _NO_AGENT_SENTINEL if finding.agent_id is None else finding.agent_id
+    return ("cron", finding.kind, finding.name, agent)
 
 
 def _assertion_identity(finding: AssertionFinding) -> tuple[str, ...]:
@@ -157,6 +166,10 @@ def fingerprint_finding(
     "Baseline-versioned fingerprints") so a baseline update re-evaluates
     findings rather than letting stale seen-state suppress a now-legitimate
     (or newly-illegitimate) cron.
+
+    A cron finding with ``agent_id is None`` (plugin-managed, #1124) encodes
+    its agent as a NUL-prefixed sentinel that no real agent id can equal; a
+    str agent_id is encoded as itself, so existing fingerprints are unchanged.
     """
     if isinstance(finding, CronDriftFinding):
         identity = _cron_identity(finding)

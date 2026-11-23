@@ -110,6 +110,16 @@ for a cron finding: `agent_id`, `cron_id`, `schedule`, `expected_schedule`,
 findings, `agent` for assertion findings) so the operator can trace the
 divergence back to its source.
 
+**Plugin-managed crons (no owning agent, #1124).** Since OpenClaw 2026.11.7,
+plugins can declare their own crons (e.g. memory-core's "Memory Dreaming
+Promotion"). These carry `agentId: null`. The detector keeps the null as-is:
+the alert reads `agent (none — plugin-managed or unowned)`, `details.agent_id`
+is `<none>`, and `details.declaration_key` names the owning plugin (for example
+`memory-core:memory-dreaming-promotion`). The baseline requires a non-blank
+`agent_id`, so a null-agent cron can never match an approved entry. It always
+alerts as `unapproved_present`, which is the fail-closed outcome. To remove one,
+use the owning plugin's config; `cron rm` alone is re-created by the plugin.
+
 **Alert cadence** (seen-findings state, `scripts/trust/state.py`): a finding
 alerts on **first observation**, then re-alerts every 24h while it persists
 (so a standing unapproved cron isn't silently swallowed after the first
@@ -200,6 +210,26 @@ outage) the tick records the fault in `errors[]`, sets `ok:false`, emits **no
 spurious alert**, and exits `0` in timer mode — it never raises into systemd,
 never touches agent-facing paths, and never fabricates a finding as a side
 effect of its own failure.
+
+**Alert-path isolation, fail-closed (#1124).** A fault while alerting on *one*
+finding must not silence alerts for the others. Before 2026-11-23, one
+unhashable record (a null `agentId`) aborted reconcile, every emit and the
+state save together. The guard then went silent for about 4 hours while
+last-tick still read `success`. The alert path in `run_scan` now runs as
+separately guarded stages:
+
+| Fault | Behaviour | `errors[]` prefix |
+|---|---|---|
+| One finding cannot be fingerprinted | That finding is emitted every tick and kept out of state. The rest reconcile normally. If it is an assertion, the watermark is held so it is re-read. | `state_fingerprint:` |
+| Reconcile raises | Every finding is emitted, with no cadence. Neither state nor watermark is saved. | `state_reconcile:` |
+| An emit raises, or the render fails (`RENDER_*`) | That finding is recorded and stays due. The other emits continue. | `emit:` |
+| State save fails | The watermark is **not** advanced: an assertion persists only through its state entry. | `state_save:` |
+| Watermark save fails | Recorded only. State was saved, so a re-read dedups. | `watermark_save:` |
+
+Every stage except the watermark save also sets `alert_path_fault` in
+`last-tick.json`. That forces `exit_status: failure`, so the canary pages, and
+it never changes the process exit code. A plain bus `ok=false`, such as an ntfy
+outage, is still a retry rather than a fault: the finding stays due.
 
 ---
 

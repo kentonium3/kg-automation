@@ -67,16 +67,54 @@ class CronDriftFinding:
 
     kind: str
     name: str
-    agent_id: str
+    # ``None`` is truthful, not a gap: OpenClaw plugin-managed crons (e.g. the
+    # memory-core "Memory Dreaming Promotion" job, 2026.11.7+) carry
+    # ``agentId: null`` — no agent owns them (#1124). The approved-cron
+    # baseline requires a non-blank agent_id, so ``(name, None)`` can never
+    # match an approved entry and always fails closed as unapproved_present.
+    agent_id: str | None
     cron_id: str | None = None
     schedule_expr: str | None = None
     expected_schedule_expr: str | None = None
     enabled: bool | None = None
     created_at_ms: int | None = None
+    # Forensic only (rendered into alert details): which plugin declared a
+    # plugin-managed cron. Deliberately NOT part of the fingerprint identity,
+    # so adding it changed no existing fingerprint (#1124).
+    declaration_key: str | None = None
 
 
-def _sort_key(finding: CronDriftFinding) -> tuple[str, str, str]:
-    return (finding.kind, finding.name, finding.agent_id)
+def _sort_key(finding: CronDriftFinding) -> tuple[str, str, bool, str]:
+    # None-safe on agent_id: two findings sharing kind+name with agents None
+    # and "x" must not raise TypeError inside sorted() (which would lose the
+    # whole cron sub-scan). Ordering of all-str findings is unchanged; a None
+    # agent sorts after every str agent.
+    return (
+        finding.kind,
+        finding.name,
+        finding.agent_id is None,
+        finding.agent_id or "",
+    )
+
+
+def _normalize_name(value: object) -> str:
+    """Parse-boundary normalisation: a cron ``name`` is always a ``str``."""
+    if value is None:
+        return ""
+    return value if isinstance(value, str) else str(value)
+
+
+def _normalize_optional_str(value: object) -> str | None:
+    """Parse-boundary normalisation for an optional field: ``str | None``.
+
+    ``None`` (or an absent key) stays ``None`` — for ``agentId`` that is
+    truthful: the cron has no owning agent (#1124). Any other non-str value is
+    coerced with ``str()``, mirroring ``assertion_verifier``'s coercion of raw
+    JSON fields.
+    """
+    if value is None:
+        return None
+    return value if isinstance(value, str) else str(value)
 
 
 def _parse_live_job(job: dict) -> dict:
@@ -85,14 +123,17 @@ def _parse_live_job(job: dict) -> dict:
     Tolerant of extra/unknown fields and a missing ``schedule`` object or
     missing ``schedule.tz`` (contract C1) — this is where "unknown OpenClaw
     JSON shape drift" is absorbed so :func:`detect_cron_drift` can assume a
-    clean, minimal shape.
+    clean, minimal shape. Type normalisation happens HERE, once: ``name`` is
+    always ``str`` and ``agent_id`` is ``str | None`` (#1124), so no
+    downstream consumer (sort, fingerprint, render) has to re-guard raw JSON.
     """
     schedule = job.get("schedule")
     if not isinstance(schedule, dict):
         schedule = {}
     return {
-        "name": job.get("name"),
-        "agent_id": job.get("agentId"),
+        "name": _normalize_name(job.get("name")),
+        "agent_id": _normalize_optional_str(job.get("agentId")),
+        "declaration_key": _normalize_optional_str(job.get("declarationKey")),
         "enabled": job.get("enabled"),
         "schedule_expr": schedule.get("expr"),
         "tz": schedule.get("tz"),
@@ -115,7 +156,7 @@ def detect_cron_drift(
     alone would silently miss a hijacked/re-owned cron).
 
     Findings are returned sorted by ``(kind, name, agent_id)`` for
-    deterministic, test-stable ordering.
+    deterministic, test-stable ordering (a ``None`` agent sorts last).
     """
     parsed_live = [_parse_live_job(job) for job in live_jobs]
     live_by_key = {(job["name"], job["agent_id"]): job for job in parsed_live}
@@ -137,6 +178,7 @@ def detect_cron_drift(
                     schedule_expr=live["schedule_expr"],
                     enabled=live["enabled"],
                     created_at_ms=live["created_at_ms"],
+                    declaration_key=live["declaration_key"],
                 )
             )
             continue
@@ -162,6 +204,7 @@ def detect_cron_drift(
                     cron_id=live["cron_id"],
                     schedule_expr=live["schedule_expr"],
                     expected_schedule_expr=baseline_entry.schedule_expr,
+                    declaration_key=live["declaration_key"],
                 )
             )
 
@@ -173,6 +216,7 @@ def detect_cron_drift(
                     agent_id=agent_id,
                     cron_id=live["cron_id"],
                     enabled=False,
+                    declaration_key=live["declaration_key"],
                 )
             )
 

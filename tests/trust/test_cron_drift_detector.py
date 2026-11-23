@@ -415,3 +415,92 @@ def test_genuine_tz_change_still_flagged() -> None:
     ]
     findings = detect_cron_drift(live, baseline)
     assert [f.kind for f in findings] == ["schedule_mismatch"]
+
+
+# --- #1124: plugin-managed crons with agentId null ---------------------------
+#
+# OpenClaw 2026.11.7 plugin-managed crons (memory-core "Memory Dreaming
+# Promotion") carry ``agentId: null`` and a ``declarationKey``. The detector
+# must normalise these at the parse boundary: ``name`` is always a str,
+# ``agent_id`` is ``str | None`` (None stays None — truthful: no owner), and a
+# non-str non-None agent id is coerced with ``str()``.
+
+
+def _memory_core_job(**overrides: object) -> dict:
+    job = {
+        "id": "7d1c2b9e-0000-4000-8000-memorycore01",
+        "name": "Memory Dreaming Promotion",
+        "agentId": None,
+        "declarationKey": "memory-core:memory-dreaming-promotion",
+        "enabled": True,
+        "createdAtMs": 1795000000000,
+        "schedule": {"kind": "cron", "expr": "0 3 * * *"},
+    }
+    job.update(overrides)
+    return job
+
+
+def test_null_agent_plugin_cron_is_unapproved_present_with_declaration_key() -> None:
+    findings = detect_cron_drift([_live_job(), _memory_core_job()], [BASELINE_ENTRY])
+
+    assert len(findings) == 1
+    finding = findings[0]
+    assert finding.kind == KIND_UNAPPROVED_PRESENT
+    assert finding.name == "Memory Dreaming Promotion"
+    assert finding.agent_id is None
+    assert finding.declaration_key == "memory-core:memory-dreaming-promotion"
+    assert finding.schedule_expr == "0 3 * * *"
+    assert finding.enabled is True
+
+
+def test_absent_agent_key_parses_as_none() -> None:
+    job = _memory_core_job()
+    del job["agentId"]
+
+    findings = detect_cron_drift([job], [])
+
+    assert len(findings) == 1
+    assert findings[0].kind == KIND_UNAPPROVED_PRESENT
+    assert findings[0].agent_id is None
+    assert findings[0].declaration_key == "memory-core:memory-dreaming-promotion"
+
+
+def test_declaration_key_absent_is_none() -> None:
+    findings = detect_cron_drift([_live_job(name="rogue")], [BASELINE_ENTRY])
+
+    unapproved = [f for f in findings if f.kind == KIND_UNAPPROVED_PRESENT]
+    assert len(unapproved) == 1
+    assert unapproved[0].declaration_key is None
+
+
+def test_non_str_agent_id_coerced_to_str_alongside_none() -> None:
+    findings = detect_cron_drift(
+        [_memory_core_job(), _memory_core_job(id="other", agentId=42)], []
+    )
+
+    agents = sorted((f.agent_id for f in findings), key=lambda a: (a is None, a or ""))
+    assert agents == ["42", None]
+    assert all(f.kind == KIND_UNAPPROVED_PRESENT for f in findings)
+
+
+def test_name_normalised_to_str_at_parse_boundary() -> None:
+    findings = detect_cron_drift(
+        [_memory_core_job(name=None), _memory_core_job(id="n", name=7, agentId="x")], []
+    )
+
+    names = sorted(f.name for f in findings)
+    assert names == ["", "7"]
+    assert all(isinstance(f.name, str) for f in findings)
+
+
+def test_sort_same_kind_and_name_with_none_and_str_agent_does_not_raise() -> None:
+    """Two findings sharing kind+name, one with agent None — ``sorted`` must not
+    raise TypeError (which would lose the whole cron sub-scan)."""
+    live = [
+        _memory_core_job(name="dup", agentId=None),
+        _memory_core_job(id="dup-x", name="dup", agentId="x"),
+    ]
+
+    findings = detect_cron_drift(live, [])
+
+    assert [(f.name, f.agent_id) for f in findings] == [("dup", "x"), ("dup", None)]

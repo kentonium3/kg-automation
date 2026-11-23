@@ -74,23 +74,29 @@ _CRON_TITLE: dict[str, str] = {
 
 _CRON_DESCRIPTION: dict[str, str] = {
     "unapproved_present": (
-        "A live OpenClaw cron named {name!r} (agent {agent_id!r}) is not in "
+        "A live OpenClaw cron named {name!r} (agent {agent}) is not in "
         "the approved-cron baseline. This may be standing infrastructure "
         "nobody approved."
     ),
     "approved_missing": (
-        "The approved cron {name!r} (agent {agent_id!r}) is in the "
+        "The approved cron {name!r} (agent {agent}) is in the "
         "baseline but was not found among live OpenClaw crons."
     ),
     "schedule_mismatch": (
-        "The approved cron {name!r} (agent {agent_id!r}) is running on a "
+        "The approved cron {name!r} (agent {agent}) is running on a "
         "different schedule than the baseline records."
     ),
     "enabled_mismatch": (
-        "The approved cron {name!r} (agent {agent_id!r}) is unexpectedly "
+        "The approved cron {name!r} (agent {agent}) is unexpectedly "
         "disabled."
     ),
 }
+
+# How a cron with no owning agent (agent_id None — OpenClaw plugin-managed,
+# #1124) is shown in alert copy and in the ``agent_id`` detail. The
+# ``declaration_key`` detail names the owning plugin.
+_NO_AGENT_DISPLAY = "(none — plugin-managed or unowned)"
+_NO_AGENT_DETAIL = "<none>"
 
 _ASSERTION_SEVERITY: dict[str, Severity] = {
     "artifact_missing": Severity.ERROR,
@@ -153,20 +159,31 @@ def render_cron_finding(finding: CronDriftFinding) -> Alert:
     severity = _CRON_SEVERITY.get(kind, Severity.WARN)
     title_template = _CRON_TITLE.get(kind, "Cron drift detected: {name}")
     description_template = _CRON_DESCRIPTION.get(
-        kind, "Cron drift finding {kind!r} for {name!r} (agent {agent_id!r})."
+        kind, "Cron drift finding {kind!r} for {name!r} (agent {agent})."
     )
+
+    # A plugin-managed cron has no owning agent (agent_id None, #1124): render
+    # that explicitly rather than a literal "None". A str agent keeps its
+    # repr() so existing alert copy is byte-identical.
+    if finding.agent_id is None:
+        agent_display = _NO_AGENT_DISPLAY
+        agent_detail = _NO_AGENT_DETAIL
+    else:
+        agent_display = repr(finding.agent_id)
+        agent_detail = finding.agent_id
 
     format_fields = {
         "kind": kind,
         "name": finding.name,
-        "agent_id": finding.agent_id,
+        "agent": agent_display,
     }
     title = title_template.format(**format_fields)
     description = description_template.format(**format_fields)
 
     details = _stringify_details(
         {
-            "agent_id": finding.agent_id,
+            "agent_id": agent_detail,
+            "declaration_key": finding.declaration_key,
             "cron_id": finding.cron_id,
             "schedule": finding.schedule_expr,
             "expected_schedule": finding.expected_schedule_expr,

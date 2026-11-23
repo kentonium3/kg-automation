@@ -250,3 +250,48 @@ def test_emit_finding_render_failure_does_not_raise():
     mock_emit.assert_not_called()
     assert result.ok is False
     assert result.reason.startswith("RENDER_ERROR:")
+
+
+# --- #1124: null-agent (plugin-managed) cron findings ------------------------
+
+
+@pytest.mark.parametrize(
+    "kind", ["unapproved_present", "approved_missing", "schedule_mismatch", "enabled_mismatch", "weird"]
+)
+def test_render_null_agent_cron_finding_has_no_literal_none(kind):
+    finding = _cron_finding(
+        kind=kind,
+        name="Memory Dreaming Promotion",
+        agent_id=None,
+        declaration_key="memory-core:memory-dreaming-promotion",
+    )
+    alert = alert_render.render_cron_finding(finding)
+
+    assert "None" not in alert.title
+    assert "None" not in alert.description
+    assert "plugin-managed or unowned" in alert.description
+    assert alert.details["agent_id"] == "<none>"
+    assert alert.details["declaration_key"] == "memory-core:memory-dreaming-promotion"
+    for value in alert.details.values():
+        assert isinstance(value, str)
+        assert value != "None"
+
+
+def test_render_str_agent_description_unchanged():
+    """Existing copy for a str-agent finding stays byte-identical."""
+    alert = alert_render.render_cron_finding(_cron_finding(kind="unapproved_present"))
+    assert alert.description == (
+        "A live OpenClaw cron named 'mystery-cron' (agent 'felix-admin-capture') is not in "
+        "the approved-cron baseline. This may be standing infrastructure "
+        "nobody approved."
+    )
+    assert "declaration_key" not in alert.details
+
+
+def test_emit_null_agent_cron_finding_reaches_bus():
+    finding = _cron_finding(name="Memory Dreaming Promotion", agent_id=None)
+    with patch("scripts.trust.alert_render.emit") as mock_emit:
+        mock_emit.return_value = AlertResult(ok=True)
+        result = alert_render.emit_finding(finding)
+    assert result.ok is True
+    mock_emit.assert_called_once()

@@ -947,3 +947,500 @@ def test_last_tick_stays_success_on_transient_finding_fault(isolated_paths, tmp_
     from scripts.canary.probes import _explicit_error
 
     assert _explicit_error(payload) is None  # canary stays healthy
+
+
+# --- #1124: null-agent plugin crons must not fail the alert path open --------
+
+
+def _memory_core_job(**overrides) -> dict:
+    """The OpenClaw 2026.11.7 memory-core plugin cron shape (agentId null)."""
+    job = {
+        "id": "7d1c2b9e-0000-4000-8000-memorycore01",
+        "name": "Memory Dreaming Promotion",
+        "agentId": None,
+        "declarationKey": "memory-core:memory-dreaming-promotion",
+        "enabled": True,
+        "createdAtMs": 1795000000000,
+        "schedule": {"kind": "cron", "expr": "0 3 * * *"},
+    }
+    job.update(overrides)
+    return job
+
+
+def _memory_core_job_no_agent_key() -> dict:
+    job = _memory_core_job()
+    del job["agentId"]
+    return job
+
+
+def _scan(isolated_paths, live_jobs, *, now=T0, last_tick=None, emit_side_effect=None, extra_patches=()):
+    from contextlib import ExitStack
+
+    from scripts.common.alert_bus.model import AlertResult
+
+    state_path, watermark_path, assertions_dir = isolated_paths
+    with ExitStack() as stack:
+        stack.enter_context(
+            patch("scripts.trust.run_trust_scan.load_baseline", return_value=BASELINE)
+        )
+        stack.enter_context(
+            patch("scripts.trust.run_trust_scan.enumerate_live_crons", return_value=live_jobs)
+        )
+        mock_emit = stack.enter_context(patch("scripts.trust.alert_render.emit"))
+        if emit_side_effect is not None:
+            mock_emit.side_effect = emit_side_effect
+        else:
+            mock_emit.return_value = AlertResult(ok=True)
+        for p in extra_patches:
+            stack.enter_context(p)
+        # Pin the unit-drift sub-scan to "skipped" so finding counts here never
+        # depend on the host's real ~/.config/systemd/user contents.
+        kwargs = {"unit_deployed_dir": state_path.parent / "no-deployed-units"}
+        if last_tick is not None:
+            kwargs["last_tick_path"] = last_tick
+        summary = rts.run_scan(
+            now=now,
+            state_path=state_path,
+            watermark_path=watermark_path,
+            assertions_base_dir=assertions_dir,
+            **kwargs,
+        )
+    return summary, mock_emit
+
+
+@pytest.mark.parametrize(
+    "null_agent_job",
+    [_memory_core_job(), _memory_core_job_no_agent_key()],
+    ids=["agentId-null", "agentId-absent"],
+)
+def test_null_agent_plugin_cron_alerts_and_does_not_suppress_others(
+    isolated_paths, tmp_path, null_agent_job
+):
+    """#1124 done-condition: a null-agent unapproved cron (memory-core shape)
+    plus another unapproved cron → ok True, BOTH alerted, state saved."""
+    state_path, _, _ = isolated_paths
+    last_tick = tmp_path / "state" / "last-tick.json"
+    live = [
+        _live_job(),
+        null_agent_job,
+        _live_job(id="rogue-1", name="mystery-cron", agentId="unknown-agent"),
+    ]
+
+    summary, mock_emit = _scan(isolated_paths, live, last_tick=last_tick)
+
+    assert summary["errors"] == []
+    assert summary["ok"] is True
+    assert summary["drift_findings"] == 2
+    assert summary["alerts_emitted"] == 2
+    titles = sorted(call.args[0].title for call in mock_emit.call_args_list)
+    assert titles == [
+        "Unrequested cron detected: Memory Dreaming Promotion",
+        "Unrequested cron detected: mystery-cron",
+    ]
+    saved = json.loads(state_path.read_text())
+    assert sorted(e["name"] for e in saved.values()) == [
+        "Memory Dreaming Promotion",
+        "mystery-cron",
+    ]
+    payload = json.loads(last_tick.read_text())
+    assert payload["exit_status"] == "success"
+    assert payload["alert_path_fault"] is False
+
+
+def test_null_agent_cron_honours_24h_cadence_across_ticks(isolated_paths):
+    live = [_live_job(), _memory_core_job()]
+    s1, _ = _scan(isolated_paths, live, now=T0)
+    s2, _ = _scan(isolated_paths, live, now=T0 + timedelta(minutes=15))
+    assert s1["alerts_emitted"] == 1
+    assert s2["ok"] is True
+    assert s2["alerts_emitted"] == 0  # deduped, not re-alerted every tick
+
+
+def test_non_str_agent_alongside_null_agent(isolated_paths):
+    """(d) agentId 42 alongside None — both alert, ok True."""
+    live = [_live_job(), _memory_core_job(), _memory_core_job(id="n42", agentId=42)]
+    summary, _ = _scan(isolated_paths, live)
+    assert summary["ok"] is True
+    assert summary["drift_findings"] == 2
+    assert summary["alerts_emitted"] == 2
+
+
+def test_unfingerprintable_finding_isolated_others_reconcile(isolated_paths, tmp_path):
+    """(a) guard independent of the normaliser: a finding whose fingerprint
+    raises is still emitted (no state), the other finding is emitted AND saved,
+    ok False, error names the bad finding, last-tick flags an alert-path fault."""
+    state_path, _, _ = isolated_paths
+    last_tick = tmp_path / "state" / "last-tick.json"
+    real_fingerprint = rts.state_mod.fingerprint_finding
+
+    def flaky_fingerprint(finding, baseline_hash):
+        if getattr(finding, "name", None) == "bad":
+            raise TypeError("boom")
+        return real_fingerprint(finding, baseline_hash)
+
+    live = [
+        _live_job(),
+        _live_job(id="b", name="bad", agentId="agent-b"),
+        _live_job(id="g", name="good", agentId="agent-g"),
+    ]
+    summary, mock_emit = _scan(
+        isolated_paths,
+        live,
+        last_tick=last_tick,
+        extra_patches=[
+            patch(
+                "scripts.trust.run_trust_scan.state_mod.fingerprint_finding",
+                side_effect=flaky_fingerprint,
+            )
+        ],
+    )
+
+    assert summary["ok"] is False
+    assert any(e.startswith("state_fingerprint:TypeError:bad") for e in summary["errors"])
+    assert summary["alerts_emitted"] == 2
+    titles = sorted(call.args[0].title for call in mock_emit.call_args_list)
+    assert titles == [
+        "Unrequested cron detected: bad",
+        "Unrequested cron detected: good",
+    ]
+    saved = json.loads(state_path.read_text())
+    assert [e["name"] for e in saved.values()] == ["good"]
+    payload = json.loads(last_tick.read_text())
+    assert payload["exit_status"] == "failure"
+    assert payload["alert_path_fault"] is True
+    assert payload["scan_inability"] is False
+
+
+def test_unfingerprintable_finding_emitted_every_tick(isolated_paths):
+    real_fingerprint = rts.state_mod.fingerprint_finding
+
+    def flaky_fingerprint(finding, baseline_hash):
+        if getattr(finding, "name", None) == "bad":
+            raise TypeError("boom")
+        return real_fingerprint(finding, baseline_hash)
+
+    live = [_live_job(), _live_job(id="b", name="bad", agentId="agent-b")]
+
+    def p():
+        return patch(
+            "scripts.trust.run_trust_scan.state_mod.fingerprint_finding",
+            side_effect=flaky_fingerprint,
+        )
+
+    s1, _ = _scan(isolated_paths, live, now=T0, extra_patches=[p()])
+    s2, _ = _scan(isolated_paths, live, now=T0 + timedelta(minutes=15), extra_patches=[p()])
+    assert s1["alerts_emitted"] == 1
+    assert s2["alerts_emitted"] == 1  # no state → loud every tick, never silent
+
+
+def test_reconcile_failure_emits_every_finding_and_saves_nothing(isolated_paths, tmp_path):
+    """Last-resort fallback + (b) + (e): reconcile raises → every current
+    finding is still emitted, ok False, error recorded, NO state file written,
+    watermark file unchanged, last-tick exit_status failure."""
+    state_path, watermark_path, assertions_dir = isolated_paths
+    last_tick = tmp_path / "state" / "last-tick.json"
+    # An (empty) assertion file would advance the watermark if it were saved.
+    (assertions_dir / "a.jsonl").write_text("")
+    watermark_path.parent.mkdir(parents=True, exist_ok=True)
+    watermark_path.write_text('{"sentinel": 7}\n')
+    before = watermark_path.read_bytes()
+
+    live = [
+        _live_job(),
+        _memory_core_job(),
+        _live_job(id="r", name="mystery-cron", agentId="unknown-agent"),
+    ]
+    summary, mock_emit = _scan(
+        isolated_paths,
+        live,
+        last_tick=last_tick,
+        extra_patches=[
+            patch(
+                "scripts.trust.run_trust_scan.state_mod.reconcile",
+                side_effect=RuntimeError("reconcile exploded"),
+            )
+        ],
+    )
+
+    assert summary["ok"] is False
+    assert any(e.startswith("state_reconcile:RuntimeError") for e in summary["errors"])
+    assert summary["alerts_emitted"] == 2
+    assert mock_emit.call_count == 2
+    assert not state_path.exists()
+    assert watermark_path.read_bytes() == before
+    payload = json.loads(last_tick.read_text())
+    assert payload["exit_status"] == "failure"
+    assert payload["alert_path_fault"] is True
+    assert payload["scan_inability"] is False
+
+
+def test_save_state_failure_leaves_watermark_unchanged(isolated_paths, tmp_path):
+    """(c) watermark is saved ONLY after a successful state save (R1)."""
+    _state_path, watermark_path, assertions_dir = isolated_paths
+    last_tick = tmp_path / "state" / "last-tick.json"
+    (assertions_dir / "a.jsonl").write_text("")
+    watermark_path.parent.mkdir(parents=True, exist_ok=True)
+    watermark_path.write_text('{"sentinel": 7}\n')
+    before = watermark_path.read_bytes()
+
+    live = [_live_job(), _memory_core_job()]
+    summary, _ = _scan(
+        isolated_paths,
+        live,
+        last_tick=last_tick,
+        extra_patches=[
+            patch(
+                "scripts.trust.run_trust_scan.state_mod.save_state",
+                side_effect=OSError("disk full"),
+            )
+        ],
+    )
+
+    assert summary["ok"] is False
+    assert any(e.startswith("state_save:OSError") for e in summary["errors"])
+    assert summary["alerts_emitted"] == 1
+    assert watermark_path.read_bytes() == before
+    payload = json.loads(last_tick.read_text())
+    assert payload["exit_status"] == "failure"
+    assert payload["alert_path_fault"] is True
+
+
+def test_emit_raise_for_one_finding_does_not_suppress_others(isolated_paths, tmp_path):
+    """Per-emit guard: one emit raising is recorded, the rest still go out, and
+    the failed finding stays DUE for the next tick (keep_due)."""
+    last_tick = tmp_path / "state" / "last-tick.json"
+    from scripts.trust import alert_render
+
+    real_emit_finding = alert_render.emit_finding
+
+    def flaky_emit_finding(finding):
+        if getattr(finding, "name", None) == "bad":
+            raise RuntimeError("emit exploded")
+        return real_emit_finding(finding)
+
+    live = [
+        _live_job(),
+        _live_job(id="b", name="bad", agentId="agent-b"),
+        _live_job(id="g", name="good", agentId="agent-g"),
+    ]
+    summary, mock_emit = _scan(
+        isolated_paths,
+        live,
+        last_tick=last_tick,
+        extra_patches=[
+            patch(
+                "scripts.trust.run_trust_scan.alert_render.emit_finding",
+                side_effect=flaky_emit_finding,
+            )
+        ],
+    )
+
+    assert summary["ok"] is False
+    assert any(e.startswith("emit:RuntimeError") for e in summary["errors"])
+    assert summary["alerts_emitted"] == 1
+    assert [c.args[0].title for c in mock_emit.call_args_list] == [
+        "Unrequested cron detected: good"
+    ]
+    payload = json.loads(last_tick.read_text())
+    assert payload["exit_status"] == "failure"
+    assert payload["alert_path_fault"] is True
+
+    # Next tick, 1 minute later, emits healthy: only the failed one re-fires.
+    s2, mock_emit2 = _scan(isolated_paths, live, now=T0 + timedelta(minutes=1))
+    assert s2["ok"] is True
+    assert s2["alerts_emitted"] == 1
+    assert [c.args[0].title for c in mock_emit2.call_args_list] == [
+        "Unrequested cron detected: bad"
+    ]
+
+
+def test_clean_tick_last_tick_has_no_alert_path_fault(isolated_paths, tmp_path):
+    last_tick = tmp_path / "state" / "last-tick.json"
+    summary, _ = _scan(isolated_paths, [_live_job()], last_tick=last_tick)
+    assert summary["ok"] is True
+    payload = json.loads(last_tick.read_text())
+    assert payload["alert_path_fault"] is False
+    assert payload["exit_status"] == "success"
+
+
+# --- #1124 pre-merge review fixes --------------------------------------------
+
+
+def test_render_failure_is_an_alert_path_fault_and_stays_due(isolated_paths, tmp_path):
+    """renata F1: emit_finding swallows a render exception into
+    ok=False/RENDER_ERROR. That must NOT read as an ordinary failed delivery —
+    it is recorded, flags alert_path_fault, and the finding stays due."""
+    last_tick = tmp_path / "state" / "last-tick.json"
+    live = [_live_job(), _live_job(id="r", name="mystery-cron", agentId="unknown-agent")]
+
+    s1, mock_emit = _scan(
+        isolated_paths,
+        live,
+        last_tick=last_tick,
+        extra_patches=[
+            patch(
+                "scripts.trust.alert_render.render_cron_finding",
+                side_effect=RuntimeError("render exploded"),
+            )
+        ],
+    )
+
+    assert s1["ok"] is False
+    assert any(
+        e.startswith("emit:RENDER_ERROR:RuntimeError:mystery-cron") for e in s1["errors"]
+    ), s1["errors"]
+    assert s1["alerts_emitted"] == 0
+    assert mock_emit.call_count == 0  # never reached the bus
+    payload = json.loads(last_tick.read_text())
+    assert payload["exit_status"] == "failure"
+    assert payload["alert_path_fault"] is True
+
+    # Next tick, renderer healthy: the finding was kept due, so it fires now.
+    s2, mock_emit2 = _scan(isolated_paths, live, now=T0 + timedelta(minutes=1))
+    assert s2["ok"] is True
+    assert s2["alerts_emitted"] == 1
+    assert [c.args[0].title for c in mock_emit2.call_args_list] == [
+        "Unrequested cron detected: mystery-cron"
+    ]
+
+
+def test_render_unknown_finding_type_is_an_alert_path_fault(isolated_paths, tmp_path):
+    last_tick = tmp_path / "state" / "last-tick.json"
+    from scripts.common.alert_bus.model import AlertResult
+
+    live = [_live_job(), _live_job(id="r", name="mystery-cron", agentId="unknown-agent")]
+    summary, _ = _scan(
+        isolated_paths,
+        live,
+        last_tick=last_tick,
+        extra_patches=[
+            patch(
+                "scripts.trust.run_trust_scan.alert_render.emit_finding",
+                return_value=AlertResult(ok=False, reason="RENDER_UNKNOWN_FINDING_TYPE"),
+            )
+        ],
+    )
+    assert summary["ok"] is False
+    assert any(
+        e.startswith("emit:RENDER_UNKNOWN_FINDING_TYPE:mystery-cron") for e in summary["errors"]
+    ), summary["errors"]
+    assert json.loads(last_tick.read_text())["alert_path_fault"] is True
+
+
+def test_bus_ok_false_is_still_not_an_alert_path_fault(isolated_paths, tmp_path):
+    """Guard on the F1 fix: a plain bus delivery failure (non-RENDER_ reason)
+    keeps its existing semantics — retried via keep_due, not an error."""
+    from scripts.common.alert_bus.model import AlertResult
+
+    last_tick = tmp_path / "state" / "last-tick.json"
+    live = [_live_job(), _live_job(id="r", name="mystery-cron", agentId="unknown-agent")]
+    summary, _ = _scan(
+        isolated_paths,
+        live,
+        last_tick=last_tick,
+        emit_side_effect=lambda alert: AlertResult(ok=False, reason="bus down"),
+    )
+    assert summary["ok"] is True
+    assert summary["alerts_emitted"] == 0
+    assert json.loads(last_tick.read_text())["alert_path_fault"] is False
+
+
+def _surrogate_agent_assertion(assertions_dir) -> None:
+    # A lone surrogate survives json.loads but cannot be UTF-8 encoded, so
+    # fingerprint_finding raises UnicodeEncodeError (Codex's repro). Written as
+    # a JSON \\ud800 escape so the file itself is valid UTF-8.
+    line = (
+        '{"ts": "2026-07-10T11:00:00+00:00", "agent": "bad\\ud800agent", '
+        '"request_summary": null, "request_ref": null, "artifact_kind": "other", '
+        '"artifact_ids": ["x1"], "claim": "did a thing"}\n'
+    )
+    (assertions_dir / "2026-07-10.jsonl").write_text(line, encoding="utf-8")
+
+
+def test_unfingerprintable_assertion_is_not_lost_watermark_held(isolated_paths):
+    """Codex/renata F2: an unfingerprintable ASSERTION finding never enters
+    state, so the watermark must not advance past its record — otherwise it is
+    emitted once and permanently lost. Hold the watermark; emit every tick."""
+    state_path, watermark_path, assertions_dir = isolated_paths
+    _surrogate_agent_assertion(assertions_dir)
+    watermark_path.parent.mkdir(parents=True, exist_ok=True)
+    watermark_path.write_text('{"sentinel": 7}\n')
+    before = watermark_path.read_bytes()
+    live = [_live_job(), _live_job(id="r", name="mystery-cron", agentId="unknown-agent")]
+
+    s1, emit1 = _scan(isolated_paths, live, now=T0)
+    s2, emit2 = _scan(isolated_paths, live, now=T0 + timedelta(minutes=15))
+
+    for summary in (s1, s2):
+        assert summary["assertion_findings"] == 1
+        assert summary["ok"] is False
+        assert any(
+            e.startswith("state_fingerprint:UnicodeEncodeError:other:x1")
+            for e in summary["errors"]
+        ), summary["errors"]
+    unverifiable = "Completion claim unverifiable: other"
+    assert unverifiable in [c.args[0].title for c in emit1.call_args_list]
+    assert unverifiable in [c.args[0].title for c in emit2.call_args_list]  # NOT lost
+    assert watermark_path.read_bytes() == before
+    # The fingerprintable cron finding still reconciles + persists normally
+    # (alerted once, deduped on tick 2).
+    saved = json.loads(state_path.read_text())
+    assert [e["name"] for e in saved.values()] == ["mystery-cron"]
+    assert s1["alerts_emitted"] == 2
+    assert s2["alerts_emitted"] == 1
+
+
+def test_keep_due_failure_is_recorded_as_alert_path_fault(isolated_paths, tmp_path):
+    from scripts.common.alert_bus.model import AlertResult
+
+    last_tick = tmp_path / "state" / "last-tick.json"
+    live = [_live_job(), _live_job(id="r", name="mystery-cron", agentId="unknown-agent")]
+    summary, _ = _scan(
+        isolated_paths,
+        live,
+        last_tick=last_tick,
+        emit_side_effect=lambda alert: AlertResult(ok=False, reason="bus down"),
+        extra_patches=[
+            patch(
+                "scripts.trust.run_trust_scan.state_mod.keep_due",
+                side_effect=RuntimeError("keep_due exploded"),
+            )
+        ],
+    )
+    assert summary["ok"] is False
+    assert any(
+        e.startswith("state_keep_due:RuntimeError:mystery-cron") for e in summary["errors"]
+    ), summary["errors"]
+    assert json.loads(last_tick.read_text())["alert_path_fault"] is True
+
+
+def test_resolved_event_render_failure_is_guarded(isolated_paths, tmp_path):
+    last_tick = tmp_path / "state" / "last-tick.json"
+    rogue = _live_job(id="r", name="mystery-cron", agentId="unknown-agent")
+    other = _live_job(id="o", name="other-cron", agentId="unknown-agent")
+
+    s1, _ = _scan(isolated_paths, [_live_job(), rogue, other], now=T0)
+    assert s1["alerts_emitted"] == 2
+
+    # Tick 2: mystery-cron disappears (→ resolved event, render raises);
+    # other-cron persists. The tick still completes and saves state.
+    state_path, _, _ = isolated_paths
+    s2, _ = _scan(
+        isolated_paths,
+        [_live_job(), other],
+        now=T0 + timedelta(minutes=15),
+        last_tick=last_tick,
+        extra_patches=[
+            patch(
+                "scripts.trust.run_trust_scan.alert_render.render_drift_resolved",
+                side_effect=RuntimeError("resolved render exploded"),
+            )
+        ],
+    )
+    assert s2["ok"] is False
+    assert any(
+        e.startswith("emit:RuntimeError:mystery-cron") for e in s2["errors"]
+    ), s2["errors"]
+    assert json.loads(last_tick.read_text())["alert_path_fault"] is True
+    saved = json.loads(state_path.read_text())
+    assert [e["name"] for e in saved.values()] == ["other-cron"]

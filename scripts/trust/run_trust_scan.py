@@ -70,6 +70,82 @@ def _finding_baseline_hash(finding: Any, cron_baseline_hash: str) -> str:
     and the emit-retry ``keep_due`` fingerprint always agree (#817 H1)."""
     return "" if isinstance(finding, UnitDriftFinding) else cron_baseline_hash
 
+
+def _finding_label(finding: Any) -> str:
+    """Best-effort human label for a finding in an ``errors[]`` entry. Never raises."""
+    try:
+        name = getattr(finding, "name", None)
+        if name is not None:
+            return str(name)
+        if isinstance(finding, AssertionFinding):
+            return f"{finding.artifact_kind}:{finding.artifact_id}"
+        return type(finding).__name__
+    except Exception:  # noqa: BLE001 - a label must never break error reporting
+        return "<unlabelable>"
+
+
+# ``AlertResult.reason`` prefix emit_finding uses when it swallowed a render
+# failure (RENDER_ERROR:<Type> / RENDER_UNKNOWN_FINDING_TYPE).
+_RENDER_FAILURE_PREFIX = "RENDER_"
+
+
+def _guarded_emit(item: Any, errors: list[str], *, label: str | None = None) -> bool | None:
+    """Emit one finding/alert in isolation (#1124).
+
+    Returns ``True`` when delivered, ``False`` when the bus reported
+    ``ok=False`` (an expected, retried condition — not recorded as an error),
+    and ``None`` on an alert-path fault: the emit raised (recorded as
+    ``emit:<Type>:...``) or ``emit_finding`` swallowed a RENDER failure into
+    ``ok=False`` with a ``RENDER_*`` reason (recorded as ``emit:<reason>:...``).
+    A render failure is a code/data defect, not a bus hiccup — treating it as
+    an ordinary failed delivery would make it silent (#1124 review F1).
+    ``emit_finding`` is documented never-raise; the raise guard is defence in
+    depth so one record can never suppress the rest of the tick's alerts.
+    """
+    shown = label if label is not None else _finding_label(item)
+    try:
+        result = alert_render.emit_finding(item)
+    except Exception as exc:  # noqa: BLE001 - per-emit isolation (#1124)
+        errors.append(f"emit:{exc.__class__.__name__}:{shown}:{exc}")
+        return None
+    if result.ok:
+        return True
+    reason = result.reason or ""
+    if reason.startswith(_RENDER_FAILURE_PREFIX):
+        errors.append(f"emit:{reason}:{shown}")
+        return None
+    return False
+
+
+def _keep_due_guarded(
+    new_state: dict[str, dict[str, str]],
+    finding: Any,
+    fingerprints: dict[int, str],
+    cron_baseline_hash: str,
+    prior_state: dict[str, dict[str, str]],
+    errors: list[str],
+) -> bool:
+    """Revert *finding*'s ``last_alerted`` after a failed emit, never raising.
+
+    Prefers the fingerprint precomputed before reconcile; recomputes (guarded)
+    only if the finding object is not in that map. Returns ``False`` (and
+    records an error) if the finding could not be kept due.
+    """
+    try:
+        fingerprint = fingerprints.get(id(finding))
+        if fingerprint is None:
+            fingerprint = state_mod.fingerprint_finding(
+                finding, _finding_baseline_hash(finding, cron_baseline_hash)
+            )
+        state_mod.keep_due(new_state, fingerprint, prior_state)
+        return True
+    except Exception as exc:  # noqa: BLE001 - per-finding isolation (#1124)
+        errors.append(
+            f"state_keep_due:{exc.__class__.__name__}:{_finding_label(finding)}:{exc}"
+        )
+        return False
+
+
 # Repo root, resolved from this module's location (scripts/trust/run_trust_scan.py
 # → parents[2]). The unit-drift sub-scan (#817) globs the repo's canonical unit
 # sources under here. felix-trust-scan.service runs from WorkingDirectory=
@@ -96,14 +172,22 @@ def _utc_now() -> datetime:
 
 
 def _write_last_tick(
-    path: Path, *, now: datetime, scan_inability: bool, error_count: int
+    path: Path,
+    *,
+    now: datetime,
+    scan_inability: bool,
+    error_count: int,
+    alert_path_fault: bool = False,
 ) -> None:
     """Atomically write the per-tick freshness signal the canary reads (#721).
 
-    ``exit_status`` is ``failure`` only on a hard **scan-inability** (e.g. the
-    cron baseline is unreadable — a sub-scan could not run at all); transient
-    finding-side faults (an indeterminate Vikunja re-verify) leave it
-    ``success`` so the canary is not paged on recoverable hiccups. ``error_count``
+    ``exit_status`` is ``failure`` on a hard **scan-inability** (e.g. the
+    cron baseline is unreadable — a sub-scan could not run at all) **or an
+    alert-path fault** (#1124: a finding could not be fingerprinted, reconcile
+    raised, an emit raised, or the state save failed — findings may not have
+    reached Kent on cadence). Transient finding-side faults (an indeterminate
+    Vikunja re-verify) leave it ``success`` so the canary is not paged on
+    recoverable hiccups. ``error_count``
     is informational and deliberately NOT named ``errors``/``error`` so it never
     trips the probe's explicit-error detection. Best-effort: a write failure must
     not crash the tick (fail-safe, NFR-001).
@@ -113,8 +197,9 @@ def _write_last_tick(
 
     payload = {
         "completed_at_utc": now.strftime("%Y-%m-%dT%H:%M:%SZ"),
-        "exit_status": "failure" if scan_inability else "success",
+        "exit_status": "failure" if (scan_inability or alert_path_fault) else "success",
         "scan_inability": scan_inability,
+        "alert_path_fault": alert_path_fault,
         "error_count": error_count,
     }
     try:
@@ -417,48 +502,140 @@ def run_scan(
         committed_watermark = watermark
 
     # ---- Seen-findings cadence reconciliation --------------------------
+    # Fail-CLOSED alert path (#1124): one bad record must never suppress the
+    # alerts for every other finding in the tick. Each stage is guarded on its
+    # own — per-finding fingerprinting, reconcile, each emit, the state save —
+    # and any fault on the alert path sets ``alert_path_fault`` so the canary
+    # sees it via last-tick.json (``exit_status: failure``).
     alerts_emitted = 0
+    alert_path_fault = False
     if not dry_run:
+        all_findings: list[Any] = [*cron_findings, *assertion_findings, *unit_findings]
+
+        # (1) Per-finding fingerprint isolation. A finding whose fingerprint
+        # raises cannot enter seen-state; it is emitted on every tick it is
+        # re-produced (no cadence) rather than dropped, and the fault is
+        # recorded. Cron/unit findings are re-produced each tick by their live
+        # sub-scan; an ASSERTION finding is re-produced only if its record is
+        # re-read, so the watermark is held for it (see the save guards). The
+        # fingerprints are
+        # computed once here so no later step calls fingerprint_finding
+        # unguarded (the emit-retry keep_due branch reuses them).
+        # Per-finding fingerprint hash comes from the single _finding_baseline_hash
+        # rule so the reconcile-time and emit-retry fingerprints always agree.
+        # Unit-drift findings use "" (identity is (unit, kind), stable across
+        # ticks) so a persistent drift dedups on the 24h cadence and clears by
+        # absence when the unit is redeployed.
+        findings_with_hash: list[tuple[Any, str]] = []
+        fingerprints: dict[int, str] = {}
+        unfingerprintable: list[Any] = []
+        for finding in all_findings:
+            finding_hash = _finding_baseline_hash(finding, current_baseline_hash)
+            try:
+                fingerprints[id(finding)] = state_mod.fingerprint_finding(
+                    finding, finding_hash
+                )
+            except Exception as exc:  # noqa: BLE001 - per-finding isolation (#1124)
+                errors.append(
+                    f"state_fingerprint:{exc.__class__.__name__}:"
+                    f"{_finding_label(finding)}:{exc}"
+                )
+                alert_path_fault = True
+                unfingerprintable.append(finding)
+                continue
+            findings_with_hash.append((finding, finding_hash))
+
+        # (2) Reconcile. If it raises, fall back to emitting EVERY current
+        # finding (no cadence, each emit guarded) and save NEITHER state nor
+        # watermark: cadence resumes once fixed, and new assertions are re-read
+        # (and re-emitted) each tick until then — loud beats silent.
+        reconciled = False
+        to_alert: list[Any] = []
+        resolved_events: list[state_mod.ResolvedEvent] = []
+        new_state: dict[str, dict[str, str]] = {}
         try:
-            # Per-finding fingerprint hash comes from the single _finding_baseline_hash
-            # rule so the reconcile-time and emit-retry fingerprints always agree.
-            # Unit-drift findings use "" (identity is (unit, kind), stable across
-            # ticks) so a persistent drift dedups on the 24h cadence and clears by
-            # absence when the unit is redeployed.
-            findings_with_hash: list[tuple[Any, str]] = [
-                (finding, _finding_baseline_hash(finding, current_baseline_hash))
-                for finding in (*cron_findings, *assertion_findings, *unit_findings)
-            ]
             to_alert, resolved_events, new_state = state_mod.reconcile(
                 findings_with_hash, tick_now, current_state
             )
+            reconciled = True
+        except Exception as exc:  # noqa: BLE001 - fail-closed fallback (#1124)
+            errors.append(f"state_reconcile:{exc.__class__.__name__}:{exc}")
+            alert_path_fault = True
 
-            # Emit-gate last_alerted (F3): only a SUCCESSFUL emit counts as
-            # "alerted". A failed emit (bus ok=False) must leave the finding DUE
-            # next scan, not suppressed until the 24h cadence — so revert its
-            # last_alerted via state.keep_due.
+        if reconciled:
+            # (3) Emit-gate last_alerted (F3): only a SUCCESSFUL emit counts as
+            # "alerted". A failed emit (bus ok=False, or emit raising) must leave
+            # the finding DUE next scan, not suppressed until the 24h cadence —
+            # so revert its last_alerted via state.keep_due.
             for finding in to_alert:
-                result = alert_render.emit_finding(finding)
-                if result.ok:
+                delivered = _guarded_emit(finding, errors)
+                if delivered is True:
                     alerts_emitted += 1
-                else:
-                    fingerprint = state_mod.fingerprint_finding(
-                        finding, _finding_baseline_hash(finding, current_baseline_hash)
-                    )
-                    state_mod.keep_due(new_state, fingerprint, current_state)
+                    continue
+                if delivered is None:
+                    alert_path_fault = True
+                if not _keep_due_guarded(
+                    new_state, finding, fingerprints, current_baseline_hash, current_state, errors
+                ):
+                    alert_path_fault = True
 
             for event in resolved_events:
-                alert = alert_render.render_drift_resolved(
-                    event.name, event.first_seen, event.cleared_at, source=event.source
-                )
-                result = alert_render.emit_finding(alert)
-                if result.ok:
+                try:
+                    alert = alert_render.render_drift_resolved(
+                        event.name, event.first_seen, event.cleared_at, source=event.source
+                    )
+                except Exception as exc:  # noqa: BLE001 - per-emit isolation (#1124)
+                    errors.append(f"emit:{exc.__class__.__name__}:{event.name}:{exc}")
+                    alert_path_fault = True
+                    continue
+                delivered = _guarded_emit(alert, errors, label=event.name)
+                if delivered is True:
                     alerts_emitted += 1
+                elif delivered is None:
+                    alert_path_fault = True
 
-            state_mod.save_state(new_state, state_path)
-            _save_watermark(committed_watermark, Path(watermark_path))
-        except Exception as exc:  # noqa: BLE001 - fail-safe: state I/O must not crash the tick
-            errors.append(f"state_reconcile:{exc.__class__.__name__}:{exc}")
+            # Unfingerprintable findings carry no state: emitted every tick they
+            # are re-produced (assertions: guaranteed by the watermark hold below).
+            for finding in unfingerprintable:
+                delivered = _guarded_emit(finding, errors)
+                if delivered is True:
+                    alerts_emitted += 1
+                elif delivered is None:
+                    alert_path_fault = True
+
+            # (4) Save guards. The watermark is saved ONLY after the state save
+            # succeeded in the same tick: a watermark that advances past a new
+            # artifact_missing assertion whose state entry was never persisted
+            # would lose that finding's 24h re-alert and its resolution.
+            state_saved = False
+            try:
+                state_mod.save_state(new_state, state_path)
+                state_saved = True
+            except Exception as exc:  # noqa: BLE001 - fail-safe: state I/O must not crash the tick
+                errors.append(f"state_save:{exc.__class__.__name__}:{exc}")
+                alert_path_fault = True
+            # An unfingerprintable ASSERTION finding never enters state, so it is
+            # only re-produced if its record is re-read: hold the watermark at its
+            # loaded value (no save) so it stays loud every tick until fixed —
+            # the reconcile-fallback posture — instead of being emitted once and
+            # permanently lost (#1124 review F2). Coarse (holds the whole
+            # watermark, re-reading other new records too), but those are
+            # fingerprintable and dedup via the saved state.
+            hold_watermark = any(
+                isinstance(finding, AssertionFinding) for finding in unfingerprintable
+            )
+            if state_saved and not hold_watermark:
+                try:
+                    _save_watermark(committed_watermark, Path(watermark_path))
+                except Exception as exc:  # noqa: BLE001 - fail-safe: watermark I/O
+                    # Deliberately NOT an alert_path_fault: state was saved, so
+                    # re-reading the un-advanced records next tick dedups.
+                    errors.append(f"watermark_save:{exc.__class__.__name__}:{exc}")
+        else:
+            for finding in all_findings:
+                delivered = _guarded_emit(finding, errors)
+                if delivered is True:
+                    alerts_emitted += 1
     else:
         # --dry-run: compute findings only; no emit, no state/watermark
         # mutation. Report the raw finding counts (pre-cadence) so the
@@ -485,6 +662,7 @@ def run_scan(
             Path(last_tick_path),
             now=tick_now,
             scan_inability=scan_inability,
+            alert_path_fault=alert_path_fault,
             error_count=len(errors),
         )
 
