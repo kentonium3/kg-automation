@@ -829,6 +829,8 @@ def test_main_json_flag_prints_summary(isolated_paths, capsys):
         "unit_drift_findings",
         "unit_coverage",
         "alerts_emitted",
+        "carried_forward",
+        "findings_held",
         "errors",
     }
     assert exit_code == 0
@@ -1566,3 +1568,301 @@ def test_e2e_duplicate_and_malformed_enabled_through_fake_cron_list_all(
         "escalation-daily",
         "inbox-5pm (duplicate inbox-dup)",
     ]
+
+
+# --- #1129: a sub-scan that did not complete never resolves its findings ------
+#
+# Each test pre-seeds seen-state with one outstanding entry per source, every
+# one of which is GONE from the live world this tick (clean cron list, no unit
+# drift, the Vikunja artifact reappeared). A source that completes therefore
+# resolves its entry; a source that did not complete must carry it forward.
+
+from types import SimpleNamespace  # noqa: E402
+
+from scripts.trust import state as state_mod  # noqa: E402
+from scripts.trust.assertion_verifier import AssertionFinding  # noqa: E402
+from scripts.trust.cron_baseline import BaselineError, baseline_hash  # noqa: E402
+from scripts.trust.cron_drift_detector import CronDriftFinding  # noqa: E402
+from scripts.trust.unit_drift_detector import (  # noqa: E402
+    UnitCoverage,
+    UnitDriftFinding,
+    UnitEnumerationError,
+)
+
+_SEEN_AT = (T0 - timedelta(hours=1)).isoformat()  # seen + alerted, not yet due
+
+_CLEARED_TITLE = {
+    "cron": "Cron drift cleared: rogue-cron",
+    "unit-drift": "Deployed unit drift cleared: felix-canary.service",
+    "assertion": "Completion claim now grounded: vikunja_task:91",
+}
+
+
+def _seeded_state() -> dict[str, dict[str, str]]:
+    """source -> (fingerprint, entry), using each source's real fingerprint."""
+    cron_hash = baseline_hash(BASELINE)
+    cron_fp = state_mod.fingerprint_finding(
+        CronDriftFinding(kind="unapproved_present", name="rogue-cron", agent_id="rogue-agent"),
+        cron_hash,
+    )
+    unit_fp = state_mod.fingerprint_finding(
+        UnitDriftFinding(
+            kind="content_drift",
+            name="felix-canary.service",
+            repo_source="scripts/office2/felix-canary.service",
+        ),
+        "",
+    )
+    assertion = AssertionFinding(
+        kind="artifact_missing",
+        agent="main",
+        artifact_kind="vikunja_task",
+        artifact_id="91",
+        claim="Created Vikunja task",
+    )
+    assertion_fp = state_mod.fingerprint_finding(assertion, cron_hash)
+    times = {"first_seen": _SEEN_AT, "last_seen": _SEEN_AT, "last_alerted": _SEEN_AT}
+    return {
+        "cron": (cron_fp, {**times, "name": "rogue-cron", "source": "cron"}),
+        "unit-drift": (
+            unit_fp,
+            {**times, "name": "felix-canary.service", "source": "unit-drift"},
+        ),
+        "assertion": (
+            assertion_fp,
+            {
+                **times,
+                "name": "vikunja_task:91",
+                "source": "assertion",
+                "assertion_kind": "artifact_missing",
+                "artifact_kind": "vikunja_task",
+                "artifact_id": "91",
+                "agent": "main",
+                "claim": "Created Vikunja task",
+            },
+        ),
+    }
+
+
+def _carry_scan(
+    tmp_path: Path,
+    *,
+    overrides: dict[str, dict] | None = None,
+    unit_dir_present: bool = True,
+    dry_run: bool = False,
+    extra_patches=(),
+):
+    """Run one tick over the seeded three-source state with fakes at every
+    I/O boundary. ``overrides`` maps a ``run_trust_scan`` attribute to the
+    ``patch`` kwargs that replace its default fake (e.g. a ``side_effect``)."""
+    from contextlib import ExitStack
+
+    from scripts.common.alert_bus.model import AlertResult
+
+    seeded = _seeded_state()
+    state_path = tmp_path / "state" / "seen-findings.json"
+    state_path.parent.mkdir(parents=True, exist_ok=True)
+    state_path.write_text(json.dumps(dict(seeded.values())))
+    assertions_dir = tmp_path / "assertions"
+    assertions_dir.mkdir(exist_ok=True)
+    deployed = tmp_path / "deployed-units"
+    if unit_dir_present:
+        deployed.mkdir(exist_ok=True)
+    last_tick = tmp_path / "state" / "last-tick.json"
+
+    fakes: dict[str, dict] = {
+        "load_baseline": {"return_value": BASELINE},
+        "enumerate_live_crons": {"return_value": [_live_job()]},
+        "enumerate_unit_pairs": {"return_value": ([], UnitCoverage())},
+        "detect_unit_drift": {"return_value": []},
+        "verify_vikunja_id_present": {"return_value": True},  # artifact reappeared
+    }
+    fakes.update(overrides or {})
+
+    with ExitStack() as stack:
+        mocks = {
+            name: stack.enter_context(patch(f"scripts.trust.run_trust_scan.{name}", **kwargs))
+            for name, kwargs in fakes.items()
+        }
+        mock_emit = stack.enter_context(patch("scripts.trust.alert_render.emit"))
+        mock_emit.return_value = AlertResult(ok=True)
+        for p in extra_patches:
+            stack.enter_context(p)
+        summary = rts.run_scan(
+            dry_run=dry_run,
+            now=T0,
+            state_path=state_path,
+            watermark_path=tmp_path / "state" / "assertion-watermark.json",
+            assertions_base_dir=assertions_dir,
+            last_tick_path=last_tick,
+            unit_deployed_dir=deployed,
+        )
+
+    return SimpleNamespace(
+        summary=summary,
+        seeded=seeded,
+        saved=json.loads(state_path.read_text()),
+        titles=[c.args[0].title for c in mock_emit.call_args_list],
+        last_tick=json.loads(last_tick.read_text()) if last_tick.exists() else None,
+        mocks=mocks,
+    )
+
+
+def _assert_only_source_carried(run, carried_source: str) -> None:
+    carried_fp, carried_entry = run.seeded[carried_source]
+    # Carried forward identical: no ResolvedEvent, no last_seen refresh.
+    assert run.saved[carried_fp] == carried_entry
+    assert _CLEARED_TITLE[carried_source] not in run.titles
+    # The sources that did complete resolve exactly as today.
+    for source, (fp, _entry) in run.seeded.items():
+        if source == carried_source:
+            continue
+        assert fp not in run.saved
+        assert _CLEARED_TITLE[source] in run.titles
+    assert set(run.saved) == {carried_fp}
+    assert run.summary["carried_forward"] == 1
+    assert run.summary["findings_held"] is True
+    assert run.summary["ok"] is False
+    # B1: held findings are visible to the canary.
+    assert run.last_tick["exit_status"] == "failure"
+    assert run.last_tick["findings_held"] is True
+    assert run.last_tick["carried_forward"] == 1
+
+
+@pytest.mark.parametrize(
+    "carried_source, overrides, unit_dir_present, scan_inability",
+    [
+        (
+            "cron",
+            {"enumerate_live_crons": {"side_effect": CronEnumerationError("openclaw down")}},
+            True,
+            True,
+        ),
+        (
+            "cron",
+            {"detect_cron_drift": {"side_effect": RuntimeError("detector bug")}},
+            True,
+            True,
+        ),
+        (
+            "cron",
+            {"load_baseline": {"side_effect": BaselineError("baseline unreadable")}},
+            True,
+            True,
+        ),
+        (
+            "unit-drift",
+            {"enumerate_unit_pairs": {"side_effect": UnitEnumerationError("unreadable")}},
+            True,
+            True,
+        ),
+        ("unit-drift", {}, False, False),
+        (
+            "assertion",
+            {"verify_vikunja_id_present": {"side_effect": RuntimeError("reverify bug")}},
+            True,
+            False,
+        ),
+    ],
+    ids=[
+        "cron-enumeration-raises",
+        "detect-cron-drift-raises",
+        "baseline-error",
+        "unit-enumeration-raises",
+        "unit-dir-absent",
+        "assertion-reverify-raises",
+    ],
+)
+def test_failed_subscan_carries_its_findings_forward(
+    tmp_path, carried_source, overrides, unit_dir_present, scan_inability
+):
+    run = _carry_scan(tmp_path, overrides=overrides, unit_dir_present=unit_dir_present)
+
+    _assert_only_source_carried(run, carried_source)
+    # scan_inability (and so the preflight exit-2 contract) is unchanged: an
+    # assertion failure or an absent unit dir still does not gate preflight.
+    assert run.summary["_scan_inability"] is scan_inability
+    assert run.last_tick["scan_inability"] is scan_inability
+
+
+def test_assertion_new_pass_raise_still_runs_reverify_loop(tmp_path):
+    """B2: the outstanding re-verify loop runs even when the new-assertion pass
+    raised. A still-missing artifact is present this tick, so it is updated as
+    today (last_seen refreshed) rather than carried or resolved."""
+    run = _carry_scan(
+        tmp_path,
+        overrides={
+            "_iter_new_assertions_positioned": {"side_effect": RuntimeError("read exploded")},
+            "verify_vikunja_id_present": {"return_value": False},  # still missing
+        },
+    )
+
+    assert run.mocks["verify_vikunja_id_present"].call_args_list[0].args == ("91",)
+    assert any(e.startswith("assertion_scan:RuntimeError") for e in run.summary["errors"])
+    fp, entry = run.seeded["assertion"]
+    assert run.saved[fp]["last_seen"] == T0.isoformat()
+    assert run.saved[fp]["first_seen"] == entry["first_seen"]
+    assert _CLEARED_TITLE["assertion"] not in run.titles
+    assert run.summary["carried_forward"] == 0
+    assert run.summary["findings_held"] is False
+    assert run.last_tick["exit_status"] == "success"  # nothing held, not inability
+
+
+def test_assertion_new_pass_raise_carries_a_reappeared_artifact(tmp_path):
+    """The new-pass raise leaves the assertion source incomplete, so even a
+    re-verify that saw the artifact reappear may not resolve it this tick."""
+    run = _carry_scan(
+        tmp_path,
+        overrides={
+            "_iter_new_assertions_positioned": {"side_effect": RuntimeError("read exploded")},
+        },
+    )
+
+    assert run.mocks["verify_vikunja_id_present"].call_count == 1
+    _assert_only_source_carried(run, "assertion")
+
+
+def test_all_sources_complete_resolve_genuinely_gone_entries(tmp_path):
+    """Control: every source completes, every seeded entry is genuinely gone,
+    so each resolves exactly as before #1129."""
+    run = _carry_scan(tmp_path)
+
+    assert run.saved == {}
+    assert sorted(run.titles) == sorted(_CLEARED_TITLE.values())
+    assert run.summary["ok"] is True
+    assert run.summary["carried_forward"] == 0
+    assert run.summary["findings_held"] is False
+    assert run.last_tick["exit_status"] == "success"
+    assert run.last_tick["findings_held"] is False
+    assert run.last_tick["carried_forward"] == 0
+
+
+def test_dry_run_reports_zero_carried_forward(tmp_path):
+    run = _carry_scan(
+        tmp_path,
+        overrides={"enumerate_live_crons": {"side_effect": CronEnumerationError("down")}},
+        dry_run=True,
+    )
+
+    assert run.summary["carried_forward"] == 0
+    assert run.summary["findings_held"] is False
+    assert run.titles == []
+    assert run.last_tick is None
+
+
+def test_reconcile_fallback_reports_zero_carried_forward(tmp_path):
+    run = _carry_scan(
+        tmp_path,
+        overrides={"enumerate_live_crons": {"side_effect": CronEnumerationError("down")}},
+        extra_patches=[
+            patch(
+                "scripts.trust.run_trust_scan.state_mod.reconcile",
+                side_effect=RuntimeError("reconcile exploded"),
+            )
+        ],
+    )
+
+    assert run.summary["carried_forward"] == 0
+    assert run.summary["findings_held"] is False
+    assert run.last_tick["carried_forward"] == 0
+    assert run.last_tick["exit_status"] == "failure"  # alert_path_fault, as today
