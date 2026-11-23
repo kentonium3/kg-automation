@@ -1704,56 +1704,72 @@ def _carry_scan(
     )
 
 
-def _assert_only_source_carried(run, carried_source: str) -> None:
-    carried_fp, carried_entry = run.seeded[carried_source]
-    # Carried forward identical: no ResolvedEvent, no last_seen refresh.
-    assert run.saved[carried_fp] == carried_entry
-    assert _CLEARED_TITLE[carried_source] not in run.titles
+def _assert_sources_carried(run, carried_sources: tuple[str, ...]) -> None:
+    carried_fps = set()
+    for source in carried_sources:
+        carried_fp, carried_entry = run.seeded[source]
+        carried_fps.add(carried_fp)
+        # Carried forward identical: no ResolvedEvent, no last_seen refresh.
+        assert run.saved[carried_fp] == carried_entry
+        assert _CLEARED_TITLE[source] not in run.titles
     # The sources that did complete resolve exactly as today.
     for source, (fp, _entry) in run.seeded.items():
-        if source == carried_source:
+        if source in carried_sources:
             continue
         assert fp not in run.saved
         assert _CLEARED_TITLE[source] in run.titles
-    assert set(run.saved) == {carried_fp}
-    assert run.summary["carried_forward"] == 1
+    assert set(run.saved) == carried_fps
+    assert run.summary["carried_forward"] == len(carried_sources)
     assert run.summary["findings_held"] is True
     # B1: held findings are visible to the canary.
     assert run.last_tick["exit_status"] == "failure"
     assert run.last_tick["findings_held"] is True
-    assert run.last_tick["carried_forward"] == 1
+    assert run.last_tick["carried_forward"] == len(carried_sources)
+
+
+def _assert_only_source_carried(run, carried_source: str) -> None:
+    _assert_sources_carried(run, (carried_source,))
 
 
 @pytest.mark.parametrize(
-    "carried_source, overrides, unit_dir_present, scan_inability",
+    "carried_sources, overrides, unit_dir_present, scan_inability",
     [
         (
-            "cron",
+            ("cron",),
             {"enumerate_live_crons": {"side_effect": CronEnumerationError("openclaw down")}},
             True,
             True,
         ),
         (
-            "cron",
+            ("cron",),
             {"detect_cron_drift": {"side_effect": RuntimeError("detector bug")}},
             True,
             True,
         ),
         (
-            "cron",
+            ("cron", "assertion"),
             {"load_baseline": {"side_effect": BaselineError("baseline unreadable")}},
             True,
             True,
         ),
         (
-            "unit-drift",
+            ("unit-drift",),
             {"enumerate_unit_pairs": {"side_effect": UnitEnumerationError("unreadable")}},
             True,
             True,
         ),
-        ("unit-drift", {}, False, False),
+        (("unit-drift",), {}, False, False),
         (
-            "assertion",
+            ("cron", "assertion"),
+            {
+                "load_baseline": {"side_effect": BaselineError("baseline unreadable")},
+                "verify_vikunja_id_present": {"return_value": False},  # still missing
+            },
+            True,
+            True,
+        ),
+        (
+            ("assertion",),
             {"verify_vikunja_id_present": {"side_effect": RuntimeError("reverify bug")}},
             True,
             False,
@@ -1765,15 +1781,19 @@ def _assert_only_source_carried(run, carried_source: str) -> None:
         "baseline-error",
         "unit-enumeration-raises",
         "unit-dir-absent",
+        "baseline-error-assertion-still-missing",
         "assertion-reverify-raises",
     ],
 )
 def test_failed_subscan_carries_its_findings_forward(
-    tmp_path, carried_source, overrides, unit_dir_present, scan_inability
+    tmp_path, carried_sources, overrides, unit_dir_present, scan_inability
 ):
     run = _carry_scan(tmp_path, overrides=overrides, unit_dir_present=unit_dir_present)
 
-    _assert_only_source_carried(run, carried_source)
+    _assert_sources_carried(run, carried_sources)
+    if "assertion" in carried_sources:
+        # Neither a false "now grounded" nor a duplicate "not grounded".
+        assert not any("grounded" in t.lower() for t in run.titles)
     # `ok` still means "no errors": the unit-dir skip records none, so only the
     # held finding (via last-tick exit_status) makes that tick visible.
     assert run.summary["ok"] is (not unit_dir_present)
@@ -1865,3 +1885,55 @@ def test_reconcile_fallback_reports_zero_carried_forward(tmp_path):
     assert run.summary["findings_held"] is False
     assert run.last_tick["carried_forward"] == 0
     assert run.last_tick["exit_status"] == "failure"  # alert_path_fault, as today
+
+
+def test_baseline_error_tick_holds_new_assertions_for_the_next_good_tick(isolated_paths):
+    """F1: assertion reconciliation requires a loaded baseline hash. A new
+    artifact_missing record read on a BaselineError tick is neither alerted
+    under a baseline-less fingerprint nor consumed: the watermark is held, so
+    the next good tick re-reads it and alerts it once, under the real hash."""
+    from scripts.common.alert_bus.model import AlertResult
+
+    state_path, watermark_path, assertions_dir = isolated_paths
+    _vikunja_assertion(assertions_dir, ["77"])
+    no_units = state_path.parent / "no-deployed-units"
+
+    def tick(now, **baseline_patch):
+        with patch("scripts.trust.run_trust_scan.load_baseline", **baseline_patch), patch(
+            "scripts.trust.run_trust_scan.enumerate_live_crons", return_value=[_live_job()]
+        ), patch(
+            "scripts.trust.assertion_verifier._build_client",
+            return_value=_FakeVikunja(present=set()),
+        ), patch("scripts.trust.alert_render.emit") as mock_emit:
+            mock_emit.return_value = AlertResult(ok=True)
+            summary = rts.run_scan(
+                now=now,
+                state_path=state_path,
+                watermark_path=watermark_path,
+                assertions_base_dir=assertions_dir,
+                unit_deployed_dir=no_units,
+            )
+        return summary, [c.args[0].title for c in mock_emit.call_args_list]
+
+    summary1, titles1 = tick(T0, side_effect=BaselineError("baseline unreadable"))
+    assert not any("grounded" in t.lower() for t in titles1)
+    assert not state_path.exists() or json.loads(state_path.read_text()) == {}
+    wm = rts._load_watermark(watermark_path)
+    assert all(v == 0 for v in wm.values())  # held: not consumed
+
+    summary2, titles2 = tick(T0 + timedelta(minutes=15), return_value=BASELINE)
+    assert summary2["ok"] is True
+    assert titles2 == ["Completion claim not grounded: vikunja_task"]
+    saved = json.loads(state_path.read_text())
+    expected_fp = state_mod.fingerprint_finding(
+        AssertionFinding(
+            kind="artifact_missing",
+            agent="main",
+            artifact_kind="vikunja_task",
+            artifact_id="77",
+            claim="Created Vikunja reminder tasks",
+        ),
+        baseline_hash(BASELINE),
+    )
+    assert set(saved) == {expected_fp}
+    assert any(v > 0 for v in rts._load_watermark(watermark_path).values())
