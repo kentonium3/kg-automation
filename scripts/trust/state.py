@@ -454,6 +454,15 @@ def reconcile(
     findings are processed the same whether or not their source completed: a
     partial result is still real evidence of presence.
 
+    **Each fingerprint is handled once per tick** (#1137). The same identity
+    can arrive more than once: a never-delivered warning re-read under a held
+    watermark AND rebuilt by :func:`undelivered_assertion_findings`, an
+    ``artifact_missing`` re-read AND re-verified, or one id listed twice in a
+    record. Every copy would be judged against the same prior entry, so all
+    would be due and alert, and a failed emit of one copy would make
+    ``keep_due`` undo a successful emit of another. The first occurrence wins;
+    later copies are skipped, so they never reach ``to_alert``.
+
     Returns ``(to_alert, resolved_events, new_state)`` — the caller is
     responsible for persisting ``new_state`` via :func:`save_state` (this
     function performs no I/O).
@@ -473,11 +482,15 @@ def reconcile(
 
     for finding, baseline_hash in current_findings:
         fingerprint = fingerprint_finding(finding, baseline_hash)
+        if fingerprint in seen_fingerprints:
+            # Same identity reported twice this tick (#1137): first wins.
+            continue
         seen_fingerprints.add(fingerprint)
         name = _finding_name(finding)
         source = _finding_source(finding)
         # Persist assertion identity so an outstanding artifact_missing can be
-        # re-verified next scan independent of the watermark (F2).
+        # re-verified next scan independent of the watermark (F2), or an
+        # undelivered non-re-verifiable one retried (#1137).
         identity_fields = (
             _assertion_identity_fields(finding)
             if isinstance(finding, AssertionFinding)
@@ -560,8 +573,14 @@ _ALWAYS_DUE_SENTINEL = "1970-01-01T00:00:00+00:00"
 
 
 def _never_delivered(entry: dict[str, str]) -> bool:
-    """True iff *entry*'s alert has never reached Kent (``keep_due`` stamped the
-    sentinel on a failed first emit and no later emit has succeeded)."""
+    """True iff no emit of *entry*'s alert has been recorded as delivered
+    (``keep_due`` stamped the sentinel on a failed first emit, and no later
+    successful emit has been saved).
+
+    "Recorded" matters: if an emit succeeds but the state save fails on that
+    tick, the saved entry still carries the sentinel and the warning is
+    delivered again next tick. Loud beats silent; accepted.
+    """
     return entry.get("last_alerted") == _ALWAYS_DUE_SENTINEL
 
 

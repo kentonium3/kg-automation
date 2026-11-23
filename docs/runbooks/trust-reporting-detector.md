@@ -180,9 +180,11 @@ Only a finding that is re-checked every tick can clear. An `unverifiable_kind`
 warning is never re-checked, so it alerts once (retried every tick until
 delivered) and is then dropped silently. It never produces "Completion claim
 now grounded", because nothing was verified (#1137). It does not normally
-re-alert on the 24h cadence. The exception: while an earlier indeterminate
-record in the same file holds the watermark, its record is re-read each tick,
-so it follows the 24h cadence until the hold clears.
+re-alert on the 24h cadence. The main exception: while the watermark is held
+(most commonly by an earlier indeterminate record in the same file), its record
+is re-read each tick, so it follows the 24h cadence until the hold clears. A
+warning that is both re-read and retried in one tick still alerts once: each
+fingerprint is reconciled once per tick.
 A cron finding's fingerprint is versioned by the baseline's content hash, so
 **editing the baseline re-evaluates every cron finding** rather than letting
 stale seen-state suppress a now-legitimate (or newly-illegitimate) cron.
