@@ -523,10 +523,15 @@ def run_scan(
         committed_watermark = watermark
 
     try:
+        # (c) Never-delivered, non-re-verifiable findings from state, rebuilt
+        # with no external call (#1137). First in this try, so a re-verify
+        # raise below can never skip the retry.
+        assertion_findings.extend(state_mod.undelivered_assertion_findings(current_state))
         # (b) Re-verify outstanding artifact_missing assertions from state.
         # A still-missing one re-emits its finding (persists 24h cadence); a
         # reappeared one is simply absent from current_findings this tick, so
-        # reconcile resolves it as an ASSERTION resolution.
+        # reconcile resolves it as an ASSERTION resolution. Only re-verifiable
+        # entries ever resolve; the rest are dropped silently once absent.
         for outstanding in state_mod.outstanding_assertion_findings(current_state):
             present = verify_vikunja_id_present(outstanding.artifact_id)
             if present is False:
