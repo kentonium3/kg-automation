@@ -254,7 +254,7 @@ def test_findings_are_sorted_deterministically() -> None:
 
 def _mock_completed(returncode: int, stdout: str, stderr: str = "") -> subprocess.CompletedProcess:
     return subprocess.CompletedProcess(
-        args=["openclaw", "cron", "list", "--json"],
+        args=["openclaw", "cron", "list", "--all", "--json"],
         returncode=returncode,
         stdout=stdout,
         stderr=stderr,
