@@ -1444,3 +1444,87 @@ def test_resolved_event_render_failure_is_guarded(isolated_paths, tmp_path):
     assert json.loads(last_tick.read_text())["alert_path_fault"] is True
     saved = json.loads(state_path.read_text())
     assert [e["name"] for e in saved.values()] == ["other-cron"]
+
+
+# --- #1126/#1127 end to end through a fake `cron list --all --json` ----------
+
+
+def test_e2e_duplicate_and_malformed_enabled_through_fake_cron_list_all(
+    isolated_paths, tmp_path
+):
+    """Fakes the subprocess boundary (not enumerate_live_crons), so the real
+    argv, payload parse, detector and render all run. A duplicate copy of an
+    approved cron and an approved cron with a malformed `enabled` both alert;
+    the tick is ok with no errors."""
+    import subprocess
+
+    from scripts.common.alert_bus.model import AlertResult
+
+    state_path, watermark_path, assertions_dir = isolated_paths
+    baseline = [
+        *BASELINE,
+        ApprovedCron(
+            name="escalation-daily",
+            agent_id="felix-admin-escalation",
+            schedule_expr="0 12 * * *",
+            tz="",
+            purpose="test",
+            approved_by="kent",
+            approved_at="2026-07-01",
+        ),
+    ]
+    payload = {
+        "jobs": [
+            _live_job(id="inbox-dup", createdAtMs=1775153265999),
+            _live_job(id="inbox-orig", createdAtMs=1775153265189),
+            {
+                "id": "esc-1",
+                "name": "escalation-daily",
+                "agentId": "felix-admin-escalation",
+                "enabled": {"a": 1},
+                "createdAtMs": 1775153265000,
+                "schedule": {"kind": "cron", "expr": "0 12 * * *"},
+            },
+        ],
+        "total": 3,
+        "hasMore": False,
+    }
+    seen_argv: list[list[str]] = []
+
+    def fake_run(argv, *args, **kwargs):
+        seen_argv.append(list(argv))
+        return subprocess.CompletedProcess(
+            args=argv, returncode=0, stdout=json.dumps(payload), stderr=""
+        )
+
+    with patch("scripts.trust.run_trust_scan.load_baseline", return_value=baseline), patch(
+        "scripts.trust.cron_drift_detector.subprocess.run", side_effect=fake_run
+    ), patch("scripts.trust.alert_render.emit") as mock_emit:
+        mock_emit.return_value = AlertResult(ok=True)
+        summary = rts.run_scan(
+            now=T0,
+            state_path=state_path,
+            watermark_path=watermark_path,
+            assertions_base_dir=assertions_dir,
+            last_tick_path=tmp_path / "state" / "last-tick.json",
+            unit_deployed_dir=state_path.parent / "no-deployed-units",
+        )
+
+    assert seen_argv and seen_argv[0][-4:] == ["cron", "list", "--all", "--json"]
+    assert summary["errors"] == []
+    assert summary["ok"] is True
+    assert summary["drift_findings"] == 2
+    assert summary["alerts_emitted"] == 2
+    alerts = sorted((call.args[0] for call in mock_emit.call_args_list), key=lambda a: a.title)
+    assert [a.title for a in alerts] == [
+        "Approved cron not confirmed enabled: escalation-daily",
+        "Duplicate cron detected: inbox-5pm",
+    ]
+    assert alerts[1].details["cron_id"] == "inbox-dup"
+    assert alerts[1].details["primary_cron_id"] == "inbox-orig"
+    assert alerts[0].details["enabled_raw"] == "{'a': 1}"
+    saved = json.loads(state_path.read_text())
+    assert sorted(e["name"] for e in saved.values()) == [
+        "escalation-daily",
+        "inbox-5pm (duplicate inbox-dup)",
+    ]

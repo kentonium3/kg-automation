@@ -8,6 +8,7 @@ file. All time is injected via `now` — never a real clock.
 
 from __future__ import annotations
 
+import hashlib
 import json
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -560,3 +561,106 @@ def test_reconcile_null_agent_finding_alerts_and_persists_str_name(tmp_path: Pat
         [(finding, BASELINE_HASH_A)], T0 + timedelta(minutes=15), loaded
     )
     assert to_alert2 == []
+
+
+# --- #1128: injective fingerprint encoding -----------------------------------
+
+
+def test_fingerprint_pipe_collision_pair_is_distinct():
+    """The filed pair: legacy '|'.join made both canonical strings identical."""
+    a = CronDriftFinding(kind="unapproved_present", name="a|x", agent_id="y")
+    b = CronDriftFinding(kind="unapproved_present", name="a", agent_id="x|y")
+    assert state_mod.fingerprint_finding(a, BASELINE_HASH_A) != state_mod.fingerprint_finding(
+        b, BASELINE_HASH_A
+    )
+
+
+def test_fingerprint_pipe_field_uses_v2_json_encoding():
+    finding = CronDriftFinding(kind="unapproved_present", name="a|x", agent_id="y")
+    expected_canonical = "v2:" + json.dumps(
+        ["cron", "unapproved_present", "a|x", "y", BASELINE_HASH_A]
+    )
+    assert state_mod.fingerprint_finding(finding, BASELINE_HASH_A) == hashlib.sha256(
+        expected_canonical.encode("utf-8")
+    ).hexdigest()
+
+
+def test_fingerprint_pipe_in_assertion_field_is_distinct():
+    a = AssertionFinding(
+        kind="artifact_missing", agent="m|a", artifact_kind="k", artifact_id="1", claim="c"
+    )
+    b = AssertionFinding(
+        kind="artifact_missing", agent="m", artifact_kind="a|k", artifact_id="1", claim="c"
+    )
+    assert state_mod.fingerprint_finding(a, "h") != state_mod.fingerprint_finding(b, "h")
+
+
+def test_fingerprint_v2_lone_surrogate_does_not_raise():
+    finding = CronDriftFinding(kind="unapproved_present", name="a|\ud800", agent_id="y")
+    fp = state_mod.fingerprint_finding(finding, BASELINE_HASH_A)
+    assert len(fp) == 64
+
+
+def test_canonical_helper_documents_and_keeps_legacy_encoding():
+    assert state_mod._canonical(("cron", "k", "n", "a", "h")) == "cron|k|n|a|h"
+    assert state_mod._canonical(("cron", "k", "n|x", "a", "h")).startswith("v2:[")
+    assert "inject" in (state_mod._canonical.__doc__ or "").lower()
+
+
+# --- #1126: duplicate_present identity is 5-field -----------------------------
+
+
+def _dup_finding(cron_id, name="inbox-5pm", agent_id="felix-admin-capture"):
+    return CronDriftFinding(
+        kind="duplicate_present",
+        name=name,
+        agent_id=agent_id,
+        cron_id=cron_id,
+        primary_cron_id="primary",
+    )
+
+
+def test_duplicate_present_fingerprint_is_five_field_identity():
+    expected = hashlib.sha256(
+        "cron|duplicate_present|inbox-5pm|felix-admin-capture|dup-1|h".encode("utf-8")
+    ).hexdigest()
+    assert state_mod.fingerprint_finding(_dup_finding("dup-1"), "h") == expected
+
+
+def test_duplicate_present_distinct_cron_ids_distinct_fingerprints():
+    assert state_mod.fingerprint_finding(_dup_finding("d1"), "h") != state_mod.fingerprint_finding(
+        _dup_finding("d2"), "h"
+    )
+
+
+def test_duplicate_present_id_less_uses_sentinel_and_null_agent_sentinel():
+    expected = hashlib.sha256(
+        "cron|duplicate_present|n|\x00none|\x00noid|h".encode("utf-8")
+    ).hexdigest()
+    assert (
+        state_mod.fingerprint_finding(_dup_finding(None, name="n", agent_id=None), "h") == expected
+    )
+    # An id-less copy never collides with a real id.
+    for real in ("", "noid", "\x00none"):
+        assert state_mod.fingerprint_finding(_dup_finding(None), "h") != state_mod.fingerprint_finding(
+            _dup_finding(real), "h"
+        ), real
+
+
+def test_duplicate_present_resolution_name_names_the_copy():
+    assert state_mod._finding_name(_dup_finding("d1")) == "inbox-5pm (duplicate d1)"
+    assert state_mod._finding_name(_dup_finding(None)) == "inbox-5pm (duplicate no-id)"
+
+
+def test_enabled_state_and_primary_fields_not_fingerprinted():
+    base = CronDriftFinding(kind="enabled_mismatch", name="n", agent_id="a")
+    rich = CronDriftFinding(
+        kind="enabled_mismatch",
+        name="n",
+        agent_id="a",
+        cron_id="c",
+        enabled_state="malformed",
+        enabled_raw="'yes'",
+        primary_cron_id="p",
+    )
+    assert state_mod.fingerprint_finding(base, "h") == state_mod.fingerprint_finding(rich, "h")

@@ -295,3 +295,151 @@ def test_emit_null_agent_cron_finding_reaches_bus():
         result = alert_render.emit_finding(finding)
     assert result.ok is True
     mock_emit.assert_called_once()
+
+
+# --- #1127: enabled_mismatch copy distinguishes disabled from unconfirmed -----
+
+
+def test_render_enabled_mismatch_false_keeps_existing_copy():
+    alert = alert_render.render_cron_finding(
+        _cron_finding(kind="enabled_mismatch", name="inbox-5pm", enabled=False, enabled_state="false")
+    )
+    assert alert.title == "Approved cron disabled: inbox-5pm"
+    assert alert.description == (
+        "The approved cron 'inbox-5pm' (agent 'felix-admin-capture') is unexpectedly "
+        "disabled."
+    )
+    assert alert.details["enabled_state"] == "false"
+    assert "enabled_raw" not in alert.details
+
+
+def test_render_enabled_mismatch_absent_is_not_confirmed_enabled():
+    alert = alert_render.render_cron_finding(
+        _cron_finding(kind="enabled_mismatch", name="inbox-5pm", enabled=None, enabled_state="absent")
+    )
+    assert alert.severity == Severity.WARN
+    assert alert.title == "Approved cron not confirmed enabled: inbox-5pm"
+    assert "enabled=absent" in alert.description
+    assert alert.details["enabled_state"] == "absent"
+
+
+def test_render_enabled_mismatch_malformed_dict_raw_with_braces_does_not_raise():
+    """Debbie #3: a brace in a raw repr must never be interpolated into a
+    format template (it would raise KeyError/ValueError)."""
+    from scripts.trust.cron_baseline import ApprovedCron
+    from scripts.trust.cron_drift_detector import detect_cron_drift
+
+    baseline = [
+        ApprovedCron(
+            name="inbox-5pm",
+            agent_id="felix-admin-capture",
+            schedule_expr="0 17 * * *",
+            tz="",
+            purpose="p",
+            approved_by="kent",
+            approved_at="2026-07-10",
+        )
+    ]
+    live = [
+        {
+            "id": "c1",
+            "name": "inbox-5pm",
+            "agentId": "felix-admin-capture",
+            "enabled": {"a": 1},
+            "schedule": {"kind": "cron", "expr": "0 17 * * *"},
+        }
+    ]
+    (finding,) = detect_cron_drift(live, baseline)
+    alert = alert_render.render_cron_finding(finding)
+
+    assert alert.title == "Approved cron not confirmed enabled: inbox-5pm"
+    assert "enabled=malformed:{'a': 1}" in alert.description
+    assert alert.details["enabled_state"] == "malformed"
+    assert alert.details["enabled_raw"] == "{'a': 1}"
+    assert all(isinstance(v, str) for v in alert.details.values())
+
+
+def test_render_name_with_braces_does_not_raise():
+    alert = alert_render.render_cron_finding(
+        _cron_finding(kind="duplicate_present", name="{x}{0}", primary_cron_id="p")
+    )
+    assert "{x}{0}" in alert.title
+
+
+# --- #1126: duplicate_present -------------------------------------------------
+
+
+def test_render_duplicate_present():
+    alert = alert_render.render_cron_finding(
+        _cron_finding(
+            kind="duplicate_present",
+            name="inbox-5pm",
+            cron_id="dup-2",
+            primary_cron_id="prim-1",
+            enabled=True,
+            enabled_state="true",
+            primary_enabled_state="false",
+        )
+    )
+    assert alert.severity == Severity.ERROR
+    assert alert.title == "Duplicate cron detected: inbox-5pm"
+    assert "'felix-admin-capture'" in alert.description
+    assert "dup-2" in alert.description
+    assert "prim-1" in alert.description
+    assert "enabled=true" in alert.description
+    assert "enabled=false" in alert.description
+    assert alert.details["primary_cron_id"] == "prim-1"
+    assert alert.details["cron_id"] == "dup-2"
+    assert alert.details["enabled_state"] == "true"
+
+
+def test_render_duplicate_present_null_agent_and_no_id():
+    alert = alert_render.render_cron_finding(
+        _cron_finding(
+            kind="duplicate_present",
+            name="Memory Dreaming Promotion",
+            agent_id=None,
+            cron_id=None,
+            primary_cron_id=None,
+        )
+    )
+    assert "None" not in alert.title
+    assert "None" not in alert.description
+    assert "plugin-managed or unowned" in alert.description
+
+
+# --- A5: registration guard ----------------------------------------------------
+
+
+def _detector_kinds() -> list[str]:
+    from scripts.trust import cron_drift_detector as detector
+
+    return [
+        getattr(detector, name) for name in detector.__all__ if name.startswith("KIND_")
+    ]
+
+
+def test_every_detector_kind_registered_in_all_render_maps():
+    kinds = _detector_kinds()
+    assert "duplicate_present" in kinds
+    for kind in kinds:
+        assert kind in alert_render._CRON_SEVERITY, kind
+        assert kind in alert_render._CRON_TITLE, kind
+        assert kind in alert_render._CRON_DESCRIPTION, kind
+    assert set(alert_render._CRON_SEVERITY) == set(kinds)
+    assert set(alert_render._CRON_TITLE) == set(kinds)
+    assert set(alert_render._CRON_DESCRIPTION) == set(kinds)
+
+
+def test_every_detector_kind_documented_in_runbook_tables():
+    from pathlib import Path
+
+    runbook = (
+        Path(__file__).resolve().parents[2] / "docs" / "runbooks" / "trust-reporting-detector.md"
+    ).read_text(encoding="utf-8")
+    kind_section = runbook.split("### 2. Completion-assertion", 1)[0]
+    alert_section = runbook.split("## How to read its alerts", 1)[1].split("\n## ", 1)[0]
+    for kind in _detector_kinds():
+        assert f"| `{kind}` |" in kind_section, f"kind table missing {kind}"
+        severity = alert_render._CRON_SEVERITY[kind].value
+        assert f"| `{kind}` | {severity} |" in alert_section, f"alert table missing {kind}"
