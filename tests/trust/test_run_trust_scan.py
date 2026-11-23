@@ -2026,6 +2026,7 @@ def test_baseline_edit_does_not_rekey_an_outstanding_assertion(isolated_paths):
     assert summary2["errors"] == []
     assert not any("grounded" in t.lower() for t in titles2)
     assert any("escalation-daily" in t for t in titles2)  # the edit IS re-evaluated for crons
+    assert len(titles2) == 1  # nothing else alerts on a baseline edit
     assertion_keys2 = {k for k, e in saved2.items() if e.get("source") == "assertion"}
     assert assertion_keys2 == assertion_keys1
     (key,) = assertion_keys1

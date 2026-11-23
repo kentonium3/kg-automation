@@ -315,7 +315,8 @@ reconcile normally, because their fingerprints do not depend on the baseline
 (#1130). Assertion alerts continue during a baseline outage: a new
 `artifact_missing` record alerts that tick, a still-missing one keeps its
 cadence, and a reappeared artifact resolves. The tick still reports
-`exit_status: failure`, through `scan_inability` and the carried cron entries.
+`exit_status: failure` through `scan_inability`, plus `findings_held` when
+cron entries are outstanding.
 
 A finding that *is* reported this tick is still updated as usual, even when its
 source did not complete, because a partial result is real evidence of presence.
