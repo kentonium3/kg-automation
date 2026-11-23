@@ -119,6 +119,9 @@ is `<none>`, and `details.declaration_key` names the owning plugin (for example
 `agent_id`, so a null-agent cron can never match an approved entry. It always
 alerts as `unapproved_present`, which is the fail-closed outcome. To remove one,
 use the owning plugin's config; `cron rm` alone is re-created by the plugin.
+This is deliberate policy, not a gap: Kent chose to keep plugin crons
+unapprovable (2026-11-23, #1125 option C). Revisit by matching on
+`declarationKey` (option B) only if a plugin feature is ever wanted running.
 
 **Alert cadence** (seen-findings state, `scripts/trust/state.py`): a finding
 alerts on **first observation**, then re-alerts every 24h while it persists
