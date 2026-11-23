@@ -466,7 +466,7 @@ def run_scan(
         errors.append(f"state_load:{exc.__class__.__name__}:{exc}")
 
     # ---- Assertion sub-scan (WP03) -------------------------------------
-    # Two sources feed the assertion findings this tick:
+    # Three sources feed the assertion findings this tick:
     #   (a) NEW assertions read once past the byte-offset watermark — but the
     #       watermark only advances past records that were CONCLUSIVELY verified
     #       (present or missing). A record with any indeterminate id (transient
@@ -475,10 +475,16 @@ def run_scan(
     #       re-verified against Vikunja every scan, independent of the watermark,
     #       so a still-missing artifact keeps producing its finding (persisting
     #       the 24h re-alert) and only clears when the artifact reappears (F2).
+    #   (c) NEVER-DELIVERED non-re-verifiable assertions already in seen-state
+    #       (e.g. an unverifiable_kind warning whose first emit failed), rebuilt
+    #       from their stored identity with no external call, so the warning is
+    #       retried until delivered rather than lost (#1137). Nothing else
+    #       re-produces them, so once delivered they are dropped silently.
     #
-    # (a) and (b) are guarded separately (#1129 B2): a fault in the new-
-    # assertion pass must not skip the re-verify of outstanding findings. The
-    # assertion source is completed only if BOTH ran to the end.
+    # (a) and (b)+(c) are guarded separately (#1129 B2): a fault in the new-
+    # assertion pass must not skip the re-verify of outstanding findings. (c)
+    # runs first in the second guard, so a (b) raise cannot skip it. The
+    # assertion source is completed only if BOTH guards ran to the end.
     assertion_findings: list[AssertionFinding] = []
     watermark: dict[str, int] = {}
     committed_watermark: dict[str, int] = {}
@@ -574,7 +580,9 @@ def run_scan(
         # re-produced (no cadence) rather than dropped, and the fault is
         # recorded. Cron/unit findings are re-produced each tick by their live
         # sub-scan; an ASSERTION finding is re-produced only if its record is
-        # re-read, so the watermark is held for it (see the save guards). The
+        # re-read (or, from state, by the (b) re-verify / (c) retry above,
+        # neither of which applies to a finding that never entered state), so
+        # the watermark is held for it (see the save guards). The
         # fingerprints are
         # computed once here so no later step calls fingerprint_finding
         # unguarded (the emit-retry keep_due branch reuses them).
