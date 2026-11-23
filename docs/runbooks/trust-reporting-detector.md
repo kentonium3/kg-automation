@@ -66,16 +66,21 @@ burst like that as an OpenClaw JSON shape change, not every cron disabled at onc
 **Duplicates (#1126).** Live jobs are grouped by `(name, agent_id)`. One copy
 per group is the **primary** and is diffed exactly as a single job would be
 (`unapproved_present` / `schedule_mismatch` / `enabled_mismatch`). The primary
-is the running copy first, then the oldest `createdAtMs`, then the lowest `id`.
-Every other copy alerts as `duplicate_present` with its own `cron_id` and the
-primary's `primary_cron_id`. The scan does not compare payloads, so an extra
+is the oldest copy (lowest `createdAtMs`, then lowest `id`). Only these
+immutable fields choose it. Each copy's enabled state is reported
+(`enabled_state`, `primary_enabled_state`) but never used to choose, so
+disabling or re-enabling a copy does not move the primary or re-key its
+duplicates. Every other copy alerts as `duplicate_present` with its own
+`cron_id` and the primary's `primary_cron_id`. A copy that shares the
+primary's `id` is not reported. The scan does not compare payloads, so an extra
 copy of an approved cron may run different instructions. Each extra copy has
 its own fingerprint (the identity adds its `cron_id`) and resolves on its own.
 Copies with no `id` are a degraded shape OpenClaw does not emit; they share one
 identity, so they collapse to a single alert.
 
-**Pagination guard.** If `cron list` ever returns `hasMore: true`, the scan
-refuses to diff a truncated page. It raises `CronEnumerationError` and fails
+**Pagination guard.** If `cron list` returns `hasMore` with any value other
+than absent, `null` or `false`, the scan refuses to diff a possibly truncated
+page (default-deny). It raises `CronEnumerationError` and fails
 safe (`ok:false`, `errors[]` entry `cron_scan:CronEnumerationError:`). Today
 OpenClaw returns every job in one page.
 
