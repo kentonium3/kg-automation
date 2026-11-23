@@ -91,7 +91,8 @@
       "last_transition_at": "2026-11-23T23:41:53.970144+00:00",
       "model": "__resolved_model_absent__",
       "notes": [
-        "Ready for review"
+        "Ready for review",
+        "Review cycle 1 addressed"
       ],
       "provider": "__resolved_provider_absent__",
       "review": null,
