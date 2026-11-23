@@ -108,6 +108,18 @@
       "verdict": "not-applicable",
       "wp": null
     },
+    "#kentonium3/kg-automation#1138": {
+      "evidence_ref": "Follow-up: kentonium3/kg-automation#1138 (unit-file drift, out of scope per C-006)",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": null,
+      "title": null,
+      "verdict": "deferred-with-followup",
+      "wp": null
+    },
     "#spec-kitty/spec-kitty#7745": {
       "evidence_ref": "Cited for context only (tooling fault forecast); no work owed.",
       "fr": null,
