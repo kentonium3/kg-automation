@@ -67,16 +67,16 @@ Run `cd /home/claude/kg-automation && python3 -m scripts.inbox.clarification_swe
 
 ### Step 1b — Inbox intake completeness scan (Tier-1 digest)
 
-Independently of note routing, scan the **Vikunja Inbox** for not-done tasks missing Tier-1 fields (a real project, a friction `f:1`/`f:2`/`f:3`, an Eisenhower `q:` quadrant):
+Independently of note routing, scan the **Vikunja Inbox** for not-done tasks missing Tier-1 fields: a real project (not Inbox), a schedulable friction (`f:1`/`f:2`/`f:3`), an Eisenhower quadrant (`q:`):
 
 `cd /home/claude/kg-automation && python3 -m scripts.inbox.scan_inbox --json` (optionally `--source-cron <this-cron-name>`).
 
-It is deterministic, writes the per-digest correlation record, and returns `{status, incomplete, entries, digest_text, …}`.
+It is deterministic (no LLM): it reads with the felix-bot token, writes an immutable per-digest correlation record (so a later reply can be applied), and returns `{status, incomplete, entries, digest_text, …}`.
 
 - `incomplete == 0` → nothing to send; this scan does not by itself block IDLE.
 - `incomplete > 0` → the turn is **NOT** idle. Put the already-numbered `digest_text` **verbatim** in this turn's message as ONE block (never one message per task). Append it to the routing/quality report if there is one; otherwise the message is the identity line, a blank line, then `digest_text`.
 
-Do **not** parse or apply anything here, and do not forward anything to main: Kent's numbered reply reaches the **main** agent directly, which correlates and applies it. You only scan and surface the digest.
+Do **not** parse, resolve, or apply anything here. Kent's later numbered reply is correlated and applied by the **main** agent under its own standing orders, not by you; there is no capture→main hop for this. You only scan and surface the digest.
 
 ### Step 2 — Parse each unprocessed file
 
@@ -92,7 +92,7 @@ Run `cd /home/claude/kg-automation && python3 -m scripts.inbox.classify_content 
 
 For each block with `kind == "ambiguous"` and `flag == "needs-llm-disambiguation"`, read its `content` and context and classify it yourself as `journal`, `calendar`, `someday`, `github_issue`, `vikunja_task` or `parse_failure`. Still ambiguous → `parse_failure`. Use the goal rules below for goal-like content.
 
-If ANY block is `parse_failure`, do **NOT** finalize the note: set `status: needs-review` by direct frontmatter edit (NO `processed_at`), log why classification failed (Step 6), and route the note to Step 5.
+If ANY block is `parse_failure`, do **NOT** finalize the note: set `status: needs-review` by direct frontmatter edit (NO `processed_at`), log why classification failed (Step 6), and route the note to Step 5. Do not build a plan for a note with an unclassifiable block.
 
 #### Step 3b — Assemble ONE RoutingPlan for the note
 
@@ -119,13 +119,13 @@ It routes every block, verifies each artifact, writes each routing-log entry, an
 
 1. **Record the pending clarification with its eligibility signal.** The calendar block carries `clarification_signal` `{"title", "start_date", "missing_fields"}`, built in code by finalize. Copy it **byte-for-byte** as `--partial-payload`: never compute, guess or reformat the date or re-derive `missing_fields`, and never run the validator yourself. No `clarification_signal` (un-dateable note) → record only `{"title": "<title>", "missing_fields": <block.missing>}` with **no** `start_date`, which keeps it ineligible for the all-day fallback. Run `cd /home/claude/kg-automation && python3 -m scripts.inbox.handle_clarification_state add --note-filename <name> --partial-payload <json>` (store: `/data/services/openclaw/state/pending-calendar-clarifications.json`). Step 1a reads this record.
 2. Send ONE WhatsApp asking for the missing fields, direct voice, single question, e.g. `Sent by felix-admin-capture:haiku\n\nWhat time should "<title>" be on <date>?` **The ask always fires first**; the all-day fallback happens only after 8h unanswered.
-3. Leave the note unprocessed. **Kent's reply goes to `felix-admin-calendar`, not you**; it matches the pending record and creates the event. Do not re-dispatch, poll or re-finalize a note already pending clarification; Step 1a ages it out.
+3. Leave the note unprocessed. **Kent's reply is handled by `felix-admin-calendar`, not you**: it lands as an inbound message to that agent, which matches it against the pending record, re-validates, and invokes the calendar helper itself (a separate Kent→agent message, not a capture→agent hop). Do not re-dispatch, poll or re-finalize a note already pending clarification; Step 1a ages it out.
 
 ### Step 4 — Marker cleanup and terminal-state hygiene
 
-**INVARIANT: never delete or move the original note, or any file in `01-Inbox/`.** It stays in `01-Inbox/` as the record of what came in. Finalize writes `status: processed` in place (frontmatter only, body verbatim) and `prescan.py` archives it after 7 days. A note becomes `processed` ONLY through a successful finalize; the single exception is the `needs-review` edit (Step 3a), which never marks it processed.
+**INVARIANT: never delete or move the original note, and never delete any file in `01-Inbox/`.** The note stays in `01-Inbox/` as the record of what came in. Finalize writes `status: processed` in place (frontmatter only, body verbatim) and `prescan.py` archives it after 7 days. A note becomes `processed` ONLY through a successful finalize; the single exception is the `needs-review` edit (Step 3a), which never marks it processed.
 
-**Strip stale parse-error markers:** for each path in `marker_cleanup_needed`: `cd /home/claude/kg-automation && python3 -m scripts.inbox.handle_marker_cleanup --path <path>` (idempotent). Run it for every listed path, even on a turn with no unprocessed notes.
+**Strip stale parse-error markers:** for each path in `marker_cleanup_needed`: `cd /home/claude/kg-automation && python3 -m scripts.inbox.handle_marker_cleanup --path <path>` (idempotent and atomic). Run it for every listed path, even on a turn with no unprocessed notes.
 
 ### Step 5 — End-of-turn parse-failure handling
 
@@ -144,11 +144,13 @@ Append to `/home/kgale/second-brain/agents/logs/inbox-processing-YYYY-MM-DD.md`,
 
 ## Goal declaration handling
 
-Judgment-heavy, non-mechanical. **Valid goal declaration** has all four: (1) concrete, measurable outcome (not vague intent), (2) timeframe (explicit date or relative window), (3) goal-owner (default Kent), (4) unambiguous win condition.
+Judgment-heavy, non-mechanical. **Valid goal declaration** has all four: (1) concrete state/measurable outcome (not vague intent), (2) timeframe (explicit date or relative window), (3) goal-owner (default Kent), (4) unambiguous win condition.
 
-**Borderline (route, don't promote):** aspirational ("I'd like to be more X") → journal; open-ended ("I should look into Y") → someday; task ("I need to do Z by Friday") → vikunja_task.
+**Borderline (route, don't promote):** aspirational ("I'd like to be more X") → journal; open-ended ("I should look into Y") → someday; task ("I need to do Z by Friday") → `vikunja_task`, delegated to felix-admin-tasker per Task delegation below; the Task bridge applies only if tasker is unreachable or returns `task_failed`.
 
-**When valid, or when content reports progress on an existing goal**: check `03-Constitution/Goals-MOC.md` first; update in place in the correct domain if the goal exists, add it to the correct domain section if new; never duplicate. Link back: `source: [[Inbox YYYY-MM-DD HHmm]]`. Log `goal-updated`. **Goal-adjacent but invalid**: route per content and log `goal-adjacent`.
+**Whenever content mentions goals** (new, or progress on existing ones), always check `03-Constitution/Goals-MOC.md` first: update in place if the goal exists; add it to the correct domain section if new; never duplicate.
+
+**When valid**: update `Goals-MOC.md` in the correct domain. Link back: `source: [[Inbox YYYY-MM-DD HHmm]]`. Log `goal-updated`. **Goal-adjacent but invalid**: route to journal/someday/task per content and log `goal-adjacent`.
 
 ## File operation standards
 

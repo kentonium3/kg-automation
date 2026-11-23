@@ -42,9 +42,9 @@ def test_felix_admin_calendar_agents_md_under_12k(repo_root: Path) -> None:
 # OpenClaw 2026.11.7 truncates a workspace bootstrap file that exceeds its
 # per-file injection limit (gateway log: "workspace bootstrap file <name> is N
 # chars (limit L); truncating in injected context"), so the model never sees
-# part of it. Limits are measured in characters, not bytes. Budgets below keep
-# ~10% headroom under each limit (Kent, 2026-11-23: trim the sources, do not
-# raise the limits).
+# part of it. Limits are measured in characters (UTF-16 code units here),
+# not bytes. Budgets below keep ~10% headroom under each limit
+# (Kent, 2026-11-23: trim the sources, do not raise the limits).
 
 AGENTS_MD_INJECTION_LIMIT = 20_000
 USER_MD_INJECTION_LIMIT = 4_000
@@ -53,8 +53,14 @@ MAIN_USER_MD_BUDGET = 3_600
 
 
 def _chars(p: Path) -> int:
+    """Length as JavaScript ``String.length`` counts it (UTF-16 code units).
+
+    OpenClaw is JavaScript, so its limit is most likely ``.length``. That is
+    never smaller than the code-point count, so this is the conservative
+    measure.
+    """
     assert p.exists(), f"missing: {p}"
-    return len(p.read_text(encoding="utf-8"))
+    return len(p.read_text(encoding="utf-8").encode("utf-16-le")) // 2
 
 
 def test_capture_agents_md_within_bootstrap_budget(repo_root: Path) -> None:
