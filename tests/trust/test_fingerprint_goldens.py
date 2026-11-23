@@ -11,12 +11,20 @@ Coverage: every cron kind that exists today (each finding carrying a
 plugin cron (#1124 sentinel), an assertion finding, a unit-drift finding, and
 the detector path for a genuinely disabled approved cron (#1127: a literal
 ``enabled: False`` must keep today's ``enabled_mismatch`` fingerprint).
+
+#1130: only cron findings are baseline-versioned. ``GOLDEN_ASSERTION`` pins the
+state-level encoding of an assertion under a non-empty hash (the
+``fingerprint_finding`` API still accepts one); ``GOLDEN_ASSERTION_UNVERSIONED``
+is the production shape — the runner always passes ``""`` for an assertion, so
+that is the key seen-state actually holds. It was computed on main @ ee1bb31fa
+(state.py unchanged by #1130) and hard-coded as a literal.
 """
 
 from __future__ import annotations
 
 import pytest
 
+from scripts.trust import run_trust_scan as rts
 from scripts.trust import state as state_mod
 from scripts.trust.assertion_verifier import AssertionFinding
 from scripts.trust.cron_baseline import ApprovedCron
@@ -35,7 +43,10 @@ GOLDEN_CRON = {
     "enabled_mismatch": "7e61e7ea1e37ab5409e956ab6095eb3f98676bd0390252f456edc365d053d0e5",
 }
 GOLDEN_NULL_AGENT_CRON = "fc2c6a9a3b2a6e715cc1f292b11e3cdc5712f4698f14bfd0e81eaed50ee8d5ef"
+# State-API encoding pin: an assertion fingerprinted under a non-empty hash.
 GOLDEN_ASSERTION = "2e93aea3cbfebb23a9ae26acb11dab9de4980e04fb383a1561d11ea7f20e9c2d"
+# Production shape (#1130): assertion fingerprints are not baseline-versioned.
+GOLDEN_ASSERTION_UNVERSIONED = "e662c5805ae48036b99edee06d78abd082229049e0f3984ded8816b1c7956838"
 GOLDEN_UNIT = "bd1b7676792d5d50878b38ee02bd8d0be4390bea020bd0e8f2c94701f3a1c5b6"
 
 
@@ -68,15 +79,34 @@ def test_null_agent_cron_fingerprint_golden() -> None:
     assert state_mod.fingerprint_finding(finding, GOLDEN_BASELINE_HASH) == GOLDEN_NULL_AGENT_CRON
 
 
-def test_assertion_fingerprint_golden() -> None:
-    finding = AssertionFinding(
+def _golden_assertion() -> AssertionFinding:
+    return AssertionFinding(
         kind="artifact_missing",
         agent="main",
         artifact_kind="vikunja_task",
         artifact_id="91",
         claim="Created Vikunja task #91",
     )
-    assert state_mod.fingerprint_finding(finding, GOLDEN_BASELINE_HASH) == GOLDEN_ASSERTION
+
+
+def test_assertion_fingerprint_golden() -> None:
+    """State-API encoding pin (not the production key since #1130)."""
+    assert (
+        state_mod.fingerprint_finding(_golden_assertion(), GOLDEN_BASELINE_HASH)
+        == GOLDEN_ASSERTION
+    )
+
+
+def test_assertion_fingerprint_golden_unversioned() -> None:
+    assert state_mod.fingerprint_finding(_golden_assertion(), "") == GOLDEN_ASSERTION_UNVERSIONED
+
+
+def test_assertion_fingerprint_golden_production_shape_ignores_the_baseline() -> None:
+    """#1130: the runner's per-type rule gives an assertion no baseline hash, so
+    the key seen-state holds is the unversioned golden whatever the baseline."""
+    finding = _golden_assertion()
+    runner_hash = rts._finding_baseline_hash(finding, GOLDEN_BASELINE_HASH)
+    assert state_mod.fingerprint_finding(finding, runner_hash) == GOLDEN_ASSERTION_UNVERSIONED
 
 
 def test_unit_fingerprint_golden() -> None:
