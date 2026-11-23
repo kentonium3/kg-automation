@@ -86,6 +86,10 @@ _DEADLINE_EXCEEDED: Final[str] = "read deadline exceeded"
 _BOOT_ID_UNREADABLE: Final[str] = "boot id unreadable"
 _NON_NEGATIVE_INT_RE: Final[re.Pattern[str]] = re.compile(r"[0-9]+", re.ASCII)
 _CONTAINER_ID_RE: Final[re.Pattern[str]] = re.compile(r"[0-9a-f]{64}", re.ASCII)
+# Docker's container-name grammar, as inspect prints it (leading slash).
+_CONTAINER_NAME_RE: Final[re.Pattern[str]] = re.compile(
+    r"/[a-zA-Z0-9][a-zA-Z0-9_.-]*", re.ASCII
+)
 _DOCKER_EXCLUDED_POLICIES: Final[frozenset[str]] = frozenset({"no", ""})
 
 
@@ -177,6 +181,9 @@ def _run_checked(
         raise ReaderError(f"{label}: timed out after {timeout:.1f}s") from exc
     except OSError as exc:
         raise ReaderError(f"{label}: {type(exc).__name__}: {exc}") from exc
+    if deadline.expired():
+        # A command that returns after the budget ran out is an overrun (R-13).
+        raise ReaderError(f"{label}: {_DEADLINE_EXCEEDED}")
     if result.returncode != 0:
         stderr = result.stderr.strip()[:_STDERR_MAX]
         raise ReaderError(f"{label}: exit {result.returncode}: {stderr}")
@@ -185,6 +192,20 @@ def _run_checked(
 
 def _elapsed_ms(deadline: Deadline, started: float) -> int:
     return max(0, round((deadline.clock() - started) * 1000))
+
+
+def _complete(
+    scope: str,
+    observations: Sequence[RestartObservation],
+    excluded: int,
+    deadline: Deadline,
+    started: float,
+) -> ScopeReading:
+    """A complete reading, unless the deadline has run out (then incomplete)."""
+    elapsed = _elapsed_ms(deadline, started)
+    if deadline.expired():
+        return ScopeReading.failed(scope, _DEADLINE_EXCEEDED, elapsed)
+    return ScopeReading.ok(scope, tuple(observations), excluded, elapsed)
 
 
 # --------------------------------------------------------------------------- #
@@ -345,9 +366,7 @@ def read_systemd_scope(
             raise ReaderError(f"{prefix} list-units: {exc}") from exc
         if not units:
             # No argument-free show: it would describe the manager itself.
-            return ScopeReading.ok(
-                scope, (), not_loaded, _elapsed_ms(deadline, started)
-            )
+            return _complete(scope, (), not_loaded, deadline, started)
         shown = _run_checked(
             run,
             [*base, "show", "-p", SHOW_PROPERTIES, "--", *units],
@@ -364,11 +383,8 @@ def read_systemd_scope(
             raise ReaderError(f"{prefix} show: {exc}") from exc
     except ReaderError as exc:
         return ScopeReading.failed(scope, str(exc), _elapsed_ms(deadline, started))
-    return ScopeReading.ok(
-        scope,
-        tuple(observations),
-        not_loaded + policy_excluded,
-        _elapsed_ms(deadline, started),
+    return _complete(
+        scope, observations, not_loaded + policy_excluded, deadline, started
     )
 
 
@@ -419,6 +435,7 @@ def _parse_inspect(
     observations: list[RestartObservation] = []
     excluded = 0
     seen: set[str] = set()
+    names: set[str] = set()
     for line in stdout.splitlines():
         if not line.strip():
             continue
@@ -431,9 +448,15 @@ def _parse_inspect(
         if cid in seen:
             raise ReaderError(f"duplicate container id: {cid}")
         seen.add(cid)
-        name = _json_str(fields[1], "name").removeprefix("/")
-        if not name:
-            raise ReaderError(f"{cid}: empty name")
+        # Name shape and uniqueness are checked before policy exclusion:
+        # observations are keyed by name downstream.
+        raw_name = _json_str(fields[1], "name")
+        if not _CONTAINER_NAME_RE.fullmatch(raw_name):
+            raise ReaderError(f"{cid}: malformed name: {raw_name[:80]!r}")
+        name = raw_name.removeprefix("/")
+        if name in names:
+            raise ReaderError(f"duplicate container name: {name}")
+        names.add(name)
         if not _NON_NEGATIVE_INT_RE.fullmatch(fields[2]):
             raise ReaderError(f"{name}: RestartCount not a non-negative integer")
         policy = _json_str(fields[3], "restart policy")
@@ -482,7 +505,7 @@ def read_container_scope(
         except ReaderError as exc:
             raise ReaderError(f"docker ps: {exc}") from exc
         if not ids:
-            return ScopeReading.ok("container", (), 0, _elapsed_ms(deadline, started))
+            return _complete("container", (), 0, deadline, started)
         inspected = _run_docker(
             run,
             ["docker", "inspect", "--format", DOCKER_INSPECT_FORMAT, "--", *ids],
@@ -498,9 +521,7 @@ def read_container_scope(
         return ScopeReading.failed(
             "container", str(exc), _elapsed_ms(deadline, started)
         )
-    return ScopeReading.ok(
-        "container", tuple(observations), excluded, _elapsed_ms(deadline, started)
-    )
+    return _complete("container", observations, excluded, deadline, started)
 
 
 # --------------------------------------------------------------------------- #
@@ -514,12 +535,15 @@ def _guarded(
         return ScopeReading.failed(scope, _DEADLINE_EXCEEDED, 0)
     started = deadline.clock()
     try:
-        return reader()
+        reading = reader()
     except Exception as exc:  # noqa: BLE001 - one scope must not sink the others
         reason = f"{scope} reader crashed: {type(exc).__name__}: {exc}"
         return ScopeReading.failed(
             scope, reason[: _STDERR_MAX + 60], _elapsed_ms(deadline, started)
         )
+    if reading.complete and deadline.expired():
+        return ScopeReading.failed(scope, _DEADLINE_EXCEEDED, reading.elapsed_ms)
+    return reading
 
 
 def read_all_scopes(

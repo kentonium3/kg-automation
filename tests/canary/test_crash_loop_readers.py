@@ -6,6 +6,7 @@ test calls the real ``systemctl`` or ``docker``.
 
 from __future__ import annotations
 
+import json
 import os
 import random
 import subprocess
@@ -198,6 +199,23 @@ def watched(reading: ScopeReading) -> dict[str, int]:
 
 
 DOCKER_IDS = fixture("docker-ps.txt").split()
+
+# (case id, raw inspect name) pairs that violate Docker's name grammar.
+MALFORMED_NAMES: list[tuple[str, str]] = [
+    ("space", "/bad name"),
+    ("no-leading-slash", "modest_colden"),
+    ("leading-dash", "/-modest"),
+    ("leading-dot", "/.modest"),
+    ("nested-slash", "/a/b"),
+    ("non-ascii", "/café"),
+    ("trailing-newline", "/modest\n"),
+    ("slash-only", "/"),
+    ("double-slash", "//modest"),
+]
+
+
+def json_name(name: str) -> str:
+    return json.dumps(name)
 
 
 # --------------------------------------------------------------------------- #
@@ -789,6 +807,40 @@ class TestReadContainerScope:
                 id="policy-bad-json",
             ),
             pytest.param(lambda lines: ["garbage", *lines[1:]], id="garbage-line"),
+            # Review cycle 1: name shape, checked before policy exclusion
+            # (lines[2] is modest_colden, policy "no").
+            *[
+                pytest.param(
+                    lambda lines, bad=bad: [
+                        *lines[:2],
+                        lines[2].replace('"/modest_colden"', json_name(bad)),
+                    ],
+                    id=f"excluded-policy-name-{case}",
+                )
+                for case, bad in MALFORMED_NAMES
+            ],
+            pytest.param(
+                lambda lines: [
+                    lines[0].replace('"/transcribe-api"', '"/bad name"'),
+                    *lines[1:],
+                ],
+                id="watched-name-with-space",
+            ),
+            # Review cycle 1: distinct valid IDs sharing one name.
+            pytest.param(
+                lambda lines: [
+                    lines[0].replace('"/transcribe-api"', '"/vikunja"'),
+                    *lines[1:],
+                ],
+                id="duplicate-name-both-watched",
+            ),
+            pytest.param(
+                lambda lines: [
+                    *lines[:2],
+                    lines[2].replace('"/modest_colden"', '"/vikunja"'),
+                ],
+                id="duplicate-name-one-excluded",
+            ),
         ],
     )
     def test_malformed_inspect_fails_the_scope(
@@ -1089,3 +1141,172 @@ class TestReadAllScopes:
         assert (
             inspect.signature(read_all_scopes).parameters["budget_seconds"].default == 6
         )
+
+
+# --------------------------------------------------------------------------- #
+# Review cycle 1: overruns after the last command, container names.
+# --------------------------------------------------------------------------- #
+def returns_late(
+    clock: FakeClock, seconds: float, result: CommandResult
+) -> Callable[[Sequence[str], Mapping[str, str], float], CommandResult]:
+    """A command that succeeds, but only after *seconds* of fake time."""
+
+    def respond(
+        argv: Sequence[str], env: Mapping[str, str], timeout: float
+    ) -> CommandResult:
+        clock.advance(seconds)
+        return result
+
+    return respond
+
+
+class TestOverrunAfterLastCommand:
+    def test_systemd_final_show_succeeds_after_expiry(self) -> None:
+        clock = FakeClock()
+        run = systemd_run("system", list_rows(("a.service", "loaded")), "")
+        run.on(
+            ["systemctl", "show"],
+            returns_late(clock, 7.0, ok(show_block("a.service", nrestarts="4"))),
+        )
+        reading = read_systemd_scope(
+            "system", run=run, deadline=deadline(clock), generation=BOOT
+        )
+        assert not reading.complete and reading.observations == ()
+        assert "read deadline exceeded" in (reading.error or "")
+        assert reading.elapsed_ms == 7000
+
+    @pytest.mark.parametrize("list_out", ["", list_rows(("gone.service", "not-found"))])
+    def test_systemd_empty_enumeration_after_expiry(self, list_out: str) -> None:
+        clock = FakeClock()
+        run = FakeRun().on(
+            ["systemctl", "--user", "list-units"],
+            returns_late(clock, 7.0, ok(list_out)),
+        )
+        reading = read_systemd_scope(
+            "user", run=run, deadline=deadline(clock), generation=BOOT
+        )
+        assert not reading.complete
+        assert "read deadline exceeded" in (reading.error or "")
+        assert len(run.calls) == 1
+
+    def test_docker_final_inspect_succeeds_after_expiry(self, tmp_path: Path) -> None:
+        clock = FakeClock()
+        run = docker_run(fixture("docker-ps.txt"), "")
+        run.on(
+            ["docker", "inspect"],
+            returns_late(clock, 6.5, ok(fixture("docker-inspect.txt"))),
+        )
+        reading = read_container_scope(
+            run=run,
+            deadline=deadline(clock),
+            tempdir_factory=RecordingTempdirs(tmp_path),
+        )
+        assert not reading.complete and reading.observations == ()
+        assert "read deadline exceeded" in (reading.error or "")
+
+    def test_docker_empty_ps_after_expiry(self, tmp_path: Path) -> None:
+        clock = FakeClock()
+        run = FakeRun().on(["docker", "ps"], returns_late(clock, 7.0, ok("")))
+        reading = read_container_scope(
+            run=run,
+            deadline=deadline(clock),
+            tempdir_factory=RecordingTempdirs(tmp_path),
+        )
+        assert not reading.complete
+        assert "read deadline exceeded" in (reading.error or "")
+        assert len(run.calls) == 1
+
+    def test_returning_exactly_at_the_budget_is_an_overrun(self) -> None:
+        clock = FakeClock()
+        run = FakeRun().on(
+            ["systemctl", "list-units"], returns_late(clock, 6.0, ok(""))
+        )
+        reading = read_systemd_scope(
+            "system", run=run, deadline=deadline(clock), generation=BOOT
+        )
+        assert not reading.complete
+
+    def test_read_all_scopes_last_scope_overrun_is_incomplete(
+        self, tmp_path: Path
+    ) -> None:
+        clock = FakeClock()
+        run = full_run().on(
+            ["docker", "inspect"],
+            returns_late(clock, 10.0, ok(fixture("docker-inspect.txt"))),
+        )
+        readings, _ = read_all_scopes(
+            run=run,
+            clock=clock,
+            read_boot_id=lambda: BOOT,
+            tempdir_factory=RecordingTempdirs(tmp_path),
+        )
+        assert [r.complete for r in readings] == [True, True, False]
+        assert "read deadline exceeded" in (readings[2].error or "")
+
+    def test_guard_rejects_a_complete_reading_returned_after_expiry(self) -> None:
+        clock = FakeClock()
+        d = deadline(clock)
+
+        def late_reader() -> ScopeReading:
+            clock.advance(7.0)
+            return ScopeReading.ok("user", (), 0, 7000)
+
+        reading = readers._guarded("user", d, late_reader)
+        assert not reading.complete and reading.error == "read deadline exceeded"
+
+
+class TestContainerNames:
+    def test_distinct_ids_sharing_one_name_fail_the_scope(self, tmp_path: Path) -> None:
+        a, b = "a" * 64, "b" * 64
+        assert a != b
+        run = docker_run(
+            f"{a}\n{b}\n",
+            f'"{a}"|"/same"|0|"always"|"running"\n'
+            f'"{b}"|"/same"|4|"always"|"restarting"\n',
+        )
+        reading = read_container_scope(
+            run=run, deadline=deadline(), tempdir_factory=RecordingTempdirs(tmp_path)
+        )
+        assert not reading.complete and reading.observations == ()
+        assert "duplicate container name: same" in (reading.error or "")
+
+    def test_duplicate_name_on_excluded_record_still_fails(
+        self, tmp_path: Path
+    ) -> None:
+        a, b = "a" * 64, "b" * 64
+        run = docker_run(
+            f"{a}\n{b}\n",
+            f'"{a}"|"/same"|0|"always"|"running"\n"{b}"|"/same"|0|"no"|"exited"\n',
+        )
+        reading = read_container_scope(
+            run=run, deadline=deadline(), tempdir_factory=RecordingTempdirs(tmp_path)
+        )
+        assert not reading.complete
+        assert "duplicate container name" in (reading.error or "")
+
+    @pytest.mark.parametrize(
+        "bad", [bad for _, bad in MALFORMED_NAMES], ids=[c for c, _ in MALFORMED_NAMES]
+    )
+    @pytest.mark.parametrize("policy", ["always", "no", ""])
+    def test_malformed_name_fails_regardless_of_policy(
+        self, tmp_path: Path, bad: str, policy: str
+    ) -> None:
+        cid = "c" * 64
+        run = docker_run(
+            cid + "\n", f'"{cid}"|{json_name(bad)}|0|"{policy}"|"exited"\n'
+        )
+        reading = read_container_scope(
+            run=run, deadline=deadline(), tempdir_factory=RecordingTempdirs(tmp_path)
+        )
+        assert not reading.complete
+        assert "malformed name" in (reading.error or "")
+
+    @pytest.mark.parametrize("good", ["/a", "/A1", "/x_y.z-1", "/9lives", "/vikunja"])
+    def test_valid_names_pass(self, tmp_path: Path, good: str) -> None:
+        cid = "d" * 64
+        run = docker_run(cid + "\n", f'"{cid}"|"{good}"|2|"always"|"running"\n')
+        reading = read_container_scope(
+            run=run, deadline=deadline(), tempdir_factory=RecordingTempdirs(tmp_path)
+        )
+        assert reading.complete
+        assert watched(reading) == {good[1:]: 2}
