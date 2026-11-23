@@ -753,3 +753,152 @@ def test_duplicate_lifecycle_removed_copy_resolves_with_named_copy():
     )
     assert alert.title.startswith("Cron drift cleared:")
     assert alert.title == "Cron drift cleared: inbox-5pm (duplicate B)"
+
+
+# --- #1129: a sub-scan that did not complete never resolves its findings ------
+
+
+def _seen_entry(source: str | None, name: str, **extra: str) -> dict[str, str]:
+    entry = {
+        "first_seen": state_mod._utc_iso(T0),
+        "last_seen": state_mod._utc_iso(T0),
+        "last_alerted": state_mod._utc_iso(T0),
+        "name": name,
+        **extra,
+    }
+    if source is not None:
+        entry["source"] = source
+    return entry
+
+
+def _three_source_state() -> dict[str, dict[str, str]]:
+    """One outstanding entry per source, none of them in the current findings."""
+    return {
+        "fp-cron": _seen_entry("cron", "rogue-cron"),
+        "fp-unit": _seen_entry("unit-drift", "felix-canary.service"),
+        "fp-assert": _seen_entry(
+            "assertion",
+            "vikunja_task:91",
+            assertion_kind="artifact_missing",
+            artifact_kind="vikunja_task",
+            artifact_id="91",
+            agent="main",
+            claim="c",
+        ),
+    }
+
+
+def test_source_constants_keep_their_persisted_values():
+    # The tags are persisted in seen-state: renaming a value would orphan it.
+    assert state_mod.SOURCE_CRON == "cron"
+    assert state_mod.SOURCE_ASSERTION == "assertion"
+    assert state_mod.SOURCE_UNIT == "unit-drift"
+    assert state_mod.ALL_SOURCES == frozenset({"cron", "assertion", "unit-drift"})
+
+
+def test_finding_source_covers_exactly_all_sources():
+    """One instance of each finding class maps onto ALL_SOURCES, no more, no less."""
+    findings = [_cron_finding(), _assertion_finding(), _unit_finding()]
+    assert {state_mod._finding_source(f) for f in findings} == state_mod.ALL_SOURCES
+
+
+@pytest.mark.parametrize(
+    "completed, resolved_fp",
+    [
+        (frozenset({"cron"}), "fp-cron"),
+        (frozenset({"unit-drift"}), "fp-unit"),
+        (frozenset({"assertion"}), "fp-assert"),
+    ],
+)
+def test_reconcile_absent_entry_of_uncompleted_source_is_carried(completed, resolved_fp):
+    seeded = _three_source_state()
+    now = T0 + timedelta(hours=1)
+
+    to_alert, resolved, new_state = state_mod.reconcile(
+        [], now, seeded, completed_sources=completed
+    )
+
+    assert to_alert == []
+    # Only the completed source resolves.
+    assert [e.fingerprint for e in resolved] == [resolved_fp]
+    assert resolved_fp not in new_state
+    # Every other entry is carried forward identical: no last_seen refresh.
+    carried = set(seeded) - {resolved_fp}
+    assert set(new_state) == carried
+    for fp in carried:
+        assert new_state[fp] == seeded[fp]
+
+
+def test_reconcile_carried_entry_is_a_copy_not_an_alias():
+    seeded = _three_source_state()
+    _, _, new_state = state_mod.reconcile([], T0, seeded, completed_sources=frozenset())
+    new_state["fp-cron"]["last_alerted"] = "mutated"
+    assert seeded["fp-cron"]["last_alerted"] == state_mod._utc_iso(T0)
+
+
+def test_reconcile_no_completed_sources_carries_everything_and_resolves_nothing():
+    seeded = _three_source_state()
+    to_alert, resolved, new_state = state_mod.reconcile(
+        [], T0 + timedelta(hours=1), seeded, completed_sources=frozenset()
+    )
+    assert to_alert == []
+    assert resolved == []
+    assert new_state == seeded
+
+
+def test_reconcile_present_entry_of_uncompleted_source_is_updated_as_today():
+    """A partial result is still real evidence of presence."""
+    finding = _cron_finding()
+    fp = state_mod.fingerprint_finding(finding, BASELINE_HASH_A)
+    seeded = {fp: _seen_entry("cron", "mystery-cron")}
+    now = T0 + timedelta(hours=1)
+
+    to_alert, resolved, new_state = state_mod.reconcile(
+        [(finding, BASELINE_HASH_A)], now, seeded, completed_sources=frozenset()
+    )
+
+    assert to_alert == []  # not due (<24h)
+    assert resolved == []
+    assert new_state[fp]["last_seen"] == state_mod._utc_iso(now)
+
+
+def test_reconcile_completed_sources_none_is_todays_behaviour():
+    seeded = _three_source_state()
+    _, resolved_none, state_none = state_mod.reconcile([], T0, seeded)
+    _, resolved_all, state_all = state_mod.reconcile(
+        [], T0, seeded, completed_sources=state_mod.ALL_SOURCES
+    )
+    assert {e.fingerprint for e in resolved_none} == set(seeded)
+    assert state_none == {}
+    assert resolved_none == resolved_all
+    assert state_none == state_all
+
+
+@pytest.mark.parametrize("source", [None, "bogus-source"], ids=["missing", "unknown"])
+def test_reconcile_missing_or_unknown_source_is_treated_as_cron(source):
+    seeded = {"fp-odd": _seen_entry(source, "odd")}
+
+    # Cron did not complete -> carried, even though the tag is not "cron".
+    _, resolved, new_state = state_mod.reconcile(
+        [], T0, seeded, completed_sources=frozenset({"assertion", "unit-drift"})
+    )
+    assert resolved == []
+    assert new_state == seeded
+
+    # Cron completed -> resolved, and the event routes as a cron resolution.
+    _, resolved, new_state = state_mod.reconcile(
+        [], T0, seeded, completed_sources=frozenset({"cron"})
+    )
+    assert new_state == {}
+    (event,) = resolved
+    assert event.source == "cron"
+
+
+@pytest.mark.parametrize(
+    "completed",
+    [frozenset({"cron", "unit"}), frozenset({"bogus"})],
+    ids=["identity-tag-not-source-tag", "unknown"],
+)
+def test_reconcile_rejects_completed_sources_outside_all_sources(completed):
+    with pytest.raises(ValueError):
+        state_mod.reconcile([], T0, _three_source_state(), completed_sources=completed)

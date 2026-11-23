@@ -36,6 +36,7 @@ from typing import Any
 
 from scripts.common.alert_bus import emit
 from scripts.common.alert_bus.model import Alert, AlertResult, Severity
+from scripts.trust import state as _state
 from scripts.trust.assertion_verifier import AssertionFinding
 from scripts.trust.cron_drift_detector import (
     ENABLED_ABSENT,
@@ -339,7 +340,7 @@ def render_unit_finding(finding: UnitDriftFinding) -> Alert:
 
 
 def render_drift_resolved(
-    name: str, first_seen: str, cleared_at: str, *, source: str = "cron"
+    name: str, first_seen: str, cleared_at: str, *, source: str = _state.SOURCE_CRON
 ) -> Alert:
     """Render a resolution (info) event for a finding that cleared.
 
@@ -350,14 +351,14 @@ def render_drift_resolved(
     cleared ``artifact_missing`` means the previously-ungrounded completion
     claim is now grounded (the artifact exists).
     """
-    if source == "assertion":
+    if source == _state.SOURCE_ASSERTION:
         title = f"Completion claim now grounded: {name}"
         description = (
             f"The previously-ungrounded completion claim for {name!r} is now "
             "grounded — the asserted artifact was found as of this scan tick."
         )
         alert_source = SOURCE_ASSERTION
-    elif source == "unit-drift":
+    elif source == _state.SOURCE_UNIT:
         title = f"Deployed unit drift cleared: {name}"
         description = (
             f"The deployed systemd unit {name!r} now matches its repo canonical "

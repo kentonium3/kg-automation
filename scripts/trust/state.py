@@ -7,7 +7,9 @@ Tracks findings across scan ticks so alert cadence is correct
 - While a finding **persists** -> re-alert every 24h (so persistent
   unapproved infra is not silently hidden after the first alert).
 - When a previously-seen finding **disappears** -> emit a low-priority
-  ``drift_resolved`` event and drop it from state.
+  ``drift_resolved`` event and drop it from state — but only if the sub-scan
+  that owns it completed this tick. A finding whose sub-scan failed is
+  carried forward unchanged (#1129).
 
 **Baseline-versioned fingerprints** (data-model.md "Baseline-versioned
 fingerprints"): the finding fingerprint folds in ``baseline_hash`` (WP02) so
@@ -41,9 +43,13 @@ from scripts.trust.cron_drift_detector import KIND_DUPLICATE_PRESENT, CronDriftF
 from scripts.trust.unit_drift_detector import UnitDriftFinding
 
 __all__ = [
+    "ALL_SOURCES",
     "DEFAULT_STATE_PATH",
     "RE_ALERT_INTERVAL",
     "ResolvedEvent",
+    "SOURCE_ASSERTION",
+    "SOURCE_CRON",
+    "SOURCE_UNIT",
     "fingerprint_finding",
     "load_state",
     "save_state",
@@ -63,6 +69,17 @@ RE_ALERT_INTERVAL = timedelta(hours=24)
 
 _ISO_FMT_NOTE = "ISO-8601 UTC, e.g. 2026-07-10T12:00:00+00:00"
 
+# Source tags: which sub-scan produced a finding. Persisted as each state
+# entry's ``source`` field, so the VALUES must never change (a rename would
+# orphan every stored entry). They route drift_resolved copy and decide which
+# entries a tick may resolve (#1129). They are NOT the fingerprint identity
+# tags: those are ``"cron"`` / ``"assertion"`` / ``"unit"`` (see
+# ``_unit_identity``) and are pinned by the fingerprint goldens.
+SOURCE_CRON = "cron"
+SOURCE_ASSERTION = "assertion"
+SOURCE_UNIT = "unit-drift"
+ALL_SOURCES: frozenset[str] = frozenset({SOURCE_CRON, SOURCE_ASSERTION, SOURCE_UNIT})
+
 
 @dataclass(frozen=True)
 class ResolvedEvent:
@@ -78,7 +95,7 @@ class ResolvedEvent:
     name: str
     first_seen: str
     cleared_at: str
-    source: str = "cron"
+    source: str = SOURCE_CRON
 
 
 def _utc_iso(dt: datetime) -> str:
@@ -148,13 +165,25 @@ def _finding_name(finding: CronDriftFinding | AssertionFinding | UnitDriftFindin
 
 
 def _finding_source(finding: CronDriftFinding | AssertionFinding | UnitDriftFinding) -> str:
-    """Return the source tag (``"cron"`` / ``"assertion"`` / ``"unit-drift"``) for
-    a finding (F2 resolution routing — selects the drift_resolved copy)."""
+    """Return the source tag (one of :data:`ALL_SOURCES`) for a finding (F2
+    resolution routing — selects the drift_resolved copy)."""
     if isinstance(finding, CronDriftFinding):
-        return "cron"
+        return SOURCE_CRON
     if isinstance(finding, UnitDriftFinding):
-        return "unit-drift"
-    return "assertion"
+        return SOURCE_UNIT
+    return SOURCE_ASSERTION
+
+
+def _entry_source(entry: dict[str, str]) -> str:
+    """The source a stored entry belongs to: its ``source`` tag when that is a
+    known tag, else :data:`SOURCE_CRON` (the pre-F2 missing-source default).
+
+    The single rule for both the #1129 completion test and
+    ``ResolvedEvent.source``, so an unknown tag behaves exactly like cron and
+    can never be orphaned (carried forever because no source "owns" it).
+    """
+    source = entry.get("source")
+    return source if source in ALL_SOURCES else SOURCE_CRON
 
 
 def _assertion_identity_fields(finding: AssertionFinding) -> dict[str, str]:
@@ -341,6 +370,7 @@ def reconcile(
     current_findings: list[tuple[CronDriftFinding | AssertionFinding | UnitDriftFinding, str]],
     now: datetime,
     state: dict[str, dict[str, str]] | None = None,
+    completed_sources: frozenset[str] | None = None,
 ) -> tuple[
     list[CronDriftFinding | AssertionFinding | UnitDriftFinding],
     list[ResolvedEvent],
@@ -362,14 +392,34 @@ def reconcile(
       update ``last_seen = now``.
     - fingerprint **in** state and **not** re-alert-due -> not included in
       ``to_alert``, but ``last_seen`` is still refreshed.
-    - fingerprint in state but **absent** from ``current_findings`` ->
-      produce a :class:`ResolvedEvent` (``first_seen`` + ``cleared_at =
-      now``) and drop the entry.
+    - fingerprint in state but **absent** from ``current_findings``, and its
+      source is in ``completed_sources`` -> produce a :class:`ResolvedEvent`
+      (``first_seen`` + ``cleared_at = now``) and drop the entry.
+    - fingerprint in state, **absent**, and its source is **not** in
+      ``completed_sources`` -> **carried forward unchanged** (#1129): no
+      event, no ``last_seen`` refresh. A sub-scan that could not run says
+      nothing about its findings ("could not check" is not "verified false",
+      engineering principle 14).
+
+    ``completed_sources`` names the sub-scans that ran to completion this
+    tick. ``None`` means all of them (:data:`ALL_SOURCES`), for tests and
+    legacy callers; the scan runner always passes an explicit set. A value
+    that is not a subset of :data:`ALL_SOURCES` raises :class:`ValueError`.
+    A stored entry's source is read by :func:`_entry_source`, so a missing or
+    unknown tag is treated as cron. Entries that ARE present in the current
+    findings are processed the same whether or not their source completed: a
+    partial result is still real evidence of presence.
 
     Returns ``(to_alert, resolved_events, new_state)`` — the caller is
     responsible for persisting ``new_state`` via :func:`save_state` (this
     function performs no I/O).
     """
+    completed = ALL_SOURCES if completed_sources is None else frozenset(completed_sources)
+    if not completed <= ALL_SOURCES:
+        raise ValueError(
+            f"reconcile: unknown completed_sources {sorted(completed - ALL_SOURCES)!r}; "
+            f"expected a subset of {sorted(ALL_SOURCES)!r}"
+        )
     current_state = dict(state) if state is not None else {}
     now_str = _utc_iso(now)
 
@@ -431,13 +481,19 @@ def reconcile(
     for fingerprint, entry in current_state.items():
         if fingerprint in seen_fingerprints:
             continue
+        source = _entry_source(entry)
+        if source not in completed:
+            # Its sub-scan did not complete: carry the entry forward as loaded
+            # (a copy, so keep_due on new_state can never alias prior state).
+            new_state[fingerprint] = dict(entry)
+            continue
         resolved_events.append(
             ResolvedEvent(
                 fingerprint=fingerprint,
                 name=entry.get("name", ""),
                 first_seen=entry.get("first_seen", now_str),
                 cleared_at=now_str,
-                source=entry.get("source", "cron"),
+                source=source,
             )
         )
         # Dropped from new_state by simply not carrying it forward.
@@ -500,7 +556,7 @@ def outstanding_assertion_findings(
     """
     findings: list[AssertionFinding] = []
     for entry in (state or {}).values():
-        if entry.get("source") != "assertion":
+        if entry.get("source") != SOURCE_ASSERTION:
             continue
         if entry.get("assertion_kind") != "artifact_missing":
             continue
