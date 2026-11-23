@@ -6,8 +6,8 @@ status: approved
 level: howto
 created: 2026-07-19
 last_validated: '2026-11-21'
-last_updated: '2026-11-21'
-updated_by: '#628 + #1120 (first full run 2026-11-21: tailscale session-drop warning, working OpenClaw check, security-monitor rebaseline step, Ubuntu Pro + Livepatch, kernel cleanup)'
+last_updated: '2026-11-23'
+updated_by: '#628 + #1120 + #1122 (Node major switch belongs to the OpenClaw runbook; native-module rebuild) (first full run 2026-11-21: tailscale session-drop warning, working OpenClaw check, security-monitor rebaseline step, Ubuntu Pro + Livepatch, kernel cleanup)'
 version: v1.1
 owners: [kgale]
 ---
@@ -105,8 +105,18 @@ Docker. Take extra care when the upgradable set includes:
 - **`openssh-server`**: a Tier-0 connectivity-sensitive package. Do not let an
   sshd restart lock you out. Keep an existing session open; Tailscale and the
   console are second paths.
-- **`nodejs`**: openclaw-gateway keeps the old binary until it restarts, so
-  the reboot picks it up.
+- **`nodejs`**: openclaw-gateway and `obsidian-sync` keep the old binary until
+  they restart, so the reboot picks it up.
+  - A **patch or minor** update within the NodeSource line is routine.
+  - A **major** switch is different. It means editing the apt source
+    (`/etc/apt/sources.list.d/nodesource.sources`, e.g. `node_22.x` →
+    `node_24.x`), which is Tier-0 and Kent runs it.
+  - A major switch is driven by OpenClaw's `engines.node`. It is done as step 1b
+    of [`openclaw-ecosystem-upgrade.md`](<./openclaw-ecosystem-upgrade.md>), not
+    as part of a routine apt window, because it **breaks V8-ABI native modules**
+    in global npm packages. On 2026-11-23 (#1122) `obsidian-sync` crash-looped
+    on `better-sqlite3` until it was rebuilt with
+    `cd /usr/lib/node_modules/obsidian-headless && sudo npm rebuild better-sqlite3`.
 
 ## Apply (Tier-0: Kent runs it, in tmux or at the console)
 

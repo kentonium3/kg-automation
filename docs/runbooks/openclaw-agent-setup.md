@@ -3,10 +3,10 @@ title: OpenClaw Agent Setup
 doc_type: runbook
 status: approved
 audience: agents_and_humans
-last_updated: '2026-07-05'
+last_updated: '2026-11-23'
 last_validated: '2026-07-05'
-updated_by: '#374 + vikunja-client-and-habits-weekly-report-01KTKSFT (#561) + felix-calendar-subagent-extraction-01KTTA33 (#579) + restore-whatsapp-dm-reply-delivery-01KTVVHH (#588) + agent-runtime-env-guardrails-01KWT3GH (#658)'
-revision: v1.5
+updated_by: '#374 + vikunja-client-and-habits-weekly-report-01KTKSFT (#561) + felix-calendar-subagent-extraction-01KTTA33 (#579) + restore-whatsapp-dm-reply-delivery-01KTVVHH (#588) + agent-runtime-env-guardrails-01KWT3GH (#658) + #1122 (smoke command scoped to ≤2026.7.x; 2026.11.7 version + selfChatMode)'
+revision: v1.6
 ---
 
 # OpenClaw agent setup
@@ -434,6 +434,14 @@ stuck-session recovery abort.
 
 ### Operator smoke command
 
+> **⚠ Valid only for OpenClaw ≤2026.7.x.** From 2026.11.7 (#1122) the gateway no
+> longer logs `Sending message` / `Sent message` at INFO, and inbound moved to
+> `~/.openclaw/logs/openclaw-<date>.log`. So this command reports `send=0
+> sent=0` even when Felix replies. On current releases use the DM smoke in
+> [`openclaw-ecosystem-upgrade.md` step 6](<./openclaw-ecosystem-upgrade.md>).
+> It counts inbound messages, finished WhatsApp agent runs and the delivery
+> queue. The command below is kept for the historical #588 signature.
+
 Send 5 DMs from the operator phone within a 5-minute window, note `T0`
 (ISO timestamp at start), then run:
 
@@ -452,7 +460,7 @@ The canonical pattern reference is
 
 Per `research.md` §4 + §5 D1 of the mission, in cost order:
 
-1. **H6 — `openclaw` version**: confirm the **running** version with `openclaw gateway status --deep` (`Gateway version:`) or `/home/claude/.local/bin/openclaw --version` — bare `openclaw` is not on the non-login/systemd PATH after the #653 root-global removal. Lifecycle regression first surfaced on 2026.5.28; current running version is 2026.7.1-2 (2026-07-19).
+1. **H6 — `openclaw` version**: confirm the **running** version with `openclaw gateway status --deep` (`Gateway version:`) or `/home/claude/.local/bin/openclaw --version` — bare `openclaw` is not on the non-login/systemd PATH after the #653 root-global removal. Lifecycle regression first surfaced on 2026.5.28; current running version is 2026.11.7 (2026-11-23, #1122). On 2026.11.7 also check `channels.whatsapp.selfChatMode` is `true`: with `false` the plugin silently drops every DM from Kent's own number.
 2. **H5 — plugin install state**: `openclaw plugins list` — verify `@openclaw/whatsapp` is present and matches the running openclaw version (channels moved to external plugins in 2026.5.28 per `reference_openclaw_upgrade_gotchas`).
 3. **H4 — config drift**: read `/home/claude/.openclaw/openclaw.json` `channels.whatsapp` + `session` blocks; compare against vendored docs for required-field deltas.
 4. **H2 — vendored docs**: read `/home/claude/.local/lib/node_modules/openclaw/docs/{channels,gateway}/*.md` for any required field absent from our config (claude user-space install path since #653; the old root-global `/usr/lib/node_modules/openclaw` was removed 2026-07-19).

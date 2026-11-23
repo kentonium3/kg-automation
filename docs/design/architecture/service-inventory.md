@@ -2,7 +2,7 @@
 title: Service Inventory
 doc_type: reference
 status: approved
-tags: [1120, 1111, 1087, 860, 775, 749, 750, 656, 588, 579, 572, 520, 519, 518, 137, 189, 80, 202, 149, 190, 374, 100, 253, 185, 254, 371, 309, 343, 306, 308, 310, 362, 391, 400, 105, 115, 562, 490, 408, 567, 563, 558, 561, 540, 542, 306/, 152, 376, 368-, 112]
+tags: [1122, 1120, 1111, 1087, 860, 775, 749, 750, 656, 588, 579, 572, 520, 519, 518, 137, 189, 80, 202, 149, 190, 374, 100, 253, 185, 254, 371, 309, 343, 306, 308, 310, 362, 391, 400, 105, 115, 562, 490, 408, 567, 563, 558, 561, 540, 542, 306/, 152, 376, 368-, 112]
 ---
 
 # Service Inventory
@@ -17,9 +17,9 @@ All services run on office2 unless otherwise noted.
 |---------|------|---------------|------|---------|-------------|-----------|
 | Vikunja | Docker (compose) | `office2.local/vikunja:active` (release v2.8.0-rrule.5, see #1113; accepted 2026-11-20) | 3456 | 100.92.197.90 | `vikunja.service` (system, oneshot → `docker compose up -d`) | `/data/services/vikunja/data` |
 | Canonical Livepatch | Native (snap) | `canonical-livepatch` v11.1.0 (snap rev 418), Ubuntu Pro free personal; added 2026-11-21 (#1120) | — (outbound only: `livepatch.canonical.com`) | — | `snap.canonical-livepatch.canonical-livepatchd.service` (system) | — |
-| Obsidian Sync | Native | `ob` v0.0.10 (upgraded 2026-06-06), `ob sync --continuous` | — | — | `obsidian-sync.service` (system, runs as `kgale`) | `/home/kgale/second-brain/notes` |
+| Obsidian Sync | Native | `ob` v0.0.10 (upgraded 2026-06-06), `ob sync --continuous`; Node 24 (native module rebuilt 2026-11-23, #1122) | — | — | `obsidian-sync.service` (system, runs as `kgale`) | `/home/kgale/second-brain/notes` |
 | Transcribe API | Docker (GPU) | `transcribe-transcribe` | 8787 | 100.92.197.90 | `transcribe.service` | `/data/services/transcribe` |
-| OpenClaw Gateway | npm-global | `2026.6.11` | 18789 | 127.0.0.1 | `openclaw-gateway.service` (user) | `/data/services/openclaw/data` |
+| OpenClaw Gateway | npm-global | `2026.11.7` (+ `@openclaw/whatsapp` 2026.11.7), Node 24 | 18789 | 127.0.0.1 | `openclaw-gateway.service` (user) | `/data/services/openclaw/data` |
 | Ollama | Host binary | `ollama` (latest, 0.23.2) | 11434 | 127.0.0.1 (localhost) | `ollama.service` (system, user `ollama`) | `/usr/share/ollama/.ollama` |
 | Google Workspace (`gog` CLI) | CLI integration | `gog` (Linuxbrew, `steipete/tap/gogcli`) | — | — | n/a (on-demand CLI) | `/home/claude/.config/gogcli/credentials.json` |
 
@@ -251,7 +251,9 @@ The helper does NOT trigger an openclaw restart.
 
 ### OpenClaw Gateway (F002)
 - **Deployed by**: F002
-- **Version**: OpenClaw 2026.7.1-2 (core + `@openclaw/whatsapp` 2026.7.1, lockstep-upgraded 2026-07-19)
+- **Version**: OpenClaw 2026.11.7 (core + `@openclaw/whatsapp` 2026.11.7, lockstep-upgraded 2026-11-23, #1122; previously 2026.7.1-2 from 2026-07-19)
+- **Runtime**: Node 24.22.3 from the NodeSource `node_24.x` apt source (`/usr/bin/node`). Every core release after 2026.9.2 requires Node ≥24.16, so the Node major line is now part of an OpenClaw upgrade.
+- **WhatsApp `selfChatMode: true`**: the linked account is Kent's own number, so every Kent→Felix DM is a from-me message. Plugin 2026.11.7 drops those when `selfChatMode` is `false`, which silently stopped DMs after the 2026-11-23 upgrade until it was flipped.
 - **Installation**: `npm install -g openclaw@<version>` into the **claude user-space** npm prefix `/home/claude/.local` (**no sudo** — per #653 the core was relocated out of the root-owned `/usr/lib/node_modules/openclaw` into claude space; the root-global was removed 2026-07-19). Channel plugins upgrade in lockstep via `openclaw plugins update @openclaw/<plugin>@latest`. See [`openclaw-ecosystem-upgrade.md`](<../../runbooks/openclaw-ecosystem-upgrade.md>).
 - **Binary**: `/home/claude/.local/bin/openclaw` (sole install; bare `openclaw` resolves here only on a **login** shell — systemd-user units, cron, and non-login ssh must use the absolute path). Code resolves this via the seam [`scripts/common/openclaw_bin.py`](../../../scripts/common/openclaw_bin.py) — the single source of truth for the binary path (#811).
 - **Config**: `/home/claude/.openclaw/openclaw.json`

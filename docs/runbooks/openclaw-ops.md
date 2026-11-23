@@ -11,7 +11,7 @@ This runbook covers operations for the OpenClaw gateway service on office2.
 
 ## Installed Version
 
-- **Version**: OpenClaw 2026.7.1-2 (core; `@openclaw/whatsapp` 2026.7.1 — lockstep-upgraded 2026-07-19)
+- **Version**: OpenClaw 2026.11.7 (core; `@openclaw/whatsapp` 2026.11.7 — lockstep-upgraded 2026-11-23, #1122), on Node 24.22.3
 - **Installation**: `npm install -g openclaw@<version>` as the **claude** user into the
   user-space npm prefix `/home/claude/.local` — **no sudo**. Per #653 the core was
   relocated out of the root-owned `/usr/lib/node_modules/openclaw` into claude space,

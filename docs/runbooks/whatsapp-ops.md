@@ -89,19 +89,44 @@ Channel config is in `~/.openclaw/openclaw.json` under `channels.whatsapp`:
 ```json
 {
   "enabled": true,
-  "dmPolicy": "pairing",
-  "selfChatMode": false,
+  "dmPolicy": "allowlist",
+  "allowFrom": ["+16179300916"],
+  "selfChatMode": true,
   "groupPolicy": "allowlist",
-  "debounceMs": 0,
+  "groupAllowFrom": ["+16179300916"],
   "mediaMaxMb": 50
 }
 ```
 
-To modify settings, edit the config file and restart:
+(As deployed 2026-11-23, #1122. This block previously showed `dmPolicy:
+"pairing"`, which was retired on 2026-03-31 because it sent pairing codes to
+anyone who messaged the number.)
+
+**`selfChatMode` must be `true`.** The linked account is Kent's own number, so
+every Kent→Felix DM is a *from-me* message (`+16179300916 -> +16179300916`).
+
+- **Why it was `false`:** it was set that way from the first WhatsApp mission
+  to avoid echoes.
+- **What changed:** `@openclaw/whatsapp` 2026.7.1 ignored it for same-number
+  DMs, but 2026.11.7 enforces it. With `false`, every DM is dropped silently:
+  the channel still reports connected and healthy, the web heartbeat shows
+  `messagesHandled: 0`, and nothing is logged.
+- **Echoes:** with `true`, Felix's own reply comes back once as an input and the
+  session controller rejects it (`source-claim: failed`), so no loop occurs. If
+  Felix ever starts answering its own messages, this setting is the first
+  suspect.
+
+To change a setting, use the CLI (it validates the value), then restart:
+
 ```bash
-vi ~/.openclaw/openclaw.json
+/home/claude/.local/bin/openclaw config set channels.whatsapp.<key> <value>
+/home/claude/.local/bin/openclaw config validate
 systemctl --user restart openclaw-gateway
 ```
+
+This is an out-of-band change to `openclaw.json`, an audited surface. Rebaseline
+`openclaw-config.txt` afterwards per
+[`security-baseline-ops.md`](<./security-baseline-ops.md>).
 
 ## Troubleshooting
 
