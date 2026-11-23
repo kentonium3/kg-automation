@@ -203,7 +203,20 @@ surfaced only during the window.
    - It can **add automations**. On 2026-11-23 it migrated `HEARTBEAT.md` into
      a 30-minute "Proactive check (main)" job, and memory-core added "Memory
      Dreaming Promotion" at 03:00 UTC. Both appear as security-monitor cron
-     drift.
+     drift, and neither is in `approved-crons.json`, so felix-trust-scan
+     flags them.
+     - Dreaming is **disabled on office2** (2026-11-23, #1122). Turn it off with
+       `openclaw config set plugins.entries.memory-core.config.dreaming.enabled false`,
+       not `cron rm`. memory-core owns the job and re-creates it; the config
+       key makes it remove its own job.
+     - The migrated "Proactive check" replaces OpenClaw's own heartbeat and
+       is separate from felix-heartbeat-gate, which wakes the main session
+       with `system event --mode now`. Deleting a provisioned check is
+       permanent: doctor keeps a receipt and does not re-create it.
+     - A plugin-managed job has no `agentId`, and on 2026-11-23 that
+       crashed felix-trust-scan's `state_reconcile`. The scan reported
+       `ok: false` and sent no alert. Check `journalctl --user -u
+       felix-trust-scan` after any doctor run.
    - It will **not** rewrite our systemd unit while `~/.config` is
      group-writable. It leaves `openclaw-gateway.service.reconcile-*.bak` files
      in `~/.config/systemd/user/`, which appear as unit drift.
