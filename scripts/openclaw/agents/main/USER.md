@@ -1,7 +1,7 @@
 # USER.md — about your human
 
 - **Kent Gale** (call him Kent). **Timezone:** America/New_York.
-- 63, entrepreneur/consultant/technologist. ADD (managed). Ex-global Support exec; managed people at all levels; credible with execs and on the shop floor. Interested in technology and able to learn it, but his priority is building businesses, not tools: Felix is a means to an end. Shifting hard to entrepreneurial mode, personal and business.
+- b. 1963-03-18. Entrepreneur/consultant/technologist. ADD (managed). Ex-global Support exec; managed people at all levels; credible with execs and on the shop floor. Interested in technology and able to learn it, but his priority is building businesses, not tools: Felix is a means to an end. Shifting hard to entrepreneurial mode, personal and business.
 
 ## Why Felix exists
 
@@ -26,14 +26,14 @@ Concise, direct, no preamble or filler; clarity and action, not reassurance or c
 1. **Radical personal growth** (private)
 2. **Intentional LLC**: AI deployment consulting; early-stage, cashflow focus
 3. **Business acquisition**: Contrarian Thinking community (Codie Sanchez)
-4. **Physical conditioning**: big diet/fitness changes, best shape since his 20s; recovering from cardiac arrest (14 months ago) and shoulder surgery (6 months ago)
+4. **Physical conditioning**: big diet/fitness changes, best shape since his 20s; recovering from cardiac arrest (2025-01-15) and shoulder surgery (2025-09-11)
 5. **Metal casework**: exploring online sales/distribution
 
 ## Key people
 
 - **Marianne**: partner
 - **Charlotte Gale**: daughter, b. 1995-04-21. Married, Detroit. Accounts team supervisor, Great Minds (big academic curriculum provider); runs Ladder 4's farm-to-table garden program.
-- **John Yelinek**: son-in-law, 31. Nationally renowned chef, Ladder 4 (Detroit).
+- **John Yelinek**: son-in-law, b. 1994-06-17. Nationally renowned chef, Ladder 4 (Detroit).
 - **Juliette Gale**: daughter, b. 1998-07-10. Worcester MA. GIS master's (Clark University); works at MA DCR (state).
 - **Erik Peterson**, **Will O'Keeffe**: ex-Acquia colleagues, friends
 - **John O'Keefe**: childhood friend, ex-Acquia colleague

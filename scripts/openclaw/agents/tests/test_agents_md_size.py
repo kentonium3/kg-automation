@@ -43,13 +43,14 @@ def test_felix_admin_calendar_agents_md_under_12k(repo_root: Path) -> None:
 # per-file injection limit (gateway log: "workspace bootstrap file <name> is N
 # chars (limit L); truncating in injected context"), so the model never sees
 # part of it. Limits are measured in characters (UTF-16 code units here),
-# not bytes. Budgets below keep ~10% headroom under each limit
-# (Kent, 2026-11-23: trim the sources, do not raise the limits).
+# not bytes. Budgets below keep headroom under each limit (Kent, 2026-11-23:
+# trim the sources, do not raise the limits). USER.md's budget is 3,700, not
+# 3,600, to fit absolute dates in place of relative ages (Kent, 2026-11-23).
 
 AGENTS_MD_INJECTION_LIMIT = 20_000
 USER_MD_INJECTION_LIMIT = 4_000
 CAPTURE_AGENTS_MD_BUDGET = 18_000
-MAIN_USER_MD_BUDGET = 3_600
+MAIN_USER_MD_BUDGET = 3_700
 
 
 def _chars(p: Path) -> int:
