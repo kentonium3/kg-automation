@@ -95,6 +95,18 @@
       "title": null,
       "verdict": "not-applicable",
       "wp": null
+    },
+    "#spec-kitty/spec-kitty#7830": {
+      "evidence_ref": "Cited for context only (tooling fault forecast); no work owed.",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": null,
+      "title": null,
+      "verdict": "not-applicable",
+      "wp": null
     }
   },
   "schema_version": 1
