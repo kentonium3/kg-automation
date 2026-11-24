@@ -160,7 +160,7 @@
     },
     "WP05": {
       "actor": "codex",
-      "agent": "codex",
+      "agent": null,
       "agent_profile": "__resolved_profile_absent__",
       "agent_profile_version": "__resolved_profile_version_absent__",
       "force_count": 1,
@@ -173,6 +173,7 @@
         "Ready for review"
       ],
       "provider": "__resolved_provider_absent__",
+      "review": null,
       "review_result": {
         "feedback_path": "/home/kgale/repos/kg-automation/.worktrees/crash-loop-unit-alerting-01M858E8-coord/kitty-specs/crash-loop-unit-alerting-01M858E8/tasks/WP05-deploy/review-cycle-1.md",
         "reference": "review-cycle://crash-loop-unit-alerting-01M858E8/WP05-deploy/review-cycle-1.md",
@@ -180,12 +181,12 @@
         "verdict": "changes_requested"
       },
       "role": "reviewer",
-      "shell_pid": 2895227,
-      "shell_pid_created_at": "1795480087.17",
+      "shell_pid": null,
+      "shell_pid_created_at": null,
       "subtasks": {
-        "T020": "done",
-        "T021": "done",
-        "T022": "done"
+        "T020": "planned",
+        "T021": "planned",
+        "T022": "planned"
       }
     },
     "WP06": {
