@@ -730,8 +730,11 @@ def test_counts_and_scope_status_cover_every_scope() -> None:
 # --------------------------------------------------------------------------- #
 def test_history_dominance_compaction() -> None:
     # Equal count replaces the newest entry; a higher count appends.
-    assert _maintain_history([(at(0), 0)], at(1), 0, 900) == [(at(1), 0)]
-    assert _maintain_history([(at(0), 0)], at(1), 2, 900) == [(at(0), 0), (at(1), 2)]
+    assert _maintain_history([(at(0), 0)], at(1), at(1), 0, 900) == [(at(1), 0)]
+    assert _maintain_history([(at(0), 0)], at(1), at(1), 2, 900) == [
+        (at(0), 0),
+        (at(1), 2),
+    ]
 
     # Codex round 3: (0,0),(30,0),(60,2),(915,3) in seconds alerts at 915.
     sim = Sim()
@@ -746,12 +749,12 @@ def test_history_dominance_compaction() -> None:
     # Entries older than 24 h are pruned; the newest is always kept.
     now = at(0) + timedelta(hours=30)
     old = [(at(0), 0), (at(0) + timedelta(hours=7), 1), (now - timedelta(hours=1), 2)]
-    assert _maintain_history(old, now, 3, 900) == [
+    assert _maintain_history(old, now, now, 3, 900) == [
         (at(0) + timedelta(hours=7), 1),
         (now - timedelta(hours=1), 2),
         (now, 3),
     ]
-    assert _maintain_history([(now - timedelta(hours=48), 5)], now, 5, 900) == [
+    assert _maintain_history([(now - timedelta(hours=48), 5)], now, now, 5, 900) == [
         (now, 5)
     ]
 
@@ -759,7 +762,7 @@ def test_history_dominance_compaction() -> None:
     now = at(600)
     pre_window = [(at(i), i) for i in range(100)]  # minutes 0..99, all pre-window
     in_window = [(now - timedelta(seconds=300 - i), 100 + i) for i in range(100)]
-    kept = _maintain_history(pre_window + in_window, now, 500, 900)
+    kept = _maintain_history(pre_window + in_window, now, now, 500, 900)
     assert kept[:HISTORY_MAX] == pre_window[-HISTORY_MAX:]
     assert kept[HISTORY_MAX:-1] == in_window
     assert kept[-1] == (now, 500)
@@ -1025,6 +1028,102 @@ def test_evaluate_tick_does_not_mutate_prior_state() -> None:
         readings(scenarios[0], incomplete=["user"]), prior, config, at(16), BOOT_A
     )
     assert again == first
+
+
+# --------------------------------------------------------------------------- #
+# The read bracket (NFR-004, post-merge review).
+# --------------------------------------------------------------------------- #
+def test_observation_is_stored_at_observed_from_and_proved_to_now() -> None:
+    first = evaluate_tick(
+        readings([obs(OBSIDIAN, 0)]),
+        CrashLoopState.empty(),
+        CFG,
+        at(0.5),
+        BOOT_A,
+        observed_from=at(0),
+    )
+    assert first.new_state.units[OBSIDIAN].history == [(at(0), 0)]
+
+    second = evaluate_tick(
+        readings([obs(OBSIDIAN, 39)]),
+        first.new_state,
+        CFG,
+        at(16),
+        BOOT_A,
+        observed_from=at(15.5),
+    )
+    assert kinds(second) == ["alert"]
+    proof = second.events[0].proof
+    assert proof.baseline_at == at(0)  # the stored (earliest) time
+    assert proof.observed_at == at(16)  # the latest possible sampling instant
+    assert proof.period_seconds == 960.0
+    assert second.new_state.units[OBSIDIAN].history == [(at(0), 0), (at(15.5), 39)]
+    episode = second.new_state.units[OBSIDIAN].episode
+    assert episode is not None
+    assert episode.started_utc == at(16)
+    assert episode.last_alert_utc == at(16)
+
+
+def test_observed_from_defaults_to_now() -> None:
+    outcome = evaluate_tick(
+        readings([obs(OBSIDIAN, 0)]), CrashLoopState.empty(), CFG, at(1), BOOT_A
+    )
+    assert outcome.new_state.units[OBSIDIAN].history == [(at(1), 0)]
+
+
+def test_observed_from_at_previous_entry_is_not_clock_skipped() -> None:
+    first = evaluate_tick(
+        readings([obs(OBSIDIAN, 0)]), CrashLoopState.empty(), CFG, at(0), BOOT_A
+    )
+    second = evaluate_tick(
+        readings([obs(OBSIDIAN, 2)]),
+        first.new_state,
+        CFG,
+        at(1),
+        BOOT_A,
+        observed_from=at(0),
+    )
+    assert second.counts["clock_skipped"] == 0
+    # Kept strictly ascending: one microsecond after the previous entry.
+    assert second.new_state.units[OBSIDIAN].history == [
+        (at(0), 0),
+        (at(0) + timedelta(microseconds=1), 2),
+    ]
+
+
+def test_now_at_previous_entry_is_still_clock_skipped() -> None:
+    first = evaluate_tick(
+        readings([obs(OBSIDIAN, 0)]), CrashLoopState.empty(), CFG, at(5), BOOT_A
+    )
+    second = evaluate_tick(
+        readings([obs(OBSIDIAN, 9)]),
+        first.new_state,
+        CFG,
+        at(5),
+        BOOT_A,
+        observed_from=at(4),
+    )
+    assert second.counts["clock_skipped"] == 1
+    assert second.new_state.units[OBSIDIAN] == first.new_state.units[OBSIDIAN]
+
+
+def test_observed_from_after_now_rejected() -> None:
+    with pytest.raises(ValueError, match="observed_from"):
+        evaluate_tick(
+            [], CrashLoopState.empty(), CFG, at(0), BOOT_A, observed_from=at(1)
+        )
+
+
+def test_naive_observed_from_rejected() -> None:
+    with pytest.raises(ValueError, match="observed_from"):
+        evaluate_tick(
+            [],
+            CrashLoopState.empty(),
+            CFG,
+            at(0),
+            BOOT_A,
+            observed_from=datetime(2026, 1, 1),
+        )
 
 
 def test_module_is_pure() -> None:

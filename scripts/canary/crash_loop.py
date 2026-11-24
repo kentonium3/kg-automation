@@ -176,23 +176,27 @@ def prove(
 
 def _maintain_history(
     history: Sequence[tuple[datetime, int]],
+    stored_at: datetime,
     now: datetime,
     current: int,
     window_seconds: int,
 ) -> list[tuple[datetime, int]]:
     """Dominance compaction then pruning (research R-07).
 
+    The current observation is stored at *stored_at*, the earliest instant the
+    counter can have been sampled (post-merge review: a baseline must never be
+    later than its true sample time, or a later proof under-states ``L``).
     An equal count replaces the newest entry (a later baseline with the same
-    count dominates); otherwise ``(now, current)`` is appended. Every entry
-    with ``at ≥ now − window`` is kept (round-4 M1). Older entries older than
-    ``HISTORY_RETENTION`` are dropped, and at most ``HISTORY_MAX`` of them are
-    kept, dropping the oldest. The newest entry is always kept.
+    count dominates); otherwise ``(stored_at, current)`` is appended. Every
+    entry with ``at ≥ now − window`` is kept (round-4 M1). Older entries older
+    than ``HISTORY_RETENTION`` are dropped, and at most ``HISTORY_MAX`` of them
+    are kept, dropping the oldest. The newest entry is always kept.
     """
     entries = list(history)
     if entries and entries[-1][1] == current:
-        entries[-1] = (now, current)
+        entries[-1] = (stored_at, current)
     else:
-        entries.append((now, current))
+        entries.append((stored_at, current))
     window_start = now - timedelta(seconds=window_seconds)
     retention_start = now - HISTORY_RETENTION
     newest = entries[-1]
@@ -252,9 +256,9 @@ def _evaluate_unit(
     config: CrashLoopConfig,
     now: datetime,
     boot_id: str,
+    observed_from: datetime,
 ) -> _UnitResult:
     current = obs.restart_count
-    rebased = [(now, current)]
 
     # First sight (FR-010, INV-CL-1): baseline only.
     if prior is None:
@@ -262,16 +266,25 @@ def _evaluate_unit(
             state=UnitState(
                 generation=obs.generation,
                 boot_id=boot_id,
-                history=rebased,
+                history=[(observed_from, current)],
                 episode=None,
             ),
             counter="first_seen",
         )
 
-    # 1. Clock (INV-CL-9): runs before any other check.
+    # 1. Clock (INV-CL-9): runs before any other check, against *now*, the
+    # LATEST possible sampling instant.
     last_at, last_count = prior.history[-1]
     if now <= last_at:
         return _UnitResult(state=_copy_unit(prior), counter="clock_skipped")
+
+    # The stored time is the earliest possible sample time, kept strictly after
+    # the previous entry so history stays strictly ascending. This sample was
+    # taken strictly after the previous one, which was taken at or after
+    # ``last_at``, so ``last_at + 1 µs`` is still a lower bound; and because
+    # ``now > last_at``, ``stored_at ≤ now``.
+    stored_at = max(observed_from, last_at + _ONE_MICROSECOND)
+    rebased = [(stored_at, current)]
 
     # 2. Boot change (INV-CL-2, round-3 HIGH): rebase, close silently.
     if prior.boot_id != boot_id:
@@ -361,7 +374,7 @@ def _evaluate_unit(
 
     # 7. History maintenance (dominance compaction, R-07).
     result.state.history = _maintain_history(
-        result.state.history, now, current, config.window_seconds
+        result.state.history, stored_at, now, current, config.window_seconds
     )
     return result
 
@@ -381,8 +394,20 @@ def evaluate_tick(
     config: CrashLoopConfig,
     now: datetime,
     boot_id: str | None,
+    *,
+    observed_from: datetime | None = None,
 ) -> TickOutcome:
     """Decide one tick. Pure; never mutates *prior_state*.
+
+    The counters were sampled somewhere in ``[observed_from, now]`` (the
+    caller brackets the read with two wall-clock readings; *observed_from*
+    defaults to *now*). The bracket keeps every proof sound (NFR-004,
+    post-merge review): the observation is **stored** at *observed_from*, the
+    earliest possible sample time, and every candidate interval is
+    **computed** as ``L = now − baseline.at`` with *now* the latest possible
+    sampling instant. ``L`` is therefore never less than the true interval, so
+    ``m`` can only be over-estimated. The clock rule (INV-CL-9), episode times,
+    the re-remind gap and every event's ``observed_at`` use *now*.
 
     Scopes are processed in ``SCOPES`` order and observations in reading
     order, so the event list is deterministic. A ``None`` *boot_id* makes every
@@ -391,6 +416,12 @@ def evaluate_tick(
     """
     if now.tzinfo is None or now.utcoffset() is None:
         raise ValueError("evaluate_tick: now must be timezone-aware")
+    if observed_from is None:
+        observed_from = now
+    elif observed_from.tzinfo is None or observed_from.utcoffset() is None:
+        raise ValueError("evaluate_tick: observed_from must be timezone-aware")
+    elif observed_from > now:
+        raise ValueError("evaluate_tick: observed_from must not be after now")
     by_scope = _readings_by_scope(readings)
     prior_units = prior_state.units
     units: dict[str, UnitState] = {}
@@ -427,7 +458,9 @@ def evaluate_tick(
                 ignored += 1
                 continue
             watched += 1
-            result = _evaluate_unit(obs, prior_units.get(obs.key), config, now, boot_id)
+            result = _evaluate_unit(
+                obs, prior_units.get(obs.key), config, now, boot_id, observed_from
+            )
             units[obs.key] = result.state
             if result.counter is not None:
                 counts[result.counter] += 1

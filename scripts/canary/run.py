@@ -104,6 +104,11 @@ _CRASH_LOOP_DIAG_MAX = 200
 _TICK_SIGNAL_EXCLUDED = ("component_lines", "alerts_undelivered", "crash_loop")
 
 
+def _wall_clock_utc() -> datetime:
+    """The crash-loop stage's wall clock (UTC), read around the counter read."""
+    return datetime.now(timezone.utc)
+
+
 @dataclass(frozen=True)
 class CrashLoopCheck:
     """Everything the crash-loop stage needs, injected into :func:`run_pass`.
@@ -112,12 +117,18 @@ class CrashLoopCheck:
     :func:`crash_loop_readers.read_all_scopes` does. ``run_pass`` without a
     check (the default) skips the stage, so direct callers and tests never
     reach real ``systemctl`` or ``docker`` (research R-09).
+
+    ``clock()`` returns the current wall-clock time (timezone-aware UTC). The
+    stage reads it immediately before and after ``read_scopes`` so the decision
+    core knows the counters were sampled within that bracket, not at the
+    pass-start ``now`` (NFR-004, post-merge review). Tests inject it.
     """
 
     config_path: Path
     state_path: Path
     lock_path: Path
     read_scopes: Callable[[CrashLoopConfig], tuple[list[ScopeReading], str | None]]
+    clock: Callable[[], datetime] = _wall_clock_utc
 
 
 def _default_read_scopes(
@@ -548,9 +559,20 @@ def run_pass(
             prior, diagnostics = crash_loop_state.load_state(
                 check.state_path, now=now
             )
+            # The counters are sampled somewhere inside this bracket; the
+            # decision core stores the earliest bound and proves against the
+            # latest, so a slow probe or read can never shrink a proven
+            # interval below the true one (NFR-004, post-merge review).
+            t_read_start = check.clock()
             readings, boot_id = check.read_scopes(config)
+            t_read_end = check.clock()
             outcome = crash_loop_mod.evaluate_tick(
-                readings, prior, config, now, boot_id
+                readings,
+                prior,
+                config,
+                now=t_read_end,
+                boot_id=boot_id,
+                observed_from=t_read_start,
             )
             stage_summary["watched"] = outcome.counts.get("watched", 0)
             stage_summary["ignored"] = outcome.counts.get("ignored", 0)
@@ -608,7 +630,7 @@ def run_pass(
             if not dry_run:
                 try:
                     crash_loop_state.save_state(
-                        outcome.new_state, check.state_path, now=now
+                        outcome.new_state, check.state_path, now=t_read_end
                     )
                 except Exception as exc:  # noqa: BLE001 - recorded, never fatal
                     errors.append(

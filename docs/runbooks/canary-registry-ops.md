@@ -446,6 +446,14 @@ Only a proven crossing pages. With the defaults (threshold 3, window 900 s) the
 bound is `2m + 1`. The stage checks every stored baseline, not only the last
 tick's, and reports the tightest proving interval.
 
+`period` is never shorter than the true time between the two samples. The stage
+reads the wall clock just before and just after it reads the counters. It
+stores each sample at the earlier reading (`baseline_at`) and measures the
+period to the later reading (`observed_at`). A slow probe earlier in the pass,
+or a slow read, can therefore only lengthen `period` and raise the bound. It can
+never make a page out of restarts that were spread too thinly to prove one.
+Neither time is the pass's start time (`evaluated_at`).
+
 Worked examples:
 
 - **39 restarts over 16 minutes**: `m = ceil(960 / 900) = 2`, bound `2·2 + 1 =
@@ -696,10 +704,11 @@ config.
 - **Two-way reconciliation.** Every emitted canary event line in the window
   needs its alert-bus entry: an individual entry with the same component,
   kind and time, or an aggregate entry whose `count` equals the number of
-  lines folded into it at that time. Every bus entry from a
-  `felix-canary:crash-loop:` source needs its canary line or lines. A bus
-  entry with no canary line, or an aggregate count that does not match, is a
-  `FAIL`. A canary page with no bus entry, or no bus ledger files for the
+  lines folded into it at that time. The time is the line's
+  `interval.observed_at`, which is the alert's timestamp, not `evaluated_at`.
+  Every bus entry from a `felix-canary:crash-loop:` source needs its canary
+  line or lines. A bus entry with no canary line, or an aggregate count that
+  does not match, is a `FAIL`. A canary page with no bus entry, or no bus ledger files for the
   window at all, is `INCONCLUSIVE`, because the bus ledger is best-effort and
   the evidence is missing rather than contradicted.
 
@@ -720,14 +729,22 @@ config_rel = "scripts/canary/crash_loop_config.json"
 missing, violations = [], []
 
 
-def records(directory, key):
-    days = [p for p in sorted(directory.glob("*.jsonl")) if start.date().isoformat() <= p.stem <= end.date().isoformat()]
+def records(directory, when):
+    # From the day before START: a canary file is named for the pass's start,
+    # which can be just before midnight when the counter read is just after it.
+    first = (start - timedelta(days=1)).date().isoformat()
+    days = [p for p in sorted(directory.glob("*.jsonl")) if first <= p.stem <= end.date().isoformat()]
     if not days:
         missing.append(f"no ledger files for the window in {directory}")
     for path in days:
         for line in path.read_text().splitlines():
-            if line.strip() and start <= T(json.loads(line)[key]) < end:
+            if line.strip() and start <= T(when(json.loads(line))) < end:
                 yield json.loads(line)
+
+
+# An event line is placed by its interval's observed_at, the alert's timestamp,
+# so it falls inside or outside the window together with its bus entry.
+canary_time = lambda r: r["interval"]["observed_at"] if "interval" in r else r["evaluated_at"]
 
 
 if end - start < timedelta(days=7):
@@ -749,8 +766,8 @@ n, window = config["threshold"], config["window_seconds"]
 
 KIND = {"crash-loop": "alert", "crash-loop-reremind": "reremind", "crash-loop-cleared": "cleared"}
 FOLDED = "(in aggregate alert)"
-canary = list(records(canary_dir, "evaluated_at")) if canary_dir.is_dir() else missing.append(f"missing: {canary_dir}") or []
-bus = list(records(bus_dir, "ts")) if bus_dir.is_dir() else missing.append(f"missing: {bus_dir}") or []
+canary = list(records(canary_dir, canary_time)) if canary_dir.is_dir() else missing.append(f"missing: {canary_dir}") or []
+bus = list(records(bus_dir, lambda b: b["ts"])) if bus_dir.is_dir() else missing.append(f"missing: {bus_dir}") or []
 if not any(r["component_id"] == "crash-loop:system" for r in canary):
     missing.append("no crash-loop:system lines in the window: no evidence the stage ran")
 
@@ -769,8 +786,8 @@ for r in events:
 
 # Two-way reconciliation between the canary ledger and the alert-bus ledger.
 at = lambda text: round(T(text).timestamp(), 3)
-canary_single = {(r["component_id"], KIND[r["outcome"]], at(r["evaluated_at"])) for r in events if not r["evidence"].endswith(FOLDED)}
-canary_folded = Counter(at(r["evaluated_at"]) for r in events if r["evidence"].endswith(FOLDED))
+canary_single = {(r["component_id"], KIND[r["outcome"]], at(r["interval"]["observed_at"])) for r in events if not r["evidence"].endswith(FOLDED)}
+canary_folded = Counter(at(r["interval"]["observed_at"]) for r in events if r["evidence"].endswith(FOLDED))
 bus = [b for b in bus if b.get("source", "").startswith("felix-canary:crash-loop:") and b.get("details", {}).get("kind")]
 bus_single = {(b["details"].get("component_id"), b["details"]["kind"], at(b["ts"])) for b in bus if b["details"]["kind"] != "aggregate"}
 bus_folded = Counter({at(b["ts"]): int(b["details"]["count"]) for b in bus if b["details"]["kind"] == "aggregate"})

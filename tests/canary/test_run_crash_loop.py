@@ -10,6 +10,7 @@ References: research.md R-07, R-08, R-09, R-15; contracts/crash-loop-alert.md
 """
 from __future__ import annotations
 
+import dataclasses
 import json
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -152,7 +153,19 @@ def _event_lines(ledger: list[dict]) -> list[dict]:
     return [r for r in ledger if r["component_id"].count(":") >= 2]
 
 
+def _pinned(check, now: datetime):
+    """*check* with its read bracket collapsed onto *now*, unless a test injected a clock.
+
+    Keeps the scripted-pass tests deterministic: the counters are "sampled"
+    at the pass's ``now`` exactly, as before the read bracket existed.
+    """
+    if check is not None and check.clock is run_mod._wall_clock_utc:
+        return dataclasses.replace(check, clock=lambda: now)
+    return check
+
+
 def _pass(tmp_path: Path, check, *, now=NOW, emit_fn=None, inventory=None, evaluate_fn=None, dry_run=False, paths=None):
+    check = _pinned(check, now)
     return run_mod.run_pass(
         now=now,
         inventory=inventory if inventory is not None else _inventory("a"),
@@ -235,6 +248,112 @@ def test_sc001_one_alert_after_39_restarts_in_16_minutes(tmp_path):
 
     saved = json.loads(check.state_path.read_text())
     assert saved["units"][f"system:{UNIT}"]["episode"] is not None
+
+
+class _ScriptedClock:
+    """A wall clock returning the scripted instants in order, one per call."""
+
+    def __init__(self, *instants: datetime) -> None:
+        self.instants = list(instants)
+
+    def __call__(self) -> datetime:
+        return self.instants.pop(0)
+
+
+def _bracketed_check(tmp_path: Path, reader: _Scripted, clock: _ScriptedClock) -> run_mod.CrashLoopCheck:
+    return dataclasses.replace(_check(tmp_path, reader), clock=clock)
+
+
+def _at(seconds: float) -> datetime:
+    return NOW + timedelta(seconds=seconds)
+
+
+def test_sc001_still_pages_with_a_read_bracket(tmp_path):
+    # The incident replay with each read taking 2 s, 10 s into its pass.
+    reader = _Scripted()
+    clock = _ScriptedClock(_at(10), _at(12), _at(970), _at(972))
+    check = _bracketed_check(tmp_path, reader, clock)
+    p = _paths(tmp_path)
+
+    reader.next = _readings({UNIT: 0})
+    _pass(tmp_path, check)
+    later = NOW + timedelta(minutes=16)
+    reader.next = _readings({UNIT: 39})
+    em = _recording_emit()
+    _pass(tmp_path, check, now=later, emit_fn=em)
+
+    assert len(_crash_alerts(em.sent)) == 1
+    line = _event_lines(_read_ledger(p["ledger_dir"], later))[0]
+    # Stored at the first read's start, proved to the second read's end.
+    assert line["interval"]["baseline_at"] == _at(10).isoformat()
+    assert line["interval"]["observed_at"] == _at(972).isoformat()
+    assert line["interval"]["period_seconds"] == 962.0
+    assert line["interval"]["m"] == 2
+    assert line["interval"]["bound"] == 5
+    assert line["interval"]["delta"] == 39
+
+
+def test_late_reads_never_shrink_the_proven_interval(tmp_path):
+    """Post-merge review counterexample (NFR-004): must NOT page.
+
+    Passes are stamped 0 s, 900 s and 1800 s, but the counters are read at
+    about 10 s and 1835 s, and the 900 s pass's system read fails. Restarts at
+    11, 466, 921, 1376 and 1831 s: any three span 910 s, so no 900 s window
+    holds three. Proving with the pass stamps gives delta 5, L 1800, m 2,
+    bound 5 and a false page; the read bracket gives L ≥ 1825, m 3, bound 7.
+    """
+    reader = _Scripted()
+    clock = _ScriptedClock(_at(9.5), _at(10.5), _at(905), _at(906), _at(1834.5), _at(1835.5))
+    check = _bracketed_check(tmp_path, reader, clock)
+    p = _paths(tmp_path)
+
+    reader.next = _readings({UNIT: 0})  # sampled at ~10 s, before the 11 s restart
+    _pass(tmp_path, check, now=_at(0))
+
+    reader.next = [
+        ScopeReading.failed("system", "systemctl timed out", 5),
+        ScopeReading.ok("user", (), 0, 4),
+        ScopeReading.ok("container", (), 0, 3),
+    ]
+    s2 = _pass(tmp_path, check, now=_at(900))
+    assert s2["crash_loop"]["scopes"]["system"] == "unknown"
+
+    reader.next = _readings({UNIT: 5})  # sampled at ~1835 s, after all five
+    em = _recording_emit()
+    s3 = _pass(tmp_path, check, now=_at(1800), emit_fn=em)
+
+    assert _crash_alerts(em.sent) == []
+    assert s3["crash_loop"]["events"] == 0
+    assert s3["crash_loop"]["unverified"] == 1
+    rise = [
+        r for r in _read_ledger(p["ledger_dir"], _at(1800))
+        if r["outcome"] == "crash-loop-unverified"
+    ]
+    assert len(rise) == 1
+    interval = rise[0]["interval"]
+    assert interval["baseline_at"] == _at(9.5).isoformat()
+    assert interval["observed_at"] == _at(1835.5).isoformat()
+    assert interval["period_seconds"] == 1826.0
+    assert interval["delta"] == 5
+    assert interval["m"] == 3
+    assert interval["bound"] == 7
+    assert clock.instants == []
+
+
+def test_pass_start_stamps_would_have_paged_the_counterexample(tmp_path):
+    """The same counterexample with the bracket collapsed onto the pass stamps.
+
+    Guards the regression above: without the bracket the proof is unsound and
+    the pass pages, so the previous test is only green because of the bracket.
+    """
+    reader = _Scripted()
+    check = _check(tmp_path, reader)  # _pass pins the clock to each pass's now
+    reader.next = _readings({UNIT: 0})
+    _pass(tmp_path, check, now=_at(0))
+    reader.next = _readings({UNIT: 5})
+    em = _recording_emit()
+    _pass(tmp_path, check, now=_at(1800), emit_fn=em)
+    assert len(_crash_alerts(em.sent)) == 1
 
 
 # --------------------------------------------------------------------------- #
@@ -494,7 +613,8 @@ def _route_main(monkeypatch, tmp_path, check, *, pass_now, emit_fn, paths=None):
         assert isinstance(crash_loop_check, run_mod.CrashLoopCheck)
         return real(
             now=pass_now, inventory=_inventory("a"), emit_fn=emit_fn,
-            evaluate_fn=_make_evaluate({}), crash_loop_check=check, dry_run=dry_run,
+            evaluate_fn=_make_evaluate({}), crash_loop_check=_pinned(check, pass_now),
+            dry_run=dry_run,
             **(paths or _paths(tmp_path)),
         )
 
