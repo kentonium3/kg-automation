@@ -28,10 +28,10 @@
       "criterion_id": "FR-003",
       "description": "Verify FR-003 is satisfied",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
+      "evidence": "tests/canary/test_crash_loop.py::test_incident_replay_obsidian_sync_39_restarts and test_every_page_is_a_proven_crossing_property (2000 cases). Proven-crossing rule, research R-05.",
+      "pass_fail": "pass",
+      "verified_by": "claude-orchestrator",
+      "verified_at": "2026-11-24T00:37:30.166873+00:00",
       "notes": "TODO: replace with a real acceptance criterion"
     },
     {
