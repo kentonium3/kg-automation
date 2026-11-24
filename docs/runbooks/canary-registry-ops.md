@@ -7,7 +7,7 @@ level: howto
 created: 2026-07-11
 last_validated: '2026-11-24'
 last_updated: '2026-11-24'
-updated_by: '#327 (felix-canary-registry-01KX8T7B) + #1063 (canary-deadman-backup-coverage-01M4XVY3) + #1133 (crash-loop-unit-alerting-01M858E8: crash-loop detection, pending deploy; v1.3 2026-11-24: tick-counting ruling)'
+updated_by: '#327 (felix-canary-registry-01KX8T7B) + #1063 (canary-deadman-backup-coverage-01M4XVY3) + #1133 (crash-loop-unit-alerting-01M858E8: crash-loop detection, deployed 2026-11-24; v1.3 2026-11-24: tick-counting ruling)'
 version: v1.3
 owners: [kgale]
 ---
@@ -366,12 +366,13 @@ resume them afterwards.
 
 ## Crash-loop detection
 
-> **Status: pending deploy.** This stage ships with mission
+> **Status: live since 2026-11-24.** This stage ships with mission
 > `crash-loop-unit-alerting-01M858E8`
-> ([#1133](https://github.com/kentonium3/kg-automation/issues/1133)). It goes
-> live when `deploys/queued/crash-loop-unit-alerting.yaml` is applied, and
-> that waits for Kent's approval of the merge to main. Until then the commands
-> below find no `crash-loop` lines.
+> ([#1133](https://github.com/kentonium3/kg-automation/issues/1133)). Its
+> manifest applied at 2026-11-24T14:38:52Z
+> (`deploys/applied/0043-crash-loop-unit-alerting.yaml`); the first pass
+> recorded baselines with all three scopes healthy. The 7-day check below
+> runs from that pass.
 
 A unit under `Restart=always` that keeps crashing never reaches `failed`. It
 spends most of its time `active` or `activating`, so the canary's "is it
