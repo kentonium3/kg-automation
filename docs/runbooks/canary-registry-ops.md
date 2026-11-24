@@ -457,23 +457,50 @@ Worked examples:
 Ticks land 15 to 16 minutes apart, so `m` is normally 2 between consecutive
 ticks, and a page on a single tick interval needs at least 5 restarts.
 
-### Accepted limits
+### Detection envelope and accepted limits
 
-These follow from the 15-minute sampling cadence. They are deliberate and none
-of them can cause a false page: every page is a proven crossing.
+Every page is a proven crossing, so none of these limits can cause a false
+page. They can cause a **miss**. They follow from two of Kent's decisions:
+15-minute sampling, and the rule of 3 restarts within 15 minutes. Whether to
+accept them is Kent's call. They are listed under "Surfaced judgment calls" in
+the mission's `plan.md`, and loosening them is a change to the proof
+predicate in `evaluate_tick`.
 
-1. **A slow loop of 3 or 4 restarts per tick interval does not page on the tick
-   where it first shows.** That tick writes `crash-loop-unverified`. If the
-   loop keeps going, the longer interval proves itself: at 4 restarts per tick
-   the page comes on about the 2nd tick (about 30 minutes), and at 3 per tick on
-   about the 3rd (about 45 minutes), measured with ticks 15.5 to 16 minutes
-   apart. A slow loop that stops before then never pages.
+**What is caught.** A unit pages when, for some stored baseline, the rise
+since that baseline is at least `m·(threshold−1)+1`, where `m` is the number
+of windows the interval spans. With the defaults, and ticks 15.5 to 16
+minutes apart, that means:
+
+- **A burst** of 5 or more restarts between two ticks pages on that tick.
+- **A steady loop of 4 restarts per tick** pages on about the 2nd tick (about
+  30 minutes). **A steady 3 per tick** pages on about the 3rd (about 45
+  minutes). A slow loop that stops before then never pages.
+
+**What is not caught.** These are the accepted limits:
+
+1. **A steady loop averaging 2 or fewer restarts per tick interval never
+   pages, however long it runs**, unless one tick interval holds a burst of 5 or
+   more. Over `k` ticks the bound is about `2k + 3`, so
+   it grows as fast as the rise. Simulated with the shipped `evaluate_tick`, a
+   steady +2 every 930 s gave zero events across 120 ticks (30 hours). Such a
+   loop can still meet the real rule ("3 within 15 minutes") when its restarts
+   cluster, but the samples can never prove it. It is not silent: once the
+   rise since a baseline reaches 3, every tick writes a `crash-loop-unverified`
+   line. **Nothing pages on those lines**, so a slow loop shows only if someone
+   reads the ledger (see [Reading crash-loop ledger
+   lines](#reading-crash-loop-ledger-lines)).
 2. **A short burst split across a tick boundary can be missed.** For example, 4
-   restarts in 2 minutes split 2 + 2 across two ticks proves nothing. A
-   sustained loop is always caught.
-3. **A failed delivery is not retried.** The dead-man reports it (`/fail`), and
+   restarts in 2 minutes split 2 + 2 across two ticks proves nothing.
+3. **Long multi-window proofs can be lost to history pruning.** Every
+   observation inside the last window is kept, so single-window proofs are
+   always found. Older observations are kept only for 24 h, and at most 64 of
+   them. A proof that needs a baseline more than 24 h back, or more than 64
+   older distinct-count observations back, is not found. In practice this hits
+   only loops averaging just over 2 per tick, which would need more than about
+   16 hours of history to prove.
+4. **A failed delivery is not retried.** The dead-man reports it (`/fail`), and
    both ledgers record it (`delivered: false` on the canary line).
-4. **During an alert storm the pass takes as long as the bus takes.** A pass
+5. **During an alert storm the pass takes as long as the bus takes.** A pass
    with no events adds the read time (about 0.4 s, capped at 6 s). A pass that
    pages adds up to 4 bus calls, each normally under 1 s, with the bus's own
    ceiling at 15 s per call.
@@ -527,18 +554,24 @@ An entry is `{"unit": "<scope>:<name>", "reason": "<why>"}`:
 
 ### Reset
 
-To start over, delete the state file. Do it between ticks, because a running
-pass rewrites it after emitting:
+To start over, delete the state file **under the stage's own lock**. The
+canary holds an exclusive non-blocking `flock` on `crash-loop.lock` from
+loading the state to saving it, so a delete taken under the same lock can
+never be undone by a pass that is running. The reset is refused if the lock
+is busy:
 
 ```bash
-ssh office2-claude 'systemctl --user is-active felix-canary.service; rm -f /data/services/felix-canary/state/crash-loop.json'
+ssh office2-claude 'flock -n -E 75 /data/services/felix-canary/state/crash-loop.lock rm -f /data/services/felix-canary/state/crash-loop.json; rc=$?; if [ $rc -eq 0 ]; then echo "reset done"; elif [ $rc -eq 75 ]; then echo "busy: a pass holds the lock; nothing deleted, retry in a minute"; else echo "rm failed: exit $rc"; fi'
 ```
 
-`is-active` should print `inactive` (no pass running). On the next pass every
-unit is first-seen: it gets a baseline and **nothing alerts**, and any open
-episode ends without a `cleared` message. Detection resumes from the pass after
-that. A missing or corrupt file has the same effect, so a damaged file is never
-a crash.
+`flock(1)` and the canary's `fcntl.flock` (`StateLock` in
+`scripts/canary/crash_loop_state.py`) take the same kind of lock, so they
+exclude each other. While the reset holds the lock, a pass that starts skips
+the stage and records `crash_loop:locked` (harmless once). On the next pass
+every unit is first-seen: it gets a baseline and **nothing alerts**, and any
+open episode ends without a `cleared` message. Detection resumes from the pass
+after that. A missing or corrupt file has the same effect, so a damaged file is
+never a crash.
 
 ### Reading crash-loop ledger lines
 
@@ -608,66 +641,138 @@ A fault in the stage as a whole never aborts the pass. It is appended to
 
 ### 7-day acceptance check
 
-Run this 7 days after `deploys/queued/crash-loop-unit-alerting.yaml` is
-applied (felix-deployer numbers it on apply; see the applied record under
-`deploys/applied/`) (research R-14 of the mission; SC-003, NFR-004, NFR-005). Every command
-is read-only. Run them from your own terminal.
+Run this once 7 full days have passed since
+`deploys/queued/crash-loop-unit-alerting.yaml` was applied (felix-deployer
+numbers the manifest when it applies it; see the applied record under
+`deploys/applied/`). It is research R-14 of the mission, covering SC-003,
+NFR-004 and NFR-005. Every command is read-only, and you run them from your own
+terminal.
 
-**Step 1. Find the start date.** It is the UTC date of the first `crash-loop:system`
-line:
+Every check prints one verdict on its last line:
+
+- `PASS` means the check had the evidence it needs and found nothing wrong.
+- `FAIL` means it found a problem. Each problem is printed above the verdict.
+- `INCONCLUSIVE` means evidence is missing: the window is not over, a ledger
+  is missing, the stage left no lines, or the config changed during the
+  window. Missing evidence is never a `PASS`.
+
+**Step 1. Fix the window.** The window starts at the first `crash-loop:system`
+line, which is the stage's first pass after deploy, and ends exactly 7 days
+later:
 
 ```bash
-ssh office2-claude 'grep -l "\"crash-loop:system\"" /data/services/felix-canary/ledger/*.jsonl | head -1'
+ssh office2-claude 'cat /data/services/felix-canary/ledger/*.jsonl | jq -r "select(.component_id==\"crash-loop:system\") | .evaluated_at" | head -1'
 ```
 
-Set `SINCE` to that file's date (`YYYY-MM-DD`) in the commands below.
-
-**Step 2. Check 1: every page was a proven crossing (SC-003, NFR-004).** This reads
-the canary ledger, the alert-bus ledger and the deployed config. Each
-crash-loop alert, re-remind and cleared entry in the alert-bus ledger must
-have its canary ledger line, and each aggregate's count must match its
-folded lines. Each alert and re-remind line must satisfy
-`delta ≥ m·(threshold−1)+1` with `m = ceil(period_seconds / window_seconds)`.
-The pass condition is zero violations:
+Use that timestamp as `START`. Compute `END` as `START` plus 7 days:
 
 ```bash
-ssh office2-claude 'SINCE=YYYY-MM-DD python3 -I -' <<'EOF'
-import json, math, os
+date -u -d "START + 7 days" +%Y-%m-%dT%H:%M:%S+00:00
+```
+
+Replace `START` and `END` in the commands below with those two timestamps,
+for example `2026-12-01T14:03:11+00:00`. Both checks refuse a window shorter
+than 7 days, or one that has not ended yet.
+
+**Step 2. Check 1: every page was a proven crossing (SC-003, NFR-004).** It
+reads the canary ledger, the alert-bus ledger and the office2 checkout's
+config.
+
+- **Config.** The check requires the config to be **unchanged for the whole
+  window**, and verifies it from the checkout's git history. There must be no
+  local edit to `scripts/canary/crash_loop_config.json`, and its newest commit
+  on the first-parent history must be older than `START`. If the config
+  changed inside the window, the check is `INCONCLUSIVE`. Start a new 7-day
+  window after the change; do not check historical pages against a config
+  that was not in force when they were sent.
+- **Pages.** Each crash-loop alert, re-remind and cleared entry in the
+  alert-bus ledger must have its canary ledger line. Each aggregate's count
+  must match its folded lines. Each alert and re-remind line must satisfy
+  `delta ≥ m·(threshold−1)+1` with `m = ceil(period_seconds / window_seconds)`.
+
+```bash
+ssh office2-claude 'START=START END=END python3 -I -' <<'EOF'
+import json, math, os, subprocess
 from collections import Counter
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-since = os.environ["SINCE"]
+start = datetime.fromisoformat(os.environ["START"])
+end = datetime.fromisoformat(os.environ["END"])
+now = datetime.fromisoformat(os.environ["NOW"]) if "NOW" in os.environ else datetime.now(timezone.utc)
 canary_dir = Path(os.environ.get("CANARY_LEDGER", "/data/services/felix-canary/ledger"))
 bus_dir = Path(os.environ.get("BUS_LEDGER", "/data/services/alert-bus/ledger"))
-config_path = os.environ.get("CRASH_LOOP_CONFIG", "/home/claude/kg-automation/scripts/canary/crash_loop_config.json")
-config = json.loads(Path(config_path).read_text())
-n, window = config["threshold"], config["window_seconds"]
+repo = os.environ.get("REPO", "/home/claude/kg-automation")
+config_rel = "scripts/canary/crash_loop_config.json"
+missing = []
 
 
 def records(directory):
+    first, last = start.date().isoformat(), end.date().isoformat()
     for path in sorted(directory.glob("*.jsonl")):
-        if path.stem >= since:
+        if first <= path.stem <= last:
             for line in path.read_text().splitlines():
                 if line.strip():
                     yield json.loads(line)
+
+
+def in_window(text):
+    return start <= datetime.fromisoformat(text) < end
 
 
 def at(text):
     return round(datetime.fromisoformat(text).timestamp(), 3)
 
 
+if end - start < timedelta(days=7):
+    missing.append(f"window is {end - start}, shorter than 7 days")
+if end > now:
+    missing.append(f"window ends {end.isoformat()}, after now {now.isoformat()}")
+for directory in (canary_dir, bus_dir):
+    if not directory.is_dir():
+        missing.append(f"ledger directory missing: {directory}")
+
+# The config must be the one in force for the whole window.
+git = lambda *args: subprocess.run(["git", "-C", repo, *args], capture_output=True, text=True)
+status = git("status", "--porcelain", "--", config_rel)
+history = git("log", "--first-parent", "--format=%cI %h", "--", config_rel)
+if status.returncode or history.returncode or not history.stdout.strip():
+    missing.append(f"cannot read the config history in {repo}")
+elif status.stdout.strip():
+    missing.append(f"{config_rel} has local edits in {repo}")
+else:
+    newest, rev = history.stdout.split("\n")[0].split()
+    if datetime.fromisoformat(newest) >= start:
+        missing.append(f"config changed at {newest} ({rev}), inside or after the window; start a new 7-day window after that change")
+config_file = Path(repo) / config_rel
+config = json.loads(config_file.read_text()) if config_file.is_file() else {}
+if not config:
+    missing.append(f"config unreadable: {config_file}")
+n, window = config.get("threshold"), config.get("window_seconds")
+
+events, scope_lines = [], 0
+if canary_dir.is_dir():
+    for r in records(canary_dir):
+        if not in_window(r["evaluated_at"]):
+            continue
+        if r.get("component_id") in ("crash-loop:system", "crash-loop:user", "crash-loop:container"):
+            scope_lines += 1
+        if r.get("outcome") in ("crash-loop", "crash-loop-reremind", "crash-loop-cleared"):
+            events.append(r)
+if scope_lines == 0:
+    missing.append("no crash-loop scope lines in the window: no evidence the stage ran")
+
+violations = []
 KIND = {"crash-loop": "alert", "crash-loop-reremind": "reremind", "crash-loop-cleared": "cleared"}
 FOLDED = "(in aggregate alert)"
-events = [r for r in records(canary_dir) if r.get("outcome") in KIND]
-violations = []
-for r in events:
-    if r["outcome"] == "crash-loop-cleared":
-        continue
-    i = r["interval"]
-    m = max(1, math.ceil(i["period_seconds"] / window))
-    if i["m"] != m or i["bound"] != m * (n - 1) + 1 or i["delta"] < i["bound"]:
-        violations.append(f"NOT PROVEN {r['component_id']} at {r['evaluated_at']}: {i}")
+if n and window:
+    for r in events:
+        if r["outcome"] == "crash-loop-cleared":
+            continue
+        i = r["interval"]
+        m = max(1, math.ceil(i["period_seconds"] / window))
+        if i["m"] != m or i["bound"] != m * (n - 1) + 1 or i["delta"] < i["bound"]:
+            violations.append(f"NOT PROVEN {r['component_id']} at {r['evaluated_at']}: {i}")
 individual = {
     (r["component_id"], KIND[r["outcome"]], at(r["evaluated_at"]))
     for r in events
@@ -675,110 +780,149 @@ individual = {
 }
 folded = Counter(at(r["evaluated_at"]) for r in events if r["evidence"].endswith(FOLDED))
 checked = 0
-for b in records(bus_dir):
-    if not b.get("source", "").startswith("felix-canary:crash-loop:"):
-        continue
-    details = b.get("details", {})
-    kind = details.get("kind")
-    if kind == "aggregate":
-        checked += 1
-        lines = folded.get(at(b["ts"]), 0)
-        if lines != int(details["count"]):
-            violations.append(f"AGGREGATE MISMATCH at {b['ts']}: count {details['count']}, canary lines {lines}")
-    elif kind in ("alert", "reremind", "cleared"):
-        checked += 1
-        if (details.get("component_id"), kind, at(b["ts"])) not in individual:
-            violations.append(f"NO CANARY LINE for bus {kind} {details.get('component_id')} at {b['ts']}")
-print(f"config: threshold {n}, window {window} s")
-print(f"canary event lines: {len(events)}; crash-loop bus entries checked: {checked}; violations: {len(violations)}")
-for v in violations:
-    print(" ", v)
-print("PASS" if not violations else "FAIL")
+if bus_dir.is_dir():
+    for b in records(bus_dir):
+        if not b.get("source", "").startswith("felix-canary:crash-loop:") or not in_window(b["ts"]):
+            continue
+        details = b.get("details", {})
+        kind = details.get("kind")
+        if kind == "aggregate":
+            checked += 1
+            lines = folded.get(at(b["ts"]), 0)
+            if lines != int(details["count"]):
+                violations.append(f"AGGREGATE MISMATCH at {b['ts']}: count {details['count']}, canary lines {lines}")
+        elif kind in ("alert", "reremind", "cleared"):
+            checked += 1
+            if (details.get("component_id"), kind, at(b["ts"])) not in individual:
+                violations.append(f"NO CANARY LINE for bus {kind} {details.get('component_id')} at {b['ts']}")
+
+print(f"window: {start.isoformat()} to {end.isoformat()}; config: threshold {n}, window {window} s")
+print(f"scope lines: {scope_lines}; canary event lines: {len(events)}; crash-loop bus entries checked: {checked}")
+for item in missing:
+    print("  MISSING EVIDENCE:", item)
+for item in violations:
+    print("  VIOLATION:", item)
+print("FAIL" if violations else "INCONCLUSIVE" if missing else "PASS")
 EOF
 ```
 
-The last line is `PASS` or `FAIL`. Every violation is printed above it.
+Check 1 needs scope lines in the window as evidence that the stage ran, but it
+does not test their cadence. Step 4 does that.
 
-**Step 3. Check 2a: the canary unit never failed (NFR-005).** The user journal of
-`felix-canary.service` should show no non-zero exit:
-
-```bash
-ssh office2-claude 'journalctl --user -u felix-canary.service --since YYYY-MM-DD --no-pager | grep -E "Failed with result|status=[0-9]+/" || echo "no failed runs"'
-```
-
-Then count the passes that finished with `status=error`:
+**Step 3. Check 2a: the canary unit never failed (NFR-005).** The user journal
+of `felix-canary.service` should show no non-zero exit in the window:
 
 ```bash
-ssh office2-claude 'journalctl --user -u felix-canary.service --since YYYY-MM-DD --no-pager | grep -c "status=error"'
+ssh office2-claude 'journalctl --user -u felix-canary.service --since START --until END --no-pager | grep -E "Failed with result|status=[0-9]+/" || echo "no failed runs"'
 ```
 
-The journal records only the error **count** per pass (`errors=<n>`). The
-error text is kept only for the latest pass, in `last-tick.json`. So a
-non-zero count here cannot by itself show whether a `crash_loop:` error
-occurred. Explain each one from check 2b (a pass where the stage faulted
-before routing has no scope lines) and from the dead-man's `/fail` history
-on healthchecks.io. Also check the latest pass:
+Then count the passes that finished with `status=error`, and the passes that
+finished at all:
+
+```bash
+ssh office2-claude 'j=$(journalctl --user -u felix-canary.service --since START --until END --no-pager); echo "passes: $(grep -c "^.*status=\(success\|error\) " <<<"$j")  with errors: $(grep -c "status=error " <<<"$j")"'
+```
+
+If `passes` is 0, the journal holds no evidence for the window (for example it
+was rotated). Record check 2a as `INCONCLUSIVE`, not as passed. The journal
+records only the error **count** per pass (`errors=<n>`). The error text is kept
+only for the latest pass, in `last-tick.json`. So a non-zero count cannot by
+itself show whether a `crash_loop:` error happened. Explain each one from
+check 2b (a pass where the stage faulted before routing has no scope lines)
+and from the dead-man's `/fail` history on healthchecks.io. Also look at the
+latest pass:
 
 ```bash
 ssh office2-claude 'jq -c ".errors" /data/services/felix-canary/state/last-tick.json'
 ```
 
-**Step 4. Check 2b: every pass ran the stage (NFR-005).** Every daily file must have
-scope lines at the 15-minute cadence (about 96 per scope per day, fewer on
-the start day), with no gap over 1200 s, and every scope line `healthy`:
+**Step 4. Check 2b: every pass ran the stage (NFR-005).** All three scopes
+(`crash-loop:system`, `crash-loop:user`, `crash-loop:container`) must have
+lines across the whole window. Coverage must reach both boundaries: the first
+line no more than 1200 s after `START`, the last no more than 1200 s before
+`END`, and no gap over 1200 s in between (one missed tick). Every scope line
+must be `healthy`.
 
 ```bash
-ssh office2-claude 'SINCE=YYYY-MM-DD python3 -I -' <<'EOF'
+ssh office2-claude 'START=START END=END python3 -I -' <<'EOF'
 import json, os
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-since = os.environ["SINCE"]
+start = datetime.fromisoformat(os.environ["START"])
+end = datetime.fromisoformat(os.environ["END"])
+now = datetime.fromisoformat(os.environ["NOW"]) if "NOW" in os.environ else datetime.now(timezone.utc)
 ledger = Path(os.environ.get("CANARY_LEDGER", "/data/services/felix-canary/ledger"))
+max_gap = timedelta(seconds=1200)
 scopes = ("crash-loop:system", "crash-loop:user", "crash-loop:container")
 seen = {scope: [] for scope in scopes}
-not_healthy = []
-for path in sorted(ledger.glob("*.jsonl")):
-    if path.stem < since:
-        continue
-    per_day = dict.fromkeys(scopes, 0)
-    for line in path.read_text().splitlines():
-        if not line.strip():
-            continue
-        r = json.loads(line)
-        scope = r.get("component_id")
-        if scope in seen:
-            per_day[scope] += 1
-            seen[scope].append(datetime.fromisoformat(r["evaluated_at"]))
+missing, problems = [], []
+
+if end - start < timedelta(days=7):
+    missing.append(f"window is {end - start}, shorter than 7 days")
+if end > now:
+    missing.append(f"window ends {end.isoformat()}, after now {now.isoformat()}")
+if not ledger.is_dir():
+    missing.append(f"ledger directory missing: {ledger}")
+else:
+    first, last = start.date().isoformat(), end.date().isoformat()
+    files = [p for p in sorted(ledger.glob("*.jsonl")) if first <= p.stem <= last]
+    if not files:
+        missing.append(f"no ledger files dated {first} to {last}")
+    for path in files:
+        for line in path.read_text().splitlines():
+            if not line.strip():
+                continue
+            r = json.loads(line)
+            scope = r.get("component_id")
+            if scope not in seen:
+                continue
+            when = datetime.fromisoformat(r["evaluated_at"])
+            if not start <= when < end:
+                continue
+            seen[scope].append(when)
             if r["outcome"] != "healthy":
-                not_healthy.append(f"{r['evaluated_at']} {scope} {r['outcome']}: {r['evidence']}")
-    print(path.stem, " ".join(f"{s.split(':')[1]}={c}" for s, c in per_day.items()))
-gaps = []
+                problems.append(f"{r['evaluated_at']} {scope} {r['outcome']}: {r['evidence']}")
+
 for scope, times in seen.items():
     times.sort()
-    for a, b in zip(times, times[1:]):
-        if (b - a).total_seconds() > 1200:
-            gaps.append(f"{scope}: {a.isoformat()} -> {b.isoformat()}")
-print(f"gaps over 1200 s (a missed tick): {len(gaps)}")
-for g in gaps:
-    print(" ", g)
-print(f"scope lines not healthy: {len(not_healthy)}")
-for u in not_healthy:
-    print(" ", u)
-print("PASS" if not gaps and not not_healthy else "INVESTIGATE")
+    if not times:
+        problems.append(f"{scope}: no lines at all in the window")
+        continue
+    edges = [start, *times, end]
+    for a, b in zip(edges, edges[1:]):
+        if b - a > max_gap:
+            problems.append(f"{scope}: gap {a.isoformat()} -> {b.isoformat()} ({b - a})")
+    print(f"{scope}: {len(times)} lines, first {times[0].isoformat()}, last {times[-1].isoformat()}")
+
+print(f"window: {start.isoformat()} to {end.isoformat()}")
+for item in missing:
+    print("  MISSING EVIDENCE:", item)
+for item in problems:
+    print("  PROBLEM:", item)
+print("INCONCLUSIVE" if missing else "FAIL" if problems else "PASS")
 EOF
 ```
 
-`PASS` means no gap and no non-healthy scope line. `INVESTIGATE` lists
-each one. A gap can have an innocent cause (a reboot, a planned stop), so
-explain each one rather than treating it as a failure.
+A scope with no lines, an edge or inner gap, and a non-healthy line are each a
+`FAIL`, listed as `PROBLEM`. A gap can have an innocent cause, such as a reboot
+or a planned stop. Explain each one in the record; do not drop it.
+
+The environment variables `CANARY_LEDGER`, `BUS_LEDGER`, `REPO` and `NOW` in
+the two scripts exist only so the scripts can be tested off-host. On office2,
+leave them unset.
 
 **Step 5. Record the result** as a comment on
 [kentonium3/kg-automation#1133](https://github.com/kentonium3/kg-automation/issues/1133).
-Give the window (`SINCE` to the date you ran it), the check 1 summary line
-and verdict, the check 2a counts, the check 2b gap and non-healthy counts,
-an explanation of anything flagged, and the overall result: pass, or the
-follow-up issue you opened.
+Give:
+
+- the window (`START` to `END`);
+- check 1's three summary lines and its verdict;
+- check 2a's failed-run output and its pass and error counts;
+- check 2b's per-scope lines and its verdict;
+- an explanation of everything flagged;
+- the overall result. It is a pass only if every check passed. Otherwise give
+  the follow-up issue you opened, or the date you will re-run the check.
 
 ### Scope boundary
 

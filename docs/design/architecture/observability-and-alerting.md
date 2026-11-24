@@ -142,19 +142,32 @@ inventory entry cannot express.
   ping `/fail` (§5a). A fault inside the stage goes to `errors[]`, and every
   other component is still evaluated.
 
-**Accepted sampling limits.** These follow from the 15-minute cadence Kent chose
-and are stated, not hidden:
+**Detection envelope.** Every page is a proven crossing, so the limits below
+cause misses, never false pages. With ticks 15 to 16 minutes apart, `m = 2`
+between consecutive ticks, so a burst of 5 or more restarts between two ticks
+pages at once. A steady 4 restarts per tick pages on about the 2nd tick, and a
+steady 3 per tick on about the 3rd. Until then the rise is recorded as
+`crash-loop-unverified`.
 
-1. A slow loop of 3 or 4 restarts per tick interval does not page on the tick
-   where it first shows. With ticks 15 to 16 minutes apart, `m = 2`, so a page
-   on one interval needs at least 5 restarts, and the slower rise is recorded
-   as `crash-loop-unverified`. If the loop keeps going, the longer interval
-   proves itself: about the 2nd tick at 4 restarts per tick, about the 3rd at 3
-   per tick. A slow loop that stops before then never pages.
+**Accepted limits.** They follow from Kent's choice of 15-minute sampling and
+of 3 restarts within 15 minutes. Whether to accept them is his decision; they
+are surfaced in the mission's `plan.md` ("Surfaced judgment calls"):
+
+1. **A steady loop averaging 2 or fewer restarts per tick interval never pages**,
+   however long it runs, unless one interval holds a burst of 5 or more. Over
+   `k` ticks the bound is about `2k + 3`, so it grows as fast as the rise. With
+   the shipped evaluator, a steady +2 every 930 s gave zero events in 120 ticks.
+   Such a loop can still meet the real rule when its restarts cluster, but the
+   samples cannot prove it. It writes `crash-loop-unverified` lines, which never
+   page.
 2. A short burst split across a tick boundary (for example 2 + 2 restarts) can
-   be missed. A sustained loop is always caught.
-3. A failed delivery is not retried. The dead-man reports it.
-4. During an alert storm, the pass takes as long as the bus takes to deliver.
+   be missed.
+3. **History pruning can lose long multi-window proofs.** Observations inside
+   the last window are always kept, so single-window proofs are always found.
+   Older ones are kept for 24 h and at most 64 of them, so a proof that needs a
+   baseline further back than that is not found.
+4. A failed delivery is not retried. The dead-man reports it.
+5. During an alert storm, the pass takes as long as the bus takes to deliver.
    A pass with no events adds about 0.4 s of reads, capped at 6 s. A pass that
    pages adds up to 4 bus calls, each normally under 1 s, with the bus's own
    ceiling at 15 s per call.
