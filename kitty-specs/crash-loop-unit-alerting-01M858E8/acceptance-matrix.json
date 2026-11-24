@@ -48,10 +48,10 @@
       "criterion_id": "FR-005",
       "description": "Verify FR-005 is satisfied",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
+      "evidence": "test_between_tick_loop_caught; test_late_tick_still_catches_real_loop. Accepted sampling limits documented (plan judgment calls 1-2; test_straddled_burst_limit_documented).",
+      "pass_fail": "pass",
+      "verified_by": "claude-orchestrator",
+      "verified_at": "2026-11-24T00:37:35.911037+00:00",
       "notes": "TODO: replace with a real acceptance criterion"
     },
     {
