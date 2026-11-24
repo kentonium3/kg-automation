@@ -171,7 +171,8 @@
       "model": "__resolved_model_absent__",
       "notes": [
         "Ready for review",
-        "Review cycle 1 addressed"
+        "Review cycle 1 addressed",
+        "Review passed (cycle 2): Codex gpt-6.1-sol read-only; implementer Claude Opus 5.5. Tests (orchestrator): WP05 file + tests/canary 772 passed; tests/deploy 1936 passed/3 skipped. Audited-surface checker: only deploy-pipeline (manifest deploys/queued/crash-loop-unit-alerting.yaml), no affected baselines."
       ],
       "provider": "__resolved_provider_absent__",
       "review": null,
