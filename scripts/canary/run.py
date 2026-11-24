@@ -41,11 +41,23 @@ import tempfile
 import time
 import urllib.error
 import urllib.request
+from contextlib import ExitStack
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable
 
+from scripts.canary import crash_loop as crash_loop_mod
+from scripts.canary import crash_loop_model, crash_loop_readers, crash_loop_state
 from scripts.canary import dedup as dedup_mod
+from scripts.canary.crash_loop_model import SCOPES as CRASH_LOOP_SCOPES
+from scripts.canary.crash_loop_model import (
+    CrashLoopConfig,
+    CrashLoopConfigError,
+    CrashLoopEvent,
+    Proof,
+    ScopeReading,
+)
 from scripts.canary.health import HealthResult, evaluate
 from scripts.canary.registry import (
     DEFAULT_INVENTORY_PATH,
@@ -55,7 +67,7 @@ from scripts.canary.registry import (
 from scripts.common import deadman
 from scripts.common.alert_bus import Alert, Severity, emit
 
-__all__ = ["main", "run_pass"]
+__all__ = ["CrashLoopCheck", "main", "run_pass"]
 
 # State-path constants (module-level, injectable via run_pass parameters).
 DEFAULT_DEDUP_PATH = dedup_mod.DEFAULT_DEDUP_PATH
@@ -75,6 +87,74 @@ _SEVERITY_BY_OUTCOME: dict[str, Severity] = {
 # EmitFn / EvaluateFn signatures (documentation only; injected for tests).
 EmitFn = Callable[[Alert], Any]
 EvaluateFn = Callable[..., HealthResult]
+
+# Crash-loop stage (mission crash-loop-unit-alerting, #1133; contract
+# crash-loop-alert.md §5-§7). The ledger outcome per event kind (§6).
+_CRASH_LOOP_OUTCOME_BY_KIND: dict[str, str] = {
+    "alert": "crash-loop",
+    "reremind": "crash-loop-reremind",
+    "cleared": "crash-loop-cleared",
+}
+_CRASH_LOOP_UNVERIFIED_OUTCOME = "crash-loop-unverified"
+# Load diagnostics appended to the system scope's evidence are cut to this, so
+# the evidence stays well under the bus's DETAIL_VALUE_MAX if it ever pages.
+_CRASH_LOOP_DIAG_MAX = 200
+# Keys of the summary that are NOT persisted to the tick-signal file: the
+# TickSignal schema (and felix-canary's key ledger) is unchanged (R-09).
+_TICK_SIGNAL_EXCLUDED = ("component_lines", "alerts_undelivered", "crash_loop")
+
+
+@dataclass(frozen=True)
+class CrashLoopCheck:
+    """Everything the crash-loop stage needs, injected into :func:`run_pass`.
+
+    ``read_scopes(config)`` returns ``(readings, boot_id)``, as
+    :func:`crash_loop_readers.read_all_scopes` does. ``run_pass`` without a
+    check (the default) skips the stage, so direct callers and tests never
+    reach real ``systemctl`` or ``docker`` (research R-09).
+    """
+
+    config_path: Path
+    state_path: Path
+    lock_path: Path
+    read_scopes: Callable[[CrashLoopConfig], tuple[list[ScopeReading], str | None]]
+
+
+def _default_read_scopes(
+    config: CrashLoopConfig,
+) -> tuple[list[ScopeReading], str | None]:
+    """The production reader: all three scopes under the configured budget."""
+    return crash_loop_readers.read_all_scopes(
+        budget_seconds=config.read_budget_seconds
+    )
+
+
+def _default_crash_loop_check() -> CrashLoopCheck:
+    """The production check: repo config, ``/data`` state + lock, real readers."""
+    return CrashLoopCheck(
+        config_path=crash_loop_model.DEFAULT_CONFIG_PATH,
+        state_path=crash_loop_state.DEFAULT_STATE_PATH,
+        lock_path=crash_loop_state.DEFAULT_LOCK_PATH,
+        read_scopes=_default_read_scopes,
+    )
+
+
+def _crash_loop_interval(proof: Proof) -> dict[str, Any]:
+    """The ledger ``interval`` object (contract §6), plus the bound (R-05, R-14).
+
+    ``period_seconds``, ``m`` and ``bound`` let the 7-day acceptance check
+    verify ``delta >= bound`` line by line without recomputing the proof.
+    """
+    return {
+        "baseline_count": proof.baseline_count,
+        "baseline_at": proof.baseline_at.astimezone(timezone.utc).isoformat(),
+        "current_count": proof.current_count,
+        "observed_at": proof.observed_at.astimezone(timezone.utc).isoformat(),
+        "delta": proof.delta,
+        "period_seconds": proof.period_seconds,
+        "m": proof.m,
+        "bound": proof.bound,
+    }
 
 
 # --------------------------------------------------------------------------- #
@@ -213,6 +293,7 @@ def run_pass(
     run_cmd: Callable[..., tuple[int, str, str]] = _default_run_cmd,
     read_state: Callable[[str], dict[str, Any]] = _default_read_state,
     dry_run: bool = False,
+    crash_loop_check: CrashLoopCheck | None = None,
 ) -> dict[str, Any]:
     """Run one full canary pass; return the aggregate summary dict.
 
@@ -227,6 +308,11 @@ def run_pass(
 
     ``dry_run`` computes + returns everything but writes **nothing** and emits
     **nothing** (no dedup/tick/ledger writes).
+
+    ``crash_loop_check`` enables the crash-loop stage (#1133), which runs after
+    every inventory component and coverage gap and before the dedup save. A
+    fault anywhere in it is recorded in ``errors[]`` and never aborts the pass
+    (FR-013, NFR-005). ``None`` (the default) skips it.
 
     Raises only on a **runner-level** fault the caller must surface as a non-zero
     exit (inventory unreadable; state dir unwritable when persisting). A
@@ -356,12 +442,17 @@ def run_pass(
         *,
         emitted: bool,
         suppressed_dedup: bool,
+        extra: dict[str, Any] | None = None,
     ) -> None:
         """Best-effort per-component ledger line (F8). Never aborts the pass.
 
         Also records the human-readable one-liner (for --dry-run preview /
         operator visibility) before the dry_run write-skip, so a dry run still
         reports every component without re-evaluating.
+
+        ``extra`` adds keys to the record (crash-loop event lines carry
+        ``delivered`` and ``interval``, contract §6). Without it the record
+        shape is exactly the existing one.
         """
         flags = ""
         if emitted:
@@ -380,10 +471,149 @@ def run_pass(
             "suppressed_dedup": suppressed_dedup,
             "evaluated_at": now.isoformat(),
         }
+        if extra:
+            record.update(extra)
         try:
             _append_ledger_line(ledger_dir_path, record, now)
         except Exception as exc:  # noqa: BLE001 - best-effort ledger (INV-D)
             errors.append(f"ledger:{component_id}:{exc.__class__.__name__}:{exc}")
+
+    def _route_crash_loop_scope(scope: str, outcome: str, evidence: str) -> None:
+        """Route one scope component (``crash-loop:<scope>``, contract §5)."""
+        nonlocal components_evaluated
+        components_evaluated += 1
+        _route(
+            f"crash-loop:{scope}",
+            outcome,
+            evidence,
+            emit_on_first_seen=outcome != "unknown",
+        )
+
+    def _crash_loop_event_line(
+        event: CrashLoopEvent,
+        config: CrashLoopConfig,
+        *,
+        delivered: bool,
+        folded: bool,
+    ) -> None:
+        evidence = crash_loop_mod.render_alert(event, config).title
+        if folded:
+            evidence = f"{evidence} (in aggregate alert)"
+        _ledger(
+            f"crash-loop:{event.key}",
+            _CRASH_LOOP_OUTCOME_BY_KIND[event.kind],
+            evidence,
+            emitted=True,
+            suppressed_dedup=False,
+            extra={
+                "delivered": delivered,
+                "interval": _crash_loop_interval(event.proof),
+            },
+        )
+
+    def _run_crash_loop_stage(
+        check: CrashLoopCheck, stage_summary: dict[str, Any]
+    ) -> None:
+        """Config → lock → load → read → decide → route → emit → save.
+
+        Raises on an unexpected fault; the caller records it in ``errors[]``
+        and the pass continues to the dedup save and the tick signal.
+        """
+        nonlocal emitted, alerts_undelivered
+        scopes: dict[str, str] = stage_summary["scopes"]
+
+        # 1. Config. Invalid → every scope could-not-check; state untouched.
+        try:
+            config = crash_loop_model.load_config(check.config_path)
+        except CrashLoopConfigError as exc:
+            for scope in CRASH_LOOP_SCOPES:
+                scopes[scope] = "unknown"
+                _route_crash_loop_scope(
+                    scope, "unknown", f"could not check: config invalid: {exc}"
+                )
+            return
+
+        with ExitStack() as stack:
+            # 2. Lock (R-07). dry_run takes no lock and writes nothing.
+            if not dry_run:
+                try:
+                    stack.enter_context(crash_loop_state.StateLock(check.lock_path))
+                except crash_loop_state.StateLockBusy:
+                    # No reading happened: scopes are not routed this tick and
+                    # dedup keeps their previous entries.
+                    errors.append("crash_loop:locked")
+                    return
+
+            # 3. Load (fail-safe), 4. read, 5. decide.
+            prior, diagnostics = crash_loop_state.load_state(
+                check.state_path, now=now
+            )
+            readings, boot_id = check.read_scopes(config)
+            outcome = crash_loop_mod.evaluate_tick(
+                readings, prior, config, now, boot_id
+            )
+            stage_summary["watched"] = outcome.counts.get("watched", 0)
+            stage_summary["ignored"] = outcome.counts.get("ignored", 0)
+            stage_summary["events"] = len(outcome.events)
+            stage_summary["unverified"] = len(outcome.unverified)
+
+            # 6. Scope components through the existing dedup path (FR-011).
+            for scope in CRASH_LOOP_SCOPES:
+                scope_outcome, evidence = outcome.scope_status.get(
+                    scope, ("unknown", "could not check: not read")
+                )
+                if scope == "system" and diagnostics:
+                    diag = "; ".join(diagnostics)
+                    if len(diag) > _CRASH_LOOP_DIAG_MAX:
+                        diag = diag[: _CRASH_LOOP_DIAG_MAX - 3] + "..."
+                    evidence = f"{evidence}; state: {diag}"
+                scopes[scope] = scope_outcome
+                _route_crash_loop_scope(scope, scope_outcome, evidence)
+
+            # 7. Emit. No retry: delivery never changes crash-loop state (R-08).
+            for emission in crash_loop_mod.plan_emissions(outcome.events, config):
+                delivered = True
+                if not dry_run:
+                    result = emit_fn(emission.alert)
+                    delivered = getattr(result, "ok", True) is not False
+                    if not delivered:
+                        alerts_undelivered += 1
+                emitted += 1
+                folded = emission.alert.source == crash_loop_mod.AGGREGATE_SOURCE
+                for event in emission.events:
+                    _crash_loop_event_line(
+                        event, config, delivered=delivered, folded=folded
+                    )
+
+            # 8. Unverified rises: ledger only (research R-05).
+            for rise in outcome.unverified:
+                _ledger(
+                    f"crash-loop:{rise.key}",
+                    _CRASH_LOOP_UNVERIFIED_OUTCOME,
+                    (
+                        f"{rise.name} rose by {rise.proof.delta} restarts in "
+                        f"{rise.proof.period_seconds:g} s (m={rise.proof.m}), below "
+                        f"the bound {rise.proof.bound} that proves "
+                        f"{config.threshold} within one window; state {rise.state}"
+                    ),
+                    emitted=False,
+                    suppressed_dedup=False,
+                    extra={
+                        "delivered": False,
+                        "interval": _crash_loop_interval(rise.proof),
+                    },
+                )
+
+            # 9. Save after emit (R-07): a failed save repeats the page next tick.
+            if not dry_run:
+                try:
+                    crash_loop_state.save_state(
+                        outcome.new_state, check.state_path, now=now
+                    )
+                except Exception as exc:  # noqa: BLE001 - recorded, never fatal
+                    errors.append(
+                        f"crash_loop_state_save:{exc.__class__.__name__}:{exc}"
+                    )
 
     # ---- Evaluate every target (fail-open per component, INV-D). ---------- #
     for target in targets:
@@ -457,6 +687,28 @@ def run_pass(
             emit_on_first_seen=False,
         )
 
+    # ---- Crash-loop stage (#1133): after every component, before the dedup
+    # save so the scope components' dedup entries persist. Fault-isolated. -- #
+    crash_loop_summary: dict[str, Any] = {"enabled": False}
+    if crash_loop_check is not None:
+        crash_loop_summary = {
+            "enabled": True,
+            "watched": 0,
+            "ignored": 0,
+            "events": 0,
+            "unverified": 0,
+            "scopes": {},
+            "elapsed_ms": 0,
+        }
+        stage_started = time.monotonic()
+        try:
+            _run_crash_loop_stage(crash_loop_check, crash_loop_summary)
+        except Exception as exc:  # noqa: BLE001 - FR-013/NFR-005: never aborts the pass
+            errors.append(f"crash_loop:{exc.__class__.__name__}:{exc}")
+        crash_loop_summary["elapsed_ms"] = int(
+            (time.monotonic() - stage_started) * 1000
+        )
+
     # ---- Persist dedup state (runner-level: an unwritable dir raises). ----- #
     if not dry_run:
         try:
@@ -483,6 +735,8 @@ def run_pass(
         # tick-signal file (excluded below); used for the --dry-run preview and
         # returned to callers/tests.
         "component_lines": component_lines,
+        # Crash-loop stage summary (contract §7). Not persisted (excluded below).
+        "crash_loop": crash_loop_summary,
     }
 
     # ---- Aggregate tick-signal (the runner's own health pointer, FR-010). -- #
@@ -490,8 +744,7 @@ def run_pass(
     # component_lines is a return-value convenience, not part of the signal file.
     if not dry_run:
         tick_signal = {
-            k: v for k, v in summary.items()
-            if k not in ("component_lines", "alerts_undelivered")
+            k: v for k, v in summary.items() if k not in _TICK_SIGNAL_EXCLUDED
         }
         try:
             _write_tick_signal(Path(tick_path), tick_signal)
@@ -587,7 +840,11 @@ def main(argv: list[str] | None = None) -> int:
         return 0 if ok else 1
 
     try:
-        summary = run_pass(now=now, dry_run=args.dry_run)
+        summary = run_pass(
+            now=now,
+            dry_run=args.dry_run,
+            crash_loop_check=_default_crash_loop_check(),
+        )
     except Exception as exc:  # noqa: BLE001 - runner-level fault → non-zero exit (OnFailure)
         print(f"status=error runner_failure {exc.__class__.__name__}: {exc}")
         if not args.dry_run and _deadman_configured():
@@ -604,8 +861,10 @@ def main(argv: list[str] | None = None) -> int:
             "status={status} evaluated={components_evaluated} emitted={emitted} "
             "suppressed_dedup={suppressed_dedup} coverage_gaps={coverage_gaps} "
             "suppressed_status={suppressed_status} errors={n_errors} "
-            "duration_ms={duration_ms}".format(
-                n_errors=len(summary["errors"]), **summary
+            "duration_ms={duration_ms} crash_loop_events={n_crash_loop}".format(
+                n_errors=len(summary["errors"]),
+                n_crash_loop=(summary.get("crash_loop") or {}).get("events", 0),
+                **summary,
             )
         )
 
