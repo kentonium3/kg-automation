@@ -58,10 +58,10 @@
       "criterion_id": "FR-006",
       "description": "Verify FR-006 is satisfied",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
+      "evidence": "test_alert_text_and_details_match_contract (WP02); tests/canary/test_run_crash_loop.py SC-001 end-to-end via emit_fn and ledger (WP04).",
+      "pass_fail": "pass",
+      "verified_by": "claude-orchestrator",
+      "verified_at": "2026-11-24T00:37:38.888312+00:00",
       "notes": "TODO: replace with a real acceptance criterion"
     },
     {
