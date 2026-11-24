@@ -685,10 +685,23 @@ config.
   changed inside the window, the check is `INCONCLUSIVE`. Start a new 7-day
   window after the change; do not check historical pages against a config
   that was not in force when they were sent.
-- **Pages.** Each crash-loop alert, re-remind and cleared entry in the
-  alert-bus ledger must have its canary ledger line. Each aggregate's count
-  must match its folded lines. Each alert and re-remind line must satisfy
-  `delta ≥ m·(threshold−1)+1` with `m = ceil(period_seconds / window_seconds)`.
+- **Proofs, recomputed.** The check does not trust the numbers the canary
+  wrote. For every emitted event line it derives `delta = current_count −
+  baseline_count` and `period = observed_at − baseline_at` from the recorded
+  samples. It requires `period > 0`, and both values must equal the line's
+  `delta` and `period_seconds`. For alert and re-remind lines it then
+  recomputes `m = ceil(period / window_seconds)` and
+  `bound = m·(threshold−1)+1`, and requires `delta ≥ bound` and the recorded
+  `m` and `bound` to match. Any mismatch is a `FAIL`.
+- **Two-way reconciliation.** Every emitted canary event line in the window
+  needs its alert-bus entry: an individual entry with the same component,
+  kind and time, or an aggregate entry whose `count` equals the number of
+  lines folded into it at that time. Every bus entry from a
+  `felix-canary:crash-loop:` source needs its canary line or lines. A bus
+  entry with no canary line, or an aggregate count that does not match, is a
+  `FAIL`. A canary page with no bus entry, or no bus ledger files for the
+  window at all, is `INCONCLUSIVE`, because the bus ledger is best-effort and
+  the evidence is missing rather than contradicted.
 
 ```bash
 ssh office2-claude 'START=START END=END python3 -I -' <<'EOF'
@@ -697,107 +710,82 @@ from collections import Counter
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-start = datetime.fromisoformat(os.environ["START"])
-end = datetime.fromisoformat(os.environ["END"])
-now = datetime.fromisoformat(os.environ["NOW"]) if "NOW" in os.environ else datetime.now(timezone.utc)
+T = datetime.fromisoformat
+start, end = T(os.environ["START"]), T(os.environ["END"])
+now = T(os.environ["NOW"]) if "NOW" in os.environ else datetime.now(timezone.utc)
 canary_dir = Path(os.environ.get("CANARY_LEDGER", "/data/services/felix-canary/ledger"))
 bus_dir = Path(os.environ.get("BUS_LEDGER", "/data/services/alert-bus/ledger"))
 repo = os.environ.get("REPO", "/home/claude/kg-automation")
 config_rel = "scripts/canary/crash_loop_config.json"
-missing = []
+missing, violations = [], []
 
 
-def records(directory):
-    first, last = start.date().isoformat(), end.date().isoformat()
-    for path in sorted(directory.glob("*.jsonl")):
-        if first <= path.stem <= last:
-            for line in path.read_text().splitlines():
-                if line.strip():
-                    yield json.loads(line)
-
-
-def in_window(text):
-    return start <= datetime.fromisoformat(text) < end
-
-
-def at(text):
-    return round(datetime.fromisoformat(text).timestamp(), 3)
+def records(directory, key):
+    days = [p for p in sorted(directory.glob("*.jsonl")) if start.date().isoformat() <= p.stem <= end.date().isoformat()]
+    if not days:
+        missing.append(f"no ledger files for the window in {directory}")
+    for path in days:
+        for line in path.read_text().splitlines():
+            if line.strip() and start <= T(json.loads(line)[key]) < end:
+                yield json.loads(line)
 
 
 if end - start < timedelta(days=7):
     missing.append(f"window is {end - start}, shorter than 7 days")
 if end > now:
     missing.append(f"window ends {end.isoformat()}, after now {now.isoformat()}")
-for directory in (canary_dir, bus_dir):
-    if not directory.is_dir():
-        missing.append(f"ledger directory missing: {directory}")
 
 # The config must be the one in force for the whole window.
-git = lambda *args: subprocess.run(["git", "-C", repo, *args], capture_output=True, text=True)
-status = git("status", "--porcelain", "--", config_rel)
-history = git("log", "--first-parent", "--format=%cI %h", "--", config_rel)
-if status.returncode or history.returncode or not history.stdout.strip():
+git = lambda *a: subprocess.run(["git", "-C", repo, *a], capture_output=True, text=True)
+edits, log = git("status", "--porcelain", "--", config_rel), git("log", "--first-parent", "--format=%cI %h", "--", config_rel)
+if edits.returncode or log.returncode or not log.stdout.strip():
     missing.append(f"cannot read the config history in {repo}")
-elif status.stdout.strip():
-    missing.append(f"{config_rel} has local edits in {repo}")
-else:
-    newest, rev = history.stdout.split("\n")[0].split()
-    if datetime.fromisoformat(newest) >= start:
-        missing.append(f"config changed at {newest} ({rev}), inside or after the window; start a new 7-day window after that change")
-config_file = Path(repo) / config_rel
-config = json.loads(config_file.read_text()) if config_file.is_file() else {}
-if not config:
-    missing.append(f"config unreadable: {config_file}")
-n, window = config.get("threshold"), config.get("window_seconds")
+elif edits.stdout.strip():
+    missing.append(f"{config_rel} has local edits")
+elif T(log.stdout.split()[0]) >= start:
+    missing.append(f"config changed at {log.stdout.split()[0]} ({log.stdout.split()[1]}); start a new window after it")
+config = json.loads((Path(repo) / config_rel).read_text())
+n, window = config["threshold"], config["window_seconds"]
 
-events, scope_lines = [], 0
-if canary_dir.is_dir():
-    for r in records(canary_dir):
-        if not in_window(r["evaluated_at"]):
-            continue
-        if r.get("component_id") in ("crash-loop:system", "crash-loop:user", "crash-loop:container"):
-            scope_lines += 1
-        if r.get("outcome") in ("crash-loop", "crash-loop-reremind", "crash-loop-cleared"):
-            events.append(r)
-if scope_lines == 0:
-    missing.append("no crash-loop scope lines in the window: no evidence the stage ran")
-
-violations = []
 KIND = {"crash-loop": "alert", "crash-loop-reremind": "reremind", "crash-loop-cleared": "cleared"}
 FOLDED = "(in aggregate alert)"
-if n and window:
-    for r in events:
-        if r["outcome"] == "crash-loop-cleared":
-            continue
-        i = r["interval"]
-        m = max(1, math.ceil(i["period_seconds"] / window))
-        if i["m"] != m or i["bound"] != m * (n - 1) + 1 or i["delta"] < i["bound"]:
-            violations.append(f"NOT PROVEN {r['component_id']} at {r['evaluated_at']}: {i}")
-individual = {
-    (r["component_id"], KIND[r["outcome"]], at(r["evaluated_at"]))
-    for r in events
-    if not r["evidence"].endswith(FOLDED)
-}
-folded = Counter(at(r["evaluated_at"]) for r in events if r["evidence"].endswith(FOLDED))
-checked = 0
-if bus_dir.is_dir():
-    for b in records(bus_dir):
-        if not b.get("source", "").startswith("felix-canary:crash-loop:") or not in_window(b["ts"]):
-            continue
-        details = b.get("details", {})
-        kind = details.get("kind")
-        if kind == "aggregate":
-            checked += 1
-            lines = folded.get(at(b["ts"]), 0)
-            if lines != int(details["count"]):
-                violations.append(f"AGGREGATE MISMATCH at {b['ts']}: count {details['count']}, canary lines {lines}")
-        elif kind in ("alert", "reremind", "cleared"):
-            checked += 1
-            if (details.get("component_id"), kind, at(b["ts"])) not in individual:
-                violations.append(f"NO CANARY LINE for bus {kind} {details.get('component_id')} at {b['ts']}")
+canary = list(records(canary_dir, "evaluated_at")) if canary_dir.is_dir() else missing.append(f"missing: {canary_dir}") or []
+bus = list(records(bus_dir, "ts")) if bus_dir.is_dir() else missing.append(f"missing: {bus_dir}") or []
+if not any(r["component_id"] == "crash-loop:system" for r in canary):
+    missing.append("no crash-loop:system lines in the window: no evidence the stage ran")
 
-print(f"window: {start.isoformat()} to {end.isoformat()}; config: threshold {n}, window {window} s")
-print(f"scope lines: {scope_lines}; canary event lines: {len(events)}; crash-loop bus entries checked: {checked}")
+# Recompute every proof from the recorded samples; trust no producer number.
+events = [r for r in canary if r.get("outcome") in KIND and r.get("emitted")]
+for r in events:
+    i, where = r["interval"], f"{r['component_id']} at {r['evaluated_at']}"
+    period = (T(i["observed_at"]) - T(i["baseline_at"])).total_seconds()
+    delta = i["current_count"] - i["baseline_count"]
+    if period <= 0 or delta != i["delta"] or abs(period - i["period_seconds"]) > 0.001:
+        violations.append(f"INCONSISTENT {where}: delta {delta} vs {i['delta']}, period {period} vs {i['period_seconds']}")
+    elif r["outcome"] != "crash-loop-cleared":
+        m = max(1, math.ceil(period / window))
+        if delta < m * (n - 1) + 1 or (i["m"], i["bound"]) != (m, m * (n - 1) + 1):
+            violations.append(f"NOT PROVEN {where}: delta {delta}, m {m}, bound {m * (n - 1) + 1}, recorded {i['m']}/{i['bound']}")
+
+# Two-way reconciliation between the canary ledger and the alert-bus ledger.
+at = lambda text: round(T(text).timestamp(), 3)
+canary_single = {(r["component_id"], KIND[r["outcome"]], at(r["evaluated_at"])) for r in events if not r["evidence"].endswith(FOLDED)}
+canary_folded = Counter(at(r["evaluated_at"]) for r in events if r["evidence"].endswith(FOLDED))
+bus = [b for b in bus if b.get("source", "").startswith("felix-canary:crash-loop:") and b.get("details", {}).get("kind")]
+bus_single = {(b["details"].get("component_id"), b["details"]["kind"], at(b["ts"])) for b in bus if b["details"]["kind"] != "aggregate"}
+bus_folded = Counter({at(b["ts"]): int(b["details"]["count"]) for b in bus if b["details"]["kind"] == "aggregate"})
+for key in sorted(canary_single - bus_single):
+    missing.append(f"canary page with no bus entry: {key}")
+for key in sorted(bus_single - canary_single):
+    violations.append(f"bus entry with no canary line: {key}")
+for ts in sorted(set(canary_folded) | set(bus_folded)):
+    if ts not in bus_folded:
+        missing.append(f"{canary_folded[ts]} folded canary lines at {ts} with no bus aggregate")
+    elif bus_folded[ts] != canary_folded[ts]:
+        violations.append(f"aggregate at {ts}: bus count {bus_folded[ts]}, canary folded lines {canary_folded[ts]}")
+
+print(f"window {start.isoformat()} to {end.isoformat()}; threshold {n}, window {window} s")
+print(f"canary event lines {len(events)}; bus crash-loop entries {len(bus)}")
 for item in missing:
     print("  MISSING EVIDENCE:", item)
 for item in violations:
