@@ -76,7 +76,7 @@ def harness(tmp_path, monkeypatch):
     monkeypatch.setattr(run_mod.deadman, "is_configured", lambda label, **kw: state["configured"])
     real_run_pass = run_mod.run_pass
 
-    def fake_run_pass(*, now, dry_run):
+    def fake_run_pass(*, now, dry_run, **_ignored):
         if state["raise"]:
             raise RuntimeError("inventory unreadable")
         return real_run_pass(

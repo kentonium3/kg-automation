@@ -470,7 +470,7 @@ def test_cli_once_exits_zero_even_with_failures(tmp_path, monkeypatch):
 
     real_run_pass = run_mod.run_pass
 
-    def fake_run_pass(*, now, dry_run=False):
+    def fake_run_pass(*, now, dry_run=False, **_ignored):
         # main() calls run_pass with only now/dry_run; route to the injected pass.
         return real_run_pass(
             now=now, inventory=inv, emit_fn=em, evaluate_fn=ev, dry_run=dry_run, **p
@@ -499,7 +499,7 @@ def test_cli_dry_run_prints_lines_and_writes_nothing(tmp_path, monkeypatch, caps
 
     real_run_pass = run_mod.run_pass
 
-    def fake_run_pass(*, now, dry_run=False):
+    def fake_run_pass(*, now, dry_run=False, **_ignored):
         return real_run_pass(
             now=now, inventory=inv, emit_fn=em, evaluate_fn=ev, dry_run=dry_run, **p
         )
