@@ -118,10 +118,10 @@
       "criterion_id": "FR-012",
       "description": "Verify FR-012 is satisfied",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
+      "evidence": "test_crash_loop_readers.py docker fixture tests (unless-stopped containers watched behind compose wrappers) + test_user_unit_and_container_alert.",
+      "pass_fail": "pass",
+      "verified_by": "claude-orchestrator",
+      "verified_at": "2026-11-24T00:37:56.524166+00:00",
       "notes": "TODO: replace with a real acceptance criterion"
     },
     {
