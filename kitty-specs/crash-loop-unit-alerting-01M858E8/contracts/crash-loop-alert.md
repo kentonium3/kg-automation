@@ -66,7 +66,7 @@ The rendering is the canary's existing one: `"<component_id> health: unknown"` (
 ## 6. Canary ledger lines (`/data/services/felix-canary/ledger/<date>.jsonl`)
 
 - One line per scope per tick, from `_route`, in the existing record shape.
-- One line per crash-loop event: the existing keys (`component_id = "crash-loop:<scope>:<name>"`, `outcome`, `evidence`, `emitted`, `suppressed_dedup`, `evaluated_at`) **plus** `delivered` (bool) and an `interval` object `{baseline_count, baseline_at, current_count, observed_at, delta}`. `outcome` is one of `crash-loop`, `crash-loop-reremind`, `crash-loop-cleared`.
+- One line per crash-loop event: the existing keys (`component_id = "crash-loop:<scope>:<name>"`, `outcome`, `evidence`, `emitted`, `suppressed_dedup`, `evaluated_at`) **plus** `delivered` (bool) and an `interval` object `{baseline_count, baseline_at, current_count, observed_at, delta, period_seconds, m, bound}`. `outcome` is one of `crash-loop`, `crash-loop-reremind`, `crash-loop-cleared`.
 - One line per unverified rise: `outcome = "crash-loop-unverified"`, `emitted = false`, `delivered = false`, plus the `interval` object (research R-05).
 - No per-unit line on a tick without an event. The history is kept in `crash-loop.json`.
 - Nothing is written in `dry_run`.
