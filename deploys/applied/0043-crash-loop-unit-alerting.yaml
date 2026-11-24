@@ -26,15 +26,17 @@ notes: '#1133 (mission crash-loop-unit-alerting-01M858E8). felix-canary gains a 
   the apply, it starts the unit once more; still stale is a failure.
 
 
-  The first tick only records baselines: obsidian-sync''s 39 is a baseline, not an alert.
-  A delivered crash-loop alert at apply would still be a successful deploy.
+  The first tick only records baselines: obsidian-sync''s 39 is a baseline, not an
+  alert. A delivered crash-loop alert at apply would still be a successful deploy.
 
 
-  Tier 3. audited_surface: true because this manifest matches the deploy-pipeline surface
-  (deploys/queued/*.yaml), which has no affected_baselines and no hashed file drifts,
-  so the expected rebaseline outcome is a clean reconciliation: pending_clean, then
-  cleared_clean on a later tick; the applied record may only show pending_clean.
+  Tier 3. audited_surface: true because this manifest matches the deploy-pipeline
+  surface (deploys/queued/*.yaml), which has no affected_baselines and no hashed file
+  drifts, so the expected rebaseline outcome is a clean reconciliation: pending_clean,
+  then cleared_clean on a later tick; the applied record may only show pending_clean.
 
 
   Rollback: revert the merge. The canary then runs without the stage and crash-loop.json
   is inert; it can be moved aside to /data/services/felix-canary/state/retired/.'
+apply_mode: manifest
+applied_at: '2026-11-24T14:38:52Z'
