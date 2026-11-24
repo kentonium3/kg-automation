@@ -1,5 +1,12 @@
 # Mission Specification: Crash-loop unit alerting
 
+> **Ruling, Kent, 2026-11-24 (in-mission, after the post-merge Codex review round 4): count ticks, not time.** This supersedes every wall-clock interval rule in this file: the proven-crossing (pigeonhole) rule, the observation-time bracket, clock-regression handling, and history compaction. Earlier text is kept as history.
+> - **Page rule.** For each watched unit or container, page when its persistent restart counter has **risen by ≥3 since the previous canary tick** (ticks are 15 min apart), **or has risen (by ≥1) on 2 consecutive ticks**.
+> - **What stays.** A counter decrease, or a boot-ID or container-ID change, sets a new baseline with no alert. First sight sets a baseline. "Could not check" never reads as healthy. One alert per episode. A re-remind on the canary's 6-hour cadence, driven by fresh evidence (WP02 ruling). Cleared after K=2 quiet ticks. The ignore list. A cap of 3 alerts per tick, plus one aggregate.
+> - **Timestamps** may appear in alert text and the ledger as information only. They are never an input to the decision.
+> - **Expected outcomes.** The 2026-11-23 loop pages on the next tick. A steady loop of 2 restarts per tick pages on its 2nd tick. A single restart never pages.
+
+
 **Mission Branch**: `kitty/mission-crash-loop-unit-alerting-01M858E8` (merge target `fix/crash-loop-unit-alerting`, PR-bound to `main`)
 **Created**: 2026-11-23
 **Status**: Draft
@@ -134,8 +141,8 @@ If the crash-loop check cannot read restart information, Kent sees "could not ch
 |----|-------|------------|----------|--------|----------|-----------------|
 | FR-001 | Discover watched units | As Kent, I want every office2 system unit and `claude` user unit with a restart policy other than "never", and every docker container with a restart policy other than "no", watched at each tick, so that a loop in any of them is detectable without anyone listing it first. | High | Open | [build] | no |
 | FR-002 | Ignore list | As Kent, I want a version-controlled ignore list of units and containers that never raise a crash-loop alert, so that known-noisy units cannot erode trust in the alert. | Medium | Open | [build] | no (same-fixture positive control: the same unit, not ignored, alerts) |
-| FR-003 | Restart-count delta detection | As Kent, I want each tick to compare every watched unit's persistent restart count with its value at the previous tick, and to flag a crash loop when the increase within the threshold window reaches the threshold, so that loops are caught whatever the unit's state at the moment of the tick. | High | Open | [build] | no |
-| FR-004 | Single global threshold | As Kent, I want one global threshold and window (default: at least 3 restarts within 15 minutes), so that a single restart never alerts. | High | Open | [build] | yes (the delta-of-1 "no alert" case is paired with a delta-at-threshold "alert" case on the same fixture) |
+| FR-003 | Restart-count delta detection *(Ruling 2026-11-24: rise ≥3 since the previous tick, or any rise on 2 consecutive ticks; see the ruling above)* | As Kent, I want each tick to compare every watched unit's persistent restart count with its value at the previous tick, and to flag a crash loop when the increase within the threshold window reaches the threshold, so that loops are caught whatever the unit's state at the moment of the tick. | High | Open | [build] | no |
+| FR-004 | Single global threshold *(Ruling 2026-11-24: the threshold is 3 per tick interval, plus the 2-consecutive-rising-ticks rule; no time window)* | As Kent, I want one global threshold and window (default: at least 3 restarts within 15 minutes), so that a single restart never alerts. | High | Open | [build] | yes (the delta-of-1 "no alert" case is paired with a delta-at-threshold "alert" case on the same fixture) |
 | FR-005 | Between-tick loops are caught | As Kent, I want a loop that starts and ends entirely between two ticks to be alerted at the second tick, so that the 2026-11-23 blind spot is closed. | High | Open | [build] | no |
 | FR-006 | Alert content and route | As Kent, I want each crash-loop alert sent through the alert bus (notification and ledger) naming the unit or container and its scope, the restart increase, the period it covers, and the unit's current state, so that I can act without logging in first. | High | Open | [build] | no |
 | FR-007 | One alert per episode, 6-hour re-remind | As Kent, I want one alert when a loop episode starts, no further alert while it continues, and a re-remind only on the canary's existing 6-hour cadence, so that a long loop neither pages every tick nor goes silent. | High | Open | [build] | no |

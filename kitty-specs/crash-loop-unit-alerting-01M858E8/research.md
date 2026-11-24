@@ -1,5 +1,12 @@
 # Research: Crash-loop unit alerting
 
+> **Ruling, Kent, 2026-11-24 (in-mission, after the post-merge Codex review round 4): count ticks, not time.** This supersedes every wall-clock interval rule in this file: the proven-crossing (pigeonhole) rule, the observation-time bracket, clock-regression handling, and history compaction. Earlier text is kept as history.
+> - **Page rule.** For each watched unit or container, page when its persistent restart counter has **risen by ≥3 since the previous canary tick** (ticks are 15 min apart), **or has risen (by ≥1) on 2 consecutive ticks**.
+> - **What stays.** A counter decrease, or a boot-ID or container-ID change, sets a new baseline with no alert. First sight sets a baseline. "Could not check" never reads as healthy. One alert per episode. A re-remind on the canary's 6-hour cadence, driven by fresh evidence (WP02 ruling). Cleared after K=2 quiet ticks. The ignore list. A cap of 3 alerts per tick, plus one aggregate.
+> - **Timestamps** may appear in alert text and the ledger as information only. They are never an input to the decision.
+> - **Expected outcomes.** The 2026-11-23 loop pages on the next tick. A steady loop of 2 restarts per tick pages on its 2nd tick. A single restart never pages.
+
+
 Mission `crash-loop-unit-alerting-01M858E8` (kentonium3/kg-automation#1133). Phase 0 output of `/spec-kitty.plan`, 2026-11-23. Revised the same day after the post-plan Codex review. Each revised decision names the finding that changed it (CX-n refers to plan.md "Post-plan Codex review dispositions").
 
 Each decision follows the template's format: Decision / Rationale / Alternatives considered. Forks were decided under the autonomous-run protocol's D-1 rule (durable, safe option) and its §5 quality bar, and are logged here rather than asked (protocol §1b).
@@ -24,6 +31,9 @@ Each decision follows the template's format: Decision / Rationale / Alternatives
 - **Alternatives considered**: (a) A new `health_check.method: crash-loop` on a synthetic inventory component. Rejected: it collapses all units into one outcome and one dedup key, so one looping unit would mask a second. (b) A new timer. Ruled out by Decision `owning_monitor`.
 
 ## R-02 Restart-count sources (C-002, NFR-003) — revised (CX-3, CX-5)
+
+*Correction 2026-11-24 (post-merge review, commit 7357f5c09): `DOCKER_CONFIG` is now the constant `/proc/nonexistent-felix-canary-docker-config`, not a fresh temporary directory, so a dry run writes nothing. This was verified read-only on office2 (docker 29.10.0).*
+
 
 - **Decision**:
   - **System units**: `systemctl list-units --type=service --all --plain --no-legend --no-pager`. Keep the rows whose LOAD column is `loaded`. If none remain, call nothing further: an argument-free `show` would describe the manager itself. Otherwise make one call to `systemctl show -p Id,Restart,NRestarts,ActiveState,SubState,LoadState -- <units…>`.
@@ -55,6 +65,9 @@ Each decision follows the template's format: Decision / Rationale / Alternatives
 - **Alternatives considered**: K = 1 (flaps on back-off lulls). K = 4 (delays the all-clear by an hour).
 
 ## R-05 The proven-crossing rule — revised twice (CX-1, round-2 C/HIGH)
+
+*Superseded 2026-11-24 by R-16 (Kent's tick-counting ruling).*
+
 
 - **What the counter can prove.** The canary samples cumulative counters about every 15 minutes (Kent's Decision `detection_latency`). Two samples `(t₀, c₀)` and `(t₁, c₁)` prove only that `Δ = c₁ − c₀` restarts happened somewhere in `L = t₁ − t₀`. Split `L` into `m = ceil(L / window)` consecutive sub-intervals, each no longer than `window`. By pigeonhole, **if `Δ ≥ m·(N − 1) + 1`, at least one sub-interval of length ≤ `window` contained ≥ N restarts.** That is a *proof* of Kent's literal rule ("N restarts within a window, e.g. ≥ 3 in 15 min"). It needs no slack, fudge or reinterpretation of the window.
 - **Decision**:
@@ -93,6 +106,9 @@ Each decision follows the template's format: Decision / Rationale / Alternatives
 - **Property**: every reset path under-counts and never over-counts. An invisible reset between observations shows up as a smaller rise. Resets can cause misses, never false alerts.
 - **Alternatives considered**: counting a generation change as "Δ from 0" (rejected: it contradicts the spec's reboot-is-baseline edge case); systemd `InvocationID` as the generation (rejected: automatic restarts change it too).
 ## R-07 State persistence, history, clock and concurrency — revised (CX-9, CX-10, round-2 B5/B6)
+
+*Ruling 2026-11-24: history, compaction and the clock rules below are superseded by R-16. The state keeps only the previous tick's count and whether it rose.*
+
 
 - **Decision**:
   - **Document**: `/data/services/felix-canary/state/crash-loop.json` holds `{"schema_version": 1, "updated_at_utc", "boot_id", "units": {<key>: {generation, boot_id, history, episode}}}`. It is written atomically (temp file in the same directory, `fsync`, `os.replace`).
@@ -193,6 +209,9 @@ Each decision follows the template's format: Decision / Rationale / Alternatives
 
 ## R-15 Time budget and alert-burst bound (NFR-002, NFR-001) — revised (CX-4, round-2 B3/B4)
 
+*Ruling 2026-11-24: the per-tick cap (3 + 1 aggregate), the read budget and the NFR-002 note all stand unchanged under R-16.*
+
+
 - **Decision**:
   - **Read deadline**: one monotonic deadline, `read_budget_seconds = 6`, covers all three scopes. Each command's timeout is `min(3 s, remaining)`. A scope not reached, or cut off, is `unknown` and keeps its state. Measured normal reads take about 0.4 s.
   - **Emission cap**: `max_alerts_per_tick`, default 3. The first three events of a tick (ordered alert, then re-remind, then cleared, then by key) are sent individually. **All** remaining events are folded into one aggregate alert, so a tick makes at most **4** alert-bus calls.
@@ -203,3 +222,15 @@ Each decision follows the template's format: Decision / Rationale / Alternatives
   - Bounding that further would need asynchronous delivery or a change to the shared alert bus. Both are outside this mission (C-003: use the existing bus).
   - NFR-001's "under 1 minute" run-time assumption holds for typical delivery. Only a degraded ntfy can break it, and a degraded ntfy is already reported by the dead-man's channel probe.
 - **Alternatives considered**: no cap (an unbounded page storm and unbounded time); an aggregate that lists every unit (the bus would truncate it silently, round-2 B3); asynchronous delivery (changes the bus contract, out of scope).
+
+## R-16 Tick counting (Kent's ruling, 2026-11-24): supersedes R-05, the R-07 history and clock rules, and the post-merge bracket and rollback fixes
+
+- **Decision.** For each watched unit, compare the current counter with its value at the previous complete tick: `Δ = current − previous`.
+  - **Page** (open an episode) when `Δ ≥ threshold` (3), or when `Δ ≥ 1` on this tick and on the previous tick (`consecutive_rise_ticks = 2`).
+  - In an open episode, a tick with `Δ ≥ 1` resets the quiet count, and a tick with `Δ = 0` adds 1 to it. At K = 2 the episode clears and the unit's tick history is reset, so a new episode needs fresh rises.
+  - **Re-remind** when the trigger holds again on a tick at least `reremind_ticks` (24, which is 6 h at the 15-minute cadence) ticks after the last page. Both rising ticks of a 2-tick trigger come after the last page by construction. This is the WP02 fresh-evidence ruling, counted in ticks.
+- **What carries over.** A counter decrease, a container-ID change or a boot-ID change rebaselines the unit, with no alert. First sight is a baseline. Incomplete scopes keep their state. The ignore list, the cap plus aggregate, no delivery retry, and "could not check" routed as `unknown` are all unchanged.
+- **Time is never an input.** Wall-clock steps, rollbacks and skew cannot change a decision. The previous-tick comparison does not depend on when the tick ran, and a tick is any complete read. A canary outage of several hours therefore counts as one interval: a rise of ≥3 across it pages, which is the conservative direction.
+- **Re-remind interval: an orchestrator call, not part of Kent's ruling.** The 6-hour re-remind is implemented as 24 ticks rather than a wall-clock comparison, so no clock enters the decision. At the 15-minute cadence the two are the same.
+- **Unchanged.** K = 2, no retry, the 3-per-tick cap and the NFR-002 note all still apply.
+- **Superseded.** The `crash-loop-unverified` ledger outcome, the `m` / `bound` proof fields and `window_seconds` no longer exist.

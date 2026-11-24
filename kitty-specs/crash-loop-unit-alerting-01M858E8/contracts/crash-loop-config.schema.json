@@ -6,8 +6,9 @@
   "additionalProperties": false,
   "required": [
     "threshold",
-    "window_seconds",
+    "consecutive_rise_ticks",
     "quiet_ticks_to_clear",
+    "reremind_ticks",
     "max_alerts_per_tick",
     "read_budget_seconds",
     "ignore"
@@ -16,14 +17,8 @@
     "threshold": {
       "type": "integer",
       "minimum": 2,
-      "description": "N. A page requires a PROVEN crossing: delta >= m*(N-1)+1 over an interval of m=ceil(period/window) windows (research R-05, FR-004). Default 3.",
+      "description": "Restart rise since the previous canary tick that pages (default 3).",
       "maximum": 50
-    },
-    "window_seconds": {
-      "type": "integer",
-      "minimum": 60,
-      "description": "Threshold window. Default 900. Retention of candidate baselines is 4x this.",
-      "maximum": 3600
     },
     "quiet_ticks_to_clear": {
       "type": "integer",
@@ -62,6 +57,17 @@
       "minimum": 1,
       "maximum": 10,
       "description": "Monotonic deadline for reading all three scopes (research R-15). Default 6."
+    },
+    "consecutive_rise_ticks": {
+      "type": "integer",
+      "minimum": 2,
+      "description": "Consecutive ticks with any rise that also page (default 2)."
+    },
+    "reremind_ticks": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Ticks after the last page before a re-remind may fire on fresh evidence (default 24 = 6 h at 15 min)."
     }
-  }
+  },
+  "description": "Ruling 2026-11-24 (Kent): tick counting. Page on a rise >= threshold since the previous tick, or a rise >= 1 on consecutive_rise_ticks consecutive ticks. window_seconds is retired (no time in the decision)."
 }

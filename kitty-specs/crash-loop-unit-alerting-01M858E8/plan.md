@@ -1,5 +1,12 @@
 # Implementation Plan: Crash-loop unit alerting
 
+> **Ruling, Kent, 2026-11-24 (in-mission, after the post-merge Codex review round 4): count ticks, not time.** This supersedes every wall-clock interval rule in this file: the proven-crossing (pigeonhole) rule, the observation-time bracket, clock-regression handling, and history compaction. Earlier text is kept as history.
+> - **Page rule.** For each watched unit or container, page when its persistent restart counter has **risen by ≥3 since the previous canary tick** (ticks are 15 min apart), **or has risen (by ≥1) on 2 consecutive ticks**.
+> - **What stays.** A counter decrease, or a boot-ID or container-ID change, sets a new baseline with no alert. First sight sets a baseline. "Could not check" never reads as healthy. One alert per episode. A re-remind on the canary's 6-hour cadence, driven by fresh evidence (WP02 ruling). Cleared after K=2 quiet ticks. The ignore list. A cap of 3 alerts per tick, plus one aggregate.
+> - **Timestamps** may appear in alert text and the ledger as information only. They are never an input to the decision.
+> - **Expected outcomes.** The 2026-11-23 loop pages on the next tick. A steady loop of 2 restarts per tick pages on its 2nd tick. A single restart never pages.
+
+
 **Branch**: `kitty/mission-crash-loop-unit-alerting-01M858E8` (planning) → merge target `fix/crash-loop-unit-alerting` → PR to `main` | **Date**: 2026-11-23 | **Spec**: [spec.md](spec.md)
 **Input**: Mission specification from `kitty-specs/crash-loop-unit-alerting-01M858E8/spec.md` (kentonium3/kg-automation#1133)
 
@@ -205,3 +212,7 @@ R3-H1, R3-M1 and R3-M2 are confirmed resolved. Dominance compaction "preserves p
 | R4-M1 | MED | The 64-entry cap can drop a single-window proof under an extreme valid config (N = 100, 65 observations in 65 s). | Entries within the last window are never pruned, so m = 1 proofs are always found. The 24 h / 64 bounds apply only to older entries. The config is bounded to `threshold ≤ 50` and `window ≤ 3600` (R-07, R-10). This fix was applied without a fifth round, because it is narrow and deterministic and the WP02 test encodes Codex's exact sequence. Per-WP review re-checks it. |
 
 **Checkpoint outcome:** the post-plan Codex review ran 4 rounds (gpt-6.1-sol). Every finding is folded in. None changes the spec's scope or a Kent decision. Two sampling consequences of his decisions are surfaced for confirmation (judgment calls 1 and 2).
+
+### Ruling 2026-11-24 (Kent), after post-merge round 4
+
+Kent chose **tick counting** over CLOCK_BOOTTIME and over accepting the risk. See the ruling at the top of this file and research R-16. This also settles the old judgment calls 1 and 2 (sensitivity and the straddled burst). The following smaller calls stand: K = 2 (call 5), no retry (call 4), the 3-per-tick cap (call 7) and the NFR-002 note (call 3). One new orchestrator call: the re-remind is 24 ticks rather than a wall-clock 6 h, so that no clock enters the decision.

@@ -1,5 +1,12 @@
 # Data Model: Crash-loop unit alerting
 
+> **Ruling, Kent, 2026-11-24 (in-mission, after the post-merge Codex review round 4): count ticks, not time.** This supersedes every wall-clock interval rule in this file: the proven-crossing (pigeonhole) rule, the observation-time bracket, clock-regression handling, and history compaction. Earlier text is kept as history.
+> - **Page rule.** For each watched unit or container, page when its persistent restart counter has **risen by ≥3 since the previous canary tick** (ticks are 15 min apart), **or has risen (by ≥1) on 2 consecutive ticks**.
+> - **What stays.** A counter decrease, or a boot-ID or container-ID change, sets a new baseline with no alert. First sight sets a baseline. "Could not check" never reads as healthy. One alert per episode. A re-remind on the canary's 6-hour cadence, driven by fresh evidence (WP02 ruling). Cleared after K=2 quiet ticks. The ignore list. A cap of 3 alerts per tick, plus one aggregate.
+> - **Timestamps** may appear in alert text and the ledger as information only. They are never an input to the decision.
+> - **Expected outcomes.** The 2026-11-23 loop pages on the next tick. A steady loop of 2 restarts per tick pages on its 2nd tick. A single restart never pages.
+
+
 Phase 1 output, revised twice after the post-plan Codex review (2026-11-23, rounds 1 and 2). Modules: `scripts/canary/crash_loop_model.py` (value types and config), `scripts/canary/crash_loop_state.py` (persisted state, load and save, lock), `scripts/canary/crash_loop.py` (the pure decision) and `scripts/canary/crash_loop_readers.py` (effects). All times are timezone-aware UTC, serialised as ISO-8601.
 
 ## Entities
@@ -147,3 +154,24 @@ stateDiagram-v2
 ## Scope component state (reuses the existing dedup)
 
 `crash-loop:system`, `crash-loop:user` and `crash-loop:container` are ordinary `dedup.json` entries with outcome `healthy` or `unknown`. There is no schema change.
+
+## Tick-counting model (Ruling, Kent, 2026-11-24): supersedes the UnitState history, Proof, INV-CL-3 and INV-CL-9 above
+
+- **UnitState:** `generation`, `boot_id`, `last_count` (the counter at the previous complete tick), `rose_last_tick` (bool), `last_seen_at` (informational only, never used in a decision), `episode`.
+- **Episode:** `started_utc` and `last_alert_utc` (informational), `ticks_since_alert`, `quiet_ticks`, `peak_delta`.
+- **Decision for one unit on one tick:**
+  1. Boot-ID change → rebase and close the episode silently.
+  2. Container-ID change or decrease → rebase with no event. In an episode this counts as a quiet tick.
+  3. `Δ = current − last_count`.
+  4. `trigger = Δ ≥ threshold or (Δ ≥ 1 and rose_last_tick)`.
+  5. **No episode:** if `trigger`, open the episode and emit `alert`.
+  6. **Episode open:** `ticks_since_alert += 1`. If `Δ ≥ 1`, set `quiet = 0`, otherwise `quiet += 1`.
+     - If `quiet ≥ K`, emit `cleared`, close the episode and set `rose_last_tick = False`.
+     - Otherwise, if `trigger` and `ticks_since_alert ≥ reremind_ticks`, emit `reremind` and set `ticks_since_alert = 0`.
+  7. Update `last_count = current`, `rose_last_tick = (Δ ≥ 1)`, `last_seen_at = now`.
+- **Invariants:**
+  - **INV-CL-3′.** An `alert` or `reremind` needs `Δ ≥ 3` on this tick, or `Δ ≥ 1` on this tick and the previous one.
+  - **INV-CL-9′.** No time value is an input to any decision.
+  - INV-CL-1, -2, -5, -6, -7, -8 and -10 stand. In INV-CL-4, "6 h" now means 24 ticks.
+- **Config:** `threshold` (3), `consecutive_rise_ticks` (2), `quiet_ticks_to_clear` (2), `reremind_ticks` (24), `max_alerts_per_tick` (3), `read_budget_seconds` (6), `ignore`. `window_seconds` is removed.
+- **Ledger `interval`:** `{previous_count, current_count, delta, rose_last_tick, previous_seen_at, observed_at}`. The two timestamps are informational. The `crash-loop-unverified` outcome is retired.

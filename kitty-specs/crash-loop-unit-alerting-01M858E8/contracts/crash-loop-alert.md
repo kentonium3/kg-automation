@@ -1,5 +1,12 @@
 # Contract: crash-loop alerts, cleared entries, scope health and ledger lines
 
+> **Ruling, Kent, 2026-11-24 (in-mission, after the post-merge Codex review round 4): count ticks, not time.** This supersedes every wall-clock interval rule in this file: the proven-crossing (pigeonhole) rule, the observation-time bracket, clock-regression handling, and history compaction. Earlier text is kept as history.
+> - **Page rule.** For each watched unit or container, page when its persistent restart counter has **risen by ≥3 since the previous canary tick** (ticks are 15 min apart), **or has risen (by ≥1) on 2 consecutive ticks**.
+> - **What stays.** A counter decrease, or a boot-ID or container-ID change, sets a new baseline with no alert. First sight sets a baseline. "Could not check" never reads as healthy. One alert per episode. A re-remind on the canary's 6-hour cadence, driven by fresh evidence (WP02 ruling). Cleared after K=2 quiet ticks. The ignore list. A cap of 3 alerts per tick, plus one aggregate.
+> - **Timestamps** may appear in alert text and the ledger as information only. They are never an input to the decision.
+> - **Expected outcomes.** The 2026-11-23 loop pages on the next tick. A steady loop of 2 restarts per tick pages on its 2nd tick. A single restart never pages.
+
+
 All emission goes through `scripts.common.alert_bus.emit` (C-003), which sends an ntfy notification and appends to the alert-bus ledger. In `run_pass` it goes through the injected `emit_fn`. Every emission, cleared included, is accounted for like `_route`: `getattr(result, "ok", True) is False` increments `alerts_undelivered`, which feeds the off-host dead-man.
 
 ## 1. Crash-loop alert (episode start), FR-006
