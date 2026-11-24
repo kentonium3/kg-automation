@@ -8,10 +8,10 @@
       "criterion_id": "FR-001",
       "description": "Verify FR-001 is satisfied",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
+      "evidence": "tests/canary/test_crash_loop_readers.py: real office2 fixtures parse to the expected watched sets (system obsidian-sync/snapd, user openclaw-gateway, containers vikunja/transcribe-api; Restart=no and policy no excluded). WP03, approved by Codex gpt-6.1-sol.",
+      "pass_fail": "pass",
+      "verified_by": "claude-orchestrator",
+      "verified_at": "2026-11-24T00:37:24.385566+00:00",
       "notes": "TODO: replace with a real acceptance criterion"
     },
     {
