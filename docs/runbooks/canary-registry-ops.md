@@ -700,8 +700,10 @@ config.
   lines folded into it at that time. The time is the line's
   `interval.observed_at`, which is the alert's timestamp, not `evaluated_at`.
   Every bus entry from a `felix-canary:crash-loop:` source needs its canary
-  line or lines. A bus entry with no canary line, or an aggregate count that
-  does not match, is a `FAIL`. A canary page with no bus entry, or no bus ledger files for the
+  line or lines. Pages are counted, not just matched, so each must appear on
+  the bus exactly as often as in the canary ledger. A bus entry with no canary
+  line (including a duplicated bus page), a duplicated aggregate, or an
+  aggregate count that does not match, is a `FAIL`. A canary page with no bus entry, or no bus ledger files for the
   window at all, is `INCONCLUSIVE`, because the bus ledger is best-effort and
   the evidence is missing rather than contradicted.
 
@@ -781,15 +783,21 @@ for r in events:
 
 # Two-way reconciliation between the canary ledger and the alert-bus ledger.
 at = lambda text: round(T(text).timestamp(), 3)
-canary_single = {(r["component_id"], KIND[r["outcome"]], at(r["interval"]["observed_at"])) for r in events if not r["evidence"].endswith(FOLDED)}
+# Counters, not sets: each page must appear on the bus exactly as often as in
+# the canary ledger, so a duplicated bus record is caught.
+canary_single = Counter((r["component_id"], KIND[r["outcome"]], at(r["interval"]["observed_at"])) for r in events if not r["evidence"].endswith(FOLDED))
 canary_folded = Counter(at(r["interval"]["observed_at"]) for r in events if r["evidence"].endswith(FOLDED))
 bus = [b for b in bus if b.get("source", "").startswith("felix-canary:crash-loop:") and b.get("details", {}).get("kind")]
-bus_single = {(b["details"].get("component_id"), b["details"]["kind"], at(b["ts"])) for b in bus if b["details"]["kind"] != "aggregate"}
-bus_folded = Counter({at(b["ts"]): int(b["details"]["count"]) for b in bus if b["details"]["kind"] == "aggregate"})
-for key in sorted(canary_single - bus_single):
-    missing.append(f"canary page with no bus entry: {key}")
-for key in sorted(bus_single - canary_single):
-    violations.append(f"bus entry with no canary line: {key}")
+bus_single = Counter((b["details"].get("component_id"), b["details"]["kind"], at(b["ts"])) for b in bus if b["details"]["kind"] != "aggregate")
+aggregates = [(at(b["ts"]), int(b["details"]["count"])) for b in bus if b["details"]["kind"] == "aggregate"]
+for ts, n_records in sorted(Counter(ts for ts, _ in aggregates).items()):
+    if n_records > 1:
+        violations.append(f"duplicate aggregate at {ts}: {n_records} bus records")
+bus_folded = dict(aggregates)
+for key, n_missing in sorted((canary_single - bus_single).items()):
+    missing.append(f"canary page with no bus entry: {key} (x{n_missing})")
+for key, n_extra in sorted((bus_single - canary_single).items()):
+    violations.append(f"bus entry with no canary line: {key} (x{n_extra})")
 for ts in sorted(set(canary_folded) | set(bus_folded)):
     if ts not in bus_folded:
         missing.append(f"{canary_folded[ts]} folded canary lines at {ts} with no bus aggregate")
