@@ -68,10 +68,10 @@
       "criterion_id": "FR-007",
       "description": "Verify FR-007 is satisfied",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
+      "evidence": "test_five_tick_episode_one_alert_then_one_cleared, test_reremind_after_six_hours_only_with_proof, test_reremind_needs_fresh_evidence_not_the_original_burst.",
+      "pass_fail": "pass",
+      "verified_by": "claude-orchestrator",
+      "verified_at": "2026-11-24T00:37:41.729240+00:00",
       "notes": "TODO: replace with a real acceptance criterion"
     },
     {
