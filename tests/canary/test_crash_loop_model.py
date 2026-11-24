@@ -117,7 +117,6 @@ def test_ignore_entries_load_as_a_set_with_reasons(tmp_path: Path) -> None:
         ("threshold", 2),
         ("threshold", 50),
         ("consecutive_rise_ticks", 2),
-        ("consecutive_rise_ticks", 96),
         ("reremind_ticks", 1),
         ("read_budget_seconds", 1),
         ("read_budget_seconds", 10),
@@ -128,6 +127,28 @@ def test_ignore_entries_load_as_a_set_with_reasons(tmp_path: Path) -> None:
 def test_bounds_are_inclusive(tmp_path: Path, field: str, value: int) -> None:
     config = load_config(_write(tmp_path, _with(**{field: value})))
     assert getattr(config, field) == value
+
+
+def test_reremind_ticks_may_equal_consecutive_rise_ticks_minus_one(
+    tmp_path: Path,
+) -> None:
+    config = load_config(
+        _write(tmp_path, _with(consecutive_rise_ticks=96, reremind_ticks=95))
+    )
+    assert (config.consecutive_rise_ticks, config.reremind_ticks) == (96, 95)
+
+
+@pytest.mark.parametrize(
+    ("consecutive", "reremind"),
+    [(3, 1), (5, 3), (96, 24)],
+)
+def test_reremind_ticks_below_rise_run_is_rejected(
+    tmp_path: Path, consecutive: int, reremind: int
+) -> None:
+    """A re-remind must not be able to rest on rises from before the last page."""
+    document = _with(consecutive_rise_ticks=consecutive, reremind_ticks=reremind)
+    with pytest.raises(CrashLoopConfigError, match="reremind_ticks.*before the last page"):
+        load_config(_write(tmp_path, document))
 
 
 # --------------------------------------------------------------------------- #

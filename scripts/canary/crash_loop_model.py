@@ -274,7 +274,8 @@ def load_config(path: Path = DEFAULT_CONFIG_PATH) -> CrashLoopConfig:
 
     Raises :class:`CrashLoopConfigError`, naming the field, on an unreadable
     file, invalid JSON, a missing or unknown key (including the retired
-    ``window_seconds``), or any rule violation. It never substitutes a
+    ``window_seconds``), any rule violation, or a ``reremind_ticks`` below
+    ``consecutive_rise_ticks - 1``. It never substitutes a
     default (research R-10).
     """
     try:
@@ -300,6 +301,17 @@ def load_config(path: Path = DEFAULT_CONFIG_PATH) -> CrashLoopConfig:
     ints = {
         name: _validate_int(document, name, low, high) for name, low, high in _INT_RULES
     }
+    # A re-remind fires when the trigger holds on a tick at least
+    # ``reremind_ticks`` ticks after the last page. Its rise run spans this tick
+    # and the ``consecutive_rise_ticks - 1`` before it, so a shorter interval
+    # would let a re-remind rest on rises from before the last page (the WP02
+    # fresh-evidence ruling, research R-16).
+    if ints["reremind_ticks"] < ints["consecutive_rise_ticks"] - 1:
+        raise CrashLoopConfigError(
+            "reremind_ticks: must be >= consecutive_rise_ticks - 1 "
+            f"({ints['consecutive_rise_ticks'] - 1}), got {ints['reremind_ticks']}; "
+            "a shorter interval lets a re-remind reuse rises from before the last page"
+        )
     reasons = _validate_ignore(document["ignore"])
     return CrashLoopConfig(
         threshold=ints["threshold"],
