@@ -78,10 +78,10 @@
       "criterion_id": "FR-008",
       "description": "Verify FR-008 is satisfied",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
+      "evidence": "test_five_tick_episode_one_alert_then_one_cleared, test_new_episode_after_clear_alerts_again, test_clear_does_not_replay_burst (K=2).",
+      "pass_fail": "pass",
+      "verified_by": "claude-orchestrator",
+      "verified_at": "2026-11-24T00:37:44.673360+00:00",
       "notes": "TODO: replace with a real acceptance criterion"
     },
     {
