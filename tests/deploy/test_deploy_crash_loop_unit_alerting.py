@@ -45,8 +45,9 @@ SCOPES = ("system", "user", "container")
 
 CONFIG = CrashLoopConfig(
     threshold=3,
-    window_seconds=900,
+    consecutive_rise_ticks=2,
     quiet_ticks_to_clear=2,
+    reremind_ticks=24,
     max_alerts_per_tick=3,
     read_budget_seconds=6,
     ignore=frozenset({"user:noisy.service"}),
@@ -57,8 +58,8 @@ CONFIG = CrashLoopConfig(
 # --------------------------------------------------------------------------- #
 # Artifact builders.
 # --------------------------------------------------------------------------- #
-def _state(at: datetime = FRESH) -> str:
-    return json.dumps({"schema_version": 1, "updated_at_utc": at.isoformat(),
+def _state(at: datetime = FRESH, schema_version: object = 2) -> str:
+    return json.dumps({"schema_version": schema_version, "updated_at_utc": at.isoformat(),
                        "boot_id": "b", "units": {}})
 
 
@@ -133,9 +134,13 @@ class Harness:
 # --------------------------------------------------------------------------- #
 # Preflight.
 # --------------------------------------------------------------------------- #
-def test_preflight_accepts_claude_at_home():
+def test_preflight_accepts_claude_at_home(capsys):
     assert mod.preflight(user_name=lambda: "claude", home=lambda: Path("/home/claude"),
                          load_config=lambda: CONFIG) is True
+    out = capsys.readouterr().out
+    assert ("PASS preflight-config: threshold=3 consecutive_rise_ticks=2 "
+            "quiet_ticks_to_clear=2 reremind_ticks=24 read_budget_seconds=6 ignore=1") in out
+    assert "window_seconds" not in out
 
 
 def test_preflight_refuses_wrong_user(capsys):
@@ -315,10 +320,28 @@ def test_apply_delivered_alert_is_success():
     assert Harness(Pass(lines=lines)).apply() == 0
 
 
-def test_apply_unverified_rise_never_needs_delivery():
-    lines = _scope_lines() + [_line("crash-loop:user:x.service", "crash-loop-unverified",
-                                    delivered=False, interval={})]
-    assert Harness(Pass(lines=lines)).apply() == 0
+def test_apply_checks_every_event_outcome_for_delivery():
+    # R-16 retired crash-loop-unverified: every crash-loop event line from the
+    # run (alert, reremind, cleared) must be delivered.
+    for outcome in ("crash-loop", "crash-loop-reremind", "crash-loop-cleared"):
+        lines = _scope_lines() + [_line("crash-loop:user:x.service", outcome,
+                                        emitted=True, delivered=False, interval={})]
+        assert Harness(Pass(lines=lines)).apply() == 1, outcome
+    assert not hasattr(mod, "_UNVERIFIED_OUTCOME")
+
+
+@pytest.mark.parametrize("version", [1, 3, None, "2", True])
+def test_apply_fails_on_a_state_document_that_is_not_schema_v2(capsys, version):
+    h = Harness(Pass(state=_state(schema_version=version)))
+    assert h.apply() == 1
+    assert len(h.runs) == 1  # not a freshness failure: never retried
+    assert "FAIL state-fresh" in capsys.readouterr().out
+
+
+def test_state_schema_version_matches_the_canary():
+    from scripts.canary import crash_loop_state
+
+    assert mod.STATE_SCHEMA_VERSION == crash_loop_state.SCHEMA_VERSION == 2
 
 
 @pytest.mark.parametrize("scope", SCOPES)
@@ -528,6 +551,10 @@ def test_manifest_shape():
     assert m["entrypoint"] == "scripts/deploy/deploy-crash-loop-unit-alerting.py"
     assert m["verification"]["pre"] == ["scripts/deploy/deploy-crash-loop-unit-alerting.py --dry-run"]
     assert "crash-loop.json" in " ".join(m["verification"]["post"])
+    # The post check pins the tick-counting state schema (R-16).
+    assert m["verification"]["post"] == [
+        "jq -e '.schema_version == 2' /data/services/felix-canary/state/crash-loop.json"
+    ]
     assert len(m["notes"]) <= 2000
 
 

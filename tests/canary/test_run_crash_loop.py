@@ -5,12 +5,14 @@ and lock, the real repo config (or a tmp one), and ``read_scopes`` returning
 scripted ``(readings, boot_id)`` per tick. Nothing reaches ``systemctl``,
 ``docker``, ntfy or ``/data``.
 
-References: research.md R-07, R-08, R-09, R-15; contracts/crash-loop-alert.md
+The decision counts ticks, not time (Kent's 2026-11-24 ruling, research
+R-16): the stage stamps everything with the pass's ``now`` and reads no clock.
+
+References: research.md R-07, R-08, R-09, R-15, R-16; contracts/crash-loop-alert.md
 §5-§7.
 """
 from __future__ import annotations
 
-import dataclasses
 import json
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -49,8 +51,8 @@ EXISTING_LEDGER_KEYS = {
     "evaluated_at",
 }
 INTERVAL_KEYS = {
-    "baseline_count", "baseline_at", "current_count", "observed_at", "delta",
-    "period_seconds", "m", "bound",
+    "previous_count", "current_count", "delta", "rose_last_tick",
+    "previous_seen_at", "observed_at",
 }
 
 
@@ -153,19 +155,7 @@ def _event_lines(ledger: list[dict]) -> list[dict]:
     return [r for r in ledger if r["component_id"].count(":") >= 2]
 
 
-def _pinned(check, now: datetime):
-    """*check* with its read bracket collapsed onto *now*, unless a test injected a clock.
-
-    Keeps the scripted-pass tests deterministic: the counters are "sampled"
-    at the pass's ``now`` exactly, as before the read bracket existed.
-    """
-    if check is not None and check.clock is run_mod._wall_clock_utc:
-        return dataclasses.replace(check, clock=lambda: now)
-    return check
-
-
 def _pass(tmp_path: Path, check, *, now=NOW, emit_fn=None, inventory=None, evaluate_fn=None, dry_run=False, paths=None):
-    check = _pinned(check, now)
     return run_mod.run_pass(
         now=now,
         inventory=inventory if inventory is not None else _inventory("a"),
@@ -235,81 +225,42 @@ def test_sc001_one_alert_after_39_restarts_in_16_minutes(tmp_path):
     assert line["outcome"] == "crash-loop"
     assert line["emitted"] is True
     assert line["delivered"] is True
-    assert set(line["interval"]) == INTERVAL_KEYS
-    assert line["interval"]["baseline_count"] == 0
-    assert line["interval"]["current_count"] == 39
-    assert line["interval"]["delta"] == 39
-    assert line["interval"]["baseline_at"] == NOW.isoformat()
-    assert line["interval"]["observed_at"] == later.isoformat()
-    # 960 s over a 900 s window: m = 2, bound = 2·(3 − 1) + 1 = 5 (R-05).
-    assert line["interval"]["period_seconds"] == 960.0
-    assert line["interval"]["m"] == 2
-    assert line["interval"]["bound"] == 5
+    # R-16: the interval is the tick-to-tick change; its times are information.
+    assert line["interval"] == {
+        "previous_count": 0,
+        "current_count": 39,
+        "delta": 39,
+        "rose_last_tick": False,
+        "previous_seen_at": NOW.isoformat(),
+        "observed_at": later.isoformat(),
+    }
+    assert "unverified" not in s2["crash_loop"]
 
     saved = json.loads(check.state_path.read_text())
-    assert saved["units"][f"system:{UNIT}"]["episode"] is not None
-
-
-class _ScriptedClock:
-    """A wall clock returning the scripted instants in order, one per call."""
-
-    def __init__(self, *instants: datetime) -> None:
-        self.instants = list(instants)
-
-    def __call__(self) -> datetime:
-        return self.instants.pop(0)
-
-
-def _bracketed_check(tmp_path: Path, reader: _Scripted, clock: _ScriptedClock) -> run_mod.CrashLoopCheck:
-    return dataclasses.replace(_check(tmp_path, reader), clock=clock)
+    assert saved["schema_version"] == 2
+    assert saved["updated_at_utc"] == later.isoformat()
+    unit = saved["units"][f"system:{UNIT}"]
+    assert unit["episode"] is not None
+    assert (unit["last_count"], unit["rose_last_tick"], unit["recent_rises"]) == (39, True, [39])
 
 
 def _at(seconds: float) -> datetime:
     return NOW + timedelta(seconds=seconds)
 
 
-def test_sc001_still_pages_with_a_read_bracket(tmp_path):
-    # The incident replay with each read taking 2 s, 10 s into its pass.
+def test_an_unreadable_tick_between_reads_is_not_a_tick(tmp_path):
+    """Replaces the read-bracket counterexample (post-merge review round 1).
+
+    0 restarts, then a pass whose system read fails, then 5. The failed pass
+    kept the state, so the next complete read compares with the 0 and pages:
+    a rise of 5 >= 3 since the previous complete tick (R-16).
+    """
     reader = _Scripted()
-    clock = _ScriptedClock(_at(10), _at(12), _at(970), _at(972))
-    check = _bracketed_check(tmp_path, reader, clock)
+    check = _check(tmp_path, reader)
     p = _paths(tmp_path)
 
     reader.next = _readings({UNIT: 0})
-    _pass(tmp_path, check)
-    later = NOW + timedelta(minutes=16)
-    reader.next = _readings({UNIT: 39})
-    em = _recording_emit()
-    _pass(tmp_path, check, now=later, emit_fn=em)
-
-    assert len(_crash_alerts(em.sent)) == 1
-    line = _event_lines(_read_ledger(p["ledger_dir"], later))[0]
-    # Stored at the first read's start, proved to the second read's end.
-    assert line["interval"]["baseline_at"] == _at(10).isoformat()
-    assert line["interval"]["observed_at"] == _at(972).isoformat()
-    assert line["interval"]["period_seconds"] == 962.0
-    assert line["interval"]["m"] == 2
-    assert line["interval"]["bound"] == 5
-    assert line["interval"]["delta"] == 39
-
-
-def test_late_reads_never_shrink_the_proven_interval(tmp_path):
-    """Post-merge review counterexample (NFR-004): must NOT page.
-
-    Passes are stamped 0 s, 900 s and 1800 s, but the counters are read at
-    about 10 s and 1835 s, and the 900 s pass's system read fails. Restarts at
-    11, 466, 921, 1376 and 1831 s: any three span 910 s, so no 900 s window
-    holds three. Proving with the pass stamps gives delta 5, L 1800, m 2,
-    bound 5 and a false page; the read bracket gives L ≥ 1825, m 3, bound 7.
-    """
-    reader = _Scripted()
-    clock = _ScriptedClock(_at(9.5), _at(10.5), _at(905), _at(906), _at(1834.5), _at(1835.5))
-    check = _bracketed_check(tmp_path, reader, clock)
-    p = _paths(tmp_path)
-
-    reader.next = _readings({UNIT: 0})  # sampled at ~10 s, before the 11 s restart
     _pass(tmp_path, check, now=_at(0))
-
     reader.next = [
         ScopeReading.failed("system", "systemctl timed out", 5),
         ScopeReading.ok("user", (), 0, 4),
@@ -318,46 +269,55 @@ def test_late_reads_never_shrink_the_proven_interval(tmp_path):
     s2 = _pass(tmp_path, check, now=_at(900))
     assert s2["crash_loop"]["scopes"]["system"] == "unknown"
 
-    reader.next = _readings({UNIT: 5})  # sampled at ~1835 s, after all five
+    reader.next = _readings({UNIT: 5})
     em = _recording_emit()
     s3 = _pass(tmp_path, check, now=_at(1800), emit_fn=em)
+    assert len(_crash_alerts(em.sent)) == 1
+    assert s3["crash_loop"]["events"] == 1
+    line = _event_lines(_read_ledger(p["ledger_dir"], _at(1800)))[0]
+    assert line["interval"]["previous_count"] == 0
+    assert line["interval"]["previous_seen_at"] == _at(0).isoformat()
+    assert line["interval"]["delta"] == 5
 
-    assert _crash_alerts(em.sent) == []
-    assert s3["crash_loop"]["events"] == 0
-    assert s3["crash_loop"]["unverified"] == 1
-    rise = [
-        r for r in _read_ledger(p["ledger_dir"], _at(1800))
-        if r["outcome"] == "crash-loop-unverified"
-    ]
-    assert len(rise) == 1
-    interval = rise[0]["interval"]
-    assert interval["baseline_at"] == _at(9.5).isoformat()
-    assert interval["observed_at"] == _at(1835.5).isoformat()
-    assert interval["period_seconds"] == 1826.0
-    assert interval["delta"] == 5
-    assert interval["m"] == 3
-    assert interval["bound"] == 7
-    assert clock.instants == []
+
+@pytest.mark.parametrize(
+    "seconds",
+    [(0, 900, 1800), (1, 1, 1800), (1, 1, 1799), (3600, 0, -3600), (5, 5, 5)],
+    ids=["normal", "codex-round-3", "codex-round-4", "backward", "held-equal"],
+)
+def test_pass_stamps_never_change_what_pages(tmp_path, seconds):
+    """Codex's rollback stamps through ``run_pass``: counts 0, 2, 4 page on the
+    third pass whatever the pass clock did (INV-CL-9′)."""
+    reader = _Scripted()
+    check = _check(tmp_path, reader)
+    p = _paths(tmp_path)
+    sent: list[list[str]] = []
+    outcomes: list[list[str]] = []
+    for count, second in zip((0, 2, 4), seconds, strict=True):
+        reader.next = _readings({UNIT: count})
+        em = _recording_emit()
+        _pass(tmp_path, check, now=_at(second), emit_fn=em)
+        sent.append([a.title for a in _crash_alerts(em.sent)])
+        outcomes.append([r["outcome"] for r in _event_lines(_read_ledger(p["ledger_dir"], _at(second)))
+                         if r["evaluated_at"] == _at(second).isoformat()])
+    assert sent == [[], [], [f"{UNIT} crash-looping: restarted on 2 consecutive canary ticks (+2, +2)"]]
+    assert outcomes[2] == ["crash-loop"]
 
 
 def test_aggregate_cites_the_filed_ledger_date_across_midnight(tmp_path):
-    """Round-2 review: the read ends after midnight, the pass started before it.
-
-    Event lines are filed under the pass-start date, so the aggregate's "see
-    canary ledger <date>" must name that date, not the read's.
+    """Round-2 review: the aggregate's "see canary ledger <date>" names the file
+    the event lines went to. Both are the pass's ``now`` date now that the
+    stage reads no clock of its own; a pass just before midnight files and
+    cites that day, even if the work itself runs past midnight.
     """
     start = datetime(2026, 11, 23, 23, 44, 0, tzinfo=timezone.utc)
     late = datetime(2026, 11, 23, 23, 59, 58, tzinfo=timezone.utc)
     reader = _Scripted()
-    clock = _ScriptedClock(
-        start, start + timedelta(seconds=1),
-        late + timedelta(seconds=1), late + timedelta(seconds=3),
-    )
-    check = _bracketed_check(tmp_path, reader, clock)
+    check = _check(tmp_path, reader)
     p = _paths(tmp_path)
     # Enough folded units to overflow the 900-character budget, so the
     # aggregate ends with "... and <k> more - see canary ledger <date>".
-    units = [f"u{i:02d}.service" for i in range(25)]
+    units = [f"u{i:02d}.service" for i in range(40)]
 
     reader.next = _readings(dict.fromkeys(units, 0))
     _pass(tmp_path, check, now=start)
@@ -367,29 +327,13 @@ def test_aggregate_cites_the_filed_ledger_date_across_midnight(tmp_path):
 
     aggregate = [a for a in em.sent if a.source == crash_loop_mod.AGGREGATE_SOURCE]
     assert len(aggregate) == 1
-    assert aggregate[0].timestamp.date().isoformat() == "2026-11-24"
+    assert aggregate[0].timestamp == late
     assert "see canary ledger 2026-11-23" in aggregate[0].description
     folded = [r for r in _event_lines(_read_ledger(p["ledger_dir"], late))
               if r["evidence"].endswith("(in aggregate alert)")]
-    assert len(folded) == 22
+    assert len(folded) == 37
     assert (tmp_path / "ledger" / "2026-11-23.jsonl").exists()
     assert not (tmp_path / "ledger" / "2026-11-24.jsonl").exists()
-
-
-def test_pass_start_stamps_would_have_paged_the_counterexample(tmp_path):
-    """The same counterexample with the bracket collapsed onto the pass stamps.
-
-    Guards the regression above: without the bracket the proof is unsound and
-    the pass pages, so the previous test is only green because of the bracket.
-    """
-    reader = _Scripted()
-    check = _check(tmp_path, reader)  # _pass pins the clock to each pass's now
-    reader.next = _readings({UNIT: 0})
-    _pass(tmp_path, check, now=_at(0))
-    reader.next = _readings({UNIT: 5})
-    em = _recording_emit()
-    _pass(tmp_path, check, now=_at(1800), emit_fn=em)
-    assert len(_crash_alerts(em.sent)) == 1
 
 
 # --------------------------------------------------------------------------- #
@@ -597,10 +541,10 @@ def test_undelivered_alert_is_counted_and_not_resent(tmp_path):
     line = _event_lines(_read_ledger(p["ledger_dir"], t2))[0]
     assert line["delivered"] is False
     assert line["emitted"] is True
-    state = crash_loop_state.load_state(check.state_path, now=t2)[0]
+    state = crash_loop_state.load_state(check.state_path)[0]
     assert state.units[f"system:{UNIT}"].episode is not None
 
-    # Next tick, still looping: no retry (re-remind waits the 6 h window).
+    # Next tick, still looping: no retry (a re-remind waits 24 ticks, R-16).
     t3 = t2 + timedelta(minutes=5)
     reader.next = _readings({UNIT: 60})
     em3 = _recording_emit()
@@ -649,7 +593,7 @@ def _route_main(monkeypatch, tmp_path, check, *, pass_now, emit_fn, paths=None):
         assert isinstance(crash_loop_check, run_mod.CrashLoopCheck)
         return real(
             now=pass_now, inventory=_inventory("a"), emit_fn=emit_fn,
-            evaluate_fn=_make_evaluate({}), crash_loop_check=_pinned(check, pass_now),
+            evaluate_fn=_make_evaluate({}), crash_loop_check=check,
             dry_run=dry_run,
             **(paths or _paths(tmp_path)),
         )
@@ -813,36 +757,42 @@ def test_cap_three_plus_aggregate(tmp_path, aggregate_ok):
 
 
 # --------------------------------------------------------------------------- #
-# Unverified rise: ledger only.
+# Below the rule: no page and no event line (replaces the retired
+# crash-loop-unverified ledger line, R-16).
 # --------------------------------------------------------------------------- #
-def test_unverified_rise_is_ledgered_not_emitted(tmp_path):
+def test_sub_threshold_rise_writes_no_event_line_until_the_rule_holds(tmp_path):
     reader = _Scripted()
     check = _check(tmp_path, reader)
     p = _paths(tmp_path)
     reader.next = _readings({UNIT: 0})
     _pass(tmp_path, check)
 
-    # 4 restarts over 2 h 15 min: Δ ≥ N (3) but m = 9 makes the bound 19.
-    later = NOW + timedelta(hours=2, minutes=15)
-    reader.next = _readings({UNIT: 4})
-    em = _recording_emit()
-    summary = _pass(tmp_path, check, now=later, emit_fn=em)
+    t2 = NOW + timedelta(minutes=15)
+    reader.next = _readings({UNIT: 2})
+    em2 = _recording_emit()
+    s2 = _pass(tmp_path, check, now=t2, emit_fn=em2)
+    assert _crash_alerts(em2.sent) == []
+    assert s2["crash_loop"]["events"] == 0
+    assert _event_lines(_read_ledger(p["ledger_dir"], t2)) == []
+    assert all(not r["outcome"].endswith("unverified") for r in _read_ledger(p["ledger_dir"], t2))
 
-    assert _crash_alerts(em.sent) == []
-    assert summary["crash_loop"]["unverified"] == 1
-    lines = _event_lines(_read_ledger(p["ledger_dir"], later))
+    # The second consecutive rise meets the rule and pages.
+    t3 = t2 + timedelta(minutes=15)
+    reader.next = _readings({UNIT: 4})
+    em3 = _recording_emit()
+    _pass(tmp_path, check, now=t3, emit_fn=em3)
+    assert len(_crash_alerts(em3.sent)) == 1
+    lines = _event_lines(_read_ledger(p["ledger_dir"], t3))
     assert len(lines) == 1
-    assert lines[0]["outcome"] == "crash-loop-unverified"
-    assert lines[0]["emitted"] is False
-    assert lines[0]["delivered"] is False
-    assert lines[0]["interval"]["delta"] == 4
-    # 8100 s over a 900 s window: m = 9, bound = 9·(3 − 1) + 1 = 19 (R-05, R-14).
-    assert lines[0]["interval"]["period_seconds"] == 8100.0
-    assert lines[0]["interval"]["m"] == 9
-    assert lines[0]["interval"]["bound"] == 19
-    assert "8100 s" in lines[0]["evidence"]
-    assert "m=9" in lines[0]["evidence"]
-    assert "bound 19" in lines[0]["evidence"]
+    assert lines[0]["outcome"] == "crash-loop"
+    assert lines[0]["interval"] == {
+        "previous_count": 2,
+        "current_count": 4,
+        "delta": 2,
+        "rose_last_tick": True,
+        "previous_seen_at": t2.isoformat(),
+        "observed_at": t3.isoformat(),
+    }
 
 
 # --------------------------------------------------------------------------- #

@@ -20,7 +20,8 @@ checkout pull cannot show the stage actually works, so this entrypoint does:
      the pass finishes).
   2. Prove the stage from the FRESH artifacts. Every check is individual, so a
      combined status cannot hide one scope's ``unknown``:
-       (a) ``crash-loop.json`` ``updated_at_utc >= t0``;
+       (a) ``crash-loop.json`` ``updated_at_utc >= t0`` and ``schema_version``
+           is 2 (the tick-counting state of Kent's 2026-11-24 ruling, R-16);
        (b) the canary ledger has ``crash-loop:system``, ``crash-loop:user`` and
            ``crash-loop:container`` lines with ``evaluated_at >= t0``, each
            ``healthy`` (the scope was read completely);
@@ -78,8 +79,9 @@ START_TIMEOUT_S = 120
 STATE_PATH = Path("/data/services/felix-canary/state/crash-loop.json")
 TICK_PATH = Path("/data/services/felix-canary/state/last-tick.json")
 LEDGER_DIR = Path("/data/services/felix-canary/ledger")
+# Literal copy of crash_loop_state.SCHEMA_VERSION; a test pins it.
+STATE_SCHEMA_VERSION = 2
 _EVENT_PREFIX = "crash-loop"
-_UNVERIFIED_OUTCOME = "crash-loop-unverified"
 # Tick errors that void the proof. ``crash_loop`` covers stage faults, the
 # held lock and ``crash_loop_state_save:``. A failed ledger append is recorded
 # as ``ledger:<component_id>:...``; for a crash-loop scope or event line that
@@ -176,7 +178,11 @@ def _check_state(read_text: ReadText, t0: datetime) -> Check:
         return Check(name, False, f"updated_at_utc={raw!r} is not a timestamp")
     if at < t0:
         return Check(name, False, f"updated_at_utc={raw} predates t0={t0.isoformat()}", stale=True)
-    return Check(name, True, f"updated_at_utc={raw} >= t0={t0.isoformat()}")
+    version = doc.get("schema_version")
+    if isinstance(version, bool) or version != STATE_SCHEMA_VERSION:
+        return Check(name, False, f"schema_version={version!r}, want {STATE_SCHEMA_VERSION}")
+    return Check(name, True, f"updated_at_utc={raw} >= t0={t0.isoformat()} "
+                             f"schema_version={version}")
 
 
 def _fresh_ledger_lines(read_text: ReadText, paths: Sequence[Path], t0: datetime
@@ -255,8 +261,7 @@ def _check_tick(read_text: ReadText, t0: datetime) -> list[Check]:
 def _check_events(lines: list[dict]) -> Check:
     events = [r for r in lines
               if str(r.get("component_id", "")).startswith(f"{_EVENT_PREFIX}:")
-              and str(r.get("outcome", "")).startswith(_EVENT_PREFIX)
-              and r.get("outcome") != _UNVERIFIED_OUTCOME]
+              and str(r.get("outcome", "")).startswith(_EVENT_PREFIX)]
     undelivered = [r for r in events if r.get("delivered") is not True]
     if undelivered:
         return Check("events-delivered", False, "undelivered: " + "; ".join(
@@ -290,7 +295,10 @@ def preflight(*, user_name: Callable[[], str] = _euid_name,
         _report(False, "preflight-config", str(exc))
         return False
     _report(True, "preflight-config",
-            f"threshold={config.threshold} window_seconds={config.window_seconds} "
+            f"threshold={config.threshold} "
+            f"consecutive_rise_ticks={config.consecutive_rise_ticks} "
+            f"quiet_ticks_to_clear={config.quiet_ticks_to_clear} "
+            f"reremind_ticks={config.reremind_ticks} "
             f"read_budget_seconds={config.read_budget_seconds} ignore={len(config.ignore)}")
     return True
 

@@ -11,9 +11,13 @@ the strict loader for ``crash_loop_config.json``.
   :class:`CrashLoopConfigError` on any violation. It never falls back to
   defaults (research R-10): an invalid config turns every scope ``unknown``.
 
+Kent's 2026-11-24 ruling (research R-16): the decision counts ticks, not time.
+No configuration value is a duration, and the timestamps carried by
+:class:`TickInterval` are informational only.
+
 Standard library only; no clock reads; no model calls (NFR-006).
 
-References: data-model.md (all field names), research.md R-05, R-07, R-10,
+References: data-model.md "Tick-counting model", research.md R-10, R-16,
 contracts/crash-loop-config.schema.json.
 """
 
@@ -23,7 +27,7 @@ import json
 import re
 from collections.abc import Mapping
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
 from types import MappingProxyType
 from typing import Any, Final
@@ -31,17 +35,14 @@ from typing import Any, Final
 __all__ = [
     "DEFAULT_CONFIG_PATH",
     "EVENT_KINDS",
-    "HISTORY_MAX",
-    "HISTORY_RETENTION",
     "SCOPES",
     "UNIT_KEY_RE",
     "CrashLoopConfig",
     "CrashLoopConfigError",
     "CrashLoopEvent",
-    "Proof",
     "RestartObservation",
     "ScopeReading",
-    "UnverifiedRise",
+    "TickInterval",
     "load_config",
 ]
 
@@ -53,11 +54,6 @@ UNIT_KEY_RE: Final[re.Pattern[str]] = re.compile(r"^(system|user|container):.+$"
 
 # The decision's event kinds (data-model.md CrashLoopEvent).
 EVENT_KINDS: Final[frozenset[str]] = frozenset({"alert", "reremind", "cleared"})
-
-# History retention for entries older than the last window (research R-07).
-# Constants only: the pruning itself is the decision core's job.
-HISTORY_RETENTION: Final[timedelta] = timedelta(hours=24)
-HISTORY_MAX: Final[int] = 64
 
 DEFAULT_CONFIG_PATH: Final[Path] = Path(__file__).with_name("crash_loop_config.json")
 
@@ -151,26 +147,24 @@ class ScopeReading:
 # Decision outputs.
 # --------------------------------------------------------------------------- #
 @dataclass(frozen=True)
-class Proof:
-    """A baseline/current pair and the pigeonhole bound it is tested against.
+class TickInterval:
+    """One unit's change between the previous complete tick and this one.
 
-    ``m = ceil(period / window)`` and ``bound = m·(N − 1) + 1``. The proof
-    *holds* when ``delta ≥ bound`` (research R-05).
+    ``delta = current_count − previous_count`` is the only decision input
+    (research R-16). ``rose_last_tick`` is the prior tick's rise flag, as the
+    rule read it. ``rises`` is the run of consecutive positive deltas ending at
+    this tick, this tick's included when it rose (alert text only).
+    ``previous_seen_at`` and ``observed_at`` are informational: they fill alert
+    text and the ledger and never enter a decision (INV-CL-9′).
     """
 
-    baseline_at: datetime
-    baseline_count: int
+    previous_count: int
     current_count: int
-    observed_at: datetime
     delta: int
-    period_seconds: float
-    m: int
-    bound: int
-
-    @property
-    def holds(self) -> bool:
-        """True when the pair proves ≥ N restarts within one window."""
-        return self.delta >= self.bound
+    rose_last_tick: bool
+    previous_seen_at: datetime
+    observed_at: datetime
+    rises: tuple[int, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -183,7 +177,7 @@ class CrashLoopEvent:
     name: str
     state: str
     episode_started_utc: datetime
-    proof: Proof
+    interval: TickInterval
 
     def __post_init__(self) -> None:
         if self.kind not in EVENT_KINDS:
@@ -191,17 +185,6 @@ class CrashLoopEvent:
                 f"CrashLoopEvent: kind must be one of {sorted(EVENT_KINDS)}, "
                 f"got {self.kind!r}"
             )
-
-
-@dataclass(frozen=True)
-class UnverifiedRise:
-    """A rise of ≥ N with no proving pair (ledger only, research R-05)."""
-
-    key: str
-    scope: str
-    name: str
-    state: str
-    proof: Proof
 
 
 # --------------------------------------------------------------------------- #
@@ -220,8 +203,9 @@ class CrashLoopConfig:
     """
 
     threshold: int
-    window_seconds: int
+    consecutive_rise_ticks: int
     quiet_ticks_to_clear: int
+    reremind_ticks: int
     max_alerts_per_tick: int
     read_budget_seconds: int
     ignore: frozenset[str]
@@ -231,8 +215,9 @@ class CrashLoopConfig:
 # (field, minimum, maximum or None) for every integer key.
 _INT_RULES: Final[tuple[tuple[str, int, int | None], ...]] = (
     ("threshold", 2, 50),
-    ("window_seconds", 60, 3600),
+    ("consecutive_rise_ticks", 2, None),
     ("quiet_ticks_to_clear", 1, None),
+    ("reremind_ticks", 1, None),
     ("max_alerts_per_tick", 1, None),
     ("read_budget_seconds", 1, 10),
 )
@@ -288,8 +273,9 @@ def load_config(path: Path = DEFAULT_CONFIG_PATH) -> CrashLoopConfig:
     """Read and strictly validate the crash-loop config at *path*.
 
     Raises :class:`CrashLoopConfigError`, naming the field, on an unreadable
-    file, invalid JSON, a missing or unknown key, or any rule violation. It
-    never substitutes a default (research R-10).
+    file, invalid JSON, a missing or unknown key (including the retired
+    ``window_seconds``), or any rule violation. It never substitutes a
+    default (research R-10).
     """
     try:
         text = Path(path).read_text(encoding="utf-8")
@@ -317,8 +303,9 @@ def load_config(path: Path = DEFAULT_CONFIG_PATH) -> CrashLoopConfig:
     reasons = _validate_ignore(document["ignore"])
     return CrashLoopConfig(
         threshold=ints["threshold"],
-        window_seconds=ints["window_seconds"],
+        consecutive_rise_ticks=ints["consecutive_rise_ticks"],
         quiet_ticks_to_clear=ints["quiet_ticks_to_clear"],
+        reremind_ticks=ints["reremind_ticks"],
         max_alerts_per_tick=ints["max_alerts_per_tick"],
         read_budget_seconds=ints["read_budget_seconds"],
         ignore=frozenset(reasons),

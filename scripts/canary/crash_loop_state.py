@@ -2,27 +2,38 @@
 
 The document lives at ``/data/services/felix-canary/state/crash-loop.json``::
 
-    {"schema_version": 1, "updated_at_utc": ..., "boot_id": ...,
-     "units": {<UnitKey>: {"generation", "boot_id", "history", "episode"}}}
+    {"schema_version": 2, "updated_at_utc": ..., "boot_id": ...,
+     "units": {<UnitKey>: {"generation", "boot_id", "last_count",
+                           "rose_last_tick", "recent_rises", "last_seen_at",
+                           "episode"}}}
+
+Kent's 2026-11-24 ruling (research R-16) replaced the per-unit history with the
+previous tick's count and whether it rose. ``schema_version`` is therefore 2;
+any other version (v1 was never deployed) loads empty, which is fail-safe:
+every unit becomes first-seen.
 
 - :func:`load_state` never raises. A missing file loads empty with no
   diagnostic; an unreadable, corrupt, non-object or unknown-version document
-  loads empty with one diagnostic. Each unit entry is validated semantically
-  and a malformed entry is dropped **alone**, with one diagnostic (research R-07).
-- **The single clock rule**: on load, any time in a unit entry later than
-  ``now + 60 s`` makes the entry malformed. It is dropped, and the unit becomes
-  first-seen; times are never clamped.
-- Naive datetimes are rejected, never coerced to UTC.
+  loads empty with one diagnostic. Each unit entry is validated against the
+  state schema and a malformed entry is dropped **alone**, with one diagnostic.
+- Times are informational (INV-CL-9′). They must parse as timezone-aware
+  ISO-8601, but their values are never compared with anything: there is no
+  clock rule.
+- ``recent_rises`` (not in the contract schema, which allows extra unit
+  properties) holds the run of consecutive positive deltas ending at the last
+  tick. It generalises ``rose_last_tick`` to ``consecutive_rise_ticks = N``
+  and must agree with it: ``rose_last_tick`` is true exactly when it is
+  non-empty.
 - :func:`save_state` writes atomically (temp file in the same directory,
   ``fsync``, ``os.replace``; the temp file is removed on failure), mirroring
   :mod:`scripts.canary.dedup`, and raises on failure.
 - :class:`StateLock` takes an exclusive, non-blocking ``flock`` and raises
   :class:`StateLockBusy` when another holder has it. It never blocks.
 
-``now`` is always injected; nothing here reads the clock.
+Nothing here reads the clock.
 
-References: data-model.md (UnitState, Episode, CrashLoopState), research.md
-R-07, contracts/crash-loop-state.schema.json.
+References: data-model.md "Tick-counting model", research.md R-07, R-16,
+contracts/crash-loop-state.schema.json.
 """
 
 from __future__ import annotations
@@ -32,7 +43,7 @@ import json
 import os
 import tempfile
 from dataclasses import dataclass, field
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 from pathlib import Path
 from types import TracebackType
 from typing import Any, Final, Self
@@ -40,7 +51,6 @@ from typing import Any, Final, Self
 from scripts.canary.crash_loop_model import UNIT_KEY_RE
 
 __all__ = [
-    "CLOCK_TOLERANCE",
     "DEFAULT_LOCK_PATH",
     "DEFAULT_STATE_PATH",
     "SCHEMA_VERSION",
@@ -58,10 +68,7 @@ DEFAULT_STATE_PATH: Final[Path] = Path(
 )
 DEFAULT_LOCK_PATH: Final[Path] = DEFAULT_STATE_PATH.with_name("crash-loop.lock")
 
-SCHEMA_VERSION: Final[int] = 1
-
-# A stored time later than now + CLOCK_TOLERANCE makes its unit entry malformed.
-CLOCK_TOLERANCE: Final[timedelta] = timedelta(seconds=60)
+SCHEMA_VERSION: Final[int] = 2
 
 _DIAG_PREFIX: Final[str] = "crash_loop_state"
 _KEY_REPR_MAX: Final[int] = 80
@@ -72,22 +79,38 @@ _KEY_REPR_MAX: Final[int] = 80
 # --------------------------------------------------------------------------- #
 @dataclass
 class Episode:
-    """An open crash-loop episode. There is no pending flag: no retry (R-08)."""
+    """An open crash-loop episode. There is no pending flag: no retry (R-08).
+
+    ``ticks_since_alert`` and ``quiet_ticks`` drive the decisions; the two
+    times are informational (alert text and the ledger).
+    """
 
     started_utc: datetime
     last_alert_utc: datetime
+    ticks_since_alert: int
     quiet_ticks: int
     peak_delta: int
 
 
 @dataclass
 class UnitState:
-    """Per-unit persisted state. ``history[-1]`` is the latest observation."""
+    """Per-unit persisted state: the previous complete tick's observation.
+
+    ``recent_rises`` is the run of consecutive positive deltas ending at that
+    tick (empty when it did not rise); ``last_seen_at`` is informational.
+    """
 
     generation: str
     boot_id: str
-    history: list[tuple[datetime, int]]
+    last_count: int
+    recent_rises: tuple[int, ...]
+    last_seen_at: datetime
     episode: Episode | None
+
+    @property
+    def rose_last_tick(self) -> bool:
+        """True when the counter rose on the previous complete tick."""
+        return bool(self.recent_rises)
 
 
 @dataclass
@@ -111,7 +134,7 @@ class _Malformed(ValueError):
     """Internal: a unit entry failed validation; the message is the reason."""
 
 
-def _parse_time(value: Any, where: str, latest: datetime) -> datetime:
+def _parse_time(value: Any, where: str) -> datetime:
     if not isinstance(value, str):
         raise _Malformed(f"{where}: time must be an ISO-8601 string")
     try:
@@ -120,8 +143,6 @@ def _parse_time(value: Any, where: str, latest: datetime) -> datetime:
         raise _Malformed(f"{where}: unparseable time {value!r}") from exc
     if parsed.tzinfo is None or parsed.utcoffset() is None:
         raise _Malformed(f"{where}: naive time {value!r}")
-    if parsed > latest:
-        raise _Malformed(f"{where}: time {value!r} is later than now + 60 s")
     return parsed
 
 
@@ -129,49 +150,41 @@ def _is_count(value: Any) -> bool:
     return isinstance(value, int) and not isinstance(value, bool) and value >= 0
 
 
-def _parse_history(value: Any, latest: datetime) -> list[tuple[datetime, int]]:
-    if not isinstance(value, list) or not value:
-        raise _Malformed("history: must be a non-empty list")
-    history: list[tuple[datetime, int]] = []
-    for index, item in enumerate(value):
-        where = f"history[{index}]"
-        if not isinstance(item, list) or len(item) != 2:
-            raise _Malformed(f"{where}: must be an [iso8601, count] pair")
-        at = _parse_time(item[0], where, latest)
-        count = item[1]
-        if not _is_count(count):
-            raise _Malformed(f"{where}: count must be an integer >= 0")
-        if history:
-            prev_at, prev_count = history[-1]
-            if at <= prev_at:
-                raise _Malformed(f"{where}: times are not strictly ascending")
-            if count <= prev_count:
-                raise _Malformed(f"{where}: counts are not strictly increasing")
-        history.append((at, count))
-    return history
-
-
-def _parse_episode(value: Any, latest: datetime) -> Episode | None:
+def _parse_episode(value: Any) -> Episode | None:
     if value is None:
         return None
     if not isinstance(value, dict):
         raise _Malformed("episode: must be null or an object")
-    for name in ("quiet_ticks", "peak_delta"):
+    for name in ("ticks_since_alert", "quiet_ticks", "peak_delta"):
         if not _is_count(value.get(name)):
             raise _Malformed(f"episode.{name}: must be an integer >= 0")
     return Episode(
-        started_utc=_parse_time(
-            value.get("started_utc"), "episode.started_utc", latest
-        ),
+        started_utc=_parse_time(value.get("started_utc"), "episode.started_utc"),
         last_alert_utc=_parse_time(
-            value.get("last_alert_utc"), "episode.last_alert_utc", latest
+            value.get("last_alert_utc"), "episode.last_alert_utc"
         ),
+        ticks_since_alert=value["ticks_since_alert"],
         quiet_ticks=value["quiet_ticks"],
         peak_delta=value["peak_delta"],
     )
 
 
-def _parse_unit(key: str, entry: Any, latest: datetime) -> UnitState:
+def _parse_rises(entry: dict[str, Any]) -> tuple[int, ...]:
+    rose = entry.get("rose_last_tick")
+    if not isinstance(rose, bool):
+        raise _Malformed("rose_last_tick: must be a boolean")
+    raw = entry.get("recent_rises")
+    if not isinstance(raw, list):
+        raise _Malformed("recent_rises: must be a list")
+    for index, item in enumerate(raw):
+        if not _is_count(item) or item < 1:
+            raise _Malformed(f"recent_rises[{index}]: must be an integer >= 1")
+    if rose != bool(raw):
+        raise _Malformed("rose_last_tick disagrees with recent_rises")
+    return tuple(raw)
+
+
+def _parse_unit(key: str, entry: Any) -> UnitState:
     if not UNIT_KEY_RE.match(key):
         raise _Malformed("key does not match <system|user|container>:<name>")
     if not isinstance(entry, dict):
@@ -182,13 +195,18 @@ def _parse_unit(key: str, entry: Any, latest: datetime) -> UnitState:
     boot_id = entry.get("boot_id")
     if not isinstance(boot_id, str) or not boot_id:
         raise _Malformed("boot_id: must be a non-empty string")
+    last_count = entry.get("last_count")
+    if not isinstance(last_count, int) or not _is_count(last_count):
+        raise _Malformed("last_count: must be an integer >= 0")
     if "episode" not in entry:
         raise _Malformed("episode: missing")
     return UnitState(
         generation=generation,
         boot_id=boot_id,
-        history=_parse_history(entry.get("history"), latest),
-        episode=_parse_episode(entry["episode"], latest),
+        last_count=last_count,
+        recent_rises=_parse_rises(entry),
+        last_seen_at=_parse_time(entry.get("last_seen_at"), "last_seen_at"),
+        episode=_parse_episode(entry["episode"]),
     )
 
 
@@ -197,13 +215,12 @@ def _diag(message: str) -> str:
 
 
 def load_state(
-    path: Path | str = DEFAULT_STATE_PATH, *, now: datetime
+    path: Path | str = DEFAULT_STATE_PATH,
 ) -> tuple[CrashLoopState, list[str]]:
     """Load the crash-loop state; fail-safe, never raises.
 
     Returns ``(state, diagnostics)`` with one diagnostic string per dropped
     entry or reset field (the caller writes them into the scope evidence).
-    *now* must be timezone-aware; it anchors the clock rule.
     """
     target = Path(path)
     try:
@@ -230,7 +247,6 @@ def load_state(
     if not isinstance(units_raw, dict):
         return CrashLoopState.empty(), [_diag("units is not a JSON object")]
 
-    latest = now + CLOCK_TOLERANCE
     diagnostics: list[str] = []
 
     boot_id = document.get("boot_id")
@@ -244,14 +260,14 @@ def load_state(
     raw_updated = document.get("updated_at_utc")
     if raw_updated is not None:
         try:
-            updated_at = _parse_time(raw_updated, "updated_at_utc", latest)
+            updated_at = _parse_time(raw_updated, "updated_at_utc")
         except _Malformed as exc:
             diagnostics.append(_diag(f"{exc}; reset"))
 
     units: dict[str, UnitState] = {}
     for key, entry in units_raw.items():
         try:
-            units[key] = _parse_unit(key, entry, latest)
+            units[key] = _parse_unit(key, entry)
         except _Malformed as exc:
             shown = repr(key)
             if len(shown) > _KEY_REPR_MAX:
@@ -277,12 +293,16 @@ def _unit_document(unit: UnitState) -> dict[str, Any]:
     return {
         "generation": unit.generation,
         "boot_id": unit.boot_id,
-        "history": [[_iso(at), count] for at, count in unit.history],
+        "last_count": unit.last_count,
+        "rose_last_tick": unit.rose_last_tick,
+        "recent_rises": list(unit.recent_rises),
+        "last_seen_at": _iso(unit.last_seen_at),
         "episode": None
         if episode is None
         else {
             "started_utc": _iso(episode.started_utc),
             "last_alert_utc": _iso(episode.last_alert_utc),
+            "ticks_since_alert": episode.ticks_since_alert,
             "quiet_ticks": episode.quiet_ticks,
             "peak_delta": episode.peak_delta,
         },

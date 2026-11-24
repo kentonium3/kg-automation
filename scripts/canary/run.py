@@ -55,8 +55,8 @@ from scripts.canary.crash_loop_model import (
     CrashLoopConfig,
     CrashLoopConfigError,
     CrashLoopEvent,
-    Proof,
     ScopeReading,
+    TickInterval,
 )
 from scripts.canary.health import HealthResult, evaluate
 from scripts.canary.registry import (
@@ -95,18 +95,12 @@ _CRASH_LOOP_OUTCOME_BY_KIND: dict[str, str] = {
     "reremind": "crash-loop-reremind",
     "cleared": "crash-loop-cleared",
 }
-_CRASH_LOOP_UNVERIFIED_OUTCOME = "crash-loop-unverified"
 # Load diagnostics appended to the system scope's evidence are cut to this, so
 # the evidence stays well under the bus's DETAIL_VALUE_MAX if it ever pages.
 _CRASH_LOOP_DIAG_MAX = 200
 # Keys of the summary that are NOT persisted to the tick-signal file: the
 # TickSignal schema (and felix-canary's key ledger) is unchanged (R-09).
 _TICK_SIGNAL_EXCLUDED = ("component_lines", "alerts_undelivered", "crash_loop")
-
-
-def _wall_clock_utc() -> datetime:
-    """The crash-loop stage's wall clock (UTC), read around the counter read."""
-    return datetime.now(timezone.utc)
 
 
 @dataclass(frozen=True)
@@ -118,17 +112,15 @@ class CrashLoopCheck:
     check (the default) skips the stage, so direct callers and tests never
     reach real ``systemctl`` or ``docker`` (research R-09).
 
-    ``clock()`` returns the current wall-clock time (timezone-aware UTC). The
-    stage reads it immediately before and after ``read_scopes`` so the decision
-    core knows the counters were sampled within that bracket, not at the
-    pass-start ``now`` (NFR-004, post-merge review). Tests inject it.
+    The stage stamps everything with the pass's ``now``. Under Kent's
+    2026-11-24 tick-counting ruling (research R-16) no time value is a
+    decision input, so the stage reads no clock of its own.
     """
 
     config_path: Path
     state_path: Path
     lock_path: Path
     read_scopes: Callable[[CrashLoopConfig], tuple[list[ScopeReading], str | None]]
-    clock: Callable[[], datetime] = _wall_clock_utc
 
 
 def _default_read_scopes(
@@ -150,21 +142,21 @@ def _default_crash_loop_check() -> CrashLoopCheck:
     )
 
 
-def _crash_loop_interval(proof: Proof) -> dict[str, Any]:
-    """The ledger ``interval`` object (contract §6), plus the bound (R-05, R-14).
+def _crash_loop_interval(interval: TickInterval) -> dict[str, Any]:
+    """The ledger ``interval`` object (contract §6, research R-16).
 
-    ``period_seconds``, ``m`` and ``bound`` let the 7-day acceptance check
-    verify ``delta >= bound`` line by line without recomputing the proof.
+    ``delta`` and ``rose_last_tick`` let the 7-day acceptance check verify the
+    tick rule line by line. The two timestamps are informational only.
     """
     return {
-        "baseline_count": proof.baseline_count,
-        "baseline_at": proof.baseline_at.astimezone(timezone.utc).isoformat(),
-        "current_count": proof.current_count,
-        "observed_at": proof.observed_at.astimezone(timezone.utc).isoformat(),
-        "delta": proof.delta,
-        "period_seconds": proof.period_seconds,
-        "m": proof.m,
-        "bound": proof.bound,
+        "previous_count": interval.previous_count,
+        "current_count": interval.current_count,
+        "delta": interval.delta,
+        "rose_last_tick": interval.rose_last_tick,
+        "previous_seen_at": interval.previous_seen_at.astimezone(
+            timezone.utc
+        ).isoformat(),
+        "observed_at": interval.observed_at.astimezone(timezone.utc).isoformat(),
     }
 
 
@@ -518,7 +510,7 @@ def run_pass(
             suppressed_dedup=False,
             extra={
                 "delivered": delivered,
-                "interval": _crash_loop_interval(event.proof),
+                "interval": _crash_loop_interval(event.interval),
             },
         )
 
@@ -556,28 +548,16 @@ def run_pass(
                     return
 
             # 3. Load (fail-safe), 4. read, 5. decide.
-            prior, diagnostics = crash_loop_state.load_state(
-                check.state_path, now=now
-            )
-            # The counters are sampled somewhere inside this bracket; the
-            # decision core stores the earliest bound and proves against the
-            # latest, so a slow probe or read can never shrink a proven
-            # interval below the true one (NFR-004, post-merge review).
-            t_read_start = check.clock()
+            prior, diagnostics = crash_loop_state.load_state(check.state_path)
             readings, boot_id = check.read_scopes(config)
-            t_read_end = check.clock()
+            # ``now`` only stamps the state and the ledger: the decision
+            # counts ticks, never time (research R-16).
             outcome = crash_loop_mod.evaluate_tick(
-                readings,
-                prior,
-                config,
-                now=t_read_end,
-                boot_id=boot_id,
-                observed_from=t_read_start,
+                readings, prior, config, now=now, boot_id=boot_id
             )
             stage_summary["watched"] = outcome.counts.get("watched", 0)
             stage_summary["ignored"] = outcome.counts.get("ignored", 0)
             stage_summary["events"] = len(outcome.events)
-            stage_summary["unverified"] = len(outcome.unverified)
 
             # 6. Scope components through the existing dedup path (FR-011).
             for scope in CRASH_LOOP_SCOPES:
@@ -593,8 +573,7 @@ def run_pass(
                 _route_crash_loop_scope(scope, scope_outcome, evidence)
 
             # 7. Emit. No retry: delivery never changes crash-loop state (R-08).
-            # The aggregate cites the ledger file the event lines are filed
-            # in, which is named for the pass start, not the read time.
+            # The aggregate cites the ledger file the event lines are filed in.
             ledger_date = _ledger_path(ledger_dir_path, now).stem
             for emission in crash_loop_mod.plan_emissions(
                 outcome.events, config, date.fromisoformat(ledger_date)
@@ -612,30 +591,11 @@ def run_pass(
                         event, config, delivered=delivered, folded=folded
                     )
 
-            # 8. Unverified rises: ledger only (research R-05).
-            for rise in outcome.unverified:
-                _ledger(
-                    f"crash-loop:{rise.key}",
-                    _CRASH_LOOP_UNVERIFIED_OUTCOME,
-                    (
-                        f"{rise.name} rose by {rise.proof.delta} restarts in "
-                        f"{rise.proof.period_seconds:g} s (m={rise.proof.m}), below "
-                        f"the bound {rise.proof.bound} that proves "
-                        f"{config.threshold} within one window; state {rise.state}"
-                    ),
-                    emitted=False,
-                    suppressed_dedup=False,
-                    extra={
-                        "delivered": False,
-                        "interval": _crash_loop_interval(rise.proof),
-                    },
-                )
-
-            # 9. Save after emit (R-07): a failed save repeats the page next tick.
+            # 8. Save after emit (R-07): a failed save repeats the page next tick.
             if not dry_run:
                 try:
                     crash_loop_state.save_state(
-                        outcome.new_state, check.state_path, now=t_read_end
+                        outcome.new_state, check.state_path, now=now
                     )
                 except Exception as exc:  # noqa: BLE001 - recorded, never fatal
                     errors.append(
@@ -723,7 +683,6 @@ def run_pass(
             "watched": 0,
             "ignored": 0,
             "events": 0,
-            "unverified": 0,
             "scopes": {},
             "elapsed_ms": 0,
         }

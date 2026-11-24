@@ -1,4 +1,8 @@
-"""Unit tests for scripts.canary.crash_loop_model (mission #1133, WP01 T005)."""
+"""Unit tests for scripts.canary.crash_loop_model (mission #1133, WP01 T005).
+
+Config shape per Kent's 2026-11-24 tick-counting ruling (research R-16):
+``window_seconds`` is retired and rejected as an unknown key.
+"""
 
 from __future__ import annotations
 
@@ -13,9 +17,9 @@ from scripts.canary import crash_loop_model as model
 from scripts.canary.crash_loop_model import (
     CrashLoopConfigError,
     CrashLoopEvent,
-    Proof,
     RestartObservation,
     ScopeReading,
+    TickInterval,
     load_config,
 )
 
@@ -23,8 +27,9 @@ T0 = datetime(2026, 11, 23, 12, 0, 0, tzinfo=UTC)
 
 VALID: dict[str, Any] = {
     "threshold": 3,
-    "window_seconds": 900,
+    "consecutive_rise_ticks": 2,
     "quiet_ticks_to_clear": 2,
+    "reremind_ticks": 24,
     "max_alerts_per_tick": 3,
     "read_budget_seconds": 6,
     "ignore": [],
@@ -60,16 +65,14 @@ def _obs(scope: str = "system", name: str = "a.service") -> RestartObservation:
     )
 
 
-def _proof(delta: int = 5, bound: int = 5) -> Proof:
-    return Proof(
-        baseline_at=T0,
-        baseline_count=0,
+def _interval(delta: int = 39) -> TickInterval:
+    return TickInterval(
+        previous_count=0,
         current_count=delta,
-        observed_at=T0 + timedelta(minutes=16),
         delta=delta,
-        period_seconds=960.0,
-        m=2,
-        bound=bound,
+        rose_last_tick=False,
+        previous_seen_at=T0,
+        observed_at=T0 + timedelta(minutes=16),
     )
 
 
@@ -79,8 +82,9 @@ def _proof(delta: int = 5, bound: int = 5) -> Proof:
 def test_shipped_config_loads_with_the_documented_defaults() -> None:
     config = load_config(model.DEFAULT_CONFIG_PATH)
     assert config.threshold == 3
-    assert config.window_seconds == 900
+    assert config.consecutive_rise_ticks == 2
     assert config.quiet_ticks_to_clear == 2
+    assert config.reremind_ticks == 24
     assert config.max_alerts_per_tick == 3
     assert config.read_budget_seconds == 6
     assert config.ignore == frozenset()
@@ -112,8 +116,9 @@ def test_ignore_entries_load_as_a_set_with_reasons(tmp_path: Path) -> None:
     [
         ("threshold", 2),
         ("threshold", 50),
-        ("window_seconds", 60),
-        ("window_seconds", 3600),
+        ("consecutive_rise_ticks", 2),
+        ("consecutive_rise_ticks", 96),
+        ("reremind_ticks", 1),
         ("read_budget_seconds", 1),
         ("read_budget_seconds", 10),
         ("quiet_ticks_to_clear", 1),
@@ -136,10 +141,16 @@ def test_bounds_are_inclusive(tmp_path: Path, field: str, value: int) -> None:
         (_with(threshold="3"), "threshold"),
         (_with(threshold=1), "threshold"),
         (_with(threshold=51), "threshold"),
-        (_with(window_seconds=0), "window_seconds"),
-        (_with(window_seconds=59), "window_seconds"),
-        (_with(window_seconds=3601), "window_seconds"),
-        (_with(window_seconds=900.5), "window_seconds"),
+        # The retired wall-clock window is an unknown key now (R-16).
+        (_with(window_seconds=900), "window_seconds"),
+        (_with(consecutive_rise_ticks=1), "consecutive_rise_ticks"),
+        (_with(consecutive_rise_ticks=0), "consecutive_rise_ticks"),
+        (_with(consecutive_rise_ticks=True), "consecutive_rise_ticks"),
+        (_with(consecutive_rise_ticks=2.0), "consecutive_rise_ticks"),
+        (_with(reremind_ticks=0), "reremind_ticks"),
+        (_with(reremind_ticks="24"), "reremind_ticks"),
+        (_without("consecutive_rise_ticks"), "consecutive_rise_ticks"),
+        (_without("reremind_ticks"), "reremind_ticks"),
         (_with(quiet_ticks_to_clear=0), "quiet_ticks_to_clear"),
         (_with(quiet_ticks_to_clear=-1), "quiet_ticks_to_clear"),
         (_with(quiet_ticks_to_clear=False), "quiet_ticks_to_clear"),
@@ -241,8 +252,9 @@ def test_scope_constants() -> None:
     assert model.UNIT_KEY_RE.match("system:x.service")
     assert not model.UNIT_KEY_RE.match("system:")
     assert not model.UNIT_KEY_RE.match("docker:x")
-    assert model.HISTORY_RETENTION == timedelta(hours=24)
-    assert model.HISTORY_MAX == 64
+    # The proof and history machinery is gone (R-16).
+    for retired in ("Proof", "UnverifiedRise", "HISTORY_MAX", "HISTORY_RETENTION"):
+        assert not hasattr(model, retired), retired
 
 
 def test_scope_reading_ok_is_complete_without_error() -> None:
@@ -277,19 +289,18 @@ def test_scope_reading_rejects_inconsistent_construction() -> None:
         ScopeReading.ok("user", (_obs("system"),), excluded=0, elapsed_ms=1)
 
 
-@pytest.mark.parametrize(
-    ("delta", "bound", "holds"), [(5, 5, True), (6, 5, True), (4, 5, False)]
-)
-def test_proof_holds_when_delta_reaches_bound(
-    delta: int, bound: int, holds: bool
-) -> None:
-    assert _proof(delta, bound).holds is holds
+def test_tick_interval_defaults_to_no_rise_run() -> None:
+    interval = _interval()
+    assert interval.rises == ()
+    assert interval.delta == interval.current_count - interval.previous_count
+    with pytest.raises(AttributeError):
+        interval.delta = 1  # type: ignore[misc]
 
 
 @pytest.mark.parametrize("kind", ["alert", "reremind", "cleared"])
 def test_event_accepts_known_kinds(kind: str) -> None:
     event = CrashLoopEvent(
-        kind, "system:a.service", "system", "a.service", "failed", T0, _proof()
+        kind, "system:a.service", "system", "a.service", "failed", T0, _interval()
     )
     assert event.kind == kind
 
@@ -298,7 +309,7 @@ def test_event_accepts_known_kinds(kind: str) -> None:
 def test_event_rejects_unknown_kind(kind: str) -> None:
     with pytest.raises(ValueError, match="kind"):
         CrashLoopEvent(
-            kind, "system:a.service", "system", "a.service", "failed", T0, _proof()
+            kind, "system:a.service", "system", "a.service", "failed", T0, _interval()
         )
 
 
