@@ -12,6 +12,9 @@ requirement_refs:
 planning_base_branch: fix/crash-loop-unit-alerting
 merge_target_branch: fix/crash-loop-unit-alerting
 branch_strategy: Planning artifacts for this mission were generated on fix/crash-loop-unit-alerting. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into fix/crash-loop-unit-alerting unless the human explicitly redirects the landing branch.
+base_branch: kitty/mission-crash-loop-unit-alerting-01M858E8
+base_commit: 48d7a59eb2d1596c8a30c42679120eca8508cf04
+created_at: '2026-11-24T00:10:47.207420+00:00'
 subtasks:
 - T023
 - T024

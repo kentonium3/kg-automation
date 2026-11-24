@@ -29,6 +29,7 @@
   "purpose_context": "On 2026-11-23 obsidian-sync (Restart=always) restarted 39 times in about 7 minutes after a Node 22 to 24 switch and nothing alerted, because existing monitoring only checks for failed units. This mission closes that blind spot so a restart loop reaches Kent within minutes (kentonium3/kg-automation#1133).",
   "purpose_tldr": "Alert when a systemd unit on office2 keeps restarting, even though it never reaches the failed state.",
   "slug": "crash-loop-unit-alerting-01M858E8",
+  "status_phase": "1",
   "target_branch": "fix/crash-loop-unit-alerting",
   "topology": "lanes_with_coord",
   "topology_decision": {
