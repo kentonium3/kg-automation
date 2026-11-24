@@ -88,10 +88,10 @@
       "criterion_id": "FR-009",
       "description": "Verify FR-009 is satisfied",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
+      "evidence": "test_decrease_is_reset_no_alert, test_container_id_change_is_reset_no_alert, test_boot_change_rebases_all_scopes_including_containers, test_reboot_during_unreadable_scope_still_rebases.",
+      "pass_fail": "pass",
+      "verified_by": "claude-orchestrator",
+      "verified_at": "2026-11-24T00:37:47.661973+00:00",
       "notes": "TODO: replace with a real acceptance criterion"
     },
     {
