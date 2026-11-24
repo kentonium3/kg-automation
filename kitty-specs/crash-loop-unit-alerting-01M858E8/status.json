@@ -137,7 +137,8 @@
       "notes": [
         "Ready for review",
         "Review cycle 1 addressed",
-        "Review cycle 2 addressed"
+        "Review cycle 2 addressed",
+        "Review passed (cycle 3): Codex gpt-6.1-sol read-only; implementer Claude Opus 5.5. Tests (orchestrator): WP04 22 passed, tests/canary 721 passed; existing-test diffs signature-only."
       ],
       "provider": "__resolved_provider_absent__",
       "review": null,
