@@ -47,7 +47,10 @@ EXISTING_LEDGER_KEYS = {
     "component_id", "outcome", "evidence", "emitted", "suppressed_dedup",
     "evaluated_at",
 }
-INTERVAL_KEYS = {"baseline_count", "baseline_at", "current_count", "observed_at", "delta"}
+INTERVAL_KEYS = {
+    "baseline_count", "baseline_at", "current_count", "observed_at", "delta",
+    "period_seconds", "m", "bound",
+}
 
 
 # --------------------------------------------------------------------------- #
@@ -225,6 +228,10 @@ def test_sc001_one_alert_after_39_restarts_in_16_minutes(tmp_path):
     assert line["interval"]["delta"] == 39
     assert line["interval"]["baseline_at"] == NOW.isoformat()
     assert line["interval"]["observed_at"] == later.isoformat()
+    # 960 s over a 900 s window: m = 2, bound = 2·(3 − 1) + 1 = 5 (R-05).
+    assert line["interval"]["period_seconds"] == 960.0
+    assert line["interval"]["m"] == 2
+    assert line["interval"]["bound"] == 5
 
     saved = json.loads(check.state_path.read_text())
     assert saved["units"][f"system:{UNIT}"]["episode"] is not None
@@ -673,3 +680,104 @@ def test_unverified_rise_is_ledgered_not_emitted(tmp_path):
     assert lines[0]["emitted"] is False
     assert lines[0]["delivered"] is False
     assert lines[0]["interval"]["delta"] == 4
+    # 8100 s over a 900 s window: m = 9, bound = 9·(3 − 1) + 1 = 19 (R-05, R-14).
+    assert lines[0]["interval"]["period_seconds"] == 8100.0
+    assert lines[0]["interval"]["m"] == 9
+    assert lines[0]["interval"]["bound"] == 19
+    assert "8100 s" in lines[0]["evidence"]
+    assert "m=9" in lines[0]["evidence"]
+    assert "bound 19" in lines[0]["evidence"]
+
+
+# --------------------------------------------------------------------------- #
+# Scope-unknown lifecycle through the enabled stage (F5, FR-011).
+# --------------------------------------------------------------------------- #
+def test_container_unknown_pages_once_persistent_then_recovers(tmp_path):
+    reader = _Scripted()
+    check = _check(tmp_path, reader)
+    p = _paths(tmp_path)
+    cid = "crash-loop:container"
+
+    def tick(now, *, failing):
+        reader.next = _readings({UNIT: 0}, container_error="docker unavailable" if failing else None)
+        em = _recording_emit()
+        summary = _pass(tmp_path, check, now=now, emit_fn=em)
+        scope_alerts = [a for a in em.sent if a.source == f"felix-canary:{cid}"]
+        return summary, scope_alerts, json.loads(p["dedup_path"].read_text())[cid]
+
+    # First sight: recorded, not paged.
+    _s, alerts, entry = tick(NOW, failing=True)
+    assert alerts == []
+    assert entry == {"last_outcome": "unknown", "last_emitted_utc": NOW.isoformat()}
+
+    # Inside the 6 h window: still suppressed, entry carried forward.
+    t2 = NOW + timedelta(hours=1)
+    s2, alerts, entry = tick(t2, failing=True)
+    assert alerts == []
+    assert s2["suppressed_dedup"] >= 1
+    assert entry == {"last_outcome": "unknown", "last_emitted_utc": NOW.isoformat()}
+
+    # Past the window: one WARN.
+    t3 = NOW + timedelta(hours=7)
+    _s, alerts, entry = tick(t3, failing=True)
+    assert len(alerts) == 1
+    assert alerts[0].severity is Severity.WARN
+    assert alerts[0].title == f"{cid} health: unknown"
+    assert entry == {"last_outcome": "unknown", "last_emitted_utc": t3.isoformat()}
+
+    # Healthy again: one INFO recovered.
+    t4 = t3 + timedelta(minutes=15)
+    _s, alerts, entry = tick(t4, failing=False)
+    assert len(alerts) == 1
+    assert alerts[0].severity is Severity.INFO
+    assert alerts[0].title == f"{cid} health: recovered"
+    assert entry == {"last_outcome": "healthy", "last_emitted_utc": t4.isoformat()}
+
+    lines = [r for r in _read_ledger(p["ledger_dir"]) if r["component_id"] == cid]
+    assert [(r["outcome"], r["emitted"]) for r in lines] == [
+        ("unknown", False), ("unknown", False), ("unknown", True), ("healthy", True),
+    ]
+
+
+# --------------------------------------------------------------------------- #
+# Emit, then save (R-07): a failed save after a page repeats the page.
+# --------------------------------------------------------------------------- #
+def test_failed_save_after_emit_repeats_the_page_next_tick(tmp_path, monkeypatch):
+    reader = _Scripted()
+    check = _check(tmp_path, reader)
+    reader.next = _readings({UNIT: 0})
+    _pass(tmp_path, check)
+    state_before = check.state_path.read_bytes()
+
+    order: list[str] = []
+    real_save = crash_loop_state.save_state
+
+    def failing_save(*_a, **_k):
+        order.append("save")
+        raise OSError("disk full")
+
+    def emit_fn(alert):
+        order.append(f"emit:{alert.source}")
+        return _Result(True)
+
+    monkeypatch.setattr(crash_loop_state, "save_state", failing_save)
+    t2 = NOW + timedelta(minutes=16)
+    reader.next = _readings({UNIT: 39})
+    s2 = _pass(tmp_path, check, now=t2, emit_fn=emit_fn)
+
+    source = f"felix-canary:crash-loop:system:{UNIT}"
+    assert order == [f"emit:{source}", "save"]
+    assert any(e.startswith("crash_loop_state_save:OSError:") for e in s2["errors"])
+    assert s2["status"] == "error"
+    assert check.state_path.read_bytes() == state_before
+
+    # The next tick, with persistence restored, pages again (fail loud).
+    monkeypatch.setattr(crash_loop_state, "save_state", real_save)
+    t3 = t2 + timedelta(minutes=5)
+    reader.next = _readings({UNIT: 45})
+    em3 = _recording_emit()
+    s3 = _pass(tmp_path, check, now=t3, emit_fn=em3)
+    alerts = _crash_alerts(em3.sent)
+    assert [a.source for a in alerts] == [source]
+    assert s3["errors"] == []
+    assert check.state_path.read_bytes() != state_before

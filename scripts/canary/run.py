@@ -140,13 +140,20 @@ def _default_crash_loop_check() -> CrashLoopCheck:
 
 
 def _crash_loop_interval(proof: Proof) -> dict[str, Any]:
-    """The ledger ``interval`` object (contract §6)."""
+    """The ledger ``interval`` object (contract §6), plus the bound (R-05, R-14).
+
+    ``period_seconds``, ``m`` and ``bound`` let the 7-day acceptance check
+    verify ``delta >= bound`` line by line without recomputing the proof.
+    """
     return {
         "baseline_count": proof.baseline_count,
         "baseline_at": proof.baseline_at.astimezone(timezone.utc).isoformat(),
         "current_count": proof.current_count,
         "observed_at": proof.observed_at.astimezone(timezone.utc).isoformat(),
         "delta": proof.delta,
+        "period_seconds": proof.period_seconds,
+        "m": proof.m,
+        "bound": proof.bound,
     }
 
 
@@ -584,9 +591,10 @@ def run_pass(
                     f"crash-loop:{rise.key}",
                     _CRASH_LOOP_UNVERIFIED_OUTCOME,
                     (
-                        f"{rise.name} rose by {rise.proof.delta} restarts but no "
-                        f"interval proves {config.threshold} within one window; "
-                        f"state {rise.state}"
+                        f"{rise.name} rose by {rise.proof.delta} restarts in "
+                        f"{rise.proof.period_seconds:g} s (m={rise.proof.m}), below "
+                        f"the bound {rise.proof.bound} that proves "
+                        f"{config.threshold} within one window; state {rise.state}"
                     ),
                     emitted=False,
                     suppressed_dedup=False,
