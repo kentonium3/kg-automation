@@ -2,10 +2,9 @@
   "event_count": 82,
   "last_event_id": "01M85GFZRB42FW2F837N0E6YPK",
   "materialized_at": "2026-11-24T00:50:03.147826+00:00",
-  "mission_number": "126",
+  "mission_number": "",
   "mission_slug": "crash-loop-unit-alerting-01M858E8",
-  "mission_type": "software-dev",
-  "schema_version": 2,
+  "mission_type": "",
   "summary": {
     "approved": 0,
     "blocked": 0,
@@ -20,211 +19,105 @@
   "work_packages": {
     "WP01": {
       "actor": "merge",
-      "agent": "codex",
-      "agent_profile": "__resolved_profile_absent__",
-      "agent_profile_version": "__resolved_profile_version_absent__",
+      "agent": "claude",
       "force_count": 1,
       "implementer_of_record": "claude",
       "lane": "done",
       "last_event_id": "01M85GFNZQSYK4P8KT0T5TR5QG",
       "last_transition_at": "2026-11-24T00:49:53.143799+00:00",
-      "model": "__resolved_model_absent__",
-      "notes": [
-        "Ready for review",
-        "Review cycle 1 addressed",
-        "Review passed (cycle 2): Codex gpt-6.1-sol, read-only; implementer Claude Opus 5.5. Orchestrator ran tests: WP 142 passed, tests/canary 498 passed."
-      ],
-      "provider": "__resolved_provider_absent__",
-      "review": null,
       "review_result": {
         "feedback_path": "/home/kgale/repos/kg-automation/.worktrees/crash-loop-unit-alerting-01M858E8-coord/kitty-specs/crash-loop-unit-alerting-01M858E8/tasks/WP01-model-config-state/review-cycle-2.md",
         "reference": "review-cycle://crash-loop-unit-alerting-01M858E8/WP01-model-config-state/review-cycle-2.md",
         "reviewer": "codex-gpt-6.1-sol",
         "verdict": "approved"
       },
-      "role": "reviewer",
-      "shell_pid": 2619955,
-      "shell_pid_created_at": "1795476368.13",
-      "subtasks": {
-        "T001": "done",
-        "T002": "done",
-        "T003": "done",
-        "T004": "done",
-        "T005": "done"
-      }
+      "shell_pid": 2613826,
+      "shell_pid_created_at": "1795476267.91"
     },
     "WP02": {
       "actor": "merge",
-      "agent": "codex",
-      "agent_profile": "__resolved_profile_absent__",
-      "agent_profile_version": "__resolved_profile_version_absent__",
+      "agent": "claude",
       "force_count": 1,
       "implementer_of_record": "claude",
       "lane": "done",
       "last_event_id": "01M85GFQX65AJPVVTRHJ69KJ2W",
       "last_transition_at": "2026-11-24T00:49:55.110163+00:00",
-      "model": "__resolved_model_absent__",
-      "notes": [
-        "Ready for review",
-        "Review cycle 1 addressed",
-        "Review passed (cycle 2): Codex gpt-6.1-sol read-only; implementer Claude Opus 5.5. Tests (orchestrator): WP 50 passed, tests/canary 548 passed."
-      ],
-      "provider": "__resolved_provider_absent__",
-      "review": null,
       "review_result": {
         "feedback_path": "/home/kgale/repos/kg-automation/.worktrees/crash-loop-unit-alerting-01M858E8-coord/kitty-specs/crash-loop-unit-alerting-01M858E8/tasks/WP02-decision-core/review-cycle-2.md",
         "reference": "review-cycle://crash-loop-unit-alerting-01M858E8/WP02-decision-core/review-cycle-2.md",
         "reviewer": "codex-gpt-6.1-sol",
         "verdict": "approved"
       },
-      "role": "reviewer",
-      "shell_pid": 2687710,
-      "shell_pid_created_at": "1795477458.99",
-      "subtasks": {
-        "T006": "done",
-        "T007": "done",
-        "T008": "done",
-        "T009": "done",
-        "T010": "done"
-      }
+      "shell_pid": 2675337,
+      "shell_pid_created_at": "1795477315.18"
     },
     "WP03": {
       "actor": "merge",
-      "agent": "codex",
-      "agent_profile": "__resolved_profile_absent__",
-      "agent_profile_version": "__resolved_profile_version_absent__",
+      "agent": "claude",
       "force_count": 1,
       "implementer_of_record": "claude",
       "lane": "done",
       "last_event_id": "01M85GFSTTX0MX0P6FSJM9SHBX",
       "last_transition_at": "2026-11-24T00:49:57.082721+00:00",
-      "model": "__resolved_model_absent__",
-      "notes": [
-        "Ready for review",
-        "Review cycle 1 addressed",
-        "Review passed (cycle 2): Codex gpt-6.1-sol read-only; implementer Claude Opus 5.5. Tests (orchestrator): WP 151 passed, tests/canary 649 passed. Accepted residual MINOR: no direct test for _complete's parse-time deadline check (redundant second guard behind _run_checked/_guarded)."
-      ],
-      "provider": "__resolved_provider_absent__",
-      "review": null,
       "review_result": {
         "feedback_path": "/home/kgale/repos/kg-automation/.worktrees/crash-loop-unit-alerting-01M858E8-coord/kitty-specs/crash-loop-unit-alerting-01M858E8/tasks/WP03-readers/review-cycle-2.md",
         "reference": "review-cycle://crash-loop-unit-alerting-01M858E8/WP03-readers/review-cycle-2.md",
         "reviewer": "codex-gpt-6.1-sol",
         "verdict": "approved"
       },
-      "role": "reviewer",
-      "shell_pid": 2679357,
-      "shell_pid_created_at": "1795477357.49",
-      "subtasks": {
-        "T011": "done",
-        "T012": "done",
-        "T013": "done",
-        "T014": "done",
-        "T015": "done"
-      }
+      "shell_pid": 2664013,
+      "shell_pid_created_at": "1795477152.52"
     },
     "WP04": {
       "actor": "merge",
-      "agent": "codex",
-      "agent_profile": "__resolved_profile_absent__",
-      "agent_profile_version": "__resolved_profile_version_absent__",
+      "agent": "claude",
       "force_count": 2,
       "implementer_of_record": "claude",
       "lane": "done",
       "last_event_id": "01M85GFVQVAQHHDRYYCPPQEGDG",
       "last_transition_at": "2026-11-24T00:49:59.035623+00:00",
-      "model": "__resolved_model_absent__",
-      "notes": [
-        "Ready for review",
-        "Review cycle 1 addressed",
-        "Review cycle 2 addressed",
-        "Review passed (cycle 3): Codex gpt-6.1-sol read-only; implementer Claude Opus 5.5. Tests (orchestrator): WP04 22 passed, tests/canary 721 passed; existing-test diffs signature-only."
-      ],
-      "provider": "__resolved_provider_absent__",
-      "review": null,
       "review_result": {
         "feedback_path": "/home/kgale/repos/kg-automation/.worktrees/crash-loop-unit-alerting-01M858E8-coord/kitty-specs/crash-loop-unit-alerting-01M858E8/tasks/WP04-canary-integration/review-cycle-3.md",
         "reference": "review-cycle://crash-loop-unit-alerting-01M858E8/WP04-canary-integration/review-cycle-3.md",
         "reviewer": "codex-gpt-6.1-sol",
         "verdict": "approved"
       },
-      "role": "reviewer",
-      "shell_pid": 2784309,
-      "shell_pid_created_at": "1795478993.31",
-      "subtasks": {
-        "T016": "done",
-        "T017": "done",
-        "T018": "done",
-        "T019": "done"
-      }
+      "shell_pid": 2779412,
+      "shell_pid_created_at": "1795478930.05"
     },
     "WP05": {
       "actor": "merge",
-      "agent": "codex",
-      "agent_profile": "__resolved_profile_absent__",
-      "agent_profile_version": "__resolved_profile_version_absent__",
+      "agent": "claude",
       "force_count": 1,
       "implementer_of_record": "claude",
       "lane": "done",
       "last_event_id": "01M85GFXRANNC20VB6ZB5MH36C",
       "last_transition_at": "2026-11-24T00:50:01.098468+00:00",
-      "model": "__resolved_model_absent__",
-      "notes": [
-        "Ready for review",
-        "Review cycle 1 addressed",
-        "Review passed (cycle 2): Codex gpt-6.1-sol read-only; implementer Claude Opus 5.5. Tests (orchestrator): WP05 file + tests/canary 772 passed; tests/deploy 1936 passed/3 skipped. Audited-surface checker: only deploy-pipeline (manifest deploys/queued/crash-loop-unit-alerting.yaml), no affected baselines."
-      ],
-      "provider": "__resolved_provider_absent__",
-      "review": null,
       "review_result": {
         "feedback_path": "/home/kgale/repos/kg-automation/.worktrees/crash-loop-unit-alerting-01M858E8-coord/kitty-specs/crash-loop-unit-alerting-01M858E8/tasks/WP05-deploy/review-cycle-2.md",
         "reference": "review-cycle://crash-loop-unit-alerting-01M858E8/WP05-deploy/review-cycle-2.md",
         "reviewer": "codex-gpt-6.1-sol",
         "verdict": "approved"
       },
-      "role": "reviewer",
-      "shell_pid": 2931842,
-      "shell_pid_created_at": "1795480439.75",
-      "subtasks": {
-        "T020": "done",
-        "T021": "done",
-        "T022": "done"
-      }
+      "shell_pid": 2906325,
+      "shell_pid_created_at": "1795480212.38"
     },
     "WP06": {
       "actor": "merge",
-      "agent": "codex",
-      "agent_profile": "__resolved_profile_absent__",
-      "agent_profile_version": "__resolved_profile_version_absent__",
+      "agent": "claude",
       "force_count": 2,
       "implementer_of_record": "claude",
       "lane": "done",
       "last_event_id": "01M85GFZRB42FW2F837N0E6YPK",
       "last_transition_at": "2026-11-24T00:50:03.147826+00:00",
-      "model": "__resolved_model_absent__",
-      "notes": [
-        "Ready for review",
-        "Review cycle 1 addressed",
-        "Review cycle 2 addressed",
-        "Review passed (cycle 3): Codex gpt-6.1-sol read-only; implementer Claude Opus 5.5 (curator-carla). validate_docs OK, validate_architecture_data OK (0 findings), tests/docs+tooling+canary 859 passed."
-      ],
-      "provider": "__resolved_provider_absent__",
-      "review": null,
       "review_result": {
         "feedback_path": "/home/kgale/repos/kg-automation/.worktrees/crash-loop-unit-alerting-01M858E8-coord/kitty-specs/crash-loop-unit-alerting-01M858E8/tasks/WP06-docs/review-cycle-3.md",
         "reference": "review-cycle://crash-loop-unit-alerting-01M858E8/WP06-docs/review-cycle-3.md",
         "reviewer": "codex-gpt-6.1-sol",
         "verdict": "approved"
       },
-      "role": "reviewer",
-      "shell_pid": 2971584,
-      "shell_pid_created_at": "1795481167.49",
-      "subtasks": {
-        "T023": "done",
-        "T024": "done",
-        "T025": "done",
-        "T026": "done"
-      }
+      "shell_pid": 2964404,
+      "shell_pid_created_at": "1795481050.93"
     }
   }
 }
