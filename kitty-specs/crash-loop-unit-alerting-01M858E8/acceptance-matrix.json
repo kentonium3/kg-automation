@@ -98,10 +98,10 @@
       "criterion_id": "FR-010",
       "description": "Verify FR-010 is satisfied",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
+      "evidence": "test_first_seen_is_baseline; state-loss tests in test_crash_loop_state.py (corrupt/missing state loads empty).",
+      "pass_fail": "pass",
+      "verified_by": "claude-orchestrator",
+      "verified_at": "2026-11-24T00:37:50.660331+00:00",
       "notes": "TODO: replace with a real acceptance criterion"
     },
     {
