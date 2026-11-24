@@ -12,6 +12,7 @@ import itertools
 import random
 from collections.abc import Iterable, Sequence
 from datetime import UTC, date, datetime, timedelta
+from pathlib import Path
 from types import MappingProxyType
 
 import pytest
@@ -37,7 +38,13 @@ from scripts.canary.crash_loop_model import (
     RestartObservation,
     ScopeReading,
 )
-from scripts.canary.crash_loop_state import CrashLoopState, Episode, UnitState
+from scripts.canary.crash_loop_state import (
+    CrashLoopState,
+    Episode,
+    UnitState,
+    load_state,
+    save_state,
+)
 from scripts.common.alert_bus.model import Alert, Severity
 from scripts.common.alert_bus.render import DESCRIPTION_MAX, DETAIL_VALUE_MAX
 
@@ -679,15 +686,19 @@ def test_complete_scope_drops_removed_unit_silently() -> None:
     assert "system:other.service" in sim.state.units
 
 
-def test_clock_not_advanced_skips_unit() -> None:
+def test_clock_not_advanced_rebases_history_only() -> None:
     sim = Sim()
     sim.series([(0, 0), (16, 39)])
     before = copy.deepcopy(sim.state.units[OBSIDIAN])
     for minute in (16, 10):
         outcome = sim.unit(minute, 200)
         assert outcome.events == [] and outcome.unverified == []
-        assert outcome.counts["clock_skipped"] == 1
-        assert sim.state.units[OBSIDIAN] == before
+        assert outcome.counts["clock_rebased"] == 1
+        unit = sim.state.units[OBSIDIAN]
+        assert unit.history == [(at(minute), 200)]
+        # The episode, quiet count included, generation and boot ID carry over.
+        assert unit.episode == before.episode
+        assert (unit.generation, unit.boot_id) == (before.generation, before.boot_id)
 
 
 @pytest.mark.parametrize("offset_minutes", [0, -6])
@@ -703,14 +714,17 @@ def test_clock_check_precedes_boot_generation_and_reset(offset_minutes: int) -> 
     before = copy.deepcopy(sim.state.units[key])
     outcome = sim.unit(16 + offset_minutes, 2, key, generation="cid-2", boot=BOOT_B)
     assert outcome.events == [] and outcome.unverified == []
-    assert sim.state.units[key] == before
+    unit = sim.state.units[key]
+    assert unit.history == [(at(16 + offset_minutes), 2)]
+    assert unit.episode == before.episode
+    assert (unit.generation, unit.boot_id) == (before.generation, before.boot_id)
     assert outcome.counts == {
         "watched": 1,
         "ignored": 0,
         "first_seen": 0,
         "resets": 0,
         "in_episode": 1,
-        "clock_skipped": 1,
+        "clock_rebased": 1,
         "rebased_on_boot": 0,
     }
 
@@ -1071,7 +1085,7 @@ def test_observed_from_defaults_to_now() -> None:
     assert outcome.new_state.units[OBSIDIAN].history == [(at(1), 0)]
 
 
-def test_observed_from_at_previous_entry_is_clock_skipped() -> None:
+def test_observed_from_at_previous_entry_is_clock_rebased() -> None:
     first = evaluate_tick(
         readings([obs(OBSIDIAN, 0)]), CrashLoopState.empty(), CFG, at(0), BOOT_A
     )
@@ -1083,9 +1097,9 @@ def test_observed_from_at_previous_entry_is_clock_skipped() -> None:
         BOOT_A,
         observed_from=at(0),
     )
-    assert second.counts["clock_skipped"] == 1
+    assert second.counts["clock_rebased"] == 1
     assert second.events == [] and second.unverified == []
-    assert second.new_state.units[OBSIDIAN] == first.new_state.units[OBSIDIAN]
+    assert second.new_state.units[OBSIDIAN].history == [(at(0), 2)]
 
 
 def test_clock_rollback_never_clamps_a_lower_bound_forward() -> None:
@@ -1093,8 +1107,8 @@ def test_clock_rollback_never_clamps_a_lower_bound_forward() -> None:
 
     A clamp of the second tick's stored time to ``last_at + 1 µs`` would put a
     "lower bound" after the real sample and page with period 1800, m 2,
-    bound 5. The second tick must be skipped instead, so the third proves
-    against the first tick's baseline at 0 s only.
+    bound 5. The second tick rebases at -1 s instead, so the third proves
+    over 1801.000001 s: m 3, bound 7, no page.
     """
 
     def sec(seconds: float) -> datetime:
@@ -1113,15 +1127,68 @@ def test_clock_rollback_never_clamps_a_lower_bound_forward() -> None:
         )
         outcomes.append(outcome)
         sim_state = outcome.new_state
-    assert outcomes[1].counts["clock_skipped"] == 1
+    assert outcomes[1].counts["clock_rebased"] == 1
     assert kinds(outcomes[2]) == []
-    assert sim_state.units[OBSIDIAN].history[0] == (sec(0), 0)
+    assert sim_state.units[OBSIDIAN].history[0] == (sec(-1), 0)
     rise = outcomes[2].unverified[0].proof
-    assert rise.baseline_at == sec(0)
+    assert rise.baseline_at == sec(-1)
     assert rise.m == 3 and rise.bound == 7 and rise.delta == 5
 
 
-def test_now_at_previous_entry_is_still_clock_skipped() -> None:
+def test_no_proof_spans_a_clock_rollback() -> None:
+    """Round-3 review: (observed_from, now, count) = (0,1,0), (-1,1,0), (1800,1800,5).
+
+    Skipping the second tick kept the 0 s baseline, and the third paged with
+    m 2, bound 5, although a physical timeline exists in which every three
+    restarts span 900.2 s. Rebasing on the regression discards that baseline.
+    """
+
+    def sec(seconds: float) -> datetime:
+        return T0 + timedelta(seconds=seconds)
+
+    state = CrashLoopState.empty()
+    outcomes = []
+    for frm, now, count in [(0, 1, 0), (-1, 1, 0), (1800, 1800, 5)]:
+        outcome = evaluate_tick(
+            readings([obs(OBSIDIAN, count)]),
+            state,
+            CFG,
+            sec(now),
+            BOOT_A,
+            observed_from=sec(frm),
+        )
+        outcomes.append(outcome)
+        state = outcome.new_state
+    assert outcomes[1].counts["clock_rebased"] == 1
+    assert outcomes[1].new_state.units[OBSIDIAN].history == [(sec(-1), 0)]
+    assert [kinds(o) for o in outcomes] == [[], [], []]
+    assert all(
+        p.baseline_at >= sec(-1) for p in (u.proof for u in outcomes[2].unverified)
+    )
+
+
+def test_clock_rebased_state_reloads(tmp_path: Path) -> None:
+    # The rebased history is one entry no later than now, so load_state's
+    # strictly-ascending and future-time checks accept it.
+    first = evaluate_tick(
+        readings([obs(OBSIDIAN, 0)]), CrashLoopState.empty(), CFG, at(10), BOOT_A
+    )
+    second = evaluate_tick(
+        readings([obs(OBSIDIAN, 4)]),
+        first.new_state,
+        CFG,
+        at(5),
+        BOOT_A,
+        observed_from=at(4),
+    )
+    path = tmp_path / "crash-loop.json"
+    save_state(second.new_state, path, now=at(5))
+    loaded, diagnostics = load_state(path, now=at(5))
+    assert diagnostics == []
+    assert loaded.units[OBSIDIAN].history == [(at(4), 4)]
+
+
+def test_now_at_previous_entry_is_clock_rebased() -> None:
     first = evaluate_tick(
         readings([obs(OBSIDIAN, 0)]), CrashLoopState.empty(), CFG, at(5), BOOT_A
     )
@@ -1133,8 +1200,9 @@ def test_now_at_previous_entry_is_still_clock_skipped() -> None:
         BOOT_A,
         observed_from=at(4),
     )
-    assert second.counts["clock_skipped"] == 1
-    assert second.new_state.units[OBSIDIAN] == first.new_state.units[OBSIDIAN]
+    assert second.counts["clock_rebased"] == 1
+    assert second.events == [] and second.unverified == []
+    assert second.new_state.units[OBSIDIAN].history == [(at(4), 9)]
 
 
 def test_observed_from_after_now_rejected() -> None:

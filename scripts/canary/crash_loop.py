@@ -12,7 +12,7 @@ never used. :func:`evaluate_tick` never mutates its ``prior_state``.
 
 The per-unit order within one tick follows data-model.md exactly:
 
-1. clock check (INV-CL-9);
+1. clock check (INV-CL-9): on a clock regression, rebase the history only;
 2. boot change: rebase and close any episode silently (INV-CL-2);
 3. reset (container-ID change or a decrease): rebase; inside an episode the
    tick counts as quiet and may emit ``cleared``, never ``alert``/``reremind``;
@@ -75,7 +75,7 @@ COUNT_KEYS: Final[tuple[str, ...]] = (
     "first_seen",
     "resets",
     "in_episode",
-    "clock_skipped",
+    "clock_rebased",
     "rebased_on_boot",
 )
 
@@ -274,12 +274,17 @@ def _evaluate_unit(
 
     # 1. Clock (INV-CL-9): runs before any other check. Both ends of the read
     # bracket must be strictly after the newest stored entry. Otherwise the
-    # clock overlapped or stepped back, and no stored time could be trusted as
-    # a lower bound, so the unit is left unchanged (post-merge review round 2:
-    # a clamp forward could place a "lower bound" after the real sample).
+    # clock overlapped or stepped back: no stored time can be compared with
+    # this tick's, so the history is rebased to this observation alone and
+    # nothing is emitted. No pre-regression baseline survives, so no later
+    # proof can span the regression (post-merge review rounds 2-3). Generation,
+    # boot ID and any open episode (its quiet count included) are carried over
+    # unchanged; a real boot or generation change is still seen next tick.
     last_at, last_count = prior.history[-1]
     if now <= last_at or observed_from <= last_at:
-        return _UnitResult(state=_copy_unit(prior), counter="clock_skipped")
+        state = _copy_unit(prior)
+        state.history = [(observed_from, current)]
+        return _UnitResult(state=state, counter="clock_rebased")
 
     # Stored at exactly the earliest possible sampling instant, never moved
     # forward; it is strictly after ``last_at``, so history stays ascending.
@@ -406,9 +411,9 @@ def evaluate_tick(
     earliest possible sample time, and every candidate interval is
     **computed** as ``L = now − baseline.at`` with *now* the latest possible
     sampling instant. ``L`` is therefore never less than the true interval, so
-    ``m`` can only be over-estimated. The clock rule (INV-CL-9) leaves a unit
-    unchanged unless both *observed_from* and *now* are strictly after its
-    newest stored entry. Episode times, the re-remind gap and every event's
+    ``m`` can only be over-estimated. The clock rule (INV-CL-9) rebases a
+    unit's history to ``[(observed_from, current)]``, emitting nothing, unless
+    both *observed_from* and *now* are strictly after its newest stored entry. Episode times, the re-remind gap and every event's
     ``observed_at`` use *now*.
 
     Scopes are processed in ``SCOPES`` order and observations in reading

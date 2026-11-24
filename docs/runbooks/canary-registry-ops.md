@@ -456,8 +456,9 @@ period to the later reading (`observed_at`). A slow probe earlier in the pass,
 or a slow read, can therefore only lengthen `period` and raise the bound. It can
 never make a page out of restarts that were spread too thinly to prove one. If
 either reading is not later than a unit's newest stored sample (the clock
-stepped back, or two reads overlapped), that unit is skipped for the tick: its
-state is unchanged and nothing is sent.
+stepped back, or two reads overlapped), the unit's history is replaced by this
+sample alone and nothing is sent for it that tick. An open episode stays open.
+No sample from before the clock step is kept, so no later proof can span it.
 Neither time is the pass's start time (`evaluated_at`).
 
 Worked examples:
