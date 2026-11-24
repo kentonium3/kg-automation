@@ -234,3 +234,5 @@ Each decision follows the template's format: Decision / Rationale / Alternatives
 - **Re-remind interval: an orchestrator call, not part of Kent's ruling.** The 6-hour re-remind is implemented as 24 ticks rather than a wall-clock comparison, so no clock enters the decision. At the 15-minute cadence the two are the same.
 - **Unchanged.** K = 2, no retry, the 3-per-tick cap and the NFR-002 note all still apply.
 - **Superseded.** The `crash-loop-unverified` ledger outcome, the `m` / `bound` proof fields and `window_seconds` no longer exist.
+
+- **Config cross-check (added 2026-11-24, commit df2e328ac).** `reremind_ticks ≥ consecutive_rise_ticks − 1` is enforced at load. Otherwise a re-remind's rise run could include rises from before the last page.
