@@ -5,10 +5,10 @@ audience: agents_and_humans
 status: approved
 level: howto
 created: 2026-07-11
-last_validated: '2026-11-23'
-last_updated: '2026-11-23'
-updated_by: '#327 (felix-canary-registry-01KX8T7B) + #1063 (canary-deadman-backup-coverage-01M4XVY3) + #1133 (crash-loop-unit-alerting-01M858E8: crash-loop detection, pending deploy)'
-version: v1.2
+last_validated: '2026-11-24'
+last_updated: '2026-11-24'
+updated_by: '#327 (felix-canary-registry-01KX8T7B) + #1063 (canary-deadman-backup-coverage-01M4XVY3) + #1133 (crash-loop-unit-alerting-01M858E8: crash-loop detection, pending deploy; v1.3 2026-11-24: tick-counting ruling)'
+version: v1.3
 owners: [kgale]
 ---
 
@@ -84,8 +84,8 @@ partial/corrupt file.
 |---|---|---|
 | `state/last-tick.json` | Aggregate **tick-signal** — the runner's own health pointer (FR-010). One object, overwritten each tick. | Atomically, every tick |
 | `state/dedup.json` | Dedup state: `component_id -> {last_outcome, last_emitted_utc}`. Drives once-per-window paging. | Atomically, every tick |
-| `ledger/<YYYY-MM-DD>.jsonl` | Per-component **ledger** — one line per component per tick, recording **every** outcome (healthy / stale / failed / suppressed / gap / deduped), evidence, and timestamp (FR-008). Crash-loop scope, event and unverified lines are written here too ([Crash-loop detection](#crash-loop-detection)). | Appended, best-effort |
-| `state/crash-loop.json` | Crash-loop state (#1133): per-unit generation, boot ID, restart-count history and open episode. | Atomically, after emit, every pass the stage runs |
+| `ledger/<YYYY-MM-DD>.jsonl` | Per-component **ledger** — one line per component per tick, recording **every** outcome (healthy / stale / failed / suppressed / gap / deduped), evidence, and timestamp (FR-008). Crash-loop scope and event lines are written here too ([Crash-loop detection](#crash-loop-detection)). | Appended, best-effort |
+| `state/crash-loop.json` | Crash-loop state (#1133), `schema_version` 2: per unit, the generation, boot ID, the count at the previous complete tick (`last_count`), whether it rose (`rose_last_tick`, `recent_rises`), `last_seen_at` and the open episode. No history. | Atomically, after emit, every pass the stage runs |
 | `state/crash-loop.lock` | Exclusive lock around the crash-loop stage's load, evaluate, emit and save. | Held during the stage |
 
 ### `last-tick.json` schema
@@ -416,8 +416,8 @@ All crash-loop alerts go through the `#701` bus with `source` =
 
 | Event | Severity | When | Title |
 |---|---|---|---|
-| alert | ERROR | A proven crossing (below) opens an episode for the unit | `<name> crash-looping: <delta> restarts in <n> min` |
-| re-remind | ERROR | The episode is still open, the last page is at least 6 h old, **and** a fresh crossing is proven on a baseline taken at or after that page | `still <name> crash-looping: …` |
+| alert | ERROR | The tick rule (below) holds and opens an episode for the unit | `<name> crash-looping: <delta> restarts since the previous canary tick`, or `<name> crash-looping: restarted on <k> consecutive canary ticks (+a, +b)` |
+| re-remind | ERROR | The episode is still open **and** the tick rule holds again on a tick at least 24 ticks (`reremind_ticks`, about 6 h) after the last page | `still <name> crash-looping: …` |
 | cleared | INFO | 2 consecutive quiet ticks (`quiet_ticks_to_clear`), about 30 minutes | `<name> crash loop cleared` |
 | aggregate | ERROR, or INFO if it holds only cleared events | A tick has more than 3 events (`max_alerts_per_tick`): the first 3 go out on their own, the rest fold into one alert | `<n> more crash-loop events this tick` |
 
@@ -431,91 +431,74 @@ A unit seen for the first time, a counter that went down (an operator
 name, and a reboot (a changed boot ID) all set a new baseline and never alert.
 A reset in the middle of an episode counts as a quiet tick, so it can lead to
 `cleared`. A reboot closes an open episode silently. When an episode clears,
-its history is replaced by the current count, so a new episode needs new
-restarts.
+its run of rises restarts, so a new episode needs new rises.
 
 A failed delivery is **not retried** (the existing canary policy). It is
 counted in `alerts_undelivered`, which makes the off-host dead-man ping `/fail`.
 
-### The proven-crossing rule
+### The tick rule
 
-The canary samples cumulative counters about every 15 minutes. Two samples
-prove only that `delta` restarts happened somewhere in the time between them,
-not when. So the stage splits that time into `m` parts, each no longer than the
-window: `m = ceil(period / window_seconds)`. If
-`delta ≥ m·(threshold − 1) + 1`, at least one part must hold `threshold`
-restarts (pigeonhole), which proves "`threshold` restarts within one window".
-Only a proven crossing pages. With the defaults (threshold 3, window 900 s) the
-bound is `2m + 1`. The stage checks every stored baseline, not only the last
-tick's, and reports the tightest proving interval.
+Kent's ruling, 2026-11-24: **count ticks, not time.** On each complete tick,
+for each watched unit, the stage computes `delta = current − previous`, where
+`previous` is the unit's counter at its previous complete tick. The tick rule
+holds when:
 
-`period` is never shorter than the true time between the two samples. The stage
-reads the wall clock just before and just after it reads the counters. It
-stores each sample at the earlier reading (`baseline_at`) and measures the
-period to the later reading (`observed_at`). A slow probe earlier in the pass,
-or a slow read, can therefore only lengthen `period` and raise the bound. It can
-never make a page out of restarts that were spread too thinly to prove one. If
-either reading is not later than a unit's newest stored sample (the clock
-stepped back, or two reads overlapped), the unit's history is replaced by this
-sample alone and nothing is sent for it that tick. An open episode stays open.
-No sample from before the clock step is kept, so no later proof can span it.
-Neither time is the pass's start time (`evaluated_at`).
+- `delta ≥ 3` (`threshold`): **3 or more restarts since the previous tick**; or
+- `delta ≥ 1` on this tick **and** on the previous one
+  (`consecutive_rise_ticks` = 2): **a rise on 2 consecutive ticks**.
 
-Worked examples:
+With no open episode, the rule opens one and sends the alert. Inside an
+episode, any rise resets the quiet count and a tick with no rise adds to it;
+2 quiet ticks (`quiet_ticks_to_clear`) send `cleared`. A re-remind needs the
+rule to hold again on a tick at least 24 ticks after the last page, so every
+rise it rests on comes after that page.
 
-- **39 restarts over 16 minutes**: `m = ceil(960 / 900) = 2`, bound `2·2 + 1 =
-  5`, and 39 ≥ 5. **Page.** This is the 2026-11-23 shape.
-- **3 restarts over 16 minutes**: `m = 2`, bound 5, and 3 < 5. **No page.** The
-  canary ledger gets one `crash-loop-unverified` line with the interval and the
-  bound, and nothing is sent.
+**Time is never a decision input.** Ticks run every 15 minutes, but the rule
+never looks at when they ran. Timestamps appear in alert text ("16 min ago")
+and the ledger for information only, so a clock step, a rollback or skew
+cannot change a decision. A tick is any complete read of the unit's scope.
 
-Ticks land 15 to 16 minutes apart, so `m` is normally 2 between consecutive
-ticks, and a page on a single tick interval needs at least 5 restarts.
+### What pages and what doesn't
 
-### Detection envelope and accepted limits
+**Pages:**
 
-Every page is a proven crossing, so none of these limits can cause a false
-page. They can cause a **miss**. They follow from two of Kent's decisions:
-15-minute sampling, and the rule of 3 restarts within 15 minutes. Whether to
-accept them is Kent's call. They are listed under "Surfaced judgment calls" in
-the mission's `plan.md`, and loosening them is a change to the proof
-predicate in `evaluate_tick`.
+- **A burst.** A rise of 3 or more between two ticks pages on that tick. The
+  2026-11-23 loop (0 → 39) pages on the next tick.
+- **A steady loop.** A steady 2 per tick pages on its 2nd tick. A steady 1 per
+  tick pages on its 2nd rising tick. A burst split across a tick boundary
+  (2 + 2) pages on the second tick.
+- **A slow loop keeps reminding.** A steady 1 per tick holds the rule on every
+  tick, so it re-reminds every 24 ticks (about 6 h) for as long as it keeps
+  rising.
+- **A long outage counts as one interval.** After a canary outage of several
+  hours, or a scope that could not be read for a while, "the previous tick" is
+  the last complete read before the gap. A rise of 3 or more across the gap
+  pages on the first tick back, and so does a rise of 1 or more if the unit
+  also rose on the tick before the gap. This is the conservative direction:
+  the page says the counter rose since the previous tick, not that 3 restarts
+  fell within 15 minutes.
+- **A unit that restarts by design** at least once per tick pages too. Put it on
+  the [ignore list](#ignore-list).
 
-**What is caught.** A unit pages when, for some stored baseline, the rise
-since that baseline is at least `m·(threshold−1)+1`, where `m` is the number
-of windows the interval spans. With the defaults, and ticks 15.5 to 16
-minutes apart, that means:
+**Does not page:**
 
-- **A burst** of 5 or more restarts between two ticks pages on that tick.
-- **A steady loop of 4 restarts per tick** pages on about the 2nd tick (about
-  30 minutes). **A steady 3 per tick** pages on about the 3rd (about 45
-  minutes). A slow loop that stops before then never pages.
+- **A single restart**, or any rise of 1 or 2 followed by a quiet tick.
+- **Two rises separated by a quiet tick.** A loop that keeps the pattern +2, 0,
+  +2, 0 never pages, however long it runs. Inside an open episode the same
+  pattern sends no re-remind, and because each rise resets the quiet count, the
+  episode also never clears.
+- **A counter decrease, a container re-create or a reboot.** These set a new
+  baseline.
 
-**What is not caught.** These are the accepted limits:
+A rise that does not meet the rule writes **no ledger line**; it is recorded
+only in `crash-loop.json` (`last_count`, `rose_last_tick`). So a slow,
+intermittent loop of the "does not page" kind is visible only there.
 
-1. **A steady loop averaging 2 or fewer restarts per tick interval never
-   pages, however long it runs**, unless one tick interval holds a burst of 5 or
-   more. Over `k` ticks the bound is about `2k + 3`, so
-   it grows as fast as the rise. Simulated with the shipped `evaluate_tick`, a
-   steady +2 every 930 s gave zero events across 120 ticks (30 hours). Such a
-   loop can still meet the real rule ("3 within 15 minutes") when its restarts
-   cluster, but the samples can never prove it. It is not silent: once the
-   rise since a baseline reaches 3, every tick writes a `crash-loop-unverified`
-   line. **Nothing pages on those lines**, so a slow loop shows only if someone
-   reads the ledger (see [Reading crash-loop ledger
-   lines](#reading-crash-loop-ledger-lines)).
-2. **A short burst split across a tick boundary can be missed.** For example, 4
-   restarts in 2 minutes split 2 + 2 across two ticks proves nothing.
-3. **Long multi-window proofs can be lost to history pruning.** Every
-   observation inside the last window is kept, so single-window proofs are
-   always found. Older observations are kept only for 24 h, and at most 64 of
-   them. A proof that needs a baseline more than 24 h back, or more than 64
-   older distinct-count observations back, is not found. In practice this hits
-   only loops averaging just over 2 per tick, which would need more than about
-   16 hours of history to prove.
-4. **A failed delivery is not retried.** The dead-man reports it (`/fail`), and
+Other limits:
+
+1. **A failed delivery is not retried.** The dead-man reports it (`/fail`), and
    both ledgers record it (`delivered: false` on the canary line).
-5. **During an alert storm the pass takes as long as the bus takes.** A pass
+2. **During an alert storm the pass takes as long as the bus takes.** A pass
    with no events adds the read time (about 0.4 s, capped at 6 s). A pass that
    pages adds up to 4 bus calls, each normally under 1 s, with the bus's own
    ceiling at 15 s per call.
@@ -526,19 +509,20 @@ The config is `scripts/canary/crash_loop_config.json`, version-controlled in
 this repo:
 
 ```json
-{"threshold": 3, "window_seconds": 900, "quiet_ticks_to_clear": 2, "max_alerts_per_tick": 3, "read_budget_seconds": 6, "ignore": []}
+{"threshold": 3, "consecutive_rise_ticks": 2, "quiet_ticks_to_clear": 2, "reremind_ticks": 24, "max_alerts_per_tick": 3, "read_budget_seconds": 6, "ignore": []}
 ```
 
 | Field | Default | Valid | Meaning |
 |---|---|---|---|
-| `threshold` | 3 | integer 2–50 | Restarts that must be proven within one window |
-| `window_seconds` | 900 | integer 60–3600 | The window |
+| `threshold` | 3 | integer 2–50 | A rise since the previous tick that pages on its own |
+| `consecutive_rise_ticks` | 2 | integer ≥ 2 | Consecutive ticks with a rise of 1 or more that page |
 | `quiet_ticks_to_clear` | 2 | integer ≥ 1 | Quiet ticks before `cleared` |
+| `reremind_ticks` | 24 | integer ≥ 1, and ≥ `consecutive_rise_ticks` − 1 | Ticks after the last page before a re-remind (24 ticks is about 6 h) |
 | `max_alerts_per_tick` | 3 | integer ≥ 1 | Individual alerts per tick before the rest fold into one aggregate |
 | `read_budget_seconds` | 6 | integer 1–10 | The read budget for all three scopes |
 | `ignore` | `[]` | list of `{"unit", "reason"}` | See below |
 
-All six keys are required, and an unknown key is rejected. The file is read once
+All seven keys are required, and an unknown key is rejected (including the retired `window_seconds`). No value is a duration except the read budget. The file is read once
 per pass, so a change takes effect on the next pass with no restart. An invalid
 or unreadable file never falls back to defaults: every scope goes `unknown` with
 evidence `could not check: config invalid: …`, and nothing is evaluated.
@@ -591,11 +575,14 @@ never a crash.
 ### Reading crash-loop ledger lines
 
 ```bash
-# Every crash-loop line today (scopes, events, unverified rises):
+# Every crash-loop line today (scopes and events):
 ssh office2-claude 'jq -c "select(.component_id | startswith(\"crash-loop\")) | {evaluated_at, component_id, outcome, evidence}" /data/services/felix-canary/ledger/$(date -u +%Y-%m-%d).jsonl'
 
-# Just the events and unverified rises, with their proof:
-ssh office2-claude 'jq -c "select(.component_id | startswith(\"crash-loop\")) | select(.interval) | {evaluated_at, component_id, outcome, delivered, delta: .interval.delta, period_s: .interval.period_seconds, m: .interval.m, bound: .interval.bound}" /data/services/felix-canary/ledger/$(date -u +%Y-%m-%d).jsonl'
+# Just the events, with the counts they rest on:
+ssh office2-claude 'jq -c "select(.component_id | startswith(\"crash-loop\")) | select(.interval) | {evaluated_at, component_id, outcome, delivered, previous: .interval.previous_count, current: .interval.current_count, delta: .interval.delta, rose_last_tick: .interval.rose_last_tick}" /data/services/felix-canary/ledger/$(date -u +%Y-%m-%d).jsonl'
+
+# Every unit's previous-tick count and rise flag (rises below the rule live only here):
+ssh office2-claude 'jq -c ".units | to_entries[] | {unit: .key, last_count: .value.last_count, rose_last_tick: .value.rose_last_tick, recent_rises: .value.recent_rises}" /data/services/felix-canary/state/crash-loop.json'
 
 # Units currently in an open episode:
 ssh office2-claude 'jq -c ".units | to_entries[] | select(.value.episode != null) | {unit: .key, episode: .value.episode}" /data/services/felix-canary/state/crash-loop.json'
@@ -610,15 +597,13 @@ Line types:
   evidence ends with `; state: …`.
 - **Event lines**, `component_id` `crash-loop:<scope>:<name>`: `outcome` is
   `crash-loop`, `crash-loop-reremind` or `crash-loop-cleared`. They add
-  `delivered` (bool) and `interval` = `{baseline_count, baseline_at,
-  current_count, observed_at, delta, period_seconds, m, bound}`. Evidence is
-  the alert title, with ` (in aggregate alert)` appended when the event was
-  folded into the aggregate.
-- **Unverified lines**: `outcome` `crash-loop-unverified`, `emitted: false`,
-  `delivered: false`, plus `interval`. A rise of at least `threshold` that does
-  not prove a crossing. No page.
+  `delivered` (bool) and `interval` = `{previous_count, current_count, delta,
+  rose_last_tick, previous_seen_at, observed_at}`. `previous_seen_at` and
+  `observed_at` are informational; `observed_at` is also the alert's
+  timestamp. Evidence is the alert title, with ` (in aggregate alert)`
+  appended when the event was folded into the aggregate.
 
-A unit with no event writes no per-unit line; its history lives in
+A unit with no event writes no per-unit line; its previous-tick count lives in
 `crash-loop.json`. A dry run (`python3 -m scripts.canary.run --dry-run`) prints
 the crash-loop lines it would write, but takes no lock, writes nothing and
 sends nothing. `last-tick.json` is unchanged by this stage: its key set is the
@@ -689,7 +674,7 @@ Replace `START` and `END` in the commands below with those two timestamps,
 for example `2026-12-01T14:03:11+00:00`. Both checks refuse a window shorter
 than 7 days, or one that has not ended yet.
 
-**Step 2. Check 1: every page was a proven crossing (SC-003, NFR-004).** It
+**Step 2. Check 1: every page met the tick rule (SC-003, NFR-004).** It
 reads the canary ledger, the alert-bus ledger and the office2 checkout's
 config.
 
@@ -700,14 +685,15 @@ config.
   changed inside the window, the check is `INCONCLUSIVE`. Start a new 7-day
   window after the change; do not check historical pages against a config
   that was not in force when they were sent.
-- **Proofs, recomputed.** The check does not trust the numbers the canary
-  wrote. For every emitted event line it derives `delta = current_count −
-  baseline_count` and `period = observed_at − baseline_at` from the recorded
-  samples. It requires `period > 0`, and both values must equal the line's
-  `delta` and `period_seconds`. For alert and re-remind lines it then
-  recomputes `m = ceil(period / window_seconds)` and
-  `bound = m·(threshold−1)+1`, and requires `delta ≥ bound` and the recorded
-  `m` and `bound` to match. Any mismatch is a `FAIL`.
+- **Pages, re-verified.** The check does not trust the `delta` the canary
+  wrote. For every emitted event line it requires `delta == current_count −
+  previous_count` from the line's `interval`. For alert and re-remind lines it
+  then requires the tick rule: `delta ≥ threshold`, or `delta ≥ 1` and
+  `rose_last_tick`. A mismatch is a `FAIL` (`INCONSISTENT` or
+  `RULE NOT MET`). Timestamps are informational and are not checked. The
+  ledger records only whether the previous tick rose, so the check can
+  re-verify only `consecutive_rise_ticks` = 2; any other value is
+  `INCONCLUSIVE`.
 - **Two-way reconciliation.** Every emitted canary event line in the window
   needs its alert-bus entry: an individual entry with the same component,
   kind and time, or an aggregate entry whose `count` equals the number of
@@ -721,7 +707,7 @@ config.
 
 ```bash
 ssh office2-claude 'START=START END=END python3 -I -' <<'EOF'
-import json, math, os, subprocess
+import json, os, subprocess
 from collections import Counter
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -738,7 +724,7 @@ missing, violations = [], []
 
 def records(directory, when):
     # From the day before START: a canary file is named for the pass's start,
-    # which can be just before midnight when the counter read is just after it.
+    # which can be just before midnight when the alert is stamped just after it.
     first = (start - timedelta(days=1)).date().isoformat()
     days = [p for p in sorted(directory.glob("*.jsonl")) if first <= p.stem <= end.date().isoformat()]
     if not days:
@@ -769,7 +755,11 @@ elif edits.stdout.strip():
 elif T(log.stdout.split()[0]) >= start:
     missing.append(f"config changed at {log.stdout.split()[0]} ({log.stdout.split()[1]}); start a new window after it")
 config = json.loads((Path(repo) / config_rel).read_text())
-n, window = config["threshold"], config["window_seconds"]
+n, run_ticks = config["threshold"], config["consecutive_rise_ticks"]
+if run_ticks != 2:
+    # The ledger records only whether the previous tick rose, so a longer
+    # consecutive-rise rule cannot be re-verified from it.
+    missing.append(f"consecutive_rise_ticks is {run_ticks}; this check can re-verify only 2")
 
 KIND = {"crash-loop": "alert", "crash-loop-reremind": "reremind", "crash-loop-cleared": "cleared"}
 FOLDED = "(in aggregate alert)"
@@ -778,18 +768,16 @@ bus = list(records(bus_dir, lambda b: b["ts"])) if bus_dir.is_dir() else missing
 if not any(r["component_id"] == "crash-loop:system" for r in canary):
     missing.append("no crash-loop:system lines in the window: no evidence the stage ran")
 
-# Recompute every proof from the recorded samples; trust no producer number.
+# Re-verify every page from the recorded counts under the tick rule; trust no
+# producer number. Timestamps are informational and are not checked.
 events = [r for r in canary if r.get("outcome") in KIND and r.get("emitted")]
 for r in events:
     i, where = r["interval"], f"{r['component_id']} at {r['evaluated_at']}"
-    period = (T(i["observed_at"]) - T(i["baseline_at"])).total_seconds()
-    delta = i["current_count"] - i["baseline_count"]
-    if period <= 0 or delta != i["delta"] or abs(period - i["period_seconds"]) > 0.001:
-        violations.append(f"INCONSISTENT {where}: delta {delta} vs {i['delta']}, period {period} vs {i['period_seconds']}")
-    elif r["outcome"] != "crash-loop-cleared":
-        m = max(1, math.ceil(period / window))
-        if delta < m * (n - 1) + 1 or (i["m"], i["bound"]) != (m, m * (n - 1) + 1):
-            violations.append(f"NOT PROVEN {where}: delta {delta}, m {m}, bound {m * (n - 1) + 1}, recorded {i['m']}/{i['bound']}")
+    delta = i["current_count"] - i["previous_count"]
+    if delta != i["delta"]:
+        violations.append(f"INCONSISTENT {where}: current - previous = {delta}, recorded delta {i['delta']}")
+    elif r["outcome"] != "crash-loop-cleared" and not (delta >= n or (delta >= 1 and i["rose_last_tick"] is True)):
+        violations.append(f"RULE NOT MET {where}: delta {delta}, rose_last_tick {i['rose_last_tick']}, threshold {n}")
 
 # Two-way reconciliation between the canary ledger and the alert-bus ledger.
 at = lambda text: round(T(text).timestamp(), 3)
@@ -808,7 +796,7 @@ for ts in sorted(set(canary_folded) | set(bus_folded)):
     elif bus_folded[ts] != canary_folded[ts]:
         violations.append(f"aggregate at {ts}: bus count {bus_folded[ts]}, canary folded lines {canary_folded[ts]}")
 
-print(f"window {start.isoformat()} to {end.isoformat()}; threshold {n}, window {window} s")
+print(f"window {start.isoformat()} to {end.isoformat()}; threshold {n}, consecutive_rise_ticks {run_ticks}")
 print(f"canary event lines {len(events)}; bus crash-loop entries {len(bus)}")
 for item in missing:
     print("  MISSING EVIDENCE:", item)

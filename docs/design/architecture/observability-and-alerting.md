@@ -6,10 +6,10 @@ level: concept
 audience: agents_and_humans
 owners: [kgale]
 created: 2026-07-11
-last_updated: '2026-11-23'
-last_validated: '2026-11-23'
-version: v1.2
-updated_by: '#327 (felix-canary-registry-01KX8T7B) — captures the reusable observability pattern established by #701 (bus) + #683 (trust-scan) + #327 (canary); #1063 adds §5a, who watches the watcher; crash-loop-unit-alerting-01M858E8 (#1133) adds §2a, the canary crash-loop stage (planned until manifest crash-loop-unit-alerting.yaml is applied)'
+last_updated: '2026-11-24'
+last_validated: '2026-11-24'
+version: v1.3
+updated_by: '#327 (felix-canary-registry-01KX8T7B) — captures the reusable observability pattern established by #701 (bus) + #683 (trust-scan) + #327 (canary); #1063 adds §5a, who watches the watcher; crash-loop-unit-alerting-01M858E8 (#1133) adds §2a, the canary crash-loop stage (planned until manifest crash-loop-unit-alerting.yaml is applied); v1.3 (2026-11-24) rewrites §2a for Kent''s tick-counting ruling'
 tags: [327, 683, 701, 706, 516, 269, 707, 1063, 1069, 1133]
 ---
 
@@ -113,19 +113,24 @@ inventory entry cannot express.
   (containers whose restart policy is not `no`). It reads them unprivileged,
   without sudo or the journal. A counter survives the loop, so a loop that
   starts and ends between two ticks still shows as a rise.
-- **Proof, not suspicion.** Two samples prove only that `Δ` restarts happened
-  somewhere in the interval between them. Split an interval spanning `m`
-  windows into `m` parts. By pigeonhole, `Δ ≥ m·(N−1)+1` proves at least `N`
-  restarts inside one window. Only that pages (defaults `N = 3`, window 900 s).
-  **Every page is a proven crossing.** A rise of at least `N` that proves
-  nothing is written to the ledger as `crash-loop-unverified` and does not page.
-- **Episodes, not ticks.** Each unit has its own state machine: an alert opens
-  an episode. A re-remind is sent on the canary's 6 h cadence, and only if a
-  fresh proof holds on a baseline observed at or after the last page. After 2
-  quiet ticks the episode clears, and the history rebases so a later episode
-  needs new restarts. First sight, a counter decrease, a container re-create and
-  a reboot set a new baseline and never alert. Every reset path under-counts,
-  so a reset can cause a miss but never a false alert.
+- **Ticks, not time (Kent's ruling, 2026-11-24).** For each unit, on each
+  complete tick, the stage computes `Δ = current − previous`, where `previous`
+  is the counter at the unit's previous complete tick. The trigger holds when
+  `Δ ≥ 3` (`threshold`), or when `Δ ≥ 1` on this tick and on the previous one
+  (`consecutive_rise_ticks = 2`). **No time value is a decision input.**
+  Timestamps appear in alert text and the ledger for information only, so a
+  clock step, rollback or skew cannot change a decision. The state keeps only
+  the previous count and the run of recent rises, with no history.
+- **Episodes, not ticks.** Each unit has its own state machine: the trigger
+  opens an episode and sends one alert. A rise inside the episode resets its
+  quiet count. After 2 quiet ticks the episode clears and the rise run
+  restarts, so a later episode needs new rises. A re-remind is sent when the
+  trigger holds again on a tick at least 24 ticks (`reremind_ticks`, about 6 h
+  at the 15-minute cadence) after the last page; the rises it rests on all come
+  after that page (the config rejects a `reremind_ticks` short enough to reuse
+  older ones). First sight, a counter decrease, a container re-create and a
+  reboot set a new baseline and never alert. Every reset path under-counts, so
+  a reset can cause a miss but never a false alert.
 - **Bounded bursts.** At most 3 individual crash-loop alerts per tick, plus one
   aggregate that names as many units as fit in 900 characters (under the
   bus's 1000-character description limit, so the bus never truncates it
@@ -142,32 +147,41 @@ inventory entry cannot express.
   ping `/fail` (§5a). A fault inside the stage goes to `errors[]`, and every
   other component is still evaluated.
 
-**Detection envelope.** Every page is a proven crossing, so the limits below
-cause misses, never false pages. With ticks 15 to 16 minutes apart, `m = 2`
-between consecutive ticks, so a burst of 5 or more restarts between two ticks
-pages at once. A steady 4 restarts per tick pages on about the 2nd tick, and a
-steady 3 per tick on about the 3rd. Until then the rise is recorded as
-`crash-loop-unverified`.
+**What pages.**
 
-**Accepted limits.** They follow from Kent's choice of 15-minute sampling and
-of 3 restarts within 15 minutes. Whether to accept them is his decision; they
-are surfaced in the mission's `plan.md` ("Surfaced judgment calls"):
+- A rise of 3 or more since the previous tick pages on that tick. The
+  2026-11-23 loop (0 → 39) pages on the next tick.
+- A rise on 2 consecutive ticks pages on the second, whatever its size. A
+  steady 2 per tick pages on its 2nd tick, and a steady 1 per tick on its 2nd
+  rising tick. A burst split across a tick boundary (2 + 2) pages on the second
+  tick.
+- **A slow loop re-reminds.** A steady 1 per tick holds the trigger on every
+  tick, so it re-reminds every 24 ticks (about 6 h) for as long as it keeps
+  rising.
+- **A long outage is one interval.** "The previous tick" is the last complete
+  read of the unit's scope, however long ago. After a canary outage of several
+  hours, or a scope that could not be read for a while, a rise of 3 or more
+  across the gap pages on the first tick back, and so does a rise of 1 or more
+  if the unit also rose on the tick before the gap. This is the conservative
+  direction: such a page says the counter rose since the previous tick, not
+  that 3 restarts fell inside 15 minutes.
+- A unit that restarts by design at least once per tick pages too. It belongs
+  on the ignore list.
 
-1. **A steady loop averaging 2 or fewer restarts per tick interval never pages**,
-   however long it runs, unless one interval holds a burst of 5 or more. Over
-   `k` ticks the bound is about `2k + 3`, so it grows as fast as the rise. With
-   the shipped evaluator, a steady +2 every 930 s gave zero events in 120 ticks.
-   Such a loop can still meet the real rule when its restarts cluster, but the
-   samples cannot prove it. It writes `crash-loop-unverified` lines, which never
-   page.
-2. A short burst split across a tick boundary (for example 2 + 2 restarts) can
-   be missed.
-3. **History pruning can lose long multi-window proofs.** Observations inside
-   the last window are always kept, so single-window proofs are always found.
-   Older ones are kept for 24 h and at most 64 of them, so a proof that needs a
-   baseline further back than that is not found.
-4. A failed delivery is not retried. The dead-man reports it.
-5. During an alert storm, the pass takes as long as the bus takes to deliver.
+**What does not page.**
+
+- A single restart, and a rise of 1 or 2 followed by a quiet tick.
+- **Two rises separated by a quiet tick never page.** A loop that keeps the
+  pattern +2, 0, +2, 0 never pages, however long it runs. Inside an open
+  episode the same pattern sends no re-remind, and it keeps resetting the quiet
+  count, so the episode stays open without a `cleared`.
+- A rise below the rule writes no ledger line. Only `crash-loop.json` records
+  it.
+
+**Other limits.**
+
+1. A failed delivery is not retried. The dead-man reports it.
+2. During an alert storm, the pass takes as long as the bus takes to deliver.
    A pass with no events adds about 0.4 s of reads, capped at 6 s. A pass that
    pages adds up to 4 bus calls, each normally under 1 s, with the bus's own
    ceiling at 15 s per call.
