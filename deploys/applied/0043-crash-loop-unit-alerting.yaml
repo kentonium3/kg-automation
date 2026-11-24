@@ -40,3 +40,6 @@ notes: '#1133 (mission crash-loop-unit-alerting-01M858E8). felix-canary gains a 
   is inert; it can be moved aside to /data/services/felix-canary/state/retired/.'
 apply_mode: manifest
 applied_at: '2026-11-24T14:38:52Z'
+rebaseline:
+  outcome: pending_clean
+  at_utc: '2026-11-24T14:38:56Z'
