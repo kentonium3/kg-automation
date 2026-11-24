@@ -2,9 +2,9 @@
 title: Data Flows
 doc_type: reference
 status: approved
-last_updated: '2026-11-20'
-updated_by: 'felix-rrule-adaptation-01M7TKNX (#1111 — Felix task writes on PATCH /api/v2/tasks/{id} so RRULE recurrence survives; +v2 write/read flows, sync seed ledger, rule inventory/repair; escalation agent no longer writes Vikunja; morning list and escalation reconcile legs corrected to the sync cache) + canary-deadman-backup-coverage-01M4XVY3 (#1063 — +felix-health-check-coverage flow: twice-daily dead-man''s switch on the canary tick and independent backup check through the canary''s evaluator) + qa-pipeline-decommission-01M219TT (#970 — qa-linear-dispatch-ingress registered-at-retirement: the Linear→office2 QA dispatch flow, the host''s only public-internet data flow, retired; never recorded here while live, an out-of-band gap from #886) + crontab-backup-coverage-01M12V87 (#895 — +crontab-capture flow: hourly claude-crontab capture into /data/services/, already a Restic source path, so the crontab becomes recoverable from a snapshot without depending on a security-monitor drift baseline) + vikunja-token-seam-kent-cutover-01KY8XQ0 (#860 phase 2, ADR-0007 — intake scan flow flips from a felix-bot read token to the kent token, collapsing the #715 two-token model onto the single runtime vikunja-api-kent credential) + openclaw-skills-sync-01KXW1DQ (#775 — +openclaw-skill-sync flow: pull-based SKILL.md deploy/sync repo -> office2 via agent-skill-sync, sibling to agent-prompt-sync #567; closes the #563 skills silent-drift class) + task-intake-validation-loop-01KXS06W (#749 — +intake-validation-loop flow: scan -> WhatsApp digest -> compact-shorthand reply -> kent-token apply; closes #750) + felix-canary-registry-01KX8T7B (#327 — +felix-canary, +felix-trust-scan, +unified-alert-bus-emit observability flows) + felix-calendar-helper-01KX4H3C (#699 — calendar surface now Felix helper -> Google direct, not gog; closes #679) + felix-admin-cron-path-fix-01KWQTY3 (#656) + restore-whatsapp-dm-reply-delivery-01KTVVHH (#588) + inbox-calendar-and-aspiration-routing-01KTHHXS + #520-felix-vikunja-sync-project-layer-and-url-config'
-tags: [1111, 860, 775, 567, 563, 327, 683, 701, 706, 516, 656, 588, 520, 507, 519, 518, 309, 343, 362, 391, 400, 310, 374]
+last_updated: '2026-11-23'
+updated_by: 'crash-loop-unit-alerting-01M858E8 (#1133 — +felix-canary-crash-loop flow: the canary reads systemd NRestarts and docker RestartCount unprivileged, keeps per-unit history in crash-loop.json and pages proven crash loops through the #701 bus; planned until manifest crash-loop-unit-alerting.yaml is applied) + felix-rrule-adaptation-01M7TKNX (#1111 — Felix task writes on PATCH /api/v2/tasks/{id} so RRULE recurrence survives; +v2 write/read flows, sync seed ledger, rule inventory/repair; escalation agent no longer writes Vikunja; morning list and escalation reconcile legs corrected to the sync cache) + canary-deadman-backup-coverage-01M4XVY3 (#1063 — +felix-health-check-coverage flow: twice-daily dead-man''s switch on the canary tick and independent backup check through the canary''s evaluator) + qa-pipeline-decommission-01M219TT (#970 — qa-linear-dispatch-ingress registered-at-retirement: the Linear→office2 QA dispatch flow, the host''s only public-internet data flow, retired; never recorded here while live, an out-of-band gap from #886) + crontab-backup-coverage-01M12V87 (#895 — +crontab-capture flow: hourly claude-crontab capture into /data/services/, already a Restic source path, so the crontab becomes recoverable from a snapshot without depending on a security-monitor drift baseline) + vikunja-token-seam-kent-cutover-01KY8XQ0 (#860 phase 2, ADR-0007 — intake scan flow flips from a felix-bot read token to the kent token, collapsing the #715 two-token model onto the single runtime vikunja-api-kent credential) + openclaw-skills-sync-01KXW1DQ (#775 — +openclaw-skill-sync flow: pull-based SKILL.md deploy/sync repo -> office2 via agent-skill-sync, sibling to agent-prompt-sync #567; closes the #563 skills silent-drift class) + task-intake-validation-loop-01KXS06W (#749 — +intake-validation-loop flow: scan -> WhatsApp digest -> compact-shorthand reply -> kent-token apply; closes #750) + felix-canary-registry-01KX8T7B (#327 — +felix-canary, +felix-trust-scan, +unified-alert-bus-emit observability flows) + felix-calendar-helper-01KX4H3C (#699 — calendar surface now Felix helper -> Google direct, not gog; closes #679) + felix-admin-cron-path-fix-01KWQTY3 (#656) + restore-whatsapp-dm-reply-delivery-01KTVVHH (#588) + inbox-calendar-and-aspiration-routing-01KTHHXS + #520-felix-vikunja-sync-project-layer-and-url-config'
+tags: [1133, 1111, 860, 775, 567, 563, 327, 683, 701, 706, 516, 656, 588, 520, 507, 519, 518, 309, 343, 362, 391, 400, 310, 374]
 ---
 
 # Data Flows
@@ -813,6 +813,67 @@ watcher is watched by `felix-health-check`'s dead-man's switch (flow
 #703/#711). Ops: [`canary-registry-ops.md`](<../../runbooks/canary-registry-ops.md>);
 contract [ADR-0006](<./adr/0006-felix-component-lifecycle-status-contract.md>);
 pattern [`observability-and-alerting.md`](<./observability-and-alerting.md>).
+The crash-loop stage each pass runs (#1133) is recorded as its own flow,
+`felix-canary-crash-loop`, below.
+
+### felix-canary-crash-loop — Crash-Loop Detection Stage (#1133, planned)
+
+```
+felix-canary pass (flow felix-canary, after inventory components + coverage gaps)
+  → scripts/canary/crash_loop_config.json                    (read — strict validation; invalid → all scopes unknown)
+  → flock /data/services/felix-canary/state/crash-loop.lock  (exclusive, non-blocking; busy → stage skipped, crash_loop:locked)
+  → /data/services/felix-canary/state/crash-loop.json        (read — fail-safe: missing/corrupt loads empty)
+  → /proc/sys/kernel/random/boot_id                          (read — host generation)
+  → systemctl list-units + systemctl show -p Id,Restart,NRestarts,…          (scope system, unprivileged)
+  → systemctl --user list-units + show (claude's own manager)               (scope user)
+  → docker ps -aq --no-trunc + docker inspect --format '<5 fields>'          (scope container; empty DOCKER_CONFIG,
+                                                                               DOCKER_HOST=unix:///var/run/docker.sock)
+       → scripts.canary.crash_loop.evaluate_tick   (proven-crossing rule + per-unit episode state machine)
+       → _route: crash-loop:system / crash-loop:user / crash-loop:container   (healthy | unknown "could not check: …")
+       → scripts/common/alert_bus.emit(Alert)   (≤ 3 individual + 1 aggregate per tick; no retry)
+  → /data/services/felix-canary/ledger/<YYYY-MM-DD>.jsonl    (append — scope lines, event lines, crash-loop-unverified lines)
+  → /data/services/felix-canary/state/crash-loop.json        (atomic write after emit)
+```
+
+**Status: planned.** The code ships with mission
+`crash-loop-unit-alerting-01M858E8`, and the flow becomes live when `deploys/queued/crash-loop-unit-alerting.yaml` is
+applied after Kent approves the merge to main. Its `status` in
+`data-flows.json` flips to `active` then.
+
+A `Restart=always` unit that loops never reaches `failed`, so the canary's
+"is it active" probes miss it. This stage reads the **persistent restart
+counters** instead: systemd `NRestarts` and docker `RestartCount`. They survive
+the loop, so a loop that starts and ends between two 15-minute ticks still shows
+as a rise. **Detection only**: nothing is restarted or stopped. **No LLM.**
+
+- **Reads.** Three scopes, all unprivileged: loaded system services and the
+  `claude` user manager's services whose `Restart=` is not `no`, and containers
+  whose restart policy is not `no`, minus the ignore list. One deadline of 6 s
+  covers all three scopes, and each command gets at most 3 s. **Docker isolation:**
+  every docker command runs with `DOCKER_CONFIG` set to a fresh empty temporary
+  directory, so the CLI loads no `config.json` and no registry credential.
+  `DOCKER_HOST` is pinned to the local socket and `DOCKER_CONTEXT` is unset.
+  `--format` limits what the CLI prints, not what it fetches: the CLI retrieves
+  the full inspect object from the daemon, and the canary process receives only
+  the five formatted fields.
+- **Decision.** It pages only on a **proven crossing**: over an interval
+  spanning `m` 15-minute windows, a rise of at least `m·(3−1)+1` proves at least
+  3 restarts inside one window. One episode per unit: an alert, then a
+  re-remind after 6 h if a fresh proof holds on a baseline taken at or after the
+  last page, then `cleared` after 2 quiet ticks. First sight, a counter
+  decrease, a container-ID change and a reboot (boot-ID change) set a new
+  baseline and never alert.
+- **Writes.** Scope health goes through the canary's own dedup path as
+  components `crash-loop:<scope>`. Events go to the #701 bus, at most 3
+  individually plus one aggregate per tick. The canary ledger gets one line
+  per scope per tick, one per event, and one per unverified rise. The state
+  file is written atomically after emit. `last-tick.json` keeps its key set.
+- **Fault isolation.** An unexpected fault in the stage is recorded in
+  `errors[]` as `crash_loop:<Exc>:<msg>`, and every other component is still
+  evaluated.
+
+Ops: [`canary-registry-ops.md` § Crash-loop detection](<../../runbooks/canary-registry-ops.md#crash-loop-detection>);
+contract `kitty-specs/crash-loop-unit-alerting-01M858E8/contracts/crash-loop-alert.md`.
 
 ### felix-trust-scan — Trust / Cron-Drift Detection (#683)
 
@@ -1035,5 +1096,7 @@ Authoritative record: `flows[?name=qa-linear-dispatch-ingress]` in
 | Canary per-component ledger (#327) | `/data/services/felix-canary/ledger/<YYYY-MM-DD>.jsonl` | Yes |
 | Canary tick-signal (#327) | `/data/services/felix-canary/state/last-tick.json` | No (overwritten each tick) |
 | Canary dedup state (#327) | `/data/services/felix-canary/state/dedup.json` | Yes |
+| Canary crash-loop state (#1133, planned) | `/data/services/felix-canary/state/crash-loop.json` | Yes (safe to delete: every unit then re-baselines) |
+| Canary crash-loop lock (#1133, planned) | `/data/services/felix-canary/state/crash-loop.lock` | Yes (empty lock file) |
 | Trust-scan seen-findings (#683) | `/data/services/trust/state/seen-findings.json` | Yes |
 | Trust-scan assertion watermark (#683) | `/data/services/trust/state/assertion-watermark.json` | Yes |
