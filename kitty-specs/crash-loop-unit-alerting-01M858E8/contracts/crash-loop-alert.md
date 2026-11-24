@@ -88,3 +88,11 @@ summary["crash_loop"] = {"enabled": bool, "watched": int, "ignored": int, "event
 When the stage runs, crash-loop emissions add to `emitted` and `alerts_undelivered`, and scope components add to `components_evaluated`. A stage fault or a held lock appends `crash_loop:<reason>` to `errors`.
 
 `last-tick.json` keeps exactly its current key set: the persisted signal still excludes `component_lines` and `alerts_undelivered`, and now also `crash_loop`.
+
+## Amendment 2026-11-24: shapes under Kent's tick-counting ruling (shipped in 5582a3105). These supersede §1, §2, §6 and §7 where they differ.
+
+- **§1 alert.** The text states the rise since the previous canary tick, for example "restarted 39 times since the previous canary tick (16 min ago)", or a consecutive-rise run such as "(+2, +2)". The minutes are information only. `details` carries `delta`, `previous_count`, `current_count` and `rose_last_tick`. There are no `m`, `bound` or `period_seconds` fields.
+- **§2 re-remind.** A re-remind is due when the trigger holds on a tick at least `reremind_ticks` (24) ticks after the last page. No time comparison is involved.
+- **§4 aggregate entry.** `<key> <kind> +Δ <state>`, still bounded to 900 characters.
+- **§6 ledger.** `interval` is `{previous_count, current_count, delta, rose_last_tick, previous_seen_at, observed_at}`. The timestamps are informational. The `crash-loop-unverified` outcome is retired: a rise below the rule writes no event line, and the unit's state records it.
+- **§7 summary.** `unverified` is removed.

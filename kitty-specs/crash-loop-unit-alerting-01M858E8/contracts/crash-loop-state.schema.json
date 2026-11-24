@@ -26,6 +26,7 @@
           "boot_id",
           "last_count",
           "rose_last_tick",
+          "recent_rises",
           "last_seen_at",
           "episode"
         ],
@@ -91,6 +92,14 @@
             "type": "string",
             "format": "date-time",
             "description": "Informational only; never a decision input."
+          },
+          "recent_rises": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "description": "Run of consecutive positive per-tick deltas ending at the previous tick, at most consecutive_rise_ticks-1 long; non-empty exactly when rose_last_tick is true (shipped in 5582a3105; amended 2026-11-24)."
           }
         }
       }
