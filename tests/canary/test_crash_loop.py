@@ -1071,7 +1071,7 @@ def test_observed_from_defaults_to_now() -> None:
     assert outcome.new_state.units[OBSIDIAN].history == [(at(1), 0)]
 
 
-def test_observed_from_at_previous_entry_is_not_clock_skipped() -> None:
+def test_observed_from_at_previous_entry_is_clock_skipped() -> None:
     first = evaluate_tick(
         readings([obs(OBSIDIAN, 0)]), CrashLoopState.empty(), CFG, at(0), BOOT_A
     )
@@ -1083,12 +1083,42 @@ def test_observed_from_at_previous_entry_is_not_clock_skipped() -> None:
         BOOT_A,
         observed_from=at(0),
     )
-    assert second.counts["clock_skipped"] == 0
-    # Kept strictly ascending: one microsecond after the previous entry.
-    assert second.new_state.units[OBSIDIAN].history == [
-        (at(0), 0),
-        (at(0) + timedelta(microseconds=1), 2),
-    ]
+    assert second.counts["clock_skipped"] == 1
+    assert second.events == [] and second.unverified == []
+    assert second.new_state.units[OBSIDIAN] == first.new_state.units[OBSIDIAN]
+
+
+def test_clock_rollback_never_clamps_a_lower_bound_forward() -> None:
+    """Round-2 review: (observed_from, now, count) = (0,1,0), (-1,1,0), (1800.000001,1800.000001,5).
+
+    A clamp of the second tick's stored time to ``last_at + 1 µs`` would put a
+    "lower bound" after the real sample and page with period 1800, m 2,
+    bound 5. The second tick must be skipped instead, so the third proves
+    against the first tick's baseline at 0 s only.
+    """
+
+    def sec(seconds: float) -> datetime:
+        return T0 + timedelta(seconds=seconds)
+
+    sim_state = CrashLoopState.empty()
+    outcomes = []
+    for frm, now, count in [(0, 1, 0), (-1, 1, 0), (1800.000001, 1800.000001, 5)]:
+        outcome = evaluate_tick(
+            readings([obs(OBSIDIAN, count)]),
+            sim_state,
+            CFG,
+            sec(now),
+            BOOT_A,
+            observed_from=sec(frm),
+        )
+        outcomes.append(outcome)
+        sim_state = outcome.new_state
+    assert outcomes[1].counts["clock_skipped"] == 1
+    assert kinds(outcomes[2]) == []
+    assert sim_state.units[OBSIDIAN].history[0] == (sec(0), 0)
+    rise = outcomes[2].unverified[0].proof
+    assert rise.baseline_at == sec(0)
+    assert rise.m == 3 and rise.bound == 7 and rise.delta == 5
 
 
 def test_now_at_previous_entry_is_still_clock_skipped() -> None:

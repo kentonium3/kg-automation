@@ -340,6 +340,42 @@ def test_late_reads_never_shrink_the_proven_interval(tmp_path):
     assert clock.instants == []
 
 
+def test_aggregate_cites_the_filed_ledger_date_across_midnight(tmp_path):
+    """Round-2 review: the read ends after midnight, the pass started before it.
+
+    Event lines are filed under the pass-start date, so the aggregate's "see
+    canary ledger <date>" must name that date, not the read's.
+    """
+    start = datetime(2026, 11, 23, 23, 44, 0, tzinfo=timezone.utc)
+    late = datetime(2026, 11, 23, 23, 59, 58, tzinfo=timezone.utc)
+    reader = _Scripted()
+    clock = _ScriptedClock(
+        start, start + timedelta(seconds=1),
+        late + timedelta(seconds=1), late + timedelta(seconds=3),
+    )
+    check = _bracketed_check(tmp_path, reader, clock)
+    p = _paths(tmp_path)
+    # Enough folded units to overflow the 900-character budget, so the
+    # aggregate ends with "... and <k> more - see canary ledger <date>".
+    units = [f"u{i:02d}.service" for i in range(25)]
+
+    reader.next = _readings(dict.fromkeys(units, 0))
+    _pass(tmp_path, check, now=start)
+    reader.next = _readings(dict.fromkeys(units, 39))
+    em = _recording_emit()
+    _pass(tmp_path, check, now=late, emit_fn=em)
+
+    aggregate = [a for a in em.sent if a.source == crash_loop_mod.AGGREGATE_SOURCE]
+    assert len(aggregate) == 1
+    assert aggregate[0].timestamp.date().isoformat() == "2026-11-24"
+    assert "see canary ledger 2026-11-23" in aggregate[0].description
+    folded = [r for r in _event_lines(_read_ledger(p["ledger_dir"], late))
+              if r["evidence"].endswith("(in aggregate alert)")]
+    assert len(folded) == 22
+    assert (tmp_path / "ledger" / "2026-11-23.jsonl").exists()
+    assert not (tmp_path / "ledger" / "2026-11-24.jsonl").exists()
+
+
 def test_pass_start_stamps_would_have_paged_the_counterexample(tmp_path):
     """The same counterexample with the bracket collapsed onto the pass stamps.
 

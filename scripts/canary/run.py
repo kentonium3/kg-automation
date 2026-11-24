@@ -43,7 +43,7 @@ import urllib.error
 import urllib.request
 from contextlib import ExitStack
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Any, Callable
 
@@ -593,7 +593,12 @@ def run_pass(
                 _route_crash_loop_scope(scope, scope_outcome, evidence)
 
             # 7. Emit. No retry: delivery never changes crash-loop state (R-08).
-            for emission in crash_loop_mod.plan_emissions(outcome.events, config):
+            # The aggregate cites the ledger file the event lines are filed
+            # in, which is named for the pass start, not the read time.
+            ledger_date = _ledger_path(ledger_dir_path, now).stem
+            for emission in crash_loop_mod.plan_emissions(
+                outcome.events, config, date.fromisoformat(ledger_date)
+            ):
                 delivered = True
                 if not dry_run:
                     result = emit_fn(emission.alert)

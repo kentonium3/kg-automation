@@ -454,7 +454,10 @@ reads the wall clock just before and just after it reads the counters. It
 stores each sample at the earlier reading (`baseline_at`) and measures the
 period to the later reading (`observed_at`). A slow probe earlier in the pass,
 or a slow read, can therefore only lengthen `period` and raise the bound. It can
-never make a page out of restarts that were spread too thinly to prove one.
+never make a page out of restarts that were spread too thinly to prove one. If
+either reading is not later than a unit's newest stored sample (the clock
+stepped back, or two reads overlapped), that unit is skipped for the tick: its
+state is unchanged and nothing is sent.
 Neither time is the pass's start time (`evaluated_at`).
 
 Worked examples:

@@ -272,18 +272,18 @@ def _evaluate_unit(
             counter="first_seen",
         )
 
-    # 1. Clock (INV-CL-9): runs before any other check, against *now*, the
-    # LATEST possible sampling instant.
+    # 1. Clock (INV-CL-9): runs before any other check. Both ends of the read
+    # bracket must be strictly after the newest stored entry. Otherwise the
+    # clock overlapped or stepped back, and no stored time could be trusted as
+    # a lower bound, so the unit is left unchanged (post-merge review round 2:
+    # a clamp forward could place a "lower bound" after the real sample).
     last_at, last_count = prior.history[-1]
-    if now <= last_at:
+    if now <= last_at or observed_from <= last_at:
         return _UnitResult(state=_copy_unit(prior), counter="clock_skipped")
 
-    # The stored time is the earliest possible sample time, kept strictly after
-    # the previous entry so history stays strictly ascending. This sample was
-    # taken strictly after the previous one, which was taken at or after
-    # ``last_at``, so ``last_at + 1 µs`` is still a lower bound; and because
-    # ``now > last_at``, ``stored_at ≤ now``.
-    stored_at = max(observed_from, last_at + _ONE_MICROSECOND)
+    # Stored at exactly the earliest possible sampling instant, never moved
+    # forward; it is strictly after ``last_at``, so history stays ascending.
+    stored_at = observed_from
     rebased = [(stored_at, current)]
 
     # 2. Boot change (INV-CL-2, round-3 HIGH): rebase, close silently.
@@ -406,8 +406,10 @@ def evaluate_tick(
     earliest possible sample time, and every candidate interval is
     **computed** as ``L = now − baseline.at`` with *now* the latest possible
     sampling instant. ``L`` is therefore never less than the true interval, so
-    ``m`` can only be over-estimated. The clock rule (INV-CL-9), episode times,
-    the re-remind gap and every event's ``observed_at`` use *now*.
+    ``m`` can only be over-estimated. The clock rule (INV-CL-9) leaves a unit
+    unchanged unless both *observed_from* and *now* are strictly after its
+    newest stored entry. Episode times, the re-remind gap and every event's
+    ``observed_at`` use *now*.
 
     Scopes are processed in ``SCOPES`` order and observations in reading
     order, so the event list is deterministic. A ``None`` *boot_id* makes every
@@ -630,9 +632,14 @@ def render_aggregate(
 
 
 def plan_emissions(
-    events: Iterable[CrashLoopEvent], config: CrashLoopConfig
+    events: Iterable[CrashLoopEvent],
+    config: CrashLoopConfig,
+    ledger_date: date | None = None,
 ) -> list[Emission]:
     """Order the tick's events and apply the per-tick cap (R-15).
+
+    *ledger_date* is the date of the canary ledger file the caller writes this
+    tick's event lines to; the aggregate cites it (see :func:`render_aggregate`).
 
     Sorted alert, reremind, cleared, then by key. The first
     ``max_alerts_per_tick`` are individual emissions; **all** the rest fold
@@ -647,5 +654,7 @@ def plan_emissions(
     ]
     rest = ordered[cap:]
     if rest:
-        emissions.append(Emission(alert=render_aggregate(rest), events=tuple(rest)))
+        emissions.append(
+            Emission(alert=render_aggregate(rest, ledger_date), events=tuple(rest))
+        )
     return emissions
