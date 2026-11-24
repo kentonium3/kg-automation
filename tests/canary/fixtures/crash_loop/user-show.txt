@@ -1,0 +1,13 @@
+Restart=always
+NRestarts=0
+Id=openclaw-gateway.service
+LoadState=loaded
+ActiveState=active
+SubState=running
+
+Restart=no
+NRestarts=0
+Id=felix-canary.service
+LoadState=loaded
+ActiveState=inactive
+SubState=dead
