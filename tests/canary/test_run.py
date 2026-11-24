@@ -482,7 +482,7 @@ def test_cli_once_exits_zero_even_with_failures(tmp_path, monkeypatch):
 
 
 def test_cli_runner_level_failure_exits_nonzero(monkeypatch, capsys):
-    def boom(*, now, dry_run=False):
+    def boom(*, now, dry_run=False, **_ignored):
         raise FileNotFoundError("inventory missing")
 
     monkeypatch.setattr(run_mod, "run_pass", boom)
