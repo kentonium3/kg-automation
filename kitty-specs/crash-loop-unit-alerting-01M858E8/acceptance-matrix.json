@@ -128,10 +128,10 @@
       "criterion_id": "FR-013",
       "description": "Verify FR-013 is satisfied",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
+      "evidence": "test_run_crash_loop.py: SC-005 paired disabled/enabled runs, key-ledger reconciliation with stage enabled, fault injection (read_scopes/evaluate_tick/save_state); existing test diffs signature-only; tests/canary 721 passed.",
+      "pass_fail": "pass",
+      "verified_by": "claude-orchestrator",
+      "verified_at": "2026-11-24T00:37:59.496941+00:00",
       "notes": "TODO: replace with a real acceptance criterion"
     },
     {
