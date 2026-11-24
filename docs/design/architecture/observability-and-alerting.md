@@ -6,11 +6,11 @@ level: concept
 audience: agents_and_humans
 owners: [kgale]
 created: 2026-07-11
-last_updated: '2026-10-14'
-last_validated: '2026-10-14'
-version: v1.1
-updated_by: '#327 (felix-canary-registry-01KX8T7B) — captures the reusable observability pattern established by #701 (bus) + #683 (trust-scan) + #327 (canary); #1063 adds §5a, who watches the watcher'
-tags: [327, 683, 701, 706, 516, 269, 707, 1063, 1069]
+last_updated: '2026-11-23'
+last_validated: '2026-11-23'
+version: v1.2
+updated_by: '#327 (felix-canary-registry-01KX8T7B) — captures the reusable observability pattern established by #701 (bus) + #683 (trust-scan) + #327 (canary); #1063 adds §5a, who watches the watcher; crash-loop-unit-alerting-01M858E8 (#1133) adds §2a, the canary crash-loop stage (planned until manifest crash-loop-unit-alerting.yaml is applied)'
+tags: [327, 683, 701, 706, 516, 269, 707, 1063, 1069, 1133]
 ---
 
 # Observability & Alerting — the Deterministic-Scanner Pattern
@@ -91,6 +91,75 @@ one unit. Two single-responsibility scanners that share only the emit substrate
 stay simple and independently evolvable — and a third (a future scanner for some
 new signal class) is a *new sibling*, not a new branch inside an existing one.
 The shared thing is the **alert bus**, never the scanner.
+
+## 2a. A second signal inside the canary: the crash-loop stage (#1133)
+
+**Status: planned.** The stage ships with mission
+`crash-loop-unit-alerting-01M858E8` and goes live when
+`deploys/queued/crash-loop-unit-alerting.yaml` is applied, after Kent
+approves the merge to main.
+
+The canary's per-component model (one inventory entry, one `health_check`, one
+outcome) asks "is it active?". A `Restart=always` unit that loops answers "yes"
+on almost every sample and never reaches `failed`, so the model cannot see it.
+The fix is a **stage** in the same pass, not a new scanner. It has the same
+owner, timer and bus as the canary, so DEC-007 is not touched. It needs a
+per-unit identity over a host-wide, dynamically discovered set, which one
+inventory entry cannot express.
+
+- **Signal: a counter, not a state.** The stage reads the persistent restart
+  counters: systemd `NRestarts` (system services and the `claude` user
+  manager's services whose `Restart=` is not `no`) and docker `RestartCount`
+  (containers whose restart policy is not `no`). It reads them unprivileged,
+  without sudo or the journal. A counter survives the loop, so a loop that
+  starts and ends between two ticks still shows as a rise.
+- **Proof, not suspicion.** Two samples prove only that `Δ` restarts happened
+  somewhere in the interval between them. Split an interval spanning `m`
+  windows into `m` parts. By pigeonhole, `Δ ≥ m·(N−1)+1` proves at least `N`
+  restarts inside one window. Only that pages (defaults `N = 3`, window 900 s).
+  **Every page is a proven crossing.** A rise of at least `N` that proves
+  nothing is written to the ledger as `crash-loop-unverified` and does not page.
+- **Episodes, not ticks.** Each unit has its own state machine: an alert opens
+  an episode. A re-remind is sent on the canary's 6 h cadence, and only if a
+  fresh proof holds on a baseline observed at or after the last page. After 2
+  quiet ticks the episode clears, and the history rebases so a later episode
+  needs new restarts. First sight, a counter decrease, a container re-create and
+  a reboot set a new baseline and never alert. Every reset path under-counts,
+  so a reset can cause a miss but never a false alert.
+- **Bounded bursts.** At most 3 individual crash-loop alerts per tick, plus one
+  aggregate that names as many units as fit in 900 characters (under the
+  bus's 1000-character description limit, so the bus never truncates it
+  silently). Every folded event still gets its own ledger line.
+- **Could-not-check is `unknown`, never healthy.** Each scope is routed through
+  the canary's existing dedup path as a component (`crash-loop:system`,
+  `crash-loop:user`, `crash-loop:container`). A scope that fails to read, runs
+  past the 6 s read budget, or has an invalid config is `unknown`. It follows
+  F5: recorded, then paged once it persists past the window, with `recovered`
+  on the way back. An unreadable scope keeps its stored state, so a bad read
+  never deletes coverage or an open episode.
+- **Same delivery policy as the canary.** There is no retry. An undelivered
+  emission counts in `alerts_undelivered`, which makes the off-host dead-man
+  ping `/fail` (§5a). A fault inside the stage goes to `errors[]`, and every
+  other component is still evaluated.
+
+**Accepted sampling limits.** These follow from the 15-minute cadence Kent chose
+and are stated, not hidden:
+
+1. A slow loop of 3 or 4 restarts per tick interval does not page on the tick
+   where it first shows. With ticks 15 to 16 minutes apart, `m = 2`, so a page
+   on one interval needs at least 5 restarts, and the slower rise is recorded
+   as `crash-loop-unverified`. If the loop keeps going, the longer interval
+   proves itself: about the 2nd tick at 4 restarts per tick, about the 3rd at 3
+   per tick. A slow loop that stops before then never pages.
+2. A short burst split across a tick boundary (for example 2 + 2 restarts) can
+   be missed. A sustained loop is always caught.
+3. A failed delivery is not retried. The dead-man reports it.
+4. During an alert storm, the pass takes as long as the bus takes to deliver.
+   A pass with no events adds about 0.4 s of reads, capped at 6 s. A pass that
+   pages adds up to 4 bus calls, each normally under 1 s, with the bus's own
+   ceiling at 15 s per call.
+
+Ops: [canary-registry-ops.md § Crash-loop detection](<../../runbooks/canary-registry-ops.md#crash-loop-detection>).
 
 ## 3. Deploy discipline (the pattern's ops half)
 
@@ -326,7 +395,7 @@ transition-always-emits-with-persistence-gated-unknowns.
 
 - **Status contract**: [ADR-0006](<./adr/0006-felix-component-lifecycle-status-contract.md>) — status gates health (the load-bearing computation rule).
 - **Alert bus**: [alerting.md](<../../runbooks/alerting.md>) — the #701 `felix-alert` bus how-to + schema; ledger is #706.
-- **Canary exemplar**: [canary-registry-ops.md](<../../runbooks/canary-registry-ops.md>) — `felix-canary` ops (#327).
+- **Canary exemplar**: [canary-registry-ops.md](<../../runbooks/canary-registry-ops.md>) — `felix-canary` ops (#327), including the crash-loop stage (#1133, §2a).
 - **Trust-scan exemplar**: [trust-reporting-detector.md](<../../runbooks/trust-reporting-detector.md>) — `felix-trust-scan` ops (#683).
 - **Sibling decision**: [decisions.jsonl](<../coherence/decisions.jsonl>) `DEC-007` (siblings, shared bus) — and `DEC-002` (no model-asserted state) / `DEC-006` (behavioral verification).
 - **Coherence invariant**: [doctrine.md](<../coherence/doctrine.md>) `INV-003` (one canonical alert stream) / `INV-001` (no fabrication) / `INV-002` (no silent fallback).
