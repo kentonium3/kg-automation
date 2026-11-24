@@ -5,9 +5,12 @@ daemon into :class:`~scripts.canary.crash_loop_model.ScopeReading` values.
 
 - No privilege, no journal, no credential file (NFR-003, C-002, research R-02).
 - Commands run as argv lists with a minimal environment; there is no shell.
-- Every docker command gets a fresh, empty ``DOCKER_CONFIG`` directory and a
-  pinned local ``DOCKER_HOST``, so the CLI loads no client configuration and
-  consults no remote context.
+- Every docker command gets ``DOCKER_CONFIG`` pointed at a directory that
+  cannot exist (:data:`DOCKER_CONFIG_DIR`, under ``/proc``) and a pinned local
+  ``DOCKER_HOST``, so the CLI loads no client configuration, consults no
+  remote context, and the read writes nothing (a dry run included). If the
+  CLI ever tried to create that directory the command would fail, and the
+  scope with it: fail-safe, never silent.
 - All three scopes share one monotonic deadline; each command's timeout is
   ``min(3 s, remaining)`` (research R-15).
 - Output is reconciled against what was asked for. Anything malformed fails
@@ -15,8 +18,8 @@ daemon into :class:`~scripts.canary.crash_loop_model.ScopeReading` values.
   (research R-13). Policy exclusions (not loaded, ``Restart=no``, docker policy
   ``no``/empty) are counted, not errors.
 
-All effects (``run``, ``clock``, the boot-ID reader, the tempdir factory and
-the environment) are injected; :func:`default_run` is the only real
+All effects (``run``, ``clock``, the boot-ID reader and the environment) are
+injected; :func:`default_run` is the only real
 ``subprocess.run``.
 
 References: research.md R-02, R-03, R-06, R-13, R-15; data-model.md.
@@ -28,10 +31,8 @@ import json
 import os
 import re
 import subprocess
-import tempfile
 import time
 from collections.abc import Callable, Mapping, Sequence
-from contextlib import AbstractContextManager
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Final
@@ -41,6 +42,7 @@ from scripts.canary.crash_loop_model import SCOPES, RestartObservation, ScopeRea
 __all__ = [
     "BOOT_ID_PATH",
     "DEFAULT_BUDGET_SECONDS",
+    "DOCKER_CONFIG_DIR",
     "DOCKER_HOST",
     "DOCKER_INSPECT_FORMAT",
     "PER_COMMAND_TIMEOUT",
@@ -63,6 +65,9 @@ DEFAULT_BUDGET_SECONDS: Final[int] = 6
 PER_COMMAND_TIMEOUT: Final[float] = 3.0
 MIN_PATH: Final[str] = "/usr/bin:/bin"
 DOCKER_HOST: Final[str] = "unix:///var/run/docker.sock"
+# Never exists and can never be created (procfs), so docker finds no client
+# configuration and no credential, and a read writes nothing (post-merge review).
+DOCKER_CONFIG_DIR: Final[str] = "/proc/nonexistent-felix-canary-docker-config"
 # Only these formatted fields ever reach this process (research R-02, CX-3).
 DOCKER_INSPECT_FORMAT: Final[str] = (
     "{{json .Id}}|{{json .Name}}|{{.RestartCount}}"
@@ -111,7 +116,6 @@ class CommandResult:
 
 # run(argv, env, timeout). A timeout raises subprocess.TimeoutExpired.
 RunFn = Callable[[Sequence[str], Mapping[str, str], float], CommandResult]
-TempdirFactory = Callable[[], AbstractContextManager[str]]
 
 
 class Deadline:
@@ -159,9 +163,13 @@ def _systemd_env(environ: Mapping[str, str]) -> dict[str, str]:
     return env
 
 
-def _docker_env(config_dir: str) -> dict[str, str]:
+def _docker_env() -> dict[str, str]:
     # DOCKER_CONTEXT is deliberately absent; the env is built from scratch.
-    return {"PATH": MIN_PATH, "DOCKER_CONFIG": config_dir, "DOCKER_HOST": DOCKER_HOST}
+    return {
+        "PATH": MIN_PATH,
+        "DOCKER_CONFIG": DOCKER_CONFIG_DIR,
+        "DOCKER_HOST": DOCKER_HOST,
+    }
 
 
 def _run_checked(
@@ -396,13 +404,11 @@ def _run_docker(
     argv: Sequence[str],
     deadline: Deadline,
     label: str,
-    tempdir_factory: TempdirFactory,
 ) -> str:
-    """Run one docker command with a fresh, empty, afterwards-removed DOCKER_CONFIG."""
+    """Run one docker command with the isolated, write-free docker env."""
     if _timeout(deadline) <= 0.0:
         raise ReaderError(_DEADLINE_EXCEEDED)
-    with tempdir_factory() as config_dir:
-        return _run_checked(run, argv, _docker_env(config_dir), deadline, label)
+    return _run_checked(run, argv, _docker_env(), deadline, label)
 
 
 def _parse_ps(stdout: str) -> list[str]:
@@ -488,7 +494,6 @@ def read_container_scope(
     *,
     run: RunFn,
     deadline: Deadline,
-    tempdir_factory: TempdirFactory,
 ) -> ScopeReading:
     """Read restart counts of every local container (``ps`` then ``inspect``)."""
     started = deadline.clock()
@@ -498,7 +503,6 @@ def read_container_scope(
             ["docker", "ps", "-aq", "--no-trunc"],
             deadline,
             "docker ps",
-            tempdir_factory,
         )
         try:
             ids = _parse_ps(listed)
@@ -511,7 +515,6 @@ def read_container_scope(
             ["docker", "inspect", "--format", DOCKER_INSPECT_FORMAT, "--", *ids],
             deadline,
             "docker inspect",
-            tempdir_factory,
         )
         try:
             observations, excluded = _parse_inspect(inspected, ids)
@@ -552,7 +555,6 @@ def read_all_scopes(
     clock: Callable[[], float] = time.monotonic,
     budget_seconds: float = DEFAULT_BUDGET_SECONDS,
     read_boot_id: Callable[[], str | None] = read_boot_id,
-    tempdir_factory: TempdirFactory = tempfile.TemporaryDirectory,
     environ: Mapping[str, str] | None = None,
 ) -> tuple[list[ScopeReading], str | None]:
     """Read system, user and container scopes under one deadline.
@@ -576,8 +578,6 @@ def read_all_scopes(
         "user": lambda: read_systemd_scope(
             "user", run=run, deadline=deadline, generation=boot_id, environ=environ
         ),
-        "container": lambda: read_container_scope(
-            run=run, deadline=deadline, tempdir_factory=tempdir_factory
-        ),
+        "container": lambda: read_container_scope(run=run, deadline=deadline),
     }
     return [_guarded(scope, deadline, readers[scope]) for scope in SCOPES], boot_id

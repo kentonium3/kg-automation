@@ -2656,7 +2656,7 @@
         {
           "target": "docker",
           "type": "monitors",
-          "description": "Crash-loop stage (#1133): docker ps -aq --no-trunc + docker inspect --format (Id, Name, RestartCount, restart policy, status) through the local socket as a docker-group member. Each call runs with an empty temporary DOCKER_CONFIG and DOCKER_HOST pinned to unix:///var/run/docker.sock, so no client config or registry credential is loaded. The CLI still retrieves the full inspect object from the daemon; the canary process receives only the five formatted fields."
+          "description": "Crash-loop stage (#1133): docker ps -aq --no-trunc + docker inspect --format (Id, Name, RestartCount, restart policy, status) through the local socket as a docker-group member. Each call runs with DOCKER_CONFIG set to a directory that cannot exist (/proc/nonexistent-felix-canary-docker-config) and DOCKER_HOST pinned to unix:///var/run/docker.sock, so no client config or registry credential is loaded and the read writes nothing. The CLI still retrieves the full inspect object from the daemon; the canary process receives only the five formatted fields."
         }
       ],
       "health_check": {

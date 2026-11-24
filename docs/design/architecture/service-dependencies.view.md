@@ -147,7 +147,7 @@ graph LR
 
     canary -.->|"monitors<br/>(NRestarts, unprivileged;<br/>planned #1133)"| systemd_sys
     canary -.->|"monitors<br/>(NRestarts, own manager;<br/>planned #1133)"| systemd_user
-    canary -.->|"monitors<br/>(RestartCount, empty DOCKER_CONFIG;<br/>planned #1133)"| docker
+    canary -.->|"monitors<br/>(RestartCount, nonexistent DOCKER_CONFIG;<br/>planned #1133)"| docker
 ```
 
 ## Reading the Diagram

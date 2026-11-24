@@ -7,12 +7,9 @@ test calls the real ``systemctl`` or ``docker``.
 from __future__ import annotations
 
 import json
-import os
 import random
 import subprocess
-import tempfile
-from collections.abc import Callable, Iterator, Mapping, Sequence
-from contextlib import AbstractContextManager, contextmanager
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -21,6 +18,7 @@ import pytest
 from scripts.canary import crash_loop_readers as readers
 from scripts.canary.crash_loop_model import SCOPES, ScopeReading
 from scripts.canary.crash_loop_readers import (
+    DOCKER_CONFIG_DIR,
     DOCKER_HOST,
     DOCKER_INSPECT_FORMAT,
     CommandResult,
@@ -80,7 +78,6 @@ class Call:
     env: dict[str, str]
     timeout: float
     argv_type: type
-    docker_config_entries: list[str] | None = None
 
 
 @dataclass
@@ -97,10 +94,7 @@ class FakeRun:
     def __call__(
         self, argv: Sequence[str], env: Mapping[str, str], timeout: float
     ) -> CommandResult:
-        entries = None
-        if "DOCKER_CONFIG" in env:
-            entries = sorted(os.listdir(env["DOCKER_CONFIG"]))
-        self.calls.append(Call(list(argv), dict(env), timeout, type(argv), entries))
+        self.calls.append(Call(list(argv), dict(env), timeout, type(argv)))
         best: tuple[str, ...] | None = None
         for prefix in self.responses:
             if tuple(argv[: len(prefix)]) == prefix and (
@@ -139,23 +133,6 @@ def docker_run(ps_out: str, inspect_out: str) -> FakeRun:
         .on(["docker", "ps"], ok(ps_out))
         .on(["docker", "inspect"], ok(inspect_out))
     )
-
-
-class RecordingTempdirs:
-    """A tempdir factory under pytest's tmp_path that remembers each directory."""
-
-    def __init__(self, root: Path) -> None:
-        self.root = root
-        self.made: list[Path] = []
-
-    def __call__(self) -> AbstractContextManager[str]:
-        return self._make()
-
-    @contextmanager
-    def _make(self) -> Iterator[str]:
-        with tempfile.TemporaryDirectory(dir=self.root) as name:
-            self.made.append(Path(name))
-            yield name
 
 
 def list_rows(*rows: tuple[str, str]) -> str:
@@ -704,11 +681,8 @@ class TestReadSystemdScope:
 # --------------------------------------------------------------------------- #
 class TestReadContainerScope:
     def test_real_fixture(self, tmp_path: Path) -> None:
-        tempdirs = RecordingTempdirs(tmp_path)
         run = docker_run(fixture("docker-ps.txt"), fixture("docker-inspect.txt"))
-        reading = read_container_scope(
-            run=run, deadline=deadline(), tempdir_factory=tempdirs
-        )
+        reading = read_container_scope(run=run, deadline=deadline())
         assert reading.complete, reading.error
         assert watched(reading) == {"transcribe-api": 0, "vikunja": 0}
         assert reading.excluded == 1  # modest_colden, policy "no"
@@ -733,27 +707,29 @@ class TestReadContainerScope:
     ) -> None:
         monkeypatch.setenv("DOCKER_CONTEXT", "remote")
         monkeypatch.setenv("DOCKER_HOST", "tcp://evil:2375")
-        tempdirs = RecordingTempdirs(tmp_path)
+        monkeypatch.setenv("DOCKER_CONFIG", str(tmp_path))
         run = docker_run(fixture("docker-ps.txt"), fixture("docker-inspect.txt"))
-        read_container_scope(run=run, deadline=deadline(), tempdir_factory=tempdirs)
+        read_container_scope(run=run, deadline=deadline())
         assert len(run.calls) == 2
         for call in run.calls:
+            # Built from scratch: no DOCKER_CONTEXT, nothing inherited.
             assert set(call.env) == {"PATH", "DOCKER_CONFIG", "DOCKER_HOST"}
+            assert "DOCKER_CONTEXT" not in call.env
             assert call.env["PATH"] == "/usr/bin:/bin"
             assert (
                 call.env["DOCKER_HOST"] == DOCKER_HOST == "unix:///var/run/docker.sock"
             )
-            assert call.docker_config_entries == []
-        # A fresh directory per command, each removed afterwards.
-        assert [Path(c.env["DOCKER_CONFIG"]) for c in run.calls] == tempdirs.made
-        assert len(set(tempdirs.made)) == 2
-        assert not any(p.exists() for p in tempdirs.made)
+            # A constant directory that cannot exist, never a temp dir.
+            assert (
+                call.env["DOCKER_CONFIG"]
+                == DOCKER_CONFIG_DIR
+                == "/proc/nonexistent-felix-canary-docker-config"
+            )
+        assert not Path(DOCKER_CONFIG_DIR).exists()
 
     def test_empty_ps_makes_no_inspect_call(self, tmp_path: Path) -> None:
         run = docker_run("\n", "")
-        reading = read_container_scope(
-            run=run, deadline=deadline(), tempdir_factory=RecordingTempdirs(tmp_path)
-        )
+        reading = read_container_scope(run=run, deadline=deadline())
         assert reading.complete and reading.observations == () and reading.excluded == 0
         assert run.argvs() == [["docker", "ps", "-aq", "--no-trunc"]]
 
@@ -848,9 +824,7 @@ class TestReadContainerScope:
     ) -> None:
         lines = fixture("docker-inspect.txt").splitlines()
         run = docker_run(fixture("docker-ps.txt"), "\n".join(inspect(lines)) + "\n")
-        reading = read_container_scope(
-            run=run, deadline=deadline(), tempdir_factory=RecordingTempdirs(tmp_path)
-        )
+        reading = read_container_scope(run=run, deadline=deadline())
         assert not reading.complete
         assert reading.observations == ()
         assert reading.error and "docker inspect" in reading.error
@@ -862,9 +836,7 @@ class TestReadContainerScope:
     )
     def test_malformed_ps_fails_the_scope(self, tmp_path: Path, ps: str) -> None:
         run = docker_run(ps, "")
-        reading = read_container_scope(
-            run=run, deadline=deadline(), tempdir_factory=RecordingTempdirs(tmp_path)
-        )
+        reading = read_container_scope(run=run, deadline=deadline())
         assert not reading.complete and "docker ps" in (reading.error or "")
         assert len(run.calls) == 1
 
@@ -878,9 +850,7 @@ class TestReadContainerScope:
                 1, fixture("docker-inspect.txt"), "Error: No such object: abc"
             ),
         )
-        reading = read_container_scope(
-            run=run, deadline=deadline(), tempdir_factory=RecordingTempdirs(tmp_path)
-        )
+        reading = read_container_scope(run=run, deadline=deadline())
         assert not reading.complete
         assert (
             reading.error
@@ -899,20 +869,14 @@ class TestReadContainerScope:
     def test_command_exceptions_fail_the_scope(
         self, tmp_path: Path, exc: BaseException
     ) -> None:
-        tempdirs = RecordingTempdirs(tmp_path)
         run = FakeRun().on(["docker", "ps"], exc)
-        reading = read_container_scope(
-            run=run, deadline=deadline(), tempdir_factory=tempdirs
-        )
+        reading = read_container_scope(run=run, deadline=deadline())
         assert not reading.complete and "docker ps" in (reading.error or "")
-        assert not any(p.exists() for p in tempdirs.made)
 
     def test_empty_policy_is_excluded(self, tmp_path: Path) -> None:
         cid = "a" * 64
         run = docker_run(cid + "\n", f'"{cid}"|"/one"|5|""|"exited"\n')
-        reading = read_container_scope(
-            run=run, deadline=deadline(), tempdir_factory=RecordingTempdirs(tmp_path)
-        )
+        reading = read_container_scope(run=run, deadline=deadline())
         assert reading.complete and reading.observations == () and reading.excluded == 1
 
     def test_expired_deadline_runs_nothing(self, tmp_path: Path) -> None:
@@ -920,9 +884,7 @@ class TestReadContainerScope:
         d = deadline(clock)
         clock.advance(7)
         run = FakeRun()
-        reading = read_container_scope(
-            run=run, deadline=d, tempdir_factory=RecordingTempdirs(tmp_path)
-        )
+        reading = read_container_scope(run=run, deadline=d)
         assert not reading.complete and reading.error == "read deadline exceeded"
         assert run.calls == []
 
@@ -955,7 +917,6 @@ class TestReadAllScopes:
             clock=FakeClock(),
             budget_seconds=6,
             read_boot_id=lambda: BOOT,
-            tempdir_factory=RecordingTempdirs(tmp_path),
         )
         assert boot == BOOT
         assert [r.scope for r in readings] == list(SCOPES)
@@ -985,7 +946,6 @@ class TestReadAllScopes:
             clock=FakeClock(),
             budget_seconds=6,
             read_boot_id=lambda: None,
-            tempdir_factory=RecordingTempdirs(tmp_path),
         )
         assert boot is None
         assert [r.scope for r in readings] == list(SCOPES)
@@ -1003,7 +963,6 @@ class TestReadAllScopes:
             run=run,
             clock=FakeClock(),
             read_boot_id=boom,
-            tempdir_factory=RecordingTempdirs(tmp_path),
         )
         assert boot is None and run.calls == []
         assert all(r.error == "boot id unreadable" for r in readings)
@@ -1033,7 +992,6 @@ class TestReadAllScopes:
             clock=clock,
             budget_seconds=6,
             read_boot_id=lambda: BOOT,
-            tempdir_factory=RecordingTempdirs(tmp_path),
         )
         system, user, container = readings
         assert not system.complete and "timed out" in (system.error or "")
@@ -1058,7 +1016,6 @@ class TestReadAllScopes:
             run=run,
             clock=clock,
             read_boot_id=lambda: BOOT,
-            tempdir_factory=RecordingTempdirs(tmp_path),
         )
         assert [r.complete for r in readings] == [False, False, False]
         assert [r.error for r in readings[1:]] == ["read deadline exceeded"] * 2
@@ -1072,7 +1029,6 @@ class TestReadAllScopes:
             run=run,
             clock=FakeClock(),
             read_boot_id=lambda: BOOT,
-            tempdir_factory=RecordingTempdirs(tmp_path),
         )
         system, user, container = readings
         assert boot == BOOT
@@ -1087,21 +1043,8 @@ class TestReadAllScopes:
             run=run,
             clock=FakeClock(),
             read_boot_id=lambda: BOOT,
-            tempdir_factory=RecordingTempdirs(tmp_path),
         )
         assert [r.complete for r in readings] == [False, True, True]
-
-    def test_raising_tempdir_factory_fails_only_container(self) -> None:
-        def broken() -> AbstractContextManager[str]:
-            raise OSError("no tmp")
-
-        readings, _ = read_all_scopes(
-            run=full_run(),
-            clock=FakeClock(),
-            read_boot_id=lambda: BOOT,
-            tempdir_factory=broken,
-        )
-        assert [r.complete for r in readings] == [True, True, False]
 
     def test_per_command_timeout_within_cap_and_remaining_budget(
         self, tmp_path: Path
@@ -1124,7 +1067,6 @@ class TestReadAllScopes:
             clock=clock,
             budget_seconds=budget,
             read_boot_id=lambda: BOOT,
-            tempdir_factory=RecordingTempdirs(tmp_path),
         )
         assert len(seen) >= 5
         for timeout, remaining in seen:
@@ -1199,7 +1141,6 @@ class TestOverrunAfterLastCommand:
         reading = read_container_scope(
             run=run,
             deadline=deadline(clock),
-            tempdir_factory=RecordingTempdirs(tmp_path),
         )
         assert not reading.complete and reading.observations == ()
         assert "read deadline exceeded" in (reading.error or "")
@@ -1210,7 +1151,6 @@ class TestOverrunAfterLastCommand:
         reading = read_container_scope(
             run=run,
             deadline=deadline(clock),
-            tempdir_factory=RecordingTempdirs(tmp_path),
         )
         assert not reading.complete
         assert "read deadline exceeded" in (reading.error or "")
@@ -1238,7 +1178,6 @@ class TestOverrunAfterLastCommand:
             run=run,
             clock=clock,
             read_boot_id=lambda: BOOT,
-            tempdir_factory=RecordingTempdirs(tmp_path),
         )
         assert [r.complete for r in readings] == [True, True, False]
         assert "read deadline exceeded" in (readings[2].error or "")
@@ -1264,9 +1203,7 @@ class TestContainerNames:
             f'"{a}"|"/same"|0|"always"|"running"\n'
             f'"{b}"|"/same"|4|"always"|"restarting"\n',
         )
-        reading = read_container_scope(
-            run=run, deadline=deadline(), tempdir_factory=RecordingTempdirs(tmp_path)
-        )
+        reading = read_container_scope(run=run, deadline=deadline())
         assert not reading.complete and reading.observations == ()
         assert "duplicate container name: same" in (reading.error or "")
 
@@ -1278,9 +1215,7 @@ class TestContainerNames:
             f"{a}\n{b}\n",
             f'"{a}"|"/same"|0|"always"|"running"\n"{b}"|"/same"|0|"no"|"exited"\n',
         )
-        reading = read_container_scope(
-            run=run, deadline=deadline(), tempdir_factory=RecordingTempdirs(tmp_path)
-        )
+        reading = read_container_scope(run=run, deadline=deadline())
         assert not reading.complete
         assert "duplicate container name" in (reading.error or "")
 
@@ -1295,9 +1230,7 @@ class TestContainerNames:
         run = docker_run(
             cid + "\n", f'"{cid}"|{json_name(bad)}|0|"{policy}"|"exited"\n'
         )
-        reading = read_container_scope(
-            run=run, deadline=deadline(), tempdir_factory=RecordingTempdirs(tmp_path)
-        )
+        reading = read_container_scope(run=run, deadline=deadline())
         assert not reading.complete
         assert "malformed name" in (reading.error or "")
 
@@ -1305,8 +1238,92 @@ class TestContainerNames:
     def test_valid_names_pass(self, tmp_path: Path, good: str) -> None:
         cid = "d" * 64
         run = docker_run(cid + "\n", f'"{cid}"|"{good}"|2|"always"|"running"\n')
-        reading = read_container_scope(
-            run=run, deadline=deadline(), tempdir_factory=RecordingTempdirs(tmp_path)
-        )
+        reading = read_container_scope(run=run, deadline=deadline())
         assert reading.complete
         assert watched(reading) == {good[1:]: 2}
+
+
+# --------------------------------------------------------------------------- #
+# The production read path writes nothing (post-merge review, dry run).
+# --------------------------------------------------------------------------- #
+def _forbid_writes(monkeypatch: pytest.MonkeyPatch) -> list[str]:
+    """Make every filesystem mutation raise, and record the attempt.
+
+    Copied from tests/deploy/test_deploy_crash_loop_unit_alerting.py.
+    """
+    import builtins
+    import io
+    import os
+    import shutil
+    import tempfile
+
+    attempts: list[str] = []
+
+    def refuse(what: str) -> Callable[..., object]:
+        def _refused(*args: object, **_kwargs: object) -> object:
+            attempts.append(f"{what}{args[:1]!r}")
+            raise AssertionError(f"read attempted a write: {what}")
+
+        return _refused
+
+    real_open = builtins.open
+    real_io_open = io.open
+
+    def guarded(real: Callable[..., object]) -> Callable[..., object]:
+        def _open(
+            file: object, mode: str = "r", *args: object, **kwargs: object
+        ) -> object:
+            if any(c in str(mode) for c in "wax+"):
+                attempts.append(f"open({file!r}, {mode!r})")
+                raise AssertionError(f"read attempted a write: open {file!r} {mode!r}")
+            return real(file, mode, *args, **kwargs)
+
+        return _open
+
+    monkeypatch.setattr(builtins, "open", guarded(real_open))
+    monkeypatch.setattr(io, "open", guarded(real_io_open))
+    for name in (
+        "replace", "rename", "remove", "unlink", "mkdir", "makedirs", "rmdir",
+        "symlink", "link", "truncate", "chmod", "open",
+    ):  # fmt: skip
+        monkeypatch.setattr(os, name, refuse(f"os.{name}"))
+    for name in (
+        "write_text", "write_bytes", "mkdir", "touch", "unlink", "rename",
+        "replace", "rmdir", "symlink_to", "chmod",
+    ):  # fmt: skip
+        monkeypatch.setattr(Path, name, refuse(f"Path.{name}"))
+    for name in ("move", "copy", "copy2", "copyfile", "copytree", "rmtree"):
+        monkeypatch.setattr(shutil, name, refuse(f"shutil.{name}"))
+    for name in (
+        "mkstemp", "mkdtemp", "NamedTemporaryFile", "TemporaryFile",
+        "TemporaryDirectory", "SpooledTemporaryFile",
+    ):  # fmt: skip
+        monkeypatch.setattr(tempfile, name, refuse(f"tempfile.{name}"))
+    return attempts
+
+
+def test_forbid_writes_guard_fires(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    import tempfile
+
+    attempts = _forbid_writes(monkeypatch)
+    with pytest.raises(AssertionError):
+        (tmp_path / "x").write_text("x")
+    with pytest.raises(AssertionError):
+        tempfile.TemporaryDirectory()
+    assert len(attempts) == 2
+
+
+def test_read_all_scopes_writes_nothing(monkeypatch: pytest.MonkeyPatch) -> None:
+    attempts = _forbid_writes(monkeypatch)
+    run = full_run()
+    readings, boot = read_all_scopes(run=run, read_boot_id=lambda: BOOT)
+    assert attempts == []
+    assert boot == BOOT
+    assert [r.complete for r in readings] == [True, True, True], [
+        r.error for r in readings
+    ]
+    docker_calls = [c for c in run.calls if c.argv[0] == "docker"]
+    assert len(docker_calls) == 2
+    assert all(c.env["DOCKER_CONFIG"] == DOCKER_CONFIG_DIR for c in docker_calls)

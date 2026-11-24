@@ -395,9 +395,12 @@ Three scopes, read without sudo and without the journal:
 Units on the ignore list are left out. Units are keyed `system:<Id>`,
 `user:<Id>` and `container:<name>` (the name without its leading `/`).
 
-Each docker command runs with `DOCKER_CONFIG` set to a fresh empty temporary
-directory, so the CLI loads no `config.json` and no registry credential, and
-with `DOCKER_HOST=unix:///var/run/docker.sock`. The CLI still fetches each
+Each docker command runs with `DOCKER_CONFIG` set to a directory that cannot
+exist, `/proc/nonexistent-felix-canary-docker-config`, so the CLI loads no `config.json` and no
+registry credential, and with `DOCKER_HOST=unix:///var/run/docker.sock`.
+Nothing is created there, so a read (a dry run included) writes nothing. If the
+CLI ever tried to create the directory, the command would fail and the
+container scope would report could-not-check. The CLI still fetches each
 container's full inspect object from the daemon; the canary process receives
 only the five formatted fields (ID, name, restart count, restart policy,
 status).

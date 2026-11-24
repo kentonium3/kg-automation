@@ -826,7 +826,7 @@ felix-canary pass (flow felix-canary, after inventory components + coverage gaps
   → /proc/sys/kernel/random/boot_id                          (read — host generation)
   → systemctl list-units + systemctl show -p Id,Restart,NRestarts,…          (scope system, unprivileged)
   → systemctl --user list-units + show (claude's own manager)               (scope user)
-  → docker ps -aq --no-trunc + docker inspect --format '<5 fields>'          (scope container; empty DOCKER_CONFIG,
+  → docker ps -aq --no-trunc + docker inspect --format '<5 fields>'          (scope container; nonexistent DOCKER_CONFIG,
                                                                                DOCKER_HOST=unix:///var/run/docker.sock)
        → scripts.canary.crash_loop.evaluate_tick   (proven-crossing rule + per-unit episode state machine)
        → _route: crash-loop:system / crash-loop:user / crash-loop:container   (healthy | unknown "could not check: …")
@@ -850,8 +850,9 @@ as a rise. **Detection only**: nothing is restarted or stopped. **No LLM.**
   `claude` user manager's services whose `Restart=` is not `no`, and containers
   whose restart policy is not `no`, minus the ignore list. One deadline of 6 s
   covers all three scopes, and each command gets at most 3 s. **Docker isolation:**
-  every docker command runs with `DOCKER_CONFIG` set to a fresh empty temporary
-  directory, so the CLI loads no `config.json` and no registry credential.
+  every docker command runs with `DOCKER_CONFIG` set to a directory that cannot
+  exist (`/proc/nonexistent-felix-canary-docker-config`), so the CLI loads no `config.json` and
+  no registry credential, and the read writes nothing.
   `DOCKER_HOST` is pinned to the local socket and `DOCKER_CONTEXT` is unset.
   `--format` limits what the CLI prints, not what it fetches: the CLI retrieves
   the full inspect object from the daemon, and the canary process receives only

@@ -1626,7 +1626,7 @@
           "from": "scripts/canary/crash_loop_readers.py",
           "to": "docker daemon (unix:///var/run/docker.sock)",
           "protocol": "subprocess argv: docker ps -aq --no-trunc, then one docker inspect --format '{{json .Id}}|{{json .Name}}|{{.RestartCount}}|{{json .HostConfig.RestartPolicy.Name}}|{{json .State.Status}}' -- <ids>",
-          "description": "Scope container, as a docker-group member. Docker isolation: each command runs with DOCKER_CONFIG set to a fresh empty temporary directory (removed afterwards, so no config.json or registry credential is loaded), DOCKER_HOST pinned to the local socket and DOCKER_CONTEXT unset. --format limits what the CLI prints, not what it retrieves: the CLI fetches the full inspect object from the daemon and formats it in its own process, and the canary process receives only the five formatted fields. Containers with restart policy no or empty are excluded by policy."
+          "description": "Scope container, as a docker-group member. Docker isolation: each command runs with DOCKER_CONFIG set to a directory that cannot exist (/proc/nonexistent-felix-canary-docker-config), so no config.json or registry credential is loaded and the read writes nothing, DOCKER_HOST pinned to the local socket and DOCKER_CONTEXT unset. --format limits what the CLI prints, not what it retrieves: the CLI fetches the full inspect object from the daemon and formats it in its own process, and the canary process receives only the five formatted fields. Containers with restart policy no or empty are excluded by policy."
         },
         {
           "from": "scripts/canary/crash_loop_readers.py",
