@@ -25,7 +25,8 @@ checkout pull cannot show the stage actually works, so this entrypoint does:
            ``crash-loop:container`` lines with ``evaluated_at >= t0``, each
            ``healthy`` (the scope was read completely);
        (c) ``last-tick.json`` ``completed_at_utc >= t0`` and no ``errors``
-           entry starts with ``crash_loop``;
+           entry starts with ``crash_loop`` or ``ledger:crash-loop:`` (a failed
+           crash-loop ledger append would hide an event from check (d));
        (d) every crash-loop event line from this run has ``delivered: true``.
      A genuine crash-loop alert at apply time, delivered, is a SUCCESSFUL
      deploy: Kent has been told. The first pass only records baselines, so none
@@ -79,7 +80,12 @@ TICK_PATH = Path("/data/services/felix-canary/state/last-tick.json")
 LEDGER_DIR = Path("/data/services/felix-canary/ledger")
 _EVENT_PREFIX = "crash-loop"
 _UNVERIFIED_OUTCOME = "crash-loop-unverified"
-_TICK_ERROR_PREFIX = "crash_loop"
+# Tick errors that void the proof. ``crash_loop`` covers stage faults, the
+# held lock and ``crash_loop_state_save:``. A failed ledger append is recorded
+# as ``ledger:<component_id>:...``; for a crash-loop scope or event line that
+# means the ledger cannot be trusted to show every event (an undelivered alert
+# whose line was never written would otherwise pass check (d)).
+_TICK_ERROR_PREFIXES = ("crash_loop", "ledger:crash-loop:")
 
 Runner = Callable[[list[str], float], "tuple[int, str, str]"]
 ReadText = Callable[[Path], str]
@@ -239,10 +245,11 @@ def _check_tick(read_text: ReadText, t0: datetime) -> list[Check]:
     errors = doc.get("errors")
     if not isinstance(errors, list):
         return [fresh, Check("tick-errors", False, f"errors={errors!r} is not a list")]
-    hits = [e for e in errors if isinstance(e, str) and e.startswith(_TICK_ERROR_PREFIX)]
+    hits = [e for e in errors if isinstance(e, str) and e.startswith(_TICK_ERROR_PREFIXES)]
     if hits:
         return [fresh, Check("tick-errors", False, f"crash-loop errors: {hits}")]
-    return [fresh, Check("tick-errors", True, f"no crash_loop entry in {len(errors)} errors")]
+    return [fresh, Check("tick-errors", True,
+                         f"no crash_loop or ledger:crash-loop entry in {len(errors)} errors")]
 
 
 def _check_events(lines: list[dict]) -> Check:

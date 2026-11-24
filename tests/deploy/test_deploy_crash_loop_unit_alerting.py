@@ -228,14 +228,70 @@ def test_dry_run_preflight_failure_reads_nothing():
     assert calls == []
 
 
-def test_dry_run_writes_nothing(tmp_path, monkeypatch):
-    monkeypatch.chdir(tmp_path)
-    before = sorted(tmp_path.rglob("*"))
-    mod.dry_run(read_scopes=lambda *, budget_seconds: (_readings(), "boot"),
-                preflight=lambda: True, load_config=lambda: CONFIG)
-    assert sorted(tmp_path.rglob("*")) == before
-    # The dry run takes no file-writing hooks at all.
-    assert "write" not in mod.dry_run.__code__.co_varnames
+def _forbid_writes(monkeypatch) -> list[str]:
+    """Make every filesystem mutation raise, and record the attempt."""
+    import builtins
+    import io
+    import shutil
+    import tempfile
+
+    attempts: list[str] = []
+
+    def refuse(what: str):
+        def _refused(*args, **_kwargs):
+            attempts.append(f"{what}{args[:1]!r}")
+            raise AssertionError(f"dry run attempted a write: {what}")
+        return _refused
+
+    real_open = builtins.open
+    real_io_open = io.open
+
+    def guarded(real):
+        def _open(file, mode="r", *args, **kwargs):
+            if any(c in str(mode) for c in "wax+"):
+                attempts.append(f"open({file!r}, {mode!r})")
+                raise AssertionError(f"dry run attempted a write: open {file!r} {mode!r}")
+            return real(file, mode, *args, **kwargs)
+        return _open
+
+    monkeypatch.setattr(builtins, "open", guarded(real_open))
+    monkeypatch.setattr(io, "open", guarded(real_io_open))
+    for name in ("replace", "rename", "remove", "unlink", "mkdir", "makedirs", "rmdir",
+                 "symlink", "link", "truncate", "chmod", "open"):
+        monkeypatch.setattr(os, name, refuse(f"os.{name}"))
+    for name in ("write_text", "write_bytes", "mkdir", "touch", "unlink", "rename",
+                 "replace", "rmdir", "symlink_to", "chmod"):
+        monkeypatch.setattr(Path, name, refuse(f"Path.{name}"))
+    for name in ("move", "copy", "copy2", "copyfile", "copytree", "rmtree"):
+        monkeypatch.setattr(shutil, name, refuse(f"shutil.{name}"))
+    for name in ("mkstemp", "mkdtemp", "NamedTemporaryFile", "TemporaryFile",
+                 "TemporaryDirectory", "SpooledTemporaryFile"):
+        monkeypatch.setattr(tempfile, name, refuse(f"tempfile.{name}"))
+    return attempts
+
+
+def test_forbid_writes_guard_actually_fires(monkeypatch, tmp_path):
+    attempts = _forbid_writes(monkeypatch)
+    with pytest.raises(AssertionError):
+        (tmp_path / "x").write_text("x")
+    with pytest.raises(AssertionError):
+        open(tmp_path / "y", "w")  # noqa: SIM115
+    assert len(attempts) == 2
+
+
+@pytest.mark.parametrize("incomplete", [None, "user"])
+def test_dry_run_writes_nothing(monkeypatch, capsys, incomplete):
+    # The real config loader and preflight's config check run under the guard;
+    # only the scope reader (systemd/podman) and the user lookups are injected.
+    attempts = _forbid_writes(monkeypatch)
+    rc = mod.dry_run(
+        read_scopes=lambda *, budget_seconds: (_readings(incomplete), "boot"),
+        preflight=lambda: mod.preflight(user_name=lambda: "claude",
+                                        home=lambda: Path("/home/claude")),
+    )
+    assert attempts == []
+    assert rc == (0 if incomplete is None else 1)
+    assert "dry run" in capsys.readouterr().out
 
 
 # --------------------------------------------------------------------------- #
@@ -299,6 +355,30 @@ def test_apply_fails_on_crash_loop_tick_error(capsys):
 def test_apply_fails_on_state_save_error():
     tick = _tick(errors=["crash_loop_state_save:OSError:disk full"])
     assert Harness(Pass(tick=tick)).apply() == 1
+
+
+def test_apply_fails_on_event_ledger_append_error_hiding_an_event(capsys):
+    """Regression (review cycle 1): an event whose ledger append failed leaves no
+    line for check (d); the tick's ``ledger:crash-loop:`` error must fail it."""
+    tick = _tick(errors=["ledger:crash-loop:system:obsidian-sync.service:OSError:disk full"])
+    h = Harness(Pass(tick=tick, lines=_scope_lines()))  # fresh, healthy, no event line
+    assert h.apply() == 1
+    assert len(h.runs) == 1
+    out = capsys.readouterr().out
+    assert "FAIL tick-errors" in out
+    assert "PASS events-delivered" in out  # (d) alone cannot see the missing line
+
+
+@pytest.mark.parametrize("error", [
+    "ledger:crash-loop:user:OSError:disk full",            # a scope line append
+    "ledger:crash-loop:container:x:OSError:disk full",     # an event line append
+    "crash_loop_state_save:OSError:disk full",
+    "crash_loop:RuntimeError:boom",
+])
+def test_apply_fails_on_every_crash_loop_tick_error(error):
+    h = Harness(Pass(tick=_tick(errors=[error])))
+    assert h.apply() == 1
+    assert len(h.runs) == 1
 
 
 def test_apply_ignores_unrelated_tick_errors():
@@ -407,12 +487,20 @@ def test_paths_match_the_canary_modules():
 # The entrypoint and the manifest.
 # --------------------------------------------------------------------------- #
 def _manifest_path() -> Path:
-    """felix-deployer moves the queued manifest to ``deploys/applied/`` on apply."""
-    for sub in ("queued", "applied"):
-        found = sorted((_ROOT / "deploys" / sub).glob(f"*{NAME}.yaml"))
-        if found:
-            return found[-1]
+    """Queued under its exact slug name (felix-deployer assigns the number);
+    once applied it lives at ``deploys/applied/<NNNN>-<slug>.yaml``."""
+    queued = _ROOT / "deploys" / "queued" / f"{NAME}.yaml"
+    if queued.exists():
+        return queued
+    applied = sorted((_ROOT / "deploys" / "applied").glob(f"[0-9][0-9][0-9][0-9]-{NAME}.yaml"))
+    if applied:
+        return applied[-1]
     raise AssertionError(f"no {NAME} manifest found")
+
+
+def test_queued_manifest_has_no_number_prefix():
+    numbered = sorted((_ROOT / "deploys" / "queued").glob(f"*{NAME}.yaml"))
+    assert all(p.name == f"{NAME}.yaml" for p in numbered), numbered
 
 
 def _manifest() -> dict:
@@ -428,7 +516,11 @@ def test_manifest_validates_against_schema():
 def test_manifest_shape():
     m = _manifest()
     assert m["name"] == NAME
-    assert re.sub(r"^\d{4}-", "", _manifest_path().stem) == m["name"]
+    path = _manifest_path()
+    if path.parent.name == "queued":
+        assert path.name == f"{m['name']}.yaml"
+    else:
+        assert re.fullmatch(rf"\d{{4}}-{re.escape(m['name'])}", path.stem)
     assert m["issue"] == "kentonium3/kg-automation#1133"
     assert m["tier"] == 3
     assert m["audited_surface"] is True
