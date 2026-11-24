@@ -1,0 +1,137 @@
+{
+  "version": 1,
+  "mission_slug": "crash-loop-unit-alerting-01M858E8",
+  "mission_id": "01M858E87DN63KXM0WYB94FNRT",
+  "mission_branch": "kitty/mission-crash-loop-unit-alerting-01M858E8",
+  "target_branch": "fix/crash-loop-unit-alerting",
+  "lanes": [
+    {
+      "lane_id": "lane-a",
+      "wp_ids": [
+        "WP01"
+      ],
+      "write_scope": [
+        "scripts/canary/crash_loop_config.json",
+        "scripts/canary/crash_loop_model.py",
+        "scripts/canary/crash_loop_state.py",
+        "tests/canary/test_crash_loop_model.py",
+        "tests/canary/test_crash_loop_state.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "tracker-integration"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    },
+    {
+      "lane_id": "lane-b",
+      "wp_ids": [
+        "WP02"
+      ],
+      "write_scope": [
+        "scripts/canary/crash_loop.py",
+        "tests/canary/test_crash_loop.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "artifact-rendering",
+        "legacy-cleanup",
+        "tracker-integration"
+      ],
+      "depends_on_lanes": [
+        "lane-a"
+      ],
+      "parallel_group": 1
+    },
+    {
+      "lane_id": "lane-c",
+      "wp_ids": [
+        "WP03"
+      ],
+      "write_scope": [
+        "scripts/canary/crash_loop_readers.py",
+        "tests/canary/fixtures/crash_loop/**",
+        "tests/canary/test_crash_loop_readers.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "legacy-cleanup",
+        "tracker-integration"
+      ],
+      "depends_on_lanes": [
+        "lane-a"
+      ],
+      "parallel_group": 1
+    },
+    {
+      "lane_id": "lane-d",
+      "wp_ids": [
+        "WP04"
+      ],
+      "write_scope": [
+        "scripts/canary/run.py",
+        "tests/canary/test_run.py",
+        "tests/canary/test_run_crash_loop.py",
+        "tests/canary/test_run_deadman.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "tracker-integration"
+      ],
+      "depends_on_lanes": [
+        "lane-b",
+        "lane-c"
+      ],
+      "parallel_group": 2
+    },
+    {
+      "lane_id": "lane-e",
+      "wp_ids": [
+        "WP05"
+      ],
+      "write_scope": [
+        "deploys/queued/0043-crash-loop-unit-alerting.yaml",
+        "scripts/deploy/deploy-crash-loop-unit-alerting.py",
+        "tests/deploy/test_deploy_crash_loop_unit_alerting.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "artifact-rendering",
+        "tracker-integration"
+      ],
+      "depends_on_lanes": [
+        "lane-d"
+      ],
+      "parallel_group": 3
+    },
+    {
+      "lane_id": "lane-f",
+      "wp_ids": [
+        "WP06"
+      ],
+      "write_scope": [
+        "docs/INDEX.md",
+        "docs/design/architecture/data-flows.md",
+        "docs/design/architecture/data/data-flows.json",
+        "docs/design/architecture/data/service-inventory.json",
+        "docs/design/architecture/observability-and-alerting.md",
+        "docs/design/architecture/service-dependencies.view.md",
+        "docs/design/architecture/service-inventory.md",
+        "docs/design/felix-capability-roadmap.md",
+        "docs/runbooks/canary-registry-ops.md"
+      ],
+      "predicted_surfaces": [
+        "api"
+      ],
+      "depends_on_lanes": [
+        "lane-d"
+      ],
+      "parallel_group": 3
+    }
+  ],
+  "computed_at": "2026-11-23T23:15:37.875263+00:00",
+  "computed_from": "dependency_graph+ownership",
+  "planning_artifact_wps": [],
+  "planning_commit_sha": "62206c9780042b497ec840713db3ef041473ebb0"
+}

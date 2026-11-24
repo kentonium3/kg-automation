@@ -1,0 +1,9 @@
+{
+  "threshold": 3,
+  "consecutive_rise_ticks": 2,
+  "quiet_ticks_to_clear": 2,
+  "reremind_ticks": 24,
+  "max_alerts_per_tick": 3,
+  "read_budget_seconds": 6,
+  "ignore": []
+}

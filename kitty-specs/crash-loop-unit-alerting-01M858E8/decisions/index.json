@@ -1,0 +1,130 @@
+{
+  "entries": [
+    {
+      "created_at": "2026-11-23T22:29:48.741295Z",
+      "decision_id": "01M858F6J5R952H2XV7BD5Q8VR",
+      "final_answer": "B: Every system and user unit that has a restart policy, plus docker containers, minus an ignore list",
+      "input_key": "watched_units",
+      "mission_id": "01M858E87DN63KXM0WYB94FNRT",
+      "mission_slug": "crash-loop-unit-alerting-01M858E8",
+      "opened_by": "cli",
+      "options": [
+        "A: A curated list - the long-running services in service-inventory.json (obsidian-sync, openclaw-gateway, ollama) plus the docker containers",
+        "B (recommended): Every system and user unit that has a restart policy, minus an ignore list",
+        "C: Only inventory units that already carry a systemd-status health check",
+        "Other"
+      ],
+      "origin_flow": "specify",
+      "other_answer": false,
+      "question": "When a unit on office2 keeps restarting without ever reaching the failed state, which units should raise an alert?",
+      "rationale": null,
+      "resolved_at": "2026-11-23T22:32:23.051383Z",
+      "resolved_by": null,
+      "slot_key": "specify.scope.watched-units",
+      "status": "resolved",
+      "step_id": null,
+      "summary_json": null
+    },
+    {
+      "created_at": "2026-11-23T22:32:30.900404Z",
+      "decision_id": "01M858M4XMRTEBMHGBVVY10QCW",
+      "final_answer": "B: N restarts within a window, one global default (e.g. >=3 in 15 min); a single restart does not alert",
+      "input_key": "loop_threshold",
+      "mission_id": "01M858E87DN63KXM0WYB94FNRT",
+      "mission_slug": "crash-loop-unit-alerting-01M858E8",
+      "opened_by": "cli",
+      "options": [
+        "A: Any increase in NRestarts between two checks",
+        "B (recommended): N restarts within a window, global default (e.g. >=3 in 15 min)",
+        "C: A per-unit threshold kept in service-inventory.json",
+        "Other"
+      ],
+      "origin_flow": "specify",
+      "other_answer": false,
+      "question": "What restart rate counts as a crash loop?",
+      "rationale": null,
+      "resolved_at": "2026-11-23T22:32:32.267519Z",
+      "resolved_by": null,
+      "slot_key": "specify.signal.loop-threshold",
+      "status": "resolved",
+      "step_id": null,
+      "summary_json": null
+    },
+    {
+      "created_at": "2026-11-23T22:32:33.562585Z",
+      "decision_id": "01M858M7GTC56YQZ1Y6XZPJQXX",
+      "final_answer": "A: felix-canary, as a new probe method",
+      "input_key": "owning_monitor",
+      "mission_id": "01M858E87DN63KXM0WYB94FNRT",
+      "mission_slug": "crash-loop-unit-alerting-01M858E8",
+      "opened_by": "cli",
+      "options": [
+        "A (recommended): felix-canary, as a new probe method",
+        "B: felix-health-check",
+        "C: The security monitor",
+        "D: A new dedicated timer",
+        "Other"
+      ],
+      "origin_flow": "specify",
+      "other_answer": false,
+      "question": "Which existing monitor should own crash-loop detection?",
+      "rationale": null,
+      "resolved_at": "2026-11-23T22:32:34.919943Z",
+      "resolved_by": null,
+      "slot_key": "specify.placement.owning-monitor",
+      "status": "resolved",
+      "step_id": null,
+      "summary_json": null
+    },
+    {
+      "created_at": "2026-11-23T22:32:36.251046Z",
+      "decision_id": "01M858MA4V9RNQFF2PAN0XY563",
+      "final_answer": "A: Within one canary tick (<=15 min), using the persistent NRestarts counter",
+      "input_key": "detection_latency",
+      "mission_id": "01M858E87DN63KXM0WYB94FNRT",
+      "mission_slug": "crash-loop-unit-alerting-01M858E8",
+      "opened_by": "cli",
+      "options": [
+        "A (recommended): Within one canary tick (<=15 min), using the persistent restart counter",
+        "B: Within 5 min (faster cadence or event-driven hook)",
+        "Other"
+      ],
+      "origin_flow": "specify",
+      "other_answer": false,
+      "question": "How fast must a crash-loop alert land?",
+      "rationale": null,
+      "resolved_at": "2026-11-23T22:32:37.590594Z",
+      "resolved_by": null,
+      "slot_key": "specify.latency.detection-window",
+      "status": "resolved",
+      "step_id": null,
+      "summary_json": null
+    },
+    {
+      "created_at": "2026-11-23T22:32:38.874096Z",
+      "decision_id": "01M858MCPTFXEKHDDM7ZCSP4N0",
+      "final_answer": "A: Once per loop episode, with a cleared entry after K quiet ticks (matching the canary dedup)",
+      "input_key": "alert_lifecycle",
+      "mission_id": "01M858E87DN63KXM0WYB94FNRT",
+      "mission_slug": "crash-loop-unit-alerting-01M858E8",
+      "opened_by": "cli",
+      "options": [
+        "A (recommended): Once per loop episode, with a cleared entry after K quiet ticks",
+        "B: On every tick while the loop continues",
+        "Other"
+      ],
+      "origin_flow": "specify",
+      "other_answer": false,
+      "question": "Once a crash loop has alerted, when should it alert again or clear?",
+      "rationale": null,
+      "resolved_at": "2026-11-23T22:32:40.211725Z",
+      "resolved_by": null,
+      "slot_key": "specify.lifecycle.alert-repeat-clear",
+      "status": "resolved",
+      "step_id": null,
+      "summary_json": null
+    }
+  ],
+  "mission_id": "01M858E87DN63KXM0WYB94FNRT",
+  "version": 1
+}

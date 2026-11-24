@@ -4,11 +4,11 @@ doc_type: guide
 level: reference
 status: approved
 owners: [kgale]
-last_validated: 2026-11-21
-revision: v1.6
+last_validated: 2026-11-23
+revision: v1.7
 audience: agents_and_humans
-updated_by: '#1120 (+canonical-livepatch, independent host hardening; no Felix service depends on it) + backup-integrity-observability-01M1414D (#903: +backup-script-drift, observe-only) + crontab-backup-coverage-01M12V87 (#895: +Host-State Capture subgraph — crontab-capture produces into an existing Restic source path; agent-drift-check registered for health) + #699'
-tags: [309, 408, 518, 519, 520, 579, 679, 699, 1120]
+updated_by: 'crash-loop-unit-alerting-01M858E8 (#1133: +Observability subgraph — felix-canary reads systemd NRestarts and docker RestartCount for crash-loop detection, unprivileged; planned until manifest crash-loop-unit-alerting.yaml is applied) + #1120 (+canonical-livepatch, independent host hardening; no Felix service depends on it) + backup-integrity-observability-01M1414D (#903: +backup-script-drift, observe-only) + crontab-backup-coverage-01M12V87 (#895: +Host-State Capture subgraph — crontab-capture produces into an existing Restic source path; agent-drift-check registered for health) + #699'
+tags: [309, 408, 518, 519, 520, 579, 679, 699, 1120, 1133]
 ---
 
 # Service Dependencies
@@ -16,6 +16,13 @@ tags: [309, 408, 518, 519, 520, 579, 679, 699, 1120]
 Visual dependency map of office2 services, grouped by tier.
 Arrows show runtime dependencies. The critical external path
 (port 443 through tailscale-serve into vikunja) is highlighted.
+Updated 2026-11-23 (#1133, mission `crash-loop-unit-alerting-01M858E8`) — added
+the Observability subgraph with `felix-canary` and its crash-loop read
+dependencies on the systemd system manager, the `claude` user manager and the
+docker daemon (dotted, read-only, no privilege). Planned: these edges become
+live when `deploys/queued/crash-loop-unit-alerting.yaml` is applied.
+The canary's other dependencies (the inventory and the alert bus) are not
+modelled in this view.
 Updated 2026-07-09 (#699, closes #679) — the Calendar surface migrated
 off `gog`: added the `felix-calendar-helper` node (on-demand helper, venv)
 with direct edges to `Google Calendar API v3` and the per-account personal
@@ -78,6 +85,10 @@ graph LR
         driftcheck["agent-drift-check<br/>Tier 3<br/>(daily 06:00)<br/>monitors agent-prompt-sync,<br/>not modelled in this view"]
     end
 
+    subgraph Observability["Observability (Tier 3)"]
+        canary["felix-canary<br/>Tier 3<br/>(15-min, crash-loop stage #1133)"]
+    end
+
     subgraph Sync["Sync Services (Tier 3)"]
         obsidian["obsidian-sync<br/>Tier 3"]
         secondbrain["second-brain-sync<br/>Tier 3<br/>🗑 RETIRED #712"]
@@ -94,6 +105,8 @@ graph LR
         tailscale["tailscale-serve:443"]
         anthropic["anthropic-api"]
         docker["docker"]
+        systemd_sys["systemd<br/>(system manager)"]
+        systemd_user["systemd --user<br/>(claude manager)"]
         gog["gog CLI<br/>(Workspace: mail/drive —<br/>Calendar migrated off #699)"]
         google_cal_api["Google Calendar API v3"]
         livepatch_cloud["livepatch.canonical.com"]
@@ -131,6 +144,10 @@ graph LR
     taskdet -->|"reads base URL<br/>(TP-12, #519)"| url_config
     crontabcap -->|"produces-for<br/>(writes into an existing<br/>Restic source path, #895)"| restic
     scriptdrift -->|"monitors<br/>(repo vs deployed script;<br/>never writes, #903)"| restic
+
+    canary -.->|"monitors<br/>(NRestarts, unprivileged;<br/>planned #1133)"| systemd_sys
+    canary -.->|"monitors<br/>(NRestarts, own manager;<br/>planned #1133)"| systemd_user
+    canary -.->|"monitors<br/>(RestartCount, nonexistent DOCKER_CONFIG;<br/>planned #1133)"| docker
 ```
 
 ## Reading the Diagram
@@ -138,7 +155,7 @@ graph LR
 | Symbol | Meaning |
 |--------|---------|
 | Solid arrow (`-->`) | Runtime dependency ("requires") |
-| Dotted arrow (`-.->`) | Critical external ingress path |
+| Dotted arrow (`-.->`) | Critical external ingress path; or a read-only monitoring edge (labelled `monitors`) |
 | Subgraph shading | Tier grouping |
 
 ## Key Observations
@@ -152,6 +169,11 @@ graph LR
 - **Infrastructure isolation**: security-monitor has no upstream
   dependencies and no downstream consumers shown here; it operates
   independently.
+- **Crash-loop detection reads, never acts (#1133, planned)**: `felix-canary`
+  reads the persistent restart counters (`NRestarts` from the system manager
+  and its own `claude` user manager, `RestartCount` from the docker daemon)
+  without sudo or the journal. It never restarts or stops a unit. A manager it
+  cannot read makes that scope `unknown`; the scope is never read as healthy.
 - **Sync independence**: obsidian-sync has no dependency on the core or
   agent tiers, so sync continues even during service outages.
   (second-brain-sync was retired 2026-07-12 — #712.)
