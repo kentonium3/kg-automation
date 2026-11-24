@@ -1,4 +1,16 @@
 {
+  "acceptance_history": [
+    {
+      "acceptance_mode": "pr",
+      "accepted_at": "2026-11-24T00:48:16.213250+00:00",
+      "accepted_by": "claude-orchestrator",
+      "accepted_from_commit": "e748c9f5d989af94456fc53c454c68815a5fcc24"
+    }
+  ],
+  "acceptance_mode": "pr",
+  "accepted_at": "2026-11-24T00:48:16.213250+00:00",
+  "accepted_by": "claude-orchestrator",
+  "accepted_from_commit": "e748c9f5d989af94456fc53c454c68815a5fcc24",
   "coordination_branch": "kitty/mission-crash-loop-unit-alerting-01M858E8",
   "create_return_branch": "fix/crash-loop-unit-alerting",
   "created_at": "2026-11-23T22:29:17.712305+00:00",
@@ -26,5 +38,7 @@
     "wp_count": 6
   },
   "topology_settled": true,
-  "topology_source": "default"
+  "topology_source": "default",
+  "vcs": "git",
+  "vcs_locked_at": "2026-11-23T23:17:26.546428+00:00"
 }
