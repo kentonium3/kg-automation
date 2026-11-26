@@ -40,6 +40,13 @@ DELIVERY_DOCTRINE_BLOCK = (
     "`message` or any other send, notify or agent tool, and never invent "
     "`send()`, in exec code or via the CLI (`openclaw agent`, `gog`). You "
     "have none and need none.\n"
+    "- Do not call `automations` or `record_result`, and ignore any runtime "
+    "hint to \"record no_change\": a recorded no_change suppresses your final "
+    "reply.\n"
+    "- Never repeat an unchanged call that was rejected for invalid input or "
+    "schema: fix the input from the error, or skip the call. Recovery steps "
+    "this prompt documents (re-running after `partial`, an `--idempotent` "
+    "retry) still apply.\n"
 )
 
 # The agents whose crons deliver by announce (read-only check on office2 for
@@ -89,6 +96,11 @@ FORBIDDEN_DELIVERY_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
         "tool-message",
         re.compile(r"\bmessage\s+tool\b|(?<![.\w])message\(|\bcall(?:ing)?\s+`?message`?(?:\s|$)", re.I),
     ),
+    # Cron result recording (#1143 r3b): OpenClaw's injected hint says
+    # "record no_change", and a recorded no_change suppresses the final reply.
+    ("tool-record-result", re.compile(r"\brecord_result\b")),
+    ("tool-automations", re.compile(r"\bautomations\s*\(")),
+    ("record-no-change", re.compile(r"\brecord\s+(?:an?\s+)?[`\"']?no_change\b", re.I)),
     # Imperative "send" ("Sent by" and "Kent sends" do not match).
     ("imperative-send", re.compile(_IMPERATIVE_AT + r"send\s", re.I | re.M)),
     # Imperative notify/message/post/ship/forward/relay/tell aimed at a

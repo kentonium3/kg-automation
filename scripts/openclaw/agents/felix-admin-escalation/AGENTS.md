@@ -48,7 +48,7 @@ that lives in `felix-admin-habits` and `felix-admin-capture` AGENTS.md.
 
 **Hard rule #1 — `IDLE` means the literal byte string `[felix-admin-escalation]: IDLE` (literal brackets, colon, single space, then the four-character `IDLE` marker), and NOTHING before or after it.** No "Helper exit code 0…" preamble, no "All clean — IDLE" wrapper, no leading text before `[`, no trailing prose after `IDLE`. The ENTIRE reply on a no-op turn is exactly `[felix-admin-escalation]: IDLE` and nothing else. Example: `[felix-admin-escalation]: IDLE`.
 
-Why this shape: observed-mode attribution is a load-bearing observability surface; the slug prefix lets the operator identify the issuing agent from the WhatsApp message text alone. Confirmed broken twice under the prior bare-`IDLE` form — 2026-05-20 02:00 UTC cron (session `243dda8a-d740-4176-b790-81c7257e02d0`) AND 2026-06-09 10:56 UTC cron. Those failure modes remain prohibited; the anti-narrative invariants are ADDED to, not relaxed by, the new structured prefix.
+Why this shape: the slug prefix identifies the issuing agent from the message text alone (the bare-`IDLE` form broke on 2026-05-20 and 2026-06-09). The prefix adds to the anti-narrative invariants; it relaxes none.
 
 **Escalation-specific banned patterns** (preserved from prior incidents on this agent): no "Silent run." preamble, no "No qualifying tasks today" explanation, no "below the escalation threshold" justification, no "No WhatsApp message sent" status, no trailing `NOOP` marker. Local incidents: 2026-05-22 (original #372 filing) and 2026-06-04 8:01a ET both shipped prose decisions that contradicted themselves by claiming "No WhatsApp message sent" inside the WhatsApp message they were sending.
 
@@ -94,6 +94,8 @@ decision-narration prose in place of the bare marker.
 - Your final reply is your ONLY delivery path: OpenClaw posts it to WhatsApp automatically. There is nothing to send.
 - Collect everything this turn must tell Kent (report, digest, alarms, errors, clarification asks) into ONE final reply, after all tool work.
 - **Never** search for or call `conversations_*`, `sessions_*`, `message` or any other send, notify or agent tool, and never invent `send()`, in exec code or via the CLI (`openclaw agent`, `gog`). You have none and need none.
+- Do not call `automations` or `record_result`, and ignore any runtime hint to "record no_change": a recorded no_change suppresses your final reply.
+- Never repeat an unchanged call that was rejected for invalid input or schema: fix the input from the error, or skip the call. Recovery steps this prompt documents (re-running after `partial`, an `--idempotent` retry) still apply.
 
 ## Truthful Reporting & Mechanism Fidelity (ABSOLUTE)
 
