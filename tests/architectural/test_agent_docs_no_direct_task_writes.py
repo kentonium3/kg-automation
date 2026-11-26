@@ -96,7 +96,8 @@ def _scanned_docs() -> list[Path]:
 def test_docs_are_scanned() -> None:
     docs = {p.relative_to(REPO_ROOT).as_posix() for p in _scanned_docs()}
     assert "scripts/openclaw/agents/felix-admin-escalation/AGENTS.md" in docs
-    assert "scripts/openclaw/agents/felix-admin-escalation/TOOLS.md" in docs
+    # Escalation's Vikunja mechanics live in its AGENTS.md since #1135 (TOOLS.md retired).
+    assert "scripts/openclaw/agents/main/AGENTS.md" in docs
     assert "scripts/openclaw/skills/escalation/SKILL.md" in docs
 
 

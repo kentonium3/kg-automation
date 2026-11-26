@@ -59,12 +59,12 @@ class TestIsFactoryDefault:
     """Test factory-default detection."""
 
     def test_string_baseline_match(self):
-        baselines = {"baselines": {"TOOLS.md": "factory_hash"}}
-        assert is_factory_default("factory_hash", "TOOLS.md", baselines) is True
+        baselines = {"baselines": {"BOOTSTRAP.md": "factory_hash"}}
+        assert is_factory_default("factory_hash", "BOOTSTRAP.md", baselines) is True
 
     def test_string_baseline_no_match(self):
-        baselines = {"baselines": {"TOOLS.md": "factory_hash"}}
-        assert is_factory_default("custom_hash", "TOOLS.md", baselines) is False
+        baselines = {"baselines": {"BOOTSTRAP.md": "factory_hash"}}
+        assert is_factory_default("custom_hash", "BOOTSTRAP.md", baselines) is False
 
     def test_dict_baseline_match(self):
         baselines = {"baselines": {"IDENTITY.md": {"v1": "hash_a", "v2": "hash_b"}}}
@@ -75,15 +75,15 @@ class TestIsFactoryDefault:
         assert is_factory_default("custom", "IDENTITY.md", baselines) is False
 
     def test_missing_filename(self):
-        baselines = {"baselines": {"TOOLS.md": "factory_hash"}}
+        baselines = {"baselines": {"BOOTSTRAP.md": "factory_hash"}}
         assert is_factory_default("any_hash", "SOUL.md", baselines) is False
 
     def test_none_hash(self):
-        baselines = {"baselines": {"TOOLS.md": "factory_hash"}}
-        assert is_factory_default(None, "TOOLS.md", baselines) is False
+        baselines = {"baselines": {"BOOTSTRAP.md": "factory_hash"}}
+        assert is_factory_default(None, "BOOTSTRAP.md", baselines) is False
 
     def test_empty_baselines(self):
-        assert is_factory_default("any", "TOOLS.md", {}) is False
+        assert is_factory_default("any", "BOOTSTRAP.md", {}) is False
 
 
 class TestDetectAllDrift:
@@ -94,7 +94,7 @@ class TestDetectAllDrift:
         current = {
             "main": {
                 "AGENTS.md": {"repo": "aaa111", "office2": "aaa111"},
-                "TOOLS.md": {"repo": "bbb222", "office2": "bbb222"},
+                "BOOTSTRAP.md": {"repo": "bbb222", "office2": "bbb222"},
                 "IDENTITY.md": {"repo": "ccc333", "office2": "ccc333"},
             },
             "felix-admin-tasker": {
@@ -110,7 +110,7 @@ class TestDetectAllDrift:
         current = {
             "main": {
                 "AGENTS.md": {"repo": "new_repo", "office2": "aaa111"},  # repo changed
-                "TOOLS.md": {"repo": "bbb222", "office2": "new_o2"},  # office2 changed
+                "BOOTSTRAP.md": {"repo": "bbb222", "office2": "new_o2"},  # office2 changed
                 "IDENTITY.md": {"repo": "ccc333", "office2": "ccc333"},  # no change
             },
             "felix-admin-tasker": {
@@ -121,7 +121,7 @@ class TestDetectAllDrift:
 
         by_file = {(r.agent_id, r.filename): r for r in results}
         assert by_file[("main", "AGENTS.md")].state == DriftState.REPO_CHANGED
-        assert by_file[("main", "TOOLS.md")].state == DriftState.OFFICE2_CHANGED
+        assert by_file[("main", "BOOTSTRAP.md")].state == DriftState.OFFICE2_CHANGED
         assert by_file[("main", "IDENTITY.md")].state == DriftState.NO_CHANGE
         assert by_file[("felix-admin-tasker", "SOUL.md")].state == DriftState.CONFLICT
 
@@ -130,7 +130,7 @@ class TestDetectAllDrift:
         current = {
             "main": {
                 "AGENTS.md": {"repo": "aaa111", "office2": "aaa111"},
-                "TOOLS.md": {"repo": "bbb222", "office2": "bbb222"},  # factory default
+                "BOOTSTRAP.md": {"repo": "bbb222", "office2": "bbb222"},  # factory default
                 "IDENTITY.md": {"repo": "ccc333", "office2": "ccc333"},  # factory default
             },
             "felix-admin-tasker": {
@@ -141,7 +141,7 @@ class TestDetectAllDrift:
         by_file = {(r.agent_id, r.filename): r for r in results}
 
         assert by_file[("main", "AGENTS.md")].is_factory_default is False
-        assert by_file[("main", "TOOLS.md")].is_factory_default is True
+        assert by_file[("main", "BOOTSTRAP.md")].is_factory_default is True
         assert by_file[("main", "IDENTITY.md")].is_factory_default is True
         assert by_file[("felix-admin-tasker", "SOUL.md")].is_factory_default is False
 
@@ -150,7 +150,7 @@ class TestDetectAllDrift:
         current = {
             "main": {
                 "AGENTS.md": {"repo": "aaa111", "office2": "aaa111"},
-                "TOOLS.md": {"repo": "customized_hash", "office2": "bbb222"},  # repo customized
+                "BOOTSTRAP.md": {"repo": "customized_hash", "office2": "bbb222"},  # repo customized
                 "IDENTITY.md": {"repo": "ccc333", "office2": "ccc333"},
             },
             "felix-admin-tasker": {
@@ -160,6 +160,6 @@ class TestDetectAllDrift:
         results = detect_all_drift(current, sample_manifest, sample_factory_baselines)
         by_file = {(r.agent_id, r.filename): r for r in results}
 
-        tools = by_file[("main", "TOOLS.md")]
-        assert tools.state == DriftState.REPO_CHANGED
-        assert tools.is_factory_default is False  # No longer factory default
+        bootstrap = by_file[("main", "BOOTSTRAP.md")]
+        assert bootstrap.state == DriftState.REPO_CHANGED
+        assert bootstrap.is_factory_default is False  # No longer factory default

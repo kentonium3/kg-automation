@@ -5,37 +5,37 @@
     "main": {
       "workspace_path": "/data/services/openclaw/data",
       "repo_path": "scripts/openclaw/agents/main",
-      "tracked_files": ["AGENTS.md", "SOUL.md", "TOOLS.md", "USER.md", "IDENTITY.md"],
+      "tracked_files": ["AGENTS.md", "SOUL.md", "USER.md", "IDENTITY.md"],
       "excluded_files": ["HEARTBEAT.md", "BOOTSTRAP.md"]
     },
     "felix-admin-capture": {
       "workspace_path": "/data/services/openclaw/inbox-agent",
       "repo_path": "scripts/openclaw/agents/felix-admin-capture",
-      "tracked_files": ["AGENTS.md", "SOUL.md", "TOOLS.md", "USER.md", "IDENTITY.md"],
+      "tracked_files": ["AGENTS.md", "SOUL.md", "USER.md", "IDENTITY.md"],
       "excluded_files": ["HEARTBEAT.md", "BOOTSTRAP.md"]
     },
     "felix-admin-habits": {
       "workspace_path": "/data/services/openclaw/habits-agent",
       "repo_path": "scripts/openclaw/agents/felix-admin-habits",
-      "tracked_files": ["AGENTS.md", "SOUL.md", "TOOLS.md", "USER.md", "IDENTITY.md"],
+      "tracked_files": ["AGENTS.md", "SOUL.md", "USER.md", "IDENTITY.md"],
       "excluded_files": ["HEARTBEAT.md", "BOOTSTRAP.md"]
     },
     "felix-admin-escalation": {
       "workspace_path": "/data/services/openclaw/escalation-agent",
       "repo_path": "scripts/openclaw/agents/felix-admin-escalation",
-      "tracked_files": ["AGENTS.md", "SOUL.md", "TOOLS.md", "USER.md", "IDENTITY.md"],
+      "tracked_files": ["AGENTS.md", "SOUL.md", "USER.md", "IDENTITY.md"],
       "excluded_files": ["HEARTBEAT.md", "BOOTSTRAP.md"]
     },
     "felix-admin-tasker": {
       "workspace_path": "/data/services/openclaw/tasker-agent",
       "repo_path": "scripts/openclaw/agents/felix-admin-tasker",
-      "tracked_files": ["AGENTS.md", "SOUL.md", "TOOLS.md", "USER.md", "IDENTITY.md"],
+      "tracked_files": ["AGENTS.md", "SOUL.md", "USER.md", "IDENTITY.md"],
       "excluded_files": ["HEARTBEAT.md", "BOOTSTRAP.md"]
     },
     "felix-admin-calendar": {
       "workspace_path": "/data/services/openclaw/calendar-agent",
       "repo_path": "scripts/openclaw/agents/felix-admin-calendar",
-      "tracked_files": ["AGENTS.md", "SOUL.md", "TOOLS.md", "USER.md", "IDENTITY.md"],
+      "tracked_files": ["AGENTS.md", "SOUL.md", "USER.md", "IDENTITY.md"],
       "excluded_files": ["HEARTBEAT.md", "BOOTSTRAP.md"]
     }
   },
