@@ -3,10 +3,10 @@ title: OpenClaw Agent Setup
 doc_type: runbook
 status: approved
 audience: agents_and_humans
-last_updated: '2026-11-23'
+last_updated: '2026-11-26'
 last_validated: '2026-07-05'
-updated_by: '#374 + vikunja-client-and-habits-weekly-report-01KTKSFT (#561) + felix-calendar-subagent-extraction-01KTTA33 (#579) + restore-whatsapp-dm-reply-delivery-01KTVVHH (#588) + agent-runtime-env-guardrails-01KWT3GH (#658) + #1122 (smoke command scoped to ≤2026.7.x; 2026.11.7 version + selfChatMode)'
-revision: v1.6
+updated_by: '#374 + vikunja-client-and-habits-weekly-report-01KTKSFT (#561) + felix-calendar-subagent-extraction-01KTTA33 (#579) + restore-whatsapp-dm-reply-delivery-01KTVVHH (#588) + agent-runtime-env-guardrails-01KWT3GH (#658) + #1122 (smoke command scoped to ≤2026.7.x; 2026.11.7 version + selfChatMode) + #1135 (TOOLS.md retired; tool mechanics live in AGENTS.md; prompt budgets)'
+revision: v1.7
 ---
 
 # OpenClaw agent setup
@@ -59,18 +59,22 @@ python3 -m scripts.openclaw.agents.validate_workspace --json
 
 | File | Purpose |
 |------|---------|
-| **AGENTS.md** | Standing orders — the agent's complete operational instructions. Scope, workflow, constraints, and delegation rules. This is the longest and most important file. |
-| **SOUL.md** | Voice, tone, and stance — how the agent writes ("write as Kent"). Per the authoring standard, SOUL carries only a one-line privacy **stance** ("I work only where I'm invited"); the *enforceable* privacy rule and the role/purpose live in AGENTS.md (with the path also in TOOLS.md), **not** in SOUL. |
+| **AGENTS.md** | Standing orders — the agent's complete operational instructions. Scope, workflow, constraints, delegation rules, **and its tool mechanics** (paths, endpoints, API skills, date handling, helper invocations), in a named section beside the step that uses them. This is the longest and most important file. Its size budget is in `scripts/openclaw/agents/prompt_budgets.py` (18,000 UTF-16 units by default under OpenClaw's 20,000 injection limit; calendar 12,000); register a new agent there. |
+| **SOUL.md** | Voice, tone, and stance — how the agent writes ("write as Kent"). Per the authoring standard, SOUL carries only a one-line privacy **stance** ("I work only where I'm invited"); the *enforceable* privacy rule and the role/purpose live in AGENTS.md, **not** in SOUL. |
 | **IDENTITY.md** | Short identity card — name, emoji, creature type, vibe. OpenClaw reads this to display agent identity in `openclaw agents` output. |
 
 ### Optional files
 
 | File | Purpose | When to include |
 |------|---------|-----------------|
-| **TOOLS.md** | Agent-specific tool references — vault paths, API endpoints, access notes. | When the agent interacts with specific resources. |
 | **USER.md** | Information about the human the agent serves — name, timezone, preferences. | When the agent communicates with the user directly. |
 | **HEARTBEAT.md** | Periodic check tasks the agent runs on heartbeat intervals. | When the agent has scheduled proactive work. Empty file or omit if agent only runs via delegation. |
 | **BOOTSTRAP.md** | First-run instructions. Agent reads it on first session, then deletes it. | Only during initial agent creation. |
+
+**Do not create `TOOLS.md`.** OpenClaw 2026.11.7 no longer injects it (#1135), so
+nothing in it reaches the model. Put tool mechanics in an `AGENTS.md` section.
+`scripts/openclaw/agents/tests/test_tools_md_retired.py` fails if an active
+workspace carries one, and agent-prompt-sync archives and removes any deployed copy.
 
 ### Example: IDENTITY.md
 
@@ -86,7 +90,7 @@ python3 -m scripts.openclaw.agents.validate_workspace --json
 ### Example: SOUL.md
 
 Per the authoring standard, SOUL is voice/stance only — the role/purpose lives in
-AGENTS.md and the enforceable privacy rule in AGENTS.md/TOOLS.md:
+AGENTS.md and the enforceable privacy rule in AGENTS.md:
 
 ```markdown
 # SOUL.md — felix-admin-tasker
@@ -282,10 +286,11 @@ workspace path, and model.
 ## Deploy pipeline (post-#567)
 
 As of mission `agent-prompt-deploy-pipeline-01KTMDDD` (#567), the agent
-prompt files (`AGENTS.md`, `IDENTITY.md`, `SOUL.md`, `TOOLS.md`, `USER.md`)
+prompt files (`AGENTS.md`, `IDENTITY.md`, `SOUL.md`, `USER.md`)
 under `scripts/openclaw/agents/<slug>/` in the repo are **auto-synced** to
 their deployed locations under `/data/services/openclaw/<deploy-dir>/`
-within 5 minutes of any merge to `main`.
+within 5 minutes of any merge to `main`. A retired `TOOLS.md` left in a deploy
+dir is archived and removed by the same pipeline (#1135).
 
 The pipeline is operator-owned but agent-readable:
 
@@ -308,7 +313,7 @@ The pipeline is operator-owned but agent-readable:
 4. `HEARTBEAT.md`, `*.tmpl`, and `*.bak*` are explicitly excluded from sync —
    they live in the deploy dir but are not repo-sourced (or, for `*.tmpl`, are
    templates not intended for runtime). Any other non-prompt filename is excluded
-   by the `IN_SCOPE_FILENAMES` allowlist ({AGENTS, IDENTITY, SOUL, TOOLS, USER}.md).
+   by the `IN_SCOPE_FILENAMES` allowlist ({AGENTS, IDENTITY, SOUL, USER}.md; `TOOLS.md` is in `RETIRED_FILENAMES`, #1135).
 5. The sync helper does NOT restart openclaw. Prompt changes take effect at
    the agent's next session-init (next cron tick).
 
@@ -322,7 +327,6 @@ The pipeline is operator-owned but agent-readable:
 │   ├── HEARTBEAT.md
 │   ├── IDENTITY.md
 │   ├── SOUL.md
-│   ├── TOOLS.md
 │   └── USER.md
 ├── habits-agent/         ← felix-admin-habits
 │   ├── AGENTS.md
@@ -330,14 +334,12 @@ The pipeline is operator-owned but agent-readable:
 │   ├── HEARTBEAT.md
 │   ├── IDENTITY.md
 │   ├── SOUL.md
-│   ├── TOOLS.md
 │   └── USER.md
 ├── escalation-agent/     ← felix-admin-escalation
 │   ├── AGENTS.md
 │   ├── HEARTBEAT.md
 │   ├── IDENTITY.md
 │   ├── SOUL.md
-│   ├── TOOLS.md
 │   └── USER.md
 ├── tasker-agent/         ← felix-admin-tasker
 │   ├── AGENTS.md
@@ -347,7 +349,6 @@ The pipeline is operator-owned but agent-readable:
 │   ├── AGENTS.md
 │   ├── IDENTITY.md
 │   ├── SOUL.md
-│   ├── TOOLS.md
 │   └── USER.md
 └── data/                 ← main agent workspace
 
@@ -381,7 +382,7 @@ then run `python3 -m scripts.openclaw.agents.validate_workspace --json` before d
 - [ ] Workspace: create AGENTS.md with standing orders — role/authority, workflow, the enforceable privacy rule, and (if user-facing WhatsApp) the Output Discipline block
 - [ ] Workspace: create SOUL.md with voice/stance only (one-line privacy stance, not the enforceable rule)
 - [ ] Workspace: create IDENTITY.md with name, emoji, vibe (≤ ~10 lines)
-- [ ] Workspace: create TOOLS.md if agent uses specific resources (paths, endpoints, mechanics; privacy path)
+- [ ] Workspace: put tool mechanics (paths, endpoints, API skills, date handling) in an AGENTS.md section — never a TOOLS.md (#1135); add the agent to `prompt_budgets.BUDGETS`
 - [ ] Workspace: create USER.md if agent communicates with the user (filtered view, not a full profile)
 - [ ] Validate: `python3 -m scripts.openclaw.agents.validate_workspace` passes for the new workspace
 - [ ] Config: add agent entry to `~/.openclaw/openclaw.json`

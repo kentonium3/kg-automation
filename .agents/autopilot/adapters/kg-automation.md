@@ -60,13 +60,18 @@ office2 = Ubuntu hub; agent SSH alias `ssh office2-claude` (never `office2-kgale
   ```
   ssh office2-claude 'cd ~/kg-automation && git pull --ff-only && git log --oneline -1'
   ```
-- **Agent-prompt change (`AGENTS.md` / `IDENTITY.md` / `SOUL.md` / `TOOLS.md` /
-  `USER.md`):** deploy via agent-prompt-sync (systemd), which copies prompts to
-  `/data/services/openclaw/<deploy-dir>/` (excludes `.tmpl`). A **main-prompt**
+- **Agent-prompt change (`AGENTS.md` / `IDENTITY.md` / `SOUL.md` / `USER.md`):**
+  deploy via agent-prompt-sync (systemd), which copies prompts to
+  `/data/services/openclaw/<deploy-dir>/` (excludes `.tmpl`) and archives then
+  removes any retired `TOOLS.md` there. Never add a `TOOLS.md`: OpenClaw
+  2026.11.7 no longer loads it, so tool mechanics go in an `AGENTS.md` section
+  (#1135). A **main-prompt**
   change additionally needs a rotate + `openclaw gateway restart`; sub-agents
   (fresh session per tick) do not. Verify the agent slug → deploy-dir mapping
-  with `find` before assuming (slug ≠ deploy dir). AGENTS.md has a 12,000-byte
-  cap on at-cap agents (main, felix-admin-calendar) — check size after editing.
+  with `find` before assuming (slug ≠ deploy dir). AGENTS.md budgets live in
+  `scripts/openclaw/agents/prompt_budgets.py` (UTF-16 units: calendar 12,000,
+  every other active agent 18,000, under OpenClaw's 20,000 limit) — the size
+  tests enforce them; check after editing.
 
 ## Live-verify
 

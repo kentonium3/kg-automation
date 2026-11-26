@@ -30,7 +30,7 @@ ADR-0002 Phase 6). The agent reads state via
 `felix-rrule-adaptation-01M7TKNX`, `N done` and reschedules go through
 `record_completion`, which does the Vikunja write itself over
 `PATCH /api/v2/tasks/{id}` and keeps a repeating task's rule. The agent's
-`AGENTS.md`, `TOOLS.md` and the escalation `SKILL.md` forbid a direct POST,
+`AGENTS.md` and the escalation `SKILL.md` forbid a direct POST,
 PUT or PATCH. See [Done and reschedule writes](<#done-and-reschedule-writes-1111>).
 
 **What it escalates**: tasks where `done=false`, `due_date < today` (or
@@ -354,7 +354,7 @@ ssh office2-claude 'openclaw cron enable 5f734842-ca17-44f7-8040-f8e6a15355c4'
 ### Update agent workspace files
 
 ```bash
-for f in SOUL.md USER.md IDENTITY.md TOOLS.md AGENTS.md; do
+for f in SOUL.md USER.md IDENTITY.md AGENTS.md; do
   ssh office2-claude "cat > /data/services/openclaw/escalation-agent/$f" \
     < scripts/openclaw/agents/felix-admin-escalation/$f
 done

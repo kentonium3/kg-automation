@@ -3,8 +3,8 @@ title: office2 Deploy Paths — Surface Partition (reference)
 doc_type: reference
 audience: agents_and_humans
 status: approved
-last_updated: '2026-11-20'
-updated_by: 'felix-rrule-adaptation-01M7TKNX (#1111 — helper/doc skew note + rollout-window procedure)'
+last_updated: '2026-11-26'
+updated_by: '#1135 (TOOLS.md retired: no longer synced; agent-prompt-sync archives and removes deployed copies) + felix-rrule-adaptation-01M7TKNX (#1111 — helper/doc skew note + rollout-window procedure)'
 ---
 
 # office2 Deploy Paths — Surface Partition
@@ -46,9 +46,11 @@ A 5-min oneshot (`agent-prompt-sync.{service,timer}`, script
 `scripts/openclaw/deploy/deploy_agent_prompts.py`) that advances the office2
 checkout to `origin/main` (race-immune fast-forward, #667) and **MD5-copies the
 agent workspace prompt files** — `AGENTS.md`, `IDENTITY.md`, `SOUL.md`,
-`TOOLS.md`, `USER.md` — from `scripts/openclaw/agents/<slug>/` to
-`/data/services/openclaw/<deploy-dir>/` on drift. It owns **agent prompt file
-content only**. It does **not** restart OpenClaw (agents read prompts at
+`USER.md` — from `scripts/openclaw/agents/<slug>/` to
+`/data/services/openclaw/<deploy-dir>/` on drift, then archives and removes any
+retired `TOOLS.md` still in a deploy dir (#1135; see
+[`agent-prompt-sync-ops.md`](../agent-prompt-sync-ops.md#retired-files-toolsmd-1135)).
+It owns **agent prompt file content only**. It does **not** restart OpenClaw (agents read prompts at
 session-init, so a running DM lane needs a rotate + gateway restart to pick up a
 main-agent prompt change), and it writes **no `deploys/applied/` record** — only an
 append-only JSONL audit log (`/data/services/openclaw/deploy/agent-prompt-sync.jsonl`)
@@ -83,7 +85,7 @@ deploy. (This is why many helper-only missions correctly ship with **no**
 
 | Change class | Delivered by | Record written |
 |---|---|---|
-| Agent prompt files (`AGENTS/IDENTITY/SOUL/TOOLS/USER.md`) | **agent-prompt-sync** (pull + MD5 copy) | JSONL only (no `applied/` record) |
+| Agent prompt files (`AGENTS/IDENTITY/SOUL/USER.md`; retired `TOOLS.md` archived + removed, #1135) | **agent-prompt-sync** (pull + MD5 copy) | JSONL only (no `applied/` record) |
 | Agent `SKILL.md` | **agent-skill-sync** (pull + MD5 copy) | JSONL only |
 | Helper scripts under `scripts/**` | **self-pull** (live from the checkout) | none — the merge is the deploy |
 | OpenClaw cron jobs | **felix-deployer** manifest | `deploys/applied/<NNNN>-*.yaml` |
@@ -138,9 +140,9 @@ helper's v1 PATCH answers 405 and writes nothing. Steps, from the merge to
    ssh office2-claude 'md5sum /data/services/openclaw/escalation-agent/AGENTS.md /home/claude/kg-automation/scripts/openclaw/agents/felix-admin-escalation/AGENTS.md'
    ```
 
-   ```bash
-   ssh office2-claude 'md5sum /data/services/openclaw/escalation-agent/TOOLS.md /home/claude/kg-automation/scripts/openclaw/agents/felix-admin-escalation/TOOLS.md'
-   ```
+   Since #1135 escalation's Vikunja mechanics are in that `AGENTS.md`; there is no
+   `TOOLS.md` to compare, and `ls /data/services/openclaw/escalation-agent/TOOLS.md`
+   should report it absent.
 
    ```bash
    ssh office2-claude 'md5sum /home/claude/.openclaw/skills/escalation/SKILL.md /home/claude/kg-automation/scripts/openclaw/skills/escalation/SKILL.md'

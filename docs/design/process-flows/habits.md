@@ -269,7 +269,7 @@ evaluate past windows.
 | `query_completion_events`, `build_report`, `classify_habit` | `scripts/habits/query_active_habits_weekly.py` | Weekly report — reads `habits-history.jsonl` (not `done_at`, #605); classifies from the rule (#1111). |
 | `run`, `confirm_delivery` | `scripts/habits/weekly_report_driver.py` | Deterministic weekly cron driver; in-process helper call + truthful delivery confirmation (#723). |
 | ET boundary helpers | `scripts/common/et_datetime.py` | `et_end_of_day` / `today_et` / `et_calendar_date` (#761). **Habits not yet migrated.** |
-| Agent standing orders | `scripts/openclaw/agents/felix-admin-habits/{AGENTS,SOUL,TOOLS}.md` | Tick wiring: morning, reply, habit management, output discipline. (Weekly-report ownership being removed per #409.) |
+| Agent standing orders | `scripts/openclaw/agents/felix-admin-habits/{AGENTS,SOUL}.md` | Tick wiring: morning, reply, habit management, output discipline. (Weekly-report ownership being removed per #409.) |
 | systemd units | `scripts/office2/felix-habit-sweeper.{service,timer}`, `felix-habits-weekly.{service,timer}` | Timer wiring: sweeper (07:30 ET), weekly driver (Mon 06:00 ET). |
 
 **State stores.** `/data/services/openclaw/state/habits-history.jsonl` (canonical

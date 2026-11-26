@@ -338,7 +338,7 @@ ssh office2-claude 'find /data/services/openclaw/state/habits/ -name "morning-ch
 ### Update agent workspace files
 
 ```bash
-for f in SOUL.md USER.md IDENTITY.md TOOLS.md AGENTS.md; do
+for f in SOUL.md USER.md IDENTITY.md AGENTS.md; do
   ssh office2-claude "cat > /data/services/openclaw/habits-agent/$f" < scripts/openclaw/agents/felix-admin-habits/$f
 done
 ```

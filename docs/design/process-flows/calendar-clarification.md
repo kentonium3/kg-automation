@@ -19,7 +19,7 @@ tags: [780, 794, 739, 746, 786, 635]
 > It describes *what the system does today* when a captured note resolves to an
 > appointment with a date but no time — the actors, the states, the operating
 > rules (with the invariant IDs they enforce), and the code seams that implement
-> them. Runbooks and agent `TOOLS.md` link here rather than restating the rules.
+> them. Runbooks and agent `AGENTS.md` files link here rather than restating the rules.
 
 > **Reusable shape (for #794).** This document's structure —
 > **actors + trigger → flow + states → operating rules & invariants → implementing

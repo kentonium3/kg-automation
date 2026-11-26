@@ -39,8 +39,10 @@ configured agent. This was source-verified during #553:
 - `plan.js` workspace setup loads `path.join(workspaceDir, "SOUL.md")` — no fallback.
 - The `bootstrap-extra-files` hook carries a "must stay inside the workspace"
   realpath constraint, ruling it out for cross-workspace sharing.
-- Recognized bootstrap basenames: `AGENTS.md`, `SOUL.md`, `TOOLS.md`, `IDENTITY.md`,
-  `USER.md`, `HEARTBEAT.md`, `BOOTSTRAP.md`, `MEMORY.md`.
+- Recognized bootstrap basenames (OpenClaw 2026.11.7 `WORKSPACE_BOOTSTRAP_FILENAMES`,
+  re-verified for #1135): `AGENTS.md`, `SOUL.md`, `IDENTITY.md`, `USER.md`,
+  `BOOTSTRAP.md`, root memory. `TOOLS.md` was dropped in 2026.11.7 and is no longer
+  injected; the subagent bootstrap allowlist is `AGENTS.md` alone.
 
 **Consequence:** every applicable workspace must carry its shared invariants
 *in its own files*. Shared truths are expressed and validated **intentionally per
@@ -59,16 +61,18 @@ established Felix practice.
 | File | Owns | Explicitly NOT | Change rate |
 |---|---|---|---|
 | **IDENTITY.md** | Agent name, emoji/creature, one-line vibe. What `openclaw agents` displays. | Personality, voice, role. If it exceeds ~10 lines, personality content has leaked in — move it to SOUL. | Rare |
-| **SOUL.md** | Voice, tone, stance, brevity, bluntness, boundaries **as behavioral stance**. "Write as Kent." | Role/purpose (→ AGENTS), enforceable policy (→ AGENTS/TOOLS), biography/changelog, operational mechanics. | Rare (most stable) |
-| **USER.md** | The human, filtered to what *this* agent needs: name, address, pronouns, timezone, notes, and a `Context` section scoped to the agent's responsibility. | A full dossier. Operational mechanics (date/timezone handling → TOOLS). Content identical across agents — each view is filtered. | Slow |
-| **TOOLS.md** | Environment/tool surface: paths, endpoints, SSH hosts, API skills, operational mechanics (e.g. date handling), operating constraints, failure behavior. | Behavioral rules ("always be concise" is behavioral → SOUL/AGENTS). Inlined lists that go stale (e.g. label taxonomies — keep a pointer, not a copy). | Medium |
-| **AGENTS.md** | Operating rules / SOP: role & authority, processing workflow, routing logic, enforceable policy (Output Discipline), and routing-adjacent reference (e.g. the label taxonomy beside the issue-routing step). | Voice/personality (→ SOUL). Becoming a catch-all "ball of mud" dump. | Frequent |
+| **SOUL.md** | Voice, tone, stance, brevity, bluntness, boundaries **as behavioral stance**. "Write as Kent." | Role/purpose (→ AGENTS), enforceable policy (→ AGENTS), biography/changelog, operational mechanics. | Rare (most stable) |
+| **USER.md** | The human, filtered to what *this* agent needs: name, address, pronouns, timezone, notes, and a `Context` section scoped to the agent's responsibility. | A full dossier. Operational mechanics (date/timezone handling → AGENTS tool-mechanics section). Content identical across agents — each view is filtered. | Slow |
+| **AGENTS.md** | Operating rules / SOP: role & authority, processing workflow, routing logic, enforceable policy (Output Discipline), routing-adjacent reference (e.g. the label taxonomy beside the issue-routing step), **and the tool mechanics** in a named section (paths, endpoints, API skills, date handling, helper invocations and result contracts), placed beside the step that uses them or in one `## Tool mechanics` / `## Environment` section. | Voice/personality (→ SOUL). Mechanics restated in two places. | Frequent |
+| ~~**TOOLS.md**~~ | **Retired (#1135).** OpenClaw 2026.11.7 no longer injects it, so the model never sees it. Its content moved into AGENTS.md; agent-prompt-sync archives and removes deployed copies; `test_tools_md_retired.py` fails if one reappears in an active workspace. See coherence decision `DEC-008` (`docs/design/coherence/decisions.jsonl`). | Anything. | — |
 
 **Anti-patterns this contract bans:**
 
 - **Duplication** — the same rule stated in two files. Exactly one owner.
-- **Ball of mud** — AGENTS.md as a dump for anything operational. It owns rules and
-  workflow, not environment specifics (those are TOOLS) or voice (that is SOUL).
+- **Ball of mud** — AGENTS.md as an unstructured dump. It owns rules, workflow and
+  (since #1135) tool mechanics, each under its own heading, never voice (that is
+  SOUL). Keep mechanics in a named section beside the step that uses them, so the
+  per-agent budget in `prompt_budgets.py` stays honest.
 - **Staleness traps** — inlining a list that lives authoritatively elsewhere (e.g.
   the GitHub label taxonomy). Keep a pointer to the source; put routing-time policy
   beside the routing step in AGENTS.md.
@@ -91,8 +95,8 @@ context too, so the discipline genuinely governs the running agent wherever the 
 sits (#805). A block found in `SOUL.md` passes but is annotated *(preferred home is
 AGENTS.md)* in the report so a canonical relocation can be tracked per-agent (e.g.
 `felix-admin-calendar`'s block lives in `SOUL.md` today; relocation is owned by
-#635's workspace-authoring mission). `TOOLS.md` is **not** accepted — it is a
-tool-reference file, not a home for a behavioral output rule. The check matches the
+#635's workspace-authoring mission). `TOOLS.md` is **not** accepted — it is
+retired (#1135) and never reaches the model. The check matches the
 `## Output discipline` heading (not a bare phrase in prose). An agent that does **not** emit user-facing
 WhatsApp must instead carry an explicit annotation — the literal marker
 **`no user-facing WhatsApp`** — so the absence is a deliberate, declared choice

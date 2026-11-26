@@ -38,13 +38,12 @@ dropped. See [§ Note-level finalize](#note-level-finalize-746) below.
 | SOUL.md | Kent-voice authoring identity |
 | USER.md | Kent's context |
 | IDENTITY.md | Agent identity metadata |
-| TOOLS.md | Vault paths, Vikunja API reference |
-| AGENTS.md | Standing orders: full processing workflow |
+| AGENTS.md | Standing orders: full processing workflow, plus the tool mechanics (vault paths, Vikunja/GitHub, labels, finalize payload shapes) that lived in `TOOLS.md` until #1135 |
 
 ### Update workspace files
 
 ```bash
-for f in SOUL.md USER.md IDENTITY.md TOOLS.md AGENTS.md; do
+for f in SOUL.md USER.md IDENTITY.md AGENTS.md; do
   ssh office2-claude "cat > /data/services/openclaw/inbox-agent/$f" \
     < scripts/openclaw/agents/felix-admin-capture/$f
 done
@@ -66,7 +65,7 @@ per-change deploy manifest is required (see below):
 | Surface | Source in repo | How it lands on office2 |
 |---|---|---|
 | Helper scripts | `scripts/inbox/*.py`, `scripts/inbox/prescan.py` | office2 checkout **self-pull** — felix-deployer auto-pulls `origin/main` every ~5 min into `/home/claude/kg-automation/`; the helpers are imported from that checkout at their `-m` module paths. |
-| Agent prompts | `scripts/openclaw/agents/felix-admin-capture/AGENTS.md`, `TOOLS.md` | **agent-prompt-sync** (`scripts/openclaw/deploy/deploy_agent_prompts.py`, 5-min timer, #567) copies them to the workspace dir. Note the slug ≠ dir: `felix-admin-capture` → `/data/services/openclaw/inbox-agent/` (see `[[reference_office2_agent_deploy_paths]]`). |
+| Agent prompts | `scripts/openclaw/agents/felix-admin-capture/AGENTS.md` (+ SOUL/USER/IDENTITY) | **agent-prompt-sync** (`scripts/openclaw/deploy/deploy_agent_prompts.py`, 5-min timer, #567) copies them to the workspace dir. Note the slug ≠ dir: `felix-admin-capture` → `/data/services/openclaw/inbox-agent/` (see `[[reference_office2_agent_deploy_paths]]`). |
 
 **No deploy manifest for mission #746.** A `deploys/queued/<name>.yaml` manifest is
 only needed when an office2-side apply step is required **beyond** the self-pull +
@@ -77,7 +76,7 @@ manifest was created**. Do not add an empty/no-op manifest.
 
 **Rebaseline: not required** (#621). Evidence in
 `docs/design/architecture/data/audited-surfaces.json`:
-- `scripts/openclaw/agents/*/AGENTS.md` (and `TOOLS.md` is not even listed) falls
+- `scripts/openclaw/agents/*/AGENTS.md` falls
   under the `openclaw-agent-prompts` surface, which carries
   `rebaseline_required: false` and `affected_baselines: []` — `audit.sh` hashes
   only `openclaw.json`, never deployed AGENTS.md, so no baseline moves and none can
