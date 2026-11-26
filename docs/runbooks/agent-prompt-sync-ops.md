@@ -162,16 +162,23 @@ OpenClaw 2026.11.7 no longer injects `TOOLS.md`, and a deployed non-template
 The repo copies are gone (their content is in each `AGENTS.md`), and the helper
 removes the deployed ones itself:
 
-- **Order**: copy loop first; retirement only if the deployed `AGENTS.md` equals
-  source and no copy failed this tick (`retire_skipped`, reason `copy_failed`).
-- **Archive first**: an archive failure leaves `TOOLS.md` untouched. Archives
-  are never deleted by the helper.
+- **Order**: copy loop first; retirement only if the repo source dir no longer
+  has `TOOLS.md` (the merge landed), the deployed `AGENTS.md` equals source, and
+  no copy failed this tick (`retire_skipped`, reason `copy_failed`). A source
+  that still has `TOOLS.md`, an unequal `AGENTS.md`, or a read error while
+  hashing them is a `retire_error` at stage `verify`; the file is kept.
+- **Archive first**: newly created archive dirs are fsynced into their parents
+  and the archive file and its dir are fsynced before the unlink. Any archive
+  failure leaves `TOOLS.md` untouched. Archives are never deleted by the helper.
 - **Scope**: only the literal `<deploy-dir>/TOOLS.md` of a validated deploy dir
-  (absolute, not a symlink, no symlinked component, not shared by two agents).
+  (absolute, not a symlink, no symlinked component, not shared by two agents),
+  for an agent slug that is safe to join into the archive path (no `/`, not
+  `.`/`..`).
   Nothing recurses or globs; `TOOLS.md.bak`, `*.tmpl` and nested files are left.
 - **Audit**: `retire` (with `archive_path`, `archived_md5`, `bytes`) on
   success; `retire_error` with `stage` = `validate` / `verify` / `archive` /
-  `unlink` on failure. A failure counts in `files_errored`, so the tick exits 1
+  `unlink` on failure. A dir fsync failure after a good unlink keeps the
+  `retire` record and adds `retire_fsync_error`. A failure counts in `files_errored`, so the tick exits 1
   and the copy-health streak alert fires. `tick_summary.files_retired` counts
   removals. Already absent is a silent no-op.
 - **Dry-run**: prints `RETIRE <agent> TOOLS.md <archive+unlink|pending=AGENTS.md_sync|refused=<reason>>`

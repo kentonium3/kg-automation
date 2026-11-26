@@ -865,7 +865,7 @@
           ],
           "state_files": [
             {
-              "path": "/data/services/openclaw/state/pending-calendar-clarifications.jsonl",
+              "path": "/data/services/openclaw/state/pending-calendar-clarifications.json",
               "format": "jsonl",
               "purpose": "Pending calendar clarifications awaiting Kent's WhatsApp reply. 24h aged out by sweep. Atomic-write protocol (LOCK_EX + .tmp + rename) preserved verbatim from main/AGENTS.md \u2014 contract is moved 1:1 from main per mission spec (no behavioral change).",
               "moved_from": "main/AGENTS.md (lines 333-440 pre-mission)",

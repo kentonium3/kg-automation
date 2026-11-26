@@ -1235,7 +1235,7 @@
         },
         {
           "from": "felix-admin-capture",
-          "to": "/data/services/openclaw/state/pending-calendar-clarifications.jsonl",
+          "to": "/data/services/openclaw/state/pending-calendar-clarifications.json",
           "protocol": "file write (atomic rename)",
           "description": "Persists the deferred event payload + the open question for Kent. 24h timeout sweep cleans up stale entries. Owner claude:secondbrain, dir 0750, file 0640. Relocated from ~/second-brain/agents/state/ by felix-admin-cron-path-fix-01KWQTY3 (#656)."
         },
@@ -1253,7 +1253,7 @@
         },
         {
           "from": "felix-admin-calendar",
-          "to": "/data/services/openclaw/state/pending-calendar-clarifications.jsonl",
+          "to": "/data/services/openclaw/state/pending-calendar-clarifications.json",
           "protocol": "file read",
           "description": "Resolves Kent's reply against the open clarification entry; merges the reply into the deferred event payload."
         },

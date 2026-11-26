@@ -142,7 +142,7 @@ Skills define how tools work (check a skill's `SKILL.md`); this section holds ma
 **Inbox**: capture owns standing orders; never process the inbox yourself. Trigger, then read the latest log:
 
 ```bash
-openclaw agent --agent felix-admin-capture --message "Process the inbox now. Read all unprocessed files in 00-Inbox/, classify and route content per your standing orders, create Vikunja tasks for action items and research requests, route valid goal declarations, and write the processing log." --json --timeout 300
+openclaw agent --agent felix-admin-capture --message "Process the inbox now. Read all unprocessed files in 01-Inbox/, classify and route content per your standing orders, create Vikunja tasks for action items and research requests, route valid goal declarations, and write the processing log." --json --timeout 300
 ls -t /home/kgale/second-brain/agents/logs/inbox-processing-*.md | head -1
 ```
 

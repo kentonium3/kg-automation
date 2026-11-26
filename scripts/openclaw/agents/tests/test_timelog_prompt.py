@@ -145,7 +145,7 @@ def test_main_agents_md_budget_guard(repo_root: Path) -> None:
     p = repo_root / "scripts/openclaw/agents/main/AGENTS.md"
     assert p.exists(), f"missing: {p}"
     size = chars(p)
-    assert size < CAP, f"main/AGENTS.md {size} >= {CAP}"
+    assert size <= CAP, f"main/AGENTS.md {size} > {CAP}"
     headroom = CAP - size
     assert headroom >= MIN_HEADROOM, (
         f"main/AGENTS.md has only {headroom} chars free (< {MIN_HEADROOM} floor); "

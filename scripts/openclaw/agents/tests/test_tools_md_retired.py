@@ -11,7 +11,9 @@ Guards:
   * no active workspace (``SUSPENDED_WORKSPACES`` skipped) carries a TOOLS.md;
   * no prompt file agent-prompt-sync deploys for an active workspace mentions
     TOOLS.md;
-  * no SKILL.md an active agent is scoped to mentions TOOLS.md.
+  * no repo SKILL.md an active agent can see mentions TOOLS.md. An agent with
+    no ``skills`` list in the inventory (main) is unscoped and sees every
+    deployed repo skill, so it pulls in all of them.
 
 felix-doc-auditor is suspended and out of scope; unsuspending it requires the
 same merge.
@@ -37,20 +39,40 @@ def _active(repo_root: Path) -> list[Path]:
     return workspaces
 
 
-def _active_agent_skills(repo_root: Path) -> set[str]:
-    """Skill directory names an active agent is explicitly scoped to.
+#: Repo skills exempt from the mention guard, each with its reason.
+SKILL_EXEMPTIONS = {
+    # Consumed by felix-doc-auditor, which is suspended (SUSPENDED_WORKSPACES)
+    # and out of #1135's scope; main sees it only because main is unscoped.
+    # Unsuspending doc-auditor requires the same merge, and this exemption goes.
+    "doc-audit": "felix-doc-auditor is suspended; out of scope for #1135",
+}
 
-    The inventory names skills with underscores (``vikunja_api``); the source
-    directories use hyphens (``vikunja-api``).
+
+def _repo_skills(repo_root: Path) -> set[str]:
+    return {p.parent.name for p in (repo_root / SKILLS_ROOT).glob("*/SKILL.md")}
+
+
+def _active_agent_skills(repo_root: Path) -> set[str]:
+    """Repo skill directory names any active agent can see.
+
+    An explicit ``skills`` list scopes the agent; the inventory names skills
+    with underscores (``vikunja_api``), the source directories use hyphens
+    (``vikunja-api``). An absent list means unscoped: every repo skill.
     """
     data = json.loads((repo_root / INVENTORY).read_text(encoding="utf-8"))
     active = {d.name for d in _active(repo_root)}
+    every = _repo_skills(repo_root)
     skills: set[str] = set()
     for svc in data["services"]:
         for slug, meta in (svc.get("agents") or {}).items():
-            if slug in active and isinstance(meta, dict):
-                skills.update(s.replace("_", "-") for s in meta.get("skills") or [])
-    return skills
+            if slug not in active or not isinstance(meta, dict):
+                continue
+            listed = meta.get("skills")
+            if listed is None:
+                skills |= every
+            else:
+                skills.update(s.replace("_", "-") for s in listed)
+    return skills & every
 
 
 def test_no_active_workspace_has_tools_md(repo_root: Path) -> None:
@@ -75,10 +97,7 @@ def test_no_deployed_prompt_file_mentions_tools_md(repo_root: Path) -> None:
 def test_no_active_agent_skill_mentions_tools_md(repo_root: Path) -> None:
     # Only repo-sourced skills (the ones agent-skill-sync deploys); bundled
     # OpenClaw skills such as ``github`` have no source here.
-    skills = {
-        s for s in _active_agent_skills(repo_root)
-        if (repo_root / SKILLS_ROOT / s / "SKILL.md").is_file()
-    }
+    skills = _active_agent_skills(repo_root) - set(SKILL_EXEMPTIONS)
     assert skills, "no repo-sourced active-agent skills resolved from the inventory"
     offenders = []
     for name in sorted(skills):
@@ -90,3 +109,15 @@ def test_no_active_agent_skill_mentions_tools_md(repo_root: Path) -> None:
 
 def test_tools_md_not_synced(repo_root: Path) -> None:
     assert RETIRED not in IN_SCOPE_FILENAMES
+
+
+def test_unscoped_main_sees_every_repo_skill(repo_root: Path) -> None:
+    """main has no skills list, so the guard must cover every repo skill."""
+    assert _active_agent_skills(repo_root) == _repo_skills(repo_root)
+
+
+def test_skill_exemptions_are_real_and_still_needed(repo_root: Path) -> None:
+    for name in SKILL_EXEMPTIONS:
+        p = repo_root / SKILLS_ROOT / name / "SKILL.md"
+        assert p.is_file(), f"stale exemption: {name}"
+        assert RETIRED in p.read_text(encoding="utf-8"), f"exemption no longer needed: {name}"

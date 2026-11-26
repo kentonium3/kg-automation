@@ -667,6 +667,29 @@ def _workspace_refusal(workspace: Path) -> Optional[str]:
     return None
 
 
+def _slug_refusal(slug: str) -> Optional[str]:
+    """Why ``slug`` may not be joined into the archive path, or None."""
+    if not slug or "/" in slug or slug in (".", ".."):
+        return "unsafe_agent_slug"
+    return None
+
+
+def _makedirs_durable(path: Path) -> None:
+    """``mkdir -p`` that fsyncs each newly created directory into its parent,
+    so a later unlink of the source can't outlive the archive across a crash."""
+    missing = []
+    probe = path
+    while not probe.exists():
+        missing.append(probe)
+        probe = probe.parent
+    for d in reversed(missing):
+        try:
+            d.mkdir()
+        except FileExistsError:
+            pass
+        _fsync_dir(d.parent)
+
+
 def duplicate_workspaces(agents: List[AgentInventoryEntry]) -> set[Path]:
     """Deploy dirs mapped by more than one agent (compared by realpath)."""
     seen: dict[str, int] = {}
@@ -738,20 +761,39 @@ def _retire_files(
     if not present:
         return  # already absent: idempotent no-op
 
-    refusal = workspace_refusal or _workspace_refusal(workspace)
+    refusal = (
+        _slug_refusal(agent.slug)
+        or workspace_refusal
+        or _workspace_refusal(workspace)
+    )
+    # The merge has landed only when the source no longer carries the file AND
+    # the deployed AGENTS.md matches source. AGENTS.md equality alone is true of
+    # any agent whose AGENTS.md hasn't changed, so it proves nothing by itself.
+    still_in_source = {
+        name for name in present if os.path.lexists(source_dir / name)
+    }
     src_gate = source_dir / RETIRE_GATE_FILENAME
     dst_gate = workspace / RETIRE_GATE_FILENAME
-    gate_ok = (
-        src_gate.is_file()
-        and dst_gate.is_file()
-        and compute_md5(src_gate) == compute_md5(dst_gate)
-    )
+    gate_exc: Optional[OSError] = None
+    try:
+        gate_ok = (
+            src_gate.is_file()
+            and dst_gate.is_file()
+            and compute_md5(src_gate) == compute_md5(dst_gate)
+        )
+    except OSError as exc:  # unreadable gate: keep the file, never abort the tick
+        gate_ok = False
+        gate_exc = exc
 
     if dry_run:
         if dry_run_sink is not None:
             for name in present:
                 if refusal:
                     state = f"refused={refusal}"
+                elif name in still_in_source:
+                    state = f"refused=source_still_has_{name}"
+                elif gate_exc is not None:
+                    state = f"refused=verify_error:{type(gate_exc).__name__}"
                 elif not gate_ok:
                     state = f"pending={RETIRE_GATE_FILENAME}_sync"
                 else:
@@ -792,6 +834,23 @@ def _retire_files(
         for name in present:
             _error(name, "validate", f"deploy dir refused: {refusal}", "RetireRefused")
         return
+    if still_in_source:
+        for name in present:
+            if name in still_in_source:
+                _error(
+                    name,
+                    "verify",
+                    f"source still has {name}; its merge into "
+                    f"{RETIRE_GATE_FILENAME} has not landed",
+                    "RetireRefused",
+                )
+        present = [n for n in present if n not in still_in_source]
+        if not present:
+            return
+    if gate_exc is not None:
+        for name in present:
+            _error(name, "verify", str(gate_exc), type(gate_exc).__name__)
+        return
     if not gate_ok:
         for name in present:
             _error(
@@ -820,17 +879,21 @@ def _retire_files(
             continue
         archive_path = agent_archive / _archive_name(name)
         try:
-            agent_archive.mkdir(parents=True, exist_ok=True)
+            _makedirs_durable(agent_archive)
             archived_md5 = _archive_copy(target, archive_path)
         except OSError as exc:
             _error(name, "archive", str(exc), type(exc).__name__)
             continue  # archive failed: the file is left untouched
         try:
             os.unlink(target)
-            _fsync_dir(workspace)
         except OSError as exc:
             _error(name, "unlink", str(exc), type(exc).__name__)
             continue
+        fsync_exc: Optional[OSError] = None
+        try:
+            _fsync_dir(workspace)
+        except OSError as exc:
+            fsync_exc = exc
         audit_append(
             log_path,
             audit_record(
@@ -845,6 +908,21 @@ def _retire_files(
             ),
         )
         counts.retired += 1
+        if fsync_exc is not None:
+            # The unlink happened; only its durability is unconfirmed.
+            audit_append(
+                log_path,
+                audit_record(
+                    kind="retire_fsync_error",
+                    tick_id=tick_id,
+                    agent_slug=agent.slug,
+                    filename=name,
+                    dst_path=str(target),
+                    error=str(fsync_exc),
+                    error_class=type(fsync_exc).__name__,
+                ),
+            )
+            counts.errored += 1
 
 
 # ---------------------------------------------------------------------------

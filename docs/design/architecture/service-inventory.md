@@ -633,7 +633,7 @@ Per-helper metadata mirrors `docs/design/architecture/data/service-inventory.jso
 
 #### State files
 
-- **Pending calendar clarifications** (`/data/services/openclaw/state/pending-calendar-clarifications.jsonl`, relocated from `~/second-brain/agents/state/` by #656) — Per data-model.md, file path and JSONL record shape are PRESERVED from main's pre-mission handler (path only was updated by #656). Atomic-write protocol (LOCK_EX + .tmp + rename) preserved verbatim. Records aged out after 24h by the sweep. Owner `claude:secondbrain`, dir mode 0750, file mode 0640.
+- **Pending calendar clarifications** (`/data/services/openclaw/state/pending-calendar-clarifications.json`, relocated from `~/second-brain/agents/state/` by #656) — Per data-model.md, file path and JSONL record shape are PRESERVED from main's pre-mission handler (path only was updated by #656). Atomic-write protocol (LOCK_EX + .tmp + rename) preserved verbatim. Records aged out after 24h by the sweep. Owner `claude:secondbrain`, dir mode 0750, file mode 0640.
 
 ### Felix Calendar Helper (#699, mission `felix-calendar-helper-01KX4H3C`, RFC #681 calendar phase, 2026-07-09)
 - **Deployed by**: [#699](https://github.com/kentonium3/kg-automation/issues/699) / mission `felix-calendar-helper-01KX4H3C` (first concrete delivery of accepted RFC #681)
