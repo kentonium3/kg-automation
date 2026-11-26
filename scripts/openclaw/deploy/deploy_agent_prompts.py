@@ -24,9 +24,23 @@ Invocation form (mandatory per NFR-005):
 
     python3 -m scripts.openclaw.deploy.deploy_agent_prompts [--dry-run] [--agent SLUG]
 
+Retired files (#1135):
+    OpenClaw 2026.11.7 no longer injects TOOLS.md, and any deployed non-template
+    TOOLS.md keeps its ``tools-md-migration`` lint firing. RETIRED_FILENAMES is
+    iterated independently of IN_SCOPE_FILENAMES: at the end of each agent's
+    sync, once the deployed AGENTS.md is verified equal to source, every retired
+    file present in that agent's deploy dir is archived under
+    ``<audit dir>/archive/retired/<agent>/`` (fsynced) and then unlinked, with a
+    JSONL ``retire`` record. Only the literal child of a validated, distinct,
+    non-symlink deploy dir is touched; nothing recurses or globs. An archive
+    failure leaves the file in place. Failures count in files_errored, so the
+    partial-failure exit and the copy-health alert fire. Already absent is a
+    no-op. Dry-run only reports.
+
 Exit codes (per contracts/helper-cli.md):
     0: success (no drift OR all copies succeeded; also a benign lock defer)
-    1: partial failure (advance succeeded, one or more per-file copies failed)
+    1: partial failure (advance succeeded, one or more per-file copies or
+       retirements failed)
     2: git advance failed (fetch/merge/diverged — no copies attempted)
     3: validation error (missing .git/, missing service-inventory.json, unknown --agent slug)
 
@@ -41,6 +55,7 @@ import hashlib
 import importlib.util
 import json
 import os
+import stat
 import sys
 import time
 import uuid
@@ -58,7 +73,19 @@ from scripts.deploy.lib.gitsync import AdvanceResult, advance_checkout
 # Constants
 # ---------------------------------------------------------------------------
 
-IN_SCOPE_FILENAMES = frozenset({"AGENTS.md", "IDENTITY.md", "SOUL.md", "TOOLS.md", "USER.md"})
+IN_SCOPE_FILENAMES = frozenset({"AGENTS.md", "IDENTITY.md", "SOUL.md", "USER.md"})
+
+# Prompt files OpenClaw no longer loads, removed from deploy dirs (#1135).
+# Iterated independently of IN_SCOPE_FILENAMES: a retired name is never synced.
+RETIRED_FILENAMES = frozenset({"TOOLS.md"})
+
+# The deployed file whose equality to source gates retirement: the retired
+# file's content now lives in AGENTS.md, so it may go only once that has landed.
+RETIRE_GATE_FILENAME = "AGENTS.md"
+
+# Archive root for retired files, relative to the audit log's directory
+# (production: /data/services/openclaw/deploy/archive/retired/<agent>/).
+RETIRE_ARCHIVE_RELATIVE = Path("archive") / "retired"
 EXCLUDED_HEARTBEAT_PREFIX = "HEARTBEAT.md"
 
 REPO_ROOT_DEFAULT = Path("/home/claude/kg-automation")
@@ -172,7 +199,7 @@ def _copy_render(state, result, threshold: int) -> tuple[str, str]:
     )
     body = (
         f"Actor: {state.actor}\n"
-        f"Consecutive ticks with per-file prompt-copy failures: "
+        f"Consecutive ticks with per-file prompt-copy or retire failures: "
         f"{state.consecutive_failures} (threshold {threshold})\n"
         f"Streak started: {state.failure_streak_started_ts}\n"
         f"A deployed agent prompt is not being updated on office2 — inspect the "
@@ -450,8 +477,12 @@ def audit_tick_summary(
     git_head_after_pull: Optional[str],
     exit_code: int,
     duration_ms: int,
+    files_retired: int = 0,
 ) -> None:
-    """Append the tick_summary record at end of tick (per audit-log-jsonl contract)."""
+    """Append the tick_summary record at end of tick (per audit-log-jsonl contract).
+
+    ``files_retired`` (#1135) is additive: retired files archived and removed.
+    """
     record = audit_record(
         kind="tick_summary",
         tick_id=tick_id,
@@ -459,6 +490,7 @@ def audit_tick_summary(
         files_copied=files_copied,
         files_skipped=files_skipped,
         files_errored=files_errored,
+        files_retired=files_retired,
         git_head_after_pull=git_head_after_pull,
         exit_code=exit_code,
         duration_ms=duration_ms,
@@ -478,6 +510,7 @@ class AgentSyncCounts:
     copied: int = 0
     skipped: int = 0
     errored: int = 0
+    retired: int = 0
 
 
 def sync_agent(
@@ -487,13 +520,21 @@ def sync_agent(
     tick_id: str,
     dry_run: bool,
     dry_run_sink: Optional[List[str]] = None,
+    archive_root: Optional[Path] = None,
+    workspace_refusal: Optional[str] = None,
 ) -> AgentSyncCounts:
-    """Sync one agent: iterate in-scope source files, MD5-compare, atomic-copy on drift.
+    """Sync one agent: iterate in-scope source files, MD5-compare, atomic-copy on drift,
+    then retire any RETIRED_FILENAMES left in the deploy dir (#1135).
 
     If dry_run is True, no audit records are written; instead a 'DRIFT' line is
-    appended to dry_run_sink (if provided) for each drift-candidate file.
+    appended to dry_run_sink (if provided) for each drift-candidate file, and a
+    'RETIRE' line for each retired file that would be archived and removed.
 
-    Returns per-agent counts (copy/skip/error).
+    ``archive_root`` is where retired files are archived (default: beside the
+    audit log). ``workspace_refusal`` is set by the caller when this deploy dir
+    must not be touched (e.g. another agent maps the same dir).
+
+    Returns per-agent counts (copy/skip/error/retire).
     """
     counts = AgentSyncCounts()
     source_dir = repo_root / agent.source_in_repo
@@ -572,7 +613,238 @@ def sync_agent(
                     ),
                 )
             counts.skipped += 1
+    _retire_files(
+        agent=agent,
+        source_dir=source_dir,
+        log_path=log_path,
+        tick_id=tick_id,
+        dry_run=dry_run,
+        dry_run_sink=dry_run_sink,
+        archive_root=(
+            archive_root if archive_root is not None
+            else log_path.parent / RETIRE_ARCHIVE_RELATIVE
+        ),
+        workspace_refusal=workspace_refusal,
+        counts=counts,
+    )
     return counts
+
+
+# ---------------------------------------------------------------------------
+# Retired files (#1135)
+# ---------------------------------------------------------------------------
+
+
+def _archive_name(filename: str) -> str:
+    """Collision-resistant UTC archive name: microseconds plus a random suffix."""
+    stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S.%fZ")
+    return f"{stamp}-{uuid.uuid4().hex[:12]}-{filename}"
+
+
+def _fsync_dir(path: Path) -> None:
+    """fsync a directory so a create/unlink inside it is durable."""
+    fd = os.open(path, os.O_RDONLY | os.O_DIRECTORY)
+    try:
+        os.fsync(fd)
+    finally:
+        os.close(fd)
+
+
+def _workspace_refusal(workspace: Path) -> Optional[str]:
+    """Why ``workspace`` is not a deploy dir retirement may touch, or None.
+
+    It must be absolute, an existing directory, not itself a symlink, and free
+    of symlinked components (its realpath is itself).
+    """
+    if not workspace.is_absolute():
+        return "workspace_not_absolute"
+    if os.path.islink(workspace):
+        return "workspace_is_symlink"
+    if not workspace.is_dir():
+        return "workspace_not_directory"
+    if Path(os.path.realpath(workspace)) != workspace:
+        return "workspace_has_symlinked_component"
+    return None
+
+
+def duplicate_workspaces(agents: List[AgentInventoryEntry]) -> set[Path]:
+    """Deploy dirs mapped by more than one agent (compared by realpath)."""
+    seen: dict[str, int] = {}
+    for a in agents:
+        key = os.path.realpath(a.workspace)
+        seen[key] = seen.get(key, 0) + 1
+    return {
+        a.workspace for a in agents if seen[os.path.realpath(a.workspace)] > 1
+    }
+
+
+def _archive_copy(src: Path, dst: Path) -> str:
+    """Copy ``src`` (never following a symlink) to a new ``dst``; fsync both the
+    file and its directory. Returns the archived bytes' MD5. Removes a partial
+    ``dst`` on failure and re-raises."""
+    fd_in = os.open(src, os.O_RDONLY | os.O_NOFOLLOW)
+    try:
+        data = b""
+        while True:
+            chunk = os.read(fd_in, MD5_CHUNK_BYTES)
+            if not chunk:
+                break
+            data += chunk
+    finally:
+        os.close(fd_in)
+    try:
+        fd_out = os.open(dst, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+        try:
+            view = memoryview(data)
+            while view:
+                n = os.write(fd_out, view)
+                view = view[n:]
+            os.fsync(fd_out)
+        finally:
+            os.close(fd_out)
+        _fsync_dir(dst.parent)
+    except OSError:
+        try:
+            dst.unlink(missing_ok=True)
+        except OSError:  # pragma: no cover
+            pass
+        raise
+    return hashlib.md5(data).hexdigest()
+
+
+def _retire_files(
+    *,
+    agent: AgentInventoryEntry,
+    source_dir: Path,
+    log_path: Path,
+    tick_id: str,
+    dry_run: bool,
+    dry_run_sink: Optional[List[str]],
+    archive_root: Path,
+    workspace_refusal: Optional[str],
+    counts: AgentSyncCounts,
+) -> None:
+    """Archive then unlink each RETIRED_FILENAMES file in the agent's deploy dir.
+
+    Runs only after the deployed AGENTS.md is verified equal to source, and
+    never after a failed copy this tick. Takes no lock: run_tick already holds
+    the deploylock. Failures increment ``counts.errored``.
+    """
+    workspace = agent.workspace
+    present = [
+        name for name in sorted(RETIRED_FILENAMES)
+        if os.path.lexists(workspace / name)
+    ]
+    if not present:
+        return  # already absent: idempotent no-op
+
+    refusal = workspace_refusal or _workspace_refusal(workspace)
+    src_gate = source_dir / RETIRE_GATE_FILENAME
+    dst_gate = workspace / RETIRE_GATE_FILENAME
+    gate_ok = (
+        src_gate.is_file()
+        and dst_gate.is_file()
+        and compute_md5(src_gate) == compute_md5(dst_gate)
+    )
+
+    if dry_run:
+        if dry_run_sink is not None:
+            for name in present:
+                if refusal:
+                    state = f"refused={refusal}"
+                elif not gate_ok:
+                    state = f"pending={RETIRE_GATE_FILENAME}_sync"
+                else:
+                    state = "archive+unlink"
+                dry_run_sink.append(f"RETIRE {agent.slug} {name} {state}")
+        return
+
+    def _error(name: str, stage: str, error: str, error_class: str) -> None:
+        audit_append(
+            log_path,
+            audit_record(
+                kind="retire_error",
+                tick_id=tick_id,
+                agent_slug=agent.slug,
+                filename=name,
+                stage=stage,
+                error=error,
+                error_class=error_class,
+            ),
+        )
+        counts.errored += 1
+
+    if counts.errored:
+        # A copy failed this tick; AGENTS.md may not carry the merged content.
+        for name in present:
+            audit_append(
+                log_path,
+                audit_record(
+                    kind="retire_skipped",
+                    tick_id=tick_id,
+                    agent_slug=agent.slug,
+                    filename=name,
+                    reason="copy_failed",
+                ),
+            )
+        return
+    if refusal:
+        for name in present:
+            _error(name, "validate", f"deploy dir refused: {refusal}", "RetireRefused")
+        return
+    if not gate_ok:
+        for name in present:
+            _error(
+                name,
+                "verify",
+                f"deployed {RETIRE_GATE_FILENAME} not verified equal to source",
+                "RetireRefused",
+            )
+        return
+
+    agent_archive = archive_root / agent.slug
+    for name in present:
+        target = workspace / name  # literal child; never recursed or globbed
+        try:
+            st = os.lstat(target)
+        except FileNotFoundError:
+            continue  # vanished since the presence check: nothing to retire
+        except OSError as exc:
+            _error(name, "validate", str(exc), type(exc).__name__)
+            continue
+        if stat.S_ISLNK(st.st_mode):
+            _error(name, "validate", "retired file is a symlink", "RetireRefused")
+            continue
+        if not stat.S_ISREG(st.st_mode):
+            _error(name, "validate", "retired file is not a regular file", "RetireRefused")
+            continue
+        archive_path = agent_archive / _archive_name(name)
+        try:
+            agent_archive.mkdir(parents=True, exist_ok=True)
+            archived_md5 = _archive_copy(target, archive_path)
+        except OSError as exc:
+            _error(name, "archive", str(exc), type(exc).__name__)
+            continue  # archive failed: the file is left untouched
+        try:
+            os.unlink(target)
+            _fsync_dir(workspace)
+        except OSError as exc:
+            _error(name, "unlink", str(exc), type(exc).__name__)
+            continue
+        audit_append(
+            log_path,
+            audit_record(
+                kind="retire",
+                tick_id=tick_id,
+                agent_slug=agent.slug,
+                filename=name,
+                dst_path=str(target),
+                archive_path=str(archive_path),
+                archived_md5=archived_md5,
+                bytes=st.st_size,
+            ),
+        )
+        counts.retired += 1
 
 
 # ---------------------------------------------------------------------------
@@ -628,13 +900,20 @@ def _sync_all_agents(
     agent_filter: Optional[str],
     dry_run: bool,
     dry_run_sink: List[str],
-) -> tuple[int, int, int, int]:
-    """Iterate agents and sync each; return (processed, copied, skipped, errored)."""
+) -> tuple[int, int, int, int, int]:
+    """Iterate agents and sync each; return (processed, copied, skipped, errored, retired).
+
+    Deploy-dir distinctness for retirement is judged across the whole
+    inventory, not just the ``--agent`` selection.
+    """
     total_copied = 0
     total_skipped = 0
     total_errored = 0
+    total_retired = 0
     agents_processed = 0
-    for agent in iter_agents(inventory_path):
+    all_agents = list(iter_agents(inventory_path))
+    shared = duplicate_workspaces(all_agents)
+    for agent in all_agents:
         if agent_filter is not None and agent.slug != agent_filter:
             continue
         agents_processed += 1
@@ -645,11 +924,15 @@ def _sync_all_agents(
             tick_id=tick_id,
             dry_run=dry_run,
             dry_run_sink=dry_run_sink if dry_run else None,
+            workspace_refusal=(
+                "workspace_shared_by_agents" if agent.workspace in shared else None
+            ),
         )
         total_copied += counts.copied
         total_skipped += counts.skipped
         total_errored += counts.errored
-    return agents_processed, total_copied, total_skipped, total_errored
+        total_retired += counts.retired
+    return agents_processed, total_copied, total_skipped, total_errored, total_retired
 
 
 def run_tick(
@@ -814,6 +1097,7 @@ def _run_locked_tick(
         total_copied,
         total_skipped,
         total_errored,
+        total_retired,
     ) = _sync_all_agents(
         inventory_path,
         repo_root,
@@ -874,6 +1158,7 @@ def _run_locked_tick(
         git_head_after_pull=git_head,
         exit_code=exit_code,
         duration_ms=duration_ms,
+        files_retired=total_retired,
     )
     return exit_code
 
