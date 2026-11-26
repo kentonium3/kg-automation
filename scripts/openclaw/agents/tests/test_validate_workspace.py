@@ -56,9 +56,10 @@ def test_output_discipline_block_in_soul_passes(tmp_path: Path) -> None:
     assert "preferred home is AGENTS.md" in result.detail
 
 
-def test_output_discipline_block_in_tools_not_accepted(tmp_path: Path) -> None:
-    """TOOLS.md is a tool-reference file, not a home for a behavioral output
-    rule — a block there does NOT satisfy Invariant B (#805 scoped to AGENTS/SOUL)."""
+def test_output_discipline_block_in_retired_tools_not_accepted(tmp_path: Path) -> None:
+    """TOOLS.md is retired (#1135): OpenClaw no longer injects it, so a block
+    there never reaches the model and does NOT satisfy Invariant B (#805 scoped
+    to AGENTS/SOUL)."""
     ws = _write(
         tmp_path / "agent",
         AGENTS_md="Some routing rules.\n",

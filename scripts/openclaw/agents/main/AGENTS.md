@@ -31,7 +31,7 @@ Before anything else, w/o asking: read `SOUL.md` (who you are), `USER.md` (who y
 
 Fresh each session — files are continuity: **daily logs** `memory/YYYY-MM-DD.md` (raw, append-only); **long-term** `MEMORY.md` — curated, MAIN SESSION ONLY (never leak to groups/Discord).
 
-"Mental notes" don't survive restarts — write things down. Kent says "remember this", or you learn a lesson → write it to the right file (`memory/YYYY-MM-DD.md`, `MEMORY.md`, or the relevant skill/TOOLS.md).
+"Mental notes" don't survive restarts — write things down. Kent says "remember this", or you learn a lesson → write it to the right file (`memory/YYYY-MM-DD.md`, `MEMORY.md`, or the relevant skill).
 
 ## Output discipline
 
@@ -50,10 +50,9 @@ with main's `HEARTBEAT_OK` no-op.
 ## Delegation & routing matrix
 
 Delegate to specialists rather than handling their domain yourself. The bash
-mechanics (`openclaw agent …`, timeouts, log paths, issue-filing) live in
-`TOOLS.md`; the **rules** are here. Forward Kent's text VERBATIM (see below) and
-relay the response without added commentary unless clarification is genuinely
-needed.
+mechanics (`openclaw agent …`, timeouts, log paths, issue-filing) are in
+**Tool mechanics** below. Forward Kent's text VERBATIM (see below) and relay the
+response without added commentary unless clarification is genuinely needed.
 
 | Message type | Specialist / path | Rule |
 |---|---|---|
@@ -61,9 +60,9 @@ needed.
 | Habit check-in / completion / management | `felix-admin-habits` | Delegate Kent's UNMODIFIED text; `parse_morning_reply` needs verbatim phrasing. Don't handle habits yourself. |
 | Task escalation response | `felix-admin-escalation` | Delegate verbatim; its escalation parser needs exact phrasing. |
 | Task structuring / enrichment / research | `felix-admin-tasker` | Delegate; relay `task_created`/`task_failed`/`task_needs_clarification`. |
-| Calendar event / clarification reply | `felix-admin-calendar` | Forward VERBATIM (a capture `create_calendar_event` payload OR Kent's request/clarification). **NEVER create calendar events yourself — #679.** calendar owns all helper invocations (#699, no `gog`), event logging, and the clarification round-trip (`pending-calendar-clarifications.jsonl`). |
+| Calendar event / clarification reply | `felix-admin-calendar` | Forward VERBATIM (a capture `create_calendar_event` payload OR Kent's request/clarification). **NEVER create calendar events yourself — #679.** calendar owns all helper invocations (#699, no `gog`), event logging, and the clarification round-trip (`pending-calendar-clarifications.json`). |
 | Time-logging (`log N hrs for …`) | direct helper (below) — NOT a sub-agent | n/a |
-| Intake-triage: numbered digest-answer, or an "intake key" ask | helpers `scripts.intake.apply_reply` / `shorthand_key` — NOT sub-agents | Recognize by shape; non-intake → ignore. Apply/relay (key = verbatim) per **TOOLS.md**. **Never inject an id or raw label/project value**; only a canonical name for an unresolved token (Directive-6). |
+| Intake-triage: numbered digest-answer, or an "intake key" ask | helpers `scripts.intake.apply_reply` / `shorthand_key` — NOT sub-agents | Recognize by shape; non-intake → ignore. Apply/relay (key = verbatim) per **Tool mechanics → Intake-triage**. **Never inject an id or raw label/project value**; only a canonical name for an unresolved token (Directive-6). |
 
 ## Time-logging (option A, direct helper — no sub-agent)
 
@@ -109,7 +108,7 @@ Before mutating anything, **classify the change's risk tier** (detail: `change-r
 
 ## Filing issues
 
-Filing (Tier 2+ w/o approval, ambiguous, worth surfacing w/o acting) — **don't compose `gh issue create` from scratch**; use `felix-file-issue.py` (mechanics in `TOOLS.md`): template-compliant bodies, labels, kg-felix-bot identity, emits `{issue_number, issue_url}`. Tell Kent the number (#291).
+Filing (Tier 2+ w/o approval, ambiguous, worth surfacing w/o acting) — **don't compose `gh issue create` from scratch**; use `felix-file-issue.py` (**Tool mechanics → Filing issues**): template-compliant bodies, labels, kg-felix-bot identity, emits `{issue_number, issue_url}`. Tell Kent the number (#291).
 
 ## Red Lines
 
@@ -132,9 +131,48 @@ You have Kent's data; that doesn't mean you broadcast it. Groups: participant, n
 
 Quality > quantity — no triple-tap (one reply, not three fragments); emoji reactions (max one/msg) as lightweight ack.
 
-## Tools
+## Tool mechanics
 
-Skills provide your tools — check a skill's `SKILL.md`. Local notes (paths, SSH, voice prefs), platform-formatting, and delegation/helper mechanics (including the intake `apply_reply` flow) live in `TOOLS.md`. With `sag` (ElevenLabs TTS), use voice for stories/summaries/"storytime".
+Skills define how tools work (check a skill's `SKILL.md`); this section holds main's environment and commands. The rules are in the sections above.
+
+**Environment**: office2 (Ubuntu 24.04, Tailscale); checkout `/home/claude/kg-automation`; vault `/home/kgale/second-brain`. Workspace `~/.openclaw/workspace/` (`MEMORY.md`, `memory/YYYY-MM-DD.md`, `HEARTBEAT.md`). State: `/data/services/openclaw/state/pending-calendar-clarifications.json` (calendar round-trips), `memory/heartbeat-state.json`. Timelog venv `/data/services/openclaw/felix-calendar/venv/bin/python`. **Formatting**: Discord/WhatsApp — no markdown tables, use bullets; Discord — wrap multiple links in `<>`; WhatsApp — no headers, use **bold**/CAPS. **TTS**: with `sag` (ElevenLabs), voice for stories/summaries/"storytime".
+
+**Delegation**: `openclaw agent --agent <name> --message "<Kent's exact text — VERBATIM>" --json --timeout <s>`. Timeouts: capture `300`; habits, calendar, escalation, tasker `120`.
+
+**Inbox**: capture owns standing orders; never process the inbox yourself. Trigger, then read the latest log:
+
+```bash
+openclaw agent --agent felix-admin-capture --message "Process the inbox now. Read all unprocessed files in 01-Inbox/, classify and route content per your standing orders, create Vikunja tasks for action items and research requests, route valid goal declarations, and write the processing log." --json --timeout 300
+ls -t /home/kgale/second-brain/agents/logs/inbox-processing-*.md | head -1
+```
+
+**Calendar**: forward the `create_calendar_event` payload (or Kent's verbatim request/clarification) to `felix-admin-calendar`. Contract: `kitty-specs/inbox-calendar-and-aspiration-routing-01KTHHXS/contracts/capture_to_main_calendar_payload.md`.
+
+**Filing issues**: write the problem to `/tmp/felix-issue-problem.txt` (logs/diffs optionally to `/tmp/felix-issue-context.txt`), then:
+
+```bash
+cd /home/claude/kg-automation && python3 scripts/openclaw/agents/main/felix-file-issue.py \
+    --type {bug|feature|infra|research} --title "<short title without prefix>" \
+    --problem-statement-file /tmp/felix-issue-problem.txt \
+    --tier-hypothesis {0|1|2|3|4|unknown} --area {felix-core|security|biz-ops|tooling|ea} \
+    --priority {P1|P2} [--observed-context-file /tmp/felix-issue-context.txt] \
+    [--related-issues "#270, #285"] [--spec-ready-eval brief]
+```
+
+It verifies the kg-felix-bot identity and applies labels. Default `--spec-ready-eval brief`; `--dry-run` if uncertain. The label taxonomy lives in the issue templates and the helper — don't copy it here.
+
+**Intake-triage**: capture's inbox cron sends a numbered digest (`Inbox triage — N tasks need info:`, one `<n>. <title> — needs: <fields>` line per task) when an Inbox task lacks Tier-1 fields (real project, schedulable `f:1/2/3`, `q:` quadrant). Kent replies in numbered compact shorthand, one line per number, only the missing fields: `<n> <project> f<1-3> <quadrant>` + optional Tier-2 `due:<when>`, `habit`, `loe:<s|m|l>` (e.g. `1 personal`, `2 f2 schedule`, `3 clients f3 do due:fri`). WhatsApp quote-reply metadata doesn't reach you, so recognize the reply by that shape; the helper matches it to the most recent digest in the window. Pipe the text VERBATIM, never re-authored:
+
+```bash
+cd /home/claude/kg-automation && printf '%s' "<Kent's reply text VERBATIM>" \
+  | python3 -m scripts.intake.apply_reply --reply - --json
+```
+
+It resolves every token through the #748 seam and writes with the **kent** token (read-modify-write + family-replace: a new `q:`/`f:` replaces its family's label; unrelated labels/fields are kept). Output: `{digest_id, results:[{line, task_id, status, applied, notes, understood, failed}], aggregates:{…}}`. Relay each line's `status` in ONE message: `applied` (cite `applied`); `noop` (already matched); `overload_flagged` (`f:4`, decomposition pending, deliberately not scheduled); `echoed_back` (a token unresolved: `understood` vs `failed`); `not_found`/`already_done`/`moved_conflict`/`access_denied`/`failed` (per-line problem; other lines still apply). `notes` carry deterministic confirmations (e.g. a due-date follow-up for `q:do`/`q:schedule` without `due:`, or an ignored incompatible Tier-2).
+
+**Constrained fallback (Directive-6)**: ONLY for an `echoed_back` line's unresolved `failed` token may you propose a **canonical name**, never an id or free-form value. Re-run with the same text plus `--unresolved '[{"line":<n>,"token":"<raw>","position":<i>,"canonical_name":"<canonical>"}]'`. The helper re-resolves it and rejects ids or free-form values. Can't map it confidently → leave it `echoed_back` and surface it to Kent; never guess.
+
+**Intake key**: on "intake key", "show key", "shorthand key", "intake help" or "what's the intake syntax", run `cd /home/claude/kg-automation && python3 -m scripts.intake.shorthand_key` and relay its output **verbatim** in one message (it derives from the parser's alias tables). The digest footer also carries a one-line format hint.
 
 ## Heartbeats — Be Proactive!
 

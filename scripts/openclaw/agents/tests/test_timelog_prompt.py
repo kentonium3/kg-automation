@@ -12,9 +12,10 @@ section that:
   truthful-reporting-critical ``client_created_entry_failed`` and ``error``
   (#683).
 
-Also re-asserts the NFR-001 12,000-byte hard cap on ``main/AGENTS.md`` — the
-budget forcing function for both the WP04 compression pass (T011) and this
-addition (T012). ``test_agents_md_size.py`` already asserts this; this file
+Also re-asserts main's AGENTS.md budget (``prompt_budgets``: 12,000 at WP04,
+18,000 since #1135 folded TOOLS.md in) with a headroom floor — the budget
+forcing function for both the WP04 compression pass (T011) and this addition
+(T012). ``test_agents_md_size.py`` already asserts this; this file
 adds a second, WP04-scoped assertion so the size guard travels with the
 time-logging test intent and is not accidentally decoupled from it.
 
@@ -26,10 +27,12 @@ from __future__ import annotations
 
 from pathlib import Path
 
-CAP = 12_000
+from scripts.openclaw.agents.prompt_budgets import BUDGETS, chars
+
+CAP = BUDGETS["main"]
 
 #: Post-F8 headroom floor (Codex post-merge review): main/AGENTS.md must keep
-#: real slack under the 12,000-byte cap, not merely squeak under it. The F8
+#: real slack under its budget, not merely squeak under it. The F8
 #: compression pass reclaimed >= 400 bytes; this guard requires that headroom
 #: be preserved so a future edit that eats it fails loudly instead of silently
 #: re-approaching the cap.
@@ -128,22 +131,23 @@ def test_time_logging_names_key_typed_statuses(repo_root: Path) -> None:
     assert not missing, f"Time-logging section is missing status handling for: {missing}"
 
 
-def test_main_agents_md_under_12k_budget_guard(repo_root: Path) -> None:
-    """Budget guard (NFR-001): main/AGENTS.md stays under the 12,000B cap with
-    real headroom (F8).
+def test_main_agents_md_budget_guard(repo_root: Path) -> None:
+    """Budget guard (NFR-001): main/AGENTS.md stays under its budget with real
+    headroom (F8).
 
-    Mirrors ``test_agents_md_size.py::test_main_agents_md_under_12k`` — kept
+    Mirrors ``test_agents_md_size.py::test_agents_md_within_budget`` — kept
     here too so the WP04 time-logging addition's own test suite gates the
     budget it depends on, not just the fleet-wide size test. The F8 post-merge
-    review tightened this from a bare ``< 12000`` to ``>= MIN_HEADROOM`` free
-    so the prompt cannot silently creep back to the cap.
+    review tightened this from a bare ``< cap`` to ``>= MIN_HEADROOM`` free
+    so the prompt cannot silently creep back to the cap. Units are UTF-16
+    code units (``prompt_budgets.chars``).
     """
     p = repo_root / "scripts/openclaw/agents/main/AGENTS.md"
     assert p.exists(), f"missing: {p}"
-    size = p.stat().st_size
-    assert size < CAP, f"main/AGENTS.md {size} >= {CAP}"
+    size = chars(p)
+    assert size <= CAP, f"main/AGENTS.md {size} > {CAP}"
     headroom = CAP - size
     assert headroom >= MIN_HEADROOM, (
-        f"main/AGENTS.md has only {headroom}B free (< {MIN_HEADROOM}B floor); "
+        f"main/AGENTS.md has only {headroom} chars free (< {MIN_HEADROOM} floor); "
         "the F8 compression headroom has eroded — compress before adding prose"
     )

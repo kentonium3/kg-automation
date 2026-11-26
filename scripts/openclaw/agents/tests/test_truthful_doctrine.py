@@ -6,9 +6,10 @@ present, byte-for-byte identical, in all 7 fleet agent ``AGENTS.md`` files, and
 that the no-unrequested-infrastructure guardrail (FR-003) is present in ``main``
 only and absent from the other 6 agents. (The ``.tmpl`` render variants this
 test also covered were removed when the render mechanism was retired in #752 —
-the committed ``AGENTS.md`` files are now the sole source.) Also re-asserts the 12,000-byte prompt-budget cap on the two at-cap
-agents (``main``, ``felix-admin-calendar``) as a belt-and-suspenders check
-alongside the sibling ``test_agents_md_size.py``.
+the committed ``AGENTS.md`` files are now the sole source.) Also re-asserts
+each budgeted agent's AGENTS.md prompt budget (``prompt_budgets``, UTF-16
+units) as a belt-and-suspenders check alongside the sibling
+``test_agents_md_size.py``.
 
 This WP is doctrine/prompt only (C-001/C-003) — no OpenClaw runtime, no
 detector code, no ``openclaw.json`` changes. These are pure file-content
@@ -19,24 +20,17 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from scripts.openclaw.agents.prompt_budgets import BUDGETS, chars
 from scripts.openclaw.agents.truthful_doctrine import (
     NO_UNREQUESTED_INFRA_HEADING,
     TRUTHFUL_DOCTRINE_BLOCK,
 )
 from scripts.openclaw.agents.truthful_doctrine import FLEET_AGENTS as _FLEET_AGENTS
 
-CAP = 12_000
-
 # The canonical doctrine block text + fleet composition now live in the shared
 # scripts.openclaw.agents.truthful_doctrine module (single source of truth) so
 # this repo-source test and the deploy verification (Codex F4) cannot drift.
 FLEET_AGENTS = list(_FLEET_AGENTS)
-
-AT_CAP_AGENTS = [
-    "main",
-    "felix-admin-calendar",
-]
-
 
 def _agents_md(repo_root: Path, agent: str) -> Path:
     return repo_root / "scripts/openclaw/agents" / agent / "AGENTS.md"
@@ -90,16 +84,14 @@ def test_no_unrequested_infrastructure_present_in_main_only(
         )
 
 
-def test_at_cap_agents_still_under_prompt_budget(repo_root: Path) -> None:
-    """NFR-003: main and felix-admin-calendar must remain < 12,000 bytes
-    after the doctrine additions land. Mirrors test_agents_md_size.py's
-    approach (raw byte size via st_size) as a belt-and-suspenders check
-    scoped to this WP's edits. The 12,000-byte hard cap (NFR-001/NFR-004,
-    mission felix-calendar-subagent-extraction-01KTTA33) applies only to
-    these two agents — the other 5 fleet agents have larger effective
-    prompt budgets and are intentionally NOT asserted against this cap
-    here (see test_agents_md_size.py for the canonical size guard)."""
-    for agent in AT_CAP_AGENTS:
-        p = _agents_md(repo_root, agent)
-        size = p.stat().st_size
-        assert size < CAP, f"{agent}/AGENTS.md {size} >= {CAP}"
+def test_budgeted_agents_still_under_prompt_budget(repo_root: Path) -> None:
+    """NFR-003: every budgeted fleet agent stays within its AGENTS.md budget
+    after the doctrine additions land. Budgets and the UTF-16 measure come
+    from ``prompt_budgets`` (the single source, #1135); felix-doc-auditor is
+    suspended and carries no budget. See test_agents_md_size.py for the
+    canonical size guard."""
+    budgeted = [a for a in FLEET_AGENTS if a in BUDGETS]
+    assert budgeted, "no fleet agent is budgeted"
+    for agent in budgeted:
+        n = chars(_agents_md(repo_root, agent))
+        assert n <= BUDGETS[agent], f"{agent}/AGENTS.md {n} > {BUDGETS[agent]}"

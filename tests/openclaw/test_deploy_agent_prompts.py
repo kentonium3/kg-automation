@@ -30,7 +30,7 @@ from scripts.openclaw.deploy import deploy_agent_prompts as dap
     ("AGENTS.md", True),
     ("IDENTITY.md", True),
     ("SOUL.md", True),
-    ("TOOLS.md", True),
+    ("TOOLS.md", False),  # retired (#1135): never synced
     ("USER.md", True),
     ("HEARTBEAT.md", False),
     ("HEARTBEAT.md.bak.pre-mission-490", False),
@@ -1126,3 +1126,458 @@ def test_load_notify_resolves_hyphenated_package():
     assert hasattr(notify, "dispatch_health_notification")
     # Cached on repeat.
     assert dap._load_notify() is notify
+
+
+# ---------------------------------------------------------------------------
+# #1135 — retired files (TOOLS.md): archive, then unlink
+# ---------------------------------------------------------------------------
+
+
+def _retire_repo(tmp_path, *, agents_md_src=b"merged", agents_md_dst=None, extra_agents=None):
+    """A fake repo whose one agent's deploy dir still carries TOOLS.md."""
+    dst_dir = tmp_path / "dst"
+    dst_dir.mkdir()
+    meta = {"test-agent": {"source_in_repo": "src/", "workspace": str(dst_dir)}}
+    meta.update(extra_agents or {})
+    repo = _setup_fake_repo(tmp_path, meta)
+    (repo / "src").mkdir()
+    (repo / "src" / "AGENTS.md").write_bytes(agents_md_src)
+    if agents_md_dst is not None:
+        (dst_dir / "AGENTS.md").write_bytes(agents_md_dst)
+    (dst_dir / "TOOLS.md").write_bytes(b"old tool notes")
+    return repo, dst_dir
+
+
+def _records(log):
+    return [json.loads(line) for line in log.read_text().splitlines()]
+
+
+def _archived(log_dir, slug="test-agent"):
+    root = log_dir / dap.RETIRE_ARCHIVE_RELATIVE / slug
+    return sorted(root.iterdir()) if root.exists() else []
+
+
+def test_retired_filenames_disjoint_from_in_scope():
+    assert dap.RETIRED_FILENAMES == frozenset({"TOOLS.md"})
+    assert not (dap.RETIRED_FILENAMES & dap.IN_SCOPE_FILENAMES)
+
+
+def test_retire_archives_then_unlinks_after_agents_md_lands(tmp_path):
+    repo, dst = _retire_repo(tmp_path, agents_md_dst=b"stale")
+    log = tmp_path / "audit.jsonl"
+    with _patch_advance_success("a" * 40):
+        rc = dap.run_tick(dap.parse_args([]), repo_root=repo, audit_path=log)
+    assert rc == dap.EXIT_SUCCESS
+    assert (dst / "AGENTS.md").read_bytes() == b"merged"
+    assert not os.path.lexists(dst / "TOOLS.md")
+    archived = _archived(tmp_path)
+    assert len(archived) == 1 and archived[0].name.endswith("-TOOLS.md")
+    assert archived[0].read_bytes() == b"old tool notes"
+    recs = _records(log)
+    kinds = [r["kind"] for r in recs]
+    assert kinds.index("copy") < kinds.index("retire")
+    retire = next(r for r in recs if r["kind"] == "retire")
+    assert retire["archive_path"] == str(archived[0])
+    assert retire["dst_path"] == str(dst / "TOOLS.md")
+    assert recs[-1]["files_retired"] == 1 and recs[-1]["files_errored"] == 0
+
+
+def test_retire_already_absent_is_noop(tmp_path):
+    repo, dst = _retire_repo(tmp_path, agents_md_dst=b"merged")
+    (dst / "TOOLS.md").unlink()
+    log = tmp_path / "audit.jsonl"
+    with _patch_advance_success("a" * 40):
+        rc = dap.run_tick(dap.parse_args([]), repo_root=repo, audit_path=log)
+    assert rc == dap.EXIT_SUCCESS
+    assert not any(r["kind"].startswith("retire") for r in _records(log))
+    assert _archived(tmp_path) == []
+    assert _records(log)[-1]["files_retired"] == 0
+
+
+def test_retire_archive_failure_leaves_file_and_errors(tmp_path):
+    repo, dst = _retire_repo(tmp_path, agents_md_dst=b"merged")
+    log = tmp_path / "audit.jsonl"
+    with _patch_advance_success("a" * 40), \
+         patch.object(dap, "_archive_copy", side_effect=OSError("no space")):
+        rc = dap.run_tick(dap.parse_args([]), repo_root=repo, audit_path=log)
+    assert rc == dap.EXIT_PARTIAL_FAILURE
+    assert (dst / "TOOLS.md").read_bytes() == b"old tool notes"
+    err = next(r for r in _records(log) if r["kind"] == "retire_error")
+    assert err["stage"] == "archive"
+    assert _records(log)[-1]["files_errored"] == 1
+
+
+def test_retire_partial_archive_removed_on_write_failure(tmp_path):
+    repo, dst = _retire_repo(tmp_path, agents_md_dst=b"merged")
+    log = tmp_path / "audit.jsonl"
+    with _patch_advance_success("a" * 40), \
+         patch.object(dap.os, "fsync", side_effect=OSError("io error")):
+        rc = dap.run_tick(dap.parse_args([]), repo_root=repo, audit_path=log)
+    assert rc == dap.EXIT_PARTIAL_FAILURE
+    assert (dst / "TOOLS.md").exists()
+    assert _archived(tmp_path) == []  # partial archive cleaned up
+
+
+def test_retire_unlink_failure_errors_then_retry_succeeds(tmp_path):
+    repo, dst = _retire_repo(tmp_path, agents_md_dst=b"merged")
+    log = tmp_path / "audit.jsonl"
+    real_unlink = os.unlink
+
+    def _fail_tools(path, *a, **kw):
+        if Path(path).name == "TOOLS.md":
+            raise PermissionError("denied")
+        return real_unlink(path, *a, **kw)
+
+    with _patch_advance_success("a" * 40), patch.object(dap.os, "unlink", _fail_tools):
+        rc = dap.run_tick(dap.parse_args([]), repo_root=repo, audit_path=log)
+    assert rc == dap.EXIT_PARTIAL_FAILURE
+    assert (dst / "TOOLS.md").exists()
+    err = next(r for r in _records(log) if r["kind"] == "retire_error")
+    assert err["stage"] == "unlink"
+    assert len(_archived(tmp_path)) == 1  # archived before the failed unlink
+
+    # Retry next tick: archives again under a distinct name, then removes it.
+    with _patch_advance_success("a" * 40):
+        rc = dap.run_tick(dap.parse_args([]), repo_root=repo, audit_path=log)
+    assert rc == dap.EXIT_SUCCESS
+    assert not (dst / "TOOLS.md").exists()
+    archived = _archived(tmp_path)
+    assert len(archived) == 2 and archived[0].name != archived[1].name
+
+
+def test_retire_dry_run_reports_only(tmp_path, capsys):
+    repo, dst = _retire_repo(tmp_path, agents_md_dst=b"stale")
+    log = tmp_path / "audit.jsonl"
+    rc = dap.run_tick(dap.parse_args(["--dry-run"]), repo_root=repo, audit_path=log)
+    assert rc == dap.EXIT_SUCCESS
+    out = capsys.readouterr().out
+    assert "RETIRE test-agent TOOLS.md pending=AGENTS.md_sync" in out
+    assert (dst / "TOOLS.md").exists()
+    assert not log.exists()
+    assert not (tmp_path / "archive").exists()
+
+
+def test_retire_dry_run_in_sync_reports_archive(tmp_path, capsys):
+    repo, dst = _retire_repo(tmp_path, agents_md_dst=b"merged")
+    rc = dap.run_tick(dap.parse_args(["--dry-run"]), repo_root=repo,
+                      audit_path=tmp_path / "audit.jsonl")
+    assert rc == dap.EXIT_SUCCESS
+    assert "RETIRE test-agent TOOLS.md archive+unlink" in capsys.readouterr().out
+    assert (dst / "TOOLS.md").exists()
+
+
+def test_retire_symlinked_file_refused(tmp_path):
+    repo, dst = _retire_repo(tmp_path, agents_md_dst=b"merged")
+    outside = tmp_path / "outside.md"
+    outside.write_bytes(b"not ours")
+    (dst / "TOOLS.md").unlink()
+    (dst / "TOOLS.md").symlink_to(outside)
+    log = tmp_path / "audit.jsonl"
+    with _patch_advance_success("a" * 40):
+        rc = dap.run_tick(dap.parse_args([]), repo_root=repo, audit_path=log)
+    assert rc == dap.EXIT_PARTIAL_FAILURE
+    assert os.path.islink(dst / "TOOLS.md") and outside.read_bytes() == b"not ours"
+    err = next(r for r in _records(log) if r["kind"] == "retire_error")
+    assert err["stage"] == "validate" and "symlink" in err["error"]
+    assert _archived(tmp_path) == []
+
+
+def test_retire_symlinked_deploy_dir_refused(tmp_path):
+    repo, real_dst = _retire_repo(tmp_path, agents_md_dst=b"merged")
+    link = tmp_path / "dst-link"
+    link.symlink_to(real_dst)
+    inv = repo / dap.SERVICE_INVENTORY_RELATIVE
+    _write_inventory(inv, {"test-agent": {"source_in_repo": "src/", "workspace": str(link)}})
+    log = tmp_path / "audit.jsonl"
+    with _patch_advance_success("a" * 40):
+        rc = dap.run_tick(dap.parse_args([]), repo_root=repo, audit_path=log)
+    assert rc == dap.EXIT_PARTIAL_FAILURE
+    assert (real_dst / "TOOLS.md").exists()
+    err = next(r for r in _records(log) if r["kind"] == "retire_error")
+    assert "workspace_is_symlink" in err["error"]
+
+
+def test_retire_duplicate_deploy_dir_refused(tmp_path):
+    dst = tmp_path / "dst"
+    repo, dst = _retire_repo(tmp_path, agents_md_dst=b"merged", extra_agents={
+        "twin-agent": {"source_in_repo": "src/", "workspace": str(dst)},
+    })
+    log = tmp_path / "audit.jsonl"
+    # --agent selects one; distinctness is still judged across the inventory.
+    with _patch_advance_success("a" * 40):
+        rc = dap.run_tick(dap.parse_args(["--agent", "test-agent"]),
+                          repo_root=repo, audit_path=log)
+    assert rc == dap.EXIT_PARTIAL_FAILURE
+    assert (dst / "TOOLS.md").exists()
+    err = next(r for r in _records(log) if r["kind"] == "retire_error")
+    assert "workspace_shared_by_agents" in err["error"]
+
+
+def test_retire_respects_agent_filter(tmp_path):
+    other = tmp_path / "other"
+    other.mkdir()
+    (other / "TOOLS.md").write_bytes(b"other notes")
+    repo, dst = _retire_repo(tmp_path, agents_md_dst=b"merged", extra_agents={
+        "other-agent": {"source_in_repo": "src/", "workspace": str(other)},
+    })
+    (other / "AGENTS.md").write_bytes(b"merged")
+    log = tmp_path / "audit.jsonl"
+    with _patch_advance_success("a" * 40):
+        rc = dap.run_tick(dap.parse_args(["--agent", "test-agent"]),
+                          repo_root=repo, audit_path=log)
+    assert rc == dap.EXIT_SUCCESS
+    assert not (dst / "TOOLS.md").exists()
+    assert (other / "TOOLS.md").exists()
+
+
+def test_retire_skipped_when_copy_failed(tmp_path):
+    repo, dst = _retire_repo(tmp_path, agents_md_dst=b"stale")
+    log = tmp_path / "audit.jsonl"
+    with _patch_advance_success("a" * 40), \
+         patch.object(dap, "atomic_copy", side_effect=OSError("disk full")):
+        rc = dap.run_tick(dap.parse_args([]), repo_root=repo, audit_path=log)
+    assert rc == dap.EXIT_PARTIAL_FAILURE
+    assert (dst / "TOOLS.md").exists()
+    recs = _records(log)
+    skipped = next(r for r in recs if r["kind"] == "retire_skipped")
+    assert skipped["reason"] == "copy_failed"
+    assert recs[-1]["files_errored"] == 1  # the copy error only, not double-counted
+
+
+def test_retire_refused_when_agents_md_unverified(tmp_path):
+    """No copy failure, but deployed AGENTS.md still differs (source missing)."""
+    repo, dst = _retire_repo(tmp_path, agents_md_dst=b"merged")
+    (repo / "src" / "AGENTS.md").unlink()
+    log = tmp_path / "audit.jsonl"
+    with _patch_advance_success("a" * 40):
+        rc = dap.run_tick(dap.parse_args([]), repo_root=repo, audit_path=log)
+    assert rc == dap.EXIT_PARTIAL_FAILURE
+    assert (dst / "TOOLS.md").exists()
+    err = next(r for r in _records(log) if r["kind"] == "retire_error")
+    assert err["stage"] == "verify"
+
+
+def test_retire_never_recurses_or_globs(tmp_path):
+    repo, dst = _retire_repo(tmp_path, agents_md_dst=b"merged")
+    (dst / "nested").mkdir()
+    (dst / "nested" / "TOOLS.md").write_bytes(b"nested")
+    (dst / "TOOLS.md.bak").write_bytes(b"backup")
+    (dst / "TOOLS.md.tmpl").write_bytes(b"template")
+    log = tmp_path / "audit.jsonl"
+    with _patch_advance_success("a" * 40):
+        rc = dap.run_tick(dap.parse_args([]), repo_root=repo, audit_path=log)
+    assert rc == dap.EXIT_SUCCESS
+    assert not (dst / "TOOLS.md").exists()
+    for kept in ("nested/TOOLS.md", "TOOLS.md.bak", "TOOLS.md.tmpl"):
+        assert (dst / kept).exists(), kept
+
+
+# --- #1135 pre-merge review fixes -------------------------------------------
+
+
+def test_retire_refused_while_source_still_has_retired_file(tmp_path):
+    """Review item 1: AGENTS.md equality alone doesn't prove the merge landed."""
+    repo, dst = _retire_repo(tmp_path, agents_md_dst=b"merged")
+    (repo / "src" / "TOOLS.md").write_bytes(b"still in source")
+    log = tmp_path / "audit.jsonl"
+    with _patch_advance_success("a" * 40):
+        rc = dap.run_tick(dap.parse_args([]), repo_root=repo, audit_path=log)
+    assert rc == dap.EXIT_PARTIAL_FAILURE
+    assert (dst / "TOOLS.md").read_bytes() == b"old tool notes"
+    err = next(r for r in _records(log) if r["kind"] == "retire_error")
+    assert err["stage"] == "verify" and "source" in err["error"]
+    assert _records(log)[-1]["files_errored"] == 1
+
+
+def test_retire_dry_run_reports_source_still_present(tmp_path, capsys):
+    repo, dst = _retire_repo(tmp_path, agents_md_dst=b"merged")
+    (repo / "src" / "TOOLS.md").write_bytes(b"still in source")
+    dap.run_tick(dap.parse_args(["--dry-run"]), repo_root=repo,
+                 audit_path=tmp_path / "audit.jsonl")
+    assert "RETIRE test-agent TOOLS.md refused=source_still_has_TOOLS.md" in capsys.readouterr().out
+
+
+def test_retire_gate_hash_read_error_is_contained(tmp_path):
+    """Review item 2: an OSError while hashing the gate never aborts the tick."""
+    repo, dst = _retire_repo(tmp_path, agents_md_dst=b"merged")
+    log = tmp_path / "audit.jsonl"
+    real_md5 = dap.compute_md5
+    calls = {"n": 0}
+
+    def _md5(path):
+        # The copy loop hashes AGENTS.md first; fail only inside the retire gate.
+        calls["n"] += 1
+        if calls["n"] > 2:
+            raise PermissionError("unreadable")
+        return real_md5(path)
+
+    with _patch_advance_success("a" * 40), patch.object(dap, "compute_md5", _md5):
+        rc = dap.run_tick(dap.parse_args([]), repo_root=repo, audit_path=log)
+    assert rc == dap.EXIT_PARTIAL_FAILURE
+    assert (dst / "TOOLS.md").exists()
+    recs = _records(log)
+    err = next(r for r in recs if r["kind"] == "retire_error")
+    assert err["stage"] == "verify" and err["error_class"] == "PermissionError"
+    assert recs[-1]["kind"] == "tick_summary"
+    last_tick = json.loads((tmp_path / dap.LAST_TICK_FILENAME).read_text())
+    assert last_tick["status"] == "partial"
+
+
+def test_retire_archive_dir_fsync_failure_keeps_file(tmp_path):
+    """Review item 4: new archive dirs are fsynced into their parents first."""
+    repo, dst = _retire_repo(tmp_path, agents_md_dst=b"merged")
+    log = tmp_path / "audit.jsonl"
+    real = dap._fsync_dir
+    archive_parent = tmp_path / dap.RETIRE_ARCHIVE_RELATIVE
+
+    def _fsync(path):
+        if Path(path) == archive_parent:
+            raise OSError("dir fsync failed")
+        return real(path)
+
+    with _patch_advance_success("a" * 40), patch.object(dap, "_fsync_dir", _fsync):
+        rc = dap.run_tick(dap.parse_args([]), repo_root=repo, audit_path=log)
+    assert rc == dap.EXIT_PARTIAL_FAILURE
+    assert (dst / "TOOLS.md").exists()
+    err = next(r for r in _records(log) if r["kind"] == "retire_error")
+    assert err["stage"] == "archive"
+
+
+def test_retire_new_archive_dirs_fsynced_into_parents(tmp_path):
+    repo, dst = _retire_repo(tmp_path, agents_md_dst=b"merged")
+    synced = []
+    real = dap._fsync_dir
+
+    def _fsync(path):
+        synced.append(Path(path))
+        return real(path)
+
+    with _patch_advance_success("a" * 40), patch.object(dap, "_fsync_dir", _fsync):
+        dap.run_tick(dap.parse_args([]), repo_root=repo, audit_path=tmp_path / "audit.jsonl")
+    for parent in (tmp_path, tmp_path / "archive", tmp_path / dap.RETIRE_ARCHIVE_RELATIVE):
+        assert parent in synced, parent
+
+
+def test_retire_workspace_fsync_after_unlink_logged_separately(tmp_path):
+    """Review item 5: a dir-fsync failure after a good unlink keeps the retire record."""
+    repo, dst = _retire_repo(tmp_path, agents_md_dst=b"merged")
+    log = tmp_path / "audit.jsonl"
+    real = dap._fsync_dir
+
+    def _fsync(path):
+        if Path(path) == dst:
+            raise OSError("ws fsync failed")
+        return real(path)
+
+    with _patch_advance_success("a" * 40), patch.object(dap, "_fsync_dir", _fsync):
+        rc = dap.run_tick(dap.parse_args([]), repo_root=repo, audit_path=log)
+    assert not (dst / "TOOLS.md").exists()
+    recs = _records(log)
+    retire = next(r for r in recs if r["kind"] == "retire")
+    assert retire["archive_path"]
+    kinds = [r["kind"] for r in recs]
+    assert "retire_fsync_error" in kinds
+    assert not any(r["kind"] == "retire_error" for r in recs)
+    assert rc == dap.EXIT_PARTIAL_FAILURE
+
+
+@pytest.mark.parametrize("slug", ["a/b", ".", "..", "", "/"])
+def test_retire_refuses_unsafe_slug(tmp_path, slug):
+    """Review item 6: the slug is joined into the archive path."""
+    repo, dst = _retire_repo(tmp_path, agents_md_dst=b"merged")
+    inv = repo / dap.SERVICE_INVENTORY_RELATIVE
+    _write_inventory(inv, {slug: {"source_in_repo": "src/", "workspace": str(dst)}})
+    log = tmp_path / "audit.jsonl"
+    with _patch_advance_success("a" * 40):
+        rc = dap.run_tick(dap.parse_args([]), repo_root=repo, audit_path=log)
+    assert rc == dap.EXIT_PARTIAL_FAILURE
+    assert (dst / "TOOLS.md").exists()
+    err = next(r for r in _records(log) if r["kind"] == "retire_error")
+    assert "unsafe_agent_slug" in err["error"]
+    assert not (tmp_path / "archive").exists()
+
+
+def test_retire_workspace_with_symlinked_component_refused(tmp_path):
+    """Review item 7."""
+    repo, real_dst = _retire_repo(tmp_path, agents_md_dst=b"merged")
+    link_parent = tmp_path / "linked"
+    link_parent.symlink_to(tmp_path)
+    via = link_parent / "dst"
+    inv = repo / dap.SERVICE_INVENTORY_RELATIVE
+    _write_inventory(inv, {"test-agent": {"source_in_repo": "src/", "workspace": str(via)}})
+    log = tmp_path / "audit.jsonl"
+    with _patch_advance_success("a" * 40):
+        rc = dap.run_tick(dap.parse_args([]), repo_root=repo, audit_path=log)
+    assert rc == dap.EXIT_PARTIAL_FAILURE
+    assert (real_dst / "TOOLS.md").exists()
+    err = next(r for r in _records(log) if r["kind"] == "retire_error")
+    assert "workspace_has_symlinked_component" in err["error"]
+
+
+def test_retire_non_regular_file_refused(tmp_path):
+    """Review item 7: a directory named TOOLS.md is not removed."""
+    repo, dst = _retire_repo(tmp_path, agents_md_dst=b"merged")
+    (dst / "TOOLS.md").unlink()
+    (dst / "TOOLS.md").mkdir()
+    log = tmp_path / "audit.jsonl"
+    with _patch_advance_success("a" * 40):
+        rc = dap.run_tick(dap.parse_args([]), repo_root=repo, audit_path=log)
+    assert rc == dap.EXIT_PARTIAL_FAILURE
+    assert (dst / "TOOLS.md").is_dir()
+    err = next(r for r in _records(log) if r["kind"] == "retire_error")
+    assert "not a regular file" in err["error"]
+
+
+# --- #1135 fix round 2: archive-chain durability on every attempt -----------
+
+
+def test_retire_archive_chain_fsync_failure_survives_retry(tmp_path):
+    """(a) The dir from a failed first tick exists on the second; its parent
+    must still be fsynced, so the injected failure keeps TOOLS.md both times."""
+    repo, dst = _retire_repo(tmp_path, agents_md_dst=b"merged")
+    log = tmp_path / "audit.jsonl"
+    real = dap._fsync_dir
+    archive_parent = tmp_path / dap.RETIRE_ARCHIVE_RELATIVE
+
+    def _fsync(path):
+        if Path(path) == archive_parent:
+            raise OSError("dir fsync failed")
+        return real(path)
+
+    for _ in range(2):
+        with _patch_advance_success("a" * 40), patch.object(dap, "_fsync_dir", _fsync):
+            rc = dap.run_tick(dap.parse_args([]), repo_root=repo, audit_path=log)
+        assert rc == dap.EXIT_PARTIAL_FAILURE
+        assert (dst / "TOOLS.md").read_bytes() == b"old tool notes"
+    errs = [r for r in _records(log) if r["kind"] == "retire_error"]
+    assert [e["stage"] for e in errs] == ["archive", "archive"]
+    assert not any(r["kind"] == "retire" for r in _records(log))
+
+
+def test_retire_archive_chain_fsynced_before_unlink(tmp_path):
+    """(b) Every chain dir's parent is fsynced, and all before the unlink, even
+    when the chain already exists."""
+    repo, dst = _retire_repo(tmp_path, agents_md_dst=b"merged")
+    agent_dir = tmp_path / dap.RETIRE_ARCHIVE_RELATIVE / "test-agent"
+    agent_dir.mkdir(parents=True)  # chain pre-exists: nothing is "new"
+    events = []
+    real_fsync, real_unlink = dap._fsync_dir, os.unlink
+
+    def _fsync(path):
+        events.append(("fsync", Path(path)))
+        return real_fsync(path)
+
+    def _unlink(path, *a, **kw):
+        events.append(("unlink", Path(path)))
+        return real_unlink(path, *a, **kw)
+
+    with _patch_advance_success("a" * 40), \
+         patch.object(dap, "_fsync_dir", _fsync), patch.object(dap.os, "unlink", _unlink):
+        rc = dap.run_tick(dap.parse_args([]), repo_root=repo,
+                          audit_path=tmp_path / "audit.jsonl")
+    assert rc == dap.EXIT_SUCCESS
+    unlink_at = events.index(("unlink", dst / "TOOLS.md"))
+    before = {p for kind, p in events[:unlink_at] if kind == "fsync"}
+    for parent in (tmp_path, tmp_path / "archive",
+                   tmp_path / dap.RETIRE_ARCHIVE_RELATIVE, agent_dir):
+        assert parent in before, parent

@@ -212,6 +212,14 @@ Log significant operational actions via `cd /home/claude/kg-automation && python
 
 ---
 
+## Tool mechanics
+
+- **Vikunja**: use the `vikunja_api` skill for every Vikunja operation (`openclaw skills info vikunja_api` for details). The canonical Habits project id lives in `scripts/common/vikunja_refs.json`, and the habit helpers resolve it there. Never inline a numeric id; they churn (#715/#717). For ad-hoc add/pause/resume/remove, resolve the project by name "Habits".
+- **Dates**: resolve every date in Kent's timezone (America/New_York), not UTC. office2 runs in UTC, so use `TZ=America/New_York date`. A `due_date` sent to Vikunja carries the ET offset (`-04:00` EDT, `-05:00` EST), never `Z`.
+- **Completion storage**: each habit is one task in the Habits project, and each day's completion is a comment on it: `[Felix] YYYY-MM-DD | {complete|rescheduled|will-not-do} | optional note`. Check for an existing comment before creating one (idempotent); `record_completion` already does this for the reply workflow.
+
+---
+
 ## Reference
 
 - Morning + reply: `kitty-specs/habits-checkin-reply-scripts-first-01KS86ZQ/` (#371).

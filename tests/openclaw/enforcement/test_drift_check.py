@@ -78,8 +78,8 @@ class TestComputeOffice2Hashes:
         ws = tmp_path / "inbox-agent"
         ws.mkdir()
         (ws / "AGENTS.md").write_text("agents body\n")
-        (ws / "TOOLS.md").write_text("tools body\n")
-        paths = [str(ws / "AGENTS.md"), str(ws / "TOOLS.md")]
+        (ws / "BOOTSTRAP.md").write_text("bootstrap body\n")
+        paths = [str(ws / "AGENTS.md"), str(ws / "BOOTSTRAP.md")]
 
         with patch(
             "scripts.openclaw.enforcement.drift_check.subprocess.run"
@@ -180,7 +180,7 @@ class TestFormatResults:
     def test_text_output_marks(self):
         results = [
             self._make_result(DriftState.NO_CHANGE),
-            self._make_result(DriftState.REPO_CHANGED, filename="TOOLS.md"),
+            self._make_result(DriftState.REPO_CHANGED, filename="BOOTSTRAP.md"),
             self._make_result(DriftState.CONFLICT, filename="SOUL.md"),
         ]
         output = format_results(results, as_json=False)

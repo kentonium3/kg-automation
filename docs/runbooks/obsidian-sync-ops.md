@@ -287,4 +287,4 @@ sudo journalctl -u obsidian-sync
 
 - Quickstart: `kitty-specs/010-obsidian-sync-office2/quickstart.md`
 - Architecture: `docs/design/architecture/service-inventory.md`
-- Inbox processor: `scripts/openclaw/agents/felix-admin-capture/TOOLS.md`
+- Inbox processor: `scripts/openclaw/agents/felix-admin-capture/AGENTS.md` (vault paths in its Environment section)

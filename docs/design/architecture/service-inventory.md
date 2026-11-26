@@ -2,7 +2,7 @@
 title: Service Inventory
 doc_type: reference
 status: approved
-tags: [1133, 1122, 1120, 1111, 1087, 860, 775, 749, 750, 656, 588, 579, 572, 520, 519, 518, 137, 189, 80, 202, 149, 190, 374, 100, 253, 185, 254, 371, 309, 343, 306, 308, 310, 362, 391, 400, 105, 115, 562, 490, 408, 567, 563, 558, 561, 540, 542, 306/, 152, 376, 368-, 112]
+tags: [1135, 1133, 1122, 1120, 1111, 1087, 860, 775, 749, 750, 656, 588, 579, 572, 520, 519, 518, 137, 189, 80, 202, 149, 190, 374, 100, 253, 185, 254, 371, 309, 343, 306, 308, 310, 362, 391, 400, 105, 115, 562, 490, 408, 567, 563, 558, 561, 540, 542, 306/, 152, 376, 368-, 112]
 ---
 
 # Service Inventory
@@ -65,7 +65,7 @@ All services run on office2 unless otherwise noted.
 ## Agent Prompt Deploy Pipeline (#567)
 
 **Purpose**: Automate the sync of Felix agent prompt files (`AGENTS.md`,
-`IDENTITY.md`, `SOUL.md`, `TOOLS.md`, `USER.md`) from the
+`IDENTITY.md`, `SOUL.md`, `USER.md`) from the
 `kg-automation` repo on office2 (`/home/claude/kg-automation`) into the
 deployed openclaw workspace directories under `/data/services/openclaw/`.
 Closes the deploy gap exposed by #563 (truncated prompts surfacing as silent
@@ -81,8 +81,11 @@ content loss) and unsticks stranded changes from #558 + #561.
    (b) reads `service-inventory.json` to discover Felix agents,
    (c) MD5-compares each in-scope file in `<source_in_repo>` against the file
    at `<workspace>/<filename>`, (d) atomically copies any drifted file
-   (preserving destination mode), (e) appends structured records to
-   `/data/services/openclaw/deploy/agent-prompt-sync.jsonl`, (f) overwrites a
+   (preserving destination mode), (e) once the deployed `AGENTS.md` matches
+   source, archives each retired file (`RETIRED_FILENAMES` = `TOOLS.md`, #1135)
+   to `/data/services/openclaw/deploy/archive/retired/<agent>/` and removes it
+   from the deploy dir, (f) appends structured records to
+   `/data/services/openclaw/deploy/agent-prompt-sync.jsonl`, (g) overwrites a
    flat `/data/services/openclaw/deploy/last-tick.json` freshness pointer
    (`completed_at_utc` + `exit_code=0`) every real tick — the canary's freshness
    anchor, since the JSONL audit log is shape-unevaluable to the freshness probe (#721)
@@ -101,7 +104,12 @@ content loss) and unsticks stranded changes from #558 + #561.
 
 **Files synced** (in-scope filename allowlist):
 
-- `AGENTS.md`, `IDENTITY.md`, `SOUL.md`, `TOOLS.md`, `USER.md`
+- `AGENTS.md`, `IDENTITY.md`, `SOUL.md`, `USER.md`
+
+**Files retired** (archived then removed from deploy dirs, never synced):
+
+- `TOOLS.md` — OpenClaw 2026.11.7 no longer injects it; its content lives in each
+  agent's `AGENTS.md` (#1135, coherence decision DEC-008)
 
 **Files excluded** (would-be candidates the helper deliberately ignores):
 
@@ -608,7 +616,7 @@ Per-helper metadata mirrors `docs/design/architecture/data/service-inventory.jso
 - **Agent name**: `felix-admin-calendar`
 - **Workspace**: `/data/services/openclaw/calendar-agent/`
 - **agentDir**: `/home/claude/.openclaw/agents/felix-admin-calendar/agent`
-- **Source in repo**: `scripts/openclaw/agents/felix-admin-calendar/` (IDENTITY.md, SOUL.md, AGENTS.md, TOOLS.md, USER.md per `docs/runbooks/openclaw-agent-setup.md`)
+- **Source in repo**: `scripts/openclaw/agents/felix-admin-calendar/` (IDENTITY.md, SOUL.md, AGENTS.md, USER.md per `docs/runbooks/openclaw-agent-setup.md`; TOOLS.md retired by #1135)
 - **Model**: `anthropic/claude-sonnet-4-6` (swapped from `anthropic/claude-haiku-4-5` by #843, 2026-07-21 — the other of the last two haiku holdouts; pre-emptive, same rationale as tasker: the announce-delivery confabulation class fixed for habits in #842/#743). Originally chosen as haiku per the F-06 "routine deterministic-validator-driven workflow" decision (matched the capture / habits / tasker shape).
 - **Purpose**: Calendar **judgment layer** (reshaped by #699, RFC #681 calendar phase — was: gog-executing substrate). Handles only the work that needs an LLM: the conversational calendar path and clarification round-trips (interpreting Kent's natural-language date/time/intent, at most one clarification round on ambiguity). Its terminal action is a call to the **Felix calendar helper** (`scripts/google/calendar_helper.py`), **not** `gog calendar create`. On inbound WhatsApp clarification reply, reads the pending-calendar-clarifications state file, merges Kent's reply into the deferred event payload, re-validates, and issues the create via the helper. Surfaces a helper exit 3 (auth) / 1 (operational) verbatim and never fakes success (#683); it must not fall back to gog.
 - **Skills**: `[]` (none) — `calendar` was never a real OpenClaw skill and the `gog` skill was **removed** by #699; the helper is invoked via `exec`, not a gog skill (that #699 skill removal was the only `openclaw.json` rebaseline-triggering change in the calendar migration)
@@ -625,7 +633,7 @@ Per-helper metadata mirrors `docs/design/architecture/data/service-inventory.jso
 
 #### State files
 
-- **Pending calendar clarifications** (`/data/services/openclaw/state/pending-calendar-clarifications.jsonl`, relocated from `~/second-brain/agents/state/` by #656) — Per data-model.md, file path and JSONL record shape are PRESERVED from main's pre-mission handler (path only was updated by #656). Atomic-write protocol (LOCK_EX + .tmp + rename) preserved verbatim. Records aged out after 24h by the sweep. Owner `claude:secondbrain`, dir mode 0750, file mode 0640.
+- **Pending calendar clarifications** (`/data/services/openclaw/state/pending-calendar-clarifications.json`, relocated from `~/second-brain/agents/state/` by #656) — Per data-model.md, file path and JSONL record shape are PRESERVED from main's pre-mission handler (path only was updated by #656). Atomic-write protocol (LOCK_EX + .tmp + rename) preserved verbatim. Records aged out after 24h by the sweep. Owner `claude:secondbrain`, dir mode 0750, file mode 0640.
 
 ### Felix Calendar Helper (#699, mission `felix-calendar-helper-01KX4H3C`, RFC #681 calendar phase, 2026-07-09)
 - **Deployed by**: [#699](https://github.com/kentonium3/kg-automation/issues/699) / mission `felix-calendar-helper-01KX4H3C` (first concrete delivery of accepted RFC #681)

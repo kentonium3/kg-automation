@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-07-18T13:03:36Z",
+  "generated_at": "2026-11-26T08:48:48Z",
   "generated_by": "generate_manifest.py",
   "agents": {
     "main": {
@@ -7,30 +7,23 @@
       "repo_path": "scripts/openclaw/agents/main",
       "files": {
         "AGENTS.md": {
-          "repo_sha256": "adf40cfbcdb00cb11e64da7abbedd3d3b8b58ae9d4d8f39d68772cbba6d2080e",
-          "office2_sha256": "adf40cfbcdb00cb11e64da7abbedd3d3b8b58ae9d4d8f39d68772cbba6d2080e",
-          "lines": 145,
+          "repo_sha256": "ebb2bcbd34708522ecd0220dfb505fe0b162c9ed17d47350323dcadf64cb82b7",
+          "office2_sha256": "b5c642a86779ba9208e6caaeefdcf7d5b79f410675129fc427cb86bc49991648",
+          "lines": 183,
           "tracked": true,
           "factory_default": false
         },
         "SOUL.md": {
-          "repo_sha256": "67d180ff6f5db61aeb83f04f2de8057d1ec8ccdc6969d1de39886fbea294b3cf",
+          "repo_sha256": "e1d67d0edbf9d35f821e7a8c4dc34ab7e34f734591b16a29fd55557a4a18432d",
           "office2_sha256": "67d180ff6f5db61aeb83f04f2de8057d1ec8ccdc6969d1de39886fbea294b3cf",
-          "lines": 48,
-          "tracked": true,
-          "factory_default": false
-        },
-        "TOOLS.md": {
-          "repo_sha256": "5327b1e95bf07a627022c0af480b0c2db5a98b3a90af8b93f34ac3811b338e06",
-          "office2_sha256": "5327b1e95bf07a627022c0af480b0c2db5a98b3a90af8b93f34ac3811b338e06",
-          "lines": 151,
+          "lines": 47,
           "tracked": true,
           "factory_default": false
         },
         "USER.md": {
-          "repo_sha256": "dc2ef347bded447f75f67a8095b12c7a977e8f29128ebefa9a49e57656f55d02",
-          "office2_sha256": "dc2ef347bded447f75f67a8095b12c7a977e8f29128ebefa9a49e57656f55d02",
-          "lines": 112,
+          "repo_sha256": "1ed4620c508d9a7991e2f6a6b7b57df20e854924e3499a9a49bb144952a89f2a",
+          "office2_sha256": "1ed4620c508d9a7991e2f6a6b7b57df20e854924e3499a9a49bb144952a89f2a",
+          "lines": 40,
           "tracked": true,
           "factory_default": false
         },
@@ -48,9 +41,9 @@
       "repo_path": "scripts/openclaw/agents/felix-admin-capture",
       "files": {
         "AGENTS.md": {
-          "repo_sha256": "994eb160aa855ff319f561905afd0d158203fb03a8b5d97748337959171f7ca3",
-          "office2_sha256": "994eb160aa855ff319f561905afd0d158203fb03a8b5d97748337959171f7ca3",
-          "lines": 231,
+          "repo_sha256": "a7d6229854b79055c2e34adb9d8bc7b417c977956953675911f999cad6cf1a78",
+          "office2_sha256": "6a120684952ee658fb6046e1bd4425bbb1de8f37ebe110bd4b409ce0cef752ee",
+          "lines": 178,
           "tracked": true,
           "factory_default": false
         },
@@ -58,13 +51,6 @@
           "repo_sha256": "c2cfc5c35f76ee72ee7e44236de44766441c8e138fe982a51868ff480f649898",
           "office2_sha256": "c2cfc5c35f76ee72ee7e44236de44766441c8e138fe982a51868ff480f649898",
           "lines": 49,
-          "tracked": true,
-          "factory_default": false
-        },
-        "TOOLS.md": {
-          "repo_sha256": "63b6163a27d995fdc2023d31dc6d6a5b48046c24065c075b6a2198984cf85403",
-          "office2_sha256": "63b6163a27d995fdc2023d31dc6d6a5b48046c24065c075b6a2198984cf85403",
-          "lines": 76,
           "tracked": true,
           "factory_default": false
         },
@@ -89,30 +75,23 @@
       "repo_path": "scripts/openclaw/agents/felix-admin-habits",
       "files": {
         "AGENTS.md": {
-          "repo_sha256": "07cf7a2424c1770021e6382f738e21a4e889de6f166cfef956141ef6b8d7180f",
-          "office2_sha256": "07cf7a2424c1770021e6382f738e21a4e889de6f166cfef956141ef6b8d7180f",
-          "lines": 295,
+          "repo_sha256": "9f7a4aaed0e15cfaf27a5faa3d2a3ee0190649073e882c4cc205455873197fef",
+          "office2_sha256": "1a8f0c96fcdadbea9c47db31b547d532e90810e245946db58e8d1bcbe883e43c",
+          "lines": 228,
           "tracked": true,
           "factory_default": false
         },
         "SOUL.md": {
-          "repo_sha256": "e098b55a22bfbcb398ebe9ef16ae7c4131b41f7aea5aea5f23806614f5046338",
-          "office2_sha256": "e098b55a22bfbcb398ebe9ef16ae7c4131b41f7aea5aea5f23806614f5046338",
-          "lines": 75,
-          "tracked": true,
-          "factory_default": false
-        },
-        "TOOLS.md": {
-          "repo_sha256": "bd2aea9108088772291ec594ce21923b1f18de285b2104cbfecfc76df85ccfc9",
-          "office2_sha256": "bd2aea9108088772291ec594ce21923b1f18de285b2104cbfecfc76df85ccfc9",
-          "lines": 19,
+          "repo_sha256": "b2e066d9644c3d0c84d772293eadfe28b162dea7488eac7ec5de67cbf61967a8",
+          "office2_sha256": "b2e066d9644c3d0c84d772293eadfe28b162dea7488eac7ec5de67cbf61967a8",
+          "lines": 49,
           "tracked": true,
           "factory_default": false
         },
         "USER.md": {
-          "repo_sha256": "e8113a7bcbeffd02b96eddbe2ea91ec69f1216766a6933a16bfa1afb66a7cc23",
-          "office2_sha256": "e8113a7bcbeffd02b96eddbe2ea91ec69f1216766a6933a16bfa1afb66a7cc23",
-          "lines": 21,
+          "repo_sha256": "fd1c6f84f1d18cea7f1822ca780e46de5880683602f9568b9a1316b681a77e8c",
+          "office2_sha256": "fd1c6f84f1d18cea7f1822ca780e46de5880683602f9568b9a1316b681a77e8c",
+          "lines": 13,
           "tracked": true,
           "factory_default": false
         },
@@ -130,9 +109,9 @@
       "repo_path": "scripts/openclaw/agents/felix-admin-escalation",
       "files": {
         "AGENTS.md": {
-          "repo_sha256": "3a9f29bd73db0e73bfae5807785a1757a98a9d899f8737f768c15a077d394196",
-          "office2_sha256": "3a9f29bd73db0e73bfae5807785a1757a98a9d899f8737f768c15a077d394196",
-          "lines": 323,
+          "repo_sha256": "39ef79a0510478d17cb76fc08df0987c824c1f7008a6437ba91de89b9020293a",
+          "office2_sha256": "26f66e778950fc22d983bf27860b978f05586a160c7572d08afe251a3fdf5519",
+          "lines": 325,
           "tracked": true,
           "factory_default": false
         },
@@ -140,13 +119,6 @@
           "repo_sha256": "2b2c223ee4def169379afc59d826dbebe1a7f3dfd90260584d23412d02f5edc1",
           "office2_sha256": "2b2c223ee4def169379afc59d826dbebe1a7f3dfd90260584d23412d02f5edc1",
           "lines": 47,
-          "tracked": true,
-          "factory_default": false
-        },
-        "TOOLS.md": {
-          "repo_sha256": "ee722c78351610b280e6efa9bf982b8a486790542a37dfc41897d355bf624854",
-          "office2_sha256": "ee722c78351610b280e6efa9bf982b8a486790542a37dfc41897d355bf624854",
-          "lines": 76,
           "tracked": true,
           "factory_default": false
         },
@@ -171,30 +143,23 @@
       "repo_path": "scripts/openclaw/agents/felix-admin-tasker",
       "files": {
         "AGENTS.md": {
-          "repo_sha256": "3f985fdb79d2dc8d7f7d873bfd5eb45cc10607332712fa0b320b945286faecb6",
-          "office2_sha256": "3f985fdb79d2dc8d7f7d873bfd5eb45cc10607332712fa0b320b945286faecb6",
-          "lines": 327,
+          "repo_sha256": "6c6cdcce3c544ae1bccc975149f85ea863b21ddf74b4b234875358dd5af7b4ef",
+          "office2_sha256": "2840a298bc8fd8efa06637de336ae9bbda5b364189755db094bdfc672742aa9e",
+          "lines": 286,
           "tracked": true,
           "factory_default": false
         },
         "SOUL.md": {
-          "repo_sha256": "37f8c0c78f0c6237a7e526ba0d0cad84cb4ca13b83fefa0e5b7dfef1d9d48d1f",
-          "office2_sha256": "37f8c0c78f0c6237a7e526ba0d0cad84cb4ca13b83fefa0e5b7dfef1d9d48d1f",
-          "lines": 72,
-          "tracked": true,
-          "factory_default": false
-        },
-        "TOOLS.md": {
-          "repo_sha256": "d458ff4e0b179700487c24784ac87f230f15e27a7b533abbbc1b7e89b6219d1b",
-          "office2_sha256": "d458ff4e0b179700487c24784ac87f230f15e27a7b533abbbc1b7e89b6219d1b",
-          "lines": 41,
+          "repo_sha256": "a16b788abc92fa9f779c0a66ed3a5b781699c1479555271da6f8e0eeae8df40f",
+          "office2_sha256": "a16b788abc92fa9f779c0a66ed3a5b781699c1479555271da6f8e0eeae8df40f",
+          "lines": 50,
           "tracked": true,
           "factory_default": false
         },
         "USER.md": {
-          "repo_sha256": "fb9bc5b9195b35300a98392527c94b60e7c057820f551adf3383d626b42c9891",
-          "office2_sha256": "fb9bc5b9195b35300a98392527c94b60e7c057820f551adf3383d626b42c9891",
-          "lines": 36,
+          "repo_sha256": "7488c6face5f760ead65eefccce932ac2fdac44163081cb8810afe6186c73441",
+          "office2_sha256": "7488c6face5f760ead65eefccce932ac2fdac44163081cb8810afe6186c73441",
+          "lines": 27,
           "tracked": true,
           "factory_default": false
         },
@@ -212,30 +177,23 @@
       "repo_path": "scripts/openclaw/agents/felix-admin-calendar",
       "files": {
         "AGENTS.md": {
-          "repo_sha256": "a2bd75c6a77a8d367b7e89332d08e16152fe1651d5cfcfdce6af87bdfdf72863",
-          "office2_sha256": "a2bd75c6a77a8d367b7e89332d08e16152fe1651d5cfcfdce6af87bdfdf72863",
-          "lines": 164,
+          "repo_sha256": "2852d5c5f6b27e656c47b99872967af77882d68947b77d763a868b0fa0e5cf03",
+          "office2_sha256": "6915bfb28f2712c3eac0c4fb46bb1b327914851203f93d13b7783e6f96d6a699",
+          "lines": 86,
           "tracked": true,
           "factory_default": false
         },
         "SOUL.md": {
-          "repo_sha256": "9c57a18301af98eace45ba43b26e26724dc643199fcf332ed2248699adca4159",
-          "office2_sha256": "9c57a18301af98eace45ba43b26e26724dc643199fcf332ed2248699adca4159",
-          "lines": 102,
-          "tracked": true,
-          "factory_default": false
-        },
-        "TOOLS.md": {
-          "repo_sha256": "aae88acfc2b67e0dc2763a91bb39e3cefc9bc6bad54891adecbece25f53bd562",
-          "office2_sha256": "aae88acfc2b67e0dc2763a91bb39e3cefc9bc6bad54891adecbece25f53bd562",
-          "lines": 61,
+          "repo_sha256": "1d3c091812506116048ea874ecda903b5c520ea945339263458b5a1802793b20",
+          "office2_sha256": "1d3c091812506116048ea874ecda903b5c520ea945339263458b5a1802793b20",
+          "lines": 42,
           "tracked": true,
           "factory_default": false
         },
         "USER.md": {
-          "repo_sha256": "6f5fd0752494b780aef1ba91998fe4f1df687b4fcd3693080770cce2ac32c633",
-          "office2_sha256": "6f5fd0752494b780aef1ba91998fe4f1df687b4fcd3693080770cce2ac32c633",
-          "lines": 45,
+          "repo_sha256": "1d367a238f07dbad3692288103b355a368d002115b130edc2c98ebfa42e0b4bb",
+          "office2_sha256": "1d367a238f07dbad3692288103b355a368d002115b130edc2c98ebfa42e0b4bb",
+          "lines": 39,
           "tracked": true,
           "factory_default": false
         },

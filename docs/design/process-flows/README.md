@@ -20,7 +20,7 @@ tags: [794, 780]
 > the states, the operating rules (with the invariant/requirement IDs they
 > enforce), and the code seams that implement them. They are **not** runbooks
 > (how to operate) and **not** specs (what to build). Runbooks and agent
-> `TOOLS.md`/`AGENTS.md` link here rather than restating the rules.
+> `AGENTS.md` files link here rather than restating the rules.
 
 ## Why this directory exists
 

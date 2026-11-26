@@ -21,7 +21,7 @@ def sample_manifest():
                         "tracked": True,
                         "factory_default": False,
                     },
-                    "TOOLS.md": {
+                    "BOOTSTRAP.md": {
                         "repo_sha256": "bbb222",
                         "office2_sha256": "bbb222",
                         "lines": 40,
@@ -60,7 +60,7 @@ def sample_factory_baselines():
     return {
         "openclaw_version": "2026.3.24",
         "baselines": {
-            "TOOLS.md": "bbb222",
+            "BOOTSTRAP.md": "bbb222",
             "IDENTITY.md": {
                 "template_full": "ccc333",
             },

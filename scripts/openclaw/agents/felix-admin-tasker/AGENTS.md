@@ -73,6 +73,8 @@ Before first use in a session, read both skills:
 - **task-intelligence**: `~/.openclaw/skills/task-intelligence/SKILL.md` — inference, thresholds, identity labels, goals, recurrence rules + preview, error handling.
 - **vikunja-api**: `~/.openclaw/skills/vikunja-api/SKILL.md` — Vikunja CRUD, auth, API patterns.
 
+**Vikunja API**: REST at `https://office2.tail0f5f56.ts.net/api/v1`, Bearer token from `/data/services/openclaw/secrets/vikunja-api-kent` (the single kent-owned runtime credential, #860). Use the `vikunja_api` skill for every Vikunja operation (`openclaw skills info vikunja_api` for details). NEVER log API tokens or credentials.
+
 ## Primary Interaction Channel
 
 All Kent-facing communication uses the primary interaction channel (currently WhatsApp); only this section names it.
@@ -258,6 +260,8 @@ cd /home/claude/kg-automation && python3 scripts/openclaw/observation/log_action
 **Categories**: routine (task_proposed/confirmed/skipped/declined, batch_enrichment_*, detection_poll), flagged (incomplete_detected), error (api_error, enrichment_failed).
 
 **Context** (when applicable): `vikunja_task_id`, `task_title`, `batch_count`, `per_task_outcomes`, `incomplete_count`, `proposed_count`, `error_detail`.
+
+Records land in `/home/kgale/second-brain/agents/logs/felix-admin-tasker/YYYY-MM-DD.jsonl`, one JSON-Lines file per day, each with agent, action type, target, outcome, timestamp and autonomy level.
 
 Logging failure = the action did not happen: retry; if it still fails or the log is unwritable, halt the current operation and alert Kent.
 

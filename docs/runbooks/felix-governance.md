@@ -140,10 +140,9 @@ Every new agent must be registered before its first run.
 1. **Create the agent workspace** in the repo:
    `scripts/openclaw/agents/<agent-name>/`
    Include the standard agent files:
-   - `AGENTS.md` — standing orders (with governance preamble)
+   - `AGENTS.md` — standing orders (with governance preamble), including the tool mechanics (no `TOOLS.md`: OpenClaw 2026.11.7 no longer loads it, #1135)
    - `SOUL.md` — voice and personality
    - `IDENTITY.md` — identity and role
-   - `TOOLS.md` — available tools and skills
    - `USER.md` — user context
 
 2. **Add the governance preamble** to the new agent's AGENTS.md. All new

@@ -41,8 +41,9 @@ OUTPUT_DISCIPLINE_TOKEN = "## output discipline"
 #: AGENTS.md is the fleet-canonical home; SOUL.md is accepted because OpenClaw
 #: loads it into the agent context too, so a block there enforces the discipline
 #: on the live agent (#805, Invariant B — felix-admin-calendar's block lives in
-#: SOUL.md today, canonical relocation owned by #635). TOOLS.md is a tool-reference
-#: file, not a home for a behavioral output rule, so it is not scanned here.
+#: SOUL.md today, canonical relocation owned by #635). TOOLS.md is not scanned: it is
+#: retired (#1135) because OpenClaw 2026.11.7 no longer injects it, so a block there
+#: would never reach the model.
 OUTPUT_DISCIPLINE_OWNER_FILES = ("AGENTS.md", "SOUL.md")
 
 #: Case-insensitive annotation an agent uses to declare it emits no user-facing WhatsApp.

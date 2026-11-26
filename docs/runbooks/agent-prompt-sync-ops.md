@@ -5,8 +5,8 @@ title: Agent prompt sync — operator runbook
 status: active
 level: howto
 owners: ["kgale"]
-last_validated: 2026-11-20
-version: 1.2
+last_validated: 2026-11-26
+version: 1.3
 ---
 
 # Agent prompt sync — operator runbook
@@ -21,9 +21,10 @@ that:
 
 1. Runs `git fetch && git pull --ff-only origin main` inside `/home/claude/kg-automation`
 2. Reads `docs/design/architecture/data/service-inventory.json` to discover Felix agents
-3. For each in-scope agent file (`AGENTS.md`, `IDENTITY.md`, `SOUL.md`, `TOOLS.md`, `USER.md`), MD5-compares the repo source against the deployed copy under `/data/services/openclaw/<deploy-dir>/`
+3. For each in-scope agent file (`AGENTS.md`, `IDENTITY.md`, `SOUL.md`, `USER.md`), MD5-compares the repo source against the deployed copy under `/data/services/openclaw/<deploy-dir>/`
 4. Atomically copies any drifted file (preserving mode)
-5. Appends structured audit records to `/data/services/openclaw/deploy/agent-prompt-sync.jsonl`
+5. Retires `RETIRED_FILENAMES` (today `TOOLS.md`, #1135): once the deployed `AGENTS.md` matches source and no copy failed, archives each retired file still in the deploy dir to `/data/services/openclaw/deploy/archive/retired/<agent>/<UTC-timestamp>-<random>-TOOLS.md` (fsynced), then removes it
+6. Appends structured audit records to `/data/services/openclaw/deploy/agent-prompt-sync.jsonl`
 
 No openclaw restart is triggered. Running agents pick up the new prompt at
 their next session-init (next cron tick).
@@ -154,6 +155,46 @@ The helper does NOT force-restart openclaw (per spec FR-017). If you need an
 agent to pick up a prompt change immediately, trigger that agent's cron entry
 manually.
 
+### Retired files (`TOOLS.md`, #1135)
+
+OpenClaw 2026.11.7 no longer injects `TOOLS.md`, and a deployed non-template
+`TOOLS.md` keeps `openclaw doctor --lint`'s `tools-md-migration` finding alive.
+The repo copies are gone (their content is in each `AGENTS.md`), and the helper
+removes the deployed ones itself:
+
+- **Order**: copy loop first; retirement only if the repo source dir no longer
+  has `TOOLS.md` (the merge landed), the deployed `AGENTS.md` equals source, and
+  no copy failed this tick (`retire_skipped`, reason `copy_failed`). A source
+  that still has `TOOLS.md`, an unequal `AGENTS.md`, or a read error while
+  hashing them is a `retire_error` at stage `verify`; the file is kept.
+- **Archive first**: on every attempt, each dir in the `archive/retired/<agent>`
+  chain is fsynced into its parent (whether or not it already existed), and the
+  archive file and its dir are fsynced, all before the unlink. Any archive
+  failure leaves `TOOLS.md` untouched. Archives are never deleted by the helper.
+- **Scope**: only the literal `<deploy-dir>/TOOLS.md` of a validated deploy dir
+  (absolute, not a symlink, no symlinked component, not shared by two agents),
+  for an agent slug that is safe to join into the archive path (no `/`, not
+  `.`/`..`).
+  Nothing recurses or globs; `TOOLS.md.bak`, `*.tmpl` and nested files are left.
+- **Audit**: `retire` (with `archive_path`, `archived_md5`, `bytes`) on
+  success; `retire_error` with `stage` = `validate` / `verify` / `archive` /
+  `unlink` on failure. A dir fsync failure after a good unlink keeps the
+  `retire` record and adds `retire_fsync_error`. A failure counts in `files_errored`, so the tick exits 1
+  and the copy-health streak alert fires. `tick_summary.files_retired` counts
+  removals. Already absent is a silent no-op.
+- **Dry-run**: prints `RETIRE <agent> TOOLS.md <archive+unlink|pending=AGENTS.md_sync|refused=<reason>>`
+  and writes nothing.
+
+Verify after the first real tick (read-only):
+
+```bash
+ssh office2-claude 'grep "\"kind\":\"retire" /data/services/openclaw/deploy/agent-prompt-sync.jsonl | tail -6; ls /data/services/openclaw/*/TOOLS.md 2>&1; ls /data/services/openclaw/deploy/archive/retired/*/'
+```
+
+**Restore** (only if a retirement must be undone): copy the archived file back
+from `archive/retired/<agent>/` to the deploy dir. The helper will remove it again
+on the next tick unless `TOOLS.md` is taken out of `RETIRED_FILENAMES` first.
+
 ### Helper/doc skew: helpers go live before agent docs
 
 Helper scripts under `scripts/**` go live as soon as the `git pull` advances the
@@ -161,7 +202,7 @@ checkout; the agent doc that calls them is copied afterwards by this pipeline an
 reaches a running agent only at its next session-init. A change to both is
 therefore briefly **new helper + old doc**. When that order is unsafe, follow a
 rollout window. The #1111 window (pause `N done`; checkout HEAD = merge SHA;
-MD5 of the deployed escalation `AGENTS.md`, `TOOLS.md` and skill `SKILL.md`
+MD5 of the deployed escalation `AGENTS.md` (and, before #1135, `TOOLS.md`) and skill `SKILL.md`
 against the repo; a fresh isolated session's `systemPromptReport`) is written out
 in [`deploy/office2-deploy-paths.md`](<./deploy/office2-deploy-paths.md#rollout-window-helpers-ahead-of-agent-docs-1111>).
 

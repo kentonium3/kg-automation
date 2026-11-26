@@ -31,7 +31,7 @@ Operational runbook for the automated drift enforcement system that keeps OpenCl
 
 ## Overview
 
-OpenClaw agents on office2 have workspace files (`AGENTS.md`, `SOUL.md`, `TOOLS.md`, `USER.md`, `IDENTITY.md`) that define their identity, capabilities, and standing orders. These files can be modified from two directions:
+OpenClaw agents on office2 have workspace files (`AGENTS.md`, `SOUL.md`, `USER.md`, `IDENTITY.md`; `TOOLS.md` retired by #1135) that define their identity, capabilities, and standing orders. These files can be modified from two directions:
 
 - **Repo side**: missions commit workspace file changes via spec-kitty workflow
 - **Office2 side**: agents autonomously evolve their files ("organic evolution"), or operators manually edit them
@@ -132,7 +132,7 @@ Factory Default (untracked) → Customized (detected) → Tracked in Repo → Mo
 Stored in `scripts/openclaw/agents/factory-baselines.json`:
 
 - `BOOTSTRAP.md` — transient birth-certificate file (deleted after first run)
-- `TOOLS.md` — generic local-notes scaffold
+- `TOOLS.md` — removed from this file and from drift tracking (#1135): OpenClaw 2026.11.7 no longer loads it
 - `IDENTITY.md` (template_full) — 23-line template with blank placeholder fields
 
 The 6-line `IDENTITY.md` files on existing agents are NOT factory defaults — they were filled in during bootstrap with agent-specific content.
