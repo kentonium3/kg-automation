@@ -6,7 +6,7 @@ level: concept
 audience: agents_and_humans
 owners: [kgale]
 created: 2026-07-19
-last_updated: '2026-07-19'
+last_updated: '2026-11-26'
 last_validated: '2026-07-19'
 version: v1.0
 updated_by: 'process-flow-docs-home (#794) — back-fills the umbrella inbox-routing flow to the calendar-clarification exemplar shape'
@@ -57,8 +57,11 @@ edge is where this doc stops.
   `scripts/openclaw/agents/felix-admin-capture/AGENTS.md`.
 - **Deterministic Python helpers** under `scripts/inbox/`, all invoked as
   `python3 -m scripts.inbox.<helper>` — do the state-changing work.
-- **`felix-admin-tasker`** — separate agent for enriched Vikunja task creation;
-  returns a `task_id` that finalize verifies by provenance.
+- **`felix-admin-tasker`** — separate agent for enriched Vikunja task creation.
+  Capture no longer delegates to it (#1143: capture has no agent-to-agent hop;
+  its final reply is its only delivery path), so in practice finalize creates
+  every `vikunja_task` in-process; the delegated `task_id` path below remains
+  supported in code.
 - **`felix-admin-calendar`** — separate agent that handles **Kent's reply** to a
   calendar clarification (the child flow).
 - **Kent** — owner of the vault inbox; recipient of the WhatsApp digest.
@@ -222,7 +225,7 @@ any `error` ⇒ note errored; else any `needs_clarification` ⇒ note
 | `pending_filenames`, `_is_live`, `SWEEP_MAX_AGE`, `subcommand_add`/`remove` | `scripts/inbox/handle_clarification_state.py` | Pending-clarification store: WITHHOLD read contract + record add/remove; 8h window. |
 | `is_eligible`, `build_all_day_plan`, `sweep_finalize`, `FALLBACK_MARKER_KIND` | `scripts/inbox/clarification_sweep_finalize.py` | Step 1a child-flow boundary (see [calendar-clarification.md](./calendar-clarification.md)). |
 | `handle_marker_cleanup`, `handle_parse_failures`, `inject_parse_error_marker` | `scripts/inbox/*.py` | Steps 4/5: parse-error marker lifecycle + batched GH quality issue (#185). |
-| Steps 1–6, Step 3a-3c, "Goal declaration handling", "Task bridge" | `scripts/openclaw/agents/felix-admin-capture/AGENTS.md` | Agent-prompt wiring: invokes the helpers each tick; supplies LLM disambiguation + plan assembly + goal promotion. |
+| Steps 1–6, Step 3a-3c, "Goal declaration handling", "Delivery" block (#1143) | `scripts/openclaw/agents/felix-admin-capture/AGENTS.md` | Agent-prompt wiring: invokes the helpers each tick; supplies LLM disambiguation + plan assembly + goal promotion. |
 
 **State stores.** Routing log:
 `/data/services/openclaw/state/inbox-routing.jsonl`. Pending clarifications:

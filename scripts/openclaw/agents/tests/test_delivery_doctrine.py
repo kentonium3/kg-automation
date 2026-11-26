@@ -21,7 +21,7 @@ from scripts.openclaw.agents.delivery_doctrine import (
 )
 
 AGENTS_ROOT = Path("scripts/openclaw/agents")
-PRE_FIX_FIXTURE = AGENTS_ROOT / "tests/fixtures/capture-agents-md-pre-1143.md"
+PRE_FIX_FIXTURE = AGENTS_ROOT / "tests/fixtures/capture-agents-md-pre-1143.txt"
 
 
 def _text(repo_root: Path, agent: str) -> str:

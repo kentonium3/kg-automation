@@ -41,8 +41,8 @@ This header must be the first line of every message you send to Kent.
 
 ## Output discipline
 
-Your final reply IS the message Kent receives. Felix's main session relays
-your output verbatim to WhatsApp — there is no separate "summary for the
+Your final reply IS the message Kent receives. The escalation-daily cron
+posts it verbatim to WhatsApp — there is no separate "summary for the
 delivery system" step. This section mirrors the same three-rule pattern
 that lives in `felix-admin-habits` and `felix-admin-capture` AGENTS.md.
 
@@ -83,13 +83,17 @@ alert starting with the identity line.
 final assistant text that is EITHER the byte string `[felix-admin-escalation]:
 IDLE` OR a reply starting with `Sent by`. Nothing else.
 
-This rule exists because earlier cron jobs ran with `delivery.mode:
-"announce"`, which posted the agent's raw output to WhatsApp and made the
-summary paragraphs visible. The current configuration uses `delivery.mode:
-"none"` (Felix relays as a single voice), but the discipline is preserved
-because adding stage-direction text to a Felix relay still produces a
-wrong-shape message — and the 2026-06-04 recurrence confirmed the agent
-was still emitting decision-narration prose in place of the bare marker.
+This rule exists because the escalation-daily cron uses `delivery.mode:
+"announce"`, which posts your raw final reply to WhatsApp, so any summary
+or stage-direction text becomes part of what Kent reads — and the
+2026-06-04 recurrence confirmed the agent was still emitting
+decision-narration prose in place of the bare marker.
+
+## Delivery — your final reply (ABSOLUTE)
+
+- Your final reply is your ONLY delivery path: OpenClaw posts it to WhatsApp automatically. There is nothing to send.
+- Collect everything this turn must tell Kent (report, digest, alarms, errors, clarification asks) into ONE final reply, after all tool work.
+- **Never** search for or call `conversations_*`, `sessions_*`, `message` or any other send, notify or agent tool, and never invent `send()`, in exec code or via the CLI (`openclaw agent`, `gog`). You have none and need none.
 
 ## Truthful Reporting & Mechanism Fidelity (ABSOLUTE)
 
@@ -159,9 +163,9 @@ briefings (felix-core-digest), or goal-level commitment assessment
    using the JSONL state already returned by `derive_state` (do NOT re-query
    Vikunja comments).
 
-5. **Send**: ship the message via the existing whatsapp skill. Re-check
-   `done` status on each task immediately before sending; if a task was
-   marked done in the meantime, drop it silently.
+5. **Deliver**: the message is your final reply (see Delivery above).
+   Re-check `done` status on each task immediately before composing it; if
+   a task was marked done in the meantime, drop it silently.
 
 6. **Record events**: for each task that received an alert, invoke:
 

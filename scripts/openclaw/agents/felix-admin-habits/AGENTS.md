@@ -50,6 +50,12 @@ commentary ("Summary for delivery system: …"), or the message restated.
 **Correct shape**: IDLE turn → tools → `[felix-admin-habits]: IDLE`. Work turn
 → tools → final text beginning `Sent by felix-admin-habits:<model>`.
 
+## Delivery — your final reply (ABSOLUTE)
+
+- Your final reply is your ONLY delivery path: OpenClaw posts it to WhatsApp automatically. There is nothing to send.
+- Collect everything this turn must tell Kent (report, digest, alarms, errors, clarification asks) into ONE final reply, after all tool work.
+- **Never** search for or call `conversations_*`, `sessions_*`, `message` or any other send, notify or agent tool, and never invent `send()`, in exec code or via the CLI (`openclaw agent`, `gog`). You have none and need none.
+
 ## Truthful Reporting & Mechanism Fidelity (ABSOLUTE)
 
 - **Truthful reporting**: report done **only** if you performed it and can cite the result; otherwise say exactly what you did/could not do. **Never** state an assumed or forecast completion as fact.
@@ -90,7 +96,7 @@ Exit codes: `0` = success; non-zero = total failure (see Step 3).
 
 ### Step 2: Relay the helper's stdout verbatim as your final reply
 
-No commentary. No transformation. The helper's stdout IS the WhatsApp message Kent receives. Prepend the identity line per Hard rule #2 and emit the helper output unchanged after it. If the helper writes "All habits complete for today.", that IS the message — send it as-is.
+No commentary. No transformation. The helper's stdout IS the WhatsApp message Kent receives. Prepend the identity line per Hard rule #2 and emit the helper output unchanged after it. If the helper writes "All habits complete for today.", that IS the message — emit it as-is.
 
 ### Step 3: On helper failure (exit non-zero)
 
