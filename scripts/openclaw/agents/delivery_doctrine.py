@@ -52,32 +52,47 @@ ANNOUNCE_AGENTS = (
 )
 
 # Wording that tells the model to deliver by itself (send / ship / relay a
-# payload) rather than through its final reply. Checked outside the block.
+# payload, or call a send tool) rather than through its final reply. Checked
+# outside the canonical block, which is the one place these names may appear.
+_IMPERATIVE_AT = r"(?:^|[.!?:;—]\s+|\*\*|\|\s*)(?:\d+\.\s+|[-*]\s+)?(?:\*\*)?"
 FORBIDDEN_DELIVERY_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
     ("send-whatsapp", re.compile(r"\bsend\s+(?:kent\s+)?(?:one|a|an|the)\s+whatsapp", re.I)),
     ("ship-message", re.compile(r"\bship\s+(?:the|this|a)\s+message", re.I)),
     ("whatsapp-skill", re.compile(r"\bvia\s+the\s+(?:existing\s+)?whatsapp\s+skill", re.I)),
     ("payload-to-main", re.compile(r"payload\s+to\s+main", re.I)),
     ("this-turns-message", re.compile(r"this\s+turn['’]s\s+message", re.I)),
-    # An imperative "Send"/"send": at line start (after any list marker or
-    # bold), or after a sentence break / em dash. "Sent by" and "Kent sends"
-    # are not imperatives and do not match.
+    # Send/agent tool names: never named outside the block.
+    ("tool-conversations", re.compile(r"\bconversations_(?:\w+|\*)")),
+    ("tool-sessions", re.compile(r"\bsessions_(?:\w+|\*)")),
+    ("tool-openclaw-agent", re.compile(r"\bopenclaw\s+agent\b")),
+    ("tool-message", re.compile(r"\bmessage\s+tool\b|\bmessage\(|\bcall(?:ing)?\s+`?message`?(?:\s|$)", re.I)),
+    # An imperative "Send"/"send": at line start (after any list marker, bold
+    # or table pipe), or after a sentence break / em dash. "Sent by" and
+    # "Kent sends" are not imperatives and do not match.
+    ("imperative-send", re.compile(_IMPERATIVE_AT + r"send\b", re.I | re.M)),
+    # Imperative notify/message/post/ship/forward/relay aimed at WhatsApp,
+    # Kent or main ("Notify Kent via WhatsApp", "forward to main").
     (
-        "imperative-send",
-        re.compile(r"(?:^|[.!?:;—]\s+|\*\*)(?:\d+\.\s+|[-*]\s+)?(?:\*\*)?send\b", re.I | re.M),
+        "imperative-deliver",
+        re.compile(
+            _IMPERATIVE_AT
+            + r"(?:notify|message|post|ship|forward|relay)\b[^.\n]{0,60}?\b(?:whatsapp|kent|main)\b",
+            re.I | re.M,
+        ),
     ),
 )
 
 
-def delivery_violations(text: str) -> list[str]:
+def delivery_violations(text: str, *, require_block: bool = True) -> list[str]:
     """Return the delivery-doctrine violations in an announce agent's prompt.
 
-    Empty means compliant: the canonical block is present exactly once and no
+    Empty means compliant: the canonical block is present exactly once (unless
+    ``require_block`` is false, as for a skill an announce agent reads) and no
     forbidden delivery wording appears outside it.
     """
     problems: list[str] = []
     count = text.count(DELIVERY_DOCTRINE_BLOCK)
-    if count != 1:
+    if require_block and count != 1:
         problems.append(f"delivery block occurrences: {count} (expected 1)")
     rest = text.replace(DELIVERY_DOCTRINE_BLOCK, "")
     for name, pattern in FORBIDDEN_DELIVERY_PATTERNS:

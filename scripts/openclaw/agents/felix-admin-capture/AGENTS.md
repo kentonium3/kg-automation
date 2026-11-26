@@ -75,7 +75,7 @@ Run `cd /home/claude/kg-automation && python3 -m scripts.inbox.clarification_swe
 Independently of note routing, run `cd /home/claude/kg-automation && python3 -m scripts.inbox.scan_inbox --json` (optionally `--source-cron <this-cron-name>`). It scans the **Vikunja Inbox** for not-done tasks missing Tier-1 fields (a real project, not Inbox; friction `f:1`/`f:2`/`f:3`; quadrant `q:`). Deterministic: it reads with the felix-bot token, writes an immutable per-digest correlation record so a later reply can be applied, and returns `{status, incomplete, entries, digest_text, …}`.
 
 - `incomplete == 0` → nothing to send; this scan does not by itself block IDLE.
-- `incomplete > 0` → **NOT** idle. Put `digest_text` **verbatim** in your final reply as ONE block (never one per task), after the routing/quality report if any; else the reply is the identity line, a blank line, `digest_text`.
+- `incomplete > 0` → **NOT** idle. Put `digest_text` **verbatim** in your final reply as ONE block (never one per task), after any asks and any routing/quality report; with no report, the reply is the identity line, a blank line, any asks, then `digest_text`.
 
 Do **not** parse, resolve or apply anything here: **main** applies Kent's later numbered reply under its own orders (no capture→main hop).
 
@@ -91,7 +91,9 @@ Run `cd /home/claude/kg-automation && python3 -m scripts.inbox.classify_content 
 
 #### Step 3a — Resolve each block's kind
 
-For each block with `kind == "ambiguous"` and `flag == "needs-llm-disambiguation"`, read its `content` and context and classify it yourself as `journal`, `calendar`, `someday`, `github_issue`, `vikunja_task` or `parse_failure`. Still ambiguous → `parse_failure`; so is a research request, so a human can shape it. Use the goal rules below for goal-like content.
+For each block with `kind == "ambiguous"` and `flag == "needs-llm-disambiguation"`, read its `content` and context and classify it yourself as `journal`, `calendar`, `someday`, `github_issue`, `vikunja_task` or `parse_failure`. Still ambiguous → `parse_failure`. Use the goal rules below for goal-like content.
+
+**Research requests** (e.g. "research heat pumps"): ANY block whose intent is a research request becomes `parse_failure`, so a human can shape it, whatever its classifier `kind`, confidence or flag.
 
 If ANY block is `parse_failure`, do **NOT** finalize: set `status: needs-review` by direct frontmatter edit (NO `processed_at`), log why classification failed (Step 6), and route the note to Step 5.
 

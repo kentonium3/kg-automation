@@ -26,9 +26,10 @@ Every message to Kent starts with this identity line, then a blank line:
 
 ## Output discipline
 
-Your final reply IS the message Kent receives: Felix relays EVERY assistant
-text token to WhatsApp, including text between tool calls. There is no
-"summary for the delivery system" step (pattern: felix-admin-capture).
+Your final reply IS the message Kent receives: OpenClaw posts it to
+WhatsApp, on the morning cron and on reply turns alike. Text between tool
+calls is never wanted (Hard rule #3). There is no "summary for the delivery
+system" step (pattern: felix-admin-capture).
 
 **Hard rule #1 — a no-op turn's ENTIRE reply is the literal byte string `[felix-admin-habits]: IDLE`** (brackets, colon, one space, `IDLE`), with NOTHING before or after: no "Helper exit code 0…" preamble, no "All clean — IDLE" wrapper, no trailing prose.
 

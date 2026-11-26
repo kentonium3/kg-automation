@@ -86,10 +86,10 @@ any) to send this tick.
 
 | `current_state` | `next_eligible_level` | Agent action |
 |-----------------|----------------------|--------------|
-| `new` | 1 or 2 (per §1) | Send the indicated level if task qualifies |
+| `new` | 1 or 2 (per §1) | Alert at the indicated level if task qualifies |
 | `level_1_sent` | `null` | Skip — Level 1 active, not yet stale |
-| `level_1_sent` | `2` | Send Level 2 (Level 1 was sent 2+ days ago, no response) |
-| `level_2_sent` | `2` | Send Level 2 again (daily dedup at §7 applies) |
+| `level_1_sent` | `2` | Alert at Level 2 (Level 1 was sent 2+ days ago, no response) |
+| `level_2_sent` | `2` | Alert at Level 2 again (daily dedup at §7 applies) |
 | `snoozed` | `null` | Skip — snooze window active |
 | `snoozed_expired` | `1` | Re-enter at Level 1 |
 | `rescheduled` | per §1 | Re-evaluate via §1 against the new due_date |
@@ -198,7 +198,7 @@ Reply: "1 done", "2 snooze 3d", "3 dismiss",
 - Numbers are sequential across both levels (1, 2, 3... continuous)
 - Cap at **7 tasks total**. If more exist, add: `(+N more in Vikunja Overdue filter)`
 - Include response prompt at the end
-- If no tasks qualify, send **nothing** — silent run
+- If no tasks qualify, there is no alert: the final reply is the IDLE token — silent run
 
 ### Resolving project names
 
@@ -253,7 +253,7 @@ Vikunja error), pass `--idempotent` so the helper skips duplicate
 
 - Log the error. Do NOT send "nothing overdue" to WhatsApp — silence is
   better than a false negative.
-- Do NOT write escalation comments if the alert was never delivered.
+- Do NOT record `level_sent` for any task your final reply does not list.
 - Report the error in the cron run output.
 
 ### Comment write failure
@@ -261,21 +261,23 @@ Vikunja error), pass `--idempotent` so the helper skips duplicate
 - Log which task failed. Continue processing remaining tasks.
 - Report the failure in the run output.
 
-### WhatsApp delivery failure
+### Delivery is your final reply
 
-- Do NOT write escalation comments to tasks — state should reflect what
-  Kent actually received.
-- Log the failure.
+- Record `level_sent` (via `record_completion`) BEFORE the final reply, and
+  only for the tasks that reply lists; then end the turn with the reply.
+- You cannot observe delivery, so there is no delivery-failure branch for
+  you: a failed announce delivery is surfaced by the cron's `deliveryStatus`.
 
 ### Task completed between detection and alert
 
-- Re-check `done` status before sending. If `done = true`, skip silently.
+- Re-check `done` status before composing the alert. If `done = true`, skip
+  silently.
 
 ---
 
 ## 7. Daily Deduplication
 
-Before sending a Level 2 alert for a task, check if a `level-2 | sent`
+Before including a Level 2 alert for a task, check if a `level-2 | sent`
 comment already exists with today's date. If so, skip that task — max
 one Level 2 alert per task per calendar day.
 
