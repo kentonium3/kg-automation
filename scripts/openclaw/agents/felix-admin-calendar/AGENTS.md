@@ -64,11 +64,19 @@ Leave a field absent/null when the text doesn't supply it — do NOT invent a da
 
 ### Step 2 — run the orchestrator
 
-Pipe the block to the single deterministic command (syntax + result contract in **TOOLS.md → calendar request orchestrator**). Default `<account>` is `personal` unless the request names another:
+`scripts.calendar_routing.handle_calendar_request` is your ONE calendar tool, for EVERY calendar request: a conversational request or a clarification reply. You have **no `gog`**, and you do **not** call the calendar helper, the validator, the clarification-state helper or `log_action` directly; the orchestrator invokes them all. All date/time math and state changes are deterministic, never hand-built by you.
+
+Pipe the block on stdin. The orchestrator is stdlib-only and resolves the deploy venv for its helper subprocess itself, so run it under system `python3` anchored to the checkout. Default `<account>` is `personal` unless the request names another:
 
 `cd /home/claude/kg-automation && echo '<ExtractedCalendarBlock JSON>' | python3 -m scripts.calendar_routing.handle_calendar_request --account <account>`
 
-It returns ONE JSON object carrying a `status`. It has already done any matching, merging, creating, record-removal, note-flip, and logging — you do none of those.
+It returns ONE JSON object on stdout carrying a `status` (phrase it per Step 3):
+- `{"status":"created","mode":"conversational"|"clarification","event_id":…,"html_link":…,"summary":…,"start":…}`: `start` is the calendar's ACTUAL ET date/time. A clarification result also carries `"cleanup_ok": <bool>` (and a `cleanup` block); `false` means the event exists but the pending reminder wasn't cleared. An idempotent hit (a re-reply matched an EXISTING event) carries `"idempotent": true`; if your requested time differed it adds `"time_change_applied": false`, `"requested_start":…` and a `"note"` (the calendar was NOT moved, #838).
+- `{"status":"needs_clarification","mode":…,"missing":[…]}`: a required field is missing.
+- `{"status":"ambiguous","candidates":[{"title","note_filename","created_at"},…]}`: the reply could resolve more than one open clarification.
+- `{"status":"error","exit_code":<n>,"error":"<verbatim>"}`: the calendar helper failed and the calendar was NOT mutated.
+
+It owns, so you never do: matching a reply to a live pending clarification (`/data/services/openclaw/state/pending-calendar-clarifications.json`), merging the reply onto the record, date/time parsing and timezone (America/New_York) → RFC3339, all-day handling, the `calendar_helper create` call with an idempotency key, removing the resolved record, flipping the source note (`mark_processed`), and `log_action` (`calendar_event_created` / `calendar_event_failed` / `calendar_event_clarification_resolved`).
 
 ### Step 3 — phrase the result (your ONLY user-facing output)
 

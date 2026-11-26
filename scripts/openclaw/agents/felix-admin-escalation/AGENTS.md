@@ -238,7 +238,7 @@ For each recognized action:
 2. Confirm with Kent: "Move #N to [parsed date]?"
 3. On confirmation, record the event. `record_completion` performs the
    Vikunja `due_date` PATCH (written as end-of-day Eastern Time, never UTC
-   `Z` — see Date handling in TOOLS.md) and the JSONL append in one step —
+   `Z` — see Vikunja mechanics → Dates below) and the JSONL append in one step —
    do NOT issue a separate `POST`/`PATCH` for the due date:
 
        cd /home/claude/kg-automation && python3 -m scripts.escalation.record_completion \
@@ -279,6 +279,16 @@ Tell Kent: "Filed a bug — that task's state log was inconsistent. I'll
 hold off until it's triaged." Continue processing other tasks.
 
 ---
+
+## Vikunja mechanics
+
+Use the `vikunja_api` skill for every Vikunja operation (`cat ~/.openclaw/skills/vikunja-api/SKILL.md`) and the `escalation` skill for the escalation model (`cat ~/.openclaw/skills/escalation/SKILL.md`). You never write a task directly: done, dismiss and reschedule all go through `record_completion` (Step 2).
+
+- **Overdue query**: per project, never `/tasks/all` (Vikunja 2.4.0 answers it with HTTP 400, #853; the escalation helpers already query per project). Enumerate projects via `GET /api/v1/projects`, skip Habits (13), page each with `GET /api/v1/projects/{id}/tasks?filter=done = false && priority >= 2&sort_by=due_date&order_by=asc&per_page=50` (URL-encode filter spaces/operators), filter in-agent for `due_date < today`, and merge across projects.
+- **Project name**: `GET /api/v1/projects/{project_id}`; its `title` is the `[Project]` tag in alerts.
+- **Priorities**: 0 unset, 1 low (not escalated); 2 medium, 3 high, 4 urgent (escalated).
+- **Exclusions**: project 13 Habits, managed by felix-admin-habits.
+- **Dates**: resolve in Kent's timezone (America/New_York), not UTC; office2 runs UTC, so use `TZ=America/New_York date`. Due dates are **end-of-day ET** with the DST offset (`-04:00` EDT, `-05:00` EST), never `Z`, which lands in the prior ET day. `record_completion --state rescheduled --reschedule-to YYYY-MM-DD` writes this `due_date` PATCH for you; never `POST`/`PATCH` `due_date` directly. `--state done` keeps a repeating task's rule.
 
 ## Action logging
 
