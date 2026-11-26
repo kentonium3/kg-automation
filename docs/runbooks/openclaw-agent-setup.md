@@ -145,6 +145,9 @@ final reply is the only delivery path and forbids searching for or calling any
 send/notify/agent tool. Under OpenClaw 2026.11.7 Code Mode, prompt wording such
 as "Send Kent ONE WhatsApp" led capture to call `conversations_send` and invent
 `send()`, which looped until the turn was stopped and nothing was delivered.
+The block also forbids `automations` / `record_result` (OpenClaw's injected
+hint says "record no_change", and a recorded no_change suppresses the final
+reply) and repeating an unchanged call rejected for invalid input or schema.
 When you add an announce agent, add it to `ANNOUNCE_AGENTS` and copy the block in;
 `scripts/openclaw/agents/tests/test_delivery_doctrine.py` enforces the block and
 rejects send/ship wording outside it.
