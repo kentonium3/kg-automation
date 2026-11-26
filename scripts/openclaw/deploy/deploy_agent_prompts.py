@@ -674,15 +674,23 @@ def _slug_refusal(slug: str) -> Optional[str]:
     return None
 
 
-def _makedirs_durable(path: Path) -> None:
-    """``mkdir -p`` that fsyncs each newly created directory into its parent,
-    so a later unlink of the source can't outlive the archive across a crash."""
-    missing = []
+def _ensure_durable_chain(path: Path, top: Path) -> None:
+    """Create ``path`` and its missing ancestors up to (not including) ``top``,
+    then fsync the parent of EVERY directory in that chain, on every call.
+
+    Durability is re-established each attempt, not only for directories this
+    call created: a dir left behind by a tick whose parent fsync failed exists
+    on the retry, and must still be made durable before any source unlink.
+    Any OSError propagates; the caller keeps the source file.
+    """
+    chain = []
     probe = path
-    while not probe.exists():
-        missing.append(probe)
+    while probe != top:
+        if probe == probe.parent:
+            raise OSError(f"{path} is not below {top}")
+        chain.append(probe)
         probe = probe.parent
-    for d in reversed(missing):
+    for d in reversed(chain):  # top-down: each parent exists before its child
         try:
             d.mkdir()
         except FileExistsError:
@@ -879,7 +887,9 @@ def _retire_files(
             continue
         archive_path = agent_archive / _archive_name(name)
         try:
-            _makedirs_durable(agent_archive)
+            # archive_root is <top>/archive/retired: make the whole chain
+            # durable (every attempt) before the archive copy and unlink.
+            _ensure_durable_chain(agent_archive, archive_root.parent.parent)
             archived_md5 = _archive_copy(target, archive_path)
         except OSError as exc:
             _error(name, "archive", str(exc), type(exc).__name__)

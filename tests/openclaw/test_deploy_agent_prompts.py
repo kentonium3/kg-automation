@@ -1481,7 +1481,7 @@ def test_retire_workspace_fsync_after_unlink_logged_separately(tmp_path):
     assert rc == dap.EXIT_PARTIAL_FAILURE
 
 
-@pytest.mark.parametrize("slug", ["a/b", ".", ".."])
+@pytest.mark.parametrize("slug", ["a/b", ".", "..", "", "/"])
 def test_retire_refuses_unsafe_slug(tmp_path, slug):
     """Review item 6: the slug is joined into the archive path."""
     repo, dst = _retire_repo(tmp_path, agents_md_dst=b"merged")
@@ -1526,3 +1526,58 @@ def test_retire_non_regular_file_refused(tmp_path):
     assert (dst / "TOOLS.md").is_dir()
     err = next(r for r in _records(log) if r["kind"] == "retire_error")
     assert "not a regular file" in err["error"]
+
+
+# --- #1135 fix round 2: archive-chain durability on every attempt -----------
+
+
+def test_retire_archive_chain_fsync_failure_survives_retry(tmp_path):
+    """(a) The dir from a failed first tick exists on the second; its parent
+    must still be fsynced, so the injected failure keeps TOOLS.md both times."""
+    repo, dst = _retire_repo(tmp_path, agents_md_dst=b"merged")
+    log = tmp_path / "audit.jsonl"
+    real = dap._fsync_dir
+    archive_parent = tmp_path / dap.RETIRE_ARCHIVE_RELATIVE
+
+    def _fsync(path):
+        if Path(path) == archive_parent:
+            raise OSError("dir fsync failed")
+        return real(path)
+
+    for _ in range(2):
+        with _patch_advance_success("a" * 40), patch.object(dap, "_fsync_dir", _fsync):
+            rc = dap.run_tick(dap.parse_args([]), repo_root=repo, audit_path=log)
+        assert rc == dap.EXIT_PARTIAL_FAILURE
+        assert (dst / "TOOLS.md").read_bytes() == b"old tool notes"
+    errs = [r for r in _records(log) if r["kind"] == "retire_error"]
+    assert [e["stage"] for e in errs] == ["archive", "archive"]
+    assert not any(r["kind"] == "retire" for r in _records(log))
+
+
+def test_retire_archive_chain_fsynced_before_unlink(tmp_path):
+    """(b) Every chain dir's parent is fsynced, and all before the unlink, even
+    when the chain already exists."""
+    repo, dst = _retire_repo(tmp_path, agents_md_dst=b"merged")
+    agent_dir = tmp_path / dap.RETIRE_ARCHIVE_RELATIVE / "test-agent"
+    agent_dir.mkdir(parents=True)  # chain pre-exists: nothing is "new"
+    events = []
+    real_fsync, real_unlink = dap._fsync_dir, os.unlink
+
+    def _fsync(path):
+        events.append(("fsync", Path(path)))
+        return real_fsync(path)
+
+    def _unlink(path, *a, **kw):
+        events.append(("unlink", Path(path)))
+        return real_unlink(path, *a, **kw)
+
+    with _patch_advance_success("a" * 40), \
+         patch.object(dap, "_fsync_dir", _fsync), patch.object(dap.os, "unlink", _unlink):
+        rc = dap.run_tick(dap.parse_args([]), repo_root=repo,
+                          audit_path=tmp_path / "audit.jsonl")
+    assert rc == dap.EXIT_SUCCESS
+    unlink_at = events.index(("unlink", dst / "TOOLS.md"))
+    before = {p for kind, p in events[:unlink_at] if kind == "fsync"}
+    for parent in (tmp_path, tmp_path / "archive",
+                   tmp_path / dap.RETIRE_ARCHIVE_RELATIVE, agent_dir):
+        assert parent in before, parent

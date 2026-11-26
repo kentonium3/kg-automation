@@ -167,8 +167,9 @@ removes the deployed ones itself:
   no copy failed this tick (`retire_skipped`, reason `copy_failed`). A source
   that still has `TOOLS.md`, an unequal `AGENTS.md`, or a read error while
   hashing them is a `retire_error` at stage `verify`; the file is kept.
-- **Archive first**: newly created archive dirs are fsynced into their parents
-  and the archive file and its dir are fsynced before the unlink. Any archive
+- **Archive first**: on every attempt, each dir in the `archive/retired/<agent>`
+  chain is fsynced into its parent (whether or not it already existed), and the
+  archive file and its dir are fsynced, all before the unlink. Any archive
   failure leaves `TOOLS.md` untouched. Archives are never deleted by the helper.
 - **Scope**: only the literal `<deploy-dir>/TOOLS.md` of a validated deploy dir
   (absolute, not a symlink, no symlinked component, not shared by two agents),
