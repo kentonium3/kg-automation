@@ -41,9 +41,9 @@ This header must be the first line of every message you send to Kent.
 
 ## Output discipline
 
-Your final reply IS the message Kent receives. Felix's main session relays
-your output verbatim to WhatsApp — there is no separate "summary for the
-delivery system" step. This section mirrors the same three-rule pattern
+Your final reply IS the message Kent receives. OpenClaw posts it verbatim
+to WhatsApp, on an escalation-daily cron turn and a reply-handling turn
+alike — there is no separate "summary for the delivery system" step. This section mirrors the same three-rule pattern
 that lives in `felix-admin-habits` and `felix-admin-capture` AGENTS.md.
 
 **Hard rule #1 — `IDLE` means the literal byte string `[felix-admin-escalation]: IDLE` (literal brackets, colon, single space, then the four-character `IDLE` marker), and NOTHING before or after it.** No "Helper exit code 0…" preamble, no "All clean — IDLE" wrapper, no leading text before `[`, no trailing prose after `IDLE`. The ENTIRE reply on a no-op turn is exactly `[felix-admin-escalation]: IDLE` and nothing else. Example: `[felix-admin-escalation]: IDLE`.
@@ -83,13 +83,17 @@ alert starting with the identity line.
 final assistant text that is EITHER the byte string `[felix-admin-escalation]:
 IDLE` OR a reply starting with `Sent by`. Nothing else.
 
-This rule exists because earlier cron jobs ran with `delivery.mode:
-"announce"`, which posted the agent's raw output to WhatsApp and made the
-summary paragraphs visible. The current configuration uses `delivery.mode:
-"none"` (Felix relays as a single voice), but the discipline is preserved
-because adding stage-direction text to a Felix relay still produces a
-wrong-shape message — and the 2026-06-04 recurrence confirmed the agent
-was still emitting decision-narration prose in place of the bare marker.
+This rule exists because the escalation-daily cron uses `delivery.mode:
+"announce"`, which posts your raw final reply to WhatsApp, so any summary
+or stage-direction text becomes part of what Kent reads — and the
+2026-06-04 recurrence confirmed the agent was still emitting
+decision-narration prose in place of the bare marker.
+
+## Delivery — your final reply (ABSOLUTE)
+
+- Your final reply is your ONLY delivery path: OpenClaw posts it to WhatsApp automatically. There is nothing to send.
+- Collect everything this turn must tell Kent (report, digest, alarms, errors, clarification asks) into ONE final reply, after all tool work.
+- **Never** search for or call `conversations_*`, `sessions_*`, `message` or any other send, notify or agent tool, and never invent `send()`, in exec code or via the CLI (`openclaw agent`, `gog`). You have none and need none.
 
 ## Truthful Reporting & Mechanism Fidelity (ABSOLUTE)
 
@@ -155,15 +159,14 @@ briefings (felix-core-digest), or goal-level commitment assessment
    even though it appeared in Step 2's output. On exit code 3, the helper
    has filed a P2-bug — skip this task and continue.
 
-4. **Compose WhatsApp message**: per SKILL.md §4. Apply daily dedup per §7
+4. **Compose the alert**: per SKILL.md §4. Apply daily dedup per §7
    using the JSONL state already returned by `derive_state` (do NOT re-query
-   Vikunja comments).
+   Vikunja comments). Re-check `done` status on each task immediately
+   before composing; if a task was marked done in the meantime, drop it
+   silently. The tasks left are the ones your final reply will list.
 
-5. **Send**: ship the message via the existing whatsapp skill. Re-check
-   `done` status on each task immediately before sending; if a task was
-   marked done in the meantime, drop it silently.
-
-6. **Record events**: for each task that received an alert, invoke:
+5. **Record events — BEFORE the final reply**: for exactly the tasks your
+   final reply will list, invoke:
 
        cd /home/claude/kg-automation && python3 -m scripts.escalation.record_completion \
          --task-id <id> --project-id <pid> --title "<title>" \
@@ -174,12 +177,19 @@ briefings (felix-core-digest), or goal-level commitment assessment
    baseline reconcile uses to recognise a completion). Pass `--idempotent` if
    you are retrying after a transient error.
 
-   **Critical**: do NOT call `record_completion` if WhatsApp delivery failed.
-   The record represents that Kent received the alert — if he didn't, the
-   state must not claim he did.
+   **Critical**: record only the tasks included in your final reply — a
+   task you dropped or left out is never recorded. You cannot observe
+   delivery; a failed announce delivery is surfaced by the cron's
+   `deliveryStatus`, not by you.
 
-7. **Wait for Kent's reply**: per SKILL.md §5. When Kent replies, parse the
-   response and route each task's event through `record_completion` with the
+6. **Deliver — end the turn**: your final reply is the composed alert (see
+   Delivery above), emitted after all tool work, as the last thing in the
+   turn. No tool call follows it.
+
+7. **Kent's reply arrives in a later turn**: this cron turn ends at Step 6;
+   never call `wait` for a reply. When Kent replies (a new turn), handle it
+   per SKILL.md §5 and Response handling below: parse the response and
+   route each task's event through `record_completion` with the
    appropriate `--state` (`done`, `snoozed`, `dismissed`, `rescheduled`) and
    `--source kent_reply`. For `rescheduled`, do NOT issue a separate Vikunja
    due-date write — `record_completion` performs the `due_date` PATCH itself

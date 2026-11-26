@@ -6,7 +6,7 @@ level: concept
 audience: agents_and_humans
 owners: [kgale]
 created: 2026-07-19
-last_updated: '2026-07-19'
+last_updated: '2026-11-26'
 last_validated: '2026-07-19'
 version: v1.0
 updated_by: 'process-flow-docs-home (#794) — back-fills the someday routing flow to the calendar-clarification exemplar shape'
@@ -44,9 +44,10 @@ doc consolidates that current behavior.
 ## Actors & trigger
 
 - **`felix-admin-capture`** — classifies an inbox block as `someday`
-  (open-ended "I should look into Y"; AGENTS.md). Delegates structured tasks to
-  `felix-admin-tasker`; when tasker is unreachable it invokes `route_someday`
-  directly (the in-agent fallback).
+  (open-ended "I should look into Y"; AGENTS.md). It never calls
+  `route_someday` itself: since #1143 the prompt has no tasker hop and no
+  direct `route_someday` fallback, so every `someday` / `vikunja_task` block
+  lands through `route_and_finalize`.
 - **`route_and_finalize`** — the deterministic per-note transaction that
   dispatches `someday` / in-process `vikunja_task` blocks into `route_someday`.
 - **`route_someday`** — the durable-landing creator: resolves the destination
@@ -176,7 +177,7 @@ destination.
 | registry data (`inbox`→1, `q:schedule`→23 owner `kent`; no "someday" project) | `scripts/common/vikunja_refs.json` | The declared post-#714-reset registry. |
 | `VikunjaClient.put`/`get`, `VikunjaError` + HTTP subclasses | `scripts/common/vikunja_client.py` | HTTP transport for CREATE + label-attach; raises typed errors mapped to hard/soft outcomes. |
 | `RoutingLogReader.has_block`, `RoutingLogWriter.append` | `scripts/inbox/routing_log.py` | Per-block dedup + the routing-log entry written before mark (FR-013). |
-| Classification, tasker delegation, tasker-unreachable `route_someday` fallback, block-key stability | `scripts/openclaw/agents/felix-admin-capture/AGENTS.md` | Agent-prompt wiring. |
+| Classification, block-key stability (the tasker hop and direct `route_someday` fallback were removed by #1143) | `scripts/openclaw/agents/felix-admin-capture/AGENTS.md` | Agent-prompt wiring. |
 
 **State store.** No dedicated someday store. Durable side effects: the created
 task in Vikunja (Inbox by default) and the `kind="someday"` row in

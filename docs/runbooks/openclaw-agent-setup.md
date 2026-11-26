@@ -136,6 +136,19 @@ WhatsApp must carry an explicit "no user-facing WhatsApp" annotation in
 their standing orders so the audit trail records the deliberate
 non-application of the rules.
 
+### Delivery doctrine block (#1143) — required for announce-cron agents
+
+An agent whose cron uses `delivery.mode: "announce"` (today: felix-admin-capture,
+felix-admin-escalation, felix-admin-habits) MUST carry `DELIVERY_DOCTRINE_BLOCK`
+from `scripts/openclaw/agents/delivery_doctrine.py` byte-for-byte. It says the
+final reply is the only delivery path and forbids searching for or calling any
+send/notify/agent tool. Under OpenClaw 2026.11.7 Code Mode, prompt wording such
+as "Send Kent ONE WhatsApp" led capture to call `conversations_send` and invent
+`send()`, which looped until the turn was stopped and nothing was delivered.
+When you add an announce agent, add it to `ANNOUNCE_AGENTS` and copy the block in;
+`scripts/openclaw/agents/tests/test_delivery_doctrine.py` enforces the block and
+rejects send/ship wording outside it.
+
 ### Runtime-environment guardrails (#662, corrects #658) — canonical invocation form
 
 Every command a newly-authored agent prompt emits that invokes a repo helper
