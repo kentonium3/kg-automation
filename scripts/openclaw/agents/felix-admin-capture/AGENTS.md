@@ -93,7 +93,7 @@ Run `cd /home/claude/kg-automation && python3 -m scripts.inbox.classify_content 
 
 For each block with `kind == "ambiguous"` and `flag == "needs-llm-disambiguation"`, read its `content` and context and classify it yourself as `journal`, `calendar`, `someday`, `github_issue`, `vikunja_task` or `parse_failure`. Still ambiguous → `parse_failure`. Use the goal rules below for goal-like content.
 
-**Research requests** (e.g. "research heat pumps"): ANY block whose intent is a research request becomes `parse_failure`, so a human can shape it, whatever its classifier `kind`, confidence or flag.
+**Research requests**: ANY block whose intent is a research request becomes `parse_failure`, so a human can shape it, whatever its classifier `kind`, confidence or flag. Only an explicit ask to research or investigate a topic qualifies ("research X", "look into options for X and report back"); a task that merely involves looking something up stays `vikunja_task`, and "I should look into Y" stays someday. One `parse_failure` halts finalize for the whole note.
 
 If ANY block is `parse_failure`, do **NOT** finalize: set `status: needs-review` by direct frontmatter edit (NO `processed_at`), log why classification failed (Step 6), and route the note to Step 5.
 

@@ -54,7 +54,27 @@ ANNOUNCE_AGENTS = (
 # Wording that tells the model to deliver by itself (send / ship / relay a
 # payload, or call a send tool) rather than through its final reply. Checked
 # outside the canonical block, which is the one place these names may appear.
-_IMPERATIVE_AT = r"(?:^|[.!?:;—]\s+|\*\*|\|\s*)(?:\d+\.\s+|[-*]\s+)?(?:\*\*)?"
+#
+# Imperatives are matched only where an instruction starts: line start (after
+# any list marker, numbering, bold or table pipe), after a sentence break or
+# em dash, or after "then". The verb must be followed by whitespace, so
+# hyphenated forms ("Post-processing") never match.
+_IMPERATIVE_AT = (
+    r"(?:^|[.!?:;—]\s+|\*\*|\|\s*|\bthen\s+)"
+    r"(?:\d+\.\s+|[-*]\s+)?(?:\*\*)?"
+)
+# What a deliver-verb must be followed by to count. The object starts with a
+# determiner, pronoun, Kent/main or "to" (so nouns such as "Message field" or
+# "Message identity" never match), and the phrase names a delivery channel:
+# WhatsApp, or main as a relay target. "Tell Kent: ..." in a reply turn is the
+# final reply's own content and has no channel, so it is not flagged; nor is
+# "before the main loop".
+_DESTINATION = (
+    r"(?:(?:to\s+)?main\b"
+    r"|(?:the|this|that|these|those|it|them|each|every|any|all|a|an|kent|to)\b"
+    r"[^.\n|]{0,60}?(?:\b(?:to|via|on|through|over|with|in)\s+(?:the\s+)?whatsapp\b"
+    r"|\b(?:to|with)\s+main\b))"
+)
 FORBIDDEN_DELIVERY_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
     ("send-whatsapp", re.compile(r"\bsend\s+(?:kent\s+)?(?:one|a|an|the)\s+whatsapp", re.I)),
     ("ship-message", re.compile(r"\bship\s+(?:the|this|a)\s+message", re.I)),
@@ -65,22 +85,28 @@ FORBIDDEN_DELIVERY_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
     ("tool-conversations", re.compile(r"\bconversations_(?:\w+|\*)")),
     ("tool-sessions", re.compile(r"\bsessions_(?:\w+|\*)")),
     ("tool-openclaw-agent", re.compile(r"\bopenclaw\s+agent\b")),
-    ("tool-message", re.compile(r"\bmessage\s+tool\b|\bmessage\(|\bcall(?:ing)?\s+`?message`?(?:\s|$)", re.I)),
-    # An imperative "Send"/"send": at line start (after any list marker, bold
-    # or table pipe), or after a sentence break / em dash. "Sent by" and
-    # "Kent sends" are not imperatives and do not match.
-    ("imperative-send", re.compile(_IMPERATIVE_AT + r"send\b", re.I | re.M)),
-    # Imperative notify/message/post/ship/forward/relay aimed at WhatsApp,
-    # Kent or main ("Notify Kent via WhatsApp", "forward to main").
+    (
+        "tool-message",
+        re.compile(r"\bmessage\s+tool\b|(?<![.\w])message\(|\bcall(?:ing)?\s+`?message`?(?:\s|$)", re.I),
+    ),
+    # Imperative "send" ("Sent by" and "Kent sends" do not match).
+    ("imperative-send", re.compile(_IMPERATIVE_AT + r"send\s", re.I | re.M)),
+    # Imperative notify/message/post/ship/forward/relay/tell aimed at a
+    # channel ("Notify Kent via WhatsApp", "forward to main").
     (
         "imperative-deliver",
         re.compile(
             _IMPERATIVE_AT
-            + r"(?:notify|message|post|ship|forward|relay)\b[^.\n]{0,60}?\b(?:whatsapp|kent|main)\b",
+            + r"(?:notify|message|post|ship|forward|relay|tell)\s+"
+            + _DESTINATION,
             re.I | re.M,
         ),
     ),
 )
+
+# Imperative patterns are waived on a line that routes the content into the
+# final reply ("Relay the helper's stdout verbatim as your final reply").
+_FINAL_REPLY_EXEMPT = frozenset({"imperative-send", "imperative-deliver"})
 
 
 def delivery_violations(text: str, *, require_block: bool = True) -> list[str]:
@@ -95,9 +121,12 @@ def delivery_violations(text: str, *, require_block: bool = True) -> list[str]:
     if require_block and count != 1:
         problems.append(f"delivery block occurrences: {count} (expected 1)")
     rest = text.replace(DELIVERY_DOCTRINE_BLOCK, "")
+    lines = rest.splitlines()
     for name, pattern in FORBIDDEN_DELIVERY_PATTERNS:
         for m in pattern.finditer(rest):
             line_no = rest.count("\n", 0, m.end()) + 1
-            line = rest.splitlines()[line_no - 1].strip()
+            line = lines[line_no - 1].strip()
+            if name in _FINAL_REPLY_EXEMPT and "final reply" in line.lower():
+                continue
             problems.append(f"{name} at line ~{line_no}: {line[:120]}")
     return problems
