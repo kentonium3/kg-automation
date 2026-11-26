@@ -231,3 +231,74 @@ def test_escalation_records_before_final_reply_and_never_waits(repo_root: Path) 
     assert "record only the tasks included in your final reply" in text
     assert text.index("Record events — BEFORE the final reply") < text.index("Deliver — end the turn")
     assert "never call `wait` for a reply" in text
+
+
+# --- R3b: no record_result (a recorded no_change suppresses the reply) -------
+
+
+def test_block_forbids_record_result_and_unchanged_retry() -> None:
+    """OpenClaw's injected hint says "record no_change"; a recorded no_change
+    suppresses unsent content, so the block forbids the call (#1143 r3b)."""
+    b = DELIVERY_DOCTRINE_BLOCK
+    for clause in (
+        "`automations`",
+        "`record_result`",
+        '"record no_change"',
+        "suppresses your final reply",
+        "Never repeat an unchanged call that was rejected for invalid input or schema",
+        "fix the input from the error, or skip the call",
+        "`partial`",
+        "`--idempotent`",
+    ):
+        assert clause in b, clause
+
+
+@pytest.mark.parametrize(
+    "probe",
+    [
+        'automations({action:"record_result", outcome:"no_change"})',
+        'automations({outcome:"no_change", action:"record_result"})',
+        'automations({"action": "record_result", "outcome": "no_change"})',
+        "automations({'action': 'record_result', 'outcome': 'no_change'})",
+        'automations({\n  outcome: "no_change",\n  action: "record_result"\n})',
+        "await automations ({ action: 'record_result' })",
+        "If the automation tool offers record_result, record no_change without a summary.",
+        "Record `no_change` on an idle turn.",
+        "record a no_change result",
+    ],
+)
+def test_record_result_probe_outside_block_is_flagged(probe: str) -> None:
+    """Each probe, appended to a prompt that KEEPS the block, must be caught."""
+    text = "## Steps\n\n" + DELIVERY_DOCTRINE_BLOCK + "\n" + probe + "\n"
+    assert delivery_violations(text), f"not flagged: {probe!r}"
+
+
+@pytest.mark.parametrize(
+    "benign",
+    [
+        '{"status": "no_change", "created": 0}',
+        "It prints ONE JSON object; branch on `status`:",
+        '`"status": "idle"` → reply IDLE.',
+        "outcome `partial`: running remove again resumes it.",
+        "The cron automations list is managed by felix-deployer.",
+    ],
+)
+def test_record_result_benign_wording_is_not_flagged(benign: str) -> None:
+    text = DELIVERY_DOCTRINE_BLOCK + "\n" + benign + "\n"
+    assert delivery_violations(text) == [], benign
+
+
+def test_observed_malformed_record_result_call_is_flagged(repo_root: Path) -> None:
+    """Frozen regression: the call capture made twice at 2026-11-26 22:00Z."""
+    call = (repo_root / FIXTURES / "record-result-call-observed-1143.txt").read_text(encoding="utf-8")
+    assert 'automations({action:"record_result", status:"no_change"})' in call
+    joined = "\n".join(delivery_violations(DELIVERY_DOCTRINE_BLOCK + "\n" + call))
+    assert "tool-record-result" in joined and "tool-automations" in joined, joined
+
+
+def test_escalation_keeps_headroom_after_block_growth(repo_root: Path) -> None:
+    """Escalation must end <= 17,900 UTF-16 units (#1143 r3b, Codex finding 4)."""
+    from scripts.openclaw.agents.prompt_budgets import chars
+
+    n = chars(repo_root / AGENTS_ROOT / "felix-admin-escalation" / "AGENTS.md")
+    assert n <= 17_900, n
