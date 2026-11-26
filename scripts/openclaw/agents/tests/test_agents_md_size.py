@@ -1,80 +1,64 @@
-"""NFR-001 and NFR-004 file-size assertions for OpenClaw agent prompts.
+"""Prompt-size guards for OpenClaw agent prompts.
 
-These tests enforce the 12,000-character hard cap on
-``main/AGENTS.md`` (NFR-001) and ``felix-admin-calendar/AGENTS.md``
-(NFR-004) authored during mission
-felix-calendar-subagent-extraction-01KTTA33.
+Limits and budgets come from ``scripts/openclaw/agents/prompt_budgets.py``, the
+single source of truth; sizes are UTF-16 code units (``prompt_budgets.chars``),
+the unit OpenClaw's injection limit counts.
 
-Initial (RED) state at WP01 landing:
-    * ``test_main_agents_md_under_12k`` FAILS — main is ~25,982 chars.
-    * ``test_felix_admin_calendar_agents_md_under_12k`` FAILS — the
-      felix-admin-calendar directory does not yet exist.
-
-WP02 lands felix-admin-calendar/AGENTS.md to flip the second test to
-GREEN. WP03 tightens main/AGENTS.md to flip the first test to GREEN.
+History: NFR-001/NFR-004 (mission felix-calendar-subagent-extraction-01KTTA33)
+set a 12,000 cap on main and felix-admin-calendar. #1134 added capture's 18,000
+budget under OpenClaw's 20,000 injection limit. #1135 folded TOOLS.md into each
+AGENTS.md (OpenClaw 2026.11.7 no longer loads TOOLS.md) and moved main to
+18,000; calendar keeps 12,000.
 """
 
 from __future__ import annotations
 
 from pathlib import Path
 
-CAP = 12_000
+import pytest
+
+from scripts.openclaw.agents.prompt_budgets import (
+    BUDGETS,
+    INJECTION_LIMIT,
+    MAIN_USER_MD_BUDGET,
+    USER_MD_INJECTION_LIMIT,
+    agents_md_budget,
+    chars,
+)
+from scripts.openclaw.agents.validate_workspace import discover_workspaces
+
+AGENTS_ROOT = Path("scripts/openclaw/agents")
 
 
-def test_main_agents_md_under_12k(repo_root: Path) -> None:
-    """main/AGENTS.md must stay below the 12K hard cap (NFR-001)."""
-    p = repo_root / "scripts/openclaw/agents/main/AGENTS.md"
+def _agents_md(repo_root: Path, agent: str) -> Path:
+    p = repo_root / AGENTS_ROOT / agent / "AGENTS.md"
     assert p.exists(), f"missing: {p}"
-    size = p.stat().st_size
-    assert size < CAP, f"main/AGENTS.md {size} >= {CAP}"
+    return p
 
 
-def test_felix_admin_calendar_agents_md_under_12k(repo_root: Path) -> None:
-    """felix-admin-calendar/AGENTS.md must stay below the 12K hard cap (NFR-004)."""
-    p = repo_root / "scripts/openclaw/agents/felix-admin-calendar/AGENTS.md"
-    assert p.exists(), f"missing: {p}"
-    size = p.stat().st_size
-    assert size < CAP, f"felix-admin-calendar/AGENTS.md {size} >= {CAP}"
+def test_budgets_keep_headroom_under_injection_limit() -> None:
+    for agent, budget in BUDGETS.items():
+        assert budget < INJECTION_LIMIT, f"{agent} budget {budget} >= {INJECTION_LIMIT}"
+    assert MAIN_USER_MD_BUDGET < USER_MD_INJECTION_LIMIT
 
 
-# --- OpenClaw bootstrap injection limits (#1134) ------------------------------
-#
-# OpenClaw 2026.11.7 truncates a workspace bootstrap file that exceeds its
-# per-file injection limit (gateway log: "workspace bootstrap file <name> is N
-# chars (limit L); truncating in injected context"), so the model never sees
-# part of it. Limits are measured in characters (UTF-16 code units here),
-# not bytes. Budgets below keep headroom under each limit (Kent, 2026-11-23:
-# trim the sources, do not raise the limits). USER.md's budget is 3,700, not
-# 3,600, to fit absolute dates in place of relative ages (Kent, 2026-11-23).
-
-AGENTS_MD_INJECTION_LIMIT = 20_000
-USER_MD_INJECTION_LIMIT = 4_000
-CAPTURE_AGENTS_MD_BUDGET = 18_000
-MAIN_USER_MD_BUDGET = 3_700
-
-
-def _chars(p: Path) -> int:
-    """Length as JavaScript ``String.length`` counts it (UTF-16 code units).
-
-    OpenClaw is JavaScript, so its limit is most likely ``.length``. That is
-    never smaller than the code-point count, so this is the conservative
-    measure.
-    """
-    assert p.exists(), f"missing: {p}"
-    return len(p.read_text(encoding="utf-8").encode("utf-16-le")) // 2
-
-
-def test_capture_agents_md_within_bootstrap_budget(repo_root: Path) -> None:
-    """felix-admin-capture/AGENTS.md must fit the 20,000-char limit with headroom (#1134)."""
-    n = _chars(repo_root / "scripts/openclaw/agents/felix-admin-capture/AGENTS.md")
-    assert n <= CAPTURE_AGENTS_MD_BUDGET < AGENTS_MD_INJECTION_LIMIT, (
-        f"felix-admin-capture/AGENTS.md is {n} chars > budget {CAPTURE_AGENTS_MD_BUDGET}"
+def test_every_active_agent_has_a_budget(repo_root: Path) -> None:
+    active = {d.name for d in discover_workspaces(repo_root / AGENTS_ROOT)}
+    assert active == set(BUDGETS), (
+        f"active workspaces {sorted(active)} != budgeted {sorted(BUDGETS)}"
     )
+
+
+@pytest.mark.parametrize("agent", sorted(BUDGETS))
+def test_agents_md_within_budget(repo_root: Path, agent: str) -> None:
+    """Fleet guard: every active AGENTS.md fits its budget (#1135)."""
+    n = chars(_agents_md(repo_root, agent))
+    budget = agents_md_budget(agent)
+    assert n <= budget, f"{agent}/AGENTS.md is {n} chars > budget {budget}"
 
 
 def test_main_user_md_within_bootstrap_budget(repo_root: Path) -> None:
     """main/USER.md must fit the 4,000-char limit with headroom (#1134)."""
-    n = _chars(repo_root / "scripts/openclaw/agents/main/USER.md")
-    assert n <= MAIN_USER_MD_BUDGET < USER_MD_INJECTION_LIMIT, (
-        f"main/USER.md is {n} chars > budget {MAIN_USER_MD_BUDGET}"
-    )
+    p = repo_root / AGENTS_ROOT / "main" / "USER.md"
+    n = chars(p)
+    assert n <= MAIN_USER_MD_BUDGET, f"main/USER.md is {n} chars > budget {MAIN_USER_MD_BUDGET}"
