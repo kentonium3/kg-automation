@@ -25,6 +25,32 @@ versioning policy and non-goals.
 | `installed_report` | The installed-file report channel (#1072): an advisory producer that installers call for each file they wrote, and a fail-closed reader. See "The installed-file report" below. | `record_installed`, `read_report` |
 | `timer_units` | Parse unit directives; the #1062 `Persistent=`-on-monotonic predicate | `directives`, `persistent_on_monotonic` |
 
+## Manifest-driven `openclaw.json` edits
+
+No `lib/` primitive edits `openclaw.json`; the first manifest-driven edit is
+`scripts/deploy/deploy-announce-agent-tool-deny.py` (#1146), and it is the
+pattern to copy. Rules:
+
+* **Never write the file directly.** Use `openclaw config patch --stdin`: one
+  validated write that the Gateway owns (it races nothing, and `hybrid` reload
+  hot-applies `agents` and `tools`). Objects merge, **arrays replace**, `null`
+  deletes; `--replace-path <path>` restores a whole object.
+* Resolve the binary through `scripts/common/openclaw_bin.py`; it is not on the
+  deployer's PATH.
+* **Refuse unexpected shapes** before the patch (missing entry, a conflicting
+  `allow`, an array the patch would clobber).
+* **Write-once recovery receipt** before the first change: the original value
+  of each touched key (absent kept distinct from `{}`) plus sorted-JSON sha256
+  of every untouched sibling. A retry keeps the original; rollback is a scoped
+  Gateway patch from it. A whole-file copy (0600, it holds secrets) is the last
+  resort only.
+* **Prove it:** read-back, sibling hashes unchanged, the Gateway's
+  "hot reload applied" line, and an unchanged gateway PID and start time.
+* Declare `expected_baselines: [openclaw-config.txt]`: the commit range
+  changes no file on that surface.
+
+No shared helper was extracted yet; one entrypoint does not justify it.
+
 ## Return type: `LibResult`
 
 ```python

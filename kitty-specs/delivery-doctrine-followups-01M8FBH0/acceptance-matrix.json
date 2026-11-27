@@ -1,0 +1,83 @@
+{
+  "mission_slug": "delivery-doctrine-followups-01M8FBH0",
+  "mission_number": "",
+  "mission_type": "software-dev",
+  "overall_verdict": "pass",
+  "criteria": [
+    {
+      "criterion_id": "FR-001",
+      "description": "Verify FR-001 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "WP01 lane-a 3559ec495: test_delivery_doctrine.py test_fr001_form_is_flagged and the formatting/soft-wrap cases (240 pass); Codex r3 APPROVE",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-11-27T22:17:19.865317+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-002",
+      "description": "Verify FR-002 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "WP01 3559ec495: test_fr002_exempt_form_passes with same-fixture positive controls and clause-scope negative controls; Codex r3 APPROVE",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-11-27T22:17:22.937480+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-003",
+      "description": "Verify FR-003 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "WP01 3559ec495: DELIVERY_DOCTRINE_BLOCK retry tail plus byte-exact copies in 3 AGENTS.md; size tests 9 pass (escalation 17805/17900)",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-11-27T22:17:25.913673+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-004",
+      "description": "Verify FR-004 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "WP02 lane-b 990358bde: SKILL.md section 7 rewritten to the derive_state JSONL dedup; pinned by test_announce_skill_coverage.py; Codex APPROVE",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-11-27T22:17:29.046884+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-005",
+      "description": "Verify FR-005 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "WP02 990358bde: test_announce_skill_coverage.py (24 cases, positive control on real skill text); verify-and-pin per decision 01M8FC8T0WYHWPQ9MW7XHJWFYA",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-11-27T22:17:32.170797+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-006",
+      "description": "Verify FR-006 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": null,
+      "pass_fail": "deferred",
+      "verified_by": "claude",
+      "verified_at": "2026-11-27T22:17:35.256600+00:00",
+      "notes": "TODO: replace with a real acceptance criterion",
+      "deferral_reason": "Code, tests (72) and manifest are approved (WP03 lane-c 30c7bff3a, Codex r3). The live deny on office2 can only be shown after merge to main and the felix-deployer apply (no staging; charter Quality Gates allow a recorded post-merge canary).",
+      "deferral_follow_up": "#1146"
+    },
+    {
+      "criterion_id": "FR-007",
+      "description": "Verify FR-007 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": null,
+      "pass_fail": "deferred",
+      "verified_by": "claude",
+      "verified_at": "2026-11-27T22:17:38.292144+00:00",
+      "notes": "TODO: replace with a real acceptance criterion",
+      "deferral_reason": "Pipeline path and docs are approved (WP03 manifest, WP04 b9e63ec07). Byte-identical deploy, rebaseline outcome and canary can only be shown after merge (post-merge operator canary per quickstart.md).",
+      "deferral_follow_up": "#1146"
+    }
+  ],
+  "negative_invariants": []
+}

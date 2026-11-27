@@ -1,0 +1,53 @@
+{
+  "rows": {
+    "#1065": {
+      "evidence_ref": "Context only: cited in research.md as the expected_baselines / installed-report precedent",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": null,
+      "title": null,
+      "verdict": "not-applicable",
+      "wp": null
+    },
+    "#1072": {
+      "evidence_ref": "Context only: cited in research.md as the expected_baselines / installed-report precedent",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": null,
+      "title": null,
+      "verdict": "not-applicable",
+      "wp": null
+    },
+    "#1143": {
+      "evidence_ref": "Context only: #1146 is the follow-up to #1143's reviews; #1143 closed 2026-11-27",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": "spec.md",
+      "title": "Announce agents: final reply is the only delivery path (closed predecessor)",
+      "verdict": "not-applicable",
+      "wp": null
+    },
+    "#1146": {
+      "evidence_ref": "All six items delivered by WP01-WP04 (approved, Codex). FR-006/FR-007 live effect verified by the recorded post-merge canary on #1146",
+      "fr": null,
+      "nfr": null,
+      "repo": null,
+      "sc": null,
+      "scope": null,
+      "source_file": "spec.md",
+      "title": "chore(openclaw): delivery-doctrine guard + wording follow-ups from #1143 reviews",
+      "verdict": "fixed",
+      "wp": null
+    }
+  },
+  "schema_version": 1
+}

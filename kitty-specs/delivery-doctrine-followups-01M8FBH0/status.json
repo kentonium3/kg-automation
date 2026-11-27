@@ -1,0 +1,164 @@
+{
+  "event_count": 57,
+  "last_event_id": "01M8FHFB8XYTCBGKH0CQ8WP07X",
+  "materialized_at": "2026-11-27T22:19:35.069369+00:00",
+  "mission_number": "127",
+  "mission_slug": "delivery-doctrine-followups-01M8FBH0",
+  "mission_type": "software-dev",
+  "schema_version": 2,
+  "summary": {
+    "approved": 0,
+    "blocked": 0,
+    "canceled": 0,
+    "claimed": 0,
+    "done": 4,
+    "for_review": 0,
+    "in_progress": 0,
+    "in_review": 0,
+    "planned": 0
+  },
+  "work_packages": {
+    "WP01": {
+      "actor": "merge",
+      "agent": "codex",
+      "agent_profile": "__resolved_profile_absent__",
+      "agent_profile_version": "__resolved_profile_version_absent__",
+      "force_count": 2,
+      "implementer_of_record": "claude",
+      "lane": "done",
+      "last_event_id": "01M8FHF4WCES6SBTHY82WYNKVP",
+      "last_transition_at": "2026-11-27T22:19:28.524302+00:00",
+      "model": "__resolved_model_absent__",
+      "notes": [
+        "Implemented by w1 (claude-sonnet-5-5) at lane-a 9826cb650; 602 scripts/openclaw tests pass (lead re-ran). Lead call on NFR-001: accepted as met in substance. 55/98 new cases red pre-fix; the 43 that pass are ratchets and positive controls, which pass by design; each guard change has been proven red by the half-by-half reverts.",
+        "Fix round 1 by w1 (claude::python-pedro, claude-sonnet-5-5) at lane-a ba356a11a: soft-wrap joining, exception context, structured record_result value, colon routing; 668 scripts/openclaw tests pass",
+        "Fix round 2 by w1 at lane-a 3559ec495: generalised capitalised-line clause boundary; 688 scripts/openclaw tests pass",
+        "Review passed: Codex gpt-6.1-sol round 3 APPROVE on 3559ec495 (rounds 1 and 2 REQUEST CHANGES, all addressed). Verdict recorded by the lead (claude-opus-5-5) for Codex. Accepted residuals: the '___' rule is not a boundary; an exception across a block boundary cancels a negation (stricter); a capitalised soft-wrap continuation loses its waiver (stricter). Implementer w1 claude::python-pedro (claude-sonnet-5-5)."
+      ],
+      "provider": "__resolved_provider_absent__",
+      "review": null,
+      "review_result": {
+        "feedback_path": "/home/kgale/repos/kg-automation/.worktrees/delivery-doctrine-followups-01M8FBH0-coord/kitty-specs/delivery-doctrine-followups-01M8FBH0/tasks/WP01-guard-coverage-and-retry-wording/review-cycle-3.md",
+        "reference": "review-cycle://delivery-doctrine-followups-01M8FBH0/WP01-guard-coverage-and-retry-wording/review-cycle-3.md",
+        "reviewer": "codex",
+        "verdict": "approved"
+      },
+      "role": "reviewer",
+      "shell_pid": 1127118,
+      "shell_pid_created_at": "1795816839.25",
+      "subtasks": {
+        "T001": "done",
+        "T002": "done",
+        "T003": "done",
+        "T004": "done",
+        "T005": "done",
+        "T006": "done"
+      }
+    },
+    "WP02": {
+      "actor": "merge",
+      "agent": "codex",
+      "agent_profile": "__resolved_profile_absent__",
+      "agent_profile_version": "__resolved_profile_version_absent__",
+      "force_count": 0,
+      "implementer_of_record": "claude",
+      "lane": "done",
+      "last_event_id": "01M8FHF95NTYAYJ6DEJ0X5C9S4",
+      "last_transition_at": "2026-11-27T22:19:32.917335+00:00",
+      "model": "__resolved_model_absent__",
+      "notes": [
+        "Implemented by w1 (claude::python-pedro, claude-sonnet-5-5) at lane-b 990358bde; 712 scripts/openclaw tests pass (lead re-ran)",
+        "Review passed: Codex gpt-6.1-sol APPROVE on 990358bde, no findings. Verdict recorded by the lead (claude-opus-5-5) for Codex. Implementer w1 claude::python-pedro (claude-sonnet-5-5). Out-of-scope escalation findings (a) to (c), confirmed real by Codex, are tracked separately."
+      ],
+      "provider": "__resolved_provider_absent__",
+      "review_result": {
+        "feedback_path": "/home/kgale/repos/kg-automation/.worktrees/delivery-doctrine-followups-01M8FBH0-coord/kitty-specs/delivery-doctrine-followups-01M8FBH0/tasks/WP02-skill-wording-and-coverage/review-cycle-1.md",
+        "reference": "review-cycle://delivery-doctrine-followups-01M8FBH0/WP02-skill-wording-and-coverage/review-cycle-1.md",
+        "reviewer": "codex",
+        "verdict": "approved"
+      },
+      "role": "reviewer",
+      "shell_pid": 1186766,
+      "shell_pid_created_at": "1795817655.44",
+      "subtasks": {
+        "T007": "done",
+        "T008": "done",
+        "T009": "done",
+        "T010": "done"
+      }
+    },
+    "WP03": {
+      "actor": "merge",
+      "agent": "codex",
+      "agent_profile": "__resolved_profile_absent__",
+      "agent_profile_version": "__resolved_profile_version_absent__",
+      "force_count": 4,
+      "implementer_of_record": "claude",
+      "lane": "done",
+      "last_event_id": "01M8FHF72CE2DFJTG1F5A5P5QW",
+      "last_transition_at": "2026-11-27T22:19:30.764951+00:00",
+      "model": "__resolved_model_absent__",
+      "notes": [
+        "Implemented by python-pedro (claude-sonnet-5-5) at lane-c c59f9f7a7; 56 targeted tests pass; tests/deploy 1992 passed",
+        "Fix round 1 at lane-c 2b598a215: reload_verified retry honesty, verify requires receipt, receipt validation+reconcile; 67 WP tests, tests/deploy 2009 passed",
+        "Fix round 2 at lane-c 30c7bff3a: journal-cursor correlation; PID-on-retry declined by lead with recorded reason; 72 WP tests, tests/deploy 2014 passed",
+        "Recovery per spec-kitty/spec-kitty#7712 (fix not in installed build 06af0c52e): leave in_review so the implementer identity can carry its profile",
+        "Implementer identity of record: claude::python-pedro (claude-sonnet-5-5), per #7712 recovery",
+        "Re-submitted as implementer claude::python-pedro at lane-c 30c7bff3a",
+        "Review passed: Codex gpt-6.1-sol round 3 APPROVE WITH FIXES on 30c7bff3a (rounds 1 and 2 REQUEST CHANGES, all addressed). Verdict recorded by the lead (claude-opus-5-5) for Codex. Residuals accepted: (a) PID-on-retry not enforced, reason in review-cycle-2; (b) NIT: a schema-1 receipt without patch_cursor would KeyError on retry; no such receipt exists (the deploy is unreleased)."
+      ],
+      "provider": "__resolved_provider_absent__",
+      "review": null,
+      "review_result": {
+        "feedback_path": "/home/kgale/repos/kg-automation/.worktrees/delivery-doctrine-followups-01M8FBH0-coord/kitty-specs/delivery-doctrine-followups-01M8FBH0/tasks/WP03-announce-agent-tool-deny-deploy/review-cycle-3.md",
+        "reference": "review-cycle://delivery-doctrine-followups-01M8FBH0/WP03-announce-agent-tool-deny-deploy/review-cycle-3.md",
+        "reviewer": "codex",
+        "verdict": "approved"
+      },
+      "role": "reviewer",
+      "shell_pid": 974896,
+      "shell_pid_created_at": "1795815058.2",
+      "subtasks": {
+        "T011": "done",
+        "T012": "done",
+        "T013": "done",
+        "T014": "done",
+        "T015": "done"
+      }
+    },
+    "WP04": {
+      "actor": "merge",
+      "agent": "codex",
+      "agent_profile": "__resolved_profile_absent__",
+      "agent_profile_version": "__resolved_profile_version_absent__",
+      "force_count": 1,
+      "implementer_of_record": "claude",
+      "lane": "done",
+      "last_event_id": "01M8FHFB8XYTCBGKH0CQ8WP07X",
+      "last_transition_at": "2026-11-27T22:19:35.069369+00:00",
+      "model": "__resolved_model_absent__",
+      "notes": [
+        "Implemented by curator-carla (claude-sonnet-5-5), commit 1b79f55af on fix/1146; validators pass",
+        "Fix round 1 at b9e63ec07 on fix/1146 (rollback order, proof split, hash scope, two authorised out-of-map pointers, calendar shape)",
+        "Review passed: Codex gpt-6.1-sol round 2 APPROVE on b9e63ec07 (round 1 REQUEST CHANGES, all 5 closed). Verdict recorded by the lead (claude-opus-5-5) for Codex. Reviewed the real commits by hand (spec-kitty/spec-kitty#7759). Implementer curator-carla claude-sonnet-5-5."
+      ],
+      "provider": "__resolved_provider_absent__",
+      "review": null,
+      "review_result": {
+        "feedback_path": "/home/kgale/repos/kg-automation/.worktrees/delivery-doctrine-followups-01M8FBH0-coord/kitty-specs/delivery-doctrine-followups-01M8FBH0/tasks/WP04-architecture-and-runbook-docs/review-cycle-2.md",
+        "reference": "review-cycle://delivery-doctrine-followups-01M8FBH0/WP04-architecture-and-runbook-docs/review-cycle-2.md",
+        "reviewer": "codex",
+        "verdict": "approved"
+      },
+      "role": "reviewer",
+      "shell_pid": 1017300,
+      "shell_pid_created_at": "1795815421.74",
+      "subtasks": {
+        "T016": "done",
+        "T017": "done",
+        "T018": "done",
+        "T019": "done"
+      }
+    }
+  }
+}
