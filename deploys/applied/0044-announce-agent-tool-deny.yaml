@@ -37,3 +37,7 @@ notes: '#1146 (follow-up to #1143; openclaw/openclaw#206884 is why record_result
   from the receipt). The openclaw.json.<ts>.bak copy is the last resort only.'
 apply_mode: manifest
 applied_at: '2026-11-27T22:46:45Z'
+rebaseline:
+  outcome: completed
+  at_utc: '2026-11-27T22:46:55Z'
+  baseline_count: 15
