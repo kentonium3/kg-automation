@@ -313,6 +313,9 @@ commit, qualify and scan that new candidate before considering promotion.
 2. Build once from the qualified source. Produce downloadable binaries and a
    container image or image archive using the supported build route. Include
    supported OS/architectures, SHA256 checksums and an artifact-to-source record.
+   For the Office2 [deploy evidence check](vikunja-release-cutover.md#deploy-evidence),
+   publish that record as `provenance.json`, listed in `SHA256SUMS`, with the
+   Docker image binary's hash in `image.embedded_binary_sha256`.
    A private local image or GitHub's source-only archive is not a ready-to-run
    public distribution. Use the separately reviewed fork-owned/local build
    route, not canonical `release.yml`. New registry setup needs separate
@@ -347,7 +350,10 @@ reused as live facts.
 The production deploy go is separate from publication. An all-green Ring 3a
 report whose last line begins `Deploy evidence: yes`, plus Kent's pass on any
 listed Ring 3b checks, gives it; it authorizes every cutover step through ACCEPT
-([the one-go rule](vikunja-release-cutover.md#deploy-authority)). Use the same artifact bytes tested
+([the one-go rule](vikunja-release-cutover.md#deploy-authority)). That report is
+run on the binary inside the Docker image and must pass the
+[deploy evidence check](vikunja-release-cutover.md#deploy-evidence); record its
+path and binary sha256 in the go packet. Use the same artifact bytes tested
 for promotion; verify image digest and embedded version after deployment.
 Never run an older image on a database migrated by a newer release. Rollback
 restores the matching pre-upgrade database and follows the packet's write

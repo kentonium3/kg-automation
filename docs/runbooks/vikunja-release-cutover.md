@@ -27,8 +27,10 @@ The release's deploy go comes from the pre-release checks (vikunja-harness
 Both of these authorize the Office2 deploy:
 
 - an all-green automated Ring 3a report whose last line begins
-  `Deploy evidence: yes`. The run matches the mission's acceptance inventory and
-  was bound with `--sha256` to the release asset's published checksum; and
+  `Deploy evidence: yes`. The run matches the mission's acceptance inventory, was
+  made on the binary inside the image being deployed, with `--sha256` set to that
+  binary's published checksum, and passes the
+  [deploy evidence check](#deploy-evidence); and
 - Kent's pass on any Ring 3b checks that inventory lists. The same last line
   names the checks still needing it.
 
@@ -67,9 +69,8 @@ derive their identities from the reviewed release record.
 
 **Agent**, before PR1:
 
-- Record in the go packet the path of the release's Ring 3a `report.md` and the
-  hashes on its `Binary:` line (the binary sha256 and, for a zip run, the zip
-  sha256), with Kent's pass on each listed Ring 3b check.
+- Pass the [deploy evidence check](#deploy-evidence) below before any later
+  step.
 - Confirm the release acceptance and release CI, candidate review and exact
   candidate commit. Check current archive bytes, hash and size against the
   published download and the record; old custody evidence is insufficient.
@@ -88,6 +89,107 @@ derive their identities from the reviewed release record.
   path and SHA256. The baseline records exact migrations (including
   `SCHEMA_INIT`), previous version/config and pre/target schema identities.
   No fixed migration-count check or completed repeat conversion is rerun.
+
+<a id="deploy-evidence"></a>
+### 1a. Deploy evidence check (Agent)
+
+Run this on office4, from the root of the reviewed candidate checkout, before
+check (i) and ingress. Three sha256 values must be equal: the binary in the
+report, `image.embedded_binary_sha256` in the release's `provenance.json`, and
+`/app/vikunja/vikunja` in the Docker archive that `release.json` names. A report
+made on the release ZIP does not pass: its binary is a separate build.
+
+Use a clean, current `vikunja-harness` checkout. Set `SET` to the check-set
+directory name and `MISSION` to the mission slug of the acceptance inventory.
+Run the three blocks in one shell. Any non-zero exit stops the run before check
+(i) and is reported to Kent.
+
+Fetch the published record, then extract and hash the image binary. The archive
+is read directly; nothing is loaded into Docker.
+
+```bash
+set -euo pipefail
+REC=services/vikunja/release.json
+V=$(jq -r .release_version "$REC")
+mkdir -p "$HOME/.local/state/vikunja-ring3a/deploy"
+EVIDENCE=$(mktemp -d "$HOME/.local/state/vikunja-ring3a/deploy/$V-XXXXXX")
+gh release download "$V" --repo kentonium3/vikunja \
+  --pattern SHA256SUMS --pattern provenance.json --dir "$EVIDENCE"
+(cd "$EVIDENCE" && grep -E '  provenance\.json$' SHA256SUMS | sha256sum -c -)
+grep -Fx "$(jq -r .archive.sha256 "$REC")  vikunja-$V-docker-linux-amd64.tar.gz" \
+  "$EVIDENCE/SHA256SUMS"
+python3 -I - "$EVIDENCE" <<'EXTRACT'
+import hashlib
+import io
+import json
+import os
+from pathlib import Path
+import sys
+import tarfile
+
+evidence = Path(sys.argv[1])
+rec = json.loads(Path("services/vikunja/release.json").read_text())
+prov = json.loads((evidence / "provenance.json").read_text())
+archive = Path(rec["roots"]["office4_sources"]["archive"])
+with archive.open("rb") as stream:
+    if hashlib.file_digest(stream, "sha256").hexdigest() != rec["archive"]["sha256"]:
+        raise SystemExit("EVIDENCE_ARCHIVE_MISMATCH")
+if (prov["version"], prov["image"]["config_digest"]) != (
+        rec["release_version"], rec["image"]["config_digest"]):
+    raise SystemExit("EVIDENCE_PROVENANCE_MISMATCH")
+
+# Refuse anything but exactly one plain file that no layer hides.
+hides = {".wh.app", "app/.wh.vikunja", "app/.wh..wh..opq",
+         "app/vikunja/.wh.vikunja", "app/vikunja/.wh..wh..opq"}
+found = []
+with tarfile.open(archive) as outer:
+    manifest = json.load(outer.extractfile("manifest.json"))
+    if len(manifest) != 1:
+        raise SystemExit("EVIDENCE_IMAGE_AMBIGUOUS")
+    for layer in manifest[0]["Layers"]:
+        with tarfile.open(fileobj=io.BytesIO(outer.extractfile(layer).read())) as inner:
+            for member in inner:
+                name = member.name.removeprefix("./")
+                if name in hides:
+                    raise SystemExit("EVIDENCE_BINARY_AMBIGUOUS")
+                if name == "app/vikunja/vikunja":
+                    found.append(inner.extractfile(member).read() if member.isfile() else None)
+if len(found) != 1 or found[0] is None:
+    raise SystemExit("EVIDENCE_BINARY_AMBIGUOUS")
+if hashlib.sha256(found[0]).hexdigest() != prov["image"]["embedded_binary_sha256"]:
+    raise SystemExit("EVIDENCE_BINARY_MISMATCH")
+target = os.open(evidence / "vikunja", os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o700)
+with os.fdopen(target, "wb") as stream:
+    stream.write(found[0])
+print("EVIDENCE_BINARY_EXTRACTED")
+EXTRACT
+```
+
+Run Ring 3a on that file:
+
+```bash
+H=$HOME/repos/vikunja-harness/harness-docs/testing/ring3a
+python3 -I -B "$H/ring3a.py" prepare --tag "$V"
+python3 -I -B "$H/ring3a.py" run --binary "$EVIDENCE/vikunja" \
+  --sha256 "$(jq -r .image.embedded_binary_sha256 "$EVIDENCE/provenance.json")" \
+  --checks "$H/checks/${SET:?}" \
+  --frontend "$HOME/.local/state/vikunja-ring3a/frontend-$V" \
+  --inventory "$H/inventories/${MISSION:?}.json" --out "$EVIDENCE/run"
+```
+
+Match the report to the published record and the extracted file:
+
+```bash
+BIN=$(jq -r .binary.sha256 "$EVIDENCE/run/report.json")
+test "$BIN" = "$(jq -r .image.embedded_binary_sha256 "$EVIDENCE/provenance.json")"
+test "$BIN" = "$(sha256sum "$EVIDENCE/vikunja" | cut -d' ' -f1)"
+tail -n 1 "$EVIDENCE/run/report.md" | grep '^Deploy evidence: yes '
+printf 'report=%s\nbinary_sha256=%s\n' "$EVIDENCE/run/report.md" "$BIN"
+```
+
+Record in the go packet the report path and the binary sha256 printed above, the
+report's last line, and Kent's pass on each Ring 3b check that line names. The
+deploy go is not given until every named check has passed. Retain `$EVIDENCE`.
 
 ## 2. Candidate validation before merge (Agent)
 
