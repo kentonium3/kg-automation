@@ -168,8 +168,11 @@ the prompt, not a replacement (see
   `scripts/deploy/deploy-announce-agent-tool-deny.py`; the pattern is in
   [deploy/discipline.md](<./deploy/discipline.md#editing-openclawjson-through-a-manifest>).
 - **A new announce agent needs both**: the doctrine block above and the deny.
-  Add the agent to the entrypoint's target list and queue a manifest; copying
-  the block alone leaves the capability open.
+  Copying the block alone leaves the capability open. Do **not** extend the
+  existing entrypoint's `TARGETS`. Its write-once receipt records exactly the
+  original three agents, and receipt validation refuses any other set. Instead,
+  add a new entrypoint and manifest, with their own receipt path, modelled on
+  `deploy-announce-agent-tool-deny.py`.
 - The entrypoint refuses an agent that already has `tools.allow`/`alsoAllow` or a
   different `tools.deny`, because patched arrays replace.
 
