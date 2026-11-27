@@ -35,3 +35,5 @@ notes: '#1146 (follow-up to #1143; openclaw/openclaw#206884 is why record_result
   Rollback: if still queued, remove this file from deploys/queued/ first. Otherwise
   run scripts/deploy/deploy-announce-agent-tool-deny.py --rollback (one scoped patch
   from the receipt). The openclaw.json.<ts>.bak copy is the last resort only.'
+apply_mode: manifest
+applied_at: '2026-11-27T22:46:45Z'
