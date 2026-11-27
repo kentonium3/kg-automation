@@ -123,7 +123,8 @@ import hashlib
 import io
 import json
 import os
-from pathlib import Path
+from pathlib import Path, PurePosixPath
+import posixpath
 import sys
 import tarfile
 
@@ -131,29 +132,42 @@ evidence = Path(sys.argv[1])
 rec = json.loads(Path("services/vikunja/release.json").read_text())
 prov = json.loads((evidence / "provenance.json").read_text())
 archive = Path(rec["roots"]["office4_sources"]["archive"])
-with archive.open("rb") as stream:
-    if hashlib.file_digest(stream, "sha256").hexdigest() != rec["archive"]["sha256"]:
-        raise SystemExit("EVIDENCE_ARCHIVE_MISMATCH")
 if (prov["version"], prov["image"]["config_digest"]) != (
         rec["release_version"], rec["image"]["config_digest"]):
     raise SystemExit("EVIDENCE_PROVENANCE_MISMATCH")
 
-# Refuse anything but exactly one plain file that no layer hides.
-hides = {".wh.app", "app/.wh.vikunja", "app/.wh..wh..opq",
-         "app/vikunja/.wh.vikunja", "app/vikunja/.wh..wh..opq"}
-found = []
-with tarfile.open(archive) as outer:
-    manifest = json.load(outer.extractfile("manifest.json"))
-    if len(manifest) != 1:
-        raise SystemExit("EVIDENCE_IMAGE_AMBIGUOUS")
-    for layer in manifest[0]["Layers"]:
-        with tarfile.open(fileobj=io.BytesIO(outer.extractfile(layer).read())) as inner:
-            for member in inner:
-                name = member.name.removeprefix("./")
-                if name in hides:
-                    raise SystemExit("EVIDENCE_BINARY_AMBIGUOUS")
-                if name == "app/vikunja/vikunja":
-                    found.append(inner.extractfile(member).read() if member.isfile() else None)
+# Refuse any layer content that could hide or replace the binary: a path that is
+# not canonical, a whiteout over it, an entry beneath a non-directory (a file or
+# link that replaces a parent), or anything but exactly one plain copy.
+hides = {".wh..wh..opq", ".wh.app", "app/.wh..wh..opq", "app/.wh.vikunja",
+         "app/vikunja/.wh..wh..opq", "app/vikunja/.wh.vikunja"}
+found, names, nondirs = [], set(), set()
+# Open once: the parser reads the same handle that was hashed.
+with archive.open("rb") as stream:
+    if hashlib.file_digest(stream, "sha256").hexdigest() != rec["archive"]["sha256"]:
+        raise SystemExit("EVIDENCE_ARCHIVE_MISMATCH")
+    stream.seek(0)
+    with tarfile.open(fileobj=stream, mode="r:*") as outer:
+        manifest = json.load(outer.extractfile("manifest.json"))
+        if len(manifest) != 1:
+            raise SystemExit("EVIDENCE_IMAGE_AMBIGUOUS")
+        for layer in manifest[0]["Layers"]:
+            with tarfile.open(fileobj=io.BytesIO(outer.extractfile(layer).read())) as inner:
+                for member in inner:
+                    name = member.name
+                    if (name.startswith("/") or ".." in name.split("/")
+                            or posixpath.normpath(name) != name):
+                        raise SystemExit("EVIDENCE_PATH_NOT_CANONICAL")
+                    if name in hides:
+                        raise SystemExit("EVIDENCE_BINARY_AMBIGUOUS")
+                    names.add(name)
+                    if not member.isdir():
+                        nondirs.add(name)
+                    if name == "app/vikunja/vikunja":
+                        found.append(
+                            inner.extractfile(member).read() if member.isfile() else None)
+if any(str(parent) in nondirs for name in names for parent in PurePosixPath(name).parents):
+    raise SystemExit("EVIDENCE_BINARY_AMBIGUOUS")
 if len(found) != 1 or found[0] is None:
     raise SystemExit("EVIDENCE_BINARY_AMBIGUOUS")
 if hashlib.sha256(found[0]).hexdigest() != prov["image"]["embedded_binary_sha256"]:
