@@ -5,7 +5,7 @@ audience: agents_and_humans
 status: approved
 tags: [1087, 1095]
 created: 2026-10-30
-last_updated: '2026-11-20'
+last_updated: '2026-11-27'
 ---
 
 # Vikunja Release Cutover (the go packet)
@@ -17,13 +17,23 @@ rollback and service identity. Do not substitute historical values.
 The published image carries no revision label, as declared in the release record; identity rests on the pinned archive SHA256 and config digest.
 
 <a id="deploy-authority"></a>
-**Authority: one deploy go per release** (Kent, 2026-11-20; #1115). Agent host
-steps and ingress are executed by the Claude session, through
-`ssh office2-claude`. Codex implements and tests with synthetic data locally;
-it does not read private copies or execute host steps.
+**Authority: one deploy go per release** (Kent, 2026-11-20; #1115, trigger
+changed by #1131). Agent host steps and ingress are executed by the Claude
+session, through `ssh office2-claude`. Codex implements and tests with synthetic
+data locally; it does not read private copies or execute host steps.
 
-Kent's go to deploy comes after his pre-release manual testing (vikunja-harness
-Ring 3) passes. That single go authorizes every step from here through ACCEPT,
+The release's deploy go comes from the pre-release checks (vikunja-harness
+[Ring 3 and the deploy gate](<https://github.com/kentonium3/vikunja-harness/blob/main/harness-docs/testing/qa-concentric-rings.md#ring-3-and-the-deploy-gate-harness76-2026-11-23>)).
+Both of these authorize the Office2 deploy:
+
+- an all-green automated Ring 3a report whose last line begins
+  `Deploy evidence: yes`. The run matches the mission's acceptance inventory and
+  was bound with `--sha256` to the release asset's published checksum; and
+- Kent's pass on any Ring 3b checks that inventory lists. The same last line
+  names the checks still needing it.
+
+A red or refused report, or one whose last line begins `Deploy evidence: no`,
+authorizes nothing. That single go covers every step from here through ACCEPT,
 and the Claude session runs them without asking again:
 
 - check (i), ingress and the STAGE PR merge;
@@ -57,6 +67,9 @@ derive their identities from the reviewed release record.
 
 **Agent**, before PR1:
 
+- Record in the go packet the path of the release's Ring 3a `report.md` and the
+  hashes on its `Binary:` line (the binary sha256 and, for a zip run, the zip
+  sha256), with Kent's pass on each listed Ring 3b check.
 - Confirm the release acceptance and release CI, candidate review and exact
   candidate commit. Check current archive bytes, hash and size against the
   published download and the record; old custody evidence is insufficient.
@@ -451,8 +464,9 @@ The durable gate receipt also remains untouched. A failure keeps writes closed.
 
 **Who runs what.** The agent runs A1–A3, B3 and B4, including this verifier.
 There is no manual acceptance step: the disposable write probe and the
-browser, login, task-list and recurrence checks are dropped, because Kent's
-pre-release manual testing covers them and production use is the test.
+browser, login, task-list and recurrence checks are dropped. Pre-release
+checking is the Ring 3a report plus any listed Ring 3b checks, and production
+use is the test.
 
 **Agent** records **ACCEPT** when A1–A3, B3, B4 and the verifier all pass. Any
 failure stops with writes closed and goes to Kent, who decides on
