@@ -246,7 +246,7 @@ def test_block_forbids_record_result_and_unchanged_retry() -> None:
         '"record no_change"',
         "suppresses your final reply",
         "Never repeat an unchanged call that was rejected for invalid input or schema",
-        "fix the input from the error, or skip the call",
+        "fix the input from the error, or skip it and say so in your final reply",
         "`partial`",
         "`--idempotent`",
     ):
@@ -302,3 +302,424 @@ def test_escalation_keeps_headroom_after_block_growth(repo_root: Path) -> None:
 
     n = chars(repo_root / AGENTS_ROOT / "felix-admin-escalation" / "AGENTS.md")
     assert n <= 17_900, n
+
+
+# --- #1146: guard coverage (FR-001), false positives (FR-002), clause scope ---
+
+
+def _flagged(line: str) -> set[str]:
+    """Pattern names reported for ``line`` appended to a prompt with the block."""
+    problems = delivery_violations("## Steps\n\n" + DELIVERY_DOCTRINE_BLOCK + "\n" + line + "\n")
+    return {p.split(" at line ")[0] for p in problems}
+
+
+@pytest.mark.parametrize(
+    ("line", "pattern"),
+    [
+        pytest.param("Record **no_change** on an idle turn.", "record-no-change", id="bold-no-change"),
+        pytest.param("When nothing changed, use the automations tool.", "tool-automations", id="automations-tool"),
+        pytest.param('catalog.search("automations")', "tool-automations", id="catalog-search"),
+        pytest.param("automations.record({outcome:'no_change'})", "tool-automations", id="automations-method"),
+        pytest.param("Mark the run no_change.", "record-no-change", id="mark-run"),
+        pytest.param("Recording no_change is fine on an idle run.", "record-no-change", id="recording"),
+        pytest.param("set outcome to no_change", "record-no-change", id="set-outcome"),
+        pytest.param("Next, notify Kent via WhatsApp.", "imperative-deliver", id="next-notify"),
+    ],
+)
+def test_fr001_form_is_flagged(line: str, pattern: str) -> None:
+    assert pattern in _flagged(line), f"{pattern} not reported for {line!r}"
+
+
+@pytest.mark.parametrize(
+    "line",
+    [
+        "Process the inbox, then notify Kent via WhatsApp.",
+        "Summarise, then notify main.",
+        "1. Collect results; then notify main.",
+    ],
+)
+def test_then_notify_with_channel_stays_flagged(line: str) -> None:
+    """Ratchet: already caught before #1146; the clause work must keep it."""
+    assert "imperative-deliver" in _flagged(line), line
+
+
+# Each FR-002 case and its positive control come from ONE template: the first
+# filling carries the exempting context, the second removes it.
+_EXEMPT_PAIRS = [
+    pytest.param(
+        "The {}automations (inbox-7am, noon) run on announce.", "cron ", "", "tool-automations",
+        id="prose-cron-automations",
+    ),
+    pytest.param(
+        "The record_result{} is never set by this agent.", " field", "", "tool-record-result",
+        id="field-mention",
+    ),
+    pytest.param(
+        "The `record_result` {} is never set by this agent.", "key", "value", "tool-record-result",
+        id="key-mention-backticked",
+    ),
+    pytest.param(
+        "The {}record_result is unused.", "field named ", "", "tool-record-result",
+        id="field-named",
+    ),
+    pytest.param(
+        'The schema lists "record_result"{} true.', ":", "", "tool-record-result",
+        id="schema-key",
+    ),
+    pytest.param("{} no_change.", "Do not record", "Record", "record-no-change", id="do-not"),
+    pytest.param("{} no_change.", "Never record", "Record", "record-no-change", id="never"),
+    pytest.param(
+        "{} a no_change result.", "Don't record", "Record", "record-no-change", id="dont"),
+    pytest.param(
+        "{} no_change.", "Don’t record", "Record", "record-no-change", id="dont-curly"),
+    pytest.param(
+        "{} **no_change**.", "You must not record", "Record", "record-no-change", id="must-not-bold"),
+    pytest.param(
+        "{} the run no_change.", "Never mark", "Mark", "record-no-change", id="never-mark"),
+    pytest.param(
+        "{} the run outcome to no_change.", "Never set", "Set", "record-no-change",
+        id="never-set-outcome",
+    ),
+    pytest.param(
+        "{} the `automations` tool.", "Never use", "Use", "tool-automations",
+        id="never-use-tool",
+    ),
+    pytest.param(
+        "- {} no_change here", "do not record", "record", "record-no-change", id="list-item"),
+    pytest.param(
+        "then notify Kent{} when finished", "", " via WhatsApp", "imperative-deliver",
+        id="then-notify-no-channel",
+    ),
+    pytest.param(
+        "Relay it to main{}.", " as your final reply", "", "imperative-deliver",
+        id="final-reply-same-clause",
+    ),
+]
+
+
+@pytest.mark.parametrize(("template", "exempting", "removed", "pattern"), _EXEMPT_PAIRS)
+def test_fr002_exempt_form_passes(
+    template: str, exempting: str, removed: str, pattern: str
+) -> None:
+    line = template.format(exempting)
+    assert _flagged(line) == set(), f"flagged: {line!r}"
+
+
+@pytest.mark.parametrize(("template", "exempting", "removed", "pattern"), _EXEMPT_PAIRS)
+def test_fr002_positive_control_is_flagged(
+    template: str, exempting: str, removed: str, pattern: str
+) -> None:
+    line = template.format(removed)
+    assert pattern in _flagged(line), f"{pattern} not reported for {line!r}"
+
+
+@pytest.mark.parametrize(
+    ("line", "pattern"),
+    [
+        pytest.param(
+            "Notify Kent via WhatsApp; include errors in your final reply.",
+            "imperative-deliver", id="semicolon",
+        ),
+        pytest.param(
+            "Relay it as your final reply; then notify Kent via WhatsApp.",
+            "imperative-deliver", id="second-clause-after-exempt-one",
+        ),
+        pytest.param(
+            "Notify Kent via WhatsApp, and include errors in your final reply.",
+            "imperative-deliver", id="comma-and",
+        ),
+        pytest.param(
+            "Send Kent the digest — errors go in your final reply.",
+            "imperative-send", id="em-dash",
+        ),
+        pytest.param(
+            "Notify Kent via WhatsApp. Put errors in your final reply.",
+            "imperative-deliver", id="sentence-end",
+        ),
+        pytest.param(
+            "| Notify Kent via WhatsApp | errors go in the final reply |",
+            "imperative-deliver", id="table-cells",
+        ),
+        pytest.param("Use the cron automations tool.", "tool-automations", id="cron-automations-tool"),
+    ],
+)
+def test_exempt_clause_does_not_cover_its_neighbour(line: str, pattern: str) -> None:
+    assert pattern in _flagged(line), f"{pattern} not reported for {line!r}"
+
+
+@pytest.mark.parametrize(
+    ("line", "pattern"),
+    [
+        ("Do not skip this: record no_change.", "record-no-change"),
+        ("Never record no_change twice; record no_change once.", "record-no-change"),
+        ("Do not forget to record no_change.", "record-no-change"),
+        ("Never fail to record no_change.", "record-no-change"),
+        ("Never record anything but no_change.", "record-no-change"),
+        ("Never record no_change unless the run is idle.", "record-no-change"),
+        ("Never record the run twice, mark it no_change.", "record-no-change"),
+        ("Don't record a total, always record no_change.", "record-no-change"),
+        ("Don't record the run as ok when it should be no_change.", "record-no-change"),
+        ("Never mark a run ok if no_change applies.", "record-no-change"),
+        ("Do not record anything and just report no_change.", "record-no-change"),
+        ("Never use the automations tool except to log.", "tool-automations"),
+        ("Do not skip this: use the automations tool.", "tool-automations"),
+        ('Never call automations({action: "list"}).', "tool-automations"),
+        ("Never forget the automations tool.", "tool-automations"),
+        ("Set the record_result field to no_change.", "tool-record-result"),
+        ("await cron automations ({action: 'list'})", "tool-automations"),
+        ("cron automations.list()", "tool-automations"),
+        ('{"record_result": "no_change"}', "tool-record-result"),
+        ("cron automations (outcome: idle)", "tool-automations"),
+    ],
+)
+def test_exemption_does_not_widen(line: str, pattern: str) -> None:
+    assert pattern in _flagged(line), f"{pattern} not reported for {line!r}"
+
+
+@pytest.mark.parametrize(
+    ("line", "pattern"),
+    [
+        pytest.param("**Record** no_change when idle.", "record-no-change", id="bold-verb"),
+        pytest.param("Mark the run **no_change**.", "record-no-change", id="bold"),
+        pytest.param("Record *no_change* when idle.", "record-no-change", id="italic"),
+        pytest.param("Record _no_change_ when idle.", "record-no-change", id="underscore-italic"),
+        pytest.param("__Mark__ the run __no_change__.", "record-no-change", id="underscore-bold"),
+        pytest.param("Record ***no_change*** when idle.", "record-no-change", id="bold-italic"),
+        pytest.param("Use the **automations** tool.", "tool-automations", id="bold-between-words"),
+        pytest.param("Use the *automations* tool.", "tool-automations", id="italic-between-words"),
+        pytest.param(
+            "Use the ***automations*** tool.", "tool-automations", id="bold-italic-between-words"),
+        pytest.param("Use the `automations` tool.", "tool-automations", id="backtick"),
+        pytest.param("catalog.search(`automations`)", "tool-automations", id="backtick-search"),
+        pytest.param("| idle | mark the run `no_change` |", "record-no-change", id="table-cell"),
+        pytest.param("Mark the run\nno_change.", "record-no-change", id="soft-wrap"),
+    ],
+)
+def test_formatting_does_not_hide_wording(line: str, pattern: str) -> None:
+    assert pattern in _flagged(line), f"{pattern} not reported for {line!r}"
+
+
+@pytest.mark.parametrize(
+    ("line", "pattern"),
+    [
+        ("Call _conversations_send_ now.", "tool-conversations"),
+        ("Call `sessions_*` now.", "tool-sessions"),
+        ("_Then use sessions_*_ now.", "tool-sessions"),
+        ("***use sessions_**.", "tool-sessions"),
+        ("**Never use conversations_***", "tool-conversations"),
+        ("__x_ record `no_change`_.", "record-no-change"),
+        ("If offered, _record_result_ it.", "tool-record-result"),
+        ("Note **send the report** now.", "imperative-send"),
+        ("Idle turn **notify Kent via WhatsApp**", "imperative-deliver"),
+    ],
+)
+def test_normalisation_keeps_identifiers_and_instruction_starts(
+    line: str, pattern: str
+) -> None:
+    """Stripping delimiters keeps identifiers whole and loses no existing catch."""
+    assert pattern in _flagged(line), f"{pattern} not reported for {line!r}"
+
+
+@pytest.mark.parametrize(
+    "benign",
+    [
+        "- Record the totals\n- status stays no_change",
+        "| Record | no_change count |",
+        "Record the totals.\n\nThe status no_change means nothing to do.",
+    ],
+)
+def test_list_cell_and_paragraph_boundaries_stop_a_match(benign: str) -> None:
+    assert _flagged(benign) == set(), benign
+
+
+def test_longer_identifier_is_not_no_change() -> None:
+    assert _flagged("Record the no_change_count in the summary.") == set()
+
+
+def test_violation_cites_the_original_line() -> None:
+    rest = "intro\n\n| a | b |\nRecord **no_change** on idle.\n"
+    problems = delivery_violations(DELIVERY_DOCTRINE_BLOCK + rest)
+    assert problems == ["record-no-change at line ~4: Record **no_change** on idle."]
+
+
+def test_one_message_per_pattern_per_clause() -> None:
+    line = "Record no_change and mark the run no_change"
+    problems = delivery_violations(DELIVERY_DOCTRINE_BLOCK + line + "\n")
+    assert len(problems) == 1, problems
+    two = delivery_violations(DELIVERY_DOCTRINE_BLOCK + "Record no_change; mark it no_change\n")
+    assert len(two) == 2, two
+
+
+# --- #1146 review round 1: soft wraps, exception context, structured values ---
+
+
+def _check(line: str, pattern: str | None) -> None:
+    """``pattern`` is reported for ``line``; ``None`` means nothing is."""
+    found = _flagged(line)
+    if pattern is None:
+        assert found == set(), f"flagged: {line!r}"
+    else:
+        assert pattern in found, f"{pattern} not reported for {line!r}"
+
+
+# Review item 1: an exception cancels the negation wherever it sits in the
+# sentence. Same fixture, with and without the exception.
+@pytest.mark.parametrize(
+    ("template", "tail", "pattern"),
+    [
+        ("Do not record no_change{}.", "", None),
+        ("Do not record no_change{}.", "\nunless the run is idle", "record-no-change"),
+        ("Do not record no_change{}.", ", but do so when idle", "record-no-change"),
+        ("Do not record no_change{}.", ";\nexcept on errors", "record-no-change"),
+        ("Do not record no_change{}.", " (e.g. after errors) unless idle", "record-no-change"),
+        ("Do not record\nno_change{}.", "", None),
+        ("Do not record\nno_change{}.", ", but\ndo so when idle", "record-no-change"),
+        ("Never use the automations tool{}.", "", None),
+        ("Never use the automations tool{}.", "\nunless asked", "tool-automations"),
+        ("Never use the automations tool{}.", ", but call it when idle", "tool-automations"),
+        ("Do not record no_change{}.", ".\nReport errors, but briefly", None),
+        ("Do not record no_change{}.", ". Except when idle", "record-no-change"),
+        ("Do not record no_change{}.", ".\nUnless the run is idle", "record-no-change"),
+        ("Do not record no_change{}.", ". Report any exception", None),
+    ],
+)
+def test_review1_negation_exception_context(template: str, tail: str, pattern: str | None) -> None:
+    _check(template.format(tail), pattern)
+
+
+# Review item 2: a soft wrap is a space; a blank line, list item, table row or
+# heading is a boundary. Same sentence, different separator.
+@pytest.mark.parametrize(
+    ("separator", "pattern"),
+    [
+        (" ", "imperative-deliver"),
+        ("\n", "imperative-deliver"),
+        ("\n  ", "imperative-deliver"),
+        ("\n\n", None),
+        ("\n- ", None),
+        ("\n2. ", None),
+        (" |\n| ", None),
+        ("\n## ", None),
+        ("\n```\n", None),
+    ],
+)
+def test_review2_soft_wrap_joins_a_paragraph_only(separator: str, pattern: str | None) -> None:
+    _check(f"Process the inbox, then notify Kent{separator}via WhatsApp.", pattern)
+
+
+@pytest.mark.parametrize(
+    ("line", "pattern"),
+    [
+        ("Notify\nKent\nvia\nWhatsApp.", "imperative-deliver"),
+        ("- Then relay the digest\n  to main.", "imperative-deliver"),
+        ("> Then notify Kent\n> via WhatsApp.", "imperative-deliver"),
+        ("Send Kent one\nWhatsApp.", "send-whatsapp"),
+        ("_Record\nno_change_ on idle.", "record-no-change"),
+        ("__Mark the\nrun__ no_change.", "record-no-change"),
+        ("_Record\nthe totals_ only.", None),
+        ("_Record\n\nno_change_ on idle.", None),
+        ("Relay it to main\nas your final reply.", None),
+        ("Relay it to main.", "imperative-deliver"),
+        ("Relay the stdout to main as your final\nreply.", None),
+        ("Runs from the cron automations (inbox-7am,\nnoon) only.", None),
+        ("Runs from the automations (inbox-7am,\nnoon) only.", "tool-automations"),
+        # An unpunctuated line that starts a new instruction keeps its own clause.
+        ("Collect the results\nSend the digest now.", "imperative-send"),
+        ("Return it as your final reply\nSend the digest now.", "imperative-send"),
+        ("Notify Kent via WhatsApp\nRecord the rest in your final reply.", "imperative-deliver"),
+        ("Notify Kent via WhatsApp;\ninclude errors in your final reply.", "imperative-deliver"),
+    ],
+)
+def test_review2_wrapped_wording(line: str, pattern: str | None) -> None:
+    _check(line, pattern)
+
+
+def test_review2_cites_the_line_where_the_match_starts() -> None:
+    rest = "intro\n\nProcess the inbox, then\nnotify Kent\nvia WhatsApp.\n"
+    problems = delivery_violations(DELIVERY_DOCTRINE_BLOCK + rest)
+    assert problems == ["imperative-deliver at line ~4: notify Kent"]
+
+
+# Review item 3: the whole structured value decides, however it is wrapped.
+@pytest.mark.parametrize("value", ["true", '"no_change"'])
+@pytest.mark.parametrize(
+    "template",
+    [
+        'If idle, emit {{"record_result": {}}}.',
+        'If idle, emit {{"record_result":\n{}}}.',
+        '```json\n{{\n  "record_result": true,\n\n  "outcome": {}\n}}\n```',
+        '{{"record_result": true,\n "detail": {{"outcome": {}}}}}',
+        "Set the record_result field to\n{}.",
+        "Fill the record_result field. Use {} when idle.",
+        "Fill the record_result field. Use\n{} when idle.",
+        "The record_result field\nis required.\nIt takes {}.",
+    ],
+)
+def test_review3_structured_value(template: str, value: str) -> None:
+    pattern = "tool-record-result" if "no_change" in value else None
+    _check(template.format(value), pattern)
+
+
+# Review item 4: explicit routing after a colon covers its own lead-in only.
+@pytest.mark.parametrize(
+    ("template", "after", "pattern"),
+    [
+        ("Send the digest: {}.", "it is your final reply", None),
+        ("Send the digest:\n{}.", "it is your final reply", None),
+        ("Send the digest: {}.", "as your final reply", None),
+        ("Send the digest: {}.", "put it in your final reply", None),
+        ("Send the digest: {}.", "it is urgent", "imperative-send"),
+        ("Send the digest: {}.", "it is not your final reply", "imperative-send"),
+        ("Notify Kent via WhatsApp: {}.", "include errors in your final reply", "imperative-deliver"),
+        ("Notify Kent via WhatsApp: {}.", "in your final reply say so", "imperative-deliver"),
+        ("Do not skip this: {}.", "record no_change", "record-no-change"),
+    ],
+)
+def test_review4_routing_across_a_colon(template: str, after: str, pattern: str | None) -> None:
+    _check(template.format(after), pattern)
+
+
+# --- #1146 review round 2: a new sentence on the next line keeps its own waiver ---
+
+
+# One fixture: a delivery instruction, a line end, then the words that mention the
+# final reply. A capitalised first word starts a new sentence, so the waiver does
+# not reach back; a lower-case one continues the sentence, so it does.
+@pytest.mark.parametrize(
+    ("separator", "first", "pattern"),
+    [
+        ("\n", "Include", "imperative-deliver"),
+        ("\n", "Put", "imperative-deliver"),
+        ("\n", "Return", "imperative-deliver"),
+        ("\n", "Record", "imperative-deliver"),
+        ("\n", "Any", "imperative-deliver"),
+        ("\n  ", "Record", "imperative-deliver"),
+        ("\n  ", "Include", "imperative-deliver"),
+        ("\n\t", "Include", "imperative-deliver"),
+        ("\n", '"Include', "imperative-deliver"),
+        ("\n", "(Include", "imperative-deliver"),
+        ("\n", "**Include**", "imperative-deliver"),
+        ("\n  ", "**Send** the", "imperative-deliver"),
+        ("\n", "include", None),
+        ("\n  ", "include", None),
+        ("\n", "and include", None),
+        (" and ", "Include", None),
+    ],
+)
+def test_review5_next_sentence_does_not_waive(
+    separator: str, first: str, pattern: str | None
+) -> None:
+    _check(f"Notify Kent via WhatsApp{separator}{first} errors in your final reply.", pattern)
+
+
+@pytest.mark.parametrize(
+    "line",
+    [
+        "Send the digest: it is your final reply.",
+        "Send the digest:\nIt is your final reply.",
+        "Send the digest:\n  It is your final reply.",
+        "Relay it to main\nas your final reply.",
+    ],
+)
+def test_review5_routing_still_waives(line: str) -> None:
+    _check(line, None)

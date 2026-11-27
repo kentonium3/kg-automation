@@ -277,12 +277,15 @@ Vikunja error), pass `--idempotent` so the helper skips duplicate
 
 ## 7. Daily Deduplication
 
-Before including a Level 2 alert for a task, check if a `level-2 | sent`
-comment already exists with today's date. If so, skip that task — max
-one Level 2 alert per task per calendar day.
+At most one alert per task per level per calendar day (America/New_York).
 
-Level 1 alerts follow the same rule — if `level-1 | sent` exists with
-today's date, skip.
+Decide this from the `derive_state` output (§2), which reads the per-project
+JSONL history. Do not query task comments.
+
+Skip the task when `last_event.state` is `level_sent`, `last_event.level` is
+the level you are about to send, and `last_event.date` is today in
+America/New_York. `derive_state` leaves this check to you: after a Level 2
+alert it still returns `next_eligible_level: 2`.
 
 ---
 

@@ -1,0 +1,148 @@
+schema_version: 1
+mission_id: 01M8FBH0F3XWE9X01SZWQRQM57
+mission_slug: delivery-doctrine-followups-01M8FBH0
+mission_number: 127
+friendly_name: Delivery-doctrine follow-ups (#1146)
+mission_type: software-dev
+target_branch: fix/1146-delivery-doctrine-followups
+created_at: '2026-11-27T22:19:49.342606+00:00'
+created_by:
+  kind: runtime
+  id: spec-kitty-generator
+  display: Spec Kitty Generator
+provenance:
+  kind: runtime_post_completion
+  invoked_at: '2026-11-27T22:19:49.342606+00:00'
+  policy_resolved_from:
+    enabled: <default>
+    timing: <default>
+    failure_policy: <default>
+    write_record: <default>
+    generate_proposals: <default>
+    apply_proposals: <default>
+    permissions.write_record: <default>
+    permissions.inspect_mission_artifacts: <default>
+    permissions.propose_glossary_changes: <default>
+    permissions.propose_drg_changes: <default>
+    permissions.propose_doctrine_changes: <default>
+    permissions.apply_low_risk_changes: <default>
+    permissions.apply_structural_changes: <default>
+    precedence: <default>
+    generator: <default>
+policy_source:
+  enabled: <default>
+  timing: <default>
+  failure_policy: <default>
+  write_record: <default>
+  generate_proposals: <default>
+  apply_proposals: <default>
+  permissions.write_record: <default>
+  permissions.inspect_mission_artifacts: <default>
+  permissions.propose_glossary_changes: <default>
+  permissions.propose_drg_changes: <default>
+  permissions.propose_doctrine_changes: <default>
+  permissions.apply_low_risk_changes: <default>
+  permissions.apply_structural_changes: <default>
+  precedence: <default>
+  generator: <default>
+findings_status: has_findings
+helped:
+- id: h-001
+  category: implementation
+  summary: WP02 completed without rejection cycles
+  evidence_refs:
+  - e-009
+not_helpful:
+- id: n-006
+  category: doc
+  summary: analysis-report.md records 4 finding(s)
+  evidence_refs:
+  - e-015
+  details: The analysis-report.md artifact for this mission records 4 finding(s) in its structured frontmatter. Review
+    them to understand documented issues and decisions.
+- id: n-004
+  category: process
+  summary: WP03 had 1 lane bounce(s) before approval
+  evidence_refs:
+  - e-013
+  details: WP WP03 moved backward across workflow lanes 1 time(s) outside the documented reviewer-feedback flow.
+- id: n-005
+  category: process
+  summary: WP03 required 2 --force override(s) during workflow
+  evidence_refs:
+  - e-014
+  details: WP WP03 required 2 operator-driven --force lane transition(s). Force overrides typically indicate the runtime
+    guard failed or the operator routed around it; investigate the underlying cause.
+- id: n-001
+  category: review_loop
+  summary: WP01 required 2 rejection cycle(s) before approval
+  evidence_refs:
+  - e-010
+  details: WP WP01 was sent back to an earlier lane with documented review feedback 2 time(s).
+- id: n-002
+  category: review_loop
+  summary: WP03 required 2 rejection cycle(s) before approval
+  evidence_refs:
+  - e-011
+  details: WP WP03 was sent back to an earlier lane with documented review feedback 2 time(s).
+- id: n-003
+  category: review_loop
+  summary: WP04 required 1 rejection cycle(s) before approval
+  evidence_refs:
+  - e-012
+  details: WP WP04 was sent back to an earlier lane with documented review feedback 1 time(s).
+gaps: []
+proposals: []
+evidence_refs:
+- id: e-001
+  kind: file
+  path: kitty-specs/delivery-doctrine-followups-01M8FBH0/meta.json
+- id: e-002
+  kind: file
+  path: kitty-specs/delivery-doctrine-followups-01M8FBH0/spec.md
+- id: e-003
+  kind: file
+  path: kitty-specs/delivery-doctrine-followups-01M8FBH0/plan.md
+- id: e-004
+  kind: file
+  path: kitty-specs/delivery-doctrine-followups-01M8FBH0/tasks.md
+- id: e-005
+  kind: file
+  path: kitty-specs/delivery-doctrine-followups-01M8FBH0/tasks/WP01-guard-coverage-and-retry-wording.md
+- id: e-006
+  kind: file
+  path: kitty-specs/delivery-doctrine-followups-01M8FBH0/tasks/WP02-skill-wording-and-coverage.md
+- id: e-007
+  kind: file
+  path: kitty-specs/delivery-doctrine-followups-01M8FBH0/tasks/WP03-announce-agent-tool-deny-deploy.md
+- id: e-008
+  kind: file
+  path: kitty-specs/delivery-doctrine-followups-01M8FBH0/tasks/WP04-architecture-and-runbook-docs.md
+- id: e-009
+  kind: file
+  path: kitty-specs/delivery-doctrine-followups-01M8FBH0/status.events.jsonl
+- id: e-010
+  kind: event_range
+  path: kitty-specs/delivery-doctrine-followups-01M8FBH0/status.events.jsonl
+  range: 01M8FE9FJ8T3YNZEZG3Q5YY6N5..01M8FFV37CS5EZ90SYM5KX9DCD
+- id: e-011
+  kind: event_range
+  path: kitty-specs/delivery-doctrine-followups-01M8FBH0/status.events.jsonl
+  range: 01M8FDR5MTSPK3GNGEYZHCGWZK..01M8FE8A288X09V722AQ77ZVD1
+- id: e-012
+  kind: event_range
+  path: kitty-specs/delivery-doctrine-followups-01M8FBH0/status.events.jsonl
+  range: 01M8FEZA7ME6202CFS7WCJDNKD
+- id: e-013
+  kind: event_range
+  path: kitty-specs/delivery-doctrine-followups-01M8FBH0/status.events.jsonl
+  range: 01M8FENVZMKPGQ1N2XZFTY5VK8
+- id: e-014
+  kind: event_range
+  path: kitty-specs/delivery-doctrine-followups-01M8FBH0/status.events.jsonl
+  range: 01M8FENNZ3GC0C8NSTNFTDC6TY..01M8FENVZMKPGQ1N2XZFTY5VK8
+- id: e-015
+  kind: file
+  path: kitty-specs/delivery-doctrine-followups-01M8FBH0/analysis-report.md
+generator_version: '1.0'
+provenance_history: []

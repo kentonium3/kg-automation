@@ -28,47 +28,42 @@
       },
       "workspace": "/data/services/openclaw/data"
     },
-    "list": [
-      {
-        "id": "main",
+    "entries": {
+      "main": {
         "model": "anthropic/claude-sonnet-4-6"
       },
-      {
-        "id": "felix-admin-capture",
+      "felix-admin-capture": {
         "name": "felix-admin-capture",
         "workspace": "/data/services/openclaw/inbox-agent",
         "agentDir": "/home/claude/.openclaw/agents/felix-admin-capture/agent",
         "model": "anthropic/claude-haiku-4-5"
       },
-      {
-        "id": "felix-admin-habits",
+      "felix-admin-habits": {
         "name": "felix-admin-habits",
         "workspace": "/data/services/openclaw/habits-agent",
         "agentDir": "/home/claude/.openclaw/agents/felix-admin-habits/agent",
         "model": "anthropic/claude-haiku-4-5"
       },
-      {
-        "id": "felix-admin-escalation",
+      "felix-admin-escalation": {
         "name": "felix-admin-escalation",
         "workspace": "/data/services/openclaw/escalation-agent",
         "agentDir": "/home/claude/.openclaw/agents/felix-admin-escalation/agent",
         "model": "anthropic/claude-sonnet-4-6"
       },
-      {
-        "id": "felix-admin-tasker",
+      "felix-admin-tasker": {
         "name": "felix-admin-tasker",
         "workspace": "/data/services/openclaw/tasker-agent",
         "agentDir": "/home/claude/.openclaw/agents/felix-admin-tasker/agent",
         "model": "anthropic/claude-haiku-4-5"
       },
-      {
-        "id": "felix-admin-calendar",
+      "felix-admin-calendar": {
         "name": "felix-admin-calendar",
         "workspace": "/data/services/openclaw/calendar-agent",
         "agentDir": "/home/claude/.openclaw/agents/felix-admin-calendar/agent",
         "model": "anthropic/claude-haiku-4-5"
       }
-    ]
+    },
+    "ownership": "explicit"
   },
   "tools": {
     "profile": "coding",

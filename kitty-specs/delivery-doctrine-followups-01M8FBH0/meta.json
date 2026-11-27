@@ -1,0 +1,57 @@
+{
+  "accept_commit": "b496443237c6ce2cb582911a5493170aac5799da",
+  "acceptance_history": [
+    {
+      "accept_commit": "61dc6842626422586f319167f3d1f15fd84903c9",
+      "acceptance_mode": "pr",
+      "accepted_at": "2026-11-27T22:17:42.252401+00:00",
+      "accepted_by": "kgale",
+      "accepted_from_commit": "6c71790547a56ac8af2f9fe2556dc9c1c89edce2"
+    },
+    {
+      "accept_commit": "b496443237c6ce2cb582911a5493170aac5799da",
+      "acceptance_mode": "pr",
+      "accepted_at": "2026-11-27T22:17:53.140473+00:00",
+      "accepted_by": "kgale",
+      "accepted_from_commit": "c0823984de013bd2f8e1df7fd6e32155337f4d1b"
+    }
+  ],
+  "acceptance_mode": "pr",
+  "accepted_at": "2026-11-27T22:17:53.140473+00:00",
+  "accepted_by": "kgale",
+  "accepted_from_commit": "c0823984de013bd2f8e1df7fd6e32155337f4d1b",
+  "baseline_merge_commit": "b9e63ec07b29a6541ac917626613539f22401cbc",
+  "contracts": "none",
+  "contracts_rationale": "The mission adds no external interface: it changes an internal wording guard, agent prompt and skill text, and one live config key applied through the existing deploy manifest pipeline. Verification is by unit tests and a post-merge canary, not by an interface contract.",
+  "create_return_branch": "fix/1146-delivery-doctrine-followups",
+  "created_at": "2026-11-27T20:35:38.108451+00:00",
+  "flattened": true,
+  "friendly_name": "Delivery-doctrine follow-ups (#1146)",
+  "merged_at": "2026-11-27T22:19:38.680704+00:00",
+  "merged_commit": "da0d3a1ebad8ac0a6173d53d1b0da2bc60219d6c",
+  "mid8": "01M8FBH0",
+  "mission_base_sha": "662466b75155958a46f67f2d13b0b8c8a4c3a9ca",
+  "mission_branch": "kitty/mission-delivery-doctrine-followups-01M8FBH0",
+  "mission_id": "01M8FBH0F3XWE9X01SZWQRQM57",
+  "mission_number": 127,
+  "mission_slug": "delivery-doctrine-followups-01M8FBH0",
+  "mission_type": "software-dev",
+  "pr_bound": true,
+  "purpose_context": "Felix's scheduled announce agents (capture, escalation, habits) must deliver only through their final reply. The #1143 fix shipped that rule as prompt doctrine plus a wording guard. Its pre-merge reviews left the guard with false negatives and false positives, a retry rule that can drop a load-bearing helper silently, stale skill wording, and the tools themselves still enabled. This mission closes all six #1146 items so the rule is enforced both in the wording and in the tool policy.",
+  "purpose_tldr": "Close the delivery-doctrine guard and wording gaps left by #1143, and remove the forbidden send and record tools from Felix's announce agents.",
+  "slug": "delivery-doctrine-followups-01M8FBH0",
+  "status_phase": "1",
+  "target_branch": "fix/1146-delivery-doctrine-followups",
+  "topology_decision": {
+    "code_lane_count": 3,
+    "from": "single_branch",
+    "rule": "lanes_with_coord",
+    "target_protected": false,
+    "to": "lanes_with_coord",
+    "wp_count": 4
+  },
+  "topology_settled": true,
+  "topology_source": "default",
+  "vcs": "git",
+  "vcs_locked_at": "2026-11-27T21:02:52.036248+00:00"
+}

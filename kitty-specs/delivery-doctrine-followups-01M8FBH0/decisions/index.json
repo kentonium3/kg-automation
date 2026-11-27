@@ -1,0 +1,54 @@
+{
+  "entries": [
+    {
+      "created_at": "2026-11-27T20:36:13.442517Z",
+      "decision_id": "01M8FBJ302DJXCQPGGGP9QFTFA",
+      "final_answer": "Yes, deny conversations_*, sessions_*, message and automations",
+      "input_key": "tool_policy_deny_set",
+      "mission_id": "01M8FBH0F3XWE9X01SZWQRQM57",
+      "mission_slug": "delivery-doctrine-followups-01M8FBH0",
+      "opened_by": "cli",
+      "options": [
+        "Yes, deny conversations_*, sessions_*, message and automations",
+        "No, only conversations_* and automations",
+        "Other"
+      ],
+      "origin_flow": "specify",
+      "other_answer": false,
+      "question": "Should the announce agents' tool policy also deny sessions_* and message, in addition to conversations_* and automations? (Asked in chat before create, 2026-11-27.)",
+      "rationale": null,
+      "resolved_at": "2026-11-27T20:36:14.848249Z",
+      "resolved_by": null,
+      "slot_key": "specify.tool-policy.deny-set",
+      "status": "resolved",
+      "step_id": null,
+      "summary_json": null
+    },
+    {
+      "created_at": "2026-11-27T20:48:37.916379Z",
+      "decision_id": "01M8FC8T0WYHWPQ9MW7XHJWFYA",
+      "final_answer": "Agreed on all (Kent, 2026-11-27)",
+      "input_key": "engineering_alignment",
+      "mission_id": "01M8FBH0F3XWE9X01SZWQRQM57",
+      "mission_slug": "delivery-doctrine-followups-01M8FBH0",
+      "opened_by": "cli",
+      "options": [
+        "Agreed on all",
+        "Change something",
+        "Other"
+      ],
+      "origin_flow": "plan",
+      "other_answer": false,
+      "question": "Confirm the Engineering Alignment for #1146: FR-005 verify-and-pin; FR-001 then-notify flagged only with a channel; record_result field exemption is context-based; plus the WP01-04 design with the new config-patch deploy entrypoint (asked in chat 2026-11-27).",
+      "rationale": null,
+      "resolved_at": "2026-11-27T20:48:39.207454Z",
+      "resolved_by": null,
+      "slot_key": "plan.alignment.engineering-alignment",
+      "status": "resolved",
+      "step_id": null,
+      "summary_json": null
+    }
+  ],
+  "mission_id": "01M8FBH0F3XWE9X01SZWQRQM57",
+  "version": 1
+}

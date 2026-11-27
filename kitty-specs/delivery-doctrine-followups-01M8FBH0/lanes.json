@@ -1,0 +1,94 @@
+{
+  "version": 1,
+  "mission_slug": "delivery-doctrine-followups-01M8FBH0",
+  "mission_id": "01M8FBH0F3XWE9X01SZWQRQM57",
+  "mission_branch": "kitty/mission-delivery-doctrine-followups-01M8FBH0",
+  "target_branch": "fix/1146-delivery-doctrine-followups",
+  "lanes": [
+    {
+      "lane_id": "lane-a",
+      "wp_ids": [
+        "WP01"
+      ],
+      "write_scope": [
+        "scripts/openclaw/agents/delivery_doctrine.py",
+        "scripts/openclaw/agents/felix-admin-capture/AGENTS.md",
+        "scripts/openclaw/agents/felix-admin-escalation/AGENTS.md",
+        "scripts/openclaw/agents/felix-admin-habits/AGENTS.md",
+        "scripts/openclaw/agents/tests/test_delivery_doctrine.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "legacy-cleanup"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    },
+    {
+      "lane_id": "lane-c",
+      "wp_ids": [
+        "WP03"
+      ],
+      "write_scope": [
+        "deploys/queued/announce-agent-tool-deny.yaml",
+        "scripts/deploy/deploy-announce-agent-tool-deny.py",
+        "scripts/deploy/lib/README.md",
+        "scripts/openclaw/agents/tests/fixtures/openclaw-sample.json",
+        "scripts/openclaw/agents/tests/test_openclaw_config_schema.py",
+        "tests/deploy/test_announce_agent_tool_deny.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "legacy-cleanup"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    },
+    {
+      "lane_id": "lane-b",
+      "wp_ids": [
+        "WP02"
+      ],
+      "write_scope": [
+        "scripts/openclaw/agents/tests/test_announce_skill_coverage.py",
+        "scripts/openclaw/skills/escalation/SKILL.md"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "legacy-cleanup",
+        "tests",
+        "tracker-integration"
+      ],
+      "depends_on_lanes": [
+        "lane-a"
+      ],
+      "parallel_group": 1
+    },
+    {
+      "lane_id": "lane-planning",
+      "wp_ids": [
+        "WP04"
+      ],
+      "write_scope": [
+        "docs/design/architecture/data/service-inventory.json",
+        "docs/design/architecture/security-posture.md",
+        "docs/design/architecture/service-inventory.md",
+        "docs/runbooks/deploy/discipline.md",
+        "docs/runbooks/openclaw-agent-setup.md"
+      ],
+      "predicted_surfaces": [
+        "planning"
+      ],
+      "depends_on_lanes": [
+        "lane-c"
+      ],
+      "parallel_group": 1
+    }
+  ],
+  "computed_at": "2026-11-27T21:01:10.768342+00:00",
+  "computed_from": "dependency_graph+ownership",
+  "planning_artifact_wps": [
+    "WP04"
+  ],
+  "planning_commit_sha": "662466b75155958a46f67f2d13b0b8c8a4c3a9ca"
+}

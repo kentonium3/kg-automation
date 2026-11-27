@@ -33,7 +33,7 @@ FIXTURE_RELATIVE = Path(
 WORKSPACE_PATTERN = re.compile(r"^/data/services/openclaw/[a-z-]+-agent$")
 AGENTDIR_PATTERN = re.compile(r"^/home/claude/\.openclaw/agents/[a-z-]+/agent$")
 
-REQUIRED_ENTRY_KEYS = ("id", "name", "workspace", "agentDir", "model")
+REQUIRED_ENTRY_KEYS = ("name", "workspace", "agentDir", "model")
 
 
 @pytest.fixture(scope="module")
@@ -45,43 +45,40 @@ def openclaw_config(repo_root: Path) -> dict[str, Any]:
 
 
 def _calendar_entry(cfg: dict[str, Any]) -> dict[str, Any]:
-    """Locate the felix-admin-calendar entry in agents.list[].
+    """Locate the felix-admin-calendar entry in agents.entries.
 
-    Raises an explicit AssertionError when the entry is absent so the
-    failure message names the missing entry rather than surfacing a
-    raw StopIteration.
+    The live shape is a keyed map, ``agents.entries.<id>`` (#1146); the id is
+    the key, not an embedded field. Raises an explicit AssertionError when the
+    entry is absent so the failure message names the missing entry.
     """
     try:
-        return next(
-            entry
-            for entry in cfg["agents"]["list"]
-            if entry.get("id") == "felix-admin-calendar"
-        )
-    except StopIteration as exc:  # pragma: no cover - exercised in RED state
+        return cfg["agents"]["entries"]["felix-admin-calendar"]
+    except KeyError as exc:  # pragma: no cover - exercised in RED state
         raise AssertionError(
-            "no felix-admin-calendar entry in agents.list[]"
+            "no felix-admin-calendar entry in agents.entries"
         ) from exc
 
 
 def test_openclaw_json_parses(openclaw_config: dict[str, Any]) -> None:
     """Fixture loads as JSON and exposes the agents block."""
     assert "agents" in openclaw_config
-    assert "list" in openclaw_config["agents"]
-    assert isinstance(openclaw_config["agents"]["list"], list)
+    assert "list" not in openclaw_config["agents"]  # stale pre-#1146 shape
+    assert isinstance(openclaw_config["agents"]["entries"], dict)
 
 
 def test_felix_admin_calendar_entry_present(
     openclaw_config: dict[str, Any],
 ) -> None:
-    """agents.list[] contains an entry with id == felix-admin-calendar."""
+    """agents.entries has a felix-admin-calendar key."""
     _calendar_entry(openclaw_config)
 
 
 def test_felix_admin_calendar_entry_complete(
     openclaw_config: dict[str, Any],
 ) -> None:
-    """The felix-admin-calendar entry exposes all 5 required keys."""
+    """The felix-admin-calendar entry exposes all 4 required keys."""
     entry = _calendar_entry(openclaw_config)
+    assert "id" not in entry  # the key is the id in the live shape
     missing = [key for key in REQUIRED_ENTRY_KEYS if not entry.get(key)]
     assert not missing, f"felix-admin-calendar entry missing keys: {missing}"
 

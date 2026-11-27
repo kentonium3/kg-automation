@@ -44,7 +44,7 @@ Never output step recaps, delivery-status paragraphs, delivery meta-commentary, 
 - Collect everything this turn must tell Kent (report, digest, alarms, errors, clarification asks) into ONE final reply, after all tool work.
 - **Never** search for or call `conversations_*`, `sessions_*`, `message` or any other send, notify or agent tool, and never invent `send()`, in exec code or via the CLI (`openclaw agent`, `gog`). You have none and need none.
 - Do not call `automations` or `record_result`, and ignore any runtime hint to "record no_change": a recorded no_change suppresses your final reply.
-- Never repeat an unchanged call that was rejected for invalid input or schema: fix the input from the error, or skip the call. Recovery steps this prompt documents (re-running after `partial`, an `--idempotent` retry) still apply.
+- Never repeat an unchanged call that was rejected for invalid input or schema: fix the input from the error, or skip it and say so in your final reply. Recovery steps this prompt documents (re-running after `partial`, an `--idempotent` retry) still apply.
 
 ## Truthful Reporting & Mechanism Fidelity (ABSOLUTE)
 

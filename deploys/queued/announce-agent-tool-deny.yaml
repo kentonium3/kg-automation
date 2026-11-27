@@ -1,0 +1,37 @@
+schema_version: v1
+name: announce-agent-tool-deny
+issue: kentonium3/kg-automation#1146
+tier: 2
+entrypoint: scripts/deploy/deploy-announce-agent-tool-deny.py
+audited_surface: true
+expected_baselines:
+- openclaw-config.txt
+verification:
+  pre:
+  - scripts/deploy/deploy-announce-agent-tool-deny.py --dry-run
+  post:
+  - scripts/deploy/deploy-announce-agent-tool-deny.py --verify
+created_at: '2026-11-27T22:00:00Z'
+created_by: claude-code-1146
+notes: '#1146 (follow-up to #1143; openclaw/openclaw#206884 is why record_result stays
+  unused). Sets agents.entries.<id>.tools.deny = [conversations_*, sessions_*, message,
+  automations] on felix-admin-capture, felix-admin-escalation and felix-admin-habits
+  only, so the delivery doctrine is enforced by capability, not wording. exec and
+  the runtime tools are untouched.
+
+
+  One Gateway-owned openclaw config patch (hot reload, no restart). The entrypoint
+  refuses a missing entry, any tools.allow/alsoAllow, or a different tools.deny; writes
+  a write-once recovery receipt and a 0600 openclaw.json copy in /data/services/felix-deployer/state/
+  first; then checks read-back, the other entries'' and top-level tools sha256, the
+  Gateway reload line and an unchanged gateway PID and start time. The snapshot gate
+  (Restic <= 24 h) is the applier''s.
+
+
+  Tier 2. expected_baselines openclaw-config.txt: the commit range changes no file
+  on that surface, so the drift has no signal of its own.
+
+
+  Rollback: if still queued, remove this file from deploys/queued/ first. Otherwise
+  run scripts/deploy/deploy-announce-agent-tool-deny.py --rollback (one scoped patch
+  from the receipt). The openclaw.json.<ts>.bak copy is the last resort only.'
