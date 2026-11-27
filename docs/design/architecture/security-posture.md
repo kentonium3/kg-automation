@@ -2,7 +2,7 @@
 title: Security Posture
 doc_type: reference
 status: approved
-tags: [152, 575]
+tags: [1146, 152, 575]
 ---
 
 # Security Posture
@@ -148,6 +148,20 @@ independent of SSH keys entirely. Termius mobile uses its own SSH ID, NOT any Ma
 noticing that distinction.
 
 **ACL changes are tracked in [ADR-0004](<./adr/0004-tailscale-ssh-with-accept-acl.md>) § Decision log.** Any future change to the tailnet `ssh` rule (action, src/dst/users) must be recorded there, as an `amendment` row. (The older `§ ACL changes log` section in that ADR is frozen history and is no longer the write target — #987.) Undocumented changes are how the #575 docs-debt accumulated.
+
+## Capability Deny for Announce Agents (#1146)
+
+The delivery doctrine (#1143) tells the three announce agents (`felix-admin-capture`,
+`-escalation`, `-habits`) never to send, route or record a result themselves: the
+Gateway delivers their final reply. Prompt wording alone is not enforcement, so live
+`openclaw.json` also sets `agents.entries.<id>.tools.deny = ["conversations_*",
+"sessions_*", "message", "automations"]` for exactly those agents. This is defence in
+depth behind the prompt: if the model ignores the doctrine, the send and automation
+tools are absent from its effective catalog. `exec` and the runtime tools are
+untouched. The `record_result` rule stays in force while
+[openclaw/openclaw#206884](https://github.com/openclaw/openclaw/issues/206884) is open.
+It is applied only through the deploy pipeline (Tier 2, manifest-driven; see
+[deploy discipline](<../../runbooks/deploy/discipline.md#editing-openclawjson-through-a-manifest>)).
 
 ## Credential Security
 

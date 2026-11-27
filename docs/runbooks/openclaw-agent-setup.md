@@ -3,9 +3,9 @@ title: OpenClaw Agent Setup
 doc_type: runbook
 status: approved
 audience: agents_and_humans
-last_updated: '2026-11-26'
+last_updated: '2026-11-27'
 last_validated: '2026-07-05'
-updated_by: '#374 + vikunja-client-and-habits-weekly-report-01KTKSFT (#561) + felix-calendar-subagent-extraction-01KTTA33 (#579) + restore-whatsapp-dm-reply-delivery-01KTVVHH (#588) + agent-runtime-env-guardrails-01KWT3GH (#658) + #1122 (smoke command scoped to ≤2026.7.x; 2026.11.7 version + selfChatMode) + #1135 (TOOLS.md retired; tool mechanics live in AGENTS.md; prompt budgets)'
+updated_by: '#1146 (announce agents: tool policy; live agents.entries shape) + #374 + vikunja-client-and-habits-weekly-report-01KTKSFT (#561) + felix-calendar-subagent-extraction-01KTTA33 (#579) + restore-whatsapp-dm-reply-delivery-01KTVVHH (#588) + agent-runtime-env-guardrails-01KWT3GH (#658) + #1122 (smoke command scoped to ≤2026.7.x; 2026.11.7 version + selfChatMode) + #1135 (TOOLS.md retired; tool mechanics live in AGENTS.md; prompt budgets)'
 revision: v1.7
 ---
 
@@ -152,6 +152,27 @@ When you add an announce agent, add it to `ANNOUNCE_AGENTS` and copy the block i
 `scripts/openclaw/agents/tests/test_delivery_doctrine.py` enforces the block and
 rejects send/ship wording outside it.
 
+### Announce agents: tool policy (#1146)
+
+An agent whose cron delivers by `announce` delivers only through its final
+reply (the delivery doctrine, #1143). Wording alone does not enforce that, so
+each announce agent also holds a capability deny in live `openclaw.json`:
+`agents.entries.<id>.tools.deny = ["conversations_*", "sessions_*", "message", "automations"]`.
+The four groups are the send, session, notify and automation tools the doctrine
+forbids; `exec` and the runtime tools stay available. It is a second layer behind
+the prompt, not a replacement (see
+[security-posture.md](<../design/architecture/security-posture.md>)).
+
+- **Set it through the deploy pipeline, never by hand.** The reference is manifest
+  `deploys/queued/announce-agent-tool-deny.yaml` and its entrypoint
+  `scripts/deploy/deploy-announce-agent-tool-deny.py`; the pattern is in
+  [deploy/discipline.md](<./deploy/discipline.md#editing-openclawjson-through-a-manifest>).
+- **A new announce agent needs both**: the doctrine block above and the deny.
+  Add the agent to the entrypoint's target list and queue a manifest; copying
+  the block alone leaves the capability open.
+- The entrypoint refuses an agent that already has `tools.allow`/`alsoAllow` or a
+  different `tools.deny`, because patched arrays replace.
+
 ### Runtime-environment guardrails (#662, corrects #658) — canonical invocation form
 
 Every command a newly-authored agent prompt emits that invokes a repo helper
@@ -228,7 +249,7 @@ conversion over waiver.
 
 ### openclaw.json agent entry
 
-Add the agent to the `agents.list` array in `~/.openclaw/openclaw.json`:
+Register the agent in `~/.openclaw/openclaw.json`. Note: the live 2026.11.7 config keys agents as a map, `agents.entries.<id>` (plus `agents.ownership`), not the `agents.list[]` array this example shows; read the live file's shape before editing, and edit through `openclaw config patch` (see the announce-agent note above), not a direct file write. Historical array form:
 
 ```json
 {
@@ -401,7 +422,7 @@ then run `python3 -m scripts.openclaw.agents.validate_workspace --json` before d
 - [ ] Workspace: put tool mechanics (paths, endpoints, API skills, date handling) in an AGENTS.md section — never a TOOLS.md (#1135); add the agent to `prompt_budgets.BUDGETS`
 - [ ] Workspace: create USER.md if agent communicates with the user (filtered view, not a full profile)
 - [ ] Validate: `python3 -m scripts.openclaw.agents.validate_workspace` passes for the new workspace
-- [ ] Config: add agent entry to `~/.openclaw/openclaw.json`
+- [ ] Config: add agent entry to `~/.openclaw/openclaw.json`; if the agent's cron delivers by `announce`, also queue the tool-deny manifest (see "Announce agents: tool policy")
 - [ ] Config: create `~/.openclaw/agents/<agent-id>/agent/` with auth-profiles.json
 - [ ] Restart: `systemctl --user restart openclaw-gateway.service`
 - [ ] Verify: `openclaw agents` shows the new agent with identity
