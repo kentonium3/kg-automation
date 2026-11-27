@@ -5,7 +5,7 @@ audience: agents_and_humans
 status: approved
 tags: [1087, 1095]
 created: 2026-10-30
-last_updated: '2026-11-20'
+last_updated: '2026-11-27'
 ---
 
 # Vikunja Release Cutover (the go packet)
@@ -17,13 +17,25 @@ rollback and service identity. Do not substitute historical values.
 The published image carries no revision label, as declared in the release record; identity rests on the pinned archive SHA256 and config digest.
 
 <a id="deploy-authority"></a>
-**Authority: one deploy go per release** (Kent, 2026-11-20; #1115). Agent host
-steps and ingress are executed by the Claude session, through
-`ssh office2-claude`. Codex implements and tests with synthetic data locally;
-it does not read private copies or execute host steps.
+**Authority: one deploy go per release** (Kent, 2026-11-20; #1115, trigger
+changed by #1131). Agent host steps and ingress are executed by the Claude
+session, through `ssh office2-claude`. Codex implements and tests with synthetic
+data locally; it does not read private copies or execute host steps.
 
-Kent's go to deploy comes after his pre-release manual testing (vikunja-harness
-Ring 3) passes. That single go authorizes every step from here through ACCEPT,
+The release's deploy go comes from the pre-release checks (vikunja-harness
+[Ring 3 and the deploy gate](<https://github.com/kentonium3/vikunja-harness/blob/main/harness-docs/testing/qa-concentric-rings.md#ring-3-and-the-deploy-gate-harness76-2026-11-23>)).
+Both of these authorize the Office2 deploy:
+
+- an all-green automated Ring 3a report whose last line begins
+  `Deploy evidence: yes`. The run matches the mission's acceptance inventory, was
+  made on the binary inside the image being deployed, with `--sha256` set to that
+  binary's published checksum, and passes the
+  [deploy evidence check](#deploy-evidence); and
+- Kent's pass on any Ring 3b checks that inventory lists. The same last line
+  names the checks still needing it.
+
+A red or refused report, or one whose last line begins `Deploy evidence: no`,
+authorizes nothing. That single go covers every step from here through ACCEPT,
 and the Claude session runs them without asking again:
 
 - check (i), ingress and the STAGE PR merge;
@@ -57,6 +69,8 @@ derive their identities from the reviewed release record.
 
 **Agent**, before PR1:
 
+- Pass the [deploy evidence check](#deploy-evidence) below before any later
+  step.
 - Confirm the release acceptance and release CI, candidate review and exact
   candidate commit. Check current archive bytes, hash and size against the
   published download and the record; old custody evidence is insufficient.
@@ -75,6 +89,121 @@ derive their identities from the reviewed release record.
   path and SHA256. The baseline records exact migrations (including
   `SCHEMA_INIT`), previous version/config and pre/target schema identities.
   No fixed migration-count check or completed repeat conversion is rerun.
+
+<a id="deploy-evidence"></a>
+### 1a. Deploy evidence check (Agent)
+
+Run this on office4, from the root of the reviewed candidate checkout, before
+check (i) and ingress. Three sha256 values must be equal: the binary in the
+report, `image.embedded_binary_sha256` in the release's `provenance.json`, and
+`/app/vikunja/vikunja` in the Docker archive that `release.json` names. A report
+made on the release ZIP does not pass: its binary is a separate build.
+
+Use a clean, current `vikunja-harness` checkout. Set `SET` to the check-set
+directory name and `MISSION` to the mission slug of the acceptance inventory.
+Run the three blocks in one shell. Any non-zero exit stops the run before check
+(i) and is reported to Kent.
+
+Fetch the published record, then extract and hash the image binary. The archive
+is read directly; nothing is loaded into Docker.
+
+```bash
+set -euo pipefail
+REC=services/vikunja/release.json
+V=$(jq -r .release_version "$REC")
+mkdir -p "$HOME/.local/state/vikunja-ring3a/deploy"
+EVIDENCE=$(mktemp -d "$HOME/.local/state/vikunja-ring3a/deploy/$V-XXXXXX")
+gh release download "$V" --repo kentonium3/vikunja \
+  --pattern SHA256SUMS --pattern provenance.json --dir "$EVIDENCE"
+(cd "$EVIDENCE" && grep -E '  provenance\.json$' SHA256SUMS | sha256sum -c -)
+grep -Fx "$(jq -r .archive.sha256 "$REC")  vikunja-$V-docker-linux-amd64.tar.gz" \
+  "$EVIDENCE/SHA256SUMS"
+python3 -I - "$EVIDENCE" <<'EXTRACT'
+import hashlib
+import io
+import json
+import os
+from pathlib import Path, PurePosixPath
+import posixpath
+import sys
+import tarfile
+
+evidence = Path(sys.argv[1])
+rec = json.loads(Path("services/vikunja/release.json").read_text())
+prov = json.loads((evidence / "provenance.json").read_text())
+archive = Path(rec["roots"]["office4_sources"]["archive"])
+if (prov["version"], prov["image"]["config_digest"]) != (
+        rec["release_version"], rec["image"]["config_digest"]):
+    raise SystemExit("EVIDENCE_PROVENANCE_MISMATCH")
+
+# Refuse any layer content that could hide or replace the binary: a path that is
+# not canonical, a whiteout over it, an entry beneath a non-directory (a file or
+# link that replaces a parent), or anything but exactly one plain copy.
+hides = {".wh..wh..opq", ".wh.app", "app/.wh..wh..opq", "app/.wh.vikunja",
+         "app/vikunja/.wh..wh..opq", "app/vikunja/.wh.vikunja"}
+found, names, nondirs = [], set(), set()
+# Open once: the parser reads the same handle that was hashed.
+with archive.open("rb") as stream:
+    if hashlib.file_digest(stream, "sha256").hexdigest() != rec["archive"]["sha256"]:
+        raise SystemExit("EVIDENCE_ARCHIVE_MISMATCH")
+    stream.seek(0)
+    with tarfile.open(fileobj=stream, mode="r:*") as outer:
+        manifest = json.load(outer.extractfile("manifest.json"))
+        if len(manifest) != 1:
+            raise SystemExit("EVIDENCE_IMAGE_AMBIGUOUS")
+        for layer in manifest[0]["Layers"]:
+            with tarfile.open(fileobj=io.BytesIO(outer.extractfile(layer).read())) as inner:
+                for member in inner:
+                    name = member.name
+                    if (name.startswith("/") or ".." in name.split("/")
+                            or posixpath.normpath(name) != name):
+                        raise SystemExit("EVIDENCE_PATH_NOT_CANONICAL")
+                    if name in hides:
+                        raise SystemExit("EVIDENCE_BINARY_AMBIGUOUS")
+                    names.add(name)
+                    if not member.isdir():
+                        nondirs.add(name)
+                    if name == "app/vikunja/vikunja":
+                        found.append(
+                            inner.extractfile(member).read() if member.isfile() else None)
+if any(str(parent) in nondirs for name in names for parent in PurePosixPath(name).parents):
+    raise SystemExit("EVIDENCE_BINARY_AMBIGUOUS")
+if len(found) != 1 or found[0] is None:
+    raise SystemExit("EVIDENCE_BINARY_AMBIGUOUS")
+if hashlib.sha256(found[0]).hexdigest() != prov["image"]["embedded_binary_sha256"]:
+    raise SystemExit("EVIDENCE_BINARY_MISMATCH")
+target = os.open(evidence / "vikunja", os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o700)
+with os.fdopen(target, "wb") as stream:
+    stream.write(found[0])
+print("EVIDENCE_BINARY_EXTRACTED")
+EXTRACT
+```
+
+Run Ring 3a on that file:
+
+```bash
+H=$HOME/repos/vikunja-harness/harness-docs/testing/ring3a
+python3 -I -B "$H/ring3a.py" prepare --tag "$V"
+python3 -I -B "$H/ring3a.py" run --binary "$EVIDENCE/vikunja" \
+  --sha256 "$(jq -r .image.embedded_binary_sha256 "$EVIDENCE/provenance.json")" \
+  --checks "$H/checks/${SET:?}" \
+  --frontend "$HOME/.local/state/vikunja-ring3a/frontend-$V" \
+  --inventory "$H/inventories/${MISSION:?}.json" --out "$EVIDENCE/run"
+```
+
+Match the report to the published record and the extracted file:
+
+```bash
+BIN=$(jq -r .binary.sha256 "$EVIDENCE/run/report.json")
+test "$BIN" = "$(jq -r .image.embedded_binary_sha256 "$EVIDENCE/provenance.json")"
+test "$BIN" = "$(sha256sum "$EVIDENCE/vikunja" | cut -d' ' -f1)"
+tail -n 1 "$EVIDENCE/run/report.md" | grep '^Deploy evidence: yes '
+printf 'report=%s\nbinary_sha256=%s\n' "$EVIDENCE/run/report.md" "$BIN"
+```
+
+Record in the go packet the report path and the binary sha256 printed above, the
+report's last line, and Kent's pass on each Ring 3b check that line names. The
+deploy go is not given until every named check has passed. Retain `$EVIDENCE`.
 
 ## 2. Candidate validation before merge (Agent)
 
@@ -451,8 +580,9 @@ The durable gate receipt also remains untouched. A failure keeps writes closed.
 
 **Who runs what.** The agent runs A1–A3, B3 and B4, including this verifier.
 There is no manual acceptance step: the disposable write probe and the
-browser, login, task-list and recurrence checks are dropped, because Kent's
-pre-release manual testing covers them and production use is the test.
+browser, login, task-list and recurrence checks are dropped. Pre-release
+checking is the Ring 3a report plus any listed Ring 3b checks, and production
+use is the test.
 
 **Agent** records **ACCEPT** when A1–A3, B3, B4 and the verifier all pass. Any
 failure stops with writes closed and goes to Kent, who decides on
