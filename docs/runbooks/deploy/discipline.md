@@ -418,25 +418,31 @@ list is in [`scripts/deploy/lib/README.md`](<../../../scripts/deploy/lib/README.
   `tools.allow`, or an array the patch would clobber.
 - **Write-once recovery receipt** before the first change, kept in
   `/data/services/felix-deployer/state/`. It holds each touched key's original value
-  (absent distinct from empty) and the sorted-JSON hashes of everything untouched.
-  A retry keeps the original. A private (0600) whole-file copy is made too; it holds
-  secrets and is the last resort only.
+  (absent distinct from empty) and the sorted-JSON sha256 of the non-target agent
+  entries and of the top-level `tools`. A retry keeps the original. A private (0600)
+  whole-file copy is made too; it holds secrets and is the last resort only.
 - **Non-target hash check.** After the patch, every non-target agent entry and the
-  top-level `tools` must hash equal to their pre-patch values.
-- **Reload confirmation, not read-back alone.** Read-back proves what was persisted.
-  Hot reload is proved by the Gateway's reload acknowledgement in its journal after a
-  cursor taken before the patch (bounded wait, no "requires restart" line) plus an
-  unchanged gateway PID and start time. The entrypoint also runs an advisory
-  effective-tool-catalog check; if that preview is unavailable it reports a weaker
-  check rather than a pass.
+  top-level `tools` must hash equal to their pre-patch values. Nothing else is hashed.
+- **Reload confirmation, not read-back alone.** Read-back proves only what was
+  persisted. Two cases, kept apart:
+  - *Initial apply* proves hot reload with both: the Gateway's reload acknowledgement
+    in its journal after a cursor taken before the patch (bounded wait, no "requires
+    restart" line) AND an unchanged gateway PID and start time.
+  - *Retry* (deny already persisted, from a `confirm_persisted()` path) accepts the
+    cursor acknowledgement OR a clean effective-tool-catalog check, with no PID
+    comparison. A receipt already marked reload-verified returns immediately as a
+    no-op. A "requires restart" line, or neither confirmation, fails.
+  - The effective-catalog check is advisory on the initial apply: an unavailable
+    preview is reported as a weaker check, not a pass.
 - **Declare `expected_baselines: [openclaw-config.txt]`** with `audited_surface: true`.
   The deploy's commit range changes no file on the `openclaw-config` surface, so the
   drift has no signal of its own (see `expected_baselines` above).
-- **Scoped rollback.** If the manifest is still in `deploys/queued/`, remove it
-  first, or the deployer re-applies it. Otherwise run the entrypoint with
-  `--rollback`: one scoped Gateway patch restoring only the touched keys from the
-  receipt. Restoring the whole-file copy is the last resort, because it can overwrite
-  unrelated later config.
+- **Scoped rollback, in this order.** (1) If the manifest is still in
+  `deploys/queued/`, remove it first, or the deployer re-applies it. (2) Then, if any
+  change landed (a failed apply can leave both a queued manifest and persisted
+  changes), run the entrypoint with `--rollback`: one scoped Gateway patch restoring
+  only the touched keys from the receipt. (3) Restoring the whole-file copy is the
+  last resort only, because it can overwrite unrelated later config.
 
 The entrypoint's modes are `--dry-run`, `--apply`, `--verify` (read-only) and
 `--rollback`.

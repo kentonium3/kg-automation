@@ -90,7 +90,7 @@ deploy. (This is why many helper-only missions correctly ship with **no**
 | Helper scripts under `scripts/**` | **self-pull** (live from the checkout) | none — the merge is the deploy |
 | OpenClaw cron jobs | **felix-deployer** manifest | `deploys/applied/<NNNN>-*.yaml` |
 | Systemd user units / drop-ins | **felix-deployer** manifest | `deploys/applied/<NNNN>-*.yaml` |
-| Service config, venvs, office2-path installs | **felix-deployer** manifest (openclaw.json config may be a manual Tier-2 out-of-band change) | `deploys/applied/…` (or the out-of-band exception) |
+| Service config, venvs, office2-path installs | **felix-deployer** manifest (`openclaw.json` edits ride a manifest entrypoint that uses the Gateway-owned `openclaw config patch`; see [Editing openclaw.json through a manifest](<./discipline.md#editing-openclawjson-through-a-manifest>); a direct file edit is an out-of-band exception) | `deploys/applied/…` (or the out-of-band exception) |
 | The deploy library `scripts/deploy/lib/**` + manifests | **felix-deployer** (self-hosting), via a **controlled bootstrap** when the change *is* the pull path (#667) | `deploys/applied/…` (`apply_mode: bootstrap` for the chicken-and-egg case) |
 | First install of the sync/deployer units themselves | **operator one-time / bootstrap** — neither running mechanism | bootstrap record |
 

@@ -29,7 +29,7 @@
         "scripts/openclaw/openclaw.*.json"
       ],
       "affected_baselines": ["openclaw-config.txt", "openclaw-cron.txt"],
-      "deploy_path": "manual (openclaw config edits land on office2 via direct edit or deploy script)",
+      "deploy_path": "felix-deployer manifest entrypoint using the Gateway-owned `openclaw config patch` (pattern: docs/runbooks/deploy/discipline.md, Editing openclaw.json through a manifest; reference scripts/deploy/deploy-announce-agent-tool-deny.py); a direct file edit is an out-of-band exception",
       "rebaseline_required": true
     },
     {
